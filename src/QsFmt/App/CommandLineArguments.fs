@@ -13,7 +13,6 @@ open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
 [<Verb("format", HelpText = "Format the source code in input files.", Hidden = true)>]
 type FormatArguments =
     {
-
         [<Option('b', "backup", HelpText = "Option to create backup files of input files.")>]
         Backup: bool
         [<Option('r', "recurse", SetName = "INPUT_FILES", HelpText = "Option to process input folders recursively.")>]
@@ -70,7 +69,6 @@ type FormatArguments =
 [<Verb("update", HelpText = "Updates depreciated syntax in the input files.")>]
 type UpdateArguments =
     {
-
         [<Option('b', "backup", HelpText = "Option to create backup files of input files.")>]
         Backup: bool
         [<Option('r', "recurse", SetName = "INPUT_FILES", HelpText = "Option to process input folders recursively.")>]
@@ -124,9 +122,66 @@ type UpdateArguments =
                 )
         }
 
+[<Verb("update-and-format", HelpText = "Updates depreciated syntax in the input files and formats them.", Hidden = true)>]
+type UpdateAndFormatArguments =
+    {
+        [<Option('b', "backup", HelpText = "Option to create backup files of input files.")>]
+        Backup: bool
+        [<Option('r', "recurse", SetName = "INPUT_FILES", HelpText = "Option to process input folders recursively.")>]
+        Recurse: bool
+        [<Option("qsharp-version", SetName = "INPUT_FILES", HelpText = "Option to provide a Q# version to the tool.")>]
+        QdkVersion: string
+        [<Option('i',
+                 "input",
+                 SetName = "INPUT_FILES",
+                 Required = true,
+                 Min = 1,
+                 HelpText = "Files or folders to update and format.")>]
+        InputFiles: string seq
+        [<Option('p',
+                 "project",
+                 SetName = "PROJ_FILE",
+                 Required = true,
+                 HelpText = "The project file for the project to update and format.")>]
+        ProjectFile: string
+    }
+
+    [<Usage(ApplicationAlias = "qsfmt")>]
+    static member examples =
+        seq {
+            yield
+                Example(
+                    "Updates and formats the source code in input files",
+                    {
+                        Backup = false
+                        Recurse = false
+                        InputFiles =
+                            seq {
+                                Path.Combine("Path", "To", "My", "File1.qs")
+                                Path.Combine("Path", "To", "My", "File2.qs")
+                            }
+                        ProjectFile = null
+                        QdkVersion = null
+                    }
+                )
+
+            yield
+                Example(
+                    "Updates and formats the source code in project",
+                    {
+                        Backup = false
+                        Recurse = false
+                        InputFiles = Seq.empty
+                        ProjectFile = Path.Combine("Path", "To", "My", "Project.csproj")
+                        QdkVersion = null
+                    }
+                )
+        }
+
 type CommandKind =
     | Update
     | Format
+    | UpdateAndFormat
 
 type Arguments =
     {

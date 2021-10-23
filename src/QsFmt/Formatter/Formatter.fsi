@@ -15,6 +15,10 @@ val format: Version option -> string -> Result<string, SyntaxError list>
 [<CompiledName "Update">]
 val update: string -> Version option -> string -> Result<string, SyntaxError list>
 
+/// Updates deprecated syntax in the given source code and formats it.
+[<CompiledName "UpdateAndFormat">]
+val updateAndFormat: string -> Version option -> string -> Result<string, SyntaxError list>
+
 /// Parses then un-parses the given Q# source code without formatting.
 [<CompiledName "Identity">]
 val identity: string -> Result<string, SyntaxError list>

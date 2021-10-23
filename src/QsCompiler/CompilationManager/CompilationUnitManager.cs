@@ -795,7 +795,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         public TextEdit[]? Formatting(TextDocumentIdentifier? textDocument, bool format = true, bool update = true, int timeout = 3000)
         {
-            if (!update && !format)
+            var verb =
+                update && format ? "update-and-format" :
+                update ? "update" :
+                format ? "format" :
+                null;
+
+            if (verb == null)
             {
                 return null;
             }
@@ -807,28 +813,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 File.WriteAllText(tempFile, currentContent);
 
                 var qsfmtPath = Path.Combine(this.sdkPath, "tools", "qsfmt", "qsfmt.dll");
-                var updateArgs = $"{qsfmtPath} update --input {tempFile}";
-                var formatArgs = $"{qsfmtPath} format --input {tempFile}";
+                var commandArgs = $"{qsfmtPath} {verb} --input {tempFile}";
 
-                // TODO: We should have a verb format-and-update
-                (Exception? ex1, Exception? ex2) = (null, null);
-                var updatingSucceeded = update
-                    && ProcessRunner.Run("dotnet", updateArgs, out var _, out var _, out var exitCode, out ex1, timeout: timeout)
-                    && exitCode == 0 && ex1 == null;
-                var formattingSucceeded = format
-                    && ProcessRunner.Run("dotnet", formatArgs, out var _, out var _, out exitCode, out ex2, timeout: timeout)
-                    && exitCode == 0 && ex2 == null;
+                var succeeded =
+                    ProcessRunner.Run("dotnet", commandArgs, out var _, out var _, out var exitCode, out var ex, timeout: timeout)
+                    && exitCode == 0 && ex == null;
 
-                if ((!update || updatingSucceeded) && (!format || formattingSucceeded))
+                if (succeeded)
                 {
                     var range = DataTypes.Range.Create(DataTypes.Position.Zero, file.End());
                     var edit = new TextEdit { Range = range.ToLsp(), NewText = File.ReadAllText(tempFile) };
                     File.Delete(tempFile);
                     return new[] { edit };
                 }
-                else if (Directory.Exists(qsfmtPath) && (ex1 != null || ex2 != null))
+                else if (Directory.Exists(qsfmtPath) && ex != null)
                 {
-                    this.LogException(ex1 ?? ex2 ?? new Exception($"Failed to format and/or update file."));
+                    this.LogException(ex);
                 }
 
                 return null;

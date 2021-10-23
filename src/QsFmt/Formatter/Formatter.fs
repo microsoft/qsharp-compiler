@@ -35,6 +35,22 @@ let parse (source: string) =
 
 let simpleRule (rule: unit Rewriter) = curry rule.Document ()
 
+/// <summary>
+/// Tests whether there is data loss during parsing and unparsing.
+/// Raises and ecception if the unparsing result does not match the original source
+/// </summary>
+let checkParsed source parsed =
+    let unparsed = printer.Document parsed
+    if unparsed <> source then
+        failwith (
+            "The formatter's syntax tree is inconsistent with the input source code or unparsed wrongly. "
+            + "Please let us know by filing a new issue in https://github.com/microsoft/qsharp-compiler/issues/new/choose."
+            + "The unparsed code is: \n"
+            + unparsed
+        )
+    parsed
+
+
 let versionToFormatRules (version: Version option) =
     let rules =
         match version with
@@ -52,25 +68,15 @@ let versionToFormatRules (version: Version option) =
 
     rules |> List.fold (>>) id
 
+let internal formatParsed qsharp_version parsed =
+    parsed |> Result.map (versionToFormatRules qsharp_version)
+
 [<CompiledName "Format">]
 let format qsharp_version source =
-    let formatDocument document =
-        let unparsed = printer.Document document
-
-        // Test whether there is data loss during parsing and unparsing
-        if unparsed = source then
-            // The actual format process
-            document |> versionToFormatRules qsharp_version |> printer.Document
-        // Report error if the unparsing result does not match the original source
-        else
-            failwith (
-                "The formatter's syntax tree is inconsistent with the input source code or unparsed wrongly. "
-                + "Please let us know by filing a new issue in https://github.com/microsoft/qsharp-compiler/issues/new/choose."
-                + "The unparsed code is: \n"
-                + unparsed
-            )
-
-    parse source |> Result.map formatDocument
+    parse source
+    |> Result.map (checkParsed source)
+    |> (formatParsed qsharp_version)
+    |> Result.map printer.Document
 
 let versionToUpdateRules (version: Version option) =
     let rules =
@@ -89,8 +95,7 @@ let versionToUpdateRules (version: Version option) =
 
     rules |> List.fold (>>) id
 
-[<CompiledName "Update">]
-let update fileName qsharp_version source =
+let internal updateParsed fileName qsharp_version parsed =
     let updateDocument document =
 
         let updatedDocument = versionToUpdateRules qsharp_version document
@@ -102,12 +107,25 @@ let update fileName qsharp_version source =
             | None
             | Some _ -> updatedDocument |> checkArraySyntax fileName
 
-        let printedDocument = updatedDocument |> printer.Document
-
         warningList |> List.iter (eprintfn "%s")
-        printedDocument
+        updatedDocument
 
-    parse source |> Result.map updateDocument
+    parsed |> Result.map updateDocument
+
+[<CompiledName "Update">]
+let update fileName qsharp_version source =
+    parse source
+    |> Result.map (checkParsed source)
+    |> updateParsed fileName qsharp_version
+    |> Result.map printer.Document
+
+[<CompiledName "UpdateAndFormat">]
+let updateAndFormat fileName qsharp_version source =
+    parse source
+    |> Result.map (checkParsed source)
+    |> updateParsed fileName qsharp_version
+    |> formatParsed qsharp_version
+    |> Result.map printer.Document
 
 [<CompiledName "Identity">]
 let identity source =
