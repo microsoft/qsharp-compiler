@@ -38,7 +38,7 @@ type CallableDeclaration =
         CharacteristicSection: CharacteristicSection option
         Body: CallableBody
     }
-    
+
 type NamespaceItem =
     | CallableDeclaration of CallableDeclaration
     | Unknown of Terminal
@@ -48,8 +48,9 @@ module NamespaceItem =
         function
         | CallableDeclaration callable ->
             { callable with
-                CallableKeyword = Terminal.mapPrefix mapper callable.CallableKeyword;
-                Attributes = callable.Attributes |> List.map (Attribute.mapPrefix mapper)}
+                CallableKeyword = Terminal.mapPrefix mapper callable.CallableKeyword
+                Attributes = callable.Attributes |> List.map (Attribute.mapPrefix mapper)
+            }
             |> CallableDeclaration
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown
 

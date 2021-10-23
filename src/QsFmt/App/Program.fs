@@ -114,7 +114,8 @@ let main args =
 
     assemblyLoadContextSetup ()
 
-    let result = CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments, UpdateAndFormatArguments> args
+    let result =
+        CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments, UpdateAndFormatArguments> args
 
     result.MapResult(
         (fun (options: FormatArguments) -> options |> runFormat),

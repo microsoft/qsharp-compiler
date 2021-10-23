@@ -147,17 +147,19 @@ let private run args input =
         Console.SetOut previousOutput
         Console.SetError previousError
 
-let private runWithFiles (commandKind : CommandKind) files standardInput expectedOutput args =
+let private runWithFiles (commandKind: CommandKind) files standardInput expectedOutput args =
     try
         Assert.Equal(expectedOutput, run args standardInput)
 
         for file in files do
             let after = File.ReadAllText file.Path |> standardizeNewLines
-            let expected = 
+
+            let expected =
                 match commandKind with
                 | Format -> file.Formatted
                 | Update -> file.Updated
                 | UpdateAndFormat -> file.UpdatedAndFormatted
+
             Assert.Equal(expected, after)
     finally
         for file in files do
@@ -221,7 +223,18 @@ let ``Input directories`` () =
 
     runWithFiles Format files "" CleanResult [| "format"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
     runWithFiles Update files "" CleanResult [| "update"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
-    runWithFiles UpdateAndFormat files "" CleanResult [| "update-and-format"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
+
+    runWithFiles
+        UpdateAndFormat
+        files
+        ""
+        CleanResult
+        [|
+            "update-and-format"
+            "-i"
+            "Examples\\SubExamples1"
+            "Examples\\SubExamples2"
+        |]
 
 [<Fact>]
 let ``Input directories with files`` () =
@@ -229,7 +242,13 @@ let ``Input directories with files`` () =
 
     runWithFiles Format files "" CleanResult [| "format"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
     runWithFiles Update files "" CleanResult [| "update"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
-    runWithFiles UpdateAndFormat files "" CleanResult [| "update-and-format"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
+
+    runWithFiles
+        UpdateAndFormat
+        files
+        ""
+        CleanResult
+        [| "update-and-format"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
 
 [<Fact>]
 let ``Input directories with recursive flag`` () =
@@ -309,6 +328,7 @@ This input has already been processed: Examples\Example1.qs
 "
                 |> standardizeNewLines
         }
+
     let args verb =
         [|
             verb
@@ -318,6 +338,7 @@ This input has already been processed: Examples\Example1.qs
             SubExample1.Path
             Example1.Path
         |]
+
     args "format" |> runWithFiles Format files "" outputResult
     args "update" |> runWithFiles Update files "" outputResult
     args "update-and-format" |> runWithFiles UpdateAndFormat files "" outputResult
