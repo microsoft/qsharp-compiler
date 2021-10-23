@@ -50,11 +50,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<string> IdNamespaceSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation, out string? idName)
         {
-            var variables = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedVariables;
-            idName = variables != null && variables.Any() ? variables.Single().Symbol.AsDeclarationName(null) : null;
-            return idName != null && compilation != null
-                ? compilation.GlobalSymbols.NamespacesContainingCallable(idName)
-                : ImmutableArray<string>.Empty;
+            var variable = SymbolInfo.SymbolOccurrence(file, pos, true)?.AsUsedVariable;
+            idName = variable?.Symbol.AsDeclarationName(null);
+            return idName is null
+                ? ImmutableArray<string>.Empty
+                : compilation.GlobalSymbols.NamespacesContainingCallable(idName);
         }
 
         /// <summary>
@@ -69,13 +69,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<string> TypeNamespaceSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation, out string? typeName)
         {
-            var types = file?.TryGetQsSymbolInfo(pos, true, out CodeFragment _)?.UsedTypes;
-            typeName = types != null && types.Any() &&
-                types.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt
-                ? udt.Item.Symbol.AsDeclarationName(null) : null;
-            return typeName != null && compilation != null
-                ? compilation.GlobalSymbols.NamespacesContainingType(typeName)
-                : ImmutableArray<string>.Empty;
+            var type = SymbolInfo.SymbolOccurrence(file, pos, true)?.AsUsedType;
+            typeName = type?.Type is QsTypeKind.UserDefinedType udt ? udt.Item.Symbol.AsDeclarationName(null) : null;
+            return typeName is null
+                ? ImmutableArray<string>.Empty
+                : compilation.GlobalSymbols.NamespacesContainingType(typeName);
         }
 
         /// <summary>
@@ -93,7 +91,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 where otherName != name && otherName.Equals(name, StringComparison.OrdinalIgnoreCase)
                 select otherName;
 
-            var symbolKind = file.TryGetQsSymbolInfo(pos, true, out _)?.UsedVariables?.SingleOrDefault()?.Symbol;
+            var symbolKind = SymbolInfo.SymbolOccurrence(file, pos, true)?.AsUsedVariable?.Symbol;
             return symbolKind.AsDeclarationName(null)?.Apply(AlternateNames) ?? Enumerable.Empty<string>();
         }
 
@@ -112,7 +110,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 where otherName != name && otherName.Equals(name, StringComparison.OrdinalIgnoreCase)
                 select otherName;
 
-            var typeKind = file.TryGetQsSymbolInfo(pos, true, out _)?.UsedTypes?.SingleOrDefault()?.Type;
+            var typeKind = SymbolInfo.SymbolOccurrence(file, pos, true)?.AsUsedType?.Type;
             var udt = typeKind as QsTypeKind.UserDefinedType;
             return udt?.Item.Symbol.AsDeclarationName(null)?.Apply(AlternateNames) ?? Enumerable.Empty<string>();
         }

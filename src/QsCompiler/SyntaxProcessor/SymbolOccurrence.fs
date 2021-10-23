@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
 
+open System
 open System.Collections.Immutable
+open System.Diagnostics.CodeAnalysis
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
@@ -152,3 +154,42 @@ module SymbolOccurrence =
         | WithinBlockIntro
         | ApplyBlockIntro
         | InvalidFragment -> []
+
+// C# interoperability.
+type SymbolOccurrence with
+    member occurrence.Match
+        (
+            declaration: Func<QsSymbol, 'a>,
+            usedType: Func<QsType, 'a>,
+            usedVariable: Func<QsSymbol, 'a>,
+            usedLiteral: Func<QsExpression, 'a>
+        ) =
+        match occurrence with
+        | Declaration s -> declaration.Invoke s
+        | UsedType t -> usedType.Invoke t
+        | UsedVariable s -> usedVariable.Invoke s
+        | UsedLiteral e -> usedLiteral.Invoke e
+
+    [<MaybeNull>]
+    member occurrence.AsDeclaration =
+        match occurrence with
+        | Declaration s -> s
+        | _ -> Unchecked.defaultof<QsSymbol>
+
+    [<MaybeNull>]
+    member occurrence.AsUsedType =
+        match occurrence with
+        | UsedType t -> t
+        | _ -> Unchecked.defaultof<QsType>
+
+    [<MaybeNull>]
+    member occurrence.AsUsedVariable =
+        match occurrence with
+        | UsedVariable s -> s
+        | _ -> Unchecked.defaultof<QsSymbol>
+
+    [<MaybeNull>]
+    member occurrence.AsUsedLiteral =
+        match occurrence with
+        | UsedLiteral e -> e
+        | _ -> Unchecked.defaultof<QsExpression>

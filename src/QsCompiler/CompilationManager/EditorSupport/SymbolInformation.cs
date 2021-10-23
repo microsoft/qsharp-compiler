@@ -6,18 +6,19 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
-using QsSymbolInfo = Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxExtensions.SymbolInformation;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
+    using QsTypeKind = QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>;
+
     /// <summary>
     /// This static class contains utils for getting the necessary information for editor commands.
     /// </summary>
@@ -71,55 +72,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() },
             });
 
-        /// <summary>
-        /// If an overlapping code fragment exists, returns all symbol declarations, variable, Q# types, and Q# literals
-        /// that *overlap* with <paramref name="position"/> as a <see cref="QsSymbolInfo"/>.
-        /// </summary>
-        /// <param name="fragment">
-        /// The code fragment that overlaps with <paramref name="position"/> in <paramref name="file"/>,
-        /// or null if no such fragment exists.
-        /// </param>
-        /// <remarks>
-        /// Returns null if no such fragment exists, or <paramref name="file"/> and/or <paramref name="position"/>
-        /// is null, or <paramref name="position"/> is invalid.
-        /// </remarks>
-        internal static QsSymbolInfo? TryGetQsSymbolInfo(
-            this FileContentManager file,
-            Position? position,
-            bool includeEnd,
-            out CodeFragment? fragment)
+        internal static SymbolOccurrence? SymbolOccurrence(FileContentManager file, Position position, bool includeEnd)
         {
-            // getting the relevant token (if any)
-            fragment = file?.TryGetFragmentAt(position, out _, includeEnd);
-            if (fragment?.Kind == null)
-            {
-                return null;
-            }
+            var fragment = file.TryGetFragmentAt(position, out _, includeEnd);
+            return fragment?.Kind is null
+                ? null
+                : SymbolOccurrenceModule.InFragment(fragment.Kind).SingleOrDefault(OccurrenceOverlaps);
 
-            var fragmentStart = fragment.Range.Start;
+            bool OccurrenceOverlaps(SymbolOccurrence occurrence) => occurrence.Match(
+                declaration: s => RangeOverlaps(s.Range),
+                usedType: t => RangeOverlaps(t.Range),
+                usedVariable: s => RangeOverlaps(s.Range),
+                usedLiteral: e => RangeOverlaps(e.Range));
 
-            // getting the symbol information (if any), and return the overlapping items only
-            bool OverlapsWithPosition(Range symRange)
+            bool RangeOverlaps(QsNullable<Range> range)
             {
-                var absolute = fragmentStart + symRange;
+                if (range.IsNull)
+                {
+                    return false;
+                }
+
+                var absolute = fragment.Range.Start + range.Item;
                 return includeEnd ? absolute.ContainsEnd(position) : absolute.Contains(position);
             }
-
-            var symbolInfo = fragment.Kind.SymbolInformation();
-            var overlappingDecl = symbolInfo.DeclaredSymbols.Where(sym => sym.Range.IsValue && OverlapsWithPosition(sym.Range.Item));
-            QsCompilerError.Verify(overlappingDecl.Count() <= 1, "more than one declaration overlaps with the same position");
-            var overlappingVariables = symbolInfo.UsedVariables.Where(sym => sym.Range.IsValue && OverlapsWithPosition(sym.Range.Item));
-            QsCompilerError.Verify(overlappingVariables.Count() <= 1, "more than one variable overlaps with the same position");
-            var overlappingTypes = symbolInfo.UsedTypes.Where(sym => sym.Range.IsValue && OverlapsWithPosition(sym.Range.Item));
-            QsCompilerError.Verify(overlappingTypes.Count() <= 1, "more than one type overlaps with the same position");
-            var overlappingLiterals = symbolInfo.UsedLiterals.Where(sym => sym.Range.IsValue && OverlapsWithPosition(sym.Range.Item));
-            QsCompilerError.Verify(overlappingTypes.Count() <= 1, "more than one literal overlaps with the same position");
-
-            return new QsSymbolInfo(
-                declaredSymbols: overlappingDecl.ToImmutableHashSet(),
-                usedVariables: overlappingVariables.ToImmutableHashSet(),
-                usedTypes: overlappingTypes.ToImmutableHashSet(),
-                usedLiterals: overlappingLiterals.ToImmutableHashSet());
         }
 
         /// <summary>
@@ -191,21 +166,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IImmutableSet<string>? limitToSourceFiles = null)
         {
             (referenceLocations, declarationLocation) = (null, null);
-            if (file == null || compilation == null)
+
+            var fragment = file.TryGetFragmentAt(position, out _, true);
+            if (fragment?.Kind is QsFragmentKind.NamespaceDeclaration)
             {
                 return false;
             }
 
-            var symbolInfo = file.TryGetQsSymbolInfo(position, true, out var fragment); // includes the end position
-            if (symbolInfo == null || fragment?.Kind is QsFragmentKind.NamespaceDeclaration)
-            {
-                return false;
-            }
-
-            var sym = symbolInfo.UsedTypes.Any()
-                && symbolInfo.UsedTypes.Single().Type is QsTypeKind<QsType, QsSymbol, QsSymbol, Characteristics>.UserDefinedType udt ? udt.Item
-                : symbolInfo.UsedVariables.Any() ? symbolInfo.UsedVariables.Single()
-                : symbolInfo.DeclaredSymbols.Any() ? symbolInfo.DeclaredSymbols.Single() : null;
+            var occurrence = SymbolOccurrence(file, position, true);
+            var sym = occurrence?.Match(
+                declaration: s => s,
+                usedType: t => t.Type is QsTypeKind.UserDefinedType udt ? udt.Item : null,
+                usedVariable: s => s,
+                usedLiteral: e => null);
             if (sym == null)
             {
                 return false;
