@@ -152,7 +152,7 @@ type internal 'context Rewriter =
     default SetStatement: context:'context * sets:SetStatement -> SetStatement
 
     /// <summary>
-    /// Rewrites a <see cref="UpdateStatement"/> statement node.
+    /// Rewrites an <see cref="UpdateStatement"/> statement node.
     /// </summary>
     abstract UpdateStatement: context:'context * updates:UpdateStatement -> UpdateStatement
     default UpdateStatement: context:'context * updates:UpdateStatement -> UpdateStatement
