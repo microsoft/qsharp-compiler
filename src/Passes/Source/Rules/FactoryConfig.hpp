@@ -27,11 +27,11 @@ namespace quantum
             config.addParameter(
                 disable_string_support_, "disable-string-support", "Disables string support by instruction removal.");
             config.addParameter(
-                optimise_branch_quantum_one_, "optimise-branch-quantum-one",
+                optimise_result_one_, "optimise-result-one",
                 "Maps branching based on quantum measurements compared to one to base profile "
                 "type measurement.");
             config.addParameter(
-                optimise_branch_quantum_zero_, "optimise-branch-quantum-zero",
+                optimise_result_zero_, "optimise-result-zero",
                 "Maps branching based on quantum measurements compared to zero to base profile "
                 "type measurement.");
             config.addParameter(
@@ -51,8 +51,8 @@ namespace quantum
             ret.disable_reference_counting_        = false;
             ret.disable_alias_counting_            = false;
             ret.disable_string_support_            = false;
-            ret.optimise_branch_quantum_one_       = false;
-            ret.optimise_branch_quantum_zero_      = false;
+            ret.optimise_result_one_               = false;
+            ret.optimise_result_zero_              = false;
             ret.use_static_qubit_array_allocation_ = false;
             ret.use_static_qubit_allocation_       = false;
             ret.use_static_result_allocation_      = false;
@@ -76,22 +76,12 @@ namespace quantum
 
         bool optimiseResultOne() const
         {
-            return optimise_branch_quantum_one_;
+            return optimise_result_one_;
         }
 
         bool optimiseResultZero() const
         {
-            return optimise_branch_quantum_zero_;
-        }
-
-        bool optimiseSelectQuantumOne() const
-        {
-            return optimise_select_quantum_one_;
-        }
-
-        bool optimiseSelectQuantumZero() const
-        {
-            return optimise_select_quantum_zero_;
+            return optimise_result_zero_;
         }
 
         bool useStaticQubitArrayAllocation() const
@@ -118,9 +108,9 @@ namespace quantum
         {
             return (
                 disable_reference_counting_ == false && disable_alias_counting_ == false &&
-                disable_string_support_ == false && optimise_branch_quantum_one_ == false &&
-                optimise_branch_quantum_zero_ == false && use_static_qubit_array_allocation_ == false &&
-                use_static_qubit_allocation_ == false && use_static_result_allocation_ == false);
+                disable_string_support_ == false && optimise_result_one_ == false && optimise_result_zero_ == false &&
+                use_static_qubit_array_allocation_ == false && use_static_qubit_allocation_ == false &&
+                use_static_result_allocation_ == false);
         }
 
         bool isDefault() const
@@ -131,8 +121,8 @@ namespace quantum
                 disable_reference_counting_ == ref.disable_reference_counting_ &&
                 disable_alias_counting_ == ref.disable_alias_counting_ &&
                 disable_string_support_ == ref.disable_string_support_ &&
-                optimise_branch_quantum_one_ == ref.optimise_branch_quantum_one_ &&
-                optimise_branch_quantum_zero_ == ref.optimise_branch_quantum_zero_ &&
+                optimise_result_one_ == ref.optimise_result_one_ &&
+                optimise_result_zero_ == ref.optimise_result_zero_ &&
                 use_static_qubit_array_allocation_ == ref.use_static_qubit_array_allocation_ &&
                 use_static_qubit_allocation_ == ref.use_static_qubit_allocation_ &&
                 use_static_result_allocation_ == ref.use_static_result_allocation_);
@@ -148,10 +138,8 @@ namespace quantum
 
         /// Optimisations
         /// @{
-        bool optimise_branch_quantum_one_{true};
-        bool optimise_branch_quantum_zero_{true};
-        bool optimise_select_quantum_one_{true};
-        bool optimise_select_quantum_zero_{true};
+        bool optimise_result_one_{true};
+        bool optimise_result_zero_{true};
         /// @}
 
         bool use_static_qubit_array_allocation_{true};
