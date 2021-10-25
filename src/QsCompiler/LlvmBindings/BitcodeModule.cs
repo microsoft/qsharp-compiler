@@ -118,27 +118,6 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
-        /// <summary>Gets or creates the <see cref="DebugInfoBuilder"/> used to create debug information for this module if there are not multiple DebugInfoBuilders used</summary>
-        /// <remarks>Throws an exception if there are already multiple DebugInfoBuilders used.</remarks>
-        public DebugInfoBuilder GetDefaultDIBuilder()
-        {
-            this.ThrowIfDisposed();
-
-            if (!this.DIBuilders.Any())
-            {
-                // Create a new DIBuilder
-                return this.CreateDIBuilder();
-            }
-            else if (this.DIBuilders.Count == 1)
-            {
-                return this.DIBuilders.First();
-            }
-            else
-            {
-                throw new InvalidOperationException("Cannot get the default DIBuilder of this module because it has multiple DIBuilders");
-            }
-        }
-
         /// <summary>Creates and returns a new <see cref="DebugInfoBuilder"/> used to create debug information for this module</summary>
         public DebugInfoBuilder CreateDIBuilder()
         {
@@ -413,6 +392,7 @@ namespace Ubiquity.NET.Llvm
         /// <param name="scopeLine">First line of the function's outermost scope, this may not be the same as the first line of the function definition due to source formatting</param>
         /// <param name="debugFlags">Additional flags describing this function</param>
         /// <param name="isOptimized">Flag to indicate if this function is optimized</param>
+        /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/>to use when creating debug info</param>
         /// <returns>Function described by the arguments</returns>
         public IrFunction CreateFunction(
             DIScope? scope,
@@ -425,7 +405,8 @@ namespace Ubiquity.NET.Llvm
             bool isDefinition,
             uint scopeLine,
             DebugInfoFlags debugFlags,
-            bool isOptimized)
+            bool isOptimized,
+            DebugInfoBuilder dIBuilder)
         {
             this.ThrowIfDisposed();
 
@@ -441,7 +422,7 @@ namespace Ubiquity.NET.Llvm
 
             var func = this.CreateFunction(mangledName, signature);
             var diSignature = signature.DIType;
-            var diFunc = this.GetDefaultDIBuilder().CreateFunction(
+            var diFunc = dIBuilder.CreateFunction(
                 scope: scope,
                 name: name,
                 mangledName: mangledName,

@@ -72,7 +72,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// </summary>
         public DICompileUnit? CompileUnit { get; private set; }
 
-
         /// <summary>Creates a new <see cref="DICompileUnit"/></summary>
         /// <param name="language"><see cref="SourceLanguage"/> for the compilation unit</param>
         /// <param name="sourceFilePath">Full path to the source file of this compilation unit</param>
@@ -81,7 +80,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="optimized">Flag to indicate if the code in this compilation unit is optimized. Default is false.</param>
         /// <param name="runtimeVersion">Runtime version. Default is 0.</param>
         /// <returns><see cref="DICompileUnit"/></returns>
-
         public DICompileUnit CreateCompileUnit(
             SourceLanguage language,
             string sourceFilePath,
