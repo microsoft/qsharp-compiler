@@ -7,7 +7,7 @@
 TEST(AllocationManagerTestSuite, LinearAllocationTestReuse)
 {
     auto manager = microsoft::quantum::BasicAllocationManager::createNew();
-    manager->setReuseQubits(true);
+    manager->setReuseRegisters(true);
 
     // Expecting ids to be allocated linearly for single
     // allocations
@@ -51,7 +51,7 @@ TEST(AllocationManagerTestSuite, LinearAllocationTestReuse)
 TEST(AllocationManagerTestSuite, LinearAllocationTestNoReuse)
 {
     auto manager = microsoft::quantum::BasicAllocationManager::createNew();
-    manager->setReuseQubits(false);
+    manager->setReuseRegisters(false);
 
     auto q1 = manager->allocate();
     EXPECT_EQ(q1, 0);

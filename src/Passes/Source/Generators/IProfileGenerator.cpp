@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Generators/IProfileGenerator.hpp"
+#include "RuleTransformationPass/Configuration.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -12,7 +13,16 @@ namespace quantum
 
     Profile IProfileGenerator::newProfile(OptimizationLevel const& optimisation_level, bool debug)
     {
-        Profile ret{debug};
+        auto qubit_allocation_manager  = BasicAllocationManager::createNew();
+        auto result_allocation_manager = BasicAllocationManager::createNew();
+
+        // TODO(tfr): Make separate configuration for the allocation manager
+        auto cfg = configuration_manager_.get<RuleTransformationPassConfiguration>();
+        qubit_allocation_manager->setReuseRegisters(cfg.reuseQubits());
+        result_allocation_manager->setReuseRegisters(cfg.reuseResults());
+
+        // Creating profile
+        Profile ret{debug, qubit_allocation_manager, result_allocation_manager};
 
         auto module_pass_manager = createGenerationModulePass(ret, optimisation_level, debug);
 

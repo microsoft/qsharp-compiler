@@ -58,6 +58,12 @@ namespace quantum
         /// Whether or not to annotate entry point with the number of qubits they use.
         bool annotateQubitUse() const;
 
+        /// Whether or not to reuse result registers.
+        bool reuseResults() const;
+
+        /// Whether or not to annotate entry point with the number of results they use.
+        bool annotateResultUse() const;
+
         /// Whether or not the component should attempt to group measurements.
         bool groupMeasurements() const;
 
@@ -90,6 +96,8 @@ namespace quantum
         //
         bool reuse_qubits_{true};
         bool annotate_qubit_use_{true};
+        bool reuse_results_{true};
+        bool annotate_result_use_{true};
 
         // Measurement
         //
