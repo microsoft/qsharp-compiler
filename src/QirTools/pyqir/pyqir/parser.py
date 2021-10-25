@@ -2,8 +2,30 @@
 # Licensed under the MIT License.
 
 from .pyqir import *
+from . import export
 from typing import List, Optional, Tuple
 
+try:
+    import retworkx as rx
+except ImportError:
+    rx = None
+
+try:
+    import retworkx.visualization as rxv
+except ImportError:
+    rxv = None
+
+try:
+    import qiskit as qk
+except ImportError:
+    qk = None
+
+try:
+    import qutip as qt
+    import qutip.qip.circuit
+    import qutip.qip.operations
+except ImportError:
+    qt = None
 
 class QirType:
     """
@@ -208,7 +230,7 @@ class QirIntConstant(QirConstant):
         Gets the integer value for this constant.
         """
         return self.const.int_value
-    
+
     @property
     def width(self) -> int:
         """
@@ -284,7 +306,7 @@ class QirTerminator:
     Instances of QirTerminator represent the special final instruction at the end of a block that
     indicates how control flow should transfer.
     """
-    
+
     def __new__(cls, term: PyQirTerminator):
         if term.is_ret:
             return super().__new__(QirRetTerminator)
@@ -360,7 +382,7 @@ class QirSwitchTerminator(QirTerminator):
     to one or more blocks based on matching values of a given operand, or jump to a fallback block
     in the case that no matches are found.
     """
-    
+
     @property
     def operand(self) -> QirLocalOperand:
         """
@@ -698,7 +720,7 @@ class QirQirCallInstr(QirCallInstr):
 class QirBlock:
     """
     Instances of the QirBlock type represent a basic block within a function body. Each basic block is
-    comprised of a list of instructions executed in sequence and a single, special final instruction 
+    comprised of a list of instructions executed in sequence and a single, special final instruction
     called a terminator that indicates where execution should jump at the end of the block.
     """
 
@@ -717,7 +739,7 @@ class QirBlock:
     def instructions(self) -> List[QirInstr]:
         """
         Gets the list of instructions that make up this block. The list is ordered; instructions are
-        executed from first to last unconditionally. This list does not include the special 
+        executed from first to last unconditionally. This list does not include the special
         terminator instruction (see QirBlock.terminator).
         """
         return list(map(QirInstr, self.block.instructions))
@@ -743,10 +765,33 @@ class QirBlock:
     def get_phi_pairs_by_source_name(self, name: str) -> List[Tuple[str, QirOperand]]:
         """
         Gets the variable name, variable value pairs for any phi nodes in this block that correspond
-        to the given name. If the name doesn't match a block that can branch to this block or if 
+        to the given name. If the name doesn't match a block that can branch to this block or if
         this block doesn't include any phi nodes, the list will be empty.
         """
         return list(map(lambda p: (p[0], QirOperand(p[1])) ,self.block.get_phi_pairs_by_source_name(name)))
+
+    @property
+    def is_circuit_like(self) -> bool:
+        return all(
+            isinstance(instruction, (QirQisCallInstr, QirQirCallInstr))
+            for instruction in self.instructions
+        )
+        # TODO: Check all args are qubit constants.
+
+    def as_openqasm_20(self) -> Optional[str]:
+        """
+        If this block is circuit-like (that is, consists only of quantum instructions),
+        converts it to a representation in OpenQASM 2.0; otherwise, returns `None`.
+
+        Note that the returned representation does not include leading phi nodes, nor trailing terminators.
+        """
+        return export.export_to(self, export.OpenQasm20Exporter(self.name))
+
+    def as_qiskit_circuit(self) -> Optional["qk.QuantumCircuit"]:
+        return export.export_to(self, export.QiskitExporter(self.name))
+
+    def as_qutip_circuit(self) -> Optional["qt.qip.circuit.QubitCircuit"]:
+        return export.export_to(self, export.QuTiPExporter())
 
 class QirParameter:
     """
@@ -780,6 +825,9 @@ class QirFunction:
 
     def __init__(self, func: PyQirFunction):
         self.func = func
+
+    def __repr__(self) -> str:
+        return f"<QIR function {self.name} at {id(self):0x}>"
 
     @property
     def name(self) -> str:
@@ -855,6 +903,38 @@ class QirFunction:
         if instr is not None:
             return QirInstr(instr)
         return None
+
+
+    def control_flow_graph(self) -> "rx.Digraph":
+        cfg = rx.PyDiGraph(check_cycle=False, multigraph=True)
+        blocks = self.blocks
+        block_indices = {
+            block.name: cfg.add_node(block)
+            for block in blocks
+        }
+
+        idx_return = cfg.add_node("Return")
+        idx_bottom = None
+
+        for idx_block, block in enumerate(blocks):
+            term = block.terminator
+            if isinstance(term, QirCondBrTerminator):
+                cfg.add_edge(idx_block, block_indices[term.true_dest], True)
+                cfg.add_edge(idx_block, block_indices[term.false_dest], False)
+            elif isinstance(term, QirBrTerminator):
+                cfg.add_edge(idx_block, block_indices[term.dest], ())
+            elif isinstance(term, QirRetTerminator):
+                cfg.add_edge(idx_block, idx_return, ())
+            elif isinstance(term, QirSwitchTerminator):
+                print(f"Not yet implemented: {term}")
+            elif isinstance(term, QirUnreachableTerminator):
+                if idx_bottom is None:
+                    idx_bottom = cfg.add_node("⊥")
+                cfg.add_edge(idx_block, idx_bottom)
+            else:
+                print(f"Not yet implemented: {term}")
+
+        return cfg
 
 class QirModule:
     """
