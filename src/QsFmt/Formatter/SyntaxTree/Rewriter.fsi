@@ -188,6 +188,12 @@ type internal 'context Rewriter =
     default For : context: 'context * loop: For -> For
 
     /// <summary>
+    /// Rewrites a <see cref="While"/> statement node.
+    /// </summary>
+    abstract While : context: 'context * whiles: While -> While
+    default While : context: 'context * whiles: While -> While
+
+    /// <summary>
     /// Rewrites a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration

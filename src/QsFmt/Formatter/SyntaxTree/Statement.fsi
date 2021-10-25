@@ -370,6 +370,22 @@ and internal For =
         Block: Statement Block
     }
 
+/// <summary>
+/// A <c>while</c> statement.
+/// </summary>
+and internal While =
+    {
+        /// <summary>
+        /// The <c>while</c> keyword.
+        /// </summary>
+        WhileKeyword: Terminal
+
+        /// The condition under which to execute the block.
+        Condition: Expression
+
+        /// The conditional block.
+        Block: Statement Block
+    }
 
 /// The concluding section of a qubit declaration.
 and internal QubitDeclarationCoda =
@@ -462,6 +478,11 @@ and internal Statement =
     /// A <c>for</c> statement.
     /// </summary>
     | For of For
+
+    /// <summary>
+    /// A <c>while</c> statement.
+    /// </summary>
+    | While of While
 
     /// A qubit declaration statement.
     | QubitDeclaration of QubitDeclaration

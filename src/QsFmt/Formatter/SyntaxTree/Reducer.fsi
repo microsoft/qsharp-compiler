@@ -192,6 +192,12 @@ type internal 'result Reducer =
     default For : loop: For -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="While"/> statement node.
+    /// </summary>
+    abstract While : whiles: While -> 'result
+    default While : whiles: While -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : decl: QubitDeclaration -> 'result

@@ -230,6 +230,19 @@ type StatementVisitor(tokens) =
         }
         |> For
 
+    override visitor.VisitWhileStatement context =
+        {
+            WhileKeyword = context.``while`` |> Node.toTerminal tokens
+            Condition = expressionVisitor.Visit context.condition
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> While
+
     override visitor.VisitQubitDeclaration context =
         {
             Kind =

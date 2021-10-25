@@ -171,6 +171,7 @@ type 'context Rewriter() =
         | Elif elifs -> rewriter.Elif(context, elifs) |> Elif
         | Else elses -> rewriter.Else(context, elses) |> Else
         | For loop -> rewriter.For(context, loop) |> For
+        | While whiles -> rewriter.While(context, whiles) |> While
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
 
@@ -289,6 +290,15 @@ type 'context Rewriter() =
             Binding = rewriter.ForBinding(context, loop.Binding)
             CloseParen = loop.CloseParen |> Option.map (curry rewriter.Terminal context)
             Block = rewriter.Block(context, rewriter.Statement, loop.Block)
+        }
+
+    abstract While : context: 'context * whiles: While -> While
+
+    default rewriter.While(context, whiles) =
+        {
+            WhileKeyword = rewriter.Terminal(context, whiles.WhileKeyword)
+            Condition = rewriter.Expression(context, whiles.Condition)
+            Block = rewriter.Block(context, rewriter.Statement, whiles.Block)
         }
 
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration

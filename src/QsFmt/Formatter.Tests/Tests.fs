@@ -408,3 +408,26 @@ let ``For Statement Support`` () =
 }"""
 
     run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``While Statement Support`` () =
+    let input =
+        """namespace Foo {
+    function Bar() : Unit {
+        while (new Bool[1])[0] {
+            let x = new Int[3];
+        }
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    function Bar() : Unit {
+        while ([false, size = 1])[0] {
+            let x = [0, size = 3];
+        }
+    }
+}"""
+
+    run input expectedOutput String.Empty

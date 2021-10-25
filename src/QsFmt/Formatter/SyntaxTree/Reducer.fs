@@ -172,6 +172,7 @@ type internal 'result Reducer() as reducer =
         | Elif elifs -> reducer.Elif elifs
         | Else elses -> reducer.Else elses
         | For loop -> reducer.For loop
+        | While whiles -> reducer.While whiles
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
@@ -302,6 +303,16 @@ type internal 'result Reducer() as reducer =
             reducer.Block(reducer.Statement, loop.Block) |> Some
         ]
         |> List.choose id
+        |> reduce
+
+    abstract While : whiles: While -> 'result
+
+    default _.While whiles =
+        [
+            reducer.Terminal whiles.WhileKeyword
+            reducer.Expression whiles.Condition
+            reducer.Block(reducer.Statement, whiles.Block)
+        ]
         |> reduce
 
     abstract QubitDeclaration : decl: QubitDeclaration -> 'result

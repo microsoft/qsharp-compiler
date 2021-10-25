@@ -152,7 +152,7 @@ statement
     | elif='elif' condition=expression body=scope # ElifStatement
     | else='else' body=scope # ElseStatement
     | for='for' (binding=forBinding | openParen='(' binding=forBinding closeParen=')') body=scope # ForStatement
-    | 'while' expression scope # WhileStatement
+    | while='while' condition=expression body=scope # WhileStatement
     | 'repeat' scope # RepeatStatement
     | 'until' expression (';' | 'fixup' scope) # UntilStatement
     | 'within' scope # WithinStatement

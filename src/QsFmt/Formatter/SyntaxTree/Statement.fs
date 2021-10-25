@@ -179,7 +179,12 @@ and For =
 
 // While Statement
 
-// ToDo
+and While =
+    {
+        WhileKeyword: Terminal
+        Condition: Expression
+        Block: Statement Block
+    }
 
 // Repeat Statement
 
@@ -228,6 +233,7 @@ and Statement =
     | Elif of Elif
     | Else of Else
     | For of For
+    | While of While
     | QubitDeclaration of QubitDeclaration
     | Unknown of Terminal
 
