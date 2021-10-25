@@ -37,6 +37,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private static readonly uint CodeviewVersion = 1;
 
         /// <summary>
+        /// The source language information for Dwarf.
+        /// For now, we are using the C interface. Ideally this would be a user defined language for Q#.
+        /// </summary>
+        private static readonly SourceLanguage QSharpLanguage = SourceLanguage.C99;
+
+        /// <summary>
+        /// Returns a string representing the producer information for the QIR
+        /// </summary>
+        private static string GetQirProducerIdent()
+        {
+            AssemblyName compilationInfo = CompilationLoader.GetQSharpCompilerAssemblyName();
+            AssemblyName qirGenerationInfo = Assembly.GetExecutingAssembly().GetName();
+            return compilationInfo.Name + " with " + qirGenerationInfo.Name + " V " + qirGenerationInfo.Version;
+        }
+
+        /// <summary>
         /// Whether or not to emit debug information during QIR generation
         /// </summary>
         public bool DebugFlag { get; } = true;
@@ -60,7 +76,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Access to the GenerationContext's Context
         /// </summary>
-        internal Context Context => this.sharedState.Context;
+        private Context Context => this.sharedState.Context;
 
         internal DebugInfoManager(GenerationContext generationContext)
         {
@@ -71,17 +87,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Gets the Dwarf version we are using for the debug info in the QIR generation
         /// </summary>
-        internal uint GetDwarfVersion() => DwarfVersion;
+        private uint GetDwarfVersion() => DwarfVersion;
 
         /// <summary>
         /// Gets the CodeView version we are using for the debug info in the QIR generation
         /// </summary>
-        internal string GetCodeViewName() => CodeviewName;
+        private string GetCodeViewName() => CodeviewName;
 
         /// <summary>
         /// Gets the title for the CodeView module flag for debug info
         /// </summary>
-        internal uint GetCodeViewVersion() => CodeviewVersion;
+        private uint GetCodeViewVersion() => CodeviewVersion;
+
+        /// <summary>
+        /// Makes the necessary call to finalize the DIBuiler.
+        /// </summary>
+        internal void FinalizeDebugInfo()
+        {
+            this.DIBuilder.Finish(); // must be called after all QIR generation
+        }
 
         /// <summary>
         /// If DebugFlag is set to false, simply creates a module for the owning GenerationContext, attaches it to its Context, and returns it.
@@ -112,9 +136,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 string moduleID = Path.GetFileName(sourcePath);
-                AssemblyName compilationInfo = CompilationLoader.GetQSharpCompilerAssemblyName();
-                AssemblyName qirGenerationInfo = Assembly.GetExecutingAssembly().GetName();
-                string producerIdent = compilationInfo.Name + " with " + qirGenerationInfo.Name + " V " + qirGenerationInfo.Version;
 
                 // Change the extension for to .c because of the language/extension issue
                 string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
@@ -125,12 +146,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 BitcodeModule newModule = this.Context.CreateBitcodeModule(
                     moduleID,
-                    SourceLanguage.C99, // For now, we are using the C interface. Ideally this would be a user defined language for Q#
+                    QSharpLanguage, // For now, we are using the C interface. Ideally this would be a user defined language for Q#
                     cSourcePath, // Note that to debug the source file, you'll have to copy the content of the .qs file into a .c file with the same name
-                    producerIdent);
+                    GetQirProducerIdent());
 
                 // Add Module identity and Module Flags
-                newModule.AddProducerIdentMetadata(producerIdent);
+                newModule.AddProducerIdentMetadata(GetQirProducerIdent());
 
                 // TODO: ModuleFlagBehavior.Warning is emitting a 1 (indicating error) instead of 2
                 newModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, this.GetDwarfVersion());
