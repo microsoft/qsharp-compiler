@@ -35,7 +35,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             : base(
                 llvmType,
                 module
-                          .DIBuilder
+                          .GetDefaultDIBuilder()
                           .CreateBasicType(
                               name,
                               module.Layout.BitSizeOf(llvmType),

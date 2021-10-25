@@ -116,17 +116,17 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
             if (llvmType.IsSized)
             {
-                return module.DIBuilder.CreateArrayType(
+                return module.GetDefaultDIBuilder().CreateArrayType(
                     module.Layout.BitSizeOf(llvmType),
                     alignment,
                     elementType.DIType!, // validated not null in constructor
-                    module.DIBuilder.CreateSubRange(lowerBound, count));
+                    module.GetDefaultDIBuilder().CreateSubRange(lowerBound, count));
             }
 
-            return module.DIBuilder.CreateReplaceableCompositeType(
+            return module.GetDefaultDIBuilder().CreateReplaceableCompositeType(
                 Tag.ArrayType,
                 string.Empty,
-                module.DICompileUnit ?? default,
+                module.GetDefaultDIBuilder().CompileUnit ?? default,
                 default,
                 0);
         }

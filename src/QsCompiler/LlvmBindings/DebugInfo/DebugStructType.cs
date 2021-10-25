@@ -48,7 +48,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             uint bitAlignment = 0)
             : base(
                 module.Context.CreateStructType(nativeName, packed, members.Select(e => e.DebugType).ToArray()),
-                module.DIBuilder.CreateReplaceableCompositeType(
+                module.GetDefaultDIBuilder().CreateReplaceableCompositeType(
                       Tag.StructureType,
                       sourceName,
                       scope,
@@ -60,7 +60,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             var memberTypes = from memberInfo in this.DebugMembers
                               select this.CreateMemberType(module, memberInfo);
 
-            var concreteType = module.DIBuilder.CreateStructType(
+            var concreteType = module.GetDefaultDIBuilder().CreateStructType(
                 scope: scope,
                 name: sourceName,
                 file: file,
@@ -99,7 +99,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             uint bitAlignment = 0)
             : base(
                 llvmType,
-                module.DIBuilder.CreateStructType(
+                module.GetDefaultDIBuilder().CreateStructType(
                       scope,
                       name,
                       file,
@@ -132,7 +132,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             uint line)
             : base(
                 llvmType,
-                module.DIBuilder
+                module.GetDefaultDIBuilder()
                           .CreateReplaceableCompositeType(
                               Tag.StructureType,
                               name,
@@ -249,7 +249,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             var memberTypes = from memberInfo in this.DebugMembers
                               select this.CreateMemberType(module, memberInfo);
 
-            var concreteType = module.DIBuilder.CreateStructType(
+            var concreteType = module.GetDefaultDIBuilder().CreateStructType(
                 scope: scope,
                 name: this.DIType?.Name ?? string.Empty,
                 file: file,
@@ -291,7 +291,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 bitOffset = module.Layout.BitOffsetOfElement(this.NativeType, memberInfo.Index);
             }
 
-            return module.DIBuilder.CreateMemberType(
+            return module.GetDefaultDIBuilder().CreateMemberType(
                 scope: this.DIType,
                 name: memberInfo.Name,
                 file: memberInfo.File,

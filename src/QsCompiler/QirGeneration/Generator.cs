@@ -73,7 +73,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.GenerateRequiredFunctions();
-
             this.SharedState.DIManager.FinalizeDebugInfo();
         }
 
