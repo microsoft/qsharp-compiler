@@ -142,16 +142,10 @@ namespace quantum
         /// ```
         ///
         /// which removes the need for constant one.
-        void optimiseBranchQuantumOne();
+        void optimiseResultOne();
 
         /// Replaces branching of quantum results compared to zero. This method is not implemented yet.
-        void optimiseBranchQuantumZero();
-
-        /// Replaces select based branching of quantum results compared to one.
-        void optimiseSelectQuantumOne();
-
-        /// Replaces select based branching of quantum results compared to zero.
-        void optimiseSelectQuantumZero();
+        void optimiseResultZero();
 
         // Disabling by feature
         //
