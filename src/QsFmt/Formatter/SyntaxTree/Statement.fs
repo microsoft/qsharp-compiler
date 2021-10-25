@@ -258,5 +258,6 @@ module Statement =
         | Elif elifs -> { elifs with ElifKeyword = elifs.ElifKeyword |> Terminal.mapPrefix mapper } |> Elif
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
         | For loop -> { loop with ForKeyword = loop.ForKeyword |> Terminal.mapPrefix mapper } |> For
+        | While whiles -> { whiles with WhileKeyword = whiles.WhileKeyword |> Terminal.mapPrefix mapper } |> While
         | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown
