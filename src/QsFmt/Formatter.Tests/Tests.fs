@@ -431,3 +431,44 @@ let ``While Statement Support`` () =
 }"""
 
     run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Repeat-Until Statements Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        repeat
+        {
+            let x1 = new Int[3];
+        } until (new Bool[1])[0];
+
+        repeat
+        {
+            let x2 = new Double[4];
+        } until (new Bool[1])[0]
+        fixup {
+            let x3 = new String[2];
+        }
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        repeat
+        {
+            let x1 = [0, size = 3];
+        } until ([false, size = 1])[0];
+
+        repeat
+        {
+            let x2 = [0.0, size = 4];
+        } until ([false, size = 1])[0]
+        fixup {
+            let x3 = ["", size = 2];
+        }
+    }
+}"""
+
+    run input expectedOutput String.Empty

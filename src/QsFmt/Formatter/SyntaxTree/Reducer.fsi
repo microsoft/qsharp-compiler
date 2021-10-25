@@ -198,6 +198,24 @@ type internal 'result Reducer =
     default While : whiles: While -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="Repeat"/> statement node.
+    /// </summary>
+    abstract Repeat : repeats: Repeat -> 'result
+    default Repeat : repeats: Repeat -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="Until"/> statement node.
+    /// </summary>
+    abstract Until : untils: Until -> 'result
+    default Until : untils: Until -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="Fixup"/> node.
+    /// </summary>
+    abstract Fixup : fixup: Fixup -> 'result
+    default Fixup : fixup: Fixup -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : decl: QubitDeclaration -> 'result

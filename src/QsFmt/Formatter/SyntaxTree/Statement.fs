@@ -188,11 +188,30 @@ and While =
 
 // Repeat Statement
 
-// ToDo
+and Repeat =
+    {
+        RepeatKeyword: Terminal
+        Block: Statement Block
+    }
 
 // Until Statement
 
-// ToDo
+and Fixup =
+    {
+        FixupKeyword: Terminal
+        Block: Statement Block
+    }
+
+and UntilCoda =
+    | Semicolon of Terminal
+    | Fixup of Fixup
+
+and Until =
+    {
+        UntilKeyword: Terminal
+        Condition: Expression
+        Coda: UntilCoda
+    }
 
 // Within Statement
 
@@ -234,6 +253,8 @@ and Statement =
     | Else of Else
     | For of For
     | While of While
+    | Repeat of Repeat
+    | Until of Until
     | QubitDeclaration of QubitDeclaration
     | Unknown of Terminal
 
@@ -259,5 +280,7 @@ module Statement =
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
         | For loop -> { loop with ForKeyword = loop.ForKeyword |> Terminal.mapPrefix mapper } |> For
         | While whiles -> { whiles with WhileKeyword = whiles.WhileKeyword |> Terminal.mapPrefix mapper } |> While
+        | Repeat repeats -> { repeats with RepeatKeyword = repeats.RepeatKeyword |> Terminal.mapPrefix mapper } |> Repeat
+        | Until untils -> { untils with UntilKeyword = untils.UntilKeyword |> Terminal.mapPrefix mapper } |> Until
         | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown

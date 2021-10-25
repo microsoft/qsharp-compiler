@@ -173,6 +173,8 @@ type internal 'result Reducer() as reducer =
         | Else elses -> reducer.Else elses
         | For loop -> reducer.For loop
         | While whiles -> reducer.While whiles
+        | Repeat repeats -> reducer.Repeat repeats
+        | Until untils -> reducer.Until untils
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
@@ -315,16 +317,46 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
+    abstract Repeat : repeats: Repeat -> 'result
+
+    default _.Repeat repeats =
+        [
+            reducer.Terminal repeats.RepeatKeyword
+            reducer.Block(reducer.Statement, repeats.Block)
+        ]
+        |> reduce
+
+    abstract Until : untils: Until -> 'result
+
+    default _.Until untils =
+        [
+            reducer.Terminal untils.UntilKeyword
+            reducer.Expression untils.Condition
+            match untils.Coda with
+            | UntilCoda.Semicolon semicolon -> reducer.Terminal semicolon
+            | Fixup fixup -> reducer.Fixup fixup
+        ]
+        |> reduce
+
+    abstract Fixup : fixup: Fixup -> 'result
+
+    default _.Fixup fixup =
+        [
+            reducer.Terminal fixup.FixupKeyword
+            reducer.Block(reducer.Statement, fixup.Block)
+        ]
+        |> reduce
+
     abstract QubitDeclaration : decl: QubitDeclaration -> 'result
 
     default _.QubitDeclaration decl =
         [
-            reducer.Terminal(decl.Keyword) |> Some
+            reducer.Terminal decl.Keyword |> Some
             decl.OpenParen |> Option.map reducer.Terminal
-            reducer.QubitBinding(decl.Binding) |> Some
+            reducer.QubitBinding decl.Binding |> Some
             decl.CloseParen |> Option.map reducer.Terminal
             match decl.Coda with
-            | Semicolon semicolon -> reducer.Terminal(semicolon) |> Some
+            | Semicolon semicolon -> reducer.Terminal semicolon |> Some
             | Block block -> reducer.Block(reducer.Statement, block) |> Some
         ]
         |> List.choose id

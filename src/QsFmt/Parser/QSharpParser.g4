@@ -153,8 +153,8 @@ statement
     | else='else' body=scope # ElseStatement
     | for='for' (binding=forBinding | openParen='(' binding=forBinding closeParen=')') body=scope # ForStatement
     | while='while' condition=expression body=scope # WhileStatement
-    | 'repeat' scope # RepeatStatement
-    | 'until' expression (';' | 'fixup' scope) # UntilStatement
+    | repeat='repeat' body=scope # RepeatStatement
+    | until='until' condition=expression (semicolon=';' | fixup='fixup' body=scope) # UntilStatement
     | 'within' scope # WithinStatement
     | 'apply' scope # ApplyStatement
     | keyword=('use' | 'using' | 'borrow' | 'borrowing') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') (body=scope | semicolon=';') # QubitDeclaration

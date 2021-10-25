@@ -172,6 +172,8 @@ type 'context Rewriter() =
         | Else elses -> rewriter.Else(context, elses) |> Else
         | For loop -> rewriter.For(context, loop) |> For
         | While whiles -> rewriter.While(context, whiles) |> While
+        | Repeat repeats -> rewriter.Repeat(context, repeats) |> Repeat
+        | Until untils -> rewriter.Until(context, untils) |> Until
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
 
@@ -299,6 +301,34 @@ type 'context Rewriter() =
             WhileKeyword = rewriter.Terminal(context, whiles.WhileKeyword)
             Condition = rewriter.Expression(context, whiles.Condition)
             Block = rewriter.Block(context, rewriter.Statement, whiles.Block)
+        }
+
+    abstract Repeat : context: 'context * repeats: Repeat -> Repeat
+
+    default rewriter.Repeat(context, repeats) =
+        {
+            RepeatKeyword = rewriter.Terminal(context, repeats.RepeatKeyword)
+            Block = rewriter.Block(context, rewriter.Statement, repeats.Block)
+        }
+
+    abstract Until : context: 'context * untils: Until -> Until
+
+    default rewriter.Until(context, untils) =
+        {
+            UntilKeyword = rewriter.Terminal(context, untils.UntilKeyword)
+            Condition = rewriter.Expression(context, untils.Condition)
+            Coda =
+                match untils.Coda with
+                | UntilCoda.Semicolon semicolon -> rewriter.Terminal(context, semicolon) |> UntilCoda.Semicolon
+                | Fixup fixup -> rewriter.Fixup(context, fixup) |> Fixup
+        }
+
+    abstract Fixup : context: 'context * fixup: Fixup -> Fixup
+
+    default rewriter.Fixup(context, fixup) =
+        {
+            FixupKeyword = rewriter.Terminal(context, fixup.FixupKeyword)
+            Block = rewriter.Block(context, rewriter.Statement, fixup.Block)
         }
 
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration

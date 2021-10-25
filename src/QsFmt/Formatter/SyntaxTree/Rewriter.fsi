@@ -194,6 +194,24 @@ type internal 'context Rewriter =
     default While : context: 'context * whiles: While -> While
 
     /// <summary>
+    /// Rewrites a <see cref="Repeat"/> statement node.
+    /// </summary>
+    abstract Repeat : context: 'context * repeats: Repeat -> Repeat
+    default Repeat : context: 'context * repeats: Repeat -> Repeat
+
+    /// <summary>
+    /// Rewrites a <see cref="Until"/> statement node.
+    /// </summary>
+    abstract Until : context: 'context * untils: Until -> Until
+    default Until : context: 'context * untils: Until -> Until
+
+    /// <summary>
+    /// Rewrites a <see cref="Fixup"/> node.
+    /// </summary>
+    abstract Fixup : context: 'context * fixup: Fixup -> Fixup
+    default Fixup : context: 'context * fixup: Fixup -> Fixup
+
+    /// <summary>
     /// Rewrites a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration

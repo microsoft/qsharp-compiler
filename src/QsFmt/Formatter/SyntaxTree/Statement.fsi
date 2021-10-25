@@ -387,6 +387,64 @@ and internal While =
         Block: Statement Block
     }
 
+/// <summary>
+/// A <c>repeat</c> statement.
+/// </summary>
+and internal Repeat =
+    {
+        /// <summary>
+        /// The <c>repeat</c> keyword.
+        /// </summary>
+        RepeatKeyword: Terminal
+
+        /// The conditional block.
+        Block: Statement Block
+    }
+
+/// <summary>
+/// A <c>fixup</c> part of an <c>until</c> statement.
+/// </summary>
+and internal Fixup =
+    {
+        FixupKeyword: Terminal
+        Block: Statement Block
+    }
+
+
+/// <summary>
+/// The concluding section of an <c>until</c> statement.
+/// </summary>
+and internal UntilCoda =
+
+    /// The semicolon.
+    | Semicolon of Terminal
+    
+    /// <summary>
+    /// The <c>fixup</c> of an <c>until</c> statement.
+    /// </summary>
+    | Fixup of Fixup
+
+/// <summary>
+/// An <c>until</c> statement.
+/// </summary>
+and internal  Until =
+    {
+        /// <summary>
+        /// The <c>until</c> keyword.
+        /// </summary>
+        UntilKeyword: Terminal
+        
+        /// <summary>
+        /// The condition under which to exit the preceding <c>repeat</c> block.
+        /// </summary>
+        Condition: Expression
+        
+        /// <summary>
+        /// The concluding section, possibly containing a <c>fixup</c> block.
+        /// </summary>
+        Coda: UntilCoda
+    }
+
 /// The concluding section of a qubit declaration.
 and internal QubitDeclarationCoda =
 
@@ -483,6 +541,16 @@ and internal Statement =
     /// A <c>while</c> statement.
     /// </summary>
     | While of While
+
+    /// <summary>
+    /// A <c>repeat</c> statement.
+    /// </summary>
+    | Repeat of Repeat
+
+    /// <summary>
+    /// An <c>until</c> statement.
+    /// </summary>
+    | Until of Until
 
     /// A qubit declaration statement.
     | QubitDeclaration of QubitDeclaration

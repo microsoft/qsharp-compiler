@@ -243,6 +243,39 @@ type StatementVisitor(tokens) =
         }
         |> While
 
+    override visitor.VisitRepeatStatement context =
+        {
+            RepeatKeyword = context.repeat |> Node.toTerminal tokens
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> Repeat
+
+    override visitor.VisitUntilStatement context =
+        {
+            UntilKeyword = context.until |> Node.toTerminal tokens
+            Condition = expressionVisitor.Visit context.condition
+            Coda =
+                if context.body <> null then
+                    {
+                        FixupKeyword = context.fixup |> Node.toTerminal tokens
+                        Block =
+                            {
+                                OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                                Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                                CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                            }
+                    }
+                    |> Fixup
+                else
+                    context.semicolon |> Node.toTerminal tokens |> UntilCoda.Semicolon
+        }
+        |> Until
+
     override visitor.VisitQubitDeclaration context =
         {
             Kind =
