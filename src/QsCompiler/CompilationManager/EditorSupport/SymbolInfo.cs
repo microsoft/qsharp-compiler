@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             bool RangeOverlaps(QsNullable<Range> range)
             {
-                if (range.IsNull)
+                if (fragment is null || range.IsNull)
                 {
                     return false;
                 }

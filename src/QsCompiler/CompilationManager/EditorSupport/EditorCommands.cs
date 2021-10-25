@@ -223,14 +223,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static Hover? HoverInformation(
             this FileContentManager file,
             CompilationUnit compilation,
-            Position? position,
+            Position position,
             MarkupKind format = MarkupKind.PlainText)
         {
-            if (position is null)
-            {
-                return null;
-            }
-
             // TODO: Add hover for functor generators and functor applications.
             // TODO: Add hover for new array expressions.
             // TODO: Add nested types (requires SymbolInfo.SymbolOccurrence to return the closest match).
