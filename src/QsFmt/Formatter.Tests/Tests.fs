@@ -354,3 +354,34 @@ let ``Set With Statement Support`` () =
 }"""
 
     run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``If Statements Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        if ((new Bool[1])[0]) {
+            let x1 = new Int[3];
+        } elif ((new Bool[2])[0]) {
+            let x2 = new Double[2];
+        } else {
+            let x3 = new String[1];
+        }
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        if (([false, size = 1])[0]) {
+            let x1 = [0, size = 3];
+        } elif (([false, size = 2])[0]) {
+            let x2 = [0.0, size = 2];
+        } else {
+            let x3 = ["", size = 1];
+        }
+    }
+}"""
+
+    run input expectedOutput String.Empty

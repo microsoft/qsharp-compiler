@@ -169,6 +169,7 @@ type internal 'result Reducer() as reducer =
         | UpdateStatement updates -> reducer.UpdateStatement updates
         | SetWith withs -> reducer.SetWith withs
         | If ifs -> reducer.If ifs
+        | Elif elifs -> reducer.Elif elifs
         | Else elses -> reducer.Else elses
         | For loop -> reducer.For loop
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
@@ -268,6 +269,16 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal ifs.IfKeyword
             reducer.Expression ifs.Condition
             reducer.Block(reducer.Statement, ifs.Block)
+        ]
+        |> reduce
+
+    abstract Elif : elifs: Elif -> 'result
+
+    default _.Elif elifs =
+        [
+            reducer.Terminal elifs.ElifKeyword
+            reducer.Expression elifs.Condition
+            reducer.Block(reducer.Statement, elifs.Block)
         ]
         |> reduce
 

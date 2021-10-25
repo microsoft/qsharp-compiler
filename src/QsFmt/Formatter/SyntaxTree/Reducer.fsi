@@ -174,6 +174,12 @@ type internal 'result Reducer =
     default If: ifs:If -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="Elif"/> statement node.
+    /// </summary>
+    abstract Elif: elifs:Elif -> 'result
+    default Elif: elifs:Elif -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="Else"/> statement node.
     /// </summary>
     abstract Else: elses:Else -> 'result

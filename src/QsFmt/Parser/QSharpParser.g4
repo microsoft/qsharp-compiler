@@ -149,7 +149,7 @@ statement
     | set='set' name=Identifier operator=updateOperator value=expression semicolon=';' # SetUpdateStatement
     | set='set' name=Identifier with='w/=' index=expression arrow='<-' value=expression semicolon=';' # SetWithStatement
     | if='if' condition=expression body=scope # IfStatement
-    | 'elif' expression scope # ElifStatement
+    | elif='elif' condition=expression body=scope # ElifStatement
     | else='else' body=scope # ElseStatement
     | for='for' (binding=forBinding | openParen='(' binding=forBinding closeParen=')') body=scope # ForStatement
     | 'while' expression scope # WhileStatement

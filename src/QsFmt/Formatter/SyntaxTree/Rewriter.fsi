@@ -170,6 +170,12 @@ type internal 'context Rewriter =
     default If: context:'context * ifs:If -> If
 
     /// <summary>
+    /// Rewrites an <see cref="Elif"/> statement node.
+    /// </summary>
+    abstract Elif: context:'context * elifs:Elif -> Elif
+    default Elif: context:'context * elifs:Elif -> Elif
+
+    /// <summary>
     /// Rewrites an <see cref="Else"/> statement node.
     /// </summary>
     abstract Else: context:'context * elses:Else -> Else

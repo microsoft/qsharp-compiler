@@ -155,7 +155,12 @@ type If =
 
 // Elif Statement
 
-// ToDo
+and Elif =
+    {
+        ElifKeyword: Terminal
+        Condition: Expression
+        Block: Statement Block
+    }
 
 // Else Statement
 
@@ -220,6 +225,7 @@ and Statement =
     | UpdateStatement of UpdateStatement
     | SetWith of SetWith
     | If of If
+    | Elif of Elif
     | Else of Else
     | For of For
     | QubitDeclaration of QubitDeclaration
@@ -243,6 +249,7 @@ module Statement =
         | SetWith withs ->
             { withs with SetKeyword = withs.SetKeyword |> Terminal.mapPrefix mapper } |> SetWith
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
+        | Elif elifs -> { elifs with ElifKeyword = elifs.ElifKeyword |> Terminal.mapPrefix mapper } |> Elif
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
         | For loop -> { loop with ForKeyword = loop.ForKeyword |> Terminal.mapPrefix mapper } |> For
         | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration

@@ -168,6 +168,7 @@ type 'context Rewriter() =
         | UpdateStatement updates -> rewriter.UpdateStatement(context, updates) |> UpdateStatement
         | SetWith withs -> rewriter.SetWith(context, withs) |> SetWith
         | If ifs -> rewriter.If(context, ifs) |> If
+        | Elif elifs -> rewriter.Elif(context, elifs) |> Elif
         | Else elses -> rewriter.Else(context, elses) |> Else
         | For loop -> rewriter.For(context, loop) |> For
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
@@ -260,6 +261,15 @@ type 'context Rewriter() =
             IfKeyword = rewriter.Terminal(context, ifs.IfKeyword)
             Condition = rewriter.Expression(context, ifs.Condition)
             Block = rewriter.Block(context, rewriter.Statement, ifs.Block)
+        }
+
+    abstract Elif : context: 'context * elifs: Elif -> Elif
+
+    default rewriter.Elif(context, elifs) =
+        {
+            ElifKeyword = rewriter.Terminal(context, elifs.ElifKeyword)
+            Condition = rewriter.Expression(context, elifs.Condition)
+            Block = rewriter.Block(context, rewriter.Statement, elifs.Block)
         }
 
     abstract Else : context: 'context * elses: Else -> Else

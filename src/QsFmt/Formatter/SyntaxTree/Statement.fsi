@@ -317,6 +317,23 @@ type internal If =
     }
 
 /// <summary>
+/// An <c>elif</c> statement.
+/// </summary>
+and internal Elif =
+    {
+        /// <summary>
+        /// The <c>elif</c> keyword.
+        /// </summary>
+        ElifKeyword: Terminal
+
+        /// The condition under which to execute the block.
+        Condition: Expression
+
+        /// The conditional block.
+        Block: Statement Block
+    }
+
+/// <summary>
 /// An <c>else</c> statement.
 /// </summary>
 and internal Else =
@@ -430,6 +447,11 @@ and internal Statement =
     /// An <c>if</c> statement.
     /// </summary>
     | If of If
+
+    /// <summary>
+    /// An <c>elif</c> statement.
+    /// </summary>
+    | Elif of Elif
 
     /// <summary>
     /// An <c>else</c> statement.
