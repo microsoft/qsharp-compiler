@@ -73,10 +73,10 @@ type internal QubitInitializer =
     /// Initializes a single qubit.
     | SingleQubit of SingleQubit
 
-    // Initializes an array of qubits.
+    /// Initializes an array of qubits.
     | QubitArray of QubitArray
 
-    // Initializes a tuple of qubits.
+    /// Initializes a tuple of qubits.
     | QubitTuple of QubitInitializer Tuple
 
 /// A qubit binding statement.
@@ -135,7 +135,7 @@ module internal ForBinding =
 /// </summary>
 type internal ExpressionStatement =
     {
-        // The inner expression of the statement.
+        /// The inner expression of the statement.
         Expression: Expression
 
         /// The semicolon.
@@ -258,8 +258,39 @@ type internal UpdateStatement =
         /// The identifier being updated.
         Name: Terminal
 
-        // The update operator.
+        /// The update operator.
         Operator: Terminal
+
+        /// The value used as the left-hand side of the update operator.
+        Value: Expression
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
+/// <summary>
+/// A <c>set w/=</c> statement.
+/// </summary>
+type internal SetWith =
+    {
+        /// <summary>
+        /// The <c>set</c> keyword.
+        /// </summary>
+        SetKeyword: Terminal
+
+        /// The identifier being updated.
+        Name: Terminal
+
+        /// <summary>
+        /// The <c>w/=</c> operator.
+        /// </summary>
+        With: Terminal
+
+        /// The expression for the index that is updated.
+        Item: Expression
+
+        /// The left arrow symbol.
+        Arrow: Terminal
 
         /// The value used as the left-hand side of the update operator.
         Value: Expression
@@ -389,6 +420,11 @@ and internal Statement =
     /// An <c>update</c> statement.
     /// </summary>
     | UpdateStatement of UpdateStatement
+
+    /// <summary>
+    /// A <c>set w/=</c> statement.
+    /// </summary>
+    | SetWith of SetWith
 
     /// A qubit declaration statement.
     | QubitDeclaration of QubitDeclaration

@@ -166,6 +166,7 @@ type 'context Rewriter() =
         | Mutable mutables -> rewriter.Mutable(context, mutables) |> Mutable
         | SetStatement sets -> rewriter.SetStatement(context, sets) |> SetStatement
         | UpdateStatement updates -> rewriter.UpdateStatement(context, updates) |> UpdateStatement
+        | SetWith withs -> rewriter.SetWith(context, withs) |> SetWith
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
@@ -237,6 +238,19 @@ type 'context Rewriter() =
             Operator = rewriter.Terminal(context, updates.Operator)
             Value = rewriter.Expression(context, updates.Value)
             Semicolon = rewriter.Terminal(context, updates.Semicolon)
+        }
+
+    abstract SetWith : context: 'context * withs: SetWith -> SetWith
+
+    default rewriter.SetWith(context, withs) =
+        {
+            SetKeyword = rewriter.Terminal(context, withs.SetKeyword)
+            Name = rewriter.Terminal(context, withs.Name)
+            With = rewriter.Terminal(context, withs.With)
+            Item = rewriter.Expression(context, withs.Item)
+            Arrow = rewriter.Terminal(context, withs.Arrow)
+            Value = rewriter.Expression(context, withs.Value)
+            Semicolon = rewriter.Terminal(context, withs.Semicolon)
         }
 
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration

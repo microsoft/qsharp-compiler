@@ -133,7 +133,16 @@ type UpdateStatement =
 
 // Set-With Statement
 
-// ToDo
+type SetWith =
+    {
+        SetKeyword: Terminal
+        Name: Terminal
+        With: Terminal
+        Item: Expression
+        Arrow: Terminal
+        Value: Expression
+        Semicolon: Terminal
+    }
 
 // If Statement
 
@@ -209,6 +218,7 @@ and Statement =
     | Mutable of Mutable
     | SetStatement of SetStatement
     | UpdateStatement of UpdateStatement
+    | SetWith of SetWith
     | QubitDeclaration of QubitDeclaration
     | If of If
     | Else of Else
@@ -230,6 +240,8 @@ module Statement =
             { sets with SetKeyword = sets.SetKeyword |> Terminal.mapPrefix mapper } |> SetStatement
         | UpdateStatement updates ->
             { updates with SetKeyword = updates.SetKeyword |> Terminal.mapPrefix mapper } |> UpdateStatement
+        | SetWith withs ->
+            { withs with SetKeyword = withs.SetKeyword |> Terminal.mapPrefix mapper } |> SetWith
         | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else

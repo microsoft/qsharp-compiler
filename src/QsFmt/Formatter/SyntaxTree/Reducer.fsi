@@ -162,6 +162,12 @@ type internal 'result Reducer =
     default UpdateStatement: updates:UpdateStatement -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="SetWith"/> statement node.
+    /// </summary>
+    abstract SetWith: withs:SetWith -> 'result
+    default SetWith: withs:SetWith -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : decl: QubitDeclaration -> 'result

@@ -167,6 +167,7 @@ type internal 'result Reducer() as reducer =
         | Mutable mutables -> reducer.Mutable mutables
         | SetStatement sets -> reducer.SetStatement sets
         | UpdateStatement updates -> reducer.UpdateStatement updates
+        | SetWith withs -> reducer.SetWith withs
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
@@ -243,6 +244,20 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal updates.Operator
             reducer.Expression updates.Value
             reducer.Terminal updates.Semicolon
+        ]
+        |> reduce
+
+    abstract SetWith : withs: SetWith -> 'result
+
+    default _.SetWith withs =
+        [
+            reducer.Terminal withs.SetKeyword
+            reducer.Terminal withs.Name
+            reducer.Terminal withs.With
+            reducer.Expression withs.Item
+            reducer.Terminal withs.Arrow
+            reducer.Expression withs.Value
+            reducer.Terminal withs.Semicolon
         ]
         |> reduce
 

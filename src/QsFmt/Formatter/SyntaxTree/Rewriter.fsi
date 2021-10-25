@@ -158,6 +158,12 @@ type internal 'context Rewriter =
     default UpdateStatement: context:'context * updates:UpdateStatement -> UpdateStatement
 
     /// <summary>
+    /// Rewrites an <see cref="SetWith"/> statement node.
+    /// </summary>
+    abstract SetWith: context:'context * withs:SetWith -> SetWith
+    default SetWith: context:'context * withs:SetWith -> SetWith
+
+    /// <summary>
     /// Rewrites a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
