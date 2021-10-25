@@ -67,7 +67,7 @@ continue__1:
                                BasicAllocationManager::createNew());
     // factory.useStaticResultAllocation();
 
-    factory.optimiseBranchQuantumOne();
+    factory.optimiseResultOne();
   };
 
   auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));

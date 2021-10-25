@@ -46,14 +46,14 @@ void RuleFactory::usingConfiguration(FactoryConfiguration const &config)
     disableStringSupport();
   }
 
-  if (config.optimiseBranchQuantumOne())
+  if (config.optimiseResultOne())
   {
-    optimiseBranchQuantumOne();
+    optimiseResultOne();
   }
 
-  if (config.optimiseBranchQuantumZero())
+  if (config.optimiseResultZero())
   {
-    optimiseBranchQuantumZero();
+    optimiseResultZero();
   }
 
   if (config.optimiseSelectQuantumOne())
@@ -489,7 +489,7 @@ void RuleFactory::useStaticResultAllocation()
   addRule({call("__quantum__qis__m__body", "qubit"_cap = _), std::move(replace_measurement)});
 }
 
-void RuleFactory::optimiseBranchQuantumZero()
+void RuleFactory::optimiseResultZero()
 {
   auto replace_branch_negative = [](Builder &builder, Value *val, Captures &cap,
                                     Replacements &replacements) {
@@ -563,7 +563,7 @@ void RuleFactory::optimiseBranchQuantumZero()
            replace_branch_negative});
 }
 
-void RuleFactory::optimiseBranchQuantumOne()
+void RuleFactory::optimiseResultOne()
 {
   auto replace_branch_positive = [](Builder &builder, Value *val, Captures &cap,
                                     Replacements &replacements) {
