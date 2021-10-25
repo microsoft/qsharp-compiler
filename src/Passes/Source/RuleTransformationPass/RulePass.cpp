@@ -750,6 +750,13 @@ namespace quantum
                     ss << profile_->getQubitAllocationManager()->maxRegistersUsed();
                     function.addFnAttr("requiredQubits", ss.str());
                 }
+
+                if (config_.annotateResultUse())
+                {
+                    std::stringstream ss{""};
+                    ss << profile_->getResultAllocationManager()->maxRegistersUsed();
+                    function.addFnAttr("requiredResults", ss.str());
+                }
             }
         }
 
