@@ -61,7 +61,7 @@ namespace quantum
 
         /// Configuration function to set mode of qubit allocation. If function argument is true,
         /// the allocation manager will reuse qubits.
-        void setReuseQubits(bool val);
+        void setReuseRegisters(bool val);
 
       private:
         // Private constructors

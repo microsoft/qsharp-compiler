@@ -94,7 +94,7 @@ namespace quantum
         }
     }
 
-    void BasicAllocationManager::setReuseQubits(bool val)
+    void BasicAllocationManager::setReuseRegisters(bool val)
     {
         reuse_qubits_ = val;
     }
