@@ -72,6 +72,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() },
             });
 
+        /// <summary>
+        /// Returns the symbol occurrence that overlaps with <paramref name="position"/> in <paramref name="file"/>.
+        /// </summary>
+        /// <param name="file">The file to look in.</param>
+        /// <param name="position">The position to look at.</param>
+        /// <param name="includeEnd">
+        /// True if an overlapping symbol's end position can be equal to <paramref name="position"/>.
+        /// </param>
+        /// <returns>The overlapping occurrence.</returns>
         internal static SymbolOccurrence? SymbolOccurrence(FileContentManager file, Position position, bool includeEnd)
         {
             var fragment = file.TryGetFragmentAt(position, out _, includeEnd);
