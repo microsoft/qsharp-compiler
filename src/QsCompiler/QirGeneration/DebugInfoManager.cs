@@ -69,19 +69,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly GenerationContext sharedState;
 
         /// <summary>
-        /// Access to the GenerationContext's Module's DIBuilder
+        /// Contains the DIBuilders included in the module related to this DebugInfoManager.
+        /// The key is the source file path of the DebugInfoBuilder's compile unit
         /// </summary>
-        internal DebugInfoBuilder DIBuilder => this.sharedState.Module.DIBuilder;
+        private readonly Dictionary<string, DebugInfoBuilder> dIBuilders;
 
         /// <summary>
         /// Access to the GenerationContext's Context
         /// </summary>
         private Context Context => this.sharedState.Context;
 
+        /// <summary>
+        /// Access to the GenerationContext's Module
+        /// </summary>
+        private BitcodeModule Module => this.sharedState.Module;
+
         internal DebugInfoManager(GenerationContext generationContext)
         {
             this.sharedState = generationContext;
             this.LocationStack = new Stack<QsNullable<QsLocation>>();
+            this.dIBuilders = new Dictionary<string, DebugInfoBuilder>();
         }
 
         /// <summary>
@@ -100,24 +107,90 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private uint GetCodeViewVersion() => CodeviewVersion;
 
         /// <summary>
-        /// Makes the necessary call to finalize the DIBuiler.
+        /// Creates a moduleID which lists all source files with debug info
+        /// And makes the necessary calls to finalize the DIBuilders
         /// </summary>
         internal void FinalizeDebugInfo()
         {
-            this.DIBuilder.Finish(); // must be called after all QIR generation
+            if (this.DebugFlag)
+            {
+                string moduleID = "";
+                foreach (KeyValuePair<string, DebugInfoBuilder> entry in this.dIBuilders)
+                {
+                    entry.Value.Finish(); // must be called for every DIBuilder after all QIR generation
+
+                    string sourcePath = entry.Key;
+                    if (!string.IsNullOrEmpty(moduleID))
+                    {
+                        moduleID += ", ";
+                    }
+
+                    moduleID += Path.GetFileName(sourcePath);
+                }
+
+                // TODO: set module ID. Decide how to actually create the moduleID (above way could be very long)
+            }
         }
 
         /// <summary>
-        /// If DebugFlag is set to false, simply creates a module for the owning GenerationContext, attaches it to its Context, and returns it.
-        /// If DebugFlag is set to true, creates a module with a compile unit and top level debug info, attaches it, and returns it.
+        /// Gets the DebugInfoBuilder with a CompileUnit associated with this source file if it has already been created,
+        /// Creates a DebugInfoBuilder with a CompileUnit associated with this source file otherwise.
+        /// </summary>
+        /// <param name="sourcePath">The source file's path for this compile unit</param>
+        /// <returns>The compile unit related to this source file</returns>
+        private DebugInfoBuilder GetOrCreateDIBuilder(string sourcePath)
+        {
+            DebugInfoBuilder di;
+            if (this.dIBuilders.TryGetValue(sourcePath, out di))
+            {
+                return di;
+            }
+            else
+            {
+                // Change the extension for to .c because of the language/extension issue
+                string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
+
+                // TODO: If we need compilation flags (an optional argument to CreateBitcodeModule) in the future we will need
+                // to figure out how to get the compile options in the CompilationLoader.Configuration
+                // and turn them into a string (although the compilation flags don't seem to be emitted to the IR anyways)
+
+                di = this.Module.CreateDIBuilder();
+                di.CreateCompileUnit(
+                    QSharpLanguage, // Note that to debug the source file, you'll have to copy the content of the .qs file into a .c file with the same name
+                    cSourcePath,
+                    GetQirProducerIdent(),
+                    null);
+                return di;
+            }
+        }
+
+        /// <summary>
+        /// If DebugFlag is set to true, creates Adds top level debug info to the module,
         /// Note: because this is called from within the constructor of the GenerationContext,
         /// we cannot access this.Module or anything else that uses this.sharedState
         /// </summary>
-        internal BitcodeModule CreateModuleWithCompileUnit(ImmutableArray<QsQualifiedName> entryPoints)
+        internal void AddTopLevelDebugInfo(BitcodeModule owningModule, ImmutableArray<QsQualifiedName> entryPoints)
         {
             if (this.DebugFlag)
             {
-                // Get the source file path from an entry point. For now this only handles modules with one source file.
+                // Add Module identity and Module Flags
+                owningModule.AddProducerIdentMetadata(GetQirProducerIdent());
+
+                // TODO: ModuleFlagBehavior.Warning is emitting a 1 (indicating error) instead of 2
+                owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, this.GetDwarfVersion());
+                owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DebugVersionValue, BitcodeModule.DebugMetadataVersion);
+                owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, this.GetCodeViewName(), this.GetCodeViewVersion()); // TODO: We seem to need this flag and not Dwarf in order to debug on Windows. Need to look into why LLDB is using CodeView on Windows
+                AddTargetSpecificModuleFlags();
+
+                void AddTargetSpecificModuleFlags()
+            {
+                // TODO: could be useful to have target-specific module flags at some point
+                // Examples: AddModuleFlag(ModuleFlagBehavior.Error, "PIC Level", 2); (ModuleFlagBehavior.Error, "wchar_size", 4); (ModuleFlagBehavior.Error, "min_enum_size", 4)
+                return;
+            }
+
+                // For now this is here to demonstrate a compilation unit being added, but eventually this will be called whenever a new file is encountered and not here.
+                // Get the source file path from an entry point.
                 string sourcePath = "";
                 if (!entryPoints.IsEmpty)
                 {
@@ -135,43 +208,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     throw new Exception("No entry point found in the source code");
                 }
 
-                string moduleID = Path.GetFileName(sourcePath);
-
-                // Change the extension for to .c because of the language/extension issue
                 string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
-
-                // TODO: If we need compilation flags (an optional argument to CreateBitcodeModule) in the future we will need
-                // to figure out how to get the compile options in the CompilationLoader.Configuration
-                // and turn them into a string (although the compilation flags don't seem to be emitted to the IR anyways)
-
-                BitcodeModule newModule = this.Context.CreateBitcodeModule(
-                    moduleID,
-                    QSharpLanguage, // For now, we are using the C interface. Ideally this would be a user defined language for Q#
-                    cSourcePath, // Note that to debug the source file, you'll have to copy the content of the .qs file into a .c file with the same name
-                    GetQirProducerIdent());
-
-                // Add Module identity and Module Flags
-                newModule.AddProducerIdentMetadata(GetQirProducerIdent());
-
-                // TODO: ModuleFlagBehavior.Warning is emitting a 1 (indicating error) instead of 2
-                newModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, this.GetDwarfVersion());
-                newModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DebugVersionValue, BitcodeModule.DebugMetadataVersion);
-                newModule.AddModuleFlag(ModuleFlagBehavior.Warning, this.GetCodeViewName(), this.GetCodeViewVersion()); // TODO: We seem to need this flag and not Dwarf in order to debug on Windows. Need to look into why LLDB is using CodeView on Windows
-                AddTargetSpecificModuleFlags();
-
-                return newModule;
-            }
-            else
-            {
-                return this.Context.CreateBitcodeModule();
-            }
-
-            void AddTargetSpecificModuleFlags()
-            {
-                // TODO: could be useful to have target-specific module flags at some point
-                // Examples: AddModuleFlag(ModuleFlagBehavior.Error, "PIC Level", 2); (ModuleFlagBehavior.Error, "wchar_size", 4); (ModuleFlagBehavior.Error, "min_enum_size", 4)
-                // Have access to newModule here
-                return;
+                DebugInfoBuilder di = owningModule.CreateDIBuilder();
+                di.CreateCompileUnit(
+                    QSharpLanguage, // Note that to debug the source file, you'll have to copy the content of the .qs file into a .c file with the same name
+                    cSourcePath,
+                    GetQirProducerIdent(),
+                    null);
             }
         }
 

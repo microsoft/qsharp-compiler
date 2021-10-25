@@ -58,7 +58,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public DebugPointerType(IPointerType llvmPtrType, BitcodeModule module, DIType? elementType, string? name = null, uint alignment = 0)
             : base(
                 llvmPtrType,
-                module.DIBuilder
+                module.GetDefaultDIBuilder()
                           .CreatePointerType(
                               elementType,
                               name,

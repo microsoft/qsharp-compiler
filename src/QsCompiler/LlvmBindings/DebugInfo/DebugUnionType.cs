@@ -41,7 +41,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             IEnumerable<DebugMemberInfo> elements)
             : base(
                 llvmType,
-                module.DIBuilder
+                module.GetDefaultDIBuilder()
                           .CreateReplaceableCompositeType(
                               Tag.UnionType,
                               name,
@@ -73,7 +73,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             uint line = 0)
             : base(
                 module.Context.CreateStructType(nativeName),
-                module.DIBuilder
+                module.GetDefaultDIBuilder()
                           .CreateReplaceableCompositeType(
                               Tag.UnionType,
                               name,
@@ -148,7 +148,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 = memberTypes.Aggregate(
                     (MaxSize: 0ul, MaxAlign: 0ul),
                     (a, d) => (Math.Max(a.MaxSize, d.BitSize), Math.Max(a.MaxAlign, d.BitAlignment)));
-            var concreteType = module.DIBuilder.CreateUnionType(
+            var concreteType = module.GetDefaultDIBuilder().CreateUnionType(
                 scope: scope,
                 name: this.DIType!.Name, // not null via construction
                 file: file,
@@ -176,7 +176,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 throw new ArgumentException("Cannot determine size of member", nameof(memberInfo));
             }
 
-            return module.DIBuilder.CreateMemberType(
+            return module.GetDefaultDIBuilder().CreateMemberType(
                 scope: this.DIType,
                 name: memberInfo.Name,
                 file: memberInfo.File,
