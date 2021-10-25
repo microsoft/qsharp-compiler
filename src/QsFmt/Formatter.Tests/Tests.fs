@@ -385,3 +385,26 @@ let ``If Statements Support`` () =
 }"""
 
     run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``For Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        for i in (new Range[1])[0] {
+            let x = new Int[3];
+        }
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        for i in ([1..0, size = 1])[0] {
+            let x = [0, size = 3];
+        }
+    }
+}"""
+
+    run input expectedOutput String.Empty
