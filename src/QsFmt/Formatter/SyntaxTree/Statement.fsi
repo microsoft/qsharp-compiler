@@ -426,9 +426,6 @@ and internal Statement =
     /// </summary>
     | SetWith of SetWith
 
-    /// A qubit declaration statement.
-    | QubitDeclaration of QubitDeclaration
-
     /// <summary>
     /// An <c>if</c> statement.
     /// </summary>
@@ -443,6 +440,9 @@ and internal Statement =
     /// A <c>for</c> statement.
     /// </summary>
     | For of For
+
+    /// A qubit declaration statement.
+    | QubitDeclaration of QubitDeclaration
 
     /// An unknown statement.
     | Unknown of Terminal

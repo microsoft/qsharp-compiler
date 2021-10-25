@@ -168,12 +168,6 @@ type internal 'result Reducer =
     default SetWith: withs:SetWith -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="QubitDeclaration"/> statement node.
-    /// </summary>
-    abstract QubitDeclaration : decl: QubitDeclaration -> 'result
-    default QubitDeclaration : decl: QubitDeclaration -> 'result
-
-    /// <summary>
     /// Reduces an <see cref="If"/> statement node.
     /// </summary>
     abstract If: ifs:If -> 'result
@@ -190,6 +184,12 @@ type internal 'result Reducer =
     /// </summary>
     abstract For : loop: For -> 'result
     default For : loop: For -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="QubitDeclaration"/> statement node.
+    /// </summary>
+    abstract QubitDeclaration : decl: QubitDeclaration -> 'result
+    default QubitDeclaration : decl: QubitDeclaration -> 'result
 
     /// <summary>
     /// Reduces a <see cref="ParameterBinding"/> node.

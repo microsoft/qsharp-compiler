@@ -167,10 +167,10 @@ type 'context Rewriter() =
         | SetStatement sets -> rewriter.SetStatement(context, sets) |> SetStatement
         | UpdateStatement updates -> rewriter.UpdateStatement(context, updates) |> UpdateStatement
         | SetWith withs -> rewriter.SetWith(context, withs) |> SetWith
-        | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
         | For loop -> rewriter.For(context, loop) |> For
+        | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
 
     abstract ExpressionStatement : context: 'context * expr: ExpressionStatement -> ExpressionStatement
@@ -253,21 +253,6 @@ type 'context Rewriter() =
             Semicolon = rewriter.Terminal(context, withs.Semicolon)
         }
 
-    abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
-
-    default rewriter.QubitDeclaration(context, decl) =
-        {
-            Kind = decl.Kind
-            Keyword = rewriter.Terminal(context, decl.Keyword)
-            OpenParen = decl.OpenParen |> Option.map (curry rewriter.Terminal context)
-            Binding = rewriter.QubitBinding(context, decl.Binding)
-            CloseParen = decl.CloseParen |> Option.map (curry rewriter.Terminal context)
-            Coda =
-                match decl.Coda with
-                | Semicolon semicolon -> rewriter.Terminal(context, semicolon) |> Semicolon
-                | Block block -> rewriter.Block(context, rewriter.Statement, block) |> Block
-        }
-
     abstract If : context: 'context * ifs: If -> If
 
     default rewriter.If(context, ifs) =
@@ -294,6 +279,21 @@ type 'context Rewriter() =
             Binding = rewriter.ForBinding(context, loop.Binding)
             CloseParen = loop.CloseParen |> Option.map (curry rewriter.Terminal context)
             Block = rewriter.Block(context, rewriter.Statement, loop.Block)
+        }
+
+    abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
+
+    default rewriter.QubitDeclaration(context, decl) =
+        {
+            Kind = decl.Kind
+            Keyword = rewriter.Terminal(context, decl.Keyword)
+            OpenParen = decl.OpenParen |> Option.map (curry rewriter.Terminal context)
+            Binding = rewriter.QubitBinding(context, decl.Binding)
+            CloseParen = decl.CloseParen |> Option.map (curry rewriter.Terminal context)
+            Coda =
+                match decl.Coda with
+                | Semicolon semicolon -> rewriter.Terminal(context, semicolon) |> Semicolon
+                | Block block -> rewriter.Block(context, rewriter.Statement, block) |> Block
         }
 
     abstract ParameterBinding : context: 'context * binding: ParameterBinding -> ParameterBinding

@@ -164,12 +164,6 @@ type internal 'context Rewriter =
     default SetWith: context:'context * withs:SetWith -> SetWith
 
     /// <summary>
-    /// Rewrites a <see cref="QubitDeclaration"/> statement node.
-    /// </summary>
-    abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
-    default QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
-
-    /// <summary>
     /// Rewrites an <see cref="If"/> statement node.
     /// </summary>
     abstract If: context:'context * ifs:If -> If
@@ -186,6 +180,12 @@ type internal 'context Rewriter =
     /// </summary>
     abstract For : context: 'context * loop: For -> For
     default For : context: 'context * loop: For -> For
+
+    /// <summary>
+    /// Rewrites a <see cref="QubitDeclaration"/> statement node.
+    /// </summary>
+    abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
+    default QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
 
     /// <summary>
     /// Rewrites a <see cref="ParameterBinding"/> node.

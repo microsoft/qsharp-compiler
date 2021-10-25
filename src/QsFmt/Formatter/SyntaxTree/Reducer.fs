@@ -168,10 +168,10 @@ type internal 'result Reducer() as reducer =
         | SetStatement sets -> reducer.SetStatement sets
         | UpdateStatement updates -> reducer.UpdateStatement updates
         | SetWith withs -> reducer.SetWith withs
-        | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
         | For loop -> reducer.For loop
+        | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
     abstract ExpressionStatement : expr: ExpressionStatement -> 'result
@@ -261,21 +261,6 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract QubitDeclaration : decl: QubitDeclaration -> 'result
-
-    default _.QubitDeclaration decl =
-        [
-            reducer.Terminal(decl.Keyword) |> Some
-            decl.OpenParen |> Option.map reducer.Terminal
-            reducer.QubitBinding(decl.Binding) |> Some
-            decl.CloseParen |> Option.map reducer.Terminal
-            match decl.Coda with
-            | Semicolon semicolon -> reducer.Terminal(semicolon) |> Some
-            | Block block -> reducer.Block(reducer.Statement, block) |> Some
-        ]
-        |> List.choose id
-        |> reduce
-
     abstract If : ifs: If -> 'result
 
     default _.If ifs =
@@ -304,6 +289,21 @@ type internal 'result Reducer() as reducer =
             reducer.ForBinding(loop.Binding) |> Some
             loop.CloseParen |> Option.map reducer.Terminal
             reducer.Block(reducer.Statement, loop.Block) |> Some
+        ]
+        |> List.choose id
+        |> reduce
+
+    abstract QubitDeclaration : decl: QubitDeclaration -> 'result
+
+    default _.QubitDeclaration decl =
+        [
+            reducer.Terminal(decl.Keyword) |> Some
+            decl.OpenParen |> Option.map reducer.Terminal
+            reducer.QubitBinding(decl.Binding) |> Some
+            decl.CloseParen |> Option.map reducer.Terminal
+            match decl.Coda with
+            | Semicolon semicolon -> reducer.Terminal(semicolon) |> Some
+            | Block block -> reducer.Block(reducer.Statement, block) |> Some
         ]
         |> List.choose id
         |> reduce

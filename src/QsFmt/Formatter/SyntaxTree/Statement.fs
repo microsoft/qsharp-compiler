@@ -219,10 +219,10 @@ and Statement =
     | SetStatement of SetStatement
     | UpdateStatement of UpdateStatement
     | SetWith of SetWith
-    | QubitDeclaration of QubitDeclaration
     | If of If
     | Else of Else
     | For of For
+    | QubitDeclaration of QubitDeclaration
     | Unknown of Terminal
 
 module Statement =
@@ -242,8 +242,8 @@ module Statement =
             { updates with SetKeyword = updates.SetKeyword |> Terminal.mapPrefix mapper } |> UpdateStatement
         | SetWith withs ->
             { withs with SetKeyword = withs.SetKeyword |> Terminal.mapPrefix mapper } |> SetWith
-        | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
         | For loop -> { loop with ForKeyword = loop.ForKeyword |> Terminal.mapPrefix mapper } |> For
+        | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown
