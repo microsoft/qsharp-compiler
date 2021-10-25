@@ -26,6 +26,9 @@ namespace quantum
         config.addParameter(reuse_qubits_, "reuse-qubits", "Use to define whether or not to reuse qubits.");
         config.addParameter(annotate_qubit_use_, "annotate-qubit-use", "Annotate the number of qubits used");
 
+        config.addParameter(reuse_results_, "reuse-results", "Use to define whether or not to reuse results.");
+        config.addParameter(annotate_result_use_, "annotate-result-use", "Annotate the number of results used");
+
         config.addParameter(
             entry_point_attr_, "entry-point-attr", "Specifies the attribute indicating the entry point.");
 
@@ -86,6 +89,16 @@ namespace quantum
     bool RuleTransformationPassConfiguration::annotateQubitUse() const
     {
         return annotate_qubit_use_;
+    }
+
+    bool RuleTransformationPassConfiguration::reuseResults() const
+    {
+        return reuse_results_;
+    }
+
+    bool RuleTransformationPassConfiguration::annotateResultUse() const
+    {
+        return annotate_result_use_;
     }
 
     bool RuleTransformationPassConfiguration::groupMeasurements() const
