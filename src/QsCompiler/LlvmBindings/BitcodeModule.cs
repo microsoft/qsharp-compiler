@@ -635,7 +635,7 @@ namespace Ubiquity.NET.Llvm
         /// <param name="behavior">Module flag behavior for this flag</param>
         /// <param name="name">Name of the flag</param>
         /// <param name="value">Value of the flag</param>
-        public void AddModuleFlag(ModuleFlagBehavior behavior, string name, UInt32 value)
+        public void AddModuleFlag(ModuleFlagBehavior behavior, string name, uint value)
         {
             this.ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(name))

@@ -579,7 +579,10 @@ namespace Ubiquity.NET.Llvm
             return this.moduleCache.CreateBitcodeModule(moduleId);
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Didn't add documentation here because this call can get removed in the next PR
+        /// that's up due to changes in the structure of the LLVM Bindings
+        /// </summary>
         public BitcodeModule CreateBitcodeModule(
                 string moduleId,
                 SourceLanguage language,
