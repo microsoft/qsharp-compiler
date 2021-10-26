@@ -137,22 +137,18 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.sendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
 
             // project properties
-            var outputPath = projectInstance.GetPropertyValue(MSBuildProperties.TargetPath);
-            var processorArchitecture = projectInstance.GetPropertyValue(MSBuildProperties.ResolvedProcessorArchitecture);
-            var runtimeCapability = projectInstance.GetPropertyValue(MSBuildProperties.ResolvedRuntimeCapabilities);
-            var sdkPath = projectInstance.GetPropertyValue(MSBuildProperties.QuantumSdkPath);
-            var version = projectInstance.GetPropertyValue(MSBuildProperties.QsharpLangVersion);
-            var outputType = projectInstance.GetPropertyValue(MSBuildProperties.ResolvedQsharpOutputType);
-            var exposeRefsViaTestNames = projectInstance.GetPropertyValue(MSBuildProperties.ExposeReferencesViaTestNames);
+            void AddProperty(IDictionary<string, string?> props, string property) =>
+                props.Add(property, projectInstance.GetPropertyValue(property));
 
             var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
-            buildProperties.Add(MSBuildProperties.QuantumSdkPath, sdkPath);
-            buildProperties.Add(MSBuildProperties.QsharpLangVersion, version);
-            buildProperties.Add(MSBuildProperties.TargetPath, outputPath);
-            buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
-            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, runtimeCapability);
-            buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, outputType);
-            buildProperties.Add(MSBuildProperties.ExposeReferencesViaTestNames, exposeRefsViaTestNames);
+            AddProperty(buildProperties, MSBuildProperties.TargetPath);
+            AddProperty(buildProperties, MSBuildProperties.ResolvedProcessorArchitecture);
+            AddProperty(buildProperties, MSBuildProperties.QuantumSdkPath);
+            AddProperty(buildProperties, MSBuildProperties.QsharpLangVersion);
+            AddProperty(buildProperties, MSBuildProperties.ResolvedRuntimeCapabilities);
+            AddProperty(buildProperties, MSBuildProperties.ResolvedQsharpOutputType);
+            AddProperty(buildProperties, MSBuildProperties.ExposeReferencesViaTestNames);
+            AddProperty(buildProperties, MSBuildProperties.QsFmtExe);
 
             info = new ProjectInformation(
                 sourceFiles: sourceFiles,

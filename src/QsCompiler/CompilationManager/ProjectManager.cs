@@ -39,18 +39,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the value specified by <see cref="MSBuildProperties.QuantumSdkPath"/>,
         /// or an empty string if no value is specified.
         /// </summary>
-        public string? SdkPath =>
+        public string SdkPath =>
             this.BuildProperties.TryGetValue(MSBuildProperties.QuantumSdkPath, out var path)
-                ? path
+                ? path ?? string.Empty
                 : string.Empty;
 
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.TargetPath"/>,
         /// or an empty string if no value is specified.
         /// </summary>
-        public string? DllOutputPath =>
+        public string DllOutputPath =>
             this.BuildProperties.TryGetValue(MSBuildProperties.TargetPath, out var path)
-                ? path
+                ? path ?? string.Empty
                 : string.Empty;
 
         /// <summary>
@@ -87,6 +87,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal bool ExposeReferencesViaTestNames =>
             this.BuildProperties.TryGetValue(MSBuildProperties.ExposeReferencesViaTestNames, out var exposeViaTestNames)
             && "true".Equals(exposeViaTestNames, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.QsFmtExe"/>,
+        /// or an empty string if no value is specified.
+        /// </summary>
+        internal string QsFmtExe =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.QsFmtExe, out var path)
+                ? path ?? string.Empty
+                : string.Empty;
 
         private ImmutableDictionary<string, string?> BuildProperties { get; }
 

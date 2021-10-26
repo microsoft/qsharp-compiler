@@ -247,6 +247,8 @@ module MSBuildProperties =
     let ResolvedRuntimeCapabilities = "ResolvedRuntimeCapabilities"
     let ResolvedQsharpOutputType = "ResolvedQSharpOutputType"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
+    let QsFmtExe = "QsFmtExe"
+    let QscExe = "QscExe"
 
 /// contains project specific settings specified that can be accessed by rewrite steps during Q# compilation
 module AssemblyConstants =

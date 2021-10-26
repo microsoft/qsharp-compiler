@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -67,7 +68,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         protected ProcessingQueue Processing { get; }
 
-        /// <inheritdoc cref="CompilationUnitManager(Action{Exception}?, Action{PublishDiagnosticParams}?, bool)"/>
+        /// <summary>
+        /// Initializes a <see cref="CompilationUnitManager"/> instance for a project with the given properties.
+        /// </summary>
+        /// <param name="publishDiagnostics">
+        /// If provided, called whenever diagnostics within a file have changed and are ready for publishing.
+        /// </param>
         public CompilationUnitManager(
             ProjectProperties buildProperties,
             Action<Exception>? exceptionLogger = null,
@@ -91,29 +97,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool syntaxCheckOnly = false,
             RuntimeCapability? capability = null,
             bool isExecutable = false,
-            string processorArchitecture = "Unspecified")
+            string? processorArchitecture = null)
         : this(
               new ProjectProperties(ImmutableDictionary.CreateRange(new[]
               {
-                  // TODO
-                  new KeyValuePair<string, string?>("", ""),
+                  new KeyValuePair<string, string?>(MSBuildProperties.ResolvedRuntimeCapabilities, capability?.Name),
+                  new KeyValuePair<string, string?>(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture),
+                  new KeyValuePair<string, string?>(MSBuildProperties.ResolvedQsharpOutputType, isExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary),
               })),
               exceptionLogger,
               publishDiagnostics)
-        {
-        }
-
-        /// <summary>
-        /// Initializes a <see cref="CompilationUnitManager"/> instance for a project with the given properties.
-        /// </summary>
-        /// <param name="publishDiagnostics">
-        /// If provided, called whenever diagnostics within a file have changed and are ready for publishing.
-        /// </param>
-        public CompilationUnitManager(
-            Action<Exception>? exceptionLogger = null,
-            Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            bool syntaxCheckOnly = false)
-        : this(ProjectProperties.Empty, exceptionLogger, publishDiagnostics, syntaxCheckOnly)
         {
         }
 
@@ -818,8 +811,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 format ? "format" :
                 null;
 
+            var qsFmtExe = this.compilationUnit.BuildProperties.QsFmtExe;
             var sdkPath = this.compilationUnit.BuildProperties.SdkPath;
-            if (string.IsNullOrWhiteSpace(sdkPath) || verb == null)
+            if (verb == null || (string.IsNullOrWhiteSpace(qsFmtExe) && string.IsNullOrWhiteSpace(sdkPath)))
             {
                 return null;
             }
@@ -830,8 +824,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var currentContent = file.GetFileContent();
                 File.WriteAllText(tempFile, currentContent);
 
-                var qsfmtPath = Path.Combine(sdkPath, "tools", "qsfmt", "qsfmt.dll");
-                var commandArgs = $"{qsfmtPath} {verb} --input {tempFile}";
+                var fmtCommand = qsFmtExe?.Split();
+                var (command, dllPath) = fmtCommand != null && fmtCommand.Length > 0
+                    ? (fmtCommand[0], string.Join(" ", fmtCommand[1..]))
+                    : ("dotnet", Path.Combine(sdkPath, "tools", "qsfmt", "qsfmt.dll"));
+                var commandArgs = $"{dllPath} {verb} --input {tempFile}";
 
                 var succeeded =
                     ProcessRunner.Run("dotnet", commandArgs, out var _, out var _, out var exitCode, out var ex, timeout: timeout)
@@ -844,7 +841,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     File.Delete(tempFile);
                     return new[] { edit };
                 }
-                else if (Directory.Exists(qsfmtPath) && ex != null)
+                else if (ex != null && (File.Exists(qsFmtExe) || File.Exists(dllPath)))
                 {
                     this.LogException(ex);
                 }

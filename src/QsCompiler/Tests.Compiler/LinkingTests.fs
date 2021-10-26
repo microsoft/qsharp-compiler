@@ -7,6 +7,7 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -27,7 +28,9 @@ type LinkingTests() =
     inherit CompilerTests(LinkingTests.Compile())
 
     let compilationManager =
-        new CompilationUnitManager(new Action<Exception>(fun ex -> failwith ex.Message), isExecutable = true)
+        let props = ImmutableDictionary.CreateBuilder();
+        props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
+        new CompilationUnitManager(new ProjectProperties(props), (fun ex -> failwith ex.Message))
 
     // The file name needs to end in ".qs" so that it isn't ignored by the References.Headers class during the internal renaming tests.
     let getTempFile () =
@@ -118,7 +121,7 @@ type LinkingTests() =
         compilation
 
     member private this.BuildReference(source: string, content) =
-        let comp = this.BuildContent(new CompilationUnitManager(), content)
+        let comp = this.BuildContent(new CompilationUnitManager(ProjectProperties.Empty), content)
         Assert.Empty(comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = Nullable DiagnosticSeverity.Error))
         struct (source, comp.BuiltCompilation.Namespaces)
 
@@ -171,7 +174,7 @@ type LinkingTests() =
     /// been renamed across the compilation unit.
     member private this.RunInternalRenamingTest num renamed notRenamed =
         let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
-        let manager = new CompilationUnitManager()
+        let manager = new CompilationUnitManager(ProjectProperties.Empty)
 
         let addOrUpdateSourceFile filePath =
             getManager (new Uri(filePath)) (File.ReadAllText filePath)
@@ -465,11 +468,13 @@ type LinkingTests() =
 
         let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
 
+        let props = ImmutableDictionary.CreateBuilder();
+        props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
+        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, BasicQuantumFunctionality.Name)
         let compilationManager =
             new CompilationUnitManager(
-                Action<_>(fun ex -> failwith ex.Message),
-                isExecutable = true,
-                capability = BasicQuantumFunctionality
+                new ProjectProperties(props),
+                Action<_>(fun (ex: exn) -> failwith ex.Message)
             )
 
         let addOrUpdateSourceFile filePath =
@@ -612,7 +617,7 @@ type LinkingTests() =
     [<Fact>]
     member this.``Group internal specializations by source file``() =
         let chunks = LinkingTests.ReadAndChunkSourceFile "InternalRenaming.qs"
-        let manager = new CompilationUnitManager()
+        let manager = new CompilationUnitManager(ProjectProperties.Empty)
 
         let sourceCompilation = this.BuildContent(manager, chunks.[7])
 
