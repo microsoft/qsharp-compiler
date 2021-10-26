@@ -143,7 +143,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // TODO: If we need compilation flags (an optional argument to CreateBitcodeModule) in the future we will need
                 // to figure out how to get the compile options in the CompilationLoader.Configuration
                 // and turn them into a string (although the compilation flags don't seem to be emitted to the IR anyways)
-
                 BitcodeModule newModule = this.Context.CreateBitcodeModule(
                     moduleID,
                     QSharpLanguage, // For now, we are using the C interface. Ideally this would be a user defined language for Q#

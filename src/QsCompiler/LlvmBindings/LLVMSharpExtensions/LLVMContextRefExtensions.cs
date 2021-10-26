@@ -12,7 +12,7 @@ namespace LLVMSharp.Interop
     /// <summary>Extensions for <see cref="LLVMContextRef"/>.</summary>
     public static unsafe class LLVMContextRefExtensions
     {
-        /// <summary>Convenience wrapper for <see cref="LLVMContextRef.GetMDString"/>.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVMContextRef.GetMDString(string, uint)"/>.</summary>
         public static LLVMValueRef GetMDString(this LLVMContextRef self, string str)
         {
             return self.GetMDString(str, (uint)str.Length);
