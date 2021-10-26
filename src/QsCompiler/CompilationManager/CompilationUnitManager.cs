@@ -837,6 +837,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             TextEdit[]? FormatFile(FileContentManager file)
             {
                 var tempFile = Path.ChangeExtension(Path.GetTempFileName(), ".qs");
+                this.Log($"temp file: {tempFile} (exists: {File.Exists(tempFile)})", MessageType.Info);
                 var currentContent = file.GetFileContent();
                 File.WriteAllText(tempFile, currentContent);
                 this.Log($"initial file content: \n{File.ReadAllText(currentContent)}", MessageType.Info);
