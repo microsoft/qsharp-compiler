@@ -374,7 +374,7 @@ class QirSwitchTerminator(QirTerminator):
         Gets a list of pairs representing the constant values to compare the operand against and the
         matching block name to jump to if the comparison succeeds.
         """
-        return list(map(lambda p: (QirConstant(p[0]), p[1]), self.term.switch_dests))
+        return [(QirConstant(p[0]), p[1]), for p in self.term.switch_dests]
 
     @property
     def default_dest(self) -> str:
