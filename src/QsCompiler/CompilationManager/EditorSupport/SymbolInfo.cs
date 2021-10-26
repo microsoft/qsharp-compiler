@@ -185,9 +185,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var occurrence = SymbolOccurrence(file, position, true);
             var sym = occurrence?.Match(
                 declaration: s => s,
-                usedType: t => t.Type is QsTypeKind.UserDefinedType udt ? udt.Item : null,
+                usedType: t => (t.Type as QsTypeKind.UserDefinedType)?.Item,
                 usedVariable: s => s,
                 usedLiteral: e => null);
+
             if (sym == null)
             {
                 return false;
