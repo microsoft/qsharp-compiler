@@ -153,7 +153,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // TODO: If we need compilation flags (an optional argument to CreateBitcodeModule) in the future we will need
                 // to figure out how to get the compile options in the CompilationLoader.Configuration
                 // and turn them into a string (although the compilation flags don't seem to be emitted to the IR anyways)
-
                 di = this.Module.CreateDIBuilder();
                 di.CreateCompileUnit(
                     QSharpLanguage, // Note that to debug the source file, you'll have to copy the content of the .qs file into a .c file with the same name
