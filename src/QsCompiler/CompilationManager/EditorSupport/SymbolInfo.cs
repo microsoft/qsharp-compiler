@@ -167,17 +167,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return new LocalDeclarations(
                 declarationsBefore
                     .Concat(currentStatement.SymbolDeclarations.Variables)
-                    .Concat(expressionDeclarations)
+                    .Concat(expressionDeclarations.Select(AddStatementOffset))
                     .ToImmutableArray());
 
-            IEnumerable<LocalVariableDeclaration<string>> ExpressionDeclarations(TypedExpression expression) =>
-                DeclarationsInExpression(expression, position - currentStatement.Location.Item.Offset);
+            IEnumerable<LocalVariableDeclaration<string>> ExpressionDeclarations(TypedExpression expr) =>
+                DeclarationsInExpression(expr, position - currentStatement.Location.Item.Offset);
 
             IEnumerable<LocalVariableDeclaration<string>> CondExpressionDeclarations(
                 QsStatementKind.QsConditionalStatement cond) =>
                 LastConditionBlockBefore(cond, position) is ({ } lastCond, var lastBlock)
                     ? DeclarationsInExpression(lastCond, position - lastBlock.Location.Item.Offset)
                     : Enumerable.Empty<LocalVariableDeclaration<string>>();
+
+            LocalVariableDeclaration<string> AddStatementOffset(LocalVariableDeclaration<string> decl)
+            {
+                var specPosition = decl.Position.IsNull
+                    ? QsNullable<Position>.Null
+                    : QsNullable<Position>.NewValue(currentStatement.Location.Item.Offset + decl.Position.Item);
+
+                return new LocalVariableDeclaration<string>(
+                    decl.VariableName, decl.Type, decl.InferredInformation, specPosition, decl.Range);
+            }
         }
 
         /// <summary>
