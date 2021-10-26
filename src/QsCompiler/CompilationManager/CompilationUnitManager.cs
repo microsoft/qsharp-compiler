@@ -846,7 +846,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var commandArgs = $"{dllPath} {verb} --input {tempFile}";
                 var exitCodeOnTimeout = -250;
                 var succeeded =
-                    ProcessRunner.Run(command, commandArgs, out var _, out var _, out var exitCode, out var ex, timeout: timeout, exitCodeOnTimeOut: exitCodeOnTimeout)
+                    ProcessRunner.Run(command, commandArgs, out var outstream, out var errstream, out var exitCode, out var ex, timeout: timeout, exitCodeOnTimeOut: exitCodeOnTimeout)
                     && exitCode == 0 && ex == null;
 
                 if (succeeded)
@@ -872,6 +872,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 else if (exitCode == exitCodeOnTimeout)
                 {
                     this.Log($"Exist code indicated a time out (exit code: {exitCode})", MessageType.Info);
+                    this.Log($"produced output stream: \n{outstream}", MessageType.Info);
+                    this.Log($"produced error stream: \n{errstream}", MessageType.Info);
+                }
+                else
+                {
+                    this.Log("Unknown error during formatting", MessageType.Error);
+                    this.Log($"produced output stream: \n{outstream}", MessageType.Info);
+                    this.Log($"produced error stream: \n{errstream}", MessageType.Info);
                 }
 
                 return null;
