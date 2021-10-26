@@ -89,7 +89,7 @@ class QirArrayType(QirType):
         """
         Gets the ordered list of QirTypes representing the underlying array types.
         """
-        return list(map(QirType, self.ty.array_element_type))
+        return [QirType(i) for i in self.ty.array_element_type]
 
     @property
     def element_count(self) -> int:
@@ -108,7 +108,7 @@ class QirStructType(QirType):
         """
         Gets the ordered list of QirTypes representing the underlying struct types.
         """
-        return list(map(QirType, self.ty.struct_element_types))
+        return [QirType(i) for i in self.ty.struct_element_types]
 
 class QirNamedStructType(QirType):
     """
@@ -374,7 +374,7 @@ class QirSwitchTerminator(QirTerminator):
         Gets a list of pairs representing the constant values to compare the operand against and the
         matching block name to jump to if the comparison succeeds.
         """
-        return [(QirConstant(p[0]), p[1]), for p in self.term.switch_dests]
+        return [(QirConstant(p[0]), p[1]) for p in self.term.switch_dests]
 
     @property
     def default_dest(self) -> str:
@@ -484,7 +484,7 @@ class QirOpInstr(QirInstr):
         """
         Gets the list of operands that this instruction operates on.
         """
-        return list(map(QirOperand, self.instr.target_operands))
+        return [QirOperand(i) for i in self.instr.target_operands]
 
 class QirAddInstr(QirOpInstr):
     """
@@ -641,7 +641,7 @@ class QirPhiInstr(QirInstr):
         Gets a list of all the incoming value pairs for this phi node, where each pair is the QirOperand
         for the value to use and the string name of the originating block.
         """
-        return list(map(lambda p: (QirOperand(p[0]), p[1]), self.instr.phi_incoming_values))
+        return [(QirOperand(p[0]), p[1]) for p in self.instr.phi_incoming_values]
 
     def get_incoming_value_for_name(self, name: str) -> Optional[QirOperand]:
         """
@@ -672,7 +672,7 @@ class QirCallInstr(QirInstr):
         """
         Gets the list of QirOperand instances that are passed as arguments to the function call.
         """
-        return list(map(QirOperand, self.instr.call_func_params))
+        return [QirOperand(i) for i in self.instr.call_func_params]
 
 class QirQisCallInstr(QirCallInstr):
     """
@@ -720,7 +720,7 @@ class QirBlock:
         executed from first to last unconditionally. This list does not include the special 
         terminator instruction (see QirBlock.terminator).
         """
-        return list(map(QirInstr, self.block.instructions))
+        return [QirInstr(i) for i in self.block.instructions]
 
     @property
     def terminator(self) -> QirTerminator:
@@ -738,7 +738,7 @@ class QirBlock:
         of phi nodes, but they are always the first instructions in any given block. A block with no
         phi nodes will return an empty list.
         """
-        return list(map(QirPhiInstr, self.block.phi_nodes))
+        return [QirPhiInstr(i) for i in self.block.phi_nodes]
 
     def get_phi_pairs_by_source_name(self, name: str) -> List[Tuple[str, QirOperand]]:
         """
@@ -746,7 +746,7 @@ class QirBlock:
         to the given name. If the name doesn't match a block that can branch to this block or if 
         this block doesn't include any phi nodes, the list will be empty.
         """
-        return list(map(lambda p: (p[0], QirOperand(p[1])) ,self.block.get_phi_pairs_by_source_name(name)))
+        return [(p[0], QirOperand(p[1])) for p in self.block.get_phi_pairs_by_source_name(name)]
 
 class QirParameter:
     """
@@ -793,7 +793,7 @@ class QirFunction:
         """
         Gets the list of parameters used when calling this function.
         """
-        return list(map(QirParameter, self.func.parameters))
+        return [QirParameter(i) for i in self.func.parameters]
 
     @property
     def return_type(self) -> QirType:
@@ -807,7 +807,7 @@ class QirFunction:
         """
         Gets all the basic blocks for this function.
         """
-        return list(map(QirBlock, self.func.blocks))
+        return [QirBlock(i) for i in self.func.blocks]
 
     @property
     def required_qubits(self) -> Optional[int]:
@@ -876,7 +876,7 @@ class QirModule:
         """
         Gets all the functions defined in this module.
         """
-        return list(map(QirFunction, self.module.functions))
+        return [QirFunction(i) for i in self.module.functions]
 
 
     def get_func_by_name(self, name: str) -> Optional[QirFunction]:
@@ -895,19 +895,19 @@ class QirModule:
         Gets any functions that have an attribute whose name matches the provided string.
         :param attr: the attribute to use when looking for functions
         """
-        return list(map(QirFunction, self.module.get_funcs_by_attr(attr)))
+        return [QirFunction(i) for i in self.module.get_funcs_by_attr(attr)]
 
     @property
     def entrypoint_funcs(self) -> List[QirFunction]:
         """
         Gets any functions with the "EntryPoint" attribute.
         """
-        return list(map(QirFunction, self.module.get_entrypoint_funcs()))
+        return [QirFunction(i) for i in self.module.get_entrypoint_funcs()]
 
     @property
     def interop_funcs(self) -> List[QirFunction]:
         """
         Gets any functions with the "InteropFriendly" attribute.
         """
-        return list(map(QirFunction, self.module.get_interop_funcs()))
+        return [QirFunction(i) for i in self.module.get_interop_funcs()]
 
