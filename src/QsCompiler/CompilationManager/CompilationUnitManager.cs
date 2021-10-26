@@ -840,7 +840,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.Log($"temp file: {tempFile} (exists: {File.Exists(tempFile)})", MessageType.Info);
                 var currentContent = file.GetFileContent();
                 File.WriteAllText(tempFile, currentContent);
-                this.Log($"initial file content: \n{File.ReadAllText(currentContent)}", MessageType.Info);
+                this.Log($"initial file content: \n{currentContent}", MessageType.Info);
 
                 this.Log($"command: {command}, dllPath: {dllPath} (exists: {File.Exists(dllPath)})", MessageType.Info);
                 var commandArgs = $"{dllPath} {verb} --input {tempFile}";
