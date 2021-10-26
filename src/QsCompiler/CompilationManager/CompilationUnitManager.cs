@@ -871,7 +871,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 else if (exitCode == exitCodeOnTimeout)
                 {
-                    this.Log($"Exist code indicated a time out", MessageType.Info);
+                    this.Log($"Exist code indicated a time out (exit code: {exitCode})", MessageType.Info);
                 }
 
                 return null;
