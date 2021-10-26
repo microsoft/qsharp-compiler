@@ -181,10 +181,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             LocalVariableDeclaration<string> AddStatementOffset(LocalVariableDeclaration<string> decl)
             {
-                var specPosition = decl.Position.IsNull
-                    ? QsNullable<Position>.Null
-                    : QsNullable<Position>.NewValue(currentStatement.Location.Item.Offset + decl.Position.Item);
-
+                var specPosition = decl.Position.Map(p => currentStatement.Location.Item.Offset + p);
                 return new LocalVariableDeclaration<string>(
                     decl.VariableName, decl.Type, decl.InferredInformation, specPosition, decl.Range);
             }

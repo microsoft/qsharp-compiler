@@ -125,6 +125,15 @@ module QsNullable =
     [<CompiledName "IsValue">]
     let isValue nullable = isNull nullable |> not
 
+// C# interoperability.
+type QsNullable<'T> with
+    /// <summary>
+    /// Applies <paramref name="f"/> to the value inside the nullable if it has a value.
+    /// </summary>
+    /// <param name="f">The function to apply to the value.</param>
+    /// <return>The transformed nullable.</return>
+    member nullable.Map(f: Func<'T, 'a>) = QsNullable<_>.Map f.Invoke nullable
+
 /// A position in a text document.
 type Position =
     private
