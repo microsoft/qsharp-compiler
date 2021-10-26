@@ -839,6 +839,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var tempFile = Path.ChangeExtension(Path.GetTempFileName(), ".qs");
                 var currentContent = file.GetFileContent();
                 File.WriteAllText(tempFile, currentContent);
+                this.Log($"initial file content: \n{File.ReadAllText(currentContent)}", MessageType.Info);
 
                 this.Log($"command: {command}, dllPath: {dllPath} (exists: {File.Exists(dllPath)})", MessageType.Info);
                 var commandArgs = $"{dllPath} {verb} --input {tempFile}";
@@ -850,6 +851,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     var range = DataTypes.Range.Create(DataTypes.Position.Zero, file.End());
                     var edit = new TextEdit { Range = range.ToLsp(), NewText = File.ReadAllText(tempFile) };
+                    this.Log($"formatted file content: \n{edit.NewText}", MessageType.Info);
                     File.Delete(tempFile);
                     return new[] { edit };
                 }
@@ -858,6 +860,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (qsFmtExe != null)
                     {
                         this.Log($"Failed to format document. Formatter may be unavailable.", MessageType.Error);
+                        this.Log($"Caught exception: {ex}", MessageType.Error);
                     }
                     else
                     {
