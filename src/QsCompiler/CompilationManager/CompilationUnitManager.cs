@@ -28,8 +28,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// </remarks>
     public class CompilationUnitManager : IDisposable
     {
-        private readonly string sdkPath;
-
         internal bool EnableVerification { get; private set; }
 
         /// <summary>
@@ -69,6 +67,42 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         protected ProcessingQueue Processing { get; }
 
+        /// <inheritdoc cref="CompilationUnitManager(Action{Exception}?, Action{PublishDiagnosticParams}?, bool)"/>
+        public CompilationUnitManager(
+            ProjectProperties buildProperties,
+            Action<Exception>? exceptionLogger = null,
+            Action<PublishDiagnosticParams>? publishDiagnostics = null,
+            bool syntaxCheckOnly = false)
+        {
+            this.EnableVerification = !syntaxCheckOnly;
+            this.compilationUnit = new CompilationUnit(buildProperties);
+            this.fileContentManagers = new ConcurrentDictionary<string, FileContentManager>();
+            this.changedFiles = new ManagedHashSet<string>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
+            this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
+            this.LogException = exceptionLogger ?? Console.Error.WriteLine;
+            this.Processing = new ProcessingQueue(this.LogException);
+            this.waitForTypeCheck = new CancellationTokenSource();
+        }
+
+        [Obsolete("Use CompilationUnitManager(ProjectProperties, Action{Exception}?, Action{PublishDiagnosticParams}?, bool) instead.")]
+        public CompilationUnitManager(
+            Action<Exception>? exceptionLogger = null,
+            Action<PublishDiagnosticParams>? publishDiagnostics = null,
+            bool syntaxCheckOnly = false,
+            RuntimeCapability? capability = null,
+            bool isExecutable = false,
+            string processorArchitecture = "Unspecified")
+        : this(
+              new ProjectProperties(ImmutableDictionary.CreateRange(new[]
+              {
+                  // TODO
+                  new KeyValuePair<string, string?>("", ""),
+              })),
+              exceptionLogger,
+              publishDiagnostics)
+        {
+        }
+
         /// <summary>
         /// Initializes a <see cref="CompilationUnitManager"/> instance for a project with the given properties.
         /// </summary>
@@ -78,21 +112,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public CompilationUnitManager(
             Action<Exception>? exceptionLogger = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            bool syntaxCheckOnly = false,
-            RuntimeCapability? capability = null,
-            bool isExecutable = false,
-            string processorArchitecture = "Unspecified",
-            string? sdkPath = null)
+            bool syntaxCheckOnly = false)
+        : this(ProjectProperties.Empty, exceptionLogger, publishDiagnostics, syntaxCheckOnly)
         {
-            this.sdkPath = sdkPath ?? string.Empty;
-            this.EnableVerification = !syntaxCheckOnly;
-            this.compilationUnit = new CompilationUnit(capability ?? RuntimeCapability.FullComputation, isExecutable, processorArchitecture);
-            this.fileContentManagers = new ConcurrentDictionary<string, FileContentManager>();
-            this.changedFiles = new ManagedHashSet<string>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
-            this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
-            this.LogException = exceptionLogger ?? Console.Error.WriteLine;
-            this.Processing = new ProcessingQueue(this.LogException);
-            this.waitForTypeCheck = new CancellationTokenSource();
         }
 
         /// <summary>
@@ -586,12 +608,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // work with a separate compilation unit instance such that processing of all further edits can go on in parallel
             var sourceFiles = this.fileContentManagers.Values.OrderBy(m => m.FileName);
             this.changedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName == f));
-            var compilation = new CompilationUnit(
-                this.compilationUnit.RuntimeCapability,
-                this.compilationUnit.IsExecutable,
-                this.compilationUnit.ProcessorArchitecture,
-                this.compilationUnit.Externals,
-                sourceFiles.Select(file => file.SyncRoot));
+            var compilation = new CompilationUnit(this.compilationUnit, sourceFiles.Select(file => file.SyncRoot));
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
             foreach (var file in sourceFiles)
             {
@@ -801,7 +818,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 format ? "format" :
                 null;
 
-            if (verb == null)
+            var sdkPath = this.compilationUnit.BuildProperties.SdkPath;
+            if (string.IsNullOrWhiteSpace(sdkPath) || verb == null)
             {
                 return null;
             }
@@ -812,7 +830,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var currentContent = file.GetFileContent();
                 File.WriteAllText(tempFile, currentContent);
 
-                var qsfmtPath = Path.Combine(this.sdkPath, "tools", "qsfmt", "qsfmt.dll");
+                var qsfmtPath = Path.Combine(sdkPath, "tools", "qsfmt", "qsfmt.dll");
                 var commandArgs = $"{qsfmtPath} {verb} --input {tempFile}";
 
                 var succeeded =

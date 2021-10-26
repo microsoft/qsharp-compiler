@@ -238,9 +238,19 @@ module GeneratedAttributes =
     let Namespace = "Microsoft.Quantum.QsCompiler.Metadata.Attributes"
     let LoadedViaTestNameInsteadOf = "__LoadedViaTestNameInsteadOf__"
 
-/// contains project specific settings specified during Q# compilation
+/// contains project properties defined in the project file and used by MSBuild
+module MSBuildProperties =
+    let QuantumSdkPath = "QuantumSdkPath"
+    let QsharpLangVersion = "QSharpLangVersion"
+    let TargetPath = "TargetPath"
+    let ResolvedProcessorArchitecture = "ResolvedProcessorArchitecture"
+    let ResolvedRuntimeCapabilities = "ResolvedRuntimeCapabilities"
+    let ResolvedQsharpOutputType = "ResolvedQSharpOutputType"
+    let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
+
+/// contains project specific settings specified that can be accessed by rewrite steps during Q# compilation
 module AssemblyConstants =
-    let OutputPath = "OutputPath"
+    let OutputPath = "OutputPath" // defined by the CompilationLoader
     let AssemblyName = "AssemblyName"
     let QsharpOutputType = "QSharpOutputType"
     let QsharpExe = "QSharpExe"

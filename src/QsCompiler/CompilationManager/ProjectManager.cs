@@ -11,44 +11,90 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
-    internal class ProjectProperties
+    /// <summary>
+    /// Represents project properties defined in the project file.
+    /// </summary>
+    public class ProjectProperties
     {
-        public string Version { get; }
+        private static readonly Version DefaultAssemblyVersion =
+            Assembly.GetExecutingAssembly().GetName().Version;
 
-        public string SdkPath { get; }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.QsharpLangVersion"/>,
+        /// or the language version that corresponding to this compiler version if no valid value is specified.
+        /// </summary>
+        public Version LanguageVersion =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.QsharpLangVersion, out var versionProp)
+            && Version.TryParse(versionProp, out Version version)
+                ? version
+                : new Version(DefaultAssemblyVersion.Major, DefaultAssemblyVersion.Minor);
 
-        public string OutputPath { get; }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.QuantumSdkPath"/>,
+        /// or an empty string if no value is specified.
+        /// </summary>
+        public string? SdkPath =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.QuantumSdkPath, out var path)
+                ? path
+                : string.Empty;
 
-        public RuntimeCapability RuntimeCapability { get; }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.TargetPath"/>,
+        /// or an empty string if no value is specified.
+        /// </summary>
+        public string? DllOutputPath =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.TargetPath, out var path)
+                ? path
+                : string.Empty;
 
-        public bool IsExecutable { get; }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.ResolvedRuntimeCapabilities"/>,
+        /// or <see cref="RuntimeCapability.FullComputation"/> if no valid value is specified.
+        /// </summary>
+        public RuntimeCapability RuntimeCapability =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedRuntimeCapabilities, out var capability)
+                ? RuntimeCapability.TryParse(capability).ValueOr(RuntimeCapability.FullComputation)
+                : RuntimeCapability.FullComputation;
 
-        public string ProcessorArchitecture { get; }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
+        /// or an user friendly string indicating and unspecified processor architecture if no value is specified.
+        /// </summary>
+        public string ProcessorArchitecture =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedProcessorArchitecture, out var architecture)
+            && !string.IsNullOrEmpty(architecture)
+                ? architecture
+                : "Unspecified";
 
-        public bool ExposeReferencesViaTestNames { get; }
+        /// <summary>
+        /// Returns true if the <see cref="MSBuildProperties.ResolvedQsharpOutputType"/> indicates that
+        /// the project is an executable project opposed to a library.
+        /// </summary>
+        public bool IsExecutable =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedQsharpOutputType, out var outputType)
+            && AssemblyConstants.QsharpExe.Equals(outputType, StringComparison.OrdinalIgnoreCase);
 
-        public ProjectProperties(
-            string version,
-            string sdkPath,
-            string outputPath,
-            RuntimeCapability runtimeCapability,
-            bool isExecutable,
-            string processorArchitecture,
-            bool loadTestNames)
-        {
-            this.Version = version;
-            this.SdkPath = sdkPath;
-            this.OutputPath = outputPath;
-            this.RuntimeCapability = runtimeCapability;
-            this.IsExecutable = isExecutable;
-            this.ProcessorArchitecture = processorArchitecture;
-            this.ExposeReferencesViaTestNames = loadTestNames;
-        }
+        /// <summary>
+        /// Returns true if the <see cref="MSBuildProperties.ExposeReferencesViaTestNames"/> indicates that
+        /// declarations should be loaded via a test name specified by an attribute.
+        /// </summary>
+        internal bool ExposeReferencesViaTestNames =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.ExposeReferencesViaTestNames, out var exposeViaTestNames)
+            && "true".Equals(exposeViaTestNames, StringComparison.OrdinalIgnoreCase);
+
+        private ImmutableDictionary<string, string?> BuildProperties { get; }
+
+        public static ProjectProperties Empty =>
+            new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
+
+        public ProjectProperties(IDictionary<string, string?> buildProperties) =>
+            this.BuildProperties = buildProperties.ToImmutableDictionary();
     }
 
     public class ProjectInformation
@@ -63,25 +109,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public ImmutableArray<string> References { get; }
 
-        internal static ProjectInformation Empty(
-                string version,
-                string outputPath,
-                RuntimeCapability capability) =>
+        internal static ProjectInformation Empty(string outputPath) =>
             new ProjectInformation(
-                version,
-                string.Empty, // no sdk path specified
-                outputPath,
-                capability,
-                false,
-                "Unspecified",
-                false,
                 Enumerable.Empty<string>(),
                 Enumerable.Empty<string>(),
-                Enumerable.Empty<string>());
+                Enumerable.Empty<string>(),
+                ImmutableDictionary.CreateRange(new[]
+                {
+                    new KeyValuePair<string, string?>(MSBuildProperties.TargetPath, outputPath),
+                }));
 
         public ProjectInformation(
+            IEnumerable<string> sourceFiles,
+            IEnumerable<string> projectReferences,
+            IEnumerable<string> references,
+            IDictionary<string, string?> buildProperties)
+        {
+            this.Properties = new ProjectProperties(buildProperties);
+            this.SourceFiles = sourceFiles.ToImmutableArray();
+            this.ProjectReferences = projectReferences.ToImmutableArray();
+            this.References = references.ToImmutableArray();
+        }
+
+        [Obsolete]
+        public ProjectInformation(
             string version,
-            string sdkPath,
             string outputPath,
             RuntimeCapability runtimeCapability,
             bool isExecutable,
@@ -91,8 +143,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<string> projectReferences,
             IEnumerable<string> references)
         {
-            this.Properties = new ProjectProperties(
-                version, sdkPath, outputPath, runtimeCapability, isExecutable, processorArchitecture, loadTestNames);
+            var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
+            buildProperties.Add(MSBuildProperties.QsharpLangVersion, version);
+            buildProperties.Add(MSBuildProperties.TargetPath, outputPath);
+            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, runtimeCapability.Name);
+            buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, isExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
+            buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
+            buildProperties.Add(MSBuildProperties.ExposeReferencesViaTestNames, loadTestNames ? "true" : "false");
+
+            this.Properties = new ProjectProperties(buildProperties);
             this.SourceFiles = sourceFiles.ToImmutableArray();
             this.ProjectReferences = projectReferences.ToImmutableArray();
             this.References = references.ToImmutableArray();
@@ -195,25 +254,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.Properties = projectInfo.Properties;
                 this.SetProjectInformation(projectInfo);
 
-                var version = Version.TryParse(projectInfo.Properties.Version, out Version v) ? v : null;
-                if (projectInfo.Properties.Version.Equals("Latest", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    version = new Version(0, 3);
-                }
-
-                var ignore = version == null || version < new Version(0, 3) ? true : false;
+                var version = projectInfo.Properties.LanguageVersion;
+                var ignore = version == null || version < new Version(0, 3);
 
                 // We track the file contents for unsupported projects in case the files are migrated to newer projects while editing,
                 // but we don't do any semantic verification, and we don't publish diagnostics for them.
                 this.processing = new ProcessingQueue(onException);
                 this.Manager = new CompilationUnitManager(
+                    this.Properties,
                     onException,
                     ignore ? null : publishDiagnostics,
-                    syntaxCheckOnly: ignore,
-                    this.Properties.RuntimeCapability,
-                    this.Properties.IsExecutable,
-                    this.Properties.ProcessorArchitecture,
-                    sdkPath: this.Properties.SdkPath);
+                    syntaxCheckOnly: ignore);
                 this.log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
 
                 this.loadedSourceFiles = ImmutableHashSet<Uri>.Empty;
@@ -233,7 +284,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.Properties = projectInfo.Properties;
                 this.isLoaded = false;
 
-                var outputPath = projectInfo.Properties.OutputPath;
+                var outputPath = projectInfo.Properties.DllOutputPath;
                 try
                 {
                     outputPath = Path.GetFullPath(outputPath);
@@ -737,7 +788,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
-            this.defaultManager = new CompilationUnitManager(exceptionLogger, publishDiagnostics, syntaxCheckOnly: true, sdkPath: null);
+            this.defaultManager = new CompilationUnitManager(exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
             this.publishDiagnostics = publishDiagnostics;
             this.logException = exceptionLogger;
             this.log = log;
@@ -881,9 +932,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         null,
                         this.MigrateToDefaultManager(openInEditor),
                         ProjectInformation.Empty(
-                            "Latest",
-                            existing.OutputPath?.LocalPath ?? throw new Exception("Missing output path."),
-                            RuntimeCapability.FullComputation))
+                            existing.OutputPath?.LocalPath ?? throw new Exception("Missing output path.")))
                         ?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
                     if (existing != null)
                     {

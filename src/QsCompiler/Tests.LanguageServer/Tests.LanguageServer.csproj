@@ -24,6 +24,9 @@
     <ProjectReference Include="..\LanguageServer\LanguageServer.csproj">
       <Private>true</Private>
     </ProjectReference>
+    <ProjectReference Include="..\..\QsFmt\App\App.fsproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>

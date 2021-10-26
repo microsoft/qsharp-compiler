@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.19.2109165653">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <QsFmtExe>dotnet $(MSBuildThisFileDirectory)../../../QsFmt/App/bin/$(Configuration)/netcoreapp3.1/qsfmt.dll</QsFmtExe>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <QSharpCompile Remove="format/Formatted.qs" />
+  </ItemGroup>
+  
+</Project>

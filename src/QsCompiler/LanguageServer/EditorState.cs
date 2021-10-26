@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsLanguageServer
@@ -120,42 +122,43 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return false;
             }
 
-            var outputDir = projectInstance.GetPropertyValue("OutputPath");
-            var targetFile = projectInstance.GetPropertyValue("TargetFileName");
-            var outputPath = Path.Combine(projectInstance.Directory, outputDir, targetFile);
-
-            var processorArchitecture = projectInstance.GetPropertyValue("ResolvedProcessorArchitecture");
-            var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
-            var runtimeCapability = RuntimeCapability.TryParse(resRuntimeCapability).ValueOr(RuntimeCapability.FullComputation);
-
+            // project item groups
             var sourceFiles = GetItemsByType(projectInstance, "QSharpCompile");
-            var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
             var references = GetItemsByType(projectInstance, "Reference");
 
-            var sdkPath = projectInstance.GetPropertyValue("QuantumSdkPath");
-            var version = projectInstance.GetPropertyValue("QSharpLangVersion");
-            var isExecutable = "QSharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQSharpOutputType"), StringComparison.OrdinalIgnoreCase);
-            var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.OrdinalIgnoreCase);
+            // telemetry data
             var defaultSimulator = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();
-
+            var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
             var telemetryMeas = new Dictionary<string, int>();
             telemetryMeas["sources"] = sourceFiles.Count();
             telemetryMeas["csharpfiles"] = csharpFiles.Count();
             telemetryProps["defaultSimulator"] = defaultSimulator;
             this.sendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
 
+            // project properties
+            var outputPath = projectInstance.GetPropertyValue(MSBuildProperties.TargetPath);
+            var processorArchitecture = projectInstance.GetPropertyValue(MSBuildProperties.ResolvedProcessorArchitecture);
+            var runtimeCapability = projectInstance.GetPropertyValue(MSBuildProperties.ResolvedRuntimeCapabilities);
+            var sdkPath = projectInstance.GetPropertyValue(MSBuildProperties.QuantumSdkPath);
+            var version = projectInstance.GetPropertyValue(MSBuildProperties.QsharpLangVersion);
+            var outputType = projectInstance.GetPropertyValue(MSBuildProperties.ResolvedQsharpOutputType);
+            var exposeRefsViaTestNames = projectInstance.GetPropertyValue(MSBuildProperties.ExposeReferencesViaTestNames);
+
+            var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
+            buildProperties.Add(MSBuildProperties.QuantumSdkPath, sdkPath);
+            buildProperties.Add(MSBuildProperties.QsharpLangVersion, version);
+            buildProperties.Add(MSBuildProperties.TargetPath, outputPath);
+            buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
+            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, runtimeCapability);
+            buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, outputType);
+            buildProperties.Add(MSBuildProperties.ExposeReferencesViaTestNames, exposeRefsViaTestNames);
+
             info = new ProjectInformation(
-                version: version,
-                sdkPath: sdkPath,
-                outputPath: outputPath,
-                runtimeCapability: runtimeCapability,
-                isExecutable: isExecutable,
-                processorArchitecture: string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture,
-                loadTestNames: loadTestNames,
                 sourceFiles: sourceFiles,
                 projectReferences: projectReferences,
-                references: references);
+                references: references,
+                buildProperties);
             return true;
         }
 
