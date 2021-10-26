@@ -23,11 +23,9 @@ type CallGraphTests(output: ITestOutputHelper) =
     let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
 
     let compilationManagerExe =
-        let props = ImmutableDictionary.CreateBuilder();
+        let props = ImmutableDictionary.CreateBuilder()
         props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
-        new CompilationUnitManager(
-            new ProjectProperties(props),
-            (fun ex -> failwith ex.Message))
+        new CompilationUnitManager(new ProjectProperties(props), (fun ex -> failwith ex.Message))
 
     let getTempFile () =
         new Uri(Path.GetFullPath(Path.GetRandomFileName()))

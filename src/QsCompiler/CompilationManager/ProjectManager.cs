@@ -797,7 +797,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
-            this.defaultManager = new CompilationUnitManager(exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
+            this.defaultManager = new CompilationUnitManager(ProjectProperties.Empty, exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
             this.publishDiagnostics = publishDiagnostics;
             this.logException = exceptionLogger;
             this.log = log;
@@ -1265,7 +1265,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (diagnostics != null && diagnostics.Any(DiagnosticTools.WarningType(
                         WarningCode.DeprecatedTupleBrackets,
                         WarningCode.DeprecatedUnitType,
-                        WarningCode.DeprecatedQubitBindingKeyword)))
+                        WarningCode.DeprecatedQubitBindingKeyword,
+                        WarningCode.DeprecatedANDoperator,
+                        WarningCode.DeprecatedNOToperator,
+                        WarningCode.DeprecatedORoperator,
+                        WarningCode.DeprecatedNewArray)))
                     {
                         var formattingEdits = this.Manager(
                             param?.TextDocument?.Uri)?.Formatting(param?.TextDocument, update: true, format: false, timeout: 2000);

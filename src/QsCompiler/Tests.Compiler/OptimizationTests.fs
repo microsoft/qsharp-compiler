@@ -15,7 +15,7 @@ open Xunit
 /// Given a string of valid Q# code, outputs the AST and the callables dictionary
 let private buildCompilation code =
     let fileId = new Uri(Path.GetFullPath "test-file.qs")
-    let compilationUnit = new CompilationUnitManager(ProjectProperties.Empty, fun ex -> failwith ex.Message)
+    let compilationUnit = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
     let file = CompilationUnitManager.InitializeFileManager(fileId, code)
     // spawns a task that modifies the current compilation
     compilationUnit.AddOrUpdateSourceFileAsync file |> ignore

@@ -28,7 +28,7 @@ type LinkingTests() =
     inherit CompilerTests(LinkingTests.Compile())
 
     let compilationManager =
-        let props = ImmutableDictionary.CreateBuilder();
+        let props = ImmutableDictionary.CreateBuilder()
         props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
         new CompilationUnitManager(new ProjectProperties(props), (fun ex -> failwith ex.Message))
 
@@ -468,14 +468,12 @@ type LinkingTests() =
 
         let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
 
-        let props = ImmutableDictionary.CreateBuilder();
+        let props = ImmutableDictionary.CreateBuilder()
         props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
         props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, BasicQuantumFunctionality.Name)
+
         let compilationManager =
-            new CompilationUnitManager(
-                new ProjectProperties(props),
-                Action<_>(fun (ex: exn) -> failwith ex.Message)
-            )
+            new CompilationUnitManager(new ProjectProperties(props), Action<_>(fun (ex: exn) -> failwith ex.Message))
 
         let addOrUpdateSourceFile filePath =
             getManager (new Uri(filePath)) (File.ReadAllText filePath)
