@@ -4,15 +4,35 @@
 use log;
 
 use pyo3::PyErr;
-use pyo3::{exceptions::PyOSError, prelude::*};
+use pyo3::{exceptions::PyOSError, exceptions::PyRuntimeError, prelude::*};
 use qirlib::interop::{
     ClassicalRegister, Controlled, Instruction, Measured, QuantumRegister, Rotated, SemanticModel,
     Single,
 };
 
+use crate::parser::*;
+
 #[pymodule]
 fn pyqir(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyQIR>()?;
+    m.add_class::<PyQirModule>()?;
+    m.add_class::<PyQirFunction>()?;
+    m.add_class::<PyQirParameter>()?;
+    m.add_class::<PyQirBasicBlock>()?;
+    m.add_class::<PyQirInstruction>()?;
+    m.add_class::<PyQirTerminator>()?;
+    m.add_class::<PyQirOperand>()?;
+    m.add_class::<PyQirConstant>()?;
+    m.add_class::<PyQirType>()?;
+
+    #[pyfn(m)]
+    #[pyo3(name = "module_from_bitcode")]
+    fn module_from_bitcode_py(_py: Python, bc_path: String) -> PyResult<PyQirModule> {
+        match llvm_ir::Module::from_bc_path(&bc_path) {
+            Ok(m) => Ok(PyQirModule { module: m }),
+            Err(s) => Err(PyRuntimeError::new_err(s)),
+        }
+    }
 
     Ok(())
 }
