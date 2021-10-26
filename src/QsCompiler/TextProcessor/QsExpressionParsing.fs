@@ -515,11 +515,14 @@ let private valueArray =
     <|> bracketDefinedCommaSepExpr (lArray, rArray)
 
 /// Parses a Q# array declaration as QsExpression.
-/// Raises an InvalidContructorExpression if the array declaration keyword is not followed by a valid array constructor,
+/// Adds an InvalidConstructorExpression if the array declaration keyword is not followed by a valid array constructor,
 /// and advances to the next whitespace character or QsFragmentHeader.
 let private newArray =
     let itemType = expectedQsType (lArray >>% ()) >>= fun itemType -> validateTypeSyntax true itemType >>% itemType
     let body = itemType .>>. (arrayBrackets (expectedExpr eof) |>> fst) |>> NewArray
+
+    let toExpr headRange (kind, bodyRange) =
+        QsExpression.New(kind, Range.Span headRange bodyRange)
 
     let invalid =
         checkForInvalid
@@ -527,7 +530,13 @@ let private newArray =
             ErrorCode.InvalidConstructorExpression
         >>% unknownExpr
 
-    arrayDecl.parse >>. (term body |>> QsExpression.New <|> (term invalid |>> fst))
+    let withWarning (expr: QsExpression) =
+        let range = expr.Range |> QsNullable.defaultValue Range.Zero
+        QsCompilerDiagnostic.Warning(WarningCode.DeprecatedNewArray, []) range |> pushDiagnostic >>% expr
+
+    arrayDecl.parse
+    >>= fun headRange -> term body |>> toExpr headRange <|> (term invalid |>> fst)
+    >>= withWarning
 
 /// used to temporarily store item accessors for both array item and named item access expressions
 type private ItemAccessor =

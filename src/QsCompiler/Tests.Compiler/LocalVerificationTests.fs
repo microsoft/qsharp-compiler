@@ -47,25 +47,25 @@ type LocalVerificationTests() =
 
         this.Expect "TypeArgumentsInference6" []
         this.Expect "TypeArgumentsInference7" []
-        this.Expect "TypeArgumentsInference8" []
-        this.Expect "TypeArgumentsInference9" []
+        this.Expect "TypeArgumentsInference8" [ Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "TypeArgumentsInference9" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "TypeArgumentsInference10" []
         this.Expect "TypeArgumentsInference11" []
         this.Expect "TypeArgumentsInference12" []
         this.Expect "TypeArgumentsInference13" []
         this.Expect "TypeArgumentsInference14" []
         this.Expect "TypeArgumentsInference15" []
-        this.Expect "TypeArgumentsInference16" []
-        this.Expect "TypeArgumentsInference17" []
-        this.Expect "TypeArgumentsInference18" []
+        this.Expect "TypeArgumentsInference16" [ Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "TypeArgumentsInference17" [ Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "TypeArgumentsInference18" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "TypeArgumentsInference19" []
         this.Expect "TypeArgumentsInference20" []
         this.Expect "TypeArgumentsInference21" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference22" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference23" []
         this.Expect "TypeArgumentsInference24" []
-        this.Expect "TypeArgumentsInference25" []
-        this.Expect "TypeArgumentsInference26" []
+        this.Expect "TypeArgumentsInference25" [ Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "TypeArgumentsInference26" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "TypeArgumentsInference27" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference28" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference29" [ Error ErrorCode.InvalidCyclicTypeParameterResolution ]
@@ -88,8 +88,8 @@ type LocalVerificationTests() =
         this.Expect "TypeArgumentsInference33" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference34" []
         this.Expect "TypeArgumentsInference35" []
-        this.Expect "TypeArgumentsInference36" []
-        this.Expect "TypeArgumentsInference37" []
+        this.Expect "TypeArgumentsInference36" [ Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "TypeArgumentsInference37" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "TypeArgumentsInference38" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference39" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference40" []
@@ -134,10 +134,10 @@ type LocalVerificationTests() =
 
         this.Expect "VariableDeclaration15" []
         this.Expect "VariableDeclaration16" []
-        this.Expect "VariableDeclaration17" []
-        this.Expect "VariableDeclaration18" []
-        this.Expect "VariableDeclaration19" []
-        this.Expect "VariableDeclaration20" []
+        this.Expect "VariableDeclaration17" [ Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "VariableDeclaration18" [ Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "VariableDeclaration19" [ Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "VariableDeclaration20" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "VariableDeclaration21" []
         this.Expect "VariableDeclaration22" []
         this.Expect "VariableDeclaration23" []
@@ -157,7 +157,7 @@ type LocalVerificationTests() =
         this.Expect "CopyAndUpdateArray1" []
         this.Expect "CopyAndUpdateArray2" []
         this.Expect "CopyAndUpdateArray3" []
-        this.Expect "CopyAndUpdateArray4" []
+        this.Expect "CopyAndUpdateArray4" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "CopyAndUpdateArray5" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "CopyAndUpdateArray6" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "CopyAndUpdateArray7" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
@@ -179,11 +179,23 @@ type LocalVerificationTests() =
         this.Expect "UpdateAndReassign3" []
         this.Expect "UpdateAndReassign4" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "UpdateAndReassign5" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "UpdateAndReassign6" []
-        this.Expect "UpdateAndReassign7" []
-        this.Expect "UpdateAndReassign8" []
-        this.Expect "UpdateAndReassign9" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "UpdateAndReassign10" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
+        this.Expect "UpdateAndReassign6" [ Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "UpdateAndReassign7" [ Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "UpdateAndReassign8" [ Warning WarningCode.DeprecatedNewArray ]
+
+        this.Expect
+            "UpdateAndReassign9"
+            [
+                Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
+                Warning WarningCode.DeprecatedNewArray
+            ]
+
+        this.Expect
+            "UpdateAndReassign10"
+            [
+                Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
+                Warning WarningCode.DeprecatedNewArray
+            ]
 
 
     [<Fact>]
@@ -234,7 +246,7 @@ type LocalVerificationTests() =
         this.Expect "ItemAccess16" []
         this.Expect "ItemAccess17" []
         this.Expect "ItemAccess18" []
-        this.Expect "ItemAccess19" []
+        this.Expect "ItemAccess19" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "ItemAccess20" []
 
 
@@ -255,22 +267,29 @@ type LocalVerificationTests() =
                 Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
             ]
 
-        this.Expect "ItemUpdate9" []
+        this.Expect "ItemUpdate9" [ Warning WarningCode.DeprecatedNewArray ]
 
         this.Expect
             "ItemUpdate10"
             [
                 Error ErrorCode.InvalidIdentifierExprInUpdate
                 Error ErrorCode.ExcessContinuation
+                Warning WarningCode.DeprecatedNewArray
             ]
 
-        this.Expect "ItemUpdate11" [ Error ErrorCode.UpdateOfArrayItemExpr ]
+        this.Expect
+            "ItemUpdate11"
+            [
+                Error ErrorCode.UpdateOfArrayItemExpr
+                Warning WarningCode.DeprecatedNewArray
+            ]
 
         this.Expect
             "ItemUpdate12"
             [
                 Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
                 Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
+                Warning WarningCode.DeprecatedNewArray
             ]
 
         this.Expect "ItemUpdate13" []
@@ -294,7 +313,7 @@ type LocalVerificationTests() =
         this.Expect "ItemUpdate18" [ Error ErrorCode.MissingFunctorForAutoGeneration ]
         this.Expect "ItemUpdate19" [ Error ErrorCode.MissingFunctorForAutoGeneration ]
         this.Expect "ItemUpdate20" []
-        this.Expect "ItemUpdate21" []
+        this.Expect "ItemUpdate21" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "ItemUpdate22" []
 
 
@@ -374,7 +393,13 @@ type LocalVerificationTests() =
         this.Expect "UsingDepAttrInDepCall" [ Warning WarningCode.DeprecationWithoutRedirect ]
         this.Expect "UsingDepTypeInDepCall" [ Warning WarningCode.DeprecationWithoutRedirect ]
 
-        this.Expect "UsingDeprecatedType1" [ Warning WarningCode.DeprecationWithoutRedirect ]
+        this.Expect
+            "UsingDeprecatedType1"
+            [
+                Warning WarningCode.DeprecationWithoutRedirect
+                Warning WarningCode.DeprecatedNewArray
+            ]
+
         this.Expect "UsingDeprecatedType2" [ Warning WarningCode.DeprecationWithoutRedirect ]
         this.Expect "UsingDeprecatedType3" [ Warning WarningCode.DeprecationWithoutRedirect ]
 
@@ -392,7 +417,13 @@ type LocalVerificationTests() =
                 Warning WarningCode.DeprecationWithoutRedirect
             ]
 
-        this.Expect "UsingRenamedType1" [ Warning WarningCode.DeprecationWithRedirect ]
+        this.Expect
+            "UsingRenamedType1"
+            [
+                Warning WarningCode.DeprecationWithRedirect
+                Warning WarningCode.DeprecatedNewArray
+            ]
+
         this.Expect "UsingRenamedType2" [ Warning WarningCode.DeprecationWithRedirect ]
         this.Expect "UsingRenamedType3" [ Warning WarningCode.DeprecationWithRedirect ]
 
