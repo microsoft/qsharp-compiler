@@ -269,12 +269,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // We track the file contents for unsupported projects in case the files are migrated to newer projects while editing,
                 // but we don't do any semantic verification, and we don't publish diagnostics for them.
                 this.processing = new ProcessingQueue(onException);
+                this.log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
                 this.Manager = new CompilationUnitManager(
                     this.Properties,
+                    ignore ? null : this.log,
                     onException,
                     ignore ? null : publishDiagnostics,
                     syntaxCheckOnly: ignore);
-                this.log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
 
                 this.loadedSourceFiles = ImmutableHashSet<Uri>.Empty;
                 this.loadedReferences = References.Empty;
@@ -797,7 +798,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
-            this.defaultManager = new CompilationUnitManager(ProjectProperties.Empty, exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
+            this.defaultManager = new CompilationUnitManager(ProjectProperties.Empty, log, exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
             this.publishDiagnostics = publishDiagnostics;
             this.logException = exceptionLogger;
             this.log = log;

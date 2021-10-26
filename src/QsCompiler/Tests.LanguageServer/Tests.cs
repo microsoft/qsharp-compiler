@@ -321,8 +321,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public async Task UpdateAndFormatAsync()
         {
             ManualResetEvent eventSignal = new ManualResetEvent(false);
-            void CheckForLoadingCompleted(string msg, MessageType messageType)
+            async void CheckForLoadingCompleted(string msg, MessageType messageType)
             {
+                await Console.Error.WriteLineAsync(msg);
                 if (msg.StartsWith("Done loading project"))
                 {
                     eventSignal.Set();

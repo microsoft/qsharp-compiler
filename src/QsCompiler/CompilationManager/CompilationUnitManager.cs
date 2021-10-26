@@ -53,6 +53,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public Action<PublishDiagnosticParams> PublishDiagnostics { get; }
 
         /// <summary>
+        /// General purpose logging routine.
+        /// </summary>
+        public Action<string, MessageType> Log { get; }
+
+        /// <summary>
         /// Null if a global type checking has been queued but is not yet running.
         /// If not null, then a global type checking may be running and can be cancelled via this token source.
         /// </summary>
@@ -76,6 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </param>
         public CompilationUnitManager(
             ProjectProperties buildProperties,
+            Action<string, MessageType>? log = null,
             Action<Exception>? exceptionLogger = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
             bool syntaxCheckOnly = false)
@@ -85,6 +91,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.fileContentManagers = new ConcurrentDictionary<string, FileContentManager>();
             this.changedFiles = new ManagedHashSet<string>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
             this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
+            this.Log = log ?? ((_, __) => { });
             this.LogException = exceptionLogger ?? Console.Error.WriteLine;
             this.Processing = new ProcessingQueue(this.LogException);
             this.waitForTypeCheck = new CancellationTokenSource();
@@ -105,6 +112,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                   new KeyValuePair<string, string?>(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture),
                   new KeyValuePair<string, string?>(MSBuildProperties.ResolvedQsharpOutputType, isExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary),
               })),
+              null,
               exceptionLogger,
               publishDiagnostics)
         {
@@ -813,7 +821,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var qsFmtExe = this.compilationUnit.BuildProperties.QsFmtExe;
             var sdkPath = this.compilationUnit.BuildProperties.SdkPath;
-            if (verb == null || (string.IsNullOrWhiteSpace(qsFmtExe) && string.IsNullOrWhiteSpace(sdkPath)))
+
+            var fmtCommand = qsFmtExe?.Split();
+            var (command, dllPath) = fmtCommand != null && fmtCommand.Length > 0
+                ? (fmtCommand[0], string.Join(" ", fmtCommand[1..]))
+                : ("dotnet", Path.Combine(sdkPath ?? "", "tools", "qsfmt", "qsfmt.dll"));
+
+            this.Log($"qsfmt path: {dllPath} (exists: {File.Exists(dllPath)})", MessageType.Info);
+            this.Log($"sdk path: {sdkPath} (exists: {Directory.Exists(sdkPath)})", MessageType.Info);
+            if (verb == null || (fmtCommand?.Length == 2 && !File.Exists(dllPath) && !Directory.Exists(sdkPath)))
             {
                 return null;
             }
@@ -824,14 +840,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var currentContent = file.GetFileContent();
                 File.WriteAllText(tempFile, currentContent);
 
-                var fmtCommand = qsFmtExe?.Split();
-                var (command, dllPath) = fmtCommand != null && fmtCommand.Length > 0
-                    ? (fmtCommand[0], string.Join(" ", fmtCommand[1..]))
-                    : ("dotnet", Path.Combine(sdkPath, "tools", "qsfmt", "qsfmt.dll"));
+                this.Log($"command: {command}, dllPath: {dllPath} (exists: {File.Exists(dllPath)})", MessageType.Info);
                 var commandArgs = $"{dllPath} {verb} --input {tempFile}";
-
                 var succeeded =
-                    ProcessRunner.Run("dotnet", commandArgs, out var _, out var _, out var exitCode, out var ex, timeout: timeout)
+                    ProcessRunner.Run(command, commandArgs, out var _, out var _, out var exitCode, out var ex, timeout: timeout)
                     && exitCode == 0 && ex == null;
 
                 if (succeeded)
@@ -841,9 +853,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     File.Delete(tempFile);
                     return new[] { edit };
                 }
-                else if (ex != null && (File.Exists(qsFmtExe) || File.Exists(dllPath)))
+                else if (ex != null)
                 {
-                    this.LogException(ex);
+                    if (qsFmtExe != null)
+                    {
+                        this.Log($"Failed to format document. Formatter may be unavailable.", MessageType.Error);
+                    }
+                    else
+                    {
+                        this.LogException(ex);
+                    }
                 }
 
                 return null;
