@@ -87,7 +87,8 @@ namespace Microsoft.Quantum.QsCompiler
             out int exitCode,
             out Exception? ex,
             IDictionary<string, string>? envVariables = null,
-            int timeout = 10000)
+            int timeout = 10000,
+            int exitCodeOnTimeOut = 1)
         {
             var process = new Process();
             process.StartInfo = new ProcessStartInfo
@@ -112,7 +113,7 @@ namespace Microsoft.Quantum.QsCompiler
             try
             {
                 var exited = Run(process, outstream, errstream, out ex, timeout);
-                exitCode = process.HasExited ? process.ExitCode : 1;
+                exitCode = process.HasExited ? process.ExitCode : exitCodeOnTimeOut;
                 return exited;
             }
             finally

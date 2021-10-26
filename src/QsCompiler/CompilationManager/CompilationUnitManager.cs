@@ -844,8 +844,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 this.Log($"command: {command}, dllPath: {dllPath} (exists: {File.Exists(dllPath)})", MessageType.Info);
                 var commandArgs = $"{dllPath} {verb} --input {tempFile}";
+                var exitCodeOnTimeout = -250;
                 var succeeded =
-                    ProcessRunner.Run(command, commandArgs, out var _, out var _, out var exitCode, out var ex, timeout: timeout)
+                    ProcessRunner.Run(command, commandArgs, out var _, out var _, out var exitCode, out var ex, timeout: timeout, exitCodeOnTimeOut: exitCodeOnTimeout)
                     && exitCode == 0 && ex == null;
 
                 if (succeeded)
@@ -867,6 +868,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         this.LogException(ex);
                     }
+                }
+                else if (exitCode == exitCodeOnTimeout)
+                {
+                    this.Log($"Exist code indicated a time out", MessageType.Info);
                 }
 
                 return null;
