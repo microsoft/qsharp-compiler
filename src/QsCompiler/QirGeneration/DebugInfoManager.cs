@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Whether or not to emit debug information during QIR generation
         /// </summary>
-        public bool DebugFlag { get; } = true;
+        public bool DebugFlag { get; } = false;
 
         /// <summary>
         /// Contains the location information for the syntax tree node we are currently parsing and its parents
