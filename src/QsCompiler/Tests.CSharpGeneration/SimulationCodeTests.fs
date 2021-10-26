@@ -118,6 +118,7 @@ namespace N1
             new CompilationUnitManager(
                 ProjectProperties.Empty,
                 (fun ex -> raise ex),
+                (fun msg _ -> printf "%s" msg),
                 (fun (ps: PublishDiagnosticParams) -> ps.Diagnostics |> Array.iter addError)
             )
 

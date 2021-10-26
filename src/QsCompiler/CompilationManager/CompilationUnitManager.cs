@@ -81,8 +81,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </param>
         public CompilationUnitManager(
             ProjectProperties buildProperties,
-            Action<string, MessageType>? log = null,
             Action<Exception>? exceptionLogger = null,
+            Action<string, MessageType>? log = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
             bool syntaxCheckOnly = false)
         {
@@ -112,8 +112,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                   new KeyValuePair<string, string?>(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture),
                   new KeyValuePair<string, string?>(MSBuildProperties.ResolvedQsharpOutputType, isExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary),
               })),
-              null,
               exceptionLogger,
+              null,
               publishDiagnostics)
         {
         }
