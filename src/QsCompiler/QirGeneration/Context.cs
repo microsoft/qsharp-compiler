@@ -176,9 +176,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// 1.) the transformation needs to be set by calling <see cref="SetTransformation"/>,
         /// 2.) the runtime library needs to be initialized by calling <see cref="InitializeRuntimeLibrary"/>, and
         /// 3.) the quantum instructions set needs to be registered by calling <see cref="RegisterQuantumInstructionSet"/>.
+        /// TODO: entryPoints argument will be deprecated in an upcoming PR. For now it is used to assist in adding
+        /// top level information.
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
+        /// <param name="entryPoints">Array of all entry points for the current compilation.</param>
         internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, ImmutableArray<QsQualifiedName> entryPoints)
         {
             this.IsLibrary = isLibrary;
