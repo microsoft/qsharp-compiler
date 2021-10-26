@@ -212,6 +212,18 @@ type internal 'context Rewriter =
     default Fixup : context: 'context * fixup: Fixup -> Fixup
 
     /// <summary>
+    /// Rewrites a <see cref="Within"/> statement node.
+    /// </summary>
+    abstract Within : context: 'context * withins: Within -> Within
+    default Within : context: 'context * withins: Within -> Within
+
+    /// <summary>
+    /// Rewrites a <see cref="Apply"/> statement node.
+    /// </summary>
+    abstract Apply : context: 'context * apply: Apply -> Apply
+    default Apply : context: 'context * apply: Apply -> Apply
+
+    /// <summary>
     /// Rewrites a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration

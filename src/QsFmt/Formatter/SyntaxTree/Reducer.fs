@@ -175,6 +175,8 @@ type internal 'result Reducer() as reducer =
         | While whiles -> reducer.While whiles
         | Repeat repeats -> reducer.Repeat repeats
         | Until untils -> reducer.Until untils
+        | Within withins -> reducer.Within withins
+        | Apply apply -> reducer.Apply apply
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
@@ -344,6 +346,24 @@ type internal 'result Reducer() as reducer =
         [
             reducer.Terminal fixup.FixupKeyword
             reducer.Block(reducer.Statement, fixup.Block)
+        ]
+        |> reduce
+
+    abstract Within : withins: Within -> 'result
+
+    default _.Within withins =
+        [
+            reducer.Terminal withins.WithinKeyword
+            reducer.Block(reducer.Statement, withins.Block)
+        ]
+        |> reduce
+
+    abstract Apply : apply: Apply -> 'result
+
+    default _.Apply apply =
+        [
+            reducer.Terminal apply.ApplyKeyword
+            reducer.Block(reducer.Statement, apply.Block)
         ]
         |> reduce
 

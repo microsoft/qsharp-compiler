@@ -472,3 +472,30 @@ let ``Repeat-Until Statements Support`` () =
 }"""
 
     run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Within-Apply Statements Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        within {
+            let x1 = new Int[3];
+        } apply {
+            let x2 = new Double[4];
+        }
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        within {
+            let x1 = [0, size = 3];
+        } apply {
+            let x2 = [0.0, size = 4];
+        }
+    }
+}"""
+
+    run input expectedOutput String.Empty

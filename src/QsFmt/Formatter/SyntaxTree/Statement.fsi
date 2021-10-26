@@ -383,7 +383,7 @@ and internal While =
         /// The condition under which to execute the block.
         Condition: Expression
 
-        /// The conditional block.
+        /// The loop body.
         Block: Statement Block
     }
 
@@ -397,7 +397,7 @@ and internal Repeat =
         /// </summary>
         RepeatKeyword: Terminal
 
-        /// The conditional block.
+        /// The loop body.
         Block: Statement Block
     }
 
@@ -406,7 +406,12 @@ and internal Repeat =
 /// </summary>
 and internal Fixup =
     {
+        /// <summary>
+        /// The <c>fixup</c> keyword.
+        /// </summary>
         FixupKeyword: Terminal
+
+        /// The fixup body.
         Block: Statement Block
     }
 
@@ -443,6 +448,34 @@ and internal  Until =
         /// The concluding section, possibly containing a <c>fixup</c> block.
         /// </summary>
         Coda: UntilCoda
+    }
+
+/// <summary>
+/// A <c>within</c> statement.
+/// </summary>
+and internal Within =
+    {
+        /// <summary>
+        /// The <c>within</c> keyword.
+        /// </summary>
+        WithinKeyword: Terminal
+
+        /// The within body.
+        Block: Statement Block
+    }
+
+/// <summary>
+/// An <c>apply</c> statement.
+/// </summary>
+and internal Apply =
+    {
+        /// <summary>
+        /// The <c>apply</c> keyword.
+        /// </summary>
+        ApplyKeyword: Terminal
+
+        /// The apply body.
+        Block: Statement Block
     }
 
 /// The concluding section of a qubit declaration.
@@ -551,6 +584,16 @@ and internal Statement =
     /// An <c>until</c> statement.
     /// </summary>
     | Until of Until
+
+    /// <summary>
+    /// A <c>within</c> statement.
+    /// </summary>
+    | Within of Within
+
+    /// <summary>
+    /// An <c>apply</c> statement.
+    /// </summary>
+    | Apply of Apply
 
     /// A qubit declaration statement.
     | QubitDeclaration of QubitDeclaration

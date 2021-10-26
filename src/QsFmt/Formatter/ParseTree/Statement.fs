@@ -276,6 +276,30 @@ type StatementVisitor(tokens) =
         }
         |> Until
 
+    override visitor.VisitWithinStatement context =
+        {
+            WithinKeyword = context.within |> Node.toTerminal tokens
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> Within
+
+    override visitor.VisitApplyStatement context =
+        {
+            ApplyKeyword = context.apply |> Node.toTerminal tokens
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> Apply
+
     override visitor.VisitQubitDeclaration context =
         {
             Kind =

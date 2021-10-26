@@ -216,6 +216,18 @@ type internal 'result Reducer =
     default Fixup : fixup: Fixup -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="Within"/> statement node.
+    /// </summary>
+    abstract Within : withins: Within -> 'result
+    default Within : withins: Within -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="Apply"/> statement node.
+    /// </summary>
+    abstract Apply : apply: Apply -> 'result
+    default Apply : apply: Apply -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : decl: QubitDeclaration -> 'result

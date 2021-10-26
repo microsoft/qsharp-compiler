@@ -215,11 +215,19 @@ and Until =
 
 // Within Statement
 
-// ToDo
+and Within =
+    {
+        WithinKeyword: Terminal
+        Block: Statement Block
+    }
 
 // Apply Statement
 
-// ToDo
+and Apply =
+    {
+        ApplyKeyword: Terminal
+        Block: Statement Block
+    }
 
 // Qubit Declaration Statement
 
@@ -255,6 +263,8 @@ and Statement =
     | While of While
     | Repeat of Repeat
     | Until of Until
+    | Within of Within
+    | Apply of Apply
     | QubitDeclaration of QubitDeclaration
     | Unknown of Terminal
 
@@ -282,5 +292,7 @@ module Statement =
         | While whiles -> { whiles with WhileKeyword = whiles.WhileKeyword |> Terminal.mapPrefix mapper } |> While
         | Repeat repeats -> { repeats with RepeatKeyword = repeats.RepeatKeyword |> Terminal.mapPrefix mapper } |> Repeat
         | Until untils -> { untils with UntilKeyword = untils.UntilKeyword |> Terminal.mapPrefix mapper } |> Until
+        | Within withins -> { withins with WithinKeyword = withins.WithinKeyword |> Terminal.mapPrefix mapper } |> Within
+        | Apply apply -> { apply with ApplyKeyword = apply.ApplyKeyword |> Terminal.mapPrefix mapper } |> Apply
         | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown

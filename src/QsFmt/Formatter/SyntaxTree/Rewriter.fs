@@ -174,6 +174,8 @@ type 'context Rewriter() =
         | While whiles -> rewriter.While(context, whiles) |> While
         | Repeat repeats -> rewriter.Repeat(context, repeats) |> Repeat
         | Until untils -> rewriter.Until(context, untils) |> Until
+        | Within withins -> rewriter.Within(context, withins) |> Within
+        | Apply apply -> rewriter.Apply(context, apply) |> Apply
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
 
@@ -329,6 +331,22 @@ type 'context Rewriter() =
         {
             FixupKeyword = rewriter.Terminal(context, fixup.FixupKeyword)
             Block = rewriter.Block(context, rewriter.Statement, fixup.Block)
+        }
+
+    abstract Within : context: 'context * withins: Within -> Within
+
+    default rewriter.Within(context, withins) =
+        {
+            WithinKeyword = rewriter.Terminal(context, withins.WithinKeyword)
+            Block = rewriter.Block(context, rewriter.Statement, withins.Block)
+        }
+
+    abstract Apply : context: 'context * apply: Apply -> Apply
+
+    default rewriter.Apply(context, apply) =
+        {
+            ApplyKeyword = rewriter.Terminal(context, apply.ApplyKeyword)
+            Block = rewriter.Block(context, rewriter.Statement, apply.Block)
         }
 
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration

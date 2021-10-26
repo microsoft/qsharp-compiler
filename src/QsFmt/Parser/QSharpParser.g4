@@ -155,8 +155,8 @@ statement
     | while='while' condition=expression body=scope # WhileStatement
     | repeat='repeat' body=scope # RepeatStatement
     | until='until' condition=expression (semicolon=';' | fixup='fixup' body=scope) # UntilStatement
-    | 'within' scope # WithinStatement
-    | 'apply' scope # ApplyStatement
+    | within='within' body=scope # WithinStatement
+    | apply='apply' body=scope # ApplyStatement
     | keyword=('use' | 'using' | 'borrow' | 'borrowing') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') (body=scope | semicolon=';') # QubitDeclaration
     ;
 
