@@ -160,6 +160,52 @@ let forParensUpdate =
             }
     }
 
+/// <summary>
+/// Make sure that a <see cref="SequenceItem"/> contains a comma.
+/// </summary>
+let ensureComma (item: 'a SequenceItem) =
+    match item.Comma with
+    | None -> { Item = item.Item; Comma = Some({ Prefix = []; Text = "," }) }
+    | Some _ -> item
+
+/// <summary>
+/// Prepends the <paramref name="parameters"/> with an ellipsis <see cref="Terminal"/> item if it does not already contain one.
+/// </summary>
+let ensureEllipsis (parameters: SpecializationParameter Tuple) =
+    let ellipsis nspace =
+        { Prefix = [ spaces nspace ]; Text = "..." }
+
+    let ellipsisItem nspace =
+        { Item = Some(ellipsis nspace); Comma = None }
+
+    { parameters with
+        Items =
+            match parameters.Items with
+            // Replace, e.g., `body()` with `body(...)`
+            | [] -> [ ellipsisItem 0 ]
+            // Replace, e.g., `controlled (q)` with `controlled (q, ...)`
+            | [ x ] ->
+                match Option.get(x.Item).Text with
+                | "..." -> [ x ]
+                | _ -> [ ensureComma x; ellipsisItem 1 ]
+            | _ -> parameters.Items
+    }
+
+let specializationUpdate =
+    { new Rewriter<_>() with
+        override _.SpecializationGenerator((), generator) =
+            match generator with
+            | Provided (parameters, statements) ->
+                Provided(
+                    parameters =
+                        (match parameters with
+                         | None -> parameters
+                         | Some par -> Some(ensureEllipsis par)),
+                    statements = statements
+                )
+            | _ -> generator
+    }
+
 let arraySyntaxUpdate =
 
     let getBuiltInDefault builtIn =

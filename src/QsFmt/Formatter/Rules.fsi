@@ -29,6 +29,9 @@ val unitUpdate : unit Rewriter
 /// Updates for-loops to remove deprecated parentheses.
 val forParensUpdate: unit Rewriter
 
+/// Updates deprecated specialization declarations to add a `...` parameter.
+val specializationUpdate: unit Rewriter
+
 /// Updates the `new <Type>[n]` array syntax to the new `[val, size = n]` array syntax.
 val arraySyntaxUpdate: unit Rewriter
 
