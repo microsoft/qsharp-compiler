@@ -12,9 +12,11 @@ type TypeParameterBinding =
         CloseBracket: Terminal
     }
 
+type SpecializationParameter = Terminal
+
 type SpecializationGenerator =
     | BuiltIn of name: Terminal * semicolon: Terminal
-    | Provided of parameters: Terminal option * statements: Statement Block
+    | Provided of parameters: SpecializationParameter Tuple option * statements: Statement Block
 
 type Specialization = { Names: Terminal list; Generator: SpecializationGenerator }
 

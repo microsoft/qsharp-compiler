@@ -26,13 +26,16 @@ type internal TypeParameterBinding =
         CloseBracket: Terminal
     }
 
+/// A specialization parameter
+type internal SpecializationParameter = Terminal
+
 /// A specialization generator.
 type internal SpecializationGenerator =
     /// A built-in generator.
     | BuiltIn of name: Terminal * semicolon: Terminal
 
     /// A provided specialization.
-    | Provided of parameters: Terminal option * statements: Statement Block
+    | Provided of parameters: SpecializationParameter Tuple option * statements: Statement Block
 
 /// A specialization.
 type internal Specialization =

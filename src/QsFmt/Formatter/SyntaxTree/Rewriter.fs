@@ -151,7 +151,7 @@ type 'context Rewriter() =
             BuiltIn(name = rewriter.Terminal(context, name), semicolon = rewriter.Terminal(context, semicolon))
         | Provided (parameters, statements) ->
             Provided(
-                parameters = (parameters |> Option.map (curry rewriter.Terminal context)),
+                parameters = (parameters |> Option.map (curry3 rewriter.Tuple context rewriter.Terminal)),
                 statements = rewriter.Block(context, rewriter.Statement, statements)
             )
 

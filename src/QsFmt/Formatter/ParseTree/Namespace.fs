@@ -33,8 +33,21 @@ type SpecializationGeneratorVisitor(tokens) =
         toBuiltIn context.intrinsic context.semicolon
 
     override _.VisitProvidedGenerator context =
+        let tospecializationParameters tokens (context: QSharpParser.SpecializationParameterTupleContext) =
+            let toSpecializationParameter (context: QSharpParser.SpecializationParameterContext) =
+                { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() }
+
+            let parameters = context._parameters |> Seq.map toSpecializationParameter
+            let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+
+            {
+                OpenParen = context.openParen |> Node.toTerminal tokens
+                Items = Node.tupleItems parameters commas
+                CloseParen = context.closeParen |> Node.toTerminal tokens
+            }
+
         Provided(
-            parameters = (Option.ofObj context.provided.parameters |> Option.map (Node.toUnknown tokens)),
+            parameters = (Option.ofObj context.provided.parameters |> Option.map (tospecializationParameters tokens)),
             statements =
                 {
                     OpenBrace = context.provided.block.openBrace |> Node.toTerminal tokens
