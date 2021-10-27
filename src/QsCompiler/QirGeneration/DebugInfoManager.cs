@@ -140,6 +140,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The compile unit related to this source file</returns>
         private DebugInfoBuilder GetOrCreateDIBuilder(string sourcePath)
         {
+            if (string.IsNullOrWhiteSpace(sourcePath))
+            {
+                throw new ArgumentException("Expected valid sourcePath");
+            }
+
             DebugInfoBuilder di;
             if (this.dIBuilders.TryGetValue(sourcePath, out di))
             {
@@ -150,7 +155,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Change the extension for to .c because of the language/extension issue
                 string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
 
-                // TODO: If we need compilation flags (an optional argument to CreateBitcodeModule) in the future we will need
+                // TODO: If we need compilation flags (an optional argument to CreateCompileUnit) in the future we will need
                 // to figure out how to get the compile options in the CompilationLoader.Configuration
                 // and turn them into a string (although the compilation flags don't seem to be emitted to the IR anyways)
                 di = this.Module.CreateDIBuilder();
@@ -159,6 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     cSourcePath,
                     GetQirProducerIdent(),
                     null);
+                this.dIBuilders.Add(sourcePath, di);
                 return di;
             }
         }
@@ -202,13 +208,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     throw new Exception("No entry point found in the source code");
                 }
 
-                string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
-                DebugInfoBuilder di = owningModule.CreateDIBuilder();
-                di.CreateCompileUnit(
-                    QSharpLanguage, // Note that to debug the source file, you'll have to copy the content of the .qs file into a .c file with the same name
-                    cSourcePath,
-                    GetQirProducerIdent(),
-                    null);
+                this.GetOrCreateDIBuilder(sourcePath);
             }
         }
     }
