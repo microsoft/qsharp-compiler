@@ -58,6 +58,8 @@ Updating rules currently in use:
  - Using and Borrowing Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/1-implicitly-scoped-qubit-allocation.md)
  - Parentheses in For Loop Syntax - Removes deprecated parentheses around for-loop range expressions.
  - Unit Syntax - Replaces deprecated unit syntax `()` for `Unit`.
+ - Boolean Operator Syntax - Replaces deprecated use of boolean operators `&&`, `||`, and `!` with
+   their keyword equivalence `and`, `or`, and `not` respectively.
 
 ## Update vs. Format
 
