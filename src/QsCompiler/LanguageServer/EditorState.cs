@@ -144,6 +144,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             AddProperty(buildProperties, MSBuildProperties.TargetPath);
             AddProperty(buildProperties, MSBuildProperties.ResolvedProcessorArchitecture);
             AddProperty(buildProperties, MSBuildProperties.QuantumSdkPath);
+            AddProperty(buildProperties, MSBuildProperties.QuantumSdkVersion);
             AddProperty(buildProperties, MSBuildProperties.QsharpLangVersion);
             AddProperty(buildProperties, MSBuildProperties.ResolvedRuntimeCapabilities);
             AddProperty(buildProperties, MSBuildProperties.ResolvedQsharpOutputType);

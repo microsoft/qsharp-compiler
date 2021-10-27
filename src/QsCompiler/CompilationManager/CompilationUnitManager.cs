@@ -827,9 +827,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? (fmtCommand[0], string.Join(" ", fmtCommand[1..]))
                 : ("dotnet", Path.Combine(sdkPath ?? "", "tools", "qsfmt", "qsfmt.dll"));
 
-            this.Log($"qsfmt path: {dllPath} (exists: {File.Exists(dllPath)})", MessageType.Info);
-            this.Log($"sdk path: {sdkPath} (exists: {Directory.Exists(sdkPath)})", MessageType.Info);
-            if (verb == null || (fmtCommand?.Length == 2 && !File.Exists(dllPath) && !Directory.Exists(sdkPath)))
+            // It is possible for File.Exists/Directory.Exists to return false for both dllPath and sdkPath
+            // despite that the command can indeed be successfully executed.
+            if (verb == null)
             {
                 return null;
             }
@@ -837,49 +837,39 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             TextEdit[]? FormatFile(FileContentManager file)
             {
                 var tempFile = Path.ChangeExtension(Path.GetTempFileName(), ".qs");
-                this.Log($"temp file: {tempFile} (exists: {File.Exists(tempFile)})", MessageType.Info);
                 var currentContent = file.GetFileContent();
                 File.WriteAllText(tempFile, currentContent);
-                this.Log($"initial file content: \n{currentContent}", MessageType.Info);
 
-                this.Log($"command: {command}, dllPath: {dllPath} (exists: {File.Exists(dllPath)})", MessageType.Info);
+                // The exit code is selected looking at this: https://tldp.org/LDP/abs/html/exitcodes.html
+                // Code 130 usually indicates "Script terminated by Control-C", and seem appropriate in this case.
+                var exitCodeOnTimeout = 130;
                 var commandArgs = $"{dllPath} {verb} --input {tempFile}";
-                var exitCodeOnTimeout = -250;
+                this.Log($"Invoking formatting command: {command} {commandArgs}", MessageType.Info);
                 var succeeded =
-                    ProcessRunner.Run(command, commandArgs, out var outstream, out var errstream, out var exitCode, out var ex, timeout: timeout, exitCodeOnTimeOut: exitCodeOnTimeout)
+                    ProcessRunner.Run(command, commandArgs, out var _, out var errstream, out var exitCode, out var ex, timeout: timeout, exitCodeOnTimeOut: exitCodeOnTimeout)
                     && exitCode == 0 && ex == null;
 
                 if (succeeded)
                 {
                     var range = DataTypes.Range.Create(DataTypes.Position.Zero, file.End());
                     var edit = new TextEdit { Range = range.ToLsp(), NewText = File.ReadAllText(tempFile) };
-                    this.Log($"formatted file content: \n{edit.NewText}", MessageType.Info);
                     File.Delete(tempFile);
                     return new[] { edit };
                 }
+                else if (exitCode == exitCodeOnTimeout)
+                {
+                    this.Log($"Formatting command timed out.", MessageType.Info);
+                }
                 else if (ex != null)
                 {
-                    if (qsFmtExe != null)
-                    {
-                        this.Log($"Failed to format document. Formatter may be unavailable.", MessageType.Error);
-                        this.Log($"Caught exception: {ex}", MessageType.Error);
-                    }
-                    else
+                    if (qsFmtExe == null && this.compilationUnit.BuildProperties.SdkVersion > new Version(0, 21))
                     {
                         this.LogException(ex);
                     }
                 }
-                else if (exitCode == exitCodeOnTimeout)
-                {
-                    this.Log($"Exist code indicated a time out (exit code: {exitCode})", MessageType.Info);
-                    this.Log($"produced output stream: \n{outstream}", MessageType.Info);
-                    this.Log($"produced error stream: \n{errstream}", MessageType.Info);
-                }
                 else
                 {
-                    this.Log("Unknown error during formatting", MessageType.Error);
-                    this.Log($"produced output stream: \n{outstream}", MessageType.Info);
-                    this.Log($"produced error stream: \n{errstream}", MessageType.Info);
+                    this.Log($"Unknown error during formatting (exit code {exitCode}): \n{errstream}", MessageType.Error);
                 }
 
                 return null;

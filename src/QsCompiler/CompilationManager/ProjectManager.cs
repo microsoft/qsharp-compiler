@@ -36,6 +36,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : new Version(DefaultAssemblyVersion.Major, DefaultAssemblyVersion.Minor);
 
         /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.QuantumSdkVersion"/>,
+        /// or null if no valid value is specified.
+        /// </summary>
+        public Version? SdkVersion =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.QuantumSdkVersion, out var versionProp)
+            && Version.TryParse(versionProp, out Version version)
+                ? version
+                : null;
+
+        /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.QuantumSdkPath"/>,
         /// or an empty string if no value is specified.
         /// </summary>

@@ -242,6 +242,7 @@ module GeneratedAttributes =
 module MSBuildProperties =
     let QuantumSdkPath = "QuantumSdkPath"
     let QsharpLangVersion = "QSharpLangVersion"
+    let QuantumSdkVersion = "QuantumSdkVersion"
     let TargetPath = "TargetPath"
     let ResolvedProcessorArchitecture = "ResolvedProcessorArchitecture"
     let ResolvedRuntimeCapabilities = "ResolvedRuntimeCapabilities"

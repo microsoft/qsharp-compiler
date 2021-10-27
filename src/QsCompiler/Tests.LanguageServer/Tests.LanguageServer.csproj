@@ -6,6 +6,7 @@
     <AssemblyName>Tests.Microsoft.Quantum.QsLanguageServer</AssemblyName>
     <OutputType>Library</OutputType>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
+    <EnlistmentRoot>$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory)..\..\..\))</EnlistmentRoot>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -39,12 +40,13 @@
 
   <Target Name="PublishQsFmt" BeforeTargets="BeforeCompile">
     <Message Importance="high" Text="Publishing QsFmt"/>
-    <Exec Command="dotnet publish ..\..\QsFmt\App\App.fsproj" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
+    <Exec Command="dotnet publish $(EnlistmentRoot)src\QsFmt\App\App.fsproj" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="QsFmtPublishExitCode"/>
     </Exec>
     <ItemGroup>
-      <QsFmtFiles Include="..\..\QsFmt\App\bin\$(Configuration)\$(TargetFramework)\publish\**\*" />
+      <QsFmtFiles Include="$(EnlistmentRoot)src\QsFmt\App\bin\**\publish\**\*" />
     </ItemGroup>
+    <Error Condition ="'$(QsFmtPublishExitCode)' != '0'" Text="Publishing QsFmt failed." />
     <Error Condition ="'@(QsFmtFiles->Count())' == '0'" Text="Missing QsFmtFiles." />
     <MakeDir Directories="$(OutputPath)\qsfmt" />    
     <Copy SourceFiles="@(QsFmtFiles)" DestinationFolder="$(OutputPath)\qsfmt" ContinueOnError="false" />
