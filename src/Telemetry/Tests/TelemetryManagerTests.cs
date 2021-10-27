@@ -151,9 +151,8 @@ namespace Microsoft.Quantum.Telemetry.Tests
             var telemetryManagerConfig = this.GetConfig();
 
             // Check if the correct configuration values are applied
-            try
+            using (TelemetryManager.Initialize(telemetryManagerConfig))
             {
-                TelemetryManager.Initialize(telemetryManagerConfig);
                 Assert.AreSame(TelemetryManager.Configuration, telemetryManagerConfig);
                 Assert.AreEqual(TelemetryManager.Configuration.AppId, telemetryManagerConfig.AppId);
                 Assert.AreEqual(TelemetryManager.Configuration.EventNamePrefix, telemetryManagerConfig.EventNamePrefix);
@@ -170,54 +169,36 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 Assert.AreEqual(TelemetryManager.Configuration.ExceptionLoggingOptions.CollectTargetSite, telemetryManagerConfig.ExceptionLoggingOptions.CollectTargetSite);
                 Assert.AreEqual(TelemetryManager.Configuration.ExceptionLoggingOptions.CollectSanitizedStackTrace, telemetryManagerConfig.ExceptionLoggingOptions.CollectSanitizedStackTrace);
             }
-            finally
-            {
-                TelemetryManager.TearDown();
-            }
 
             // Send initialization and teardown events
-            try
+            Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
+            using (TelemetryManager.Initialize(telemetryManagerConfig with
+                                                {
+                                                    SendTelemetryInitializedEvent = true,
+                                                    SendTelemetryTearDownEvent = true,
+                                                }))
             {
-                Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
-                TelemetryManager.Initialize(telemetryManagerConfig with
-                {
-                    SendTelemetryInitializedEvent = true,
-                    SendTelemetryTearDownEvent = true,
-                });
                 Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
             }
-            finally
-            {
-                TelemetryManager.TearDown();
-                Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
 
-                // The second time we do a teardown, it should do nothing and not raise an exception
-                TelemetryManager.TearDown();
-            }
+            Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
+
+            // The second time we do a teardown, it should do nothing and not raise an exception
+            TelemetryManager.TearDown();
 
             // Try initialize it more than once
-            try
+            using (TelemetryManager.Initialize(telemetryManagerConfig))
             {
-                TelemetryManager.Initialize(telemetryManagerConfig);
                 Assert.ThrowsException<InvalidOperationException>(() =>
                     TelemetryManager.Initialize(telemetryManagerConfig));
             }
-            finally
-            {
-                TelemetryManager.TearDown();
-            }
 
             // Try passing args and check that they are not changed
-            try
+            var originalArgs = new string[] { "arg1", Guid.NewGuid().ToString() };
+            var args = originalArgs.ToArray();
+            using (TelemetryManager.Initialize(telemetryManagerConfig, args))
             {
-                var originalArgs = new string[] { "arg1", Guid.NewGuid().ToString() };
-                var args = originalArgs.ToArray();
-                TelemetryManager.Initialize(telemetryManagerConfig, args);
                 CollectionAssert.AreEqual(originalArgs, args);
-            }
-            finally
-            {
-                TelemetryManager.TearDown();
             }
 
             var outOfProcessConfig = telemetryManagerConfig with
@@ -240,42 +221,28 @@ namespace Microsoft.Quantum.Telemetry.Tests
             }
 
             // Try with OutOfProcessUpload=true, args!=null
-            try
+            args = new string[] { };
+            using (TelemetryManager.Initialize(outOfProcessConfig, args))
             {
-                var args = new string[] { };
-                TelemetryManager.Initialize(outOfProcessConfig, args);
-            }
-            finally
-            {
-                TelemetryManager.TearDown();
             }
 
             // Try with OutOfProcessUpload=true, args=OUTOFPROCESSUPLOADARG
-            try
+            args = new string[] { TelemetryManager.OUTOFPROCESSUPLOADARG, TelemetryManager.TESTMODE };
+
+            using (TelemetryManager.Initialize(outOfProcessConfig, args))
             {
-                var args = new string[] { TelemetryManager.OUTOFPROCESSUPLOADARG, TelemetryManager.TESTMODE };
-                TelemetryManager.Initialize(outOfProcessConfig, args);
-            }
-            finally
-            {
-                TelemetryManager.TearDown();
             }
         }
 
         [TestMethod]
         public void TestLogObjectNull()
         {
-            try
-            {
-                var telemetryManagerConfig = this.GetConfig();
-                TelemetryManager.Initialize(telemetryManagerConfig);
+            var telemetryManagerConfig = this.GetConfig();
 
+            using (TelemetryManager.Initialize(telemetryManagerConfig))
+            {
                 TelemetryManager.LogObject(null!);
                 Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
-            }
-            finally
-            {
-                TelemetryManager.TearDown();
             }
         }
 
@@ -289,95 +256,74 @@ namespace Microsoft.Quantum.Telemetry.Tests
         [TestMethod]
         public void TestLogObjectException()
         {
-            try
+            var telemetryManagerConfig = this.GetConfig() with
             {
-                var telemetryManagerConfig = this.GetConfig() with
+                ExceptionLoggingOptions = new()
                 {
-                    ExceptionLoggingOptions = new()
-                    {
-                        CollectSanitizedStackTrace = true,
-                        CollectTargetSite = true,
-                    },
-                };
-                TelemetryManager.Initialize(telemetryManagerConfig);
+                    CollectSanitizedStackTrace = true,
+                    CollectTargetSite = true,
+                },
+            };
 
+            using (TelemetryManager.Initialize(telemetryManagerConfig))
+            {
                 TelemetryManager.LogObject(this.CreateExceptionWithStackTrace());
                 Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
 
                 TelemetryManager.LogObject(this.CreateException());
                 Assert.AreEqual(2, TelemetryManager.TotalEventsCount);
             }
-            finally
-            {
-                TelemetryManager.TearDown();
-            }
 
-            try
+            telemetryManagerConfig = this.GetConfig() with
             {
-                var telemetryManagerConfig = this.GetConfig() with
+                ExceptionLoggingOptions = new()
                 {
-                    ExceptionLoggingOptions = new()
-                    {
-                        CollectSanitizedStackTrace = false,
-                        CollectTargetSite = false,
-                    },
-                };
-                TelemetryManager.Initialize(telemetryManagerConfig);
+                    CollectSanitizedStackTrace = false,
+                    CollectTargetSite = false,
+                },
+            };
 
+            using (TelemetryManager.Initialize(telemetryManagerConfig))
+            {
                 TelemetryManager.LogObject(this.CreateExceptionWithStackTrace());
                 Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
-            }
-            finally
-            {
-                TelemetryManager.TearDown();
             }
         }
 
         [TestMethod]
         public void TestLogObject()
         {
-            try
-            {
-                var telemetryManagerConfig = this.GetConfig();
-                TelemetryManager.Initialize(telemetryManagerConfig);
+            var telemetryManagerConfig = this.GetConfig();
 
+            using (TelemetryManager.Initialize(telemetryManagerConfig))
+            {
                 TelemetryManager.LogObject(this.CreateTestEventObject());
                 Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
-            }
-            finally
-            {
-                TelemetryManager.TearDown();
             }
         }
 
         [TestMethod]
         public void TestLogEvent()
         {
-            try
-            {
-                var telemetryManagerConfig = this.GetConfig();
-                TelemetryManager.Initialize(telemetryManagerConfig);
+            var telemetryManagerConfig = this.GetConfig();
 
+            using (TelemetryManager.Initialize(telemetryManagerConfig))
+            {
                 TelemetryManager.LogEvent(this.CreateEventPropertiesObject());
                 Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
 
                 TelemetryManager.LogObject(this.CreateEventPropertiesObject());
                 Assert.AreEqual(2, TelemetryManager.TotalEventsCount);
             }
-            finally
-            {
-                TelemetryManager.TearDown();
-            }
         }
 
         [TestMethod]
         public void TestLogEventName()
         {
-            try
-            {
-                var telemetryManagerConfig = this.GetConfig();
-                TelemetryManager.Initialize(telemetryManagerConfig);
+            var telemetryManagerConfig = this.GetConfig();
 
+            using (TelemetryManager.Initialize(telemetryManagerConfig))
+            {
                 TelemetryManager.LogEvent("MyEventName");
                 Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
 
@@ -387,20 +333,15 @@ namespace Microsoft.Quantum.Telemetry.Tests
                         TelemetryManager.LogEvent(value));
                 }
             }
-            finally
-            {
-                TelemetryManager.TearDown();
-            }
         }
 
         [TestMethod]
         public void TestSetContext()
         {
-            try
-            {
-                var telemetryManagerConfig = this.GetConfig();
-                TelemetryManager.Initialize(telemetryManagerConfig);
+            var telemetryManagerConfig = this.GetConfig();
 
+            using (TelemetryManager.Initialize(telemetryManagerConfig))
+            {
                 TelemetryManager.SetContext("CommonDateTime", DateTime.Now);
                 TelemetryManager.SetContext("CommonString", "my string");
                 TelemetryManager.SetContext("CommonLong", 123);
@@ -410,26 +351,21 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 TelemetryManager.SetContext("CommonPIIData", "username", isPii: true);
                 TelemetryManager.SetContext("CommonPIIData2", "username", TelemetryPropertyType.String, isPii: true);
             }
-            finally
-            {
-                TelemetryManager.TearDown();
-            }
         }
 
-        [TestMethod]
+        // [TestMethod]
         public void TestLogObjectOutOfProcess()
         {
-            try
+            var telemetryManagerConfig = this.GetConfig() with
             {
-                var telemetryManagerConfig = this.GetConfig() with
-                {
-                    OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero,
-                    OutOProcessMaxIdleTime = TimeSpan.Zero,
-                    OutOfProcessUpload = true,
-                };
-                var args = new string[] { };
-                TelemetryManager.Initialize(telemetryManagerConfig, args);
+                OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero,
+                OutOProcessMaxIdleTime = TimeSpan.Zero,
+                OutOfProcessUpload = true,
+            };
+            var args = new string[] { };
 
+            using (TelemetryManager.Initialize(telemetryManagerConfig, args))
+            {
                 TelemetryManager.SetContext("CommonDateTime", DateTime.Now);
                 TelemetryManager.SetContext("CommonString", "my string");
                 TelemetryManager.SetContext("CommonLong", 123);
@@ -451,10 +387,6 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 TelemetryManager.LogObject(this.CreateTestEventObject());
                 Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
             }
-            finally
-            {
-                TelemetryManager.TearDown();
-            }
         }
 
         [TestMethod]
@@ -465,16 +397,16 @@ namespace Microsoft.Quantum.Telemetry.Tests
             {
                 Environment.SetEnvironmentVariable(telemetryManagerConfig.TelemetryOptOutVariableName, "1");
 
-                TelemetryManager.Initialize(telemetryManagerConfig);
-
-                TelemetryManager.LogEvent("MyEventName");
-                TelemetryManager.LogEvent(this.CreateEventPropertiesObject());
-                TelemetryManager.LogObject(this.CreateTestEventObject());
-                Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
+                using (TelemetryManager.Initialize(telemetryManagerConfig))
+                {
+                    TelemetryManager.LogEvent("MyEventName");
+                    TelemetryManager.LogEvent(this.CreateEventPropertiesObject());
+                    TelemetryManager.LogObject(this.CreateTestEventObject());
+                    Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
+                }
             }
             finally
             {
-                TelemetryManager.TearDown();
                 Environment.SetEnvironmentVariable(telemetryManagerConfig.TelemetryOptOutVariableName, "");
             }
         }
@@ -488,15 +420,15 @@ namespace Microsoft.Quantum.Telemetry.Tests
             {
                 Environment.SetEnvironmentVariable(telemetryManagerConfig.EnableTelemetryExceptionsVariableName, "1");
 
-                TelemetryManager.Initialize(telemetryManagerConfig);
-
-                Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
-                    TelemetryManager.LogEvent("####"));
-                Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
+                using (TelemetryManager.Initialize(telemetryManagerConfig))
+                {
+                    Assert.ThrowsException<ArgumentOutOfRangeException>(() =>
+                        TelemetryManager.LogEvent("####"));
+                    Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
+                }
             }
             finally
             {
-                TelemetryManager.TearDown();
                 Environment.SetEnvironmentVariable(telemetryManagerConfig.EnableTelemetryExceptionsVariableName, "");
             }
 
@@ -504,14 +436,14 @@ namespace Microsoft.Quantum.Telemetry.Tests
             {
                 Environment.SetEnvironmentVariable(telemetryManagerConfig.EnableTelemetryExceptionsVariableName, "0");
 
-                TelemetryManager.Initialize(telemetryManagerConfig);
-
-                TelemetryManager.LogEvent("####");
-                Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
+                using (TelemetryManager.Initialize(telemetryManagerConfig))
+                {
+                    TelemetryManager.LogEvent("####");
+                    Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
+                }
             }
             finally
             {
-                TelemetryManager.TearDown();
                 Environment.SetEnvironmentVariable(telemetryManagerConfig.EnableTelemetryExceptionsVariableName, "");
             }
         }

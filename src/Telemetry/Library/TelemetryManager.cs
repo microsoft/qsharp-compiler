@@ -129,6 +129,30 @@ namespace Microsoft.Quantum.Telemetry
         }
     }
 
+    public class TelemetryManagerHandle : IDisposable
+    {
+        private bool disposedValue;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.disposedValue)
+            {
+                if (disposing)
+                {
+                    TelemetryManager.TearDown();
+                }
+
+                this.disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            this.Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+    }
+
     internal record TelemetryTearDown(TimeSpan? TotalRunningTime, int TotalEventsCount);
 
     /// <summary>
@@ -186,7 +210,7 @@ namespace Microsoft.Quantum.Telemetry
         /// Initializes the TelemetryManager with the given configuration.
         /// Must be called before any other method in this class, ideally right after the program starts.
         /// </summary>
-        public static void Initialize(TelemetryManagerConfig configuration, string[]? args = null)
+        public static IDisposable Initialize(TelemetryManagerConfig configuration, string[]? args = null)
         {
             InitializationTime = DateTime.Now;
             Configuration = configuration;
@@ -235,6 +259,8 @@ namespace Microsoft.Quantum.Telemetry
                     }
                 },
                 initializingOrTearingDown: true);
+
+            return new TelemetryManagerHandle();
         }
 
         private static void SetStartupContext()
