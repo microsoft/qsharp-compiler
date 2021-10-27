@@ -844,7 +844,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // Code 130 usually indicates "Script terminated by Control-C", and seem appropriate in this case.
                 var exitCodeOnTimeout = 130;
                 var commandArgs = $"{dllPath} {verb} --input {tempFile}";
-                this.Log($"Invoking formatting command: {command} {commandArgs}", MessageType.Info);
+                this.Log($"Invoking {verb} command: {command} {commandArgs}", MessageType.Info);
                 var succeeded =
                     ProcessRunner.Run(command, commandArgs, out var _, out var errstream, out var exitCode, out var ex, timeout: timeout, exitCodeOnTimeOut: exitCodeOnTimeout)
                     && exitCode == 0 && ex == null;
@@ -858,7 +858,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 else if (exitCode == exitCodeOnTimeout)
                 {
-                    this.Log($"Formatting command timed out.", MessageType.Info);
+                    this.Log($"{verb} command timed out.", MessageType.Info);
                 }
                 else if (ex != null)
                 {
@@ -869,7 +869,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 else
                 {
-                    this.Log($"Unknown error during formatting (exit code {exitCode}): \n{errstream}", MessageType.Error);
+                    this.Log($"Unknown error during {verb} (exit code {exitCode}): \n{errstream}", MessageType.Error);
                 }
 
                 return null;
