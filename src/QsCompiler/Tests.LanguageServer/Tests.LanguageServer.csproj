@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\QsFmt\App\App.fsproj" />
     <ProjectReference Include="..\LanguageServer\LanguageServer.csproj">
       <Private>true</Private>
     </ProjectReference>
@@ -37,5 +36,18 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <Target Name="PublishQsFmt" BeforeTargets="BeforeCompile">
+    <Message Importance="high" Text="Publishing QsFmt"/>
+    <Exec Command="dotnet publish ..\..\QsFmt\App\App.fsproj" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
+      <Output TaskParameter="ExitCode" PropertyName="QsFmtPublishExitCode"/>
+    </Exec>
+    <ItemGroup>
+      <QsFmtFiles Include="..\..\QsFmt\App\bin\$(Configuration)\$(TargetFramework)\publish\**\*" />
+    </ItemGroup>
+    <Error Condition ="'@(QsFmtFiles->Count())' == '0'" Text="Missing QsFmtFiles." />
+    <MakeDir Directories="$(OutputPath)\qsfmt" />    
+    <Copy SourceFiles="@(QsFmtFiles)" DestinationFolder="$(OutputPath)\qsfmt" ContinueOnError="false" />
+  </Target>
 
 </Project>

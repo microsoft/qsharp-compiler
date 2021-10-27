@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <QsFmtExe>dotnet $(MSBuildProjectDirectory)/../../qsfmt.dll</QsFmtExe>
+    <QsFmtExe>dotnet $(MSBuildProjectDirectory)/../../qsfmt/qsfmt.dll</QsFmtExe>
   </PropertyGroup>
 
   <ItemGroup>

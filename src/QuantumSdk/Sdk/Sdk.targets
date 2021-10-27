@@ -185,8 +185,8 @@
     <Exec Command="$(QSharpSyntaxUpdateCommand)" IgnoreExitCode="true" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="QsFmtExitCode"/>
     </Exec>
-    <Message Importance="low" Text="Invoking QsFmt: $(QSharpSyntaxUpdateCommand)"/>        
-    <Message Importance="low" Text="QsFmt command exit code: $(QsFmtExitCode)"/>    
+    <Message Importance="low" Text="Invoking QsFmt: $(QSharpSyntaxUpdateCommand)"/>
+    <Message Importance="low" Text="QsFmt command exit code: $(QsFmtExitCode)"/>
     <Error Text="Q# update tool failed with exit code: $(QsFmtExitCode)." Condition="'$(QsFmtExitCode)' != '0'" />
   </Target>
 
