@@ -277,10 +277,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 }
             }
 
-            await RunTest(emptyLastLine: true, useQsExtension: true);
             await RunTest(emptyLastLine: true, useQsExtension: false);
-            await RunTest(emptyLastLine: false, useQsExtension: true);
             await RunTest(emptyLastLine: false, useQsExtension: false);
+            await RunTest(emptyLastLine: true, useQsExtension: true);
         }
 
         [TestMethod]
@@ -362,7 +361,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
 
             await RunFormattingTestAsync("test12");
-            await RunFormattingTestAsync("test14");
+            await RunFormattingTestAsync("test15");
         }
     }
 }

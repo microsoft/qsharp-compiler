@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
+using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -29,6 +30,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private readonly Action<PublishDiagnosticParams> publish;
         private readonly Action<string, Dictionary<string, string?>, Dictionary<string, int>> sendTelemetry;
+        private readonly Action<Uri>? onTemporaryProjectLoaded;
 
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
@@ -60,7 +62,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             Action<PublishDiagnosticParams>? publishDiagnostics,
             Action<string, Dictionary<string, string?>, Dictionary<string, int>>? sendTelemetry,
             Action<string, MessageType>? log,
-            Action<Exception>? onException)
+            Action<Exception>? onException,
+            Action<Uri>? onTemporaryProjectLoaded)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
             this.sendTelemetry = sendTelemetry ?? ((eventName, properties, measurements) => { });
@@ -85,6 +88,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish);
+            this.onTemporaryProjectLoaded = onTemporaryProjectLoaded;
         }
 
         /// <summary>
@@ -153,6 +157,30 @@ namespace Microsoft.Quantum.QsLanguageServer
                 references: references,
                 buildProperties);
             return true;
+        }
+
+        internal Uri QsTemporaryProjectLoader(Uri sourceFileUri, string? sdkVersion)
+        {
+            var sourceFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath) ?? "";
+            var projectFileName = string.Join(
+                "_x2f_", // arbitrary string to help avoid collisions
+                sourceFolderPath
+                    .Replace("_", "_x5f_") // arbitrary string to help avoid collisions
+                    .Split(Path.GetInvalidFileNameChars()));
+            var projectFolderPath = Directory.CreateDirectory(Path.Combine(
+                Path.GetTempPath(),
+                "qsharp",
+                projectFileName)).FullName;
+            var projectFilePath = Path.Combine(projectFolderPath, $"generated.csproj");
+            using (var outputFile = new StreamWriter(projectFilePath))
+            {
+                outputFile.WriteLine(
+                    TemporaryProject.GetFileContents(
+                        compilationScope: Path.Combine(sourceFolderPath, "*.qs"),
+                        sdkVersion: sdkVersion));
+            }
+
+            return new Uri(projectFilePath);
         }
 
         /// <summary>

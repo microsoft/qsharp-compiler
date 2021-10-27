@@ -310,6 +310,20 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(context.UsesProject("test3.csproj"));
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
         }
+
+        [TestMethod]
+        public void LoadQSharpTemporaryProject()
+        {
+            var sourceFile = Path.GetFullPath(SourceFileName("test14", "Operation14.qs"));
+            var projectUri = CompilationContext.CreateTemporaryProject(new Uri(sourceFile), "0.12.20072031");
+            Assert.IsNotNull(projectUri);
+
+            var qsFiles = new string[] { sourceFile };
+            var projectInformation = CompilationContext.Load(projectUri);
+            Assert.IsNotNull(projectInformation);
+            Assert.IsTrue(projectInformation!.UsesCanon());
+            CollectionAssert.AreEquivalent(qsFiles, projectInformation!.SourceFiles.ToArray());
+        }
     }
 
     internal static class CompilationContext
@@ -318,10 +332,13 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Console.WriteLine($"[{level}]: {msg}");
 
         internal static EditorState Editor =>
-            new EditorState(new ProjectLoader(LogOutput), null, null, null, null);
+            new EditorState(new ProjectLoader(LogOutput), null, null, null, null, null);
 
         internal static ProjectInformation? Load(Uri projectFile) =>
             Editor.QsProjectLoader(projectFile, out var loaded) ? loaded : null;
+
+        internal static Uri CreateTemporaryProject(Uri sourceFile, string sdkVersion) =>
+            Editor.QsTemporaryProjectLoader(sourceFile, sdkVersion);
 
         internal static bool UsesDll(this ProjectInformation info, string dll) => info.References.Any(r => r.EndsWith(dll));
 
