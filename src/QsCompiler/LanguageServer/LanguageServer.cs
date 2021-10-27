@@ -100,8 +100,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 diagnostics => this.PublishDiagnosticsAsync(diagnostics),
                 (name, props, meas) => this.SendTelemetryAsync(name, props, meas),
                 this.LogToWindow,
-                this.OnInternalError,
-                this.OnTemporaryProjectLoaded);
+                this.OnInternalError);
             this.waitForInit.Set();
         }
 
@@ -213,9 +212,6 @@ namespace Microsoft.Quantum.QsLanguageServer
                     break;
             }
         }
-
-        private void OnTemporaryProjectLoaded(Uri projectUri) =>
-            this.fileWatcher.ListenAsync(Path.GetDirectoryName(projectUri.LocalPath), false, null, "*.csproj").Wait();
 
         /* jsonrpc methods for initialization and shut down */
 
