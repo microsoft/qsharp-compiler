@@ -179,15 +179,13 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             qsFiles = new string[]
             {
-                Path.Combine(projDir, "format", "Unformatted.qs"),
                 Path.Combine(projDir, "Operation12a.qs"),
                 Path.Combine(projDir, "Operation12b.qs"),
                 Path.Combine(projDir, "sub1", "Operation12b.qs"),
                 Path.Combine(projDir, "sub1", "sub2", "Operation12a.qs"),
             };
 
-            Assert.IsTrue(context.UsesQSharpCore());
-            Assert.IsFalse(context.UsesIntrinsics());
+            Assert.IsTrue(context.UsesIntrinsics());
             Assert.IsTrue(context.UsesCanon());
             Assert.IsFalse(context.UsesXunitHelper());
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
