@@ -88,6 +88,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly FunctionLibrary runtimeLibrary;
         private readonly FunctionLibrary quantumInstructionSet;
 
+        internal DebugInfoManager DIManager { get; }
+
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
@@ -174,17 +176,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// 1.) the transformation needs to be set by calling <see cref="SetTransformation"/>,
         /// 2.) the runtime library needs to be initialized by calling <see cref="InitializeRuntimeLibrary"/>, and
         /// 3.) the quantum instructions set needs to be registered by calling <see cref="RegisterQuantumInstructionSet"/>.
+        /// TODO: entryPoints argument will be deprecated in an upcoming PR. For now it is used to assist in adding
+        /// top level information.
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
+        /// <param name="entryPoints">Array of all entry points for the current compilation.</param>
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, ImmutableArray<QsQualifiedName> entryPoints)
         {
             this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
             this.globalTypes = syntaxTree.GlobalTypeResolutions();
 
             this.Context = new Context();
-            this.Module = this.Context.CreateBitcodeModule();
+
+            this.DIManager = new DebugInfoManager(this);
+            this.Module = this.DIManager.CreateModuleWithCompileUnit(entryPoints);
 
             this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
             this.Constants = new Constants(this.Context, this.Module, this.Types);
@@ -384,7 +391,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the givne name
+        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the given name
         /// and the corresponding QIR function for the given specialization kind.
         /// Attaches the attributes with the given names to the returned IrFunction.
         /// </summary>
@@ -522,7 +529,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Ends a QIR function by finishing the current basic block, closing the current scope in teh scope manager
+        /// Ends a QIR function by finishing the current basic block, closing the current scope in the scope manager
         /// and closing a naming scope.
         /// </summary>
         /// <returns>true if the function has been properly ended</returns>

@@ -12,6 +12,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Interop;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
@@ -576,6 +577,22 @@ namespace Ubiquity.NET.Llvm
         public BitcodeModule CreateBitcodeModule(string moduleId)
         {
             return this.moduleCache.CreateBitcodeModule(moduleId);
+        }
+
+        /// <summary>
+        /// Didn't add documentation here because this call can get removed in the next PR
+        /// that's up due to changes in the structure of the LLVM Bindings
+        /// </summary>
+        public BitcodeModule CreateBitcodeModule(
+                string moduleId,
+                SourceLanguage language,
+                string srcFilePath,
+                string producer,
+                bool optimized = false,
+                string compilationFlags = "",
+                uint runtimeVersion = 0)
+        {
+            return this.moduleCache.CreateBitcodeModule(moduleId, language, srcFilePath, producer, optimized, compilationFlags, runtimeVersion);
         }
 
         /// <summary>Gets non-zero Metadata kind ID for a given name.</summary>
