@@ -10,6 +10,43 @@ type internal 'result Reducer() as reducer =
     /// Reduces a list of results into a single result.
     let reduce = curry reducer.Combine |> List.reduce
 
+    /// The default behavior to reduce a SimpleStatement.
+    let defaultSimpleStatement (statement : SimpleStatement) =
+        [
+            reducer.Terminal statement.Keyword
+            reducer.Expression statement.Expression
+            reducer.Terminal statement.Semicolon
+        ]
+        |> reduce
+
+    /// The default behavior to reduce a BindingStatement.
+    let defaultBindingStatement (statement : BindingStatement) =
+        [
+            reducer.Terminal statement.Keyword
+            reducer.SymbolBinding statement.Binding
+            reducer.Terminal statement.Equals
+            reducer.Expression statement.Value
+            reducer.Terminal statement.Semicolon
+        ]
+        |> reduce
+
+    /// The default behavior to reduce a ConditionalBlockStatement.
+    let defaultConditionalBlockStatement (statement : ConditionalBlockStatement) =
+        [
+            reducer.Terminal statement.Keyword
+            reducer.Expression statement.Condition
+            reducer.Block(reducer.Statement, statement.Block)
+        ]
+        |> reduce
+
+    /// The default behavior to reduce a BlockStatement.
+    let defaultBlockStatement (statement : BlockStatement) =
+        [
+            reducer.Terminal statement.Keyword
+            reducer.Block(reducer.Statement, statement.Block)
+        ]
+        |> reduce
+
     abstract Combine : 'result * 'result -> 'result
 
     abstract Document : document: Document -> 'result
@@ -187,59 +224,23 @@ type internal 'result Reducer() as reducer =
 
     abstract Return : returns: SimpleStatement -> 'result
 
-    default _.Return returns =
-        [
-            reducer.Terminal returns.Keyword
-            reducer.Expression returns.Expression
-            reducer.Terminal returns.Semicolon
-        ]
-        |> reduce
+    default _.Return returns = defaultSimpleStatement returns
 
     abstract Fail : fails: SimpleStatement -> 'result
 
-    default _.Fail fails =
-        [
-            reducer.Terminal fails.Keyword
-            reducer.Expression fails.Expression
-            reducer.Terminal fails.Semicolon
-        ]
-        |> reduce
+    default _.Fail fails = defaultSimpleStatement fails
 
     abstract Let : lets: BindingStatement -> 'result
 
-    default _.Let lets =
-        [
-            reducer.Terminal lets.Keyword
-            reducer.SymbolBinding lets.Binding
-            reducer.Terminal lets.Equals
-            reducer.Expression lets.Value
-            reducer.Terminal lets.Semicolon
-        ]
-        |> reduce
+    default _.Let lets = defaultBindingStatement lets
 
     abstract Mutable : mutables: BindingStatement -> 'result
 
-    default _.Mutable mutables =
-        [
-            reducer.Terminal mutables.Keyword
-            reducer.SymbolBinding mutables.Binding
-            reducer.Terminal mutables.Equals
-            reducer.Expression mutables.Value
-            reducer.Terminal mutables.Semicolon
-        ]
-        |> reduce
+    default _.Mutable mutables = defaultBindingStatement mutables
 
     abstract SetStatement : sets: BindingStatement -> 'result
 
-    default _.SetStatement sets =
-        [
-            reducer.Terminal sets.Keyword
-            reducer.SymbolBinding sets.Binding
-            reducer.Terminal sets.Equals
-            reducer.Expression sets.Value
-            reducer.Terminal sets.Semicolon
-        ]
-        |> reduce
+    default _.SetStatement sets = defaultBindingStatement sets
 
     abstract UpdateStatement : updates: UpdateStatement -> 'result
 
@@ -269,32 +270,15 @@ type internal 'result Reducer() as reducer =
 
     abstract If : ifs: ConditionalBlockStatement -> 'result
 
-    default _.If ifs =
-        [
-            reducer.Terminal ifs.Keyword
-            reducer.Expression ifs.Condition
-            reducer.Block(reducer.Statement, ifs.Block)
-        ]
-        |> reduce
+    default _.If ifs = defaultConditionalBlockStatement ifs
 
     abstract Elif : elifs: ConditionalBlockStatement -> 'result
 
-    default _.Elif elifs =
-        [
-            reducer.Terminal elifs.Keyword
-            reducer.Expression elifs.Condition
-            reducer.Block(reducer.Statement, elifs.Block)
-        ]
-        |> reduce
+    default _.Elif elifs = defaultConditionalBlockStatement elifs
 
     abstract Else : elses: BlockStatement -> 'result
 
-    default _.Else elses =
-        [
-            reducer.Terminal elses.Keyword
-            reducer.Block(reducer.Statement, elses.Block)
-        ]
-        |> reduce
+    default _.Else elses = defaultBlockStatement elses
 
     abstract For : loop: For -> 'result
 
@@ -311,22 +295,11 @@ type internal 'result Reducer() as reducer =
 
     abstract While : whiles: ConditionalBlockStatement -> 'result
 
-    default _.While whiles =
-        [
-            reducer.Terminal whiles.Keyword
-            reducer.Expression whiles.Condition
-            reducer.Block(reducer.Statement, whiles.Block)
-        ]
-        |> reduce
+    default _.While whiles = defaultConditionalBlockStatement whiles
 
     abstract Repeat : repeats: BlockStatement -> 'result
 
-    default _.Repeat repeats =
-        [
-            reducer.Terminal repeats.Keyword
-            reducer.Block(reducer.Statement, repeats.Block)
-        ]
-        |> reduce
+    default _.Repeat repeats = defaultBlockStatement repeats
 
     abstract Until : untils: Until -> 'result
 
@@ -342,30 +315,15 @@ type internal 'result Reducer() as reducer =
 
     abstract Fixup : fixup: BlockStatement -> 'result
 
-    default _.Fixup fixup =
-        [
-            reducer.Terminal fixup.Keyword
-            reducer.Block(reducer.Statement, fixup.Block)
-        ]
-        |> reduce
+    default _.Fixup fixup = defaultBlockStatement fixup
 
     abstract Within : withins: BlockStatement -> 'result
 
-    default _.Within withins =
-        [
-            reducer.Terminal withins.Keyword
-            reducer.Block(reducer.Statement, withins.Block)
-        ]
-        |> reduce
+    default _.Within withins = defaultBlockStatement withins
 
     abstract Apply : apply: BlockStatement -> 'result
 
-    default _.Apply apply =
-        [
-            reducer.Terminal apply.Keyword
-            reducer.Block(reducer.Statement, apply.Block)
-        ]
-        |> reduce
+    default _.Apply apply = defaultBlockStatement apply
 
     abstract QubitDeclaration : decl: QubitDeclaration -> 'result
 

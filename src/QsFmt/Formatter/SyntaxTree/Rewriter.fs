@@ -5,7 +5,41 @@ namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 open Microsoft.Quantum.QsFmt.Formatter.Utils
 
-type 'context Rewriter() =
+type 'context Rewriter() as rewriter =
+
+    /// The default behavior to rewrite a SimpleStatement.
+    let defaultSimpleStatement (context: 'context) (statement: SimpleStatement) =
+        {
+            Keyword = rewriter.Terminal(context, statement.Keyword)
+            Expression = rewriter.Expression(context, statement.Expression)
+            Semicolon = rewriter.Terminal(context, statement.Semicolon)
+        }
+
+    /// The default behavior to rewrite a BindingStatement.
+    let defaultBindingStatement (context: 'context) (statement: BindingStatement) =
+        {
+            Keyword = rewriter.Terminal(context, statement.Keyword)
+            Binding = rewriter.SymbolBinding(context, statement.Binding)
+            Equals = rewriter.Terminal(context, statement.Equals)
+            Value = rewriter.Expression(context, statement.Value)
+            Semicolon = rewriter.Terminal(context, statement.Semicolon)
+        }
+
+    /// The default behavior to rewrite a ConditionalBlockStatement.
+    let defaultConditionalBlockStatement (context: 'context) (statement: ConditionalBlockStatement) =
+        {
+            Keyword = rewriter.Terminal(context, statement.Keyword)
+            Condition = rewriter.Expression(context, statement.Condition)
+            Block = rewriter.Block(context, rewriter.Statement, statement.Block)
+        }
+
+    /// The default behavior to rewrite a BlockStatement.
+    let defaultBlockStatement (context: 'context) (statement: BlockStatement) =
+        {
+            Keyword = rewriter.Terminal(context, statement.Keyword)
+            Block = rewriter.Block(context, rewriter.Statement, statement.Block)
+        }
+
     abstract Document : context: 'context * document: Document -> Document
 
     default rewriter.Document(context, document) =
@@ -186,54 +220,23 @@ type 'context Rewriter() =
 
     abstract Return : context: 'context * returns: SimpleStatement -> SimpleStatement
 
-    default rewriter.Return(context, returns) =
-        {
-            Keyword = rewriter.Terminal(context, returns.Keyword)
-            Expression = rewriter.Expression(context, returns.Expression)
-            Semicolon = rewriter.Terminal(context, returns.Semicolon)
-        }
+    default _.Return(context, returns) = defaultSimpleStatement context returns
 
     abstract Fail : context: 'context * fails: SimpleStatement -> SimpleStatement
 
-    default rewriter.Fail(context, fails) =
-        {
-            Keyword = rewriter.Terminal(context, fails.Keyword)
-            Expression = rewriter.Expression(context, fails.Expression)
-            Semicolon = rewriter.Terminal(context, fails.Semicolon)
-        }
+    default _.Fail(context, fails) = defaultSimpleStatement context fails
 
     abstract Let : context: 'context * lets: BindingStatement -> BindingStatement
 
-    default rewriter.Let(context, lets) =
-        {
-            Keyword = rewriter.Terminal(context, lets.Keyword)
-            Binding = rewriter.SymbolBinding(context, lets.Binding)
-            Equals = rewriter.Terminal(context, lets.Equals)
-            Value = rewriter.Expression(context, lets.Value)
-            Semicolon = rewriter.Terminal(context, lets.Semicolon)
-        }
+    default _.Let(context, lets) = defaultBindingStatement context lets
 
     abstract Mutable : context: 'context * mutables: BindingStatement -> BindingStatement
 
-    default rewriter.Mutable(context, mutables) =
-        {
-            Keyword = rewriter.Terminal(context, mutables.Keyword)
-            Binding = rewriter.SymbolBinding(context, mutables.Binding)
-            Equals = rewriter.Terminal(context, mutables.Equals)
-            Value = rewriter.Expression(context, mutables.Value)
-            Semicolon = rewriter.Terminal(context, mutables.Semicolon)
-        }
+    default _.Mutable(context, mutables) = defaultBindingStatement context mutables
 
     abstract SetStatement : context: 'context * sets: BindingStatement -> BindingStatement
 
-    default rewriter.SetStatement(context, sets) =
-        {
-            Keyword = rewriter.Terminal(context, sets.Keyword)
-            Binding = rewriter.SymbolBinding(context, sets.Binding)
-            Equals = rewriter.Terminal(context, sets.Equals)
-            Value = rewriter.Expression(context, sets.Value)
-            Semicolon = rewriter.Terminal(context, sets.Semicolon)
-        }
+    default _.SetStatement(context, sets) = defaultBindingStatement context sets
 
     abstract UpdateStatement : context: 'context * updates: UpdateStatement -> UpdateStatement
 
@@ -261,29 +264,15 @@ type 'context Rewriter() =
 
     abstract If : context: 'context * ifs: ConditionalBlockStatement -> ConditionalBlockStatement
 
-    default rewriter.If(context, ifs) =
-        {
-            Keyword = rewriter.Terminal(context, ifs.Keyword)
-            Condition = rewriter.Expression(context, ifs.Condition)
-            Block = rewriter.Block(context, rewriter.Statement, ifs.Block)
-        }
+    default _.If(context, ifs) = defaultConditionalBlockStatement context ifs
 
     abstract Elif : context: 'context * elifs: ConditionalBlockStatement -> ConditionalBlockStatement
 
-    default rewriter.Elif(context, elifs) =
-        {
-            Keyword = rewriter.Terminal(context, elifs.Keyword)
-            Condition = rewriter.Expression(context, elifs.Condition)
-            Block = rewriter.Block(context, rewriter.Statement, elifs.Block)
-        }
+    default _.Elif(context, elifs) = defaultConditionalBlockStatement context elifs
 
     abstract Else : context: 'context * elses: BlockStatement -> BlockStatement
 
-    default rewriter.Else(context, elses) =
-        {
-            Keyword = rewriter.Terminal(context, elses.Keyword)
-            Block = rewriter.Block(context, rewriter.Statement, elses.Block)
-        }
+    default _.Else(context, elses) = defaultBlockStatement context elses
 
     abstract For : context: 'context * loop: For -> For
 
@@ -298,20 +287,11 @@ type 'context Rewriter() =
 
     abstract While : context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
 
-    default rewriter.While(context, whiles) =
-        {
-            Keyword = rewriter.Terminal(context, whiles.Keyword)
-            Condition = rewriter.Expression(context, whiles.Condition)
-            Block = rewriter.Block(context, rewriter.Statement, whiles.Block)
-        }
+    default _.While(context, whiles) = defaultConditionalBlockStatement context whiles
 
     abstract Repeat : context: 'context * repeats: BlockStatement -> BlockStatement
 
-    default rewriter.Repeat(context, repeats) =
-        {
-            Keyword = rewriter.Terminal(context, repeats.Keyword)
-            Block = rewriter.Block(context, rewriter.Statement, repeats.Block)
-        }
+    default _.Repeat(context, repeats) = defaultBlockStatement context repeats
 
     abstract Until : context: 'context * untils: Until -> Until
 
@@ -327,27 +307,15 @@ type 'context Rewriter() =
 
     abstract Fixup : context: 'context * fixup: BlockStatement -> BlockStatement
 
-    default rewriter.Fixup(context, fixup) =
-        {
-            Keyword = rewriter.Terminal(context, fixup.Keyword)
-            Block = rewriter.Block(context, rewriter.Statement, fixup.Block)
-        }
+    default _.Fixup(context, fixup) = defaultBlockStatement context fixup
 
     abstract Within : context: 'context * withins: BlockStatement -> BlockStatement
 
-    default rewriter.Within(context, withins) =
-        {
-            Keyword = rewriter.Terminal(context, withins.Keyword)
-            Block = rewriter.Block(context, rewriter.Statement, withins.Block)
-        }
+    default _.Within(context, withins) = defaultBlockStatement context withins
 
     abstract Apply : context: 'context * apply: BlockStatement -> BlockStatement
 
-    default rewriter.Apply(context, apply) =
-        {
-            Keyword = rewriter.Terminal(context, apply.Keyword)
-            Block = rewriter.Block(context, rewriter.Statement, apply.Block)
-        }
+    default _.Apply(context, apply) = defaultBlockStatement context apply
 
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
 
