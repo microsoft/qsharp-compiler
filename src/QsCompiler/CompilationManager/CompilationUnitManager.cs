@@ -823,7 +823,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var sdkPath = this.compilationUnit.BuildProperties.SdkPath;
 
             var fmtCommand = qsFmtExe?.Split();
-            var (command, dllPath) = fmtCommand != null && fmtCommand.Length > 0
+            (string command, string dllPath) = fmtCommand != null && fmtCommand.Length > 0
                 ? (fmtCommand[0], string.Join(" ", fmtCommand[1..]))
                 : ("dotnet", Path.Combine(sdkPath ?? "", "tools", "qsfmt", "qsfmt.dll"));
 
