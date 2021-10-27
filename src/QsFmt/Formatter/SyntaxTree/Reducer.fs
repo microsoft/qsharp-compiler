@@ -11,7 +11,7 @@ type internal 'result Reducer() as reducer =
     let reduce = curry reducer.Combine |> List.reduce
 
     /// The default behavior to reduce a SimpleStatement.
-    let defaultSimpleStatement (statement : SimpleStatement) =
+    let defaultSimpleStatement (statement: SimpleStatement) =
         [
             reducer.Terminal statement.Keyword
             reducer.Expression statement.Expression
@@ -20,7 +20,7 @@ type internal 'result Reducer() as reducer =
         |> reduce
 
     /// The default behavior to reduce a BindingStatement.
-    let defaultBindingStatement (statement : BindingStatement) =
+    let defaultBindingStatement (statement: BindingStatement) =
         [
             reducer.Terminal statement.Keyword
             reducer.SymbolBinding statement.Binding
@@ -31,7 +31,7 @@ type internal 'result Reducer() as reducer =
         |> reduce
 
     /// The default behavior to reduce a ConditionalBlockStatement.
-    let defaultConditionalBlockStatement (statement : ConditionalBlockStatement) =
+    let defaultConditionalBlockStatement (statement: ConditionalBlockStatement) =
         [
             reducer.Terminal statement.Keyword
             reducer.Expression statement.Condition
@@ -40,7 +40,7 @@ type internal 'result Reducer() as reducer =
         |> reduce
 
     /// The default behavior to reduce a BlockStatement.
-    let defaultBlockStatement (statement : BlockStatement) =
+    let defaultBlockStatement (statement: BlockStatement) =
         [
             reducer.Terminal statement.Keyword
             reducer.Block(reducer.Statement, statement.Block)

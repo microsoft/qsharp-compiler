@@ -105,7 +105,10 @@ type StatementVisitor(tokens) =
         Node.toUnknown tokens node |> Statement.Unknown
 
     override _.VisitExpressionStatement context =
-        { Expression = context.value |> expressionVisitor.Visit; Semicolon = context.semicolon |> Node.toTerminal tokens }
+        {
+            Expression = context.value |> expressionVisitor.Visit
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
         |> ExpressionStatement
 
     override _.VisitReturnStatement context =
@@ -169,7 +172,7 @@ type StatementVisitor(tokens) =
         {
             SetKeyword = context.set |> Node.toTerminal tokens
             Name = context.name |> Node.toTerminal tokens
-            With = context.``with`` |> Node.toTerminal tokens 
+            With = context.``with`` |> Node.toTerminal tokens
             Item = expressionVisitor.Visit context.index
             Arrow = context.arrow |> Node.toTerminal tokens
             Value = expressionVisitor.Visit context.value

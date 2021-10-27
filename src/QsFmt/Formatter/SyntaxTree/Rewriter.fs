@@ -216,7 +216,10 @@ type 'context Rewriter() as rewriter =
     abstract ExpressionStatement : context: 'context * expr: ExpressionStatement -> ExpressionStatement
 
     default rewriter.ExpressionStatement(context, expr) =
-        { Expression = rewriter.Expression(context, expr.Expression); Semicolon = rewriter.Terminal(context, expr.Semicolon) }
+        {
+            Expression = rewriter.Expression(context, expr.Expression)
+            Semicolon = rewriter.Terminal(context, expr.Semicolon)
+        }
 
     abstract Return : context: 'context * returns: SimpleStatement -> SimpleStatement
 
@@ -232,7 +235,8 @@ type 'context Rewriter() as rewriter =
 
     abstract Mutable : context: 'context * mutables: BindingStatement -> BindingStatement
 
-    default _.Mutable(context, mutables) = defaultBindingStatement context mutables
+    default _.Mutable(context, mutables) =
+        defaultBindingStatement context mutables
 
     abstract SetStatement : context: 'context * sets: BindingStatement -> BindingStatement
 
@@ -264,11 +268,13 @@ type 'context Rewriter() as rewriter =
 
     abstract If : context: 'context * ifs: ConditionalBlockStatement -> ConditionalBlockStatement
 
-    default _.If(context, ifs) = defaultConditionalBlockStatement context ifs
+    default _.If(context, ifs) =
+        defaultConditionalBlockStatement context ifs
 
     abstract Elif : context: 'context * elifs: ConditionalBlockStatement -> ConditionalBlockStatement
 
-    default _.Elif(context, elifs) = defaultConditionalBlockStatement context elifs
+    default _.Elif(context, elifs) =
+        defaultConditionalBlockStatement context elifs
 
     abstract Else : context: 'context * elses: BlockStatement -> BlockStatement
 
@@ -287,7 +293,8 @@ type 'context Rewriter() as rewriter =
 
     abstract While : context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
 
-    default _.While(context, whiles) = defaultConditionalBlockStatement context whiles
+    default _.While(context, whiles) =
+        defaultConditionalBlockStatement context whiles
 
     abstract Repeat : context: 'context * repeats: BlockStatement -> BlockStatement
 

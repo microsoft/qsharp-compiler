@@ -124,11 +124,7 @@ type ConditionalBlockStatement =
 
 // Else, Repeat, Within, and Apply Statements
 
-and BlockStatement =
-    {
-        Keyword: Terminal
-        Block: Statement Block
-    }
+and BlockStatement = { Keyword: Terminal; Block: Statement Block }
 
 // For Statement
 
@@ -198,18 +194,14 @@ module Statement =
         function
         | ExpressionStatement expr ->
             { expr with Expression = expr.Expression |> Expression.mapPrefix mapper } |> ExpressionStatement
-        | Return returns ->
-            { returns with Keyword = returns.Keyword |> Terminal.mapPrefix mapper } |> Return
+        | Return returns -> { returns with Keyword = returns.Keyword |> Terminal.mapPrefix mapper } |> Return
         | Fail fails -> { fails with Keyword = fails.Keyword |> Terminal.mapPrefix mapper } |> Fail
         | Let lets -> { lets with Keyword = lets.Keyword |> Terminal.mapPrefix mapper } |> Let
-        | Mutable mutables ->
-            { mutables with Keyword = mutables.Keyword |> Terminal.mapPrefix mapper } |> Mutable
-        | SetStatement sets ->
-            { sets with Keyword = sets.Keyword |> Terminal.mapPrefix mapper } |> SetStatement
+        | Mutable mutables -> { mutables with Keyword = mutables.Keyword |> Terminal.mapPrefix mapper } |> Mutable
+        | SetStatement sets -> { sets with Keyword = sets.Keyword |> Terminal.mapPrefix mapper } |> SetStatement
         | UpdateStatement updates ->
             { updates with SetKeyword = updates.SetKeyword |> Terminal.mapPrefix mapper } |> UpdateStatement
-        | SetWith withs ->
-            { withs with SetKeyword = withs.SetKeyword |> Terminal.mapPrefix mapper } |> SetWith
+        | SetWith withs -> { withs with SetKeyword = withs.SetKeyword |> Terminal.mapPrefix mapper } |> SetWith
         | If ifs -> { ifs with Keyword = ifs.Keyword |> Terminal.mapPrefix mapper } |> If
         | Elif elifs -> { elifs with Keyword = elifs.Keyword |> Terminal.mapPrefix mapper } |> Elif
         | Else elses -> { elses with Keyword = elses.Keyword |> Terminal.mapPrefix mapper } |> Else
