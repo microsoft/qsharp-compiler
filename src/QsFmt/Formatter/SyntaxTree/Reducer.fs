@@ -185,31 +185,31 @@ type internal 'result Reducer() as reducer =
     default _.ExpressionStatement expr =
         [ reducer.Expression expr.Expression; reducer.Terminal expr.Semicolon ] |> reduce
 
-    abstract Return : returns: Return -> 'result
+    abstract Return : returns: SimpleStatement -> 'result
 
     default _.Return returns =
         [
-            reducer.Terminal returns.ReturnKeyword
+            reducer.Terminal returns.Keyword
             reducer.Expression returns.Expression
             reducer.Terminal returns.Semicolon
         ]
         |> reduce
 
-    abstract Fail : fails: Fail -> 'result
+    abstract Fail : fails: SimpleStatement -> 'result
 
     default _.Fail fails =
         [
-            reducer.Terminal fails.FailKeyword
+            reducer.Terminal fails.Keyword
             reducer.Expression fails.Expression
             reducer.Terminal fails.Semicolon
         ]
         |> reduce
 
-    abstract Let : lets: Let -> 'result
+    abstract Let : lets: BindingStatement -> 'result
 
     default _.Let lets =
         [
-            reducer.Terminal lets.LetKeyword
+            reducer.Terminal lets.Keyword
             reducer.SymbolBinding lets.Binding
             reducer.Terminal lets.Equals
             reducer.Expression lets.Value
@@ -217,11 +217,11 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Mutable : mutables: Mutable -> 'result
+    abstract Mutable : mutables: BindingStatement -> 'result
 
     default _.Mutable mutables =
         [
-            reducer.Terminal mutables.MutableKeyword
+            reducer.Terminal mutables.Keyword
             reducer.SymbolBinding mutables.Binding
             reducer.Terminal mutables.Equals
             reducer.Expression mutables.Value
@@ -229,11 +229,11 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract SetStatement : sets: SetStatement -> 'result
+    abstract SetStatement : sets: BindingStatement -> 'result
 
     default _.SetStatement sets =
         [
-            reducer.Terminal sets.SetKeyword
+            reducer.Terminal sets.Keyword
             reducer.SymbolBinding sets.Binding
             reducer.Terminal sets.Equals
             reducer.Expression sets.Value
@@ -267,31 +267,31 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract If : ifs: If -> 'result
+    abstract If : ifs: ConditionalBlockStatement -> 'result
 
     default _.If ifs =
         [
-            reducer.Terminal ifs.IfKeyword
+            reducer.Terminal ifs.Keyword
             reducer.Expression ifs.Condition
             reducer.Block(reducer.Statement, ifs.Block)
         ]
         |> reduce
 
-    abstract Elif : elifs: Elif -> 'result
+    abstract Elif : elifs: ConditionalBlockStatement -> 'result
 
     default _.Elif elifs =
         [
-            reducer.Terminal elifs.ElifKeyword
+            reducer.Terminal elifs.Keyword
             reducer.Expression elifs.Condition
             reducer.Block(reducer.Statement, elifs.Block)
         ]
         |> reduce
 
-    abstract Else : elses: Else -> 'result
+    abstract Else : elses: BlockStatement -> 'result
 
     default _.Else elses =
         [
-            reducer.Terminal elses.ElseKeyword
+            reducer.Terminal elses.Keyword
             reducer.Block(reducer.Statement, elses.Block)
         ]
         |> reduce
@@ -309,21 +309,21 @@ type internal 'result Reducer() as reducer =
         |> List.choose id
         |> reduce
 
-    abstract While : whiles: While -> 'result
+    abstract While : whiles: ConditionalBlockStatement -> 'result
 
     default _.While whiles =
         [
-            reducer.Terminal whiles.WhileKeyword
+            reducer.Terminal whiles.Keyword
             reducer.Expression whiles.Condition
             reducer.Block(reducer.Statement, whiles.Block)
         ]
         |> reduce
 
-    abstract Repeat : repeats: Repeat -> 'result
+    abstract Repeat : repeats: BlockStatement -> 'result
 
     default _.Repeat repeats =
         [
-            reducer.Terminal repeats.RepeatKeyword
+            reducer.Terminal repeats.Keyword
             reducer.Block(reducer.Statement, repeats.Block)
         ]
         |> reduce
@@ -340,29 +340,29 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Fixup : fixup: Fixup -> 'result
+    abstract Fixup : fixup: BlockStatement -> 'result
 
     default _.Fixup fixup =
         [
-            reducer.Terminal fixup.FixupKeyword
+            reducer.Terminal fixup.Keyword
             reducer.Block(reducer.Statement, fixup.Block)
         ]
         |> reduce
 
-    abstract Within : withins: Within -> 'result
+    abstract Within : withins: BlockStatement -> 'result
 
     default _.Within withins =
         [
-            reducer.Terminal withins.WithinKeyword
+            reducer.Terminal withins.Keyword
             reducer.Block(reducer.Statement, withins.Block)
         ]
         |> reduce
 
-    abstract Apply : apply: Apply -> 'result
+    abstract Apply : apply: BlockStatement -> 'result
 
     default _.Apply apply =
         [
-            reducer.Terminal apply.ApplyKeyword
+            reducer.Terminal apply.Keyword
             reducer.Block(reducer.Statement, apply.Block)
         ]
         |> reduce

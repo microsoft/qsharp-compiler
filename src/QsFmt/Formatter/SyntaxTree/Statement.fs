@@ -69,51 +69,20 @@ module ForBinding =
 
 type ExpressionStatement = { Expression: Expression; Semicolon: Terminal }
 
-// Return Statement
+// Return and Fail Statements
 
-type Return =
+type SimpleStatement =
     {
-        ReturnKeyword: Terminal
+        Keyword: Terminal
         Expression: Expression
         Semicolon: Terminal
     }
 
-// Fail Statement
+// Let, Mutable, and Set Statements
 
-type Fail =
+type BindingStatement =
     {
-        FailKeyword: Terminal
-        Expression: Expression
-        Semicolon: Terminal
-    }
-
-// Let Statement
-
-type Let =
-    {
-        LetKeyword: Terminal
-        Binding: SymbolBinding
-        Equals: Terminal
-        Value: Expression
-        Semicolon: Terminal
-    }
-
-// Mutable Statement
-
-type Mutable =
-    {
-        MutableKeyword: Terminal
-        Binding: SymbolBinding
-        Equals: Terminal
-        Value: Expression
-        Semicolon: Terminal
-    }
-
-// Set Statement
-
-type SetStatement =
-    {
-        SetKeyword: Terminal
+        Keyword: Terminal
         Binding: SymbolBinding
         Equals: Terminal
         Value: Expression
@@ -144,27 +113,22 @@ type SetWith =
         Semicolon: Terminal
     }
 
-// If Statement
+// If, Elif, and While Statements
 
-type If =
+type ConditionalBlockStatement =
     {
-        IfKeyword: Terminal
+        Keyword: Terminal
         Condition: Expression
         Block: Statement Block
     }
 
-// Elif Statement
+// Else, Repeat, Within, and Apply Statements
 
-and Elif =
+and BlockStatement =
     {
-        ElifKeyword: Terminal
-        Condition: Expression
+        Keyword: Terminal
         Block: Statement Block
     }
-
-// Else Statement
-
-and Else = { ElseKeyword: Terminal; Block: Statement Block }
 
 // For Statement
 
@@ -177,56 +141,17 @@ and For =
         Block: Statement Block
     }
 
-// While Statement
-
-and While =
-    {
-        WhileKeyword: Terminal
-        Condition: Expression
-        Block: Statement Block
-    }
-
-// Repeat Statement
-
-and Repeat =
-    {
-        RepeatKeyword: Terminal
-        Block: Statement Block
-    }
-
 // Until Statement
-
-and Fixup =
-    {
-        FixupKeyword: Terminal
-        Block: Statement Block
-    }
 
 and UntilCoda =
     | Semicolon of Terminal
-    | Fixup of Fixup
+    | Fixup of BlockStatement
 
 and Until =
     {
         UntilKeyword: Terminal
         Condition: Expression
         Coda: UntilCoda
-    }
-
-// Within Statement
-
-and Within =
-    {
-        WithinKeyword: Terminal
-        Block: Statement Block
-    }
-
-// Apply Statement
-
-and Apply =
-    {
-        ApplyKeyword: Terminal
-        Block: Statement Block
     }
 
 // Qubit Declaration Statement
@@ -249,22 +174,22 @@ and QubitDeclaration =
 
 and Statement =
     | ExpressionStatement of ExpressionStatement
-    | Return of Return
-    | Fail of Fail
-    | Let of Let
-    | Mutable of Mutable
-    | SetStatement of SetStatement
+    | Return of SimpleStatement
+    | Fail of SimpleStatement
+    | Let of BindingStatement
+    | Mutable of BindingStatement
+    | SetStatement of BindingStatement
     | UpdateStatement of UpdateStatement
     | SetWith of SetWith
-    | If of If
-    | Elif of Elif
-    | Else of Else
+    | If of ConditionalBlockStatement
+    | Elif of ConditionalBlockStatement
+    | Else of BlockStatement
     | For of For
-    | While of While
-    | Repeat of Repeat
+    | While of ConditionalBlockStatement
+    | Repeat of BlockStatement
     | Until of Until
-    | Within of Within
-    | Apply of Apply
+    | Within of BlockStatement
+    | Apply of BlockStatement
     | QubitDeclaration of QubitDeclaration
     | Unknown of Terminal
 
@@ -274,25 +199,25 @@ module Statement =
         | ExpressionStatement expr ->
             { expr with Expression = expr.Expression |> Expression.mapPrefix mapper } |> ExpressionStatement
         | Return returns ->
-            { returns with ReturnKeyword = returns.ReturnKeyword |> Terminal.mapPrefix mapper } |> Return
-        | Fail fails -> { fails with FailKeyword = fails.FailKeyword |> Terminal.mapPrefix mapper } |> Fail
-        | Let lets -> { lets with LetKeyword = lets.LetKeyword |> Terminal.mapPrefix mapper } |> Let
+            { returns with Keyword = returns.Keyword |> Terminal.mapPrefix mapper } |> Return
+        | Fail fails -> { fails with Keyword = fails.Keyword |> Terminal.mapPrefix mapper } |> Fail
+        | Let lets -> { lets with Keyword = lets.Keyword |> Terminal.mapPrefix mapper } |> Let
         | Mutable mutables ->
-            { mutables with MutableKeyword = mutables.MutableKeyword |> Terminal.mapPrefix mapper } |> Mutable
+            { mutables with Keyword = mutables.Keyword |> Terminal.mapPrefix mapper } |> Mutable
         | SetStatement sets ->
-            { sets with SetKeyword = sets.SetKeyword |> Terminal.mapPrefix mapper } |> SetStatement
+            { sets with Keyword = sets.Keyword |> Terminal.mapPrefix mapper } |> SetStatement
         | UpdateStatement updates ->
             { updates with SetKeyword = updates.SetKeyword |> Terminal.mapPrefix mapper } |> UpdateStatement
         | SetWith withs ->
             { withs with SetKeyword = withs.SetKeyword |> Terminal.mapPrefix mapper } |> SetWith
-        | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
-        | Elif elifs -> { elifs with ElifKeyword = elifs.ElifKeyword |> Terminal.mapPrefix mapper } |> Elif
-        | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
+        | If ifs -> { ifs with Keyword = ifs.Keyword |> Terminal.mapPrefix mapper } |> If
+        | Elif elifs -> { elifs with Keyword = elifs.Keyword |> Terminal.mapPrefix mapper } |> Elif
+        | Else elses -> { elses with Keyword = elses.Keyword |> Terminal.mapPrefix mapper } |> Else
         | For loop -> { loop with ForKeyword = loop.ForKeyword |> Terminal.mapPrefix mapper } |> For
-        | While whiles -> { whiles with WhileKeyword = whiles.WhileKeyword |> Terminal.mapPrefix mapper } |> While
-        | Repeat repeats -> { repeats with RepeatKeyword = repeats.RepeatKeyword |> Terminal.mapPrefix mapper } |> Repeat
+        | While whiles -> { whiles with Keyword = whiles.Keyword |> Terminal.mapPrefix mapper } |> While
+        | Repeat repeats -> { repeats with Keyword = repeats.Keyword |> Terminal.mapPrefix mapper } |> Repeat
         | Until untils -> { untils with UntilKeyword = untils.UntilKeyword |> Terminal.mapPrefix mapper } |> Until
-        | Within withins -> { withins with WithinKeyword = withins.WithinKeyword |> Terminal.mapPrefix mapper } |> Within
-        | Apply apply -> { apply with ApplyKeyword = apply.ApplyKeyword |> Terminal.mapPrefix mapper } |> Apply
+        | Within withins -> { withins with Keyword = withins.Keyword |> Terminal.mapPrefix mapper } |> Within
+        | Apply apply -> { apply with Keyword = apply.Keyword |> Terminal.mapPrefix mapper } |> Apply
         | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown

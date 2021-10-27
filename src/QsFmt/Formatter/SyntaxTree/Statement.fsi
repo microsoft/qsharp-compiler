@@ -142,15 +142,11 @@ type internal ExpressionStatement =
         Semicolon: Terminal
     }
 
-/// <summary>
-/// A <c>return</c> statement.
-/// </summary>
-type internal Return =
+/// A simple statement consisting of just a keyword, an expression, and a semicolon.
+type internal SimpleStatement =
     {
-        /// <summary>
-        /// The <c>return</c> keyword.
-        /// </summary>
-        ReturnKeyword: Terminal
+        /// The keyword for the statement.
+        Keyword: Terminal
 
         /// The returned expression.
         Expression: Expression
@@ -159,78 +155,11 @@ type internal Return =
         Semicolon: Terminal
     }
 
-/// <summary>
-/// A <c>fail</c> statement.
-/// </summary>
-type internal Fail =
+/// A statement used to bind a value to a symbol.
+type internal BindingStatement =
     {
-        /// <summary>
-        /// The <c>fail</c> keyword.
-        /// </summary>
-        FailKeyword: Terminal
-
-        /// The inner expression of the statement.
-        Expression: Expression
-
-        /// The semicolon.
-        Semicolon: Terminal
-    }
-
-/// <summary>
-/// A <c>let</c> statement.
-/// </summary>
-type internal Let =
-    {
-        /// <summary>
-        /// The <c>let</c> keyword.
-        /// </summary>
-        LetKeyword: Terminal
-
-        /// The symbol binding.
-        Binding: SymbolBinding
-
-        /// The equals symbol.
-        Equals: Terminal
-
-        /// The value of the symbol binding.
-        Value: Expression
-
-        /// The semicolon.
-        Semicolon: Terminal
-    }
-
-/// <summary>
-/// A <c>mutable</c> declaration statement.
-/// </summary>
-type internal Mutable =
-    {
-        /// <summary>
-        /// The <c>mutable</c> keyword.
-        /// </summary>
-        MutableKeyword: Terminal
-
-        /// The symbol binding.
-        Binding: SymbolBinding
-
-        /// The equals symbol.
-        Equals: Terminal
-
-        /// The value of the symbol binding.
-        Value: Expression
-
-        /// The semicolon.
-        Semicolon: Terminal
-    }
-
-/// <summary>
-/// A <c>set</c> statement.
-/// </summary>
-type internal SetStatement =
-    {
-        /// <summary>
-        /// The <c>set</c> keyword.
-        /// </summary>
-        SetKeyword: Terminal
+        /// The keyword for the statement.
+        Keyword: Terminal
 
         /// The symbol binding.
         Binding: SymbolBinding
@@ -299,15 +228,12 @@ type internal SetWith =
         Semicolon: Terminal
     }
 
-/// <summary>
-/// An <c>if</c> statement.
-/// </summary>
-type internal If =
+/// A statement consisting of a keyword, a condition, and a block.
+type internal ConditionalBlockStatement =
     {
-        /// <summary>
-        /// The <c>if</c> keyword.
-        /// </summary>
-        IfKeyword: Terminal
+        
+        /// The keyword for the statement.
+        Keyword: Terminal
 
         /// The condition under which to execute the block.
         Condition: Expression
@@ -316,34 +242,13 @@ type internal If =
         Block: Statement Block
     }
 
-/// <summary>
-/// An <c>elif</c> statement.
-/// </summary>
-and internal Elif =
+/// A statement consisting of a keyword and a block.
+and internal BlockStatement =
     {
-        /// <summary>
-        /// The <c>elif</c> keyword.
-        /// </summary>
-        ElifKeyword: Terminal
+        /// The keyword for the statement.
+        Keyword: Terminal
 
-        /// The condition under which to execute the block.
-        Condition: Expression
-
-        /// The conditional block.
-        Block: Statement Block
-    }
-
-/// <summary>
-/// An <c>else</c> statement.
-/// </summary>
-and internal Else =
-    {
-        /// <summary>
-        /// The <c>else</c> keyword.
-        /// </summary>
-        ElseKeyword: Terminal
-
-        /// The conditional block.
+        /// The block.
         Block: Statement Block
     }
     
@@ -371,52 +276,6 @@ and internal For =
     }
 
 /// <summary>
-/// A <c>while</c> statement.
-/// </summary>
-and internal While =
-    {
-        /// <summary>
-        /// The <c>while</c> keyword.
-        /// </summary>
-        WhileKeyword: Terminal
-
-        /// The condition under which to execute the block.
-        Condition: Expression
-
-        /// The loop body.
-        Block: Statement Block
-    }
-
-/// <summary>
-/// A <c>repeat</c> statement.
-/// </summary>
-and internal Repeat =
-    {
-        /// <summary>
-        /// The <c>repeat</c> keyword.
-        /// </summary>
-        RepeatKeyword: Terminal
-
-        /// The loop body.
-        Block: Statement Block
-    }
-
-/// <summary>
-/// A <c>fixup</c> part of an <c>until</c> statement.
-/// </summary>
-and internal Fixup =
-    {
-        /// <summary>
-        /// The <c>fixup</c> keyword.
-        /// </summary>
-        FixupKeyword: Terminal
-
-        /// The fixup body.
-        Block: Statement Block
-    }
-
-
-/// <summary>
 /// The concluding section of an <c>until</c> statement.
 /// </summary>
 and internal UntilCoda =
@@ -427,7 +286,7 @@ and internal UntilCoda =
     /// <summary>
     /// The <c>fixup</c> of an <c>until</c> statement.
     /// </summary>
-    | Fixup of Fixup
+    | Fixup of BlockStatement
 
 /// <summary>
 /// An <c>until</c> statement.
@@ -448,34 +307,6 @@ and internal  Until =
         /// The concluding section, possibly containing a <c>fixup</c> block.
         /// </summary>
         Coda: UntilCoda
-    }
-
-/// <summary>
-/// A <c>within</c> statement.
-/// </summary>
-and internal Within =
-    {
-        /// <summary>
-        /// The <c>within</c> keyword.
-        /// </summary>
-        WithinKeyword: Terminal
-
-        /// The within body.
-        Block: Statement Block
-    }
-
-/// <summary>
-/// An <c>apply</c> statement.
-/// </summary>
-and internal Apply =
-    {
-        /// <summary>
-        /// The <c>apply</c> keyword.
-        /// </summary>
-        ApplyKeyword: Terminal
-
-        /// The apply body.
-        Block: Statement Block
     }
 
 /// The concluding section of a qubit declaration.
@@ -518,27 +349,27 @@ and internal Statement =
     /// <summary>
     /// A <c>return</c> statement.
     /// </summary>
-    | Return of Return
+    | Return of SimpleStatement
 
     /// <summary>
     /// A <c>fail</c> statement.
     /// </summary>
-    | Fail of Fail
+    | Fail of SimpleStatement
 
     /// <summary>
     /// A <c>let</c> statement.
     /// </summary>
-    | Let of Let
+    | Let of BindingStatement
 
     /// <summary>
     /// A <c>mutable</c> declaration statement.
     /// </summary>
-    | Mutable of Mutable
+    | Mutable of BindingStatement
 
     /// <summary>
     /// A <c>set</c> statement.
     /// </summary>
-    | SetStatement of SetStatement
+    | SetStatement of BindingStatement
     
     /// <summary>
     /// An <c>update</c> statement.
@@ -553,17 +384,17 @@ and internal Statement =
     /// <summary>
     /// An <c>if</c> statement.
     /// </summary>
-    | If of If
+    | If of ConditionalBlockStatement
 
     /// <summary>
     /// An <c>elif</c> statement.
     /// </summary>
-    | Elif of Elif
+    | Elif of ConditionalBlockStatement
 
     /// <summary>
     /// An <c>else</c> statement.
     /// </summary>
-    | Else of Else
+    | Else of BlockStatement
 
     /// <summary>
     /// A <c>for</c> statement.
@@ -573,12 +404,12 @@ and internal Statement =
     /// <summary>
     /// A <c>while</c> statement.
     /// </summary>
-    | While of While
+    | While of ConditionalBlockStatement
 
     /// <summary>
     /// A <c>repeat</c> statement.
     /// </summary>
-    | Repeat of Repeat
+    | Repeat of BlockStatement
 
     /// <summary>
     /// An <c>until</c> statement.
@@ -588,12 +419,12 @@ and internal Statement =
     /// <summary>
     /// A <c>within</c> statement.
     /// </summary>
-    | Within of Within
+    | Within of BlockStatement
 
     /// <summary>
     /// An <c>apply</c> statement.
     /// </summary>
-    | Apply of Apply
+    | Apply of BlockStatement
 
     /// A qubit declaration statement.
     | QubitDeclaration of QubitDeclaration

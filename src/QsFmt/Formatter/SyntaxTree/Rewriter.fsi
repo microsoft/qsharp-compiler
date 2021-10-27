@@ -124,32 +124,32 @@ type internal 'context Rewriter =
     /// <summary>
     /// Rewrites a <see cref="Return"/> statement node.
     /// </summary>
-    abstract Return: context:'context * returns:Return -> Return
-    default Return: context:'context * returns:Return -> Return
+    abstract Return: context:'context * returns:SimpleStatement -> SimpleStatement
+    default Return: context:'context * returns:SimpleStatement -> SimpleStatement
 
     /// <summary>
     /// Rewrites a <see cref="Fail"/> statement node.
     /// </summary>
-    abstract Fail: context:'context * fails:Fail -> Fail
-    default Fail: context:'context * fails:Fail -> Fail
+    abstract Fail: context:'context * fails:SimpleStatement -> SimpleStatement
+    default Fail: context:'context * fails:SimpleStatement -> SimpleStatement
 
     /// <summary>
     /// Rewrites a <see cref="Let"/> statement node.
     /// </summary>
-    abstract Let: context:'context * lets:Let -> Let
-    default Let: context:'context * lets:Let -> Let
+    abstract Let: context:'context * lets:BindingStatement -> BindingStatement
+    default Let: context:'context * lets:BindingStatement -> BindingStatement
 
     /// <summary>
     /// Rewrites a <see cref="Mutable"/> declaration statement node.
     /// </summary>
-    abstract Mutable: context:'context * mutables:Mutable -> Mutable
-    default Mutable: context:'context * mutables:Mutable -> Mutable
+    abstract Mutable: context:'context * mutables:BindingStatement -> BindingStatement
+    default Mutable: context:'context * mutables:BindingStatement -> BindingStatement
 
     /// <summary>
     /// Rewrites a <see cref="SetStatement"/> statement node.
     /// </summary>
-    abstract SetStatement: context:'context * sets:SetStatement -> SetStatement
-    default SetStatement: context:'context * sets:SetStatement -> SetStatement
+    abstract SetStatement: context:'context * sets:BindingStatement -> BindingStatement
+    default SetStatement: context:'context * sets:BindingStatement -> BindingStatement
 
     /// <summary>
     /// Rewrites an <see cref="UpdateStatement"/> statement node.
@@ -166,20 +166,20 @@ type internal 'context Rewriter =
     /// <summary>
     /// Rewrites an <see cref="If"/> statement node.
     /// </summary>
-    abstract If: context:'context * ifs:If -> If
-    default If: context:'context * ifs:If -> If
+    abstract If: context:'context * ifs:ConditionalBlockStatement -> ConditionalBlockStatement
+    default If: context:'context * ifs:ConditionalBlockStatement -> ConditionalBlockStatement
 
     /// <summary>
     /// Rewrites an <see cref="Elif"/> statement node.
     /// </summary>
-    abstract Elif: context:'context * elifs:Elif -> Elif
-    default Elif: context:'context * elifs:Elif -> Elif
+    abstract Elif: context:'context * elifs:ConditionalBlockStatement -> ConditionalBlockStatement
+    default Elif: context:'context * elifs:ConditionalBlockStatement -> ConditionalBlockStatement
 
     /// <summary>
     /// Rewrites an <see cref="Else"/> statement node.
     /// </summary>
-    abstract Else: context:'context * elses:Else -> Else
-    default Else: context:'context * elses:Else -> Else
+    abstract Else: context:'context * elses:BlockStatement -> BlockStatement
+    default Else: context:'context * elses:BlockStatement -> BlockStatement
 
     /// <summary>
     /// Rewrites a <see cref="For"/> statement node.
@@ -190,14 +190,14 @@ type internal 'context Rewriter =
     /// <summary>
     /// Rewrites a <see cref="While"/> statement node.
     /// </summary>
-    abstract While : context: 'context * whiles: While -> While
-    default While : context: 'context * whiles: While -> While
+    abstract While : context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
+    default While : context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
 
     /// <summary>
     /// Rewrites a <see cref="Repeat"/> statement node.
     /// </summary>
-    abstract Repeat : context: 'context * repeats: Repeat -> Repeat
-    default Repeat : context: 'context * repeats: Repeat -> Repeat
+    abstract Repeat : context: 'context * repeats: BlockStatement -> BlockStatement
+    default Repeat : context: 'context * repeats: BlockStatement -> BlockStatement
 
     /// <summary>
     /// Rewrites a <see cref="Until"/> statement node.
@@ -208,20 +208,20 @@ type internal 'context Rewriter =
     /// <summary>
     /// Rewrites a <see cref="Fixup"/> node.
     /// </summary>
-    abstract Fixup : context: 'context * fixup: Fixup -> Fixup
-    default Fixup : context: 'context * fixup: Fixup -> Fixup
+    abstract Fixup : context: 'context * fixup: BlockStatement -> BlockStatement
+    default Fixup : context: 'context * fixup: BlockStatement -> BlockStatement
 
     /// <summary>
     /// Rewrites a <see cref="Within"/> statement node.
     /// </summary>
-    abstract Within : context: 'context * withins: Within -> Within
-    default Within : context: 'context * withins: Within -> Within
+    abstract Within : context: 'context * withins: BlockStatement -> BlockStatement
+    default Within : context: 'context * withins: BlockStatement -> BlockStatement
 
     /// <summary>
     /// Rewrites a <see cref="Apply"/> statement node.
     /// </summary>
-    abstract Apply : context: 'context * apply: Apply -> Apply
-    default Apply : context: 'context * apply: Apply -> Apply
+    abstract Apply : context: 'context * apply: BlockStatement -> BlockStatement
+    default Apply : context: 'context * apply: BlockStatement -> BlockStatement
 
     /// <summary>
     /// Rewrites a <see cref="QubitDeclaration"/> statement node.

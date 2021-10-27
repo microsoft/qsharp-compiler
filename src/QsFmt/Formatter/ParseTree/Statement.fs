@@ -110,7 +110,7 @@ type StatementVisitor(tokens) =
 
     override _.VisitReturnStatement context =
         {
-            ReturnKeyword = context.``return`` |> Node.toTerminal tokens
+            Keyword = context.``return`` |> Node.toTerminal tokens
             Expression = expressionVisitor.Visit context.value
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
@@ -118,7 +118,7 @@ type StatementVisitor(tokens) =
 
     override _.VisitFailStatement context =
         {
-            FailKeyword = context.fail |> Node.toTerminal tokens
+            Keyword = context.fail |> Node.toTerminal tokens
             Expression = expressionVisitor.Visit context.value
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
@@ -126,7 +126,7 @@ type StatementVisitor(tokens) =
 
     override _.VisitLetStatement context =
         {
-            LetKeyword = context.``let`` |> Node.toTerminal tokens
+            Keyword = context.``let`` |> Node.toTerminal tokens
             Binding = symbolBindingVisitor.Visit context.binding
             Equals = context.equals |> Node.toTerminal tokens
             Value = expressionVisitor.Visit context.value
@@ -136,7 +136,7 @@ type StatementVisitor(tokens) =
 
     override _.VisitMutableStatement context =
         {
-            MutableKeyword = context.``mutable`` |> Node.toTerminal tokens
+            Keyword = context.``mutable`` |> Node.toTerminal tokens
             Binding = symbolBindingVisitor.Visit context.binding
             Equals = context.equals |> Node.toTerminal tokens
             Value = expressionVisitor.Visit context.value
@@ -146,7 +146,7 @@ type StatementVisitor(tokens) =
 
     override _.VisitSetStatement context =
         {
-            SetKeyword = context.set |> Node.toTerminal tokens
+            Keyword = context.set |> Node.toTerminal tokens
             Binding = symbolBindingVisitor.Visit context.binding
             Equals = context.equals |> Node.toTerminal tokens
             Value = expressionVisitor.Visit context.value
@@ -179,7 +179,7 @@ type StatementVisitor(tokens) =
 
     override visitor.VisitIfStatement context =
         {
-            IfKeyword = context.``if`` |> Node.toTerminal tokens
+            Keyword = context.``if`` |> Node.toTerminal tokens
             Condition = expressionVisitor.Visit context.condition
             Block =
                 {
@@ -192,7 +192,7 @@ type StatementVisitor(tokens) =
 
     override visitor.VisitElifStatement context =
         {
-            ElifKeyword = context.``elif`` |> Node.toTerminal tokens
+            Keyword = context.``elif`` |> Node.toTerminal tokens
             Condition = expressionVisitor.Visit context.condition
             Block =
                 {
@@ -205,7 +205,7 @@ type StatementVisitor(tokens) =
 
     override visitor.VisitElseStatement context =
         {
-            ElseKeyword = context.``else`` |> Node.toTerminal tokens
+            Keyword = context.``else`` |> Node.toTerminal tokens
             Block =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
@@ -232,7 +232,7 @@ type StatementVisitor(tokens) =
 
     override visitor.VisitWhileStatement context =
         {
-            WhileKeyword = context.``while`` |> Node.toTerminal tokens
+            Keyword = context.``while`` |> Node.toTerminal tokens
             Condition = expressionVisitor.Visit context.condition
             Block =
                 {
@@ -245,7 +245,7 @@ type StatementVisitor(tokens) =
 
     override visitor.VisitRepeatStatement context =
         {
-            RepeatKeyword = context.repeat |> Node.toTerminal tokens
+            Keyword = context.repeat |> Node.toTerminal tokens
             Block =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
@@ -262,7 +262,7 @@ type StatementVisitor(tokens) =
             Coda =
                 if context.body <> null then
                     {
-                        FixupKeyword = context.fixup |> Node.toTerminal tokens
+                        Keyword = context.fixup |> Node.toTerminal tokens
                         Block =
                             {
                                 OpenBrace = context.body.openBrace |> Node.toTerminal tokens
@@ -278,7 +278,7 @@ type StatementVisitor(tokens) =
 
     override visitor.VisitWithinStatement context =
         {
-            WithinKeyword = context.within |> Node.toTerminal tokens
+            Keyword = context.within |> Node.toTerminal tokens
             Block =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
@@ -290,7 +290,7 @@ type StatementVisitor(tokens) =
 
     override visitor.VisitApplyStatement context =
         {
-            ApplyKeyword = context.apply |> Node.toTerminal tokens
+            Keyword = context.apply |> Node.toTerminal tokens
             Block =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
