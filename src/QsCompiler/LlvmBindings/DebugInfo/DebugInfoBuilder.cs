@@ -66,29 +66,35 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Gets the module that owns this builder</summary>
         public BitcodeModule OwningModule { get; }
 
+        /// <summary>
+        /// Gets the compile unit paired with this DebugInfoBuilder if there is one.
+        /// DIBuilder can only contain one compile unit, and compile units can only belong to one DIBuilder
+        /// </summary>
+        public DICompileUnit? CompileUnit { get; private set; }
+
         /// <summary>Creates a new <see cref="DICompileUnit"/></summary>
         /// <param name="language"><see cref="SourceLanguage"/> for the compilation unit</param>
         /// <param name="sourceFilePath">Full path to the source file of this compilation unit</param>
         /// <param name="producer">Name of the application processing the compilation unit</param>
-        /// <param name="optimized">Flag to indicate if the code in this compilation unit is optimized</param>
         /// <param name="compilationFlags">Additional tool specific flags</param>
-        /// <param name="runtimeVersion">Runtime version</param>
+        /// <param name="optimized">Flag to indicate if the code in this compilation unit is optimized. Default is false.</param>
+        /// <param name="runtimeVersion">Runtime version. Default is 0.</param>
         /// <returns><see cref="DICompileUnit"/></returns>
         public DICompileUnit CreateCompileUnit(
             SourceLanguage language,
             string sourceFilePath,
             string? producer,
-            bool optimized,
             string? compilationFlags,
-            uint runtimeVersion)
+            bool optimized = false,
+            uint runtimeVersion = 0)
         {
             return this.CreateCompileUnit(
                 language,
                 Path.GetFileName(sourceFilePath),
                 Path.GetDirectoryName(sourceFilePath) ?? Environment.CurrentDirectory,
                 producer,
-                optimized,
                 compilationFlags,
+                optimized,
                 runtimeVersion);
         }
 
@@ -97,8 +103,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="fileName">Name of the source file of this compilation unit (without any path)</param>
         /// <param name="fileDirectory">Path of the directory containing the file</param>
         /// <param name="producer">Name of the application processing the compilation unit</param>
-        /// <param name="optimized">Flag to indicate if the code in this compilation unit is optimized</param>
         /// <param name="compilationFlags">Additional tool specific flags</param>
+        /// <param name="optimized">Flag to indicate if the code in this compilation unit is optimized</param>
         /// <param name="runtimeVersion">Runtime version</param>
         /// <returns><see cref="DICompileUnit"/></returns>
         [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "DICompileUnit", Justification = "It is spelled correctly 8^)")]
@@ -107,8 +113,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             string fileName,
             string fileDirectory,
             string? producer,
-            bool optimized,
             string? compilationFlags,
+            bool optimized,
             uint runtimeVersion)
         {
             if (producer == null)
@@ -121,9 +127,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 compilationFlags = string.Empty;
             }
 
-            if (this.OwningModule.DICompileUnit != null)
+            if (this.CompileUnit != null)
             {
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Can't have more than one DICompileUnit per DebugInfoBuilder");
             }
 
             var file = this.CreateFile(fileName, fileDirectory);
@@ -142,8 +148,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 string.Empty,
                 string.Empty);
 
-            this.OwningModule.DICompileUnit = MDNode.FromHandle<DICompileUnit>(handle)!;
-            return this.OwningModule.DICompileUnit;
+            this.CompileUnit = MDNode.FromHandle<DICompileUnit>(handle)!;
+            return this.CompileUnit;
         }
 
         /// <summary>Creates a debugging information temporary entry for a macro file</summary>

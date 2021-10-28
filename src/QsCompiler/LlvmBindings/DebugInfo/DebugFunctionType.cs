@@ -43,20 +43,19 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     {
         /// <summary>Initializes a new instance of the <see cref="DebugFunctionType"/> class.</summary>
         /// <param name="llvmType">Native LLVM function signature</param>
-        /// <param name="module"><see cref="BitcodeModule"/> to use when construction debug information</param>
+        /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/> to use when constructing debug info</param>
         /// <param name="debugFlags"><see cref="DebugInfoFlags"/> for this signature</param>
         /// <param name="retType">Return type for the function</param>
         /// <param name="argTypes">Potentially empty set of argument types for the signature</param>
         public DebugFunctionType(
             IFunctionType llvmType,
-            BitcodeModule module,
+            DebugInfoBuilder dIBuilder,
             DebugInfoFlags debugFlags,
             IDebugType<ITypeRef, DIType> retType,
             params IDebugType<ITypeRef, DIType>[] argTypes)
             : base(
                 llvmType,
-                module
-                          .DIBuilder.CreateSubroutineType(
+                dIBuilder.CreateSubroutineType(
                               debugFlags,
                               retType.DIType,
                               argTypes.Select(t => t.DIType)))

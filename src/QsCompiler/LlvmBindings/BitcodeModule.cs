@@ -62,13 +62,11 @@ namespace Ubiquity.NET.Llvm
     {
         private LLVMModuleRef moduleHandle;
 
-        private readonly Lazy<DebugInfoBuilder> lazyDiBuilder;
-
         private BitcodeModule(LLVMModuleRef handle)
         {
             this.moduleHandle = handle;
             this.Context = ThreadContextCache.GetOrCreateAndRegister(handle.Context);
-            this.lazyDiBuilder = new Lazy<DebugInfoBuilder>(() => new DebugInfoBuilder(this));
+            this.DIBuilders = new List<DebugInfoBuilder>();
         }
 
         /// <summary>Name of the Debug Version information module flag</summary>
@@ -120,19 +118,18 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
-        /// <summary>Gets the <see cref="DebugInfoBuilder"/> used to create debug information for this module</summary>
-        /// <remarks>The builder returned from this property is lazy constructed on first access so doesn't consume resources unless used.</remarks>
-        public DebugInfoBuilder DIBuilder
+        /// <summary>Creates and returns a new <see cref="DebugInfoBuilder"/> used to create debug information for this module</summary>
+        public DebugInfoBuilder CreateDIBuilder()
         {
-            get
-            {
-                this.ThrowIfDisposed();
-                return this.lazyDiBuilder.Value;
-            }
+            this.ThrowIfDisposed();
+            DebugInfoBuilder dIBuilder = new DebugInfoBuilder(this);
+            this.DIBuilders.Add(dIBuilder);
+            return dIBuilder;
         }
 
-        /// <summary>Gets the Debug Compile unit for this module</summary>
-        public DICompileUnit? DICompileUnit { get; internal set; }
+        /// <summary>Gets the list of <see cref="DebugInfoBuilder"/>s used to create debug information for this module</summary>
+        /// <remarks>Each DebugInfoBuilder can own one paired compile unit.</remarks>
+        public List<DebugInfoBuilder> DIBuilders { get; }
 
         /// <summary>Gets the Data layout string for this module</summary>
         /// <remarks>
@@ -751,6 +748,11 @@ namespace Ubiquity.NET.Llvm
                 return this.GetOrCreateItem(hContext);
             }
 
+            /// <summary>
+            /// Creates a <see cref="BitcodeModule"/> and adds a <see cref="DebugInfoBuilder"/>
+            /// with a compile unit populated by information.
+            /// </summary>
+            /// <returns>The BitcodeModule created.</returns>
             public BitcodeModule CreateBitcodeModule(
                 string moduleId,
                 SourceLanguage language,
@@ -761,12 +763,12 @@ namespace Ubiquity.NET.Llvm
                 uint runtimeVersion = 0)
             {
                 var retVal = this.CreateBitcodeModule(moduleId);
-                retVal.DICompileUnit = retVal.DIBuilder.CreateCompileUnit(
+                retVal.CreateDIBuilder().CreateCompileUnit(
                     language,
                     srcFilePath,
                     producer,
-                    optimized,
                     compilationFlags,
+                    optimized,
                     runtimeVersion);
 
                 return retVal;
