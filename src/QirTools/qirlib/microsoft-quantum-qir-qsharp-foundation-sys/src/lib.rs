@@ -19,7 +19,7 @@ const FOUNDATION_BYTES: &'static [u8] = include_bytes!(
     "../../qir-runtime/bin/linux-x64/native/libMicrosoft.Quantum.Qir.QSharp.Foundation.so"
 );
 
-#[cfg(target_os = "mac_os")]
+#[cfg(target_os = "macos")]
 const FOUNDATION_BYTES: &'static [u8] = include_bytes!(
     "../../qir-runtime/bin/osx-x64/native/libMicrosoft.Quantum.Qir.QSharp.Foundation.dylib"
 );

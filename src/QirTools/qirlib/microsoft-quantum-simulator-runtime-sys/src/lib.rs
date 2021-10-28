@@ -20,7 +20,7 @@ const SIMULATOR_BYTES: &'static [u8] = include_bytes!(
     "../../qir-runtime/bin/linux-x64/native/libMicrosoft.Quantum.Simulator.Runtime.so"
 );
 
-#[cfg(target_os = "mac_os")]
+#[cfg(target_os = "macos")]
 const SIMULATOR_BYTES: &'static [u8] = include_bytes!(
     "../../qir-runtime/bin/osx-x64/native/libMicrosoft.Quantum.Simulator.Runtime.dylib"
 );

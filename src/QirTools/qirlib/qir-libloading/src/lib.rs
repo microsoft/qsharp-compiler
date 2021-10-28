@@ -47,7 +47,7 @@ pub fn get_qir_runtime_lib_path() -> String {
         "../qir-runtime/bin/linux-x64/native".to_owned()
     } else if cfg!(target_os = "windows") {
         "../qir-runtime/bin/win-x64/native".to_owned()
-    } else if cfg!(target_os = "mac_os") {
+    } else if cfg!(target_os = "macos") {
         "../qir-runtime/bin/osx-x64/native".to_owned()
     } else {
         panic!("Unsupported platform")
