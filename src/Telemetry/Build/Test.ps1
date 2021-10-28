@@ -8,4 +8,8 @@ Push-Location $PSScriptRoot/../Tests/
 dotnet reportgenerator "-reports:$coverageFile" "-targetdir:TestResults/html" -reporttypes:HTML;
 Pop-Location
 
-Start-Process "file:///$PSScriptRoot/../Tests/TestResults/html/index.htm"
+$reportFile = Resolve-Path "$PSScriptRoot/../Tests/TestResults/html/index.htm"
+
+Write-Output "Attempting to open: file:///$reportFile"
+    
+Start-Process "file:///$reportFile"
