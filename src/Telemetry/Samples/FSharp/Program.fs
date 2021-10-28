@@ -4,9 +4,8 @@
 open System
 open System.Collections.Generic
 open Microsoft.Quantum.Telemetry
-open Microsoft.Applications.Events
 
-type SampleEnumType =
+type SampleUnionType =
     | SampleEnumValue1
     | SampleEnumValue2
 
@@ -15,7 +14,7 @@ type ExecutionCompleted =
         SampleDateTime: DateTime
         SampleString: string
         SampleBool: bool
-        SampleEnum: SampleEnumType
+        SampleEnum: SampleUnionType
         [<PiiData>]
         SamplePII: string
         [<SerializeJson>]
@@ -24,7 +23,7 @@ type ExecutionCompleted =
         SampleInt: int
         SampleGuid: Guid
         [<SerializeJson>]
-        SampleDictionary: IDictionary<string, string>
+        SampleDictionary: Map<string, string>
         SampleGenericObject: obj
         SampleException: Exception
     }
@@ -71,7 +70,8 @@ let main args =
                 raise (System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'"))
             with
             | ex -> ex
-        TelemetryManager.LogObject(unhandledException);
+
+        TelemetryManager.LogObject(unhandledException)
 
         // Log a custom object
         // Custom objects will have all of their non-null public properties
@@ -82,15 +82,15 @@ let main args =
                 SampleDateTime = DateTime.Now
                 SampleString = "sample string"
                 SampleBool = true
-                SampleEnum = SampleEnumType.SampleEnumValue1
+                SampleEnum = SampleUnionType.SampleEnumValue1
                 SamplePII = "PII data to be hashed"
                 SampleArray = [| "element1"; "element2" |]
                 SampleTimeSpan = TimeSpan(10, 9, 8, 7, 654)
                 SampleInt = 42
                 SampleDictionary =
-                    dict [ "key1", "value1"
-                           "key2", "value2" ]
-                SampleGenericObject = Dictionary<int, string>()
+                    Map [ ("key1", "value1")
+                          ("key2", "value2") ]
+                SampleGenericObject = [ 1 .. 10 ]
                 SampleGuid = Guid.NewGuid()
                 SampleException = unhandledException
             }
