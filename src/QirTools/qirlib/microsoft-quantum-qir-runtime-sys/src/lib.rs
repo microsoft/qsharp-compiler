@@ -6,7 +6,7 @@
 use lazy_static::lazy_static;
 use mut_static::MutStatic;
 
-use std::{ffi::CString};
+use std::ffi::CString;
 
 use cty;
 use libloading::Library;
@@ -14,6 +14,15 @@ use libloading::Library;
 #[cfg(target_os = "linux")]
 const RUNTIME_BYTES: &'static [u8] =
     include_bytes!("../../qir-runtime/bin/linux-x64/native/libMicrosoft.Quantum.Qir.Runtime.so");
+
+#[cfg(target_os = "mac_os")]
+const RUNTIME_BYTES: &'static [u8] =
+    include_bytes!("../../qir-runtime/bin/osx-x64/native/libMicrosoft.Quantum.Qir.Runtime.dylib");
+
+#[cfg(target_os = "windows")]
+const RUNTIME_BYTES: &'static [u8] =
+    include_bytes!("../../qir-runtime/bin/win-x64/native/Microsoft.Quantum.Qir.Runtime.dll");
+
 /*
 struct QirRTuple
 {

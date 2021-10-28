@@ -5,25 +5,35 @@ use mut_static::MutStatic;
 lazy_static! {
     pub(crate) static ref FOUNDATION_LIBRARY: MutStatic<Library> = unsafe {
         MutStatic::from(
-            qir_libloading::load_library_bytes("Microsoft.Quantum.Qir.QSharp.Foundation", FOUNDATION_BYTES)
-                .unwrap(),
+            qir_libloading::load_library_bytes(
+                "Microsoft.Quantum.Qir.QSharp.Foundation",
+                FOUNDATION_BYTES,
+            )
+            .unwrap(),
         )
     };
 }
-
-
 
 #[cfg(target_os = "linux")]
 const FOUNDATION_BYTES: &'static [u8] = include_bytes!(
     "../../qir-runtime/bin/linux-x64/native/libMicrosoft.Quantum.Qir.QSharp.Foundation.so"
 );
 
-pub struct QSharpFoundation {
-}
+#[cfg(target_os = "mac_os")]
+const FOUNDATION_BYTES: &'static [u8] = include_bytes!(
+    "../../qir-runtime/bin/osx-x64/native/libMicrosoft.Quantum.Qir.QSharp.Foundation.dylib"
+);
+
+#[cfg(target_os = "windows")]
+const FOUNDATION_BYTES: &'static [u8] = include_bytes!(
+    "../../qir-runtime/bin/win-x64/native/Microsoft.Quantum.Qir.QSharp.Foundation.dll"
+);
+
+pub struct QSharpFoundation {}
 
 impl QSharpFoundation {
     pub fn new() -> QSharpFoundation {
-        QSharpFoundation { }
+        QSharpFoundation {}
     }
 }
 
