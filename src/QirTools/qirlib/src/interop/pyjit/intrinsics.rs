@@ -39,10 +39,12 @@ pub unsafe extern "C" fn __quantum__qis__measure__body(
 ) {
     log::debug!("/__quantum__qis__measure__body/");
 
-    let qubit = get_qubit_id(qubits);
-    // let register = get_qubit_id(registers);
-    let mut gs = get_current_gate_processor();
-    gs.m(qubit);
+    // get_qubit_id may return something like 94420488984834
+    // which will use up all computer memory
+
+    // let qubit = get_qubit_id(qubits);
+    // let mut gs = get_current_gate_processor();
+    // gs.m(qubit);
 }
 
 #[no_mangle]
