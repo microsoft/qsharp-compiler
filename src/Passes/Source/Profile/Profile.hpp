@@ -22,14 +22,21 @@ public:
   /// Allocation manager pointer type. Used to reference to concrete allocation manager
   /// implementations which defines the allocation logic of the profile.
   using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
-  using ValidatorPtr         = Validator::ValidatorPtr;
+
+  /// Validator class used to check that an IR fulfils a given specification
+  using ValidatorPtr = Validator::ValidatorPtr;
+
+  /// Standard types
+  //
+  using String = std::string;
 
   using ValueTrackerPtr = ValueTracker::ValueTrackerPtr;
+
   // Constructors
   //
 
   explicit Profile(
-      bool debug, llvm::TargetMachine *target_machine = nullptr,
+      String const &name, bool debug, llvm::TargetMachine *target_machine = nullptr,
       AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
       AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew(),
       ValueTrackerPtr      value_tracker             = ValueTracker::createNew());
@@ -59,9 +66,7 @@ public:
   AllocationManagerPtr getQubitAllocationManager();
   AllocationManagerPtr getResultAllocationManager();
 
-  // Access functions to LLVM instances for running the
-  // module pass manager
-  //
+  String name() const;
 
 protected:
   // Ensuring that IProfileGenerator has access to following protected functions.
@@ -111,6 +116,9 @@ private:
     }
     return true;
   }
+
+  /// Name of the selected profile
+  String name_{};
 
   // LLVM logic to run the passes
   //

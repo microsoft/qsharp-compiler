@@ -54,6 +54,7 @@
 #include "RuleTransformationPass/RulePass.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/FactoryConfig.hpp"
+#include "ValidationPass/ValidationConfiguration.hpp"
 #include "Validator/Validator.hpp"
 
 #include <dlfcn.h>
@@ -136,6 +137,10 @@ int main(int argc, char **argv)
 
     // Getting the main configuration
     auto config = configuration_manager.get<QatConfig>();
+
+    // Setting profile validation configuration
+    configuration_manager.addConfig<ValidationPassConfiguration>(
+        "validation-configuration", ValidationPassConfiguration::fromProfileName(config.profile()));
 
     // Loading components
     //
@@ -239,6 +244,7 @@ int main(int argc, char **argv)
 
     // Reconfiguring to get all the arguments of the passes registered
     parser.reset();
+
     configuration_manager.setupArguments(parser);
     parser.parseArgs(argc, argv);
     configuration_manager.configure(parser);
@@ -309,7 +315,7 @@ int main(int argc, char **argv)
     //
 
     // Creating the profile that will be used for generation and validation
-    auto profile = generator->newProfile(optimisation_level, config.debug());
+    auto profile = generator->newProfile(config.profile(), optimisation_level, config.debug());
 
     if (config.generate())
     {

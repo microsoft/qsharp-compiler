@@ -5,11 +5,13 @@
 
 #include "Llvm/Llvm.hpp"
 #include "RuleTransformationPass/Configuration.hpp"
+#include "ValidationPass/ValidationConfiguration.hpp"
 
 namespace microsoft {
 namespace quantum {
 
-Profile IProfileGenerator::newProfile(OptimizationLevel const &optimisation_level, bool debug)
+Profile IProfileGenerator::newProfile(String const &           name,
+                                      OptimizationLevel const &optimisation_level, bool debug)
 {
   auto qubit_allocation_manager  = BasicAllocationManager::createNew();
   auto result_allocation_manager = BasicAllocationManager::createNew();
@@ -21,11 +23,16 @@ Profile IProfileGenerator::newProfile(OptimizationLevel const &optimisation_leve
 
   // Creating profile
   // TODO: Set target machine
-  Profile ret{debug, nullptr, qubit_allocation_manager, result_allocation_manager};
+  Profile ret{name, debug, nullptr, qubit_allocation_manager, result_allocation_manager};
 
   auto module_pass_manager = createGenerationModulePass(ret, optimisation_level, debug);
 
   ret.setModulePassManager(std::move(module_pass_manager));
+
+  // Creating validator
+  auto validator =
+      std::make_unique<Validator>(configuration_manager_.get<ValidationPassConfiguration>(), debug);
+  ret.setValidator(std::move(validator));
 
   return ret;
 }

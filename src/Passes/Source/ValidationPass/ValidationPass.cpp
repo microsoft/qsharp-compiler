@@ -69,22 +69,28 @@ llvm::PreservedAnalyses ValidationPass::run(llvm::Module &module,
     }
   }
 
-  bool        raise_exception = false;
-  auto const &allowed_ops     = config_.allowedOpcodes();
-  for (auto k : opcodes_)
+  bool raise_exception = false;
+  if (config_.whitelistOpcodes())
   {
-    if (allowed_ops.find(k.first) == allowed_ops.end())
+    auto const &allowed_ops = config_.allowedOpcodes();
+    for (auto k : opcodes_)
     {
-      llvm::errs() << "; Error: '" << k.first << "' is not allowed for this profile.\n";
+      if (allowed_ops.find(k.first) == allowed_ops.end())
+      {
+        llvm::errs() << "; Error: '" << k.first << "' is not allowed for this profile.\n";
+      }
     }
   }
 
   auto const &allowed_functions = config_.allowedExternalCallNames();
-  for (auto k : external_calls_)
+  if (config_.whitelistOpcodes())
   {
-    if (allowed_functions.find(k.first) == allowed_functions.end())
+    for (auto k : external_calls_)
     {
-      llvm::errs() << "; Error: '" << k.first << "' is not allowed for this profile.\n";
+      if (allowed_functions.find(k.first) == allowed_functions.end())
+      {
+        llvm::errs() << "; Error: '" << k.first << "' is not allowed for this profile.\n";
+      }
     }
   }
 

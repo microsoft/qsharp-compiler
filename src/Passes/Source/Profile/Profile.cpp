@@ -8,10 +8,11 @@
 namespace microsoft {
 namespace quantum {
 
-Profile::Profile(bool debug, llvm::TargetMachine *target_machine,
+Profile::Profile(String const &name, bool debug, llvm::TargetMachine *target_machine,
                  AllocationManagerPtr qubit_allocation_manager,
                  AllocationManagerPtr result_allocation_manager, ValueTrackerPtr value_tracker)
-  : loop_analysis_manager_{debug}
+  : name_{name}
+  , loop_analysis_manager_{debug}
   , function_analysis_manager_{debug}
   , gscc_analysis_manager_{debug}
   , module_analysis_manager_{debug}
@@ -21,7 +22,7 @@ Profile::Profile(bool debug, llvm::TargetMachine *target_machine,
   , pipeline_tuning_options_{}
   , qubit_allocation_manager_{std::move(qubit_allocation_manager)}
   , result_allocation_manager_{std::move(result_allocation_manager)}
-  , validator_{std::make_unique<Validator>(debug)}
+  , validator_{std::make_unique<Validator>(ValidationPassConfiguration(), debug)}
   , value_tracker_{std::move(value_tracker)}
 {
   bool verify_each_pass = false;
@@ -153,6 +154,11 @@ bool Profile::verify(llvm::Module &module)
 bool Profile::validate(llvm::Module &module)
 {
   return validator_->validate(module);
+}
+
+Profile::String Profile::name() const
+{
+  return name_;
 }
 
 Profile::AllocationManagerPtr Profile::getQubitAllocationManager()

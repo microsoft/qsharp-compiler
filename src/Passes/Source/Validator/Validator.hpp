@@ -5,6 +5,7 @@
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
 #include "Llvm/Llvm.hpp"
+#include "ValidationPass/ValidationConfiguration.hpp"
 #include "ValueTracker/ValueTracker.hpp"
 
 #include <memory>
@@ -23,7 +24,8 @@ public:
   // Constructors
   //
 
-  explicit Validator(bool debug, llvm::TargetMachine *target_machine = nullptr);
+  explicit Validator(ValidationPassConfiguration const &cfg, bool debug,
+                     llvm::TargetMachine *target_machine = nullptr);
 
   // Default construction not allowed as this leads to invalid configuration of the allocation
   // managers.

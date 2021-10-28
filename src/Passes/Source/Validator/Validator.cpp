@@ -9,7 +9,8 @@
 namespace microsoft {
 namespace quantum {
 
-Validator::Validator(bool debug, llvm::TargetMachine *target_machine)
+Validator::Validator(ValidationPassConfiguration const &cfg, bool debug,
+                     llvm::TargetMachine *target_machine)
   : loop_analysis_manager_{debug}
   , function_analysis_manager_{debug}
   , gscc_analysis_manager_{debug}
@@ -26,7 +27,7 @@ Validator::Validator(bool debug, llvm::TargetMachine *target_machine)
   pass_builder_->crossRegisterProxies(loop_analysis_manager_, function_analysis_manager_,
                                       gscc_analysis_manager_, module_analysis_manager_);
 
-  module_pass_manager_.addPass(ValidationPass());
+  module_pass_manager_.addPass(ValidationPass(cfg));
 }
 
 bool Validator::validate(llvm::Module &module)

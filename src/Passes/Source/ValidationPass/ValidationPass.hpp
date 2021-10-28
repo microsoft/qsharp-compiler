@@ -32,7 +32,9 @@ public:
   // Construction and destruction configuration.
   //
 
-  ValidationPass() = default;
+  ValidationPass(ValidationPassConfiguration const &cfg)
+    : config_{cfg}
+  {}
 
   /// Copy construction is banned.
   ValidationPass(ValidationPass const &) = delete;
