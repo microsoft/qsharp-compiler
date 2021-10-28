@@ -369,6 +369,7 @@ type WarningCode =
     | [<Obsolete("This diagnostic is no longer in use. The error InvalidUseOfUnderscorePattern is given instead.")>] UseOfUnderscorePattern = 3305
     | DeprecatedTupleBrackets = 3306
     | DeprecatedQubitBindingKeyword = 3307
+    | DeprecatedNewArray = 3308
     | DeprecatedRUSloopInFunction = 4001
 
     | DiscardingItemInAssignment = 5001
@@ -954,6 +955,8 @@ type DiagnosticItem =
             | WarningCode.DeprecatedQubitBindingKeyword ->
                 "The \"{0}\" keyword has been replaced with \"{1}\", and qubits may now be allocated without a block. "
                 + "Consider \"{1} q = Qubit();\" or \"{1} q = Qubit() {{ ... }}\"."
+            | WarningCode.DeprecatedNewArray ->
+                "Deprecated syntax. Use [] to construct an empty array, or [x, size = n] to construct an array of x repeated n times."
             | WarningCode.DeprecatedRUSloopInFunction ->
                 "The use of repeat-until-success-loops within functions may not be supported in the future. Please use a while-loop instead."
 
