@@ -43,23 +43,23 @@
                       Include="Microsoft.Quantum.DocumentationGenerator" Version="0.18.2107151063-beta"
                       IsImplicitlyDefined="true" 
                       IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
-    <PackageReference Condition="$(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'"
+    <PackageReference Condition="$(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' Or '$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor'"
                       Include="Microsoft.Quantum.QirGeneration" Version="0.18.2107151063-beta"
                       IsImplicitlyDefined="true" 
                       IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
-    <PackageReference Condition="($(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator') And $([MSBuild]::IsOsPlatform('Windows'))"
+    <PackageReference Condition="($(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' Or '$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor') And $([MSBuild]::IsOsPlatform('Windows'))"
                       Include="libLLVM.runtime.win-x64" Version="11.0.0"
                       IsImplicitlyDefined="true" 
                       PrivateAssets="All" GeneratePathProperty="true" />
-    <PackageReference Condition="($(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator') And $([MSBuild]::IsOsPlatform('OSX'))"
+    <PackageReference Condition="($(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' Or '$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor') And $([MSBuild]::IsOsPlatform('OSX'))"
                       Include="libLLVM.runtime.osx-x64" Version="11.0.0"
                       IsImplicitlyDefined="true" 
                       PrivateAssets="All" GeneratePathProperty="true" />
-    <PackageReference Condition="($(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator') And $([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'"
+    <PackageReference Condition="($(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' Or '$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor') And $([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'"
                       Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0"
                       IsImplicitlyDefined="true" 
                       PrivateAssets="All" GeneratePathProperty="true" />
-    <PackageReference Condition="($(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator') And $([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'"
+    <PackageReference Condition="($(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' Or '$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor') And $([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'"
                       Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0"
                       IsImplicitlyDefined="true" 
                       PrivateAssets="All" GeneratePathProperty="true" />

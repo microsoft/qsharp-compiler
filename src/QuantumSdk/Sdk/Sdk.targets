@@ -166,7 +166,7 @@
     <Exec Condition="$(_DefaultEntryPoint) != ''" Command="$(DefaultEntryPointGeneration) $(_DefaultEntryPoint)" IgnoreExitCode="false" />
     <ItemGroup>
       <EmbeddedResource Include="$(_GeneratedBinary).bson" LogicalName="__qsharp_data_bond_v1__.bson" Visible="false" />
-      <EmbeddedResource Condition="$(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'" Include="$(_GeneratedBinary).bc" LogicalName="__qsharp_data_qir_v1__.bc" Visible="false" />
+      <EmbeddedResource Condition="$(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' Or '$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor'" Include="$(_GeneratedBinary).bc" LogicalName="__qsharp_data_qir_v1__.bc" Visible="false" />
       <Compile Condition="$(CSharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
       <Compile Condition="$(_DefaultEntryPoint) != ''" Include="$(_DefaultEntryPoint)" AutoGen="true" />
     </ItemGroup>
