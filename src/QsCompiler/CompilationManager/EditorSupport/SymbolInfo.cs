@@ -187,6 +187,79 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
+        private static TypedExpression? SmallestExpressionInStatement(QsStatement statement, Position position) =>
+            statement.Statement switch
+            {
+                QsStatementKind.QsExpressionStatement expression => SmallestExpression(expression.Item, position),
+                QsStatementKind.QsReturnStatement @return => SmallestExpression(@return.Item, position),
+                QsStatementKind.QsFailStatement fail => SmallestExpression(fail.Item, position),
+                QsStatementKind.QsVariableDeclaration declaration => SmallestExpression(declaration.Item.Rhs, position),
+                QsStatementKind.QsValueUpdate update => SmallestExpression(update.Item.Rhs, position),
+                QsStatementKind.QsConditionalStatement cond => cond.Item.ConditionalBlocks.Select(c => SmallestExpression(c.Item1, position)).FirstOrDefault(e => !(e is null)),
+                QsStatementKind.QsForStatement @for => SmallestExpression(@for.Item.IterationValues, position),
+                QsStatementKind.QsWhileStatement @while => SmallestExpression(@while.Item.Condition, position),
+                QsStatementKind.QsRepeatStatement repeat => SmallestExpression(repeat.Item.SuccessCondition, position),
+                _ => null,
+            };
+
+        private static TypedExpression? SmallestExpression(TypedExpression expression, Position position)
+        {
+            if (expression.Range.IsNull || !expression.Range.Item.Contains(position))
+            {
+                return null;
+            }
+
+            var smallest = expression.Expression switch
+            {
+                QsExpressionKind.ValueTuple tuple => Many(tuple.Item),
+                QsExpressionKind.StringLiteral str => Many(str.Item2),
+                QsExpressionKind.RangeLiteral range => Binary(range.Item1, range.Item2),
+                QsExpressionKind.NewArray array => SmallestExpression(array.Item2, position),
+                QsExpressionKind.ValueArray array => Many(array.Item),
+                QsExpressionKind.ArrayItem arrayItem => Binary(arrayItem.Item1, arrayItem.Item2),
+                QsExpressionKind.NamedItem namedItem => SmallestExpression(namedItem.Item1, position),
+                QsExpressionKind.NEG neg => SmallestExpression(neg.Item, position),
+                QsExpressionKind.NOT not => SmallestExpression(not.Item, position),
+                QsExpressionKind.BNOT bNot => SmallestExpression(bNot.Item, position),
+                QsExpressionKind.ADD add => Binary(add.Item1, add.Item2),
+                QsExpressionKind.SUB sub => Binary(sub.Item1, sub.Item2),
+                QsExpressionKind.MUL mul => Binary(mul.Item1, mul.Item2),
+                QsExpressionKind.DIV div => Binary(div.Item1, div.Item2),
+                QsExpressionKind.MOD mod => Binary(mod.Item1, mod.Item2),
+                QsExpressionKind.POW pow => Binary(pow.Item1, pow.Item2),
+                QsExpressionKind.EQ eq => Binary(eq.Item1, eq.Item2),
+                QsExpressionKind.NEQ neq => Binary(neq.Item1, neq.Item2),
+                QsExpressionKind.LT lt => Binary(lt.Item1, lt.Item2),
+                QsExpressionKind.LTE lte => Binary(lte.Item1, lte.Item2),
+                QsExpressionKind.GT gt => Binary(gt.Item1, gt.Item2),
+                QsExpressionKind.GTE gte => Binary(gte.Item1, gte.Item2),
+                QsExpressionKind.AND and => Binary(and.Item1, and.Item2),
+                QsExpressionKind.OR or => Binary(or.Item1, or.Item2),
+                QsExpressionKind.BOR bOr => Binary(bOr.Item1, bOr.Item2),
+                QsExpressionKind.BAND bAnd => Binary(bAnd.Item1, bAnd.Item2),
+                QsExpressionKind.BXOR bXor => Binary(bXor.Item1, bXor.Item2),
+                QsExpressionKind.LSHIFT lShift => Binary(lShift.Item1, lShift.Item2),
+                QsExpressionKind.RSHIFT rShift => Binary(rShift.Item1, rShift.Item2),
+                QsExpressionKind.CONDITIONAL cond => Many(new[] { cond.Item1, cond.Item2, cond.Item3 }),
+                QsExpressionKind.CopyAndUpdate update => Binary(update.Item1, update.Item3),
+                QsExpressionKind.UnwrapApplication unwrap => SmallestExpression(unwrap.Item, position),
+                QsExpressionKind.AdjointApplication adj => SmallestExpression(adj.Item, position),
+                QsExpressionKind.ControlledApplication ctl => SmallestExpression(ctl.Item, position),
+                QsExpressionKind.CallLikeExpression call => Binary(call.Item1, call.Item2),
+                QsExpressionKind.SizedArray sizedArray => Binary(sizedArray.value, sizedArray.size),
+                QsExpressionKind.Lambda lambda => SmallestExpression(lambda.Item.Body, position),
+                _ => null,
+            };
+
+            return smallest ?? expression;
+
+            TypedExpression? Binary(TypedExpression e1, TypedExpression e2) =>
+                SmallestExpression(e1, position) ?? SmallestExpression(e2, position);
+
+            TypedExpression? Many(IEnumerable<TypedExpression> es) =>
+                es.Select(e => SmallestExpression(e, position)).FirstOrDefault(e => !(e is null));
+        }
+
         /// <summary>
         /// Searches <paramref name="compilation"/> for all references to a globally defined type or callable with <paramref name="fullName"/>.
         /// </summary>
@@ -342,9 +415,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 // the given position corresponds to a variable declared as part of a specialization declaration or implementation
                 var defStart = defOffset + defRange.Start;
-                var statements = SplitStatementsByPosition(implementation, defStart - specPos).Item3;
-                var scope = new QsScope(statements.ToImmutableArray(), locals);
-                referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, specPos).Select(AsLocation);
+                var (_, statementsBefore, statementsAfter) = SplitStatementsByPosition(implementation, defStart - specPos);
+
+                var (eDecl, eLoc) = statementsBefore.LastOrDefault() is { } s
+                    ? (SmallestExpressionInStatement(s, defStart - specPos - s.Location.Item.Offset), s.Location)
+                    : (null, QsNullable<QsLocation>.Null);
+
+                if (eDecl is null)
+                {
+                    var scope = new QsScope(statementsAfter.ToImmutableArray(), locals);
+                    referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, specPos)
+                        .Select(AsLocation);
+                }
+                else
+                {
+                    referenceLocations = IdentifierReferences.FindInExpression(definition.Item.Item1, eDecl, file.FileName, specPos, eLoc).Select(AsLocation);
+                }
             }
 
             declarationLocation = AsLocation(file.FileName, definition.Item.Item2, defRange);

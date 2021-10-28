@@ -222,6 +222,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return finder.SharedState.Locations;
         }
 
+        public static ImmutableHashSet<Location> FindInExpression(
+            string name, TypedExpression expression, string source, Position offset, QsNullable<QsLocation> location)
+        {
+            var references = new IdentifierReferences(name, null, ImmutableHashSet.Create(source));
+            references.SharedState.Source = source;
+            references.SharedState.DeclarationOffset = offset;
+            references.SharedState.CurrentLocation = location.IsValue ? location.Item : null;
+            references.Expressions.OnTypedExpression(expression);
+            return references.SharedState.Locations;
+        }
+
         /* helper classes */
 
         private class TypeTransformation : TypeTransformation<TransformationState>
