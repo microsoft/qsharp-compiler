@@ -12,7 +12,7 @@ type TypeParameterBinding =
         CloseBracket: Terminal
     }
 
-type SpecializationParameter = Terminal
+type internal SpecializationParameter = Terminal
 
 type SpecializationGenerator =
     | BuiltIn of name: Terminal * semicolon: Terminal
