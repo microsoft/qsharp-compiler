@@ -23,8 +23,8 @@ type ExecutionCompleted =
         SampleInt: int
         SampleGuid: Guid
         [<SerializeJson>]
-        SampleDictionary: Map<string, string>
-        SampleGenericObject: obj
+        SampleObjectToBeSerialized: Map<string, string>
+        SampleObjectToBeIgnored: obj
         SampleException: Exception
     }
 
@@ -87,10 +87,10 @@ let main args =
                 SampleArray = [| "element1"; "element2" |]
                 SampleTimeSpan = TimeSpan(10, 9, 8, 7, 654)
                 SampleInt = 42
-                SampleDictionary =
+                SampleObjectToBeSerialized =
                     Map [ ("key1", "value1")
                           ("key2", "value2") ]
-                SampleGenericObject = [ 1 .. 10 ]
+                SampleObjectToBeIgnored = [ 1 .. 10 ]
                 SampleGuid = Guid.NewGuid()
                 SampleException = unhandledException
             }
