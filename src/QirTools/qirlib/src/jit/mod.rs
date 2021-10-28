@@ -1,8 +1,3 @@
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-#![allow(dead_code)]
-
 use inkwell::OptimizationLevel;
 
 pub struct Context<'ctx> {
@@ -33,8 +28,8 @@ impl<'ctx> Context<'ctx> {
 mod tests {
     use crate::emit::populate_context;
     use crate::interop::pyjit::runtime::Simulator;
-    use crate::interop::{Controlled, Instruction, Single};
     use crate::interop::{ClassicalRegister, QuantumRegister, SemanticModel};
+    use crate::interop::{Controlled, Instruction, Single};
     use crate::jit::Context;
     use inkwell::execution_engine::JitFunction;
     use inkwell::passes::PassManager;
@@ -141,8 +136,7 @@ mod tests {
 
         unsafe {
             BasicRuntimeDriver::initialize_qir_context(true);
-            let _foundation =
-                microsoft_quantum_qir_qsharp_foundation_sys::QSharpFoundation::new().unwrap();
+            let _foundation = microsoft_quantum_qir_qsharp_foundation_sys::QSharpFoundation::new();
 
             let ee = context
                 .module

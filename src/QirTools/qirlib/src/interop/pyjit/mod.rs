@@ -1,3 +1,3 @@
 pub mod gates;
-pub mod runtime;
 mod intrinsics;
+pub mod runtime;

@@ -5,6 +5,7 @@ use self::constants::Constants;
 use self::intrinsics::Intrinsics;
 use self::runtime_library::RuntimeLibrary;
 use self::types::Types;
+use inkwell::module::Module;
 use inkwell::values::BasicValueEnum;
 
 use super::interop::SemanticModel;
@@ -21,11 +22,17 @@ pub fn populate_context<'a>(
     ctx: &'a inkwell::context::Context,
     model: &'a SemanticModel,
 ) -> Result<Context<'a>, String> {
-    let context = Context::new(&ctx, model.name.as_str());
-
-    build_entry_function(&context, model)?;
-
-    Ok(context)
+    let context_type = ContextType::Template(&model.name);
+    match Context::new(&ctx, context_type) {
+        Err(err) => {
+            let message = err.to_string();
+            return Err(message);
+        }
+        Ok(context) => {
+            build_entry_function(&context, model)?;
+            Ok(context)
+        }
+    }
 }
 
 fn build_entry_function(context: &Context<'_>, model: &SemanticModel) -> Result<(), String> {
@@ -125,17 +132,23 @@ pub struct Context<'ctx> {
     pub(crate) constants: Constants<'ctx>,
 }
 
+pub enum ContextType<'ctx> {
+    Template(&'ctx String),
+    File(&'ctx String),
+}
+
 impl<'ctx> Context<'ctx> {
-    pub fn new(context: &'ctx inkwell::context::Context, name: &'ctx str) -> Self {
+    pub fn new(
+        context: &'ctx inkwell::context::Context,
+        context_type: ContextType<'ctx>,
+    ) -> Result<Self, String> {
         let builder = context.create_builder();
-
-        let module = qir::load_module_from_bitcode_file(&context, name);
-
+        let module = Context::load_module(context, context_type)?;
         let types = Types::new(&context, &module);
         let runtime_library = RuntimeLibrary::new(&module);
         let intrinsics = Intrinsics::new(&module);
         let constants = Constants::new(&module, &types);
-        Context {
+        Ok(Context {
             builder,
             module,
             types,
@@ -143,9 +156,29 @@ impl<'ctx> Context<'ctx> {
             runtime_library,
             intrinsics,
             constants,
-        }
+        })
     }
-
+    fn load_module(
+        context: &'ctx inkwell::context::Context,
+        context_type: ContextType<'ctx>,
+    ) -> Result<Module<'ctx>, String> {
+        let module = match context_type {
+            ContextType::Template(name) => {
+                qir::load_module_from_bitcode_template(&context, &name[..])?
+            }
+            ContextType::File(file_name) => {
+                let file_path = Path::new(&file_name[..]);
+                let ext = file_path.extension().and_then(std::ffi::OsStr::to_str);
+                let module = match ext {
+                    Some("ll") => qir::load_module_from_ir_file(file_path, context)?,
+                    Some("bc") => qir::load_module_from_bitcode_file(file_path, context)?,
+                    _ => panic!("Unsupported module exetension {:?}", ext),
+                };
+                module
+            }
+        };
+        Ok(module)
+    }
     pub fn emit_bitcode(&self, file_path: &str) {
         let bitcode_path = Path::new(file_path);
         self.module.write_bitcode_to_path(&bitcode_path);
@@ -175,7 +208,7 @@ impl<'ctx> Context<'ctx> {
 
 #[cfg(test)]
 mod tests {
-    use crate::emit::Context;
+    use crate::emit::{Context, ContextType};
     use std::fs::File;
     use std::io::prelude::*;
 
@@ -185,13 +218,13 @@ mod tests {
     fn emitted_bitcode_files_are_identical_to_base64_encoded() {
         let dir = tempdir().expect("");
         let tmp_path = dir.into_path();
-        let name = "test";
+        let name = String::from("test");
         let file_path = tmp_path.join(format!("{}.bc", name));
         let file_path_string = file_path.display().to_string();
 
         let ctx = inkwell::context::Context::create();
-        let name = "temp";
-        let context = Context::new(&ctx, name);
+        let name = String::from("temp");
+        let context = Context::new(&ctx, ContextType::Template(&name)).unwrap();
         context.emit_bitcode(file_path_string.as_str());
         let mut emitted_bitcode_file =
             File::open(file_path_string.as_str()).expect("Could not open emitted bitcode file");

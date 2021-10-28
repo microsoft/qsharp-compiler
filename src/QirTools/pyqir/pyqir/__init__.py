@@ -223,10 +223,10 @@ class QirBuilder:
 
     def build_with(self, pyobj: Any):
         """
-        Writes the modeled circuit to the supplied file.
+        JIT compiles the circuit delegating quantum operations to the supplied object
 
-        :param file_path: file path of generated QIR
-        :type file_path: str
+        :param pyobj: python GateSet object defining the quantum operations
+        :type pyobj: str
         """
         self.pyqir.build_with_python(pyobj)
 
@@ -270,9 +270,26 @@ class QirBuilder:
         self.pyqir.enable_logging()
 
 
-class QirLoader(object):
-    pass
+class QirEvaluator(object):
+    """
+    The QirEvaluator object loads bitcode/QIR for evaluation and processing
 
+    """
+
+    def __init__(self):
+        self.pyqir = PyQIR("module")
+
+    def eval(self, file_path: str, pyobj: Any):
+        """
+        JIT compiles the circuit delegating quantum operations to the supplied object
+
+        :param file_path: file path of existing QIR in a ll or bc file
+        :type file_path: str
+
+        :param pyobj: python GateSet object defining the quantum operations
+        :type pyobj: str
+        """
+        self.pyqir.eval(file_path, pyobj)
 
 class GateSet(object):
     def __init__(self):

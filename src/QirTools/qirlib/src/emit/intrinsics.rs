@@ -135,26 +135,17 @@ impl<'ctx> Intrinsics<'ctx> {
         Intrinsics::get_function(module, function_name.as_str())
     }
 
-    fn get_mqi_body(
-        module: &Module<'ctx>,
-        name: &str,
-    ) -> Option<FunctionValue<'ctx>> {
+    fn get_mqi_body(module: &Module<'ctx>, name: &str) -> Option<FunctionValue<'ctx>> {
         let function_name = format!("Microsoft__Quantum__Intrinsic__{}__body", name);
         Intrinsics::get_function(module, function_name.as_str())
     }
 
-    fn get_mqi_ctl(
-        module: &Module<'ctx>,
-        name: &str,
-    ) -> Option<FunctionValue<'ctx>> {
+    fn get_mqi_ctl(module: &Module<'ctx>, name: &str) -> Option<FunctionValue<'ctx>> {
         let function_name = format!("Microsoft__Quantum__Intrinsic__{}__ctl", name);
         Intrinsics::get_function(module, function_name.as_str())
     }
 
-    fn get_mqi_adj(
-        module: &Module<'ctx>,
-        name: &str,
-    ) -> Option<FunctionValue<'ctx>> {
+    fn get_mqi_adj(module: &Module<'ctx>, name: &str) -> Option<FunctionValue<'ctx>> {
         let function_name = format!("Microsoft__Quantum__Intrinsic__{}__adj", name);
         Intrinsics::get_function(module, function_name.as_str())
     }
@@ -197,15 +188,15 @@ impl<'ctx> Intrinsics<'ctx> {
 
 #[cfg(test)]
 mod tests {
-    use crate::emit::Context;
+    use crate::emit::{Context, ContextType};
 
     use super::*;
 
     #[test]
     fn intrinsics_can_be_loaded() {
         let ctx = inkwell::context::Context::create();
-        let name = "temp";
-        let context = Context::new(&ctx, name);
+        let name = String::from("temp");
+        let context = Context::new(&ctx, ContextType::Template(&name)).unwrap();
         let _ = Intrinsics::new(&context.module);
     }
 }

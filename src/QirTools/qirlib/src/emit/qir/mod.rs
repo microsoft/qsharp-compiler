@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use std::path::Path;
+
 use inkwell::memory_buffer::MemoryBuffer;
 use inkwell::module::Module;
 use inkwell::values::BasicValue;
@@ -16,9 +18,6 @@ pub mod instructions;
 pub mod qubits;
 
 pub(crate) fn get_entry_function<'ctx>(context: &Context<'ctx>) -> FunctionValue<'ctx> {
-    //remove_quantumapplication_run(context);
-    //remove_quantumapplication_run_interop(context);
-
     let ns = "QuantumApplication";
     let method = "Run";
     let entrypoint_name = format!("{}__{}__body", ns, method);
@@ -67,12 +66,56 @@ pub(crate) fn remove_quantumapplication_run_interop<'ctx>(
     context.builder.build_return(Some(&v));
     entrypoint
 }
-pub(crate) fn load_module_from_bitcode_file<'ctx>(
+
+pub(crate) fn load_module_from_bitcode_template<'ctx>(
     context: &'ctx inkwell::context::Context,
     name: &'ctx str,
-) -> Module<'ctx> {
+) -> Result<Module<'ctx>, String> {
     let module_contents = include_bytes!("module.bc");
     let buffer = MemoryBuffer::create_from_memory_range_copy(module_contents, name);
-    let module = Module::parse_bitcode_from_buffer(&buffer, context).unwrap();
-    module
+    match Module::parse_bitcode_from_buffer(&buffer, context) {
+        Err(err) => {
+            let message = err.to_string();
+            return Err(message);
+        }
+        Ok(module) => Ok(module),
+    }
+}
+
+pub(crate) fn load_module_from_bitcode_file<'ctx, P: AsRef<Path>>(
+    path: P,
+    context: &'ctx inkwell::context::Context,
+) -> Result<Module<'ctx>, String> {
+    match Module::parse_bitcode_from_path(path, context) {
+        Err(err) => {
+            let message = err.to_string();
+            return Err(message);
+        }
+        Ok(module) => Ok(module),
+    }
+}
+
+pub(crate) fn load_module_from_ir_file<'ctx, P: AsRef<Path>>(
+    path: P,
+    context: &'ctx inkwell::context::Context,
+) -> Result<Module<'ctx>, String> {
+    let memory_buffer = load_memory_buffer_from_ir_file(path)?;
+
+    match context.create_module_from_ir(memory_buffer) {
+        Err(err) => {
+            let message = err.to_string();
+            return Err(message);
+        }
+        Ok(module) => Ok(module),
+    }
+}
+
+fn load_memory_buffer_from_ir_file<'ctx, P: AsRef<Path>>(path: P) -> Result<MemoryBuffer, String> {
+    match MemoryBuffer::create_from_file(path.as_ref()) {
+        Err(err) => {
+            let message = err.to_string();
+            return Err(message);
+        }
+        Ok(memory_buffer) => Ok(memory_buffer),
+    }
 }

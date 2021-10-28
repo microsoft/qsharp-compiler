@@ -13,15 +13,14 @@ use crate::interop::{
 };
 
 lazy_static! {
-    pub static ref CURRENT_GATES: MutStatic<BaseProfile> = {
-        MutStatic::from(BaseProfile::new())
-    };
+    pub static ref CURRENT_GATES: MutStatic<BaseProfile> = MutStatic::from(BaseProfile::new());
 }
 
 #[derive(Default)]
 pub struct BaseProfile {
     model: SemanticModel,
     max_id: QUBIT,
+    declared_cubits: bool,
 }
 
 pub struct GateScope {}
@@ -46,15 +45,18 @@ impl BaseProfile {
         BaseProfile {
             model: SemanticModel::new(String::from("QIR")),
             max_id: 0,
+            declared_cubits: false,
         }
     }
 
     pub fn reset(&mut self) {
         self.model = SemanticModel::new(String::from("QIR"));
         self.max_id = 0;
+        self.declared_cubits = false;
     }
 
     fn record_max_qubit_id(&mut self, qubit: QUBIT) {
+        self.declared_cubits = true;
         if qubit > self.max_id {
             self.max_id = qubit
         }
@@ -63,14 +65,14 @@ impl BaseProfile {
         self.model.clone()
     }
     pub fn infer_allocations(&mut self) {
-        if self.max_id == 0 {
+        if self.declared_cubits == false {
             return;
         }
-        for index in 0..self.max_id {
+        for index in 0..self.max_id + 1 {
             let qr = QuantumRegister::new(String::from("qubit"), index);
             self.model.add_reg(qr.as_register());
         }
-        let cr = ClassicalRegister::new(String::from("output"), self.max_id);
+        let cr = ClassicalRegister::new(String::from("output"), self.max_id + 1);
         self.model.add_reg(cr.as_register());
     }
 
@@ -100,13 +102,13 @@ impl BaseProfile {
             .add_inst(Instruction::H(BaseProfile::single(qubit)));
     }
 
-    pub fn m(&mut self, qubit: QUBIT, target: QUBIT) {
+    pub fn m(&mut self, qubit: QUBIT /* , target: QUBIT */) {
         self.record_max_qubit_id(qubit);
-        self.record_max_qubit_id(target);
+        //self.record_max_qubit_id(target);
 
-        log::debug!("m {}:{}", qubit, target);
+        log::debug!("m {}", qubit /* , target*/);
         self.model
-            .add_inst(Instruction::M(BaseProfile::measured(qubit, target)));
+            .add_inst(Instruction::M(BaseProfile::measured(qubit)));
     }
 
     pub fn rx(&mut self, theta: f64, qubit: QUBIT) {
@@ -193,10 +195,10 @@ impl BaseProfile {
         )
     }
 
-    fn measured(qubit: QUBIT, target: QUBIT) -> Measured {
+    fn measured(qubit: QUBIT /*, target: QUBIT*/) -> Measured {
         Measured::new(
             BaseProfile::get_cubit_string(qubit),
-            BaseProfile::get_cubit_string(target),
+            String::from(""), /*BaseProfile::get_cubit_string(target),*/
         )
     }
 

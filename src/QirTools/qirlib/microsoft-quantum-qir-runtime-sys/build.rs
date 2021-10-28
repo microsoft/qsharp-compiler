@@ -52,10 +52,6 @@ fn link_runtime(manifest_dir: &str) -> Result<(), Box<dyn Error>> {
     println!("cargo:rustc-link-search=native={}", output_path.display());
     println!("cargo:rustc-link-lib=dylib=Microsoft.Quantum.Qir.Runtime");
 
-    println!(
-        "cargo:warning=Calculated build path: {}",
-        output_path.to_str().unwrap()
-    );
     let name = library_filename("Microsoft.Quantum.Qir.Runtime")
         .into_string()
         .expect("Could not get library name as string");

@@ -5,7 +5,11 @@ use inkwell::{
 };
 use microsoft_quantum_qir_runtime_sys::BasicRuntimeDriver;
 
-use crate::{emit::populate_context, interop::pyjit::runtime::Simulator};
+use crate::{
+    emit::Context,
+    emit::{populate_context, ContextType},
+    interop::pyjit::runtime::Simulator,
+};
 
 use super::SemanticModel;
 
@@ -36,10 +40,22 @@ pub fn get_bitcode_base64_string(model: &SemanticModel) -> Result<String, String
     Ok(b64)
 }
 
+pub fn run_module(module: String) -> Result<SemanticModel, String> {
+    let ctx = inkwell::context::Context::create();
+    let context_type = ContextType::File(&module);
+    let context = Context::new(&ctx, context_type)?;
+    let model = run_ctx(context)?;
+    Ok(model)
+}
+
 pub fn run(model: &SemanticModel) -> Result<SemanticModel, String> {
     let ctx = inkwell::context::Context::create();
     let context = populate_context(&ctx, &model).unwrap();
+    let model = run_ctx(context)?;
+    Ok(model)
+}
 
+fn run_ctx<'ctx>(context: Context<'ctx>) -> Result<SemanticModel, String> {
     Target::initialize_native(&InitializationConfig::default()).unwrap();
 
     let default_triple = TargetMachine::get_default_triple();
@@ -59,7 +75,7 @@ pub fn run(model: &SemanticModel) -> Result<SemanticModel, String> {
 
     unsafe {
         BasicRuntimeDriver::initialize_qir_context(true);
-        let _ = microsoft_quantum_qir_qsharp_foundation_sys::QSharpFoundation::new().unwrap();
+        let _ = microsoft_quantum_qir_qsharp_foundation_sys::QSharpFoundation::new();
 
         let ee = context
             .module

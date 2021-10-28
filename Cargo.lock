@@ -234,7 +234,9 @@ name = "microsoft-quantum-qir-qsharp-foundation-sys"
 version = "0.1.0"
 dependencies = [
  "cty",
+ "lazy_static",
  "libloading",
+ "mut_static",
  "qir-libloading",
 ]
 

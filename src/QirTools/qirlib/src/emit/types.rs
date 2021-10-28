@@ -70,15 +70,15 @@ impl<'ctx> Types<'ctx> {
 
 #[cfg(test)]
 mod tests {
-    use crate::emit::Context;
+    use crate::emit::{Context, ContextType};
 
     use super::*;
 
     #[test]
     fn types_can_be_loaded() {
         let ctx = inkwell::context::Context::create();
-        let name = "temp";
-        let context = Context::new(&ctx, name);
+        let name = String::from("temp");
+        let context = Context::new(&ctx, ContextType::Template(&name)).unwrap();
         let _ = Types::new(&context.context, &context.module);
     }
 }

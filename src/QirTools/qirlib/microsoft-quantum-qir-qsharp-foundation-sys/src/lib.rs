@@ -1,6 +1,17 @@
-use std::error::Error;
-
+use lazy_static::lazy_static;
 use libloading::Library;
+use mut_static::MutStatic;
+
+lazy_static! {
+    pub(crate) static ref FOUNDATION_LIBRARY: MutStatic<Library> = unsafe {
+        MutStatic::from(
+            qir_libloading::load_library_bytes("Microsoft.Quantum.Qir.QSharp.Foundation", FOUNDATION_BYTES)
+                .unwrap(),
+        )
+    };
+}
+
+
 
 #[cfg(target_os = "linux")]
 const FOUNDATION_BYTES: &'static [u8] = include_bytes!(
@@ -8,16 +19,11 @@ const FOUNDATION_BYTES: &'static [u8] = include_bytes!(
 );
 
 pub struct QSharpFoundation {
-    pub library: Library,
 }
 
 impl QSharpFoundation {
-    pub unsafe fn new() -> Result<QSharpFoundation, Box<dyn Error>> {
-        let library = qir_libloading::load_library_bytes(
-            "Microsoft.Quantum.Qir.QSharp.Foundation",
-            FOUNDATION_BYTES,
-        )?;
-        Ok(QSharpFoundation { library })
+    pub fn new() -> QSharpFoundation {
+        QSharpFoundation { }
     }
 }
 

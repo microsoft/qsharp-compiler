@@ -11,6 +11,8 @@ build = "build.rs"
 cty = "0.2.1"
 libloading = "0.7.0"
 qir-libloading = { path = "../qir-libloading" }
+lazy_static = "1.4.0"
+mut_static = "5.0.0"
 
 [build-dependencies]
 libloading = "0.7.0"

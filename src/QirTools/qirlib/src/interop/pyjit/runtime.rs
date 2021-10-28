@@ -1,27 +1,22 @@
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-#![allow(dead_code)]
-
-use inkwell::execution_engine::ExecutionEngine;
-use crate::interop::pyjit::gates::CURRENT_GATES;
 use crate::emit::intrinsics::Intrinsics;
 use crate::emit::Context;
+use crate::interop::pyjit::gates::CURRENT_GATES;
 use crate::interop::SemanticModel;
+use inkwell::execution_engine::ExecutionEngine;
 
 use super::gates::GateScope;
 
 pub(crate) struct Simulator {
-    scope : GateScope
+    scope: GateScope,
 }
 
 impl<'ctx> Simulator {
     pub fn new(context: &Context<'ctx>, ee: &ExecutionEngine<'ctx>) -> Self {
-        let s = Simulator {
-             scope : crate::interop::pyjit::gates::GateScope::new()
+        let simulator = Simulator {
+            scope: crate::interop::pyjit::gates::GateScope::new(),
         };
-        s.bind(context, ee);
-        s
+        simulator.bind(context, ee);
+        simulator
     }
 
     pub fn get_model(&self) -> SemanticModel {
@@ -30,7 +25,7 @@ impl<'ctx> Simulator {
         gs.get_model()
     }
 
-    fn bind(&self, context: &Context<'ctx>, ee: &ExecutionEngine<'ctx>){
+    fn bind(&self, context: &Context<'ctx>, ee: &ExecutionEngine<'ctx>) {
         let intrinsics = Intrinsics::new(&context.module);
 
         if let Some(ins) = intrinsics.h_ins {
