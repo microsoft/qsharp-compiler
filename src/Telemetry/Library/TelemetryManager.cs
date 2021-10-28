@@ -423,6 +423,9 @@ namespace Microsoft.Quantum.Telemetry
         public static void SetContext(string name, string? value, bool isPii = false) =>
             CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
 
+        public static void SetContext(string name, int value, bool isPii = false) =>
+            SetContext(name, (long)value, isPii);
+
         public static void SetContext(string name, long value, bool isPii = false) =>
             CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
 

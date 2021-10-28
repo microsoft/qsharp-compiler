@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 open System
-open System.Collections.Generic
 open Microsoft.Quantum.Telemetry
 
 type SampleUnionType =
@@ -26,7 +25,23 @@ type ExecutionCompleted =
         SampleObjectToBeSerialized: Map<string, string>
         SampleObjectToBeIgnored: obj
         SampleException: Exception
+        SampleNullableWithValue: Nullable<int>
+        SampleNullableWithNull: Nullable<int>
     }
+
+// The following 3 functions are just an artifact to
+// simulate the raise of a exception with a call stack
+let throwAnException throw : Unit =
+    if throw then raise (System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'"))
+
+let throwANestedException throw = throwAnException throw
+
+let createExceptionWithStackTrace throw : Exception =
+    try
+        throwANestedException throw
+        null
+    with
+    | ex -> ex
 
 [<EntryPoint>]
 let main args =
@@ -37,12 +52,42 @@ let main args =
             HostingEnvironmentVariableName = "SAMPLEFSHARPAPP_HOSTING_ENV",
             TelemetryOptOutVariableName = "QDK_TELEMETRY_OPT_OUT",
             MaxTeardownUploadTime = TimeSpan.FromSeconds(2.0),
-            OutOfProcessUpload = false
+            OutOfProcessUpload = false,
+            ExceptionLoggingOptions =
+                ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
+            SendTelemetryInitializedEvent = true,
+            SendTelemetryTearDownEvent = true
         )
 
+    // REQUIRED: Initialize
+    // Initialize the TelemetryManager right at the beggining of your program
+    // The Initialize method returns an IDisposable handle, which when disposed
+    // will call the TelemetryManager.TearDown() method for you.
+    //
+    // REQUIRED: TearDown
+    // Before existing the program we need to "tear down" the telemetry framework
+    // such that it will attempt to upload the remaining events within the
+    // MaxTeardownUploadTime limit for an in-process uploader, or
+    // communicate the out-of-process uploader that we are done creating
+    // events.
     use _telemetryManagerHandle = TelemetryManager.Initialize(telemetryConfig, args)
 
     try
+        // OPTIONAL: Context Properties
+        // Set context properties that are included in every event
+        // If an event later set a property with the same name, the context property
+        // will be completely overridden in that specific event instance.
+        TelemetryManager.SetContext("CommonDateTime", DateTime.Now)
+        TelemetryManager.SetContext("CommonString", "my string")
+        TelemetryManager.SetContext("CommonLong", 123)
+        TelemetryManager.SetContext("CommonDouble", 123.123)
+        TelemetryManager.SetContext("CommonGuid", Guid.NewGuid())
+        TelemetryManager.SetContext("CommonBool", true)
+        TelemetryManager.SetContext("CommonPIIData", "username", isPii = true)
+
+
+
+        // OPTIONAL: Manually construct an Aria event
         // Log an event using Aria EventProperties object
         // Properties that contain PII or customer data should be tagged
         // with the PiiKind != None
@@ -59,19 +104,20 @@ let main args =
 
         TelemetryManager.LogEvent(eventProperties)
 
-        // Log just the event name
+        // OPTIONAL: Just log an event name
+        // Log just the event name, with no extra properties
+        // Context properties will still be added.
         TelemetryManager.LogEvent("MyEventName")
 
-        // Log an Exception
+        // OPTIONAL:
+        // Log an Exception. The name of the event will be "Exception".
         // Note that when we log an exception, only the name of the class will be logged.
         // No properties of the exception will be logged as they can contain customer data
-        let unhandledException =
-            try
-                raise (System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'"))
-            with
-            | ex -> ex
+        try
+            throwANestedException true
+        with
+        | ex -> TelemetryManager.LogObject(ex)
 
-        TelemetryManager.LogObject(unhandledException)
 
         // Log a custom object
         // Custom objects will have all of their non-null public properties
@@ -92,7 +138,9 @@ let main args =
                           ("key2", "value2") ]
                 SampleObjectToBeIgnored = [ 1 .. 10 ]
                 SampleGuid = Guid.NewGuid()
-                SampleException = unhandledException
+                SampleException = createExceptionWithStackTrace true
+                SampleNullableWithValue = System.Nullable(123)
+                SampleNullableWithNull = System.Nullable()
             }
 
         TelemetryManager.LogObject(executionCompletedEvent)
@@ -100,5 +148,11 @@ let main args =
         0
     with
     | ex ->
+        // RECOMMENDED: Log unhandled exceptions
+        // Catch and log unhandled exceptions in main code.
         TelemetryManager.LogObject(ex)
+
+        // Not recommended for production code.
+        // This is only for debugging purposes of this sample program.
+        printfn $"UnhandledException:  {ex}"
         -1

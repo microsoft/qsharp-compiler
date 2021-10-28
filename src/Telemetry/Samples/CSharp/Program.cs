@@ -71,8 +71,6 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                     eventProperties.SetProperty("SampleGuid", Guid.NewGuid());
                     eventProperties.SetProperty("SampleBool", true);
                     eventProperties.SetProperty("SamplePIIData", "username", Applications.Events.PiiKind.Identity);
-                    eventProperties.SetProperty("CommonPIIData", true);
-                    eventProperties.SetProperty("CommonGuid", true);
                     TelemetryManager.LogEvent(eventProperties);
 
                     // OPTIONAL: Just log an event name
