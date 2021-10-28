@@ -37,3 +37,6 @@ val arraySyntaxUpdate: unit Rewriter
 
 /// Provides warnings for deprecated array syntax still in the syntax tree.
 val checkArraySyntax: string -> Document -> string list
+
+/// Replaces `&&`, `||`, and `!` with `and`, `or`, and `not`, respectively.
+val booleanOperatorUpdate : unit Rewriter

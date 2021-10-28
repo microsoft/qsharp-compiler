@@ -218,7 +218,7 @@ expression
     | <assoc=right> functor='Controlled' operation=expression # ControlledExpression
     | <assoc=right> functor='Adjoint' operation=expression # AdjointExpression
     | callable=expression openParen='(' (arguments+=expression (commas+=',' arguments+=expression)* commas+=','?)? closeParen=')' # CallExpression
-    | <assoc=right> operator=('-' | 'not' | '~~~') operand=expression # NegationExpression
+    | <assoc=right> operator=('!' | '-' | 'not' | '~~~') operand=expression # NegationExpression
     | <assoc=right> left=expression operator='^' right=expression # ExponentExpression
     | left=expression operator=('*' | '/' | '%') right=expression # MultiplyExpression
     | left=expression operator=('+' | '-') right=expression # AddExpression
@@ -228,8 +228,8 @@ expression
     | left=expression operator='&&&' right=expression # BitwiseAndExpression
     | left=expression operator='^^^' right=expression # BitwiseXorExpression
     | left=expression operator='|||' right=expression # BitwiseOrExpression
-    | left=expression operator='and' right=expression # AndExpression
-    | left=expression operator='or' right=expression # OrExpression
+    | left=expression operator=('&&' | 'and') right=expression # AndExpression
+    | left=expression operator=('||' | 'or') right=expression # OrExpression
     | <assoc=right> cond=expression question='?' ifTrue=expression pipe='|' ifFalse=expression # ConditionalExpression
     | left=expression ellipsis='..' right=expression # RangeExpression
     | left=expression ellipsis='...' # RightOpenRangeExpression
