@@ -10,42 +10,24 @@ type SampleEnumType =
     | SampleEnumValue1 = 0
     | SampleEnumValue2 = 1
 
-[<Struct>]
-type ExecutionCompleted
-    (
-        ?sampleDateTime: DateTime,
-        ?sampleString: string,
-        ?sampleBool: bool,
-        ?sampleEnum: SampleEnumType,
-        ?samplePII: string,
-        ?sampleArray: string [],
-        ?sampleTimeSpan: TimeSpan,
-        ?sampleInt: int,
-        ?sampleGuid: Guid,
-        ?sampleDictionary: IDictionary<string, string>,
-        ?sampleGenericObject: Object,
-        ?sampleException: Exception
-    ) =
-    member this.SampleDateTime = defaultArg sampleDateTime DateTime.Now
-    member this.SampleString = defaultArg sampleString null
-    member this.SampleBool = defaultArg sampleBool false
-    member this.SampleEnum = defaultArg sampleEnum SampleEnumType.SampleEnumValue1
-
-    [<PiiData>]
-    member this.SamplePII = defaultArg samplePII null
-
-    [<SerializeJson>]
-    member this.SampleArray = defaultArg sampleArray null
-
-    member this.SampleTimeSpan = defaultArg sampleTimeSpan TimeSpan.Zero
-    member this.SampleInt = defaultArg sampleInt 0
-    member this.SampleGuid = defaultArg sampleGuid Guid.Empty
-
-    [<SerializeJson>]
-    member this.SampleDictionary = defaultArg sampleDictionary null
-
-    member this.SampleGenericObject = defaultArg sampleGenericObject null
-    member this.SampleException = defaultArg sampleException null
+type ExecutionCompleted =
+    {
+        SampleDateTime: DateTime
+        SampleString: string
+        SampleBool: bool
+        SampleEnum: SampleEnumType
+        [<PiiData>]
+        SamplePII: string
+        [<SerializeJson>]
+        SampleArray: string []
+        SampleTimeSpan: TimeSpan
+        SampleInt: int
+        SampleGuid: Guid
+        [<SerializeJson>]
+        SampleDictionary: IDictionary<string, string>
+        SampleGenericObject: obj
+        SampleException: Exception
+    }
 
 [<EntryPoint>]
 let main args =
@@ -60,6 +42,7 @@ let main args =
         )
 
     use _telemetryManagerHandle = TelemetryManager.Initialize(telemetryConfig, args)
+
     try
         // Log an event using Aria EventProperties object
         // Properties that contain PII or customer data should be tagged
@@ -96,22 +79,22 @@ let main args =
         // logged with some rules applied.
         // Please check the TelemetryManager.LogObject documentation.
         let executionCompletedEvent =
-            ExecutionCompleted(
-                sampleDateTime = DateTime.Now,
-                sampleString = "sample string",
-                sampleBool = true,
-                sampleEnum = SampleEnumType.SampleEnumValue1,
-                samplePII = "PII data to be hashed",
-                sampleArray = [| "element1"; "element2" |],
-                sampleTimeSpan = TimeSpan(10, 9, 8, 7, 654),
-                sampleInt = 42,
-                sampleDictionary =
+            {
+                SampleDateTime = DateTime.Now
+                SampleString = "sample string"
+                SampleBool = true
+                SampleEnum = SampleEnumType.SampleEnumValue1
+                SamplePII = "PII data to be hashed"
+                SampleArray = [| "element1"; "element2" |]
+                SampleTimeSpan = TimeSpan(10, 9, 8, 7, 654)
+                SampleInt = 42
+                SampleDictionary =
                     dict [ "key1", "value1"
-                           "key2", "value2" ],
-                sampleGenericObject = Dictionary<int, string>(),
-                sampleGuid = Guid.NewGuid(),
-                sampleException = unhandledException
-            )
+                           "key2", "value2" ]
+                SampleGenericObject = Dictionary<int, string>()
+                SampleGuid = Guid.NewGuid()
+                SampleException = unhandledException
+            }
 
         TelemetryManager.LogObject(executionCompletedEvent)
 
