@@ -13,4 +13,4 @@ libloading = "0.7.0"
 qir-libloading = { path = "../qir-libloading" }
 
 [build-dependencies]
-libloading = "0.7.0"
+qir-libloading = { path = "../qir-libloading" }

@@ -16,4 +16,4 @@ microsoft-quantum-qir-qsharp-core-sys = { path = "../microsoft-quantum-qir-qshar
 microsoft-quantum-qir-qsharp-foundation-sys = {path = "../microsoft-quantum-qir-qsharp-foundation-sys" }
 
 [build-dependencies]
-libloading = "0.7.0"
+qir-libloading = { path = "../qir-libloading" }

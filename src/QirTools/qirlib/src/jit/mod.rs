@@ -80,6 +80,7 @@ mod tests {
         unsafe { context.execution_engine.get_function(name).ok() }
     }
 
+    #[ignore = "CI Requires runtime recompilation"]
     #[test]
     fn eval_test() {
         let dir = tempdir().expect("");

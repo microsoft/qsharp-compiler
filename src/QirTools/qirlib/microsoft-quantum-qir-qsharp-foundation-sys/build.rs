@@ -1,9 +1,9 @@
 use std::boxed::Box;
+use std::env;
 use std::error::Error;
-use std::path::{Path, PathBuf};
-use std::{env, fs};
+use std::path::PathBuf;
 
-use libloading::library_filename;
+use qir_libloading::link_runtime;
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-env-changed=TARGET");
@@ -27,41 +27,16 @@ fn set_linkage() -> Result<(), Box<dyn Error>> {
 }
 
 fn link_x86_64_unknown_linux_gnu(manifest_dir: &str) -> Result<(), Box<dyn Error>> {
-    link_runtime(&manifest_dir)?;
+    link_runtime(&manifest_dir, "Microsoft.Quantum.Qir.QSharp.Foundation")?;
     Ok(())
 }
 
 fn link_x86_64_apple_darwin(manifest_dir: &str) -> Result<(), Box<dyn Error>> {
-    link_runtime(&manifest_dir)?;
+    link_runtime(&manifest_dir, "Microsoft.Quantum.Qir.QSharp.Foundation")?;
     Ok(())
 }
 
 fn link_x86_64_pc_windows_msvc(manifest_dir: &str) -> Result<(), Box<dyn Error>> {
-    link_runtime(&manifest_dir)?;
-    Ok(())
-}
-
-fn get_output_path() -> PathBuf {
-    return PathBuf::from(env::var("OUT_DIR").unwrap());
-}
-
-fn link_runtime(manifest_dir: &str) -> Result<(), Box<dyn Error>> {
-    let output_path = get_output_path();
-    let native_dir =
-        fs::canonicalize(PathBuf::from(&manifest_dir).join("../qir-runtime/bin/linux-x64/native"))?;
-    println!("cargo:rustc-link-search=native={}", output_path.display());
-    println!("cargo:rustc-link-lib=dylib=Microsoft.Quantum.Qir.QSharp.Foundation");
-
-    let name = library_filename("Microsoft.Quantum.Qir.QSharp.Foundation")
-        .into_string()
-        .expect("Could not get library name as string");
-    let input_path = Path::new(&native_dir).join(name.as_str());
-    let output_lib = Path::new(&output_path).join(name.as_str());
-    println!(
-        "Copying {} to {}",
-        input_path.to_str().unwrap(),
-        output_lib.to_str().unwrap()
-    );
-    std::fs::copy(input_path, output_lib)?;
+    link_runtime(&manifest_dir, "Microsoft.Quantum.Qir.QSharp.Foundation")?;
     Ok(())
 }
