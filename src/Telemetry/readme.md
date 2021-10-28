@@ -21,12 +21,16 @@ Compiler directives
 
 
 F#
-install tool
-https://github.com/fsprojects/fantomas
-dotnet tool install -g fsharp
+install tool Fantomas
+    https://github.com/fsprojects/fantomas
+    dotnet tool install -g fantomas-tool
 
 install extensions
-Ionide-fsharp (there is a conflict with Shader Language support extension, as it will pick .fs files)
-fantomas-fmt
+    PowerShell
+    C#
+    Ionide-fsharp (there is a conflict with Shader Language support extension, as it will pick .fs files)
+    fantomas-fmt
+
+dotnet tool restore --configfile .\Nuget.config
 
 dotnet fantomas --recurse .
