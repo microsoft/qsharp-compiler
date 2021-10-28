@@ -157,14 +157,14 @@ namespace quantum
         /// Value Tracker
         ValueTrackerPtr value_tracker_{};
 
-        std::string PeepholeEPPipeline{""};
-        std::string LateLoopOptimizationsEPPipeline{""};
-        std::string LoopOptimizerEndEPPipeline{""};
-        std::string ScalarOptimizerLateEPPipeline{""};
-        std::string CGSCCOptimizerLateEPPipeline{""};
-        std::string VectorizerStartEPPipeline{""};
-        std::string PipelineStartEPPipeline{""};
-        std::string OptimizerLastEPPipeline{""};
+        std::string peephole_ep_pipeline_{""};
+        std::string late_loop_optimizations_ep_pipeline_{""};
+        std::string loop_optimizer_end_ep_pipeline_{""};
+        std::string scalar_optimizer_late_ep_pipeline_{""};
+        std::string cgscc_optimizer_late_ep_pipeline_{""};
+        std::string vectorizer_start_ep_pipeline_{""};
+        std::string pipeline_start_ep_pipeline_{""};
+        std::string optimizer_last_ep_pipeline_{""};
     };
 
 } // namespace quantum

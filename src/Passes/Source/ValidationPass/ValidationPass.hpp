@@ -35,7 +35,7 @@ namespace quantum
         // Construction and destruction configuration.
         //
 
-        ValidationPass(ValidationPassConfiguration const& cfg)
+        explicit ValidationPass(ValidationPassConfiguration const& cfg)
           : config_{cfg}
         {
         }
