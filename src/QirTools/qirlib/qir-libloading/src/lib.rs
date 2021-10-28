@@ -59,6 +59,14 @@ fn get_output_path() -> PathBuf {
 }
 
 pub fn link_runtime(manifest_dir: &str, library: &str) -> Result<(), Box<dyn Error>> {
+    let should_link = false;
+    if should_link {
+        return link_runtime_linkage(manifest_dir, library);
+    }
+    Ok(())
+}
+
+fn link_runtime_linkage(manifest_dir: &str, library: &str) -> Result<(), Box<dyn Error>> {
     let output_path = get_output_path();
     let native_dir =
         fs::canonicalize(PathBuf::from(&manifest_dir).join(get_qir_runtime_lib_path()))?;

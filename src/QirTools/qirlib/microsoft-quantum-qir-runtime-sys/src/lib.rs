@@ -111,6 +111,7 @@ pub struct std_vector {
     private: [u8; 0],
 }
 
+/*
 #[link(name = "Microsoft.Quantum.Qir.Runtime")]
 extern "C" {
     pub fn __quantum__rt__qubit_allocate() -> *mut QUBIT;
@@ -195,9 +196,10 @@ extern "C" {
     pub fn __quantum__rt__string_get_data(str_: *mut QirString) -> *const cty::c_char;
     pub fn __quantum__rt__string_get_length(str_: *mut QirString) -> u32;
 }
-
+*/
 pub type IRuntimeDriver = cty::c_void;
 
+/*
 #[link(name = "Microsoft.Quantum.Qir.Runtime")]
 extern "C" {
     pub fn CreateBasicRuntimeDriver() -> *mut IRuntimeDriver;
@@ -207,6 +209,8 @@ extern "C" {
 extern "C" {
     pub fn InitializeQirContext(driver: *mut IRuntimeDriver, trackAllocatedObjects: bool);
 }
+*/
+
 // Use the Q# runtime but all __qis__ (gate) instructions must be provided.
 // Gate instructions are typically found in Microsoft.Quantum.Qir.QSharp.Core
 pub struct BasicRuntimeDriver {}

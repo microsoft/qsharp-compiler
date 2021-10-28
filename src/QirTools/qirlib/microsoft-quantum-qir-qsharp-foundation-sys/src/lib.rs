@@ -37,6 +37,7 @@ impl QSharpFoundation {
     }
 }
 
+/*
 #[link(name = "Microsoft.Quantum.Qir.QSharp.Foundation")]
 extern "C" {
     // Q# Math:
@@ -75,3 +76,4 @@ extern "C" {
      QirArray* ctls, QirAssertMeasurementProbabilityTuple* args);
     */
 }
+ */
