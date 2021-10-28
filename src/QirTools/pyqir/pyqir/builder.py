@@ -1,6 +1,7 @@
 # Copyright(c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+from typing import Any
 from .pyqir import *
 
 class QirBuilder:
@@ -217,6 +218,15 @@ class QirBuilder:
         :type file_path: str
         """
         self.pyqir.write(file_path)
+
+    def build_with(self, pyobj: Any):
+        """
+        JIT compiles the circuit delegating quantum operations to the supplied object
+
+        :param pyobj: python GateSet object defining the quantum operations
+        :type pyobj: str
+        """
+        self.pyqir.build_with_python(pyobj)
 
     def get_ir_string(self):
         """
