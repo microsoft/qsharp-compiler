@@ -105,17 +105,16 @@ namespace quantum
 
         void registerEPCallbacks(bool verify_each_pass, bool debug);
 
-        template <typename PassManagerT>
-        bool tryParsePipelineText(llvm::PassBuilder& PB, std::string const& PipelineOpt)
+        template <typename PassManager>
+        bool tryParsePipelineText(llvm::PassBuilder& pass_builder, std::string const& pipeline_options)
         {
-            if (PipelineOpt.empty()) return false;
+            if (pipeline_options.empty()) return false;
 
-            // Verify the pipeline is parseable:
-            PassManagerT PM;
-            if (auto Err = PB.parsePassPipeline(PM, PipelineOpt))
+            PassManager pass_manager;
+            if (auto err = pass_builder.parsePassPipeline(pass_manager, pipeline_options))
             {
-                llvm::errs() << "Could not parse -" << PipelineOpt << " pipeline: " << toString(std::move(Err))
-                             << "... I'm going to ignore it.\n";
+                llvm::errs() << "Could not parse -" << pipeline_options << " pipeline: " << toString(std::move(err))
+                             << "\n";
                 return false;
             }
             return true;
