@@ -4,79 +4,84 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
-#include "Llvm/Llvm.hpp"
 #include "ValidationPass/ValidationConfiguration.hpp"
 #include "ValueTracker/ValueTracker.hpp"
 
+#include "Llvm/Llvm.hpp"
+
 #include <memory>
 
-namespace microsoft {
-namespace quantum {
-
-/// Validator class that defines a set of rules which constitutes the profile definition. Each of
-/// the rules can be used to transform a generic QIR and/or validate that the QIR is compliant with
-/// said rule.
-class Validator
+namespace microsoft
 {
-public:
-  using ValidatorPtr = std::unique_ptr<Validator>;
+namespace quantum
+{
 
-  // Constructors
-  //
+    /// Validator class that defines a set of rules which constitutes the profile definition. Each of
+    /// the rules can be used to transform a generic QIR and/or validate that the QIR is compliant with
+    /// said rule.
+    class Validator
+    {
+      public:
+        using ValidatorPtr = std::unique_ptr<Validator>;
 
-  explicit Validator(ValidationPassConfiguration const &cfg, bool debug,
-                     llvm::TargetMachine *target_machine = nullptr);
+        // Constructors
+        //
 
-  // Default construction not allowed as this leads to invalid configuration of the allocation
-  // managers.
+        explicit Validator(
+            ValidationPassConfiguration const& cfg,
+            bool                               debug,
+            llvm::TargetMachine*               target_machine = nullptr);
 
-  Validator()                  = delete;
-  Validator(Validator const &) = delete;
-  Validator(Validator &&)      = default;
-  Validator &operator=(Validator const &) = delete;
-  Validator &operator=(Validator &&) = default;
-  ~Validator()                       = default;
+        // Default construction not allowed as this leads to invalid configuration of the allocation
+        // managers.
 
-  // Validator methods
-  //
+        Validator()                 = delete;
+        Validator(Validator const&) = delete;
+        Validator(Validator&&)      = default;
+        Validator& operator=(Validator const&) = delete;
+        Validator& operator=(Validator&&) = default;
+        ~Validator()                      = default;
 
-  /// Validates that a module complies with the specified QIR profile.
-  bool validate(llvm::Module &module);
+        // Validator methods
+        //
 
-protected:
-  using PassBuilderPtr = std::unique_ptr<llvm::PassBuilder>;
+        /// Validates that a module complies with the specified QIR profile.
+        bool validate(llvm::Module& module);
 
-  /// Sets the module pass manager used for the transformation of the IR.
-  void setModulePassManager(llvm::ModulePassManager &&manager);
+      protected:
+        using PassBuilderPtr = std::unique_ptr<llvm::PassBuilder>;
 
-  /// Returns a reference to the pass builder.
-  llvm::PassBuilder &passBuilder();
+        /// Sets the module pass manager used for the transformation of the IR.
+        void setModulePassManager(llvm::ModulePassManager&& manager);
 
-  /// Returns a reference to the loop analysis manager.
-  llvm::LoopAnalysisManager &loopAnalysisManager();
+        /// Returns a reference to the pass builder.
+        llvm::PassBuilder& passBuilder();
 
-  /// Returns a reference to the function analysis manager.
-  llvm::FunctionAnalysisManager &functionAnalysisManager();
+        /// Returns a reference to the loop analysis manager.
+        llvm::LoopAnalysisManager& loopAnalysisManager();
 
-  /// Returns a reference to the GSCC analysis manager.
-  llvm::CGSCCAnalysisManager &gsccAnalysisManager();
+        /// Returns a reference to the function analysis manager.
+        llvm::FunctionAnalysisManager& functionAnalysisManager();
 
-  /// Returns a reference to the module analysis manager.
-  llvm::ModuleAnalysisManager &moduleAnalysisManager();
+        /// Returns a reference to the GSCC analysis manager.
+        llvm::CGSCCAnalysisManager& gsccAnalysisManager();
 
-private:
-  // LLVM logic to run the passes
-  //
+        /// Returns a reference to the module analysis manager.
+        llvm::ModuleAnalysisManager& moduleAnalysisManager();
 
-  llvm::LoopAnalysisManager     loop_analysis_manager_;
-  llvm::FunctionAnalysisManager function_analysis_manager_;
-  llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
-  llvm::ModuleAnalysisManager   module_analysis_manager_;
+      private:
+        // LLVM logic to run the passes
+        //
 
-  PassBuilderPtr pass_builder_;
+        llvm::LoopAnalysisManager     loop_analysis_manager_;
+        llvm::FunctionAnalysisManager function_analysis_manager_;
+        llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
+        llvm::ModuleAnalysisManager   module_analysis_manager_;
 
-  llvm::ModulePassManager module_pass_manager_{};
-};
+        PassBuilderPtr pass_builder_;
 
-}  // namespace quantum
-}  // namespace microsoft
+        llvm::ModulePassManager module_pass_manager_{};
+    };
+
+} // namespace quantum
+} // namespace microsoft

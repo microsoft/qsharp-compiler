@@ -2,60 +2,64 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
 #include "Logging/ILogger.hpp"
 #include "Profile/Profile.hpp"
 #include "Rules/RuleSet.hpp"
 #include "ValidationPass/ValidationConfiguration.hpp"
 
+#include "Llvm/Llvm.hpp"
+
 #include <functional>
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-
-class ValidationPass : public llvm::PassInfoMixin<ValidationPass>
+namespace microsoft
 {
-public:
-  using Replacements         = ReplacementRule::Replacements;
-  using Instruction          = llvm::Instruction;
-  using Rules                = std::vector<ReplacementRule>;
-  using Value                = llvm::Value;
-  using Builder              = ReplacementRule::Builder;
-  using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
-  using Captures             = RuleSet::Captures;
-  using String               = std::string;
-  using ConstantArguments    = std::unordered_map<std::string, llvm::ConstantInt *>;
-  using ILoggerPtr           = std::shared_ptr<ILogger>;
+namespace quantum
+{
 
-  // Construction and destruction configuration.
-  //
+    class ValidationPass : public llvm::PassInfoMixin<ValidationPass>
+    {
+      public:
+        using Replacements         = ReplacementRule::Replacements;
+        using Instruction          = llvm::Instruction;
+        using Rules                = std::vector<ReplacementRule>;
+        using Value                = llvm::Value;
+        using Builder              = ReplacementRule::Builder;
+        using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
+        using Captures             = RuleSet::Captures;
+        using String               = std::string;
+        using ConstantArguments    = std::unordered_map<std::string, llvm::ConstantInt*>;
+        using ILoggerPtr           = std::shared_ptr<ILogger>;
 
-  ValidationPass(ValidationPassConfiguration const &cfg)
-    : config_{cfg}
-  {}
+        // Construction and destruction configuration.
+        //
 
-  /// Copy construction is banned.
-  ValidationPass(ValidationPass const &) = delete;
+        ValidationPass(ValidationPassConfiguration const& cfg)
+          : config_{cfg}
+        {
+        }
 
-  /// We allow move semantics.
-  ValidationPass(ValidationPass &&) = default;
+        /// Copy construction is banned.
+        ValidationPass(ValidationPass const&) = delete;
 
-  /// Default destruction.
-  ~ValidationPass() = default;
+        /// We allow move semantics.
+        ValidationPass(ValidationPass&&) = default;
 
-  llvm::PreservedAnalyses run(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
-  /// Whether or not this pass is required to run.
-  static bool isRequired();
+        /// Default destruction.
+        ~ValidationPass() = default;
 
-private:
-  ValidationPassConfiguration config_{};
+        llvm::PreservedAnalyses run(llvm::Module& module, llvm::ModuleAnalysisManager& mam);
+        /// Whether or not this pass is required to run.
+        static bool isRequired();
 
-  std::unordered_map<std::string, uint64_t> opcodes_;
-  std::unordered_map<std::string, uint64_t> external_calls_;
-  std::unordered_map<std::string, uint64_t> internal_calls_;
-};
+      private:
+        ValidationPassConfiguration config_{};
 
-}  // namespace quantum
-}  // namespace microsoft
+        std::unordered_map<std::string, uint64_t> opcodes_;
+        std::unordered_map<std::string, uint64_t> external_calls_;
+        std::unordered_map<std::string, uint64_t> internal_calls_;
+    };
+
+} // namespace quantum
+} // namespace microsoft
