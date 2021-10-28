@@ -18,14 +18,14 @@ fn get_current_gate_processor() -> ForceSomeRwLockWriteGuard<'static, BaseProfil
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__h__body(qubit: QUBIT) {
-    println!("/__quantum__qis__h__body/");
+    log::debug!("/__quantum__qis__h__body/");
     let mut gs = get_current_gate_processor();
     gs.h(qubit);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__h__ctl(ctls: *mut QirArray, qubit: QUBIT) {
-    println!("/__quantum__qis__h__ctl/");
+    log::debug!("/__quantum__qis__h__ctl/");
     let control = get_qubit_id(ctls);
     //let mut gs = get_current_gate_processor();
     todo!("Not yet implemented.");
@@ -37,7 +37,7 @@ pub unsafe extern "C" fn __quantum__qis__measure__body(
     qubits: *mut QirArray,
     registers: *mut QirArray,
 ) {
-    println!("/__quantum__qis__measure__body/");
+    log::debug!("/__quantum__qis__measure__body/");
 
     let qubit = get_qubit_id(qubits);
     // let register = get_qubit_id(registers);
@@ -47,7 +47,7 @@ pub unsafe extern "C" fn __quantum__qis__measure__body(
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__r__body(pauli: PauliId, theta: f64, qubit: QUBIT) {
-    println!("/__quantum__qis__r__body/");
+    log::debug!("/__quantum__qis__r__body/");
     let mut gs = get_current_gate_processor();
     match pauli {
         1 => gs.rx(theta, qubit),
@@ -59,7 +59,7 @@ pub unsafe extern "C" fn __quantum__qis__r__body(pauli: PauliId, theta: f64, qub
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__r__adj(pauli: PauliId, theta: f64, qubit: QUBIT) {
-    println!("/__quantum__qis__r__adj/");
+    log::debug!("/__quantum__qis__r__adj/");
     //let mut gs = get_current_gate_processor();
     todo!("Not yet implemented.");
     //gs.r_adj(pauli, theta, get_cubit_string(qubit));
@@ -67,78 +67,78 @@ pub unsafe extern "C" fn __quantum__qis__r__adj(pauli: PauliId, theta: f64, qubi
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__r__ctl(ctls: *mut QirArray, qubit: *mut QirRTuple) {
-    println!("/__quantum__qis__r__ctl/");
+    log::debug!("/__quantum__qis__r__ctl/");
     todo!("Not yet implemented.");
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__r__ctladj(ctls: *mut QirArray, qubit: *mut QirRTuple) {
-    println!("/__quantum__qis__r__ctladj/");
+    log::debug!("/__quantum__qis__r__ctladj/");
     todo!("Not yet implemented.");
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__s__body(qubit: QUBIT) {
-    println!("/__quantum__qis__s__body/");
+    log::debug!("/__quantum__qis__s__body/");
     let mut gs = get_current_gate_processor();
     gs.s(qubit);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__s__adj(qubit: QUBIT) {
-    println!("/__quantum__qis__s__adj/");
+    log::debug!("/__quantum__qis__s__adj/");
     let mut gs = get_current_gate_processor();
     gs.s_adj(qubit);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__s__ctl(ctls: *mut QirArray, qubit: QUBIT) {
-    println!("/__quantum__qis__s__ctl/");
+    log::debug!("/__quantum__qis__s__ctl/");
     todo!("Not yet implemented.");
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__s__ctladj(ctls: *mut QirArray, qubit: QUBIT) {
-    println!("/__quantum__qis__s__ctladj/");
+    log::debug!("/__quantum__qis__s__ctladj/");
     todo!("Not yet implemented.");
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__t__body(qubit: QUBIT) {
-    println!("/__quantum__qis__t__body/");
+    log::debug!("/__quantum__qis__t__body/");
     let mut gs = get_current_gate_processor();
     gs.t(qubit);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__t__adj(qubit: QUBIT) {
-    println!("/__quantum__qis__t__adj/");
+    log::debug!("/__quantum__qis__t__adj/");
     let mut gs = get_current_gate_processor();
     gs.t_adj(qubit);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__t__ctl(ctls: *mut QirArray, qubit: QUBIT) {
-    println!("/__quantum__qis__t__ctl/");
+    log::debug!("/__quantum__qis__t__ctl/");
     todo!("Not yet implemented.");
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__t__ctladj(ctls: *mut QirArray, qubit: QUBIT) {
-    println!("/__quantum__qis__t__ctladj/");
+    log::debug!("/__quantum__qis__t__ctladj/");
     todo!("Not yet implemented.");
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__x__body(qubit: QUBIT) {
-    println!("/__quantum__qis__x__body/");
+    log::debug!("/__quantum__qis__x__body/");
     let mut gs = get_current_gate_processor();
     gs.x(qubit);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__x__ctl(ctls: *mut QirArray, qubit: QUBIT) {
-    println!("/__quantum__qis__x__ctl/");
+    log::debug!("/__quantum__qis__x__ctl/");
     let control = get_qubit_id(ctls);
     let mut gs = get_current_gate_processor();
     gs.cx(control, qubit);
@@ -146,27 +146,27 @@ pub unsafe extern "C" fn __quantum__qis__x__ctl(ctls: *mut QirArray, qubit: QUBI
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__y__body(qubit: QUBIT) {
-    println!("/__quantum__qis__y__body/");
+    log::debug!("/__quantum__qis__y__body/");
     let mut gs = get_current_gate_processor();
     gs.y(qubit);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__y__ctl(ctls: *mut QirArray, qubit: QUBIT) {
-    println!("/__quantum__qis__y__ctl/");
+    log::debug!("/__quantum__qis__y__ctl/");
     todo!("Not yet implemented.");
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__z__body(qubit: QUBIT) {
-    println!("/__quantum__qis__z__body/");
+    log::debug!("/__quantum__qis__z__body/");
     let mut gs = get_current_gate_processor();
     gs.y(qubit);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__z__ctl(ctls: *mut QirArray, qubit: QUBIT) {
-    println!("/__quantum__qis__z__ctl/");
+    log::debug!("/__quantum__qis__z__ctl/");
     let control = get_qubit_id(ctls);
     let mut gs = get_current_gate_processor();
     gs.cz(control, qubit);
@@ -174,8 +174,8 @@ pub unsafe extern "C" fn __quantum__qis__z__ctl(ctls: *mut QirArray, qubit: QUBI
 
 #[no_mangle]
 pub unsafe extern "C" fn __quantum__qis__dumpmachine__body(location: *mut u8) {
-    println!("/__quantum__qis__dumpmachine__body/");
-    println!("/__quantum__qis__h__body/");
+    log::debug!("/__quantum__qis__dumpmachine__body/");
+    log::debug!("/__quantum__qis__h__body/");
     let mut gs = get_current_gate_processor();
     gs.dump_machine();
 }
@@ -185,7 +185,7 @@ pub unsafe extern "C" fn __quantum__qis__dumpregister__body(
     location: *mut u8,
     qubits: *mut QirArray,
 ) {
-    println!("/__quantum__qis__dumpregister__body/");
+    log::debug!("/__quantum__qis__dumpregister__body/");
     todo!("Not yet implemented.");
 }
 

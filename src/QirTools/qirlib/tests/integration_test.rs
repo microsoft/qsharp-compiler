@@ -169,7 +169,7 @@ fn execute(name: &str, generator: fn(&str) -> (), expected_results: Vec<&str>) {
     let ir_path = dir.path().join(format!("{}.ll", name.replace(" ", "_")));
 
     // generate the QIR
-    println!("Writing {:?}", ir_path);
+    log::debug!("Writing {:?}", ir_path);
     generator(ir_path.display().to_string().as_str());
 
     let mut app = dir.path().join(name);

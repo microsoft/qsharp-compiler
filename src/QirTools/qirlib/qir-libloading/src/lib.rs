@@ -6,7 +6,7 @@ use std::{env, fs};
 use tempfile::tempdir;
 
 pub fn write_library<P: AsRef<Path>>(path: P, lib: &'static [u8]) -> Result<(), Box<dyn Error>> {
-    println!("Writing {}", path.as_ref().display());
+    log::debug!("Writing {}", path.as_ref().display());
     std::fs::write(path, lib)?;
     Ok(())
 }
@@ -26,7 +26,7 @@ pub unsafe fn load_library_bytes(
 }
 
 pub(crate) unsafe fn load_library<P: AsRef<Path>>(path: P) -> Result<Library, Box<dyn Error>> {
-    println!("Loading {}", path.as_ref().display());
+    log::debug!("Loading {}", path.as_ref().display());
     let library = Library::new(path.as_ref().as_os_str())?;
 
     let library_path = path

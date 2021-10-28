@@ -130,7 +130,6 @@ mod tests {
         fpm.run_on(&context.module);
 
         log::info!("Writing {:?}", file_path);
-        println!("Writing {:?}", file_path);
         context
             .emit_ir(file_path.display().to_string().as_str())
             .unwrap();
