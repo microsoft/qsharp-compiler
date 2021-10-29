@@ -57,88 +57,88 @@ namespace quantum
     void Profile::registerEPCallbacks(bool verify_each_pass, bool debug)
     {
 
-        if (tryParsePipelineText<llvm::FunctionPassManager>(*pass_builder_, PeepholeEPPipeline))
+        if (tryParsePipelineText<llvm::FunctionPassManager>(*pass_builder_, peephole_ep_pipeline_))
             pass_builder_->registerPeepholeEPCallback(
                 [this, verify_each_pass,
                  debug](llvm::FunctionPassManager& pass_manager, llvm::PassBuilder::OptimizationLevel) {
                     llvm::ExitOnError error_safeguard("Unable to parse PeepholeEP pipeline: ");
                     error_safeguard(
-                        pass_builder_->parsePassPipeline(pass_manager, PeepholeEPPipeline, verify_each_pass, debug));
+                        pass_builder_->parsePassPipeline(pass_manager, peephole_ep_pipeline_, verify_each_pass, debug));
                 });
 
-        if (tryParsePipelineText<llvm::LoopPassManager>(*pass_builder_, LateLoopOptimizationsEPPipeline))
+        if (tryParsePipelineText<llvm::LoopPassManager>(*pass_builder_, late_loop_optimizations_ep_pipeline_))
         {
             pass_builder_->registerLateLoopOptimizationsEPCallback(
                 [this, verify_each_pass,
                  debug](llvm::LoopPassManager& pass_manager, llvm::PassBuilder::OptimizationLevel) {
                     llvm::ExitOnError error_safeguard("Unable to parse LateLoopOptimizationsEP pipeline: ");
                     error_safeguard(pass_builder_->parsePassPipeline(
-                        pass_manager, LateLoopOptimizationsEPPipeline, verify_each_pass, debug));
+                        pass_manager, late_loop_optimizations_ep_pipeline_, verify_each_pass, debug));
                 });
         }
 
-        if (tryParsePipelineText<llvm::LoopPassManager>(*pass_builder_, LoopOptimizerEndEPPipeline))
+        if (tryParsePipelineText<llvm::LoopPassManager>(*pass_builder_, loop_optimizer_end_ep_pipeline_))
         {
             pass_builder_->registerLoopOptimizerEndEPCallback(
                 [this, verify_each_pass,
                  debug](llvm::LoopPassManager& pass_manager, llvm::PassBuilder::OptimizationLevel) {
                     llvm::ExitOnError error_safeguard("Unable to parse LoopOptimizerEndEP pipeline: ");
                     error_safeguard(pass_builder_->parsePassPipeline(
-                        pass_manager, LoopOptimizerEndEPPipeline, verify_each_pass, debug));
+                        pass_manager, loop_optimizer_end_ep_pipeline_, verify_each_pass, debug));
                 });
         }
 
-        if (tryParsePipelineText<llvm::FunctionPassManager>(*pass_builder_, ScalarOptimizerLateEPPipeline))
+        if (tryParsePipelineText<llvm::FunctionPassManager>(*pass_builder_, scalar_optimizer_late_ep_pipeline_))
         {
             pass_builder_->registerScalarOptimizerLateEPCallback(
                 [this, verify_each_pass,
                  debug](llvm::FunctionPassManager& pass_manager, llvm::PassBuilder::OptimizationLevel) {
                     llvm::ExitOnError error_safeguard("Unable to parse ScalarOptimizerLateEP pipeline: ");
                     error_safeguard(pass_builder_->parsePassPipeline(
-                        pass_manager, ScalarOptimizerLateEPPipeline, verify_each_pass, debug));
+                        pass_manager, scalar_optimizer_late_ep_pipeline_, verify_each_pass, debug));
                 });
         }
 
-        if (tryParsePipelineText<llvm::CGSCCPassManager>(*pass_builder_, CGSCCOptimizerLateEPPipeline))
+        if (tryParsePipelineText<llvm::CGSCCPassManager>(*pass_builder_, cgscc_optimizer_late_ep_pipeline_))
         {
             pass_builder_->registerCGSCCOptimizerLateEPCallback(
                 [this, verify_each_pass,
                  debug](llvm::CGSCCPassManager& pass_manager, llvm::PassBuilder::OptimizationLevel) {
                     llvm::ExitOnError error_safeguard("Unable to parse CGSCCOptimizerLateEP pipeline: ");
                     error_safeguard(pass_builder_->parsePassPipeline(
-                        pass_manager, CGSCCOptimizerLateEPPipeline, verify_each_pass, debug));
+                        pass_manager, cgscc_optimizer_late_ep_pipeline_, verify_each_pass, debug));
                 });
         }
 
-        if (tryParsePipelineText<llvm::FunctionPassManager>(*pass_builder_, VectorizerStartEPPipeline))
+        if (tryParsePipelineText<llvm::FunctionPassManager>(*pass_builder_, vectorizer_start_ep_pipeline_))
         {
             pass_builder_->registerVectorizerStartEPCallback(
                 [this, verify_each_pass,
                  debug](llvm::FunctionPassManager& pass_manager, llvm::PassBuilder::OptimizationLevel) {
                     llvm::ExitOnError error_safeguard("Unable to parse VectorizerStartEP pipeline: ");
                     error_safeguard(pass_builder_->parsePassPipeline(
-                        pass_manager, VectorizerStartEPPipeline, verify_each_pass, debug));
+                        pass_manager, vectorizer_start_ep_pipeline_, verify_each_pass, debug));
                 });
         }
 
-        if (tryParsePipelineText<llvm::ModulePassManager>(*pass_builder_, PipelineStartEPPipeline))
+        if (tryParsePipelineText<llvm::ModulePassManager>(*pass_builder_, pipeline_start_ep_pipeline_))
         {
-            pass_builder_->registerPipelineStartEPCallback([this, verify_each_pass,
-                                                            debug](llvm::ModulePassManager& pass_manager) {
-                llvm::ExitOnError error_safeguard("Unable to parse PipelineStartEP pipeline: ");
-                error_safeguard(
-                    pass_builder_->parsePassPipeline(pass_manager, PipelineStartEPPipeline, verify_each_pass, debug));
-            });
+            pass_builder_->registerPipelineStartEPCallback(
+                [this, verify_each_pass, debug](llvm::ModulePassManager& pass_manager) {
+                    llvm::ExitOnError error_safeguard("Unable to parse PipelineStartEP pipeline: ");
+                    error_safeguard(pass_builder_->parsePassPipeline(
+                        pass_manager, pipeline_start_ep_pipeline_, verify_each_pass, debug));
+                });
         }
 
-        if (tryParsePipelineText<llvm::FunctionPassManager>(*pass_builder_, OptimizerLastEPPipeline))
+        if (tryParsePipelineText<llvm::FunctionPassManager>(*pass_builder_, optimizer_last_ep_pipeline_))
         {
             pass_builder_->registerOptimizerLastEPCallback(
                 [this, verify_each_pass,
                  debug](llvm::ModulePassManager& pass_manager, llvm::PassBuilder::OptimizationLevel) {
                     llvm::ExitOnError error_safeguard("Unable to parse OptimizerLastEP pipeline: ");
                     error_safeguard(pass_builder_->parsePassPipeline(
-                        pass_manager, OptimizerLastEPPipeline, verify_each_pass, debug));
+                        pass_manager, optimizer_last_ep_pipeline_, verify_each_pass, debug));
                 });
         }
     }
