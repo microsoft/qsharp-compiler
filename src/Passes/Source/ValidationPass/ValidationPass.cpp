@@ -71,7 +71,7 @@ namespace quantum
         if (config_.whitelistOpcodes())
         {
             auto const& allowed_ops = config_.allowedOpcodes();
-            for (auto k : opcodes_)
+            for (auto const& k : opcodes_)
             {
                 if (allowed_ops.find(k.first) == allowed_ops.end())
                 {
@@ -83,7 +83,7 @@ namespace quantum
         auto const& allowed_functions = config_.allowedExternalCallNames();
         if (config_.whitelistOpcodes())
         {
-            for (auto k : external_calls_)
+            for (auto const& k : external_calls_)
             {
                 if (allowed_functions.find(k.first) == allowed_functions.end())
                 {
