@@ -43,9 +43,6 @@ namespace Microsoft.Quantum.Telemetry
             { TelemetryPropertyType.String, (jsonElement) => jsonElement.GetString()! },
         };
 
-        internal static object FromJsonElement(JsonElement jsonElement, TelemetryPropertyType propertyType) =>
-            fromJsonElementConversion[propertyType](jsonElement);
-
         private static Dictionary<TelemetryPropertyType, Action<EventProperties, string, object, PiiKind>> setPropertyMethods = new()
         {
             { TelemetryPropertyType.Boolean, (eventProperties, name, value, piiKind) => eventProperties.SetProperty(name, (bool)value, piiKind) },
@@ -72,39 +69,6 @@ namespace Microsoft.Quantum.Telemetry
                     eventProperties.SetProperty(name, convertedValue.Item2, convertedValue.Item1, isPii.ToPiiKind());
                 }
             }
-        }
-
-        internal static EventProperties ToEventProperties(this TelemetryEvent telemetryEvent)
-        {
-            EventProperties eventProperties = new();
-            eventProperties.Name = telemetryEvent.Name;
-            foreach (var property in telemetryEvent.Properties)
-            {
-                if (property.Value.Value != null)
-                {
-                    eventProperties.SetProperty(property.Key, property.Value.Value, property.Value.PropertyType, property.Value.IsPii.ToPiiKind());
-                }
-            }
-
-            return eventProperties;
-        }
-
-        internal static TelemetryEvent ToTelemetryEvent(this EventProperties eventProperties)
-        {
-            TelemetryEvent telemetryEvent = new();
-            telemetryEvent.Name = eventProperties.Name;
-            foreach (var property in eventProperties.Properties)
-            {
-                var isPii = eventProperties.PiiProperties.ContainsKey(property.Key);
-                if (!TypeConversionHelper.TypeMap.TryGetValue(property.Value.GetType(), out var propertyType))
-                {
-                    propertyType = TelemetryPropertyType.String;
-                }
-
-                telemetryEvent.SetProperty(property.Key, property.Value, isPii, propertyType);
-            }
-
-            return telemetryEvent;
         }
 
         private static Tuple<TelemetryPropertyType, object> AnyToJson(object? value) =>

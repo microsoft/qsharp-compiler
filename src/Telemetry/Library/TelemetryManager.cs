@@ -6,8 +6,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.Applications.Events;
+using Microsoft.Quantum.Telemetry.OutOfProcess;
+
+[assembly: InternalsVisibleTo("Microsoft.Quantum.Telemetry.Tests")]
 
 namespace Microsoft.Quantum.Telemetry
 {
