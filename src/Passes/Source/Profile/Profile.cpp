@@ -56,6 +56,7 @@ namespace quantum
     {
 
         if (tryParsePipelineText<llvm::FunctionPassManager>(*pass_builder_, peephole_ep_pipeline_))
+        {
             pass_builder_->registerPeepholeEPCallback(
                 [this, verify_each_pass,
                  debug](llvm::FunctionPassManager& pass_manager, llvm::PassBuilder::OptimizationLevel) {
@@ -63,6 +64,7 @@ namespace quantum
                     error_safeguard(
                         pass_builder_->parsePassPipeline(pass_manager, peephole_ep_pipeline_, verify_each_pass, debug));
                 });
+        }
 
         if (tryParsePipelineText<llvm::LoopPassManager>(*pass_builder_, late_loop_optimizations_ep_pipeline_))
         {
