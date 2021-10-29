@@ -208,6 +208,8 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 OutOfProcessUpload = true,
                 OutOProcessMaxIdleTime = TimeSpan.Zero,
                 OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero,
+                SendTelemetryInitializedEvent = false,
+                SendTelemetryTearDownEvent = false,
             };
 
             // Try with OutOfProcessUpload=true, args=null
@@ -230,7 +232,6 @@ namespace Microsoft.Quantum.Telemetry.Tests
 
             // Try with OutOfProcessUpload=true, args=OUTOFPROCESSUPLOADARG
             args = new string[] { TelemetryManager.OUTOFPROCESSUPLOADARG, TelemetryManager.TESTMODE };
-
             using (TelemetryManager.Initialize(outOfProcessConfig, args))
             {
             }

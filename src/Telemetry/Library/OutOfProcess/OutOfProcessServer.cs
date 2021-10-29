@@ -67,6 +67,12 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             try
             {
                 this.idleStopwatch.Restart();
+
+                if (TelemetryManager.TestMode)
+                {
+                    return;
+                }
+
                 await Task.WhenAll(
                     this.QuitIfIdleAsync(),
                     this.ReceiveAndProcessCommandsAsync());

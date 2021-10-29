@@ -21,9 +21,6 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         private static string PiiType(bool isPii) =>
             isPii ? "+Pii" : "";
 
-        private static string PiiType(PiiKind piiKind) =>
-            PiiType(piiKind != PiiKind.None);
-
         private static string PropertyToYamlString(string name, TelemetryPropertyType type, object? value, bool isPii) =>
             $"    {name}: !{type}{PiiType(isPii)} {EscapeLineBreaks(value)}";
 

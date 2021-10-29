@@ -74,13 +74,13 @@ namespace Microsoft.Quantum.Telemetry
         /// True if exceptions generated at the telemetry later should be thrown.
         /// False if they should be silenced and suppressed. They will still be logged at Trace.
         /// </summary>
-        public static bool EnableTelemetryExceptions { get; private set; } = false;
+        public static bool EnableTelemetryExceptions { get; set; }
 
         /// <summary>
         /// The active configuration of the TelemetryManager.
         /// Should be passed during TelemetryManager.Initialize and not be modified afterwards.
         /// </summary>
-        public static TelemetryManagerConfig Configuration { get; private set; } = new();
+        public static TelemetryManagerConfig Configuration { get; private set; }
 
         /// <summary>
         /// If this value is true, no data will be collected or sent.
@@ -91,6 +91,12 @@ namespace Microsoft.Quantum.Telemetry
         /// named in Configuration.HostingEnvironmentVariableName has a value of "1".
         /// </summary>
         public static bool TelemetryOptOut { get; private set; } = false;
+
+        static TelemetryManager()
+        {
+            Configuration = new();
+            EnableTelemetryExceptions = GetEnableTelemetryExceptions();
+        }
 
         /// <summary>
         /// Initializes the TelemetryManager with the given configuration.
