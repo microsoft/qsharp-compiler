@@ -110,6 +110,8 @@ namespace Microsoft.Quantum.Telemetry
         /// </summary>
         public bool OutOfProcessUpload { get; set; } = false;
 
+        public Type OutOfProcessSerializerType { get; set; } = typeof(SimpleYamlSerializer);
+
         public ExceptionLoggingOptions ExceptionLoggingOptions { get; set; } = new();
 
         public bool SendTelemetryInitializedEvent { get; set; } = true;
@@ -234,7 +236,7 @@ namespace Microsoft.Quantum.Telemetry
 
                     if (configuration.OutOfProcessUpload & !IsOutOfProcessInstance)
                     {
-                        telemetryLogger = new OutOfProcessLogger();
+                        telemetryLogger = new OutOfProcessLogger(configuration);
                     }
                     else
                     {
@@ -246,7 +248,7 @@ namespace Microsoft.Quantum.Telemetry
                     {
                         // After completing the next line, the current process
                         // will exit with exit code 0.
-                        OutOfProcessServer.RunAndExit(configuration);
+                        new OutOfProcessServer(configuration).RunAndExit();
                     }
                     else
                     {

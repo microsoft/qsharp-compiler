@@ -14,20 +14,20 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
             var stopwatch = Stopwatch.StartNew();
 
             var telemetryConfig = new TelemetryManagerConfig()
-                    {
-                        AppId = "SampleCSharpApp",
-                        HostingEnvironmentVariableName = "SAMPLECSHARPAPP_HOSTING_ENV",
-                        TelemetryOptOutVariableName = "QDK_TELEMETRY_OPT_OUT",
-                        MaxTeardownUploadTime = TimeSpan.FromSeconds(2),
-                        OutOfProcessUpload = true,
-                        ExceptionLoggingOptions = new()
-                        {
-                            CollectTargetSite = true,
-                            CollectSanitizedStackTrace = true,
-                        },
-                        SendTelemetryInitializedEvent = true,
-                        SendTelemetryTearDownEvent = true,
-                    };
+            {
+                AppId = "SampleCSharpApp",
+                HostingEnvironmentVariableName = "SAMPLECSHARPAPP_HOSTING_ENV",
+                TelemetryOptOutVariableName = "QDK_TELEMETRY_OPT_OUT",
+                MaxTeardownUploadTime = TimeSpan.FromSeconds(2),
+                OutOfProcessUpload = true,
+                ExceptionLoggingOptions = new()
+                {
+                    CollectTargetSite = true,
+                    CollectSanitizedStackTrace = true,
+                },
+                SendTelemetryInitializedEvent = true,
+                SendTelemetryTearDownEvent = true,
+            };
 
             // REQUIRED: Initialize
             // Initialize the TelemetryManager right at the beggining of your program

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Microsoft.Quantum.Telemetry.Tests
@@ -445,6 +446,95 @@ namespace Microsoft.Quantum.Telemetry.Tests
             finally
             {
                 Environment.SetEnvironmentVariable(telemetryManagerConfig.EnableTelemetryExceptionsVariableName, "");
+            }
+        }
+
+        private static async IAsyncEnumerable<T> EnumerableToAsyncEnumerable<T>(IEnumerable<T> items, int delayInMilliseconds = 1)
+        {
+            foreach (var item in items)
+            {
+                await Task.Delay(delayInMilliseconds);
+                yield return item;
+            }
+        }
+
+        private static async Task<IEnumerable<T>> AsyncEnumerableToEnumerable<T>(IAsyncEnumerable<T> items)
+        {
+            List<T> result = new();
+            await foreach (var item in items)
+            {
+                result.Add(item);
+            }
+
+            return result;
+        }
+
+        private static OutOfProcessLogEventCommand CreateOutOfProcessLogEventCommand(int seed)
+        {
+            OutOfProcessLogEventCommand outOfProcessLogEventCommand = new(new Applications.Events.EventProperties());
+            outOfProcessLogEventCommand.Args.Name = $"eventName{seed}";
+            outOfProcessLogEventCommand.Args.SetProperty("stringProp", $"stringPropValue{seed}");
+            outOfProcessLogEventCommand.Args.SetProperty("stringMultilineProp", $"line1_{seed}\r\nline2\r\nline3");
+            outOfProcessLogEventCommand.Args.SetProperty("longProp", 123L + seed);
+            outOfProcessLogEventCommand.Args.SetProperty("doubleProp", (double)123.123 + seed);
+            outOfProcessLogEventCommand.Args.SetProperty("dateTimeProp", new DateTime(2021, 08, 12, 08, 09, 10) + TimeSpan.FromHours(seed));
+            outOfProcessLogEventCommand.Args.SetProperty("boolProp", true);
+            outOfProcessLogEventCommand.Args.SetProperty("guidProp", Guid.NewGuid());
+            outOfProcessLogEventCommand.Args.SetProperty("stringPropPii", "stringPropValue{seed}", Applications.Events.PiiKind.GenericData);
+            outOfProcessLogEventCommand.Args.SetProperty("longPropPii", 123L + seed, Applications.Events.PiiKind.GenericData);
+            outOfProcessLogEventCommand.Args.SetProperty("doublePropPii", (double)123.123 + seed, Applications.Events.PiiKind.GenericData);
+            outOfProcessLogEventCommand.Args.SetProperty("dateTimePropPii", new DateTime(2021, 08, 12, 08, 09, 10) + TimeSpan.FromHours(seed), Applications.Events.PiiKind.GenericData);
+            outOfProcessLogEventCommand.Args.SetProperty("boolPropPii", true, Applications.Events.PiiKind.GenericData);
+            outOfProcessLogEventCommand.Args.SetProperty("guidPropPii", Guid.NewGuid(), Applications.Events.PiiKind.GenericData);
+            return outOfProcessLogEventCommand;
+        }
+
+        private static IEnumerable<OutOfProcessLogEventCommand> CreateOutOfProcessLogEventCommands()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                yield return CreateOutOfProcessLogEventCommand(seed: i);
+            }
+        }
+
+        private static IEnumerable<OutOfProcessSetContextCommand> CreateOutOfProcessSetContextCommands()
+        {
+            var setContextArgs = new SetContextArgs[]
+            {
+                new SetContextArgs("commonString", "commonStringValue", TelemetryPropertyType.String, false),
+                new SetContextArgs("commonBool", true, TelemetryPropertyType.Boolean, false),
+                new SetContextArgs("commonDateTime", new DateTime(2021, 08, 12, 08, 09, 10), TelemetryPropertyType.DateTime, false),
+                new SetContextArgs("commonDouble", (double)123.123, TelemetryPropertyType.Double, false),
+                new SetContextArgs("commonGuid", Guid.NewGuid(), TelemetryPropertyType.Guid, false),
+                new SetContextArgs("commonLong", 123L, TelemetryPropertyType.Long, false),
+                new SetContextArgs("commonStringPii", "commonStringValue", TelemetryPropertyType.String, true),
+                new SetContextArgs("commonBoolPii", true, TelemetryPropertyType.Boolean, true),
+                new SetContextArgs("commonDateTimePii", new DateTime(2021, 08, 12, 08, 09, 10), TelemetryPropertyType.DateTime, true),
+                new SetContextArgs("commonDoublePii", (double)123.123, TelemetryPropertyType.Double, true),
+                new SetContextArgs("commonGuidPii", Guid.NewGuid(), TelemetryPropertyType.Guid, true),
+                new SetContextArgs("commonLongPii", 123L, TelemetryPropertyType.Long, true),
+            };
+            return setContextArgs.Select((args) => new OutOfProcessSetContextCommand(args));
+        }
+
+        [TestMethod]
+        public async Task TestSimpleYamlSerializer()
+        {
+            var yamlSerializer = new SimpleYamlSerializer();
+
+            List<OutOfProcessCommand> commands = new();
+            commands.AddRange(CreateOutOfProcessSetContextCommands());
+            commands.AddRange(CreateOutOfProcessLogEventCommands());
+            commands.Add(new OutOfProcessQuitCommand());
+
+            var yamlResults = yamlSerializer.Write(commands).ToList();
+            var asyncCommandResults = yamlSerializer.Read(EnumerableToAsyncEnumerable(yamlResults));
+            var commandResults = (await AsyncEnumerableToEnumerable(asyncCommandResults)).ToList();
+
+            Assert.AreEqual(commands.Count, commandResults.Count);
+            for (int i = 0; i < commands.Count; i++)
+            {
+                Assert.AreEqual(commands[i], commandResults[i]);
             }
         }
     }

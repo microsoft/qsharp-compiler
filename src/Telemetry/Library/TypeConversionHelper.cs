@@ -128,12 +128,29 @@ namespace Microsoft.Quantum.Telemetry
 
         internal static Dictionary<Type, TelemetryPropertyType> TypeMap { get; private set; } = new()
         {
+            // Values accepted by Aria
             { typeof(string), TelemetryPropertyType.String },
             { typeof(bool), TelemetryPropertyType.Boolean },
             { typeof(double), TelemetryPropertyType.Double },
             { typeof(long), TelemetryPropertyType.Long },
             { typeof(DateTime), TelemetryPropertyType.DateTime },
             { typeof(Guid), TelemetryPropertyType.Guid },
+
+            // Integer values to be converted to long
+            { typeof(byte), TelemetryPropertyType.Long },
+            { typeof(sbyte), TelemetryPropertyType.Long },
+            { typeof(short), TelemetryPropertyType.Long },
+            { typeof(ushort), TelemetryPropertyType.Long },
+            { typeof(int), TelemetryPropertyType.Long },
+            { typeof(uint), TelemetryPropertyType.Long },
+            { typeof(ulong), TelemetryPropertyType.Long },
+
+            // Real values to be converted to double
+            { typeof(float), TelemetryPropertyType.Double },
+            { typeof(decimal), TelemetryPropertyType.Double },
+
+            // TimeSpan values to be converted to string
+            { typeof(TimeSpan), TelemetryPropertyType.String },
         };
 
         private static Dictionary<Type, Func<object, Tuple<TelemetryPropertyType, object>>> convertValueFunctions = new()
