@@ -70,44 +70,44 @@ void init();
 void init()
 {
     // Initialize passes
-    PassRegistry& Registry = *PassRegistry::getPassRegistry();
+    PassRegistry& registry = *PassRegistry::getPassRegistry();
 
-    initializeCore(Registry);
+    initializeCore(registry);
 
-    initializeCoroutines(Registry);
-    initializeScalarOpts(Registry);
-    initializeObjCARCOpts(Registry);
-    initializeVectorization(Registry);
-    initializeIPO(Registry);
-    initializeAnalysis(Registry);
-    initializeTransformUtils(Registry);
-    initializeInstCombine(Registry);
-    initializeAggressiveInstCombine(Registry);
-    initializeInstrumentation(Registry);
-    initializeTarget(Registry);
+    initializeCoroutines(registry);
+    initializeScalarOpts(registry);
+    initializeObjCARCOpts(registry);
+    initializeVectorization(registry);
+    initializeIPO(registry);
+    initializeAnalysis(registry);
+    initializeTransformUtils(registry);
+    initializeInstCombine(registry);
+    initializeAggressiveInstCombine(registry);
+    initializeInstrumentation(registry);
+    initializeTarget(registry);
 
-    initializeExpandMemCmpPassPass(Registry);
-    initializeScalarizeMaskedMemIntrinPass(Registry);
-    initializeCodeGenPreparePass(Registry);
-    initializeAtomicExpandPass(Registry);
-    initializeRewriteSymbolsLegacyPassPass(Registry);
-    initializeWinEHPreparePass(Registry);
-    initializeDwarfEHPreparePass(Registry);
-    initializeSafeStackLegacyPassPass(Registry);
-    initializeSjLjEHPreparePass(Registry);
-    initializePreISelIntrinsicLoweringLegacyPassPass(Registry);
-    initializeGlobalMergePass(Registry);
-    initializeIndirectBrExpandPassPass(Registry);
-    initializeInterleavedLoadCombinePass(Registry);
-    initializeInterleavedAccessPass(Registry);
-    initializeEntryExitInstrumenterPass(Registry);
-    initializePostInlineEntryExitInstrumenterPass(Registry);
-    initializeUnreachableBlockElimLegacyPassPass(Registry);
-    initializeExpandReductionsPass(Registry);
-    initializeWasmEHPreparePass(Registry);
-    initializeWriteBitcodePassPass(Registry);
-    initializeHardwareLoopsPass(Registry);
-    initializeTypePromotionPass(Registry);
+    initializeExpandMemCmpPassPass(registry);
+    initializeScalarizeMaskedMemIntrinPass(registry);
+    initializeCodeGenPreparePass(registry);
+    initializeAtomicExpandPass(registry);
+    initializeRewriteSymbolsLegacyPassPass(registry);
+    initializeWinEHPreparePass(registry);
+    initializeDwarfEHPreparePass(registry);
+    initializeSafeStackLegacyPassPass(registry);
+    initializeSjLjEHPreparePass(registry);
+    initializePreISelIntrinsicLoweringLegacyPassPass(registry);
+    initializeGlobalMergePass(registry);
+    initializeIndirectBrExpandPassPass(registry);
+    initializeInterleavedLoadCombinePass(registry);
+    initializeInterleavedAccessPass(registry);
+    initializeEntryExitInstrumenterPass(registry);
+    initializePostInlineEntryExitInstrumenterPass(registry);
+    initializeUnreachableBlockElimLegacyPassPass(registry);
+    initializeExpandReductionsPass(registry);
+    initializeWasmEHPreparePass(registry);
+    initializeWriteBitcodePassPass(registry);
+    initializeHardwareLoopsPass(registry);
+    initializeTypePromotionPass(registry);
 }
 
 int main(int argc, char** argv)
