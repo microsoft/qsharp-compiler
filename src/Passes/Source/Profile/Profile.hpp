@@ -108,7 +108,10 @@ namespace quantum
         template <typename PassManager>
         bool tryParsePipelineText(llvm::PassBuilder& pass_builder, std::string const& pipeline_options)
         {
-            if (pipeline_options.empty()) return false;
+            if (pipeline_options.empty())
+            {
+                return false;
+            }
 
             PassManager pass_manager;
             if (auto err = pass_builder.parsePassPipeline(pass_manager, pipeline_options))
