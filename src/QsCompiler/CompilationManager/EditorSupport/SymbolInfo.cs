@@ -141,43 +141,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static LocalDeclarations LocalsInScope(QsScope scope, Position position, bool inclusive)
         {
             var (parent, statementsBefore, _) = SplitStatementsByPosition(scope, position);
+            var currentStatement = statementsBefore.LastOrDefault();
             var declarationsBefore = parent.KnownSymbols.Variables
                 .Concat(statementsBefore.SkipLast(1).SelectMany(s => s.SymbolDeclarations.Variables));
-            var currentStatement = statementsBefore.LastOrDefault();
 
             if (!inclusive || currentStatement is null)
             {
                 return new LocalDeclarations(declarationsBefore.ToImmutableArray());
             }
 
-            var expressionDeclarations = currentStatement.Statement switch
-            {
-                QsStatementKind.QsExpressionStatement expression => ExpressionDeclarations(expression.Item),
-                QsStatementKind.QsReturnStatement @return => ExpressionDeclarations(@return.Item),
-                QsStatementKind.QsFailStatement fail => ExpressionDeclarations(fail.Item),
-                QsStatementKind.QsVariableDeclaration declaration => ExpressionDeclarations(declaration.Item.Rhs),
-                QsStatementKind.QsValueUpdate update => ExpressionDeclarations(update.Item.Rhs),
-                QsStatementKind.QsConditionalStatement cond => CondExpressionDeclarations(cond),
-                QsStatementKind.QsForStatement @for => ExpressionDeclarations(@for.Item.IterationValues),
-                QsStatementKind.QsWhileStatement @while => ExpressionDeclarations(@while.Item.Condition),
-                QsStatementKind.QsRepeatStatement repeat => ExpressionDeclarations(repeat.Item.SuccessCondition),
-                _ => Enumerable.Empty<LocalVariableDeclaration<string>>(),
-            };
-
+            var expressionDeclarations = ExpressionsInStatement(currentStatement).SelectMany(ExpressionDeclarations);
             return new LocalDeclarations(
                 declarationsBefore
                     .Concat(currentStatement.SymbolDeclarations.Variables)
                     .Concat(expressionDeclarations.Select(AddStatementOffset))
                     .ToImmutableArray());
 
-            IEnumerable<LocalVariableDeclaration<string>> ExpressionDeclarations(TypedExpression expr) =>
-                DeclarationsInExpression(expr, position - currentStatement.Location.Item.Offset);
-
-            IEnumerable<LocalVariableDeclaration<string>> CondExpressionDeclarations(
-                QsStatementKind.QsConditionalStatement cond) =>
-                LastConditionBlockBefore(cond, position) is ({ } lastCond, var lastBlock)
-                    ? DeclarationsInExpression(lastCond, position - lastBlock.Location.Item.Offset)
-                    : Enumerable.Empty<LocalVariableDeclaration<string>>();
+            IEnumerable<LocalVariableDeclaration<string>> ExpressionDeclarations((TypedExpression, Position?) expr) =>
+                expr.Item2 is null
+                    ? Enumerable.Empty<LocalVariableDeclaration<string>>()
+                    : DeclarationsInExpression(expr.Item1, position - expr.Item2);
 
             LocalVariableDeclaration<string> AddStatementOffset(LocalVariableDeclaration<string> decl)
             {
@@ -188,19 +171,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         private static TypedExpression? SmallestExpressionInStatement(QsStatement statement, Position position) =>
-            statement.Statement switch
+            ExpressionsInStatement(statement)
+                .Select(e => e.Item2 is null ? null : SmallestExpression(e.Item1, position - e.Item2))
+                .FirstOrDefault(e => !(e is null));
+
+        private static IEnumerable<(TypedExpression, Position?)> ExpressionsInStatement(QsStatement statement)
+        {
+            return statement.Statement switch
             {
-                QsStatementKind.QsExpressionStatement expression => SmallestExpression(expression.Item, position),
-                QsStatementKind.QsReturnStatement @return => SmallestExpression(@return.Item, position),
-                QsStatementKind.QsFailStatement fail => SmallestExpression(fail.Item, position),
-                QsStatementKind.QsVariableDeclaration declaration => SmallestExpression(declaration.Item.Rhs, position),
-                QsStatementKind.QsValueUpdate update => SmallestExpression(update.Item.Rhs, position),
-                QsStatementKind.QsConditionalStatement cond => cond.Item.ConditionalBlocks.Select(c => SmallestExpression(c.Item1, position)).FirstOrDefault(e => !(e is null)),
-                QsStatementKind.QsForStatement @for => SmallestExpression(@for.Item.IterationValues, position),
-                QsStatementKind.QsWhileStatement @while => SmallestExpression(@while.Item.Condition, position),
-                QsStatementKind.QsRepeatStatement repeat => SmallestExpression(repeat.Item.SuccessCondition, position),
-                _ => null,
+                QsStatementKind.QsExpressionStatement expression => Single(expression.Item),
+                QsStatementKind.QsReturnStatement @return => Single(@return.Item),
+                QsStatementKind.QsFailStatement fail => Single(fail.Item),
+                QsStatementKind.QsVariableDeclaration declaration => Single(declaration.Item.Rhs),
+                QsStatementKind.QsValueUpdate update => Single(update.Item.Rhs),
+                QsStatementKind.QsConditionalStatement conditional => conditional.Item.ConditionalBlocks.Select(b =>
+                    (b.Item1, b.Item2.Location.IsValue ? b.Item2.Location.Item.Offset : null)),
+                QsStatementKind.QsForStatement @for => Single(@for.Item.IterationValues),
+                QsStatementKind.QsWhileStatement @while => Single(@while.Item.Condition),
+                QsStatementKind.QsRepeatStatement repeat => Single(repeat.Item.SuccessCondition),
+                _ => Enumerable.Empty<(TypedExpression, Position?)>(),
             };
+
+            IEnumerable<(TypedExpression, Position?)> Single(TypedExpression e)
+            {
+                yield return (e, statement.Location.IsValue ? statement.Location.Item.Offset : null);
+            }
+        }
 
         private static TypedExpression? SmallestExpression(TypedExpression expression, Position position)
         {
@@ -418,7 +414,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (_, statementsBefore, statementsAfter) = SplitStatementsByPosition(implementation, defStart - specPos);
 
                 var (eDecl, eLoc) = statementsBefore.LastOrDefault() is { } s
-                    ? (SmallestExpressionInStatement(s, defStart - specPos - s.Location.Item.Offset), s.Location)
+                    ? (SmallestExpressionInStatement(s, defStart - specPos /* - s.Location.Item.Offset */), s.Location)
                     : (null, QsNullable<QsLocation>.Null);
 
                 if (eDecl is null)
@@ -453,7 +449,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var statementsAfter = scope.Statements.SkipWhile(s => IsBefore(s.Location)).ToImmutableList();
             var nextScope = statementsBefore.LastOrDefault()?.Statement switch
             {
-                QsStatementKind.QsConditionalStatement cond => LastConditionBlockBefore(cond, position)?.Item2.Body,
+                QsStatementKind.QsConditionalStatement cond => LastCondBlockBefore(cond)?.Body,
                 QsStatementKind.QsForStatement @for => @for.Item.Body,
                 QsStatementKind.QsWhileStatement @while => @while.Item.Body,
                 QsStatementKind.QsRepeatStatement repeat => NextRepeatScope(repeat),
@@ -471,27 +467,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool IsBefore(QsNullable<QsLocation> location) => location.IsValue && location.Item.Offset < position;
             bool ScopeStartsBefore(QsScope sc) => sc.Statements.FirstOrDefault() is { } st && IsBefore(st.Location);
 
+            QsPositionedBlock? LastCondBlockBefore(QsStatementKind.QsConditionalStatement cond)
+            {
+                var condBlocks = cond.Item.ConditionalBlocks.Select(b => b.Item2);
+                var blocks = cond.Item.Default.IsValue ? condBlocks.Append(cond.Item.Default.Item) : condBlocks;
+                return blocks.TakeWhile(b => b.Location.IsValue && b.Location.Item.Offset < position).LastOrDefault();
+            }
+
             static QsScope NextRepeatScope(QsStatementKind.QsRepeatStatement repeat)
             {
-                var statements = repeat.Item.RepeatBlock.Body.Statements
-                    .Concat(repeat.Item.FixupBlock.Body.Statements)
-                    .ToImmutableArray();
-
-                return new QsScope(statements, repeat.Item.RepeatBlock.Body.KnownSymbols);
+                var statements = repeat.Item.RepeatBlock.Body.Statements.Concat(repeat.Item.FixupBlock.Body.Statements);
+                return new QsScope(statements.ToImmutableArray(), repeat.Item.RepeatBlock.Body.KnownSymbols);
             }
-        }
-
-        private static (TypedExpression?, QsPositionedBlock)? LastConditionBlockBefore(
-            QsStatementKind.QsConditionalStatement conditional, Position position)
-        {
-            var condBlocks = conditional.Item.ConditionalBlocks.Select(b => b.ToValueTuple());
-            var blocks = conditional.Item.Default.IsValue
-                ? condBlocks.Append((null, conditional.Item.Default.Item))
-                : condBlocks;
-
-            return blocks
-                .TakeWhile(b => b.Item2.Location.IsValue && b.Item2.Location.Item.Offset < position)
-                .LastOrDefault();
         }
 
         private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInExpression(
