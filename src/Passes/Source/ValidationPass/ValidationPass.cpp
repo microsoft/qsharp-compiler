@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Rules/Factory.hpp"
-#include "Rules/Notation/Notation.hpp"
-#include "Rules/ReplacementRule.hpp"
 #include "ValidationPass/ValidationPass.hpp"
 
 #include "Llvm/Llvm.hpp"

@@ -4,7 +4,6 @@
 
 #include "Logging/ILogger.hpp"
 #include "Profile/Profile.hpp"
-#include "Rules/RuleSet.hpp"
 #include "ValidationPass/ValidationConfiguration.hpp"
 
 #include "Llvm/Llvm.hpp"
