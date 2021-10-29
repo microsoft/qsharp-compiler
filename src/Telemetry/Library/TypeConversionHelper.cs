@@ -33,16 +33,6 @@ namespace Microsoft.Quantum.Telemetry
         internal static void SetContext(this ILogger logger, string name, object value, TelemetryPropertyType propertyType, bool isPii) =>
             setContextActions[propertyType](logger, name, value, isPii.ToPiiKind());
 
-        private static Dictionary<TelemetryPropertyType, Func<JsonElement, object>> fromJsonElementConversion = new()
-        {
-            { TelemetryPropertyType.Boolean, (jsonElement) => jsonElement.GetBoolean() },
-            { TelemetryPropertyType.DateTime, (jsonElement) => jsonElement.GetDateTime() },
-            { TelemetryPropertyType.Double, (jsonElement) => jsonElement.GetDouble() },
-            { TelemetryPropertyType.Guid, (jsonElement) => jsonElement.GetGuid() },
-            { TelemetryPropertyType.Long, (jsonElement) => jsonElement.GetInt64() },
-            { TelemetryPropertyType.String, (jsonElement) => jsonElement.GetString()! },
-        };
-
         private static Dictionary<TelemetryPropertyType, Action<EventProperties, string, object, PiiKind>> setPropertyMethods = new()
         {
             { TelemetryPropertyType.Boolean, (eventProperties, name, value, piiKind) => eventProperties.SetProperty(name, (bool)value, piiKind) },
