@@ -22,10 +22,8 @@ namespace quantum
       , function_analysis_manager_{debug}
       , gscc_analysis_manager_{debug}
       , module_analysis_manager_{debug}
-      , pgo_options_{}
       , pass_instrumentation_callbacks_{std::make_unique<llvm::PassInstrumentationCallbacks>()}
       , standard_instrumentations_{std::make_unique<llvm::StandardInstrumentations>()}
-      , pipeline_tuning_options_{}
       , qubit_allocation_manager_{std::move(qubit_allocation_manager)}
       , result_allocation_manager_{std::move(result_allocation_manager)}
       , validator_{std::make_unique<Validator>(ValidationPassConfiguration(), debug)}
@@ -34,7 +32,7 @@ namespace quantum
         bool verify_each_pass = false;
         standard_instrumentations_->registerCallbacks(*pass_instrumentation_callbacks_);
 
-        // TODO: Parameterize
+        // TODO(tfr): Parameterize
         // pipeline_tuning_options_.LoopUnrolling = !DisableLoopUnrolling;
         // pipeline_tuning_options_.Coroutines = Coroutines;
 
