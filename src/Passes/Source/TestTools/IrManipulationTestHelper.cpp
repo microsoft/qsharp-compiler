@@ -137,7 +137,7 @@ namespace quantum
         OptimizationLevel const& optimisation_level,
         bool                     debug)
     {
-        auto profile = generator->newProfile("test", optimisation_level, debug);
+        auto profile = generator->newProfile("generic", optimisation_level, debug);
         profile.apply(*module_);
 
         // Verifying that the module is valid
