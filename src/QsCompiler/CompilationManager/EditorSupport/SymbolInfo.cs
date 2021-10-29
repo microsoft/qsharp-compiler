@@ -154,26 +154,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return new LocalDeclarations(
                 declarationsBefore
                     .Concat(currentStatement.SymbolDeclarations.Variables)
-                    .Concat(expressionDeclarations.Select(AddStatementOffset))
+                    .Concat(expressionDeclarations.Select(AddOffset))
                     .ToImmutableArray());
 
-            IEnumerable<LocalVariableDeclaration<string>> ExpressionDeclarations((TypedExpression, Position?) expr) =>
+            IEnumerable<(LocalVariableDeclaration<string>, Position)> ExpressionDeclarations((TypedExpression, Position?) expr) =>
                 expr.Item2 is null
-                    ? Enumerable.Empty<LocalVariableDeclaration<string>>()
-                    : DeclarationsInExpression(expr.Item1, position - expr.Item2);
+                    ? Enumerable.Empty<(LocalVariableDeclaration<string>, Position)>()
+                    : DeclarationsInExpression(expr.Item1, position - expr.Item2).Select(d => (d, expr.Item2));
 
-            LocalVariableDeclaration<string> AddStatementOffset(LocalVariableDeclaration<string> decl)
+            LocalVariableDeclaration<string> AddOffset((LocalVariableDeclaration<string>, Position) d)
             {
-                var specPosition = decl.Position.Map(p => currentStatement.Location.Item.Offset + p);
+                var (decl, offset) = d;
+                var specPosition = decl.Position.Map(p => offset + p);
                 return new LocalVariableDeclaration<string>(
                     decl.VariableName, decl.Type, decl.InferredInformation, specPosition, decl.Range);
             }
         }
 
-        private static TypedExpression? SmallestExpressionInStatement(QsStatement statement, Position position) =>
+        private static (TypedExpression, Position)? SmallestExpressionInStatement(QsStatement statement, Position position) =>
             ExpressionsInStatement(statement)
-                .Select(e => e.Item2 is null ? null : SmallestExpression(e.Item1, position - e.Item2))
-                .FirstOrDefault(e => !(e is null));
+                .Where(e => !(e.Item2 is null) && e.Item1.Range.IsValue && (e.Item2 + e.Item1.Range.Item).Contains(position))
+                .Select(e => (SmallestExpression(e.Item1, position - e.Item2), e.Item2))
+                .FirstOrDefault(e => !(e.Item1 is null))!;
 
         private static IEnumerable<(TypedExpression, Position?)> ExpressionsInStatement(QsStatement statement)
         {
@@ -413,9 +415,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var defStart = defOffset + defRange.Start;
                 var (_, statementsBefore, statementsAfter) = SplitStatementsByPosition(implementation, defStart - specPos);
 
-                var (eDecl, eLoc) = statementsBefore.LastOrDefault() is { } s
-                    ? (SmallestExpressionInStatement(s, defStart - specPos /* - s.Location.Item.Offset */), s.Location)
-                    : (null, QsNullable<QsLocation>.Null);
+                var eDecl = statementsBefore.LastOrDefault() is { } s
+                    ? SmallestExpressionInStatement(s, defStart - specPos)
+                    : null;
 
                 if (eDecl is null)
                 {
@@ -425,7 +427,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 else
                 {
-                    referenceLocations = IdentifierReferences.FindInExpression(definition.Item.Item1, eDecl, file.FileName, specPos, eLoc).Select(AsLocation);
+                    var location = QsNullable<QsLocation>.NewValue(new QsLocation(eDecl.Value.Item2, Range.Zero));
+                    referenceLocations = IdentifierReferences.FindInExpression(definition.Item.Item1, eDecl.Value.Item1, file.FileName, specPos, location).Select(AsLocation);
                 }
             }
 
