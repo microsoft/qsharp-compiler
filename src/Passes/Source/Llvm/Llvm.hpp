@@ -65,7 +65,7 @@
 // Bitcode output
 #include "llvm/Bitcode/BitcodeWriter.h"
 
-/// TEST
+/// Initialization
 
 #include "llvm/InitializePasses.h"
 #include "llvm/LinkAllIR.h"
@@ -75,23 +75,7 @@
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
-/*
-#include "llvm/IRReader/IRReader.h"
-#include "llvm/Support/Debug.h"
-#include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Host.h"
-#include "llvm/Support/PluginLoader.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/SystemUtils.h"
-#include "llvm/Support/ToolOutputFile.h"
-#include "llvm/Support/YAMLTraits.h"
-#include "llvm/Transforms/Coroutines.h"
-#include "llvm/Transforms/IPO/AlwaysInliner.h"
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
-#include "llvm/Transforms/IPO/WholeProgramDevirt.h"
-#include "llvm/Transforms/Utils/Cloning.h"
-#include "llvm/Transforms/Utils/Debugify.h"
-*/
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif

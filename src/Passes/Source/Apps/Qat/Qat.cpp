@@ -69,12 +69,6 @@ using namespace microsoft::quantum;
 void init();
 void init()
 {
-    /*
-  InitializeAllTargets();
-  InitializeAllTargetMCs();
-  InitializeAllAsmPrinters();
-  InitializeAllAsmParsers();
-  */
     // Initialize passes
     PassRegistry& Registry = *PassRegistry::getPassRegistry();
 
@@ -197,16 +191,7 @@ int main(int argc, char** argv)
 
                     auto& pass_builder = ptr->passBuilder();
                     auto& npm          = ptr->modulePassManager();
-                    /*
-                      if (auto err =
-                              pass_builder_->parsePassPipeline(module_pass_manager_, "default<O3>", false,
-                      false))
-                      {
-                        llvm::errs() << "xxx"
-                                     << ": " << toString(std::move(err)) << "\n";
-                        return;
-                      }
-                    */
+
                     if (auto err = pass_builder.parsePassPipeline(npm, pass_pipeline, false, false))
                     {
                         throw std::runtime_error(
