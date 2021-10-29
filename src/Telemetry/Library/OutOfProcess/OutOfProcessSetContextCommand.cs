@@ -13,7 +13,6 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         public new SetContextArgs Args
         {
             get => (SetContextArgs)base.Args!;
-            set => base.Args = value;
         }
 
         public override bool Equals(object? obj) =>

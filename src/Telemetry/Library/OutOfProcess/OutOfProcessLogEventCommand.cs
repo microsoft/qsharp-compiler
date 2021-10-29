@@ -15,14 +15,15 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         public new EventProperties Args
         {
             get => (EventProperties)base.Args!;
-            set => base.Args = value;
         }
 
         public override bool Equals(object? obj)
         {
             if (obj is OutOfProcessLogEventCommand logEventCommand)
             {
-                if (logEventCommand.Args.Name != this.Args.Name)
+                if ((logEventCommand.Args.Name != this.Args.Name)
+                    || (logEventCommand.Args.PiiProperties.Count != this.Args.PiiProperties.Count)
+                    || (logEventCommand.Args.Properties.Count != this.Args.Properties.Count))
                 {
                     return false;
                 }
@@ -45,7 +46,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         }
 
         public override int GetHashCode() =>
-            this.CommandType.GetHashCode() ^ this.Args.GetHashCode();
+            this.CommandType.GetHashCode() ^ this.Args.Name.GetHashCode();
 
         public override void Process(IOutOfProcessServer server) =>
             server.ProcessCommand(this);

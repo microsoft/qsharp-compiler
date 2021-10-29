@@ -222,10 +222,5 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                     break;
             }
         }
-
-        public void Write(StreamWriter streamWriter, OutOfProcessCommand command)
-        {
-            throw new NotImplementedException();
-        }
     }
 }
