@@ -171,7 +171,7 @@ let ensureComma (item: 'a SequenceItem) =
 /// <summary>
 /// Prepends the <paramref name="parameters"/> with an ellipsis <see cref="Terminal"/> item if it does not already contain one.
 /// </summary>
-let ensureEllipsis (parameters: SpecializationParameter Tuple) =
+let ensureEllipsis (parameters: Terminal Tuple) =
     let ellipsis nspace =
         { Prefix = [ spaces nspace ]; Text = "..." }
 
