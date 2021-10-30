@@ -11,6 +11,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
@@ -150,53 +151,53 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return new LocalDeclarations(declarationsBefore.ToImmutableArray());
             }
 
-            var expressionDeclarations = ExpressionsInStatement(currentStatement).SelectMany(ExpressionDeclarations);
-            return new LocalDeclarations(
-                declarationsBefore
-                    .Concat(currentStatement.SymbolDeclarations.Variables)
-                    .Concat(expressionDeclarations.Select(AddOffset))
-                    .ToImmutableArray());
+            return new LocalDeclarations(declarationsBefore
+                .Concat(currentStatement.SymbolDeclarations.Variables)
+                .Concat(ExpressionsInStatement(currentStatement).SelectMany(DeclarationsWithOffset))
+                .ToImmutableArray());
 
-            IEnumerable<(LocalVariableDeclaration<string>, Position)> ExpressionDeclarations((TypedExpression, Position?) expr) =>
-                expr.Item2 is null
-                    ? Enumerable.Empty<(LocalVariableDeclaration<string>, Position)>()
-                    : DeclarationsInExpression(expr.Item1, position - expr.Item2).Select(d => (d, expr.Item2));
-
-            LocalVariableDeclaration<string> AddOffset((LocalVariableDeclaration<string>, Position) d)
+            IEnumerable<LocalVariableDeclaration<string>> DeclarationsWithOffset(TypedExpression e)
             {
-                var (decl, offset) = d;
-                var specPosition = decl.Position.Map(p => offset + p);
-                return new LocalVariableDeclaration<string>(
-                    decl.VariableName, decl.Type, decl.InferredInformation, specPosition, decl.Range);
+                if (currentStatement.Location.IsNull)
+                {
+                    return Enumerable.Empty<LocalVariableDeclaration<string>>();
+                }
+
+                e = new ExpressionOffsetTransformation(currentStatement.Location.Item.Offset).OnTypedExpression(e);
+                return DeclarationsInExpression(e, position);
             }
         }
 
-        private static (TypedExpression, Position)? SmallestExpressionInStatement(QsStatement statement, Position position) =>
+        private static TypedExpression? SmallestExpressionInStatement(QsStatement statement, Position position) =>
             ExpressionsInStatement(statement)
-                .Where(e => !(e.Item2 is null) && e.Item1.Range.IsValue && (e.Item2 + e.Item1.Range.Item).Contains(position))
-                .Select(e => (SmallestExpression(e.Item1, position - e.Item2), e.Item2))
-                .FirstOrDefault(e => !(e.Item1 is null))!;
+                .Select(e => SmallestExpression(e, position))
+                .FirstOrDefault(e => !(e is null));
 
-        private static IEnumerable<(TypedExpression, Position?)> ExpressionsInStatement(QsStatement statement)
+        private static IEnumerable<TypedExpression> ExpressionsInStatement(QsStatement statement)
         {
             return statement.Statement switch
             {
-                QsStatementKind.QsExpressionStatement expression => Single(expression.Item),
-                QsStatementKind.QsReturnStatement @return => Single(@return.Item),
-                QsStatementKind.QsFailStatement fail => Single(fail.Item),
-                QsStatementKind.QsVariableDeclaration declaration => Single(declaration.Item.Rhs),
-                QsStatementKind.QsValueUpdate update => Single(update.Item.Rhs),
-                QsStatementKind.QsConditionalStatement conditional => conditional.Item.ConditionalBlocks.Select(b =>
-                    (b.Item1, b.Item2.Location.IsValue ? b.Item2.Location.Item.Offset : null)),
-                QsStatementKind.QsForStatement @for => Single(@for.Item.IterationValues),
-                QsStatementKind.QsWhileStatement @while => Single(@while.Item.Condition),
-                QsStatementKind.QsRepeatStatement repeat => Single(repeat.Item.SuccessCondition),
-                _ => Enumerable.Empty<(TypedExpression, Position?)>(),
+                QsStatementKind.QsExpressionStatement expression => new[] { expression.Item },
+                QsStatementKind.QsReturnStatement @return => new[] { @return.Item },
+                QsStatementKind.QsFailStatement fail => new[] { fail.Item },
+                QsStatementKind.QsVariableDeclaration declaration => new[] { declaration.Item.Rhs },
+                QsStatementKind.QsValueUpdate update => new[] { update.Item.Rhs },
+                QsStatementKind.QsConditionalStatement cond => cond.Item.ConditionalBlocks.Select(CondBlockExpression),
+                QsStatementKind.QsForStatement @for => new[] { @for.Item.IterationValues },
+                QsStatementKind.QsWhileStatement @while => new[] { @while.Item.Condition },
+                QsStatementKind.QsRepeatStatement repeat => new[] { repeat.Item.SuccessCondition },
+                _ => Enumerable.Empty<TypedExpression>(),
             };
 
-            IEnumerable<(TypedExpression, Position?)> Single(TypedExpression e)
+            TypedExpression CondBlockExpression(Tuple<TypedExpression, QsPositionedBlock> b)
             {
-                yield return (e, statement.Location.IsValue ? statement.Location.Item.Offset : null);
+                if (statement.Location.IsNull || b.Item2.Location.IsNull)
+                {
+                    return b.Item1;
+                }
+
+                var offset = b.Item2.Location.Item.Offset - statement.Location.Item.Offset;
+                return new ExpressionOffsetTransformation(offset).OnTypedExpression(b.Item1);
             }
         }
 
@@ -415,9 +416,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var defStart = defOffset + defRange.Start;
                 var (_, statementsBefore, statementsAfter) = SplitStatementsByPosition(implementation, defStart - specPos);
 
-                var eDecl = statementsBefore.LastOrDefault() is { } s
-                    ? SmallestExpressionInStatement(s, defStart - specPos)
-                    : null;
+                var (eDecl, eLoc) = statementsBefore.LastOrDefault() is { Location: { IsValue: true } } s
+                    ? (SmallestExpressionInStatement(s, defStart - specPos - s.Location.Item.Offset), s.Location)
+                    : (null, QsNullable<QsLocation>.Null);
 
                 if (eDecl is null)
                 {
@@ -427,8 +428,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 else
                 {
-                    var location = QsNullable<QsLocation>.NewValue(new QsLocation(eDecl.Value.Item2, Range.Zero));
-                    referenceLocations = IdentifierReferences.FindInExpression(definition.Item.Item1, eDecl.Value.Item1, file.FileName, specPos, location).Select(AsLocation);
+                    referenceLocations = IdentifierReferences.FindInExpression(definition.Item.Item1, eDecl, file.FileName, specPos, eLoc).Select(AsLocation);
                 }
             }
 
@@ -580,6 +580,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 default:
                     return Enumerable.Empty<LocalVariableDeclaration<string>>();
             }
+        }
+
+        private class ExpressionOffsetTransformation : ExpressionTransformation
+        {
+            private readonly Position offset;
+
+            internal ExpressionOffsetTransformation(Position offset) => this.offset = offset;
+
+            public override QsNullable<Range> OnRangeInformation(QsNullable<Range> range) =>
+                range.Map(r => this.offset + r);
         }
     }
 }
