@@ -222,14 +222,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return finder.SharedState.Locations;
         }
 
+        /// <summary>
+        /// Finds references to an identifier in an expression.
+        /// </summary>
+        /// <param name="name">The identifier name.</param>
+        /// <param name="expr">The expression.</param>
+        /// <param name="fileName">The source file name.</param>
+        /// <param name="specPosition">The position of the specialization that contains the expression.</param>
+        /// <param name="statementLocation">The location of the statement that contains the expression.</param>
+        /// <returns>The locations of the references.</returns>
         public static ImmutableHashSet<Location> FindInExpression(
-            string name, TypedExpression expression, string source, Position offset, QsNullable<QsLocation> location)
+            string name, TypedExpression expr, string fileName, Position specPosition, QsLocation? statementLocation)
         {
-            var references = new IdentifierReferences(name, null, ImmutableHashSet.Create(source));
-            references.SharedState.Source = source;
-            references.SharedState.DeclarationOffset = offset;
-            references.SharedState.CurrentLocation = location.IsValue ? location.Item : null;
-            references.Expressions.OnTypedExpression(expression);
+            var references = new IdentifierReferences(name, null, ImmutableHashSet.Create(fileName));
+            references.SharedState.Source = fileName;
+            references.SharedState.DeclarationOffset = specPosition;
+            references.SharedState.CurrentLocation = statementLocation;
+            references.Expressions.OnTypedExpression(expr);
             return references.SharedState.Locations;
         }
 

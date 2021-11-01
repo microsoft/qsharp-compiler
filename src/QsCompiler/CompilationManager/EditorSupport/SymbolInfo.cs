@@ -296,7 +296,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return StatementReferences();
             }
 
-            return IdentifierReferences.FindInExpression(defName, expr, fileName, specPosition, statement.Location)
+            var location = statement.Location.IsValue ? statement.Location.Item : null;
+            return IdentifierReferences.FindInExpression(defName, expr, fileName, specPosition, location)
                 .Select(AsLocation);
 
             IEnumerable<Location> StatementReferences()
