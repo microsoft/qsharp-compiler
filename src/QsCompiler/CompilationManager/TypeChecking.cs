@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -1939,7 +1940,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If <paramref name="relativePosition"/> lays outside a piece of code e.g. after a scope ending the returned declarations may be inaccurate.
         /// </remarks>
         public static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition) =>
-            SymbolInfo.LocalsInScope(scope, relativePosition, false);
+            SyntaxUtils.LocalsInScope(scope, relativePosition, false);
 
         /// <summary>
         /// Recomputes the globally defined symbols within <paramref name="file"/> and updates the symbols in <paramref name="compilation"/> accordingly.
