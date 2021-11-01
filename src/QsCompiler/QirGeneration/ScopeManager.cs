@@ -529,6 +529,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
+                    // RyanNote: not a body func
                     this.sharedState.CurrentBuilder.Call(func, arg, change);
                 }
             }

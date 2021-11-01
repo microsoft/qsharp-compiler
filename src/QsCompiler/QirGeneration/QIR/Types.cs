@@ -115,7 +115,7 @@ namespace Microsoft.Quantum.QIR
 
         internal QirTypeTransformation Transform { get; }
 
-        internal Types(Context context, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
+        internal Types(Context context, Func<QsQualifiedName, QsCustomType?> getTypeDecl) // RyanNote: need this for debug info
         {
             this.context = context;
             this.Transform = new QirTypeTransformation(this, getTypeDecl);

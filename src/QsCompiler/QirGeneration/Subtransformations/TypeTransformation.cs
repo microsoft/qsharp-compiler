@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -63,6 +64,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.qirTypes.TypedTuple(items.Select(this.LlvmTypeFromQsharpType));
 
         /* public overrides */
+
+        public override QsNullable<DataTypes.Range> OnRangeInformation(QsNullable<DataTypes.Range> range)
+        {
+            return base.OnRangeInformation(range); // RyanNote: Useful DebugPoint
+        }
+
+        public override TypeRange OnTypeRange(TypeRange range)
+        {
+            return base.OnTypeRange(range); // RyanNote: Useful DebugPoint
+        }
 
         public override QsResolvedTypeKind OnArrayType(ResolvedType b)
         {
@@ -151,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return QsResolvedTypeKind.InvalidType;
         }
 
-        public override QsResolvedTypeKind OnUserDefinedType(UserDefinedType udt)
+        public override QsResolvedTypeKind OnUserDefinedType(UserDefinedType udt) // RyanNote: This looks useful
         {
             // User-defined types are represented by a tuple of their items.
             var udtDefinition = this.getTypeDeclaration(udt.GetFullName());

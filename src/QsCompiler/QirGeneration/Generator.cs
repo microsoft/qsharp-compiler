@@ -42,6 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Compilation = compilation;
 
             this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild);
+            this.Statements = new QirStatementTransformation(this, TransformationOptions.NoRebuild);
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);
             this.Expressions = new QirExpressionTransformation(this, TransformationOptions.NoRebuild);
             this.ExpressionKinds = new QirExpressionKindTransformation(this, TransformationOptions.NoRebuild);

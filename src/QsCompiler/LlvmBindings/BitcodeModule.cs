@@ -28,10 +28,12 @@ namespace Ubiquity.NET.Llvm
         Invalid = 0,
 
         /// <summary>Emits an error if two values disagree, otherwise the resulting value is that of the operands.</summary>
-        Error = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorError,
+        Error = 1,
+        // LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorError,
 
         /// <summary>Emits a warning if two values disagree. The result will be the operand for the flag from the first module being linked.</summary>
-        Warning = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorWarning,
+        Warning = 2,
+        // LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorWarning,
 
         /// <summary>Adds a requirement that another module flag be present and have a specified value after linking is performed.</summary>
         /// <remarks>
@@ -39,17 +41,21 @@ namespace Ubiquity.NET.Llvm
         /// second element of the pair is the value the module flag should be restricted to. This behavior can be used to restrict the
         /// allowable results (via triggering of an error) of linking IDs with the <see cref="Override"/> behavior.
         /// </remarks>
-        Require = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorRequire,
+        Require = 3,
+        // LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorRequire,
 
         /// <summary>Uses the specified value, regardless of the behavior or value of the other module.</summary>
         /// <remarks>If both modules specify Override, but the values differ, and error will be emitted.</remarks>
-        Override = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorOverride,
+        Override = 4,
+        // LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorOverride,
 
         /// <summary>Appends the two values, which are required to be metadata nodes.</summary>
-        Append = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorAppend,
+        Append = 5,
+        // LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorAppend,
 
         /// <summary>Appends the two values, which are required to be metadata nodes dropping duplicate entries in the second list.</summary>
-        AppendUnique = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorAppendUnique,
+        AppendUnique = 6,
+        // LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorAppendUnique,
     }
 
     /// <summary>LLVM Bit-code module.</summary>

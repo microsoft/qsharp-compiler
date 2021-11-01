@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm;
@@ -192,7 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.DIManager = new DebugInfoManager(this);
             this.DIManager.AddTopLevelDebugInfo(this.Module, entryPoints);
 
-            this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
+            this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null); // RyanNote: need somethign like this for debug
             this.Constants = new Constants(this.Context, this.Module, this.Types);
             this.Values = new QirValues(this, this.Constants);
             this.Functions = new Functions(this);
@@ -271,7 +272,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Initializes the QIR runtime library.
         /// </summary>
-        public void InitializeRuntimeLibrary()
+        public void InitializeRuntimeLibrary() // RyanNote: Will I need debug info for this?
         {
             // Q# specific helpers
             this.runtimeLibrary.AddFunction(RuntimeLibrary.HeapAllocate, this.Context.Int8Type.CreatePointerType(), this.Types.Int);
@@ -418,7 +419,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// <inheritdoc cref="Interop.GenerateWrapper(GenerationContext, string, ArgumentTuple, ResolvedType, IrFunction)"/>
+        /// <inheritdoc cref="Interop.GenerateWrapper(GenerationContext, string, ArgumentTuple, ResolvedType, IrFunction, QsLocation)"/>
         /// <br/>
         /// Adds an <see cref="AttributeNames.InteropFriendly"/> attribute marking the created wrapper as interop wrapper.
         /// If no wrapper needed to be created because the signature of the callable is interop-friendly,
@@ -430,7 +431,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             string wrapperName = NameGeneration.InteropFriendlyWrapperName(qualifiedName);
             IrFunction InteropWrapper(QsCallable callable, IrFunction implementation) =>
-                Interop.GenerateWrapper(this, wrapperName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation);
+                Interop.GenerateWrapper(this, wrapperName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation, callable.Location.Item ?? null);
             this.CreateBridgeFunction(qualifiedName, QsSpecializationKind.QsBody, InteropWrapper, AttributeNames.InteropFriendly);
         }
 
@@ -495,6 +496,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>true if the callable is found, false if not</returns>
         internal bool TryGetGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable) =>
             this.globalCallables.TryGetValue(fullName, out callable);
+
+        internal bool TryGetQualifiedNameFromCallable(QsCallable targetCallable, [MaybeNullWhen(false)] out QsQualifiedName fullName)
+        {
+            var keyValuePair = this.globalCallables.FirstOrDefault(item => item.Value.Equals(targetCallable));
+            fullName = keyValuePair.Key;
+            return true;
+            // if (keyValuePair == null) // TODO: check for default
+            // {
+            //     return false;
+            // }
+            // else
+            // {
+            //     fullName = keyValuePair.Key;
+            //     return true;
+            // }
+        }
 
         /// <summary>
         /// Tries to find a Q# user-defined type in the current compilation.
@@ -609,15 +626,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var name = NameGeneration.FunctionName(spec.Parent, spec.Kind);
             var returnTypeRef = spec.Signature.ReturnType.Resolution.IsUnitType
                 ? this.Context.VoidType
-                : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
+                : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType); // RyanNote: here's where I can find some types
             var argTypeRefs =
                 spec.Signature.ArgumentType.Resolution.IsUnitType ? new ITypeRef[0] :
                 spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
-            // return DIManager.CreateLocalFunction(spec, name, signature, isDefinition: false, returnTypeRef, argTypeRefs); // RyanQuestion: can I assume it's not extern here? (see input to GenerateFunctionHeader) What about local? (see implementation of CreateLocalFunction)
-            return this.Module.CreateFunction(name, signature); // RyanTODO: swap this out for the new function creation
+            return this.DIManager.CreateLocalFunction(spec, name, signature, isDefinition: false, returnTypeRef, argTypeRefs); // RyanQuestion: can I assume it's not extern here? (see input to GenerateFunctionHeader) What about local? (see implementation of CreateLocalFunction)
+
+            // return this.Module.CreateFunction(name, signature); // RyanTODO: swap this out for the new function creation
         }
 
         /// <summary>
@@ -775,7 +793,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// as arguments and returns void.
         /// </summary>
         internal IrFunction GeneratePartialApplication(string name, QsSpecializationKind kind, Action<IReadOnlyList<Argument>> body)
-        {
+        { // RyanQuestion: What is this for? Does it need debug info?
             var funcName = NameGeneration.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
             IrFunction func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
             func.Linkage = Linkage.Internal;
@@ -953,7 +971,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Does *not* generate any required functions that have been added by <paramref name="executeBody"/>;
         /// it is up to the caller to ensure that the necessary functions are created.
         /// </summary>
-        internal void GenerateFunction(IrFunction func, string?[] argNames, Action<IReadOnlyList<Argument>> executeBody)
+        internal void GenerateFunction(IrFunction func, string?[] argNames, Action<IReadOnlyList<Argument>> executeBody) // I think this is mutually exclusive to OnProvidedImplementation
         {
             this.StartFunction();
             this.CurrentFunction = func;
@@ -1064,6 +1082,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else
                 {
                     var func = this.GetFunctionByName(callable.FullName, specKind); // RyanNote: This function shouold be decorated when it's created
+
+                    // // -----------------
+                    // // get the debug location of the function // do I even need this?
+                    // QsNullable<QsLocation> debugLoc = callable.Location; // TODO: Location should be for caller not callee
+                    // if (!debugLoc.IsNull)
+                    // {
+                    //     this.DIManager.EmitLocation((uint)debugLoc.Item.Offset.Line, (uint)debugLoc.Item.Offset.Column, func.DISubProgram);
+                    // }
+
+                    // // -----------------------
                     value = this.CurrentBuilder.Call(func, args);
                 }
 

@@ -72,6 +72,20 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// </summary>
         public DICompileUnit? CompileUnit { get; private set; }
 
+        /// <summary>
+        /// Gets the compile unit paired with this DebugInfoBuilder.
+        /// If there is no compile unit, throws an exception.
+        /// </summary>
+        public DICompileUnit GetCompileUnit()
+        {
+            if (this.CompileUnit == null)
+            {
+                throw new ArgumentException("Expected DebugInfoBuilder to have a CompileUnit set.");
+            }
+
+            return this.CompileUnit;
+        }
+
         /// <summary>Creates a new <see cref="DICompileUnit"/></summary>
         /// <param name="language"><see cref="SourceLanguage"/> for the compilation unit</param>
         /// <param name="sourceFilePath">Full path to the source file of this compilation unit</param>

@@ -26,7 +26,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     /// type. (e.g. unsigned char, char, byte and signed byte might all be 8 bit integer values as far
     /// as LLVM is concerned.) Also, when using the pointer+alloca+memcpy pattern to pass by value the
     /// actual source debug info type is different than the LLVM function signature. This interface and
-    /// it's implementations are used to construct native type and debug info pairing to allow applications
+    /// its implementations are used to construct native type and debug info pairing to allow applications
     /// to maintain a link from their AST or IR types into the LLVM native type and debug information.
     /// </para>
     /// <note type="note">

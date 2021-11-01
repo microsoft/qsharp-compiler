@@ -13,6 +13,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
@@ -823,6 +824,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var argList = args.Select(a => a.Value).ToArray();
+
+                // // -----------------
+                // // get the debug location of the function call
+                // DISubProgram? sp = this.SharedState.CurrentFunction?.DISubProgram;
+                // DataTypes.Range? relativeRange = arg.Range.IsNull ? null : arg.Range.Item;
+                // // range is position x position (Start/End) and position is int x int (Line/Column)
+                // QsLocation? namespaceLoc = this.SharedState.DIManager.CurrentNamespaceElementLocation;
+                // // QsLocation is Offset (position) and Range (range)
+                // if (namespaceLoc != null && relativeRange != null && sp != null)
+                // {
+                //     Position position = namespaceLoc.Offset + this.SharedState.DIManager.TotalOffsetFromStatements() + relativeRange.Start;
+                //     this.SharedState.DIManager.EmitLocation((uint)position.Line, (uint)position.Column, sp); // TODO: should be range info for method call not for arguments
+                // }
+                // else
+                // {
+                //     throw new ArgumentException("Expected non-null positions for the expression and namespace and a non-null DISubProgram"); // TODO: can remove this later, just for testing for now
+                // }
+                // // -----------------------
+
                 var res = this.SharedState.CurrentBuilder.Call(func, argList);
                 if (func.Signature.ReturnType.IsVoid)
                 {
@@ -906,7 +926,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (returnType.Resolution.IsUnitType)
             {
                 Value resultTuple = this.SharedState.Constants.UnitValue;
-                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple);
+                // TODO: probs need debug emission here as well
+                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple); // func is to something that invokes the callable Value using the args ad resulting in the resultTuple
                 return this.SharedState.Values.Unit;
             }
             else
@@ -915,7 +936,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
                 TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes);
-                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer);
+
+                // // -----------------
+                // // TODO: turn this into a helper function since it's copied code (also should be in DebugInfoManager)
+                // // get the debug location of the function call
+                // DISubProgram? sp = this.SharedState.CurrentFunction?.DISubProgram;
+                // DataTypes.Range? relativeRange = arg.Range.IsNull ? null : arg.Range.Item;
+                // // range is position x position (Start/End) and position is int x int (Line/Column)
+                // QsLocation? namespaceLoc = this.SharedState.DIManager.CurrentNamespaceElementLocation;
+                // // QsLocation is Offset (position) and Range (range)
+                // if (namespaceLoc != null && relativeRange != null && sp != null)
+                // {
+                //     Position position = namespaceLoc.Offset + this.SharedState.DIManager.TotalOffsetFromStatements() + relativeRange.Start;
+                //     this.SharedState.DIManager.EmitLocation((uint)position.Line, (uint)position.Column, sp);
+                // }
+                // else
+                // {
+                //     throw new ArgumentException("Expected non-null positions for the expression and namespace and a non-null DISubProgram"); // TODO: can remove this later, just for testing for now
+                // }
+                // // -----------------------
+
+                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer); // RyanQuestion: what is this calling?? params don't match anything
                 return returnType.Resolution.IsTupleType
                     ? resultTuple
                     : resultTuple.GetTupleElements().Single();
@@ -980,6 +1021,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // CallableMakeAdjoint and CallableMakeControlled do *not* create a new value
             // but instead modify the given callable in place.
             var applyFunctor = this.SharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
+            // RyanQuestion: Do I need debug info when source code calls built in/intrinsic? If so, they need DISubprograms too then
             this.SharedState.CurrentBuilder.Call(applyFunctor, callable.Value);
             return callable;
         }
@@ -1042,7 +1084,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // The runtime function BigIntAdd creates a new value with reference count 1.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntAdd);
-                var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
+                var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value); // RyanQuestion: places like this where it's intrinsic do we need debug info for the call (separate from if a variable is set etc.)?
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1495,6 +1537,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpressionKind.InvalidExpr;
         }
 
+        public override ResolvedExpressionKind OnCallLikeExpression(TypedExpression method, TypedExpression arg)
+        {
+            // get the debug location of the call
+            DISubProgram? sp = this.SharedState.CurrentFunction?.DISubProgram;
+            DataTypes.Range? relativeRange = method.Range.IsNull ? null : method.Range.Item;
+            QsLocation? namespaceLoc = this.SharedState.DIManager.CurrentNamespaceElementLocation;
+            if (namespaceLoc != null && relativeRange != null && sp != null)
+            {
+                Position absolutePosition = namespaceLoc.Offset + this.SharedState.DIManager.TotalOffsetFromStatements() + relativeRange.Start;
+                this.SharedState.DIManager.EmitLocation((uint)absolutePosition.Line, (uint)absolutePosition.Column, sp);
+            }
+
+            return base.OnCallLikeExpression(method, arg);
+        }
+
         public override ResolvedExpressionKind OnGreaterThan(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
@@ -1559,6 +1616,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpressionKind.InvalidExpr;
         }
 
+        // TODO: Here's the local variable identifiers!
         public override ResolvedExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
         {
             var exType = this.SharedState.CurrentExpressionType();
@@ -2032,7 +2090,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         public override ResolvedExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)
-        {
+        { // RyanNote: This must be what I was looking for!
             (TypedExpression, bool, int) StripModifiers(TypedExpression m, bool a, int c) =>
                 m.Expression switch
                 {

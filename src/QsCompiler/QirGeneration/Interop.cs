@@ -7,9 +7,11 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
@@ -31,9 +33,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         // public static methods calling into private methods
 
-        /// <inheritdoc cref="GenerateWrapper(string, ArgumentTuple, ResolvedType, IrFunction)"/>
-        public static IrFunction GenerateWrapper(GenerationContext sharedState, string wrapperName, ArgumentTuple argumentTuple, ResolvedType returnType, IrFunction implementation) =>
-            new Interop(sharedState).GenerateWrapper(wrapperName, argumentTuple, returnType, implementation);
+        /// <inheritdoc cref="GenerateWrapper(string, ArgumentTuple, ResolvedType, IrFunction, QsLocation)"/>
+        public static IrFunction GenerateWrapper(GenerationContext sharedState, string wrapperName, ArgumentTuple argumentTuple, ResolvedType returnType, IrFunction implementation, QsLocation? implementationLoc) =>
+            new Interop(sharedState).GenerateWrapper(wrapperName, argumentTuple, returnType, implementation, implementationLoc);
 
         /// <inheritdoc cref="GenerateEntryPoint(string, ArgumentTuple, ResolvedType, IrFunction)"/>
         internal static IrFunction GenerateEntryPoint(GenerationContext sharedState, string entryPointName, ArgumentTuple argumentTuple, ResolvedType returnType, IrFunction implementation) =>
@@ -465,7 +467,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="returnType">The return type of the callable that the wrapper should invoke.</param>
         /// <param name="implementation">The QIR function that implements the body of the function that should be invoked.</param>
         /// <returns>The created wrapper function or the implementation if no wrapper function has been created.</returns>
-        private IrFunction GenerateWrapper(string wrapperName, ArgumentTuple argumentTuple, ResolvedType returnType, IrFunction implementation)
+        /// TODO: add the other arguments into docs
+        private IrFunction GenerateWrapper(string wrapperName, ArgumentTuple argumentTuple, ResolvedType returnType, IrFunction implementation, QsLocation? implementationLoc)
         {
             var argItems = SyntaxGenerator.ExtractItems(argumentTuple)
                 .Where(sym => !sym.Type.Resolution.IsUnitType)
@@ -482,6 +485,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.sharedState.GenerateFunction(wrapperFunc, argNames, parameters =>
             {
                 var argValueList = this.ProcessArguments(argumentTuple, parameters);
+
+                // // do I even need this? I don't think so since wrapper isn't in source code? But maybe since call is?
+                // // (this.TryGetGlobalCallable(qualifiedName, out QsCallable? callable) // just to look at for syntax
+                // // && this.TryGetFunction(qualifiedName, specKind, out IrFunction? func))
+                // // -----------------
+                // // get the debug location of the function
+                // DISubProgram? sp = implementation.DISubProgram;
+                // QsLocation? debugLoc = implementationLoc; // does this need to be QsNullable<QsLocation> or is that just for F#?
+                // if (debugLoc != null)
+                // {
+                //     this.sharedState.DIManager.EmitLocation((uint)debugLoc.Offset.Line, (uint)debugLoc.Offset.Column, sp);
+                // }
+                // -----------------------
                 var evaluatedValue = this.sharedState.CurrentBuilder.Call(implementation, argValueList);
                 var result = this.sharedState.Values.From(evaluatedValue, returnType);
                 this.sharedState.ScopeMgr.RegisterValue(result);

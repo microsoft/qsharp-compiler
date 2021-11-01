@@ -31,7 +31,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/> to use when constructing debug info</param>
         /// <param name="name">Source language name of the type</param>
         /// <param name="encoding">Encoding for the type</param>
-        public DebugBasicType(ITypeRef llvmType, DebugInfoBuilder dIBuilder, string name, DiTypeKind encoding)
+        public DebugBasicType(ITypeRef llvmType, DebugInfoBuilder dIBuilder, string name, DiTypeKind encoding) // Ryan: looks useful
             : base(
                 llvmType,
                 dIBuilder

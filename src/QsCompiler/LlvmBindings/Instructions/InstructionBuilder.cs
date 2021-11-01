@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
@@ -36,6 +37,27 @@ namespace Ubiquity.NET.Llvm.Instructions
 
         /// <summary>Gets the context this builder is creating instructions for.</summary>
         public Context Context { get; }
+
+        /// <summary>Set the current debug location for this <see cref="InstructionBuilder"/></summary>
+        /// <param name="line">Source line</param>
+        /// <param name="col">Source column</param>
+        /// <param name="scope"><see cref="DIScope"/> for the location</param>
+        /// <param name="inlinedAt"><see cref="DILocation"/>the location is inlined into</param>
+        /// <returns>This builder for fluent API usage</returns>
+        public InstructionBuilder SetDebugLocation(uint line, uint col, DILocalScope scope, DILocation? inlinedAt = null)
+        {
+            var loc = new DILocation(this.Context, line, col, scope, inlinedAt);
+            return SetDebugLocation(loc);
+        }
+
+        /// <summary>Set the current debug location for this <see cref="InstructionBuilder"/></summary>
+        /// <param name="location">Location to set</param>
+        /// <returns>This builder for fluent API usage</returns>
+        public InstructionBuilder SetDebugLocation(DILocation? location)
+        {
+            LLVM.SetCurrentDebugLocation2(this.BuilderHandle, location?.MetadataHandle ?? default);
+            return this;
+        }
 
         /// <summary>Gets the <see cref="BasicBlock"/> this builder is building instructions for.</summary>
         public BasicBlock? InsertBlock

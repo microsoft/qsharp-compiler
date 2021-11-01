@@ -81,7 +81,7 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Gets the LLVM boolean type for this context.</summary>
         public ITypeRef BoolType => TypeRef.FromHandle(LLVM.Int1TypeInContext(this.ContextHandle))!;
 
-        /// <summary>Gets the LLVM 8 bit integer type for this context.</summary>
+        /// <summary>Gets the LLVM 8 bit integer type for this context.</summary> // RyanNote: Why is this dependent on the context??
         public ITypeRef Int8Type => TypeRef.FromHandle(LLVM.Int8TypeInContext(this.ContextHandle))!;
 
         /// <summary>Gets the LLVM 16 bit integer type for this context.</summary>
@@ -202,6 +202,18 @@ namespace Ubiquity.NET.Llvm
                 return TypeRef.FromHandle<IFunctionType>(signature);
             }
         }
+
+
+        // /// <summary>Creates a FunctionType with Debug information</summary>
+        // /// <param name="diBuilder"><see cref="DebugInfoBuilder"/>to use to create the debug information</param>
+        // /// <param name="retType">Return type of the function</param>
+        // /// <param name="argTypes">Argument types of the function</param>
+        // /// <returns>Function signature</returns>
+        // public DebugFunctionType CreateFunctionType(
+        //     DebugInfoBuilder diBuilder,
+        //     IDebugType<ITypeRef, DIType> retType,
+        //     params IDebugType<ITypeRef, DIType>[ ] argTypes)
+        //     => CreateFunctionType(diBuilder, false, retType, argTypes );        }
 
         /// <summary>Creates a constant structure from a set of values.</summary>
         /// <param name="packed">Flag to indicate if the structure is packed and no alignment should be applied to the members.</param>

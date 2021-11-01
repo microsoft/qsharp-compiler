@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -55,6 +56,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /* public overrides */
 
+        public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
+        {
+            return base.OnLocation(loc); // RyanNote: useful debug point
+        }
+
+        public override QsNamespace OnNamespace(QsNamespace ns)
+        {
+            return base.OnNamespace(ns); // RyanNote: useful debug point
+        }
+
+        public override QsNamespaceElement OnNamespaceElement(QsNamespaceElement nse)
+        {
+           QsNullable<QsLocation> locNullable = nse switch
+            {
+                QsNamespaceElement.QsCallable callable => callable.Item.Location,
+                QsNamespaceElement.QsCustomType type => type.Item.Location,
+                _ => throw new Exception(),
+            };
+
+            QsLocation? loc = locNullable.IsNull ? null : locNullable.Item;
+
+            this.SharedState.DIManager.CurrentNamespaceElementLocation = loc;
+            QsNamespaceElement result = base.OnNamespaceElement(nse);
+            this.SharedState.DIManager.CurrentNamespaceElementLocation = null;
+            return result;
+        }
+
         public override void OnIntrinsicImplementation()
         {
             var currentCallable = this.context.GetCurrentCallable();
@@ -69,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override Tuple<QsArgumentTuple, QsScope> OnProvidedImplementation(QsArgumentTuple argTuple, QsScope body)
         {
-            this.SharedState.StartFunction();
+            this.SharedState.StartFunction(); // RyanNote: Maybe I should be moving top level DI additions to here instead of when creating the function? So we have a DISubprogram immediately?
 
             // If this compilation is for a Library project, we should treat every public callable from the target compilation unit
             // that isn't auto-generated (such as by monomorphization) as extern.
@@ -78,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.context.GetCurrentCallable().Source.AssemblyFile.IsNull &&
                 this.context.GetCurrentCallable().Access.IsPublic;
             this.SharedState.GenerateFunctionHeader(this.context.GetCurrentSpecialization(), argTuple, deconstuctArgument: true, shouldBeExtern);
-            this.Transformation.Statements.OnScope(body);
+            this.Transformation.Statements.OnScope(body); // RyanNote: this is where I need to figure out where the calls are
             this.SharedState.EndFunction(generatePending: true);
             return Tuple.Create(argTuple, body);
         }
