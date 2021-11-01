@@ -15,8 +15,7 @@ namespace quantum
         bool                 debug,
         llvm::TargetMachine* target_machine,
         AllocationManagerPtr qubit_allocation_manager,
-        AllocationManagerPtr result_allocation_manager,
-        ValueTrackerPtr      value_tracker)
+        AllocationManagerPtr result_allocation_manager)
       : name_{name}
       , loop_analysis_manager_{debug}
       , function_analysis_manager_{debug}
@@ -27,7 +26,6 @@ namespace quantum
       , qubit_allocation_manager_{std::move(qubit_allocation_manager)}
       , result_allocation_manager_{std::move(result_allocation_manager)}
       , validator_{std::make_unique<Validator>(ValidationPassConfiguration(), debug)}
-      , value_tracker_{std::move(value_tracker)}
     {
         bool verify_each_pass = false;
         standard_instrumentations_->registerCallbacks(*pass_instrumentation_callbacks_);

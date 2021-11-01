@@ -5,7 +5,6 @@
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
 #include "Validator/Validator.hpp"
-#include "ValueTracker/ValueTracker.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -33,8 +32,6 @@ namespace quantum
         //
         using String = std::string;
 
-        using ValueTrackerPtr = ValueTracker::ValueTrackerPtr;
-
         // Constructors
         //
 
@@ -43,8 +40,7 @@ namespace quantum
             bool                 debug,
             llvm::TargetMachine* target_machine            = nullptr,
             AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
-            AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew(),
-            ValueTrackerPtr      value_tracker             = ValueTracker::createNew());
+            AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew());
 
         // Default construction not allowed as this leads to invalid configuration of the allocation
         // managers.
@@ -156,9 +152,6 @@ namespace quantum
 
         ///
         ValidatorPtr validator_{};
-
-        /// Value Tracker
-        ValueTrackerPtr value_tracker_{};
 
         std::string peephole_ep_pipeline_{""};
         std::string late_loop_optimizations_ep_pipeline_{""};
