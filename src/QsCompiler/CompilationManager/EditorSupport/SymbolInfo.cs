@@ -164,99 +164,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 e = new ExpressionOffsetTransformation(currentStatement.Location.Item.Offset).OnTypedExpression(e);
-                return DeclarationsInExpression(e, position);
+                return DeclarationsInExpressionByPosition(e, position);
             }
-        }
-
-        private static TypedExpression? SmallestExpressionInStatement(QsStatement statement, Position position) =>
-            ExpressionsInStatement(statement)
-                .Select(e => SmallestExpression(e, position))
-                .FirstOrDefault(e => !(e is null));
-
-        private static IEnumerable<TypedExpression> ExpressionsInStatement(QsStatement statement)
-        {
-            return statement.Statement switch
-            {
-                QsStatementKind.QsExpressionStatement expression => new[] { expression.Item },
-                QsStatementKind.QsReturnStatement @return => new[] { @return.Item },
-                QsStatementKind.QsFailStatement fail => new[] { fail.Item },
-                QsStatementKind.QsVariableDeclaration declaration => new[] { declaration.Item.Rhs },
-                QsStatementKind.QsValueUpdate update => new[] { update.Item.Rhs },
-                QsStatementKind.QsConditionalStatement cond => cond.Item.ConditionalBlocks.Select(CondBlockExpression),
-                QsStatementKind.QsForStatement @for => new[] { @for.Item.IterationValues },
-                QsStatementKind.QsWhileStatement @while => new[] { @while.Item.Condition },
-                QsStatementKind.QsRepeatStatement repeat => new[] { repeat.Item.SuccessCondition },
-                _ => Enumerable.Empty<TypedExpression>(),
-            };
-
-            TypedExpression CondBlockExpression(Tuple<TypedExpression, QsPositionedBlock> b)
-            {
-                if (statement.Location.IsNull || b.Item2.Location.IsNull)
-                {
-                    return b.Item1;
-                }
-
-                var offset = b.Item2.Location.Item.Offset - statement.Location.Item.Offset;
-                return new ExpressionOffsetTransformation(offset).OnTypedExpression(b.Item1);
-            }
-        }
-
-        private static TypedExpression? SmallestExpression(TypedExpression expression, Position position)
-        {
-            if (expression.Range.IsNull || !expression.Range.Item.Contains(position))
-            {
-                return null;
-            }
-
-            var smallest = expression.Expression switch
-            {
-                QsExpressionKind.ValueTuple tuple => Many(tuple.Item),
-                QsExpressionKind.StringLiteral str => Many(str.Item2),
-                QsExpressionKind.RangeLiteral range => Binary(range.Item1, range.Item2),
-                QsExpressionKind.NewArray array => SmallestExpression(array.Item2, position),
-                QsExpressionKind.ValueArray array => Many(array.Item),
-                QsExpressionKind.ArrayItem arrayItem => Binary(arrayItem.Item1, arrayItem.Item2),
-                QsExpressionKind.NamedItem namedItem => SmallestExpression(namedItem.Item1, position),
-                QsExpressionKind.NEG neg => SmallestExpression(neg.Item, position),
-                QsExpressionKind.NOT not => SmallestExpression(not.Item, position),
-                QsExpressionKind.BNOT bNot => SmallestExpression(bNot.Item, position),
-                QsExpressionKind.ADD add => Binary(add.Item1, add.Item2),
-                QsExpressionKind.SUB sub => Binary(sub.Item1, sub.Item2),
-                QsExpressionKind.MUL mul => Binary(mul.Item1, mul.Item2),
-                QsExpressionKind.DIV div => Binary(div.Item1, div.Item2),
-                QsExpressionKind.MOD mod => Binary(mod.Item1, mod.Item2),
-                QsExpressionKind.POW pow => Binary(pow.Item1, pow.Item2),
-                QsExpressionKind.EQ eq => Binary(eq.Item1, eq.Item2),
-                QsExpressionKind.NEQ neq => Binary(neq.Item1, neq.Item2),
-                QsExpressionKind.LT lt => Binary(lt.Item1, lt.Item2),
-                QsExpressionKind.LTE lte => Binary(lte.Item1, lte.Item2),
-                QsExpressionKind.GT gt => Binary(gt.Item1, gt.Item2),
-                QsExpressionKind.GTE gte => Binary(gte.Item1, gte.Item2),
-                QsExpressionKind.AND and => Binary(and.Item1, and.Item2),
-                QsExpressionKind.OR or => Binary(or.Item1, or.Item2),
-                QsExpressionKind.BOR bOr => Binary(bOr.Item1, bOr.Item2),
-                QsExpressionKind.BAND bAnd => Binary(bAnd.Item1, bAnd.Item2),
-                QsExpressionKind.BXOR bXor => Binary(bXor.Item1, bXor.Item2),
-                QsExpressionKind.LSHIFT lShift => Binary(lShift.Item1, lShift.Item2),
-                QsExpressionKind.RSHIFT rShift => Binary(rShift.Item1, rShift.Item2),
-                QsExpressionKind.CONDITIONAL cond => Many(new[] { cond.Item1, cond.Item2, cond.Item3 }),
-                QsExpressionKind.CopyAndUpdate update => Binary(update.Item1, update.Item3),
-                QsExpressionKind.UnwrapApplication unwrap => SmallestExpression(unwrap.Item, position),
-                QsExpressionKind.AdjointApplication adj => SmallestExpression(adj.Item, position),
-                QsExpressionKind.ControlledApplication ctl => SmallestExpression(ctl.Item, position),
-                QsExpressionKind.CallLikeExpression call => Binary(call.Item1, call.Item2),
-                QsExpressionKind.SizedArray sizedArray => Binary(sizedArray.value, sizedArray.size),
-                QsExpressionKind.Lambda lambda => SmallestExpression(lambda.Item.Body, position),
-                _ => null,
-            };
-
-            return smallest ?? expression;
-
-            TypedExpression? Binary(TypedExpression e1, TypedExpression e2) =>
-                SmallestExpression(e1, position) ?? SmallestExpression(e2, position);
-
-            TypedExpression? Many(IEnumerable<TypedExpression> es) =>
-                es.Select(e => SmallestExpression(e, position)).FirstOrDefault(e => !(e is null));
         }
 
         /// <summary>
@@ -417,7 +326,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (_, statementsBefore, statementsAfter) = SplitStatementsByPosition(implementation, defStart - specPos);
 
                 var (eDecl, eLoc) = statementsBefore.LastOrDefault() is { Location: { IsValue: true } } s
-                    ? (SmallestExpressionInStatement(s, defStart - specPos - s.Location.Item.Offset), s.Location)
+                    ? (FindExpressionInStatementByPosition(s, defStart - specPos - s.Location.Item.Offset), s.Location)
                     : (null, QsNullable<QsLocation>.Null);
 
                 if (eDecl is null)
@@ -484,26 +393,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
-        private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInExpression(
-            TypedExpression expression, Position position)
+        private static TypedExpression? FindExpressionInStatementByPosition(QsStatement statement, Position position) =>
+            ExpressionsInStatement(statement)
+                .Select(e => FindExpressionByPosition(e, position))
+                .FirstOrDefault(e => !(e is null));
+
+        private static TypedExpression? FindExpressionByPosition(TypedExpression expression, Position position)
         {
             if (expression.Range.IsNull || !expression.Range.Item.Contains(position))
             {
-                return Enumerable.Empty<LocalVariableDeclaration<string>>();
+                return null;
             }
 
-            return expression.Expression switch
+            var child = expression.Expression switch
             {
                 QsExpressionKind.ValueTuple tuple => Many(tuple.Item),
                 QsExpressionKind.StringLiteral str => Many(str.Item2),
                 QsExpressionKind.RangeLiteral range => Binary(range.Item1, range.Item2),
-                QsExpressionKind.NewArray array => DeclarationsInExpression(array.Item2, position),
+                QsExpressionKind.NewArray array => FindExpressionByPosition(array.Item2, position),
                 QsExpressionKind.ValueArray array => Many(array.Item),
                 QsExpressionKind.ArrayItem arrayItem => Binary(arrayItem.Item1, arrayItem.Item2),
-                QsExpressionKind.NamedItem namedItem => DeclarationsInExpression(namedItem.Item1, position),
-                QsExpressionKind.NEG neg => DeclarationsInExpression(neg.Item, position),
-                QsExpressionKind.NOT not => DeclarationsInExpression(not.Item, position),
-                QsExpressionKind.BNOT bNot => DeclarationsInExpression(bNot.Item, position),
+                QsExpressionKind.NamedItem namedItem => FindExpressionByPosition(namedItem.Item1, position),
+                QsExpressionKind.NEG neg => FindExpressionByPosition(neg.Item, position),
+                QsExpressionKind.NOT not => FindExpressionByPosition(not.Item, position),
+                QsExpressionKind.BNOT bNot => FindExpressionByPosition(bNot.Item, position),
                 QsExpressionKind.ADD add => Binary(add.Item1, add.Item2),
                 QsExpressionKind.SUB sub => Binary(sub.Item1, sub.Item2),
                 QsExpressionKind.MUL mul => Binary(mul.Item1, mul.Item2),
@@ -525,9 +438,96 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 QsExpressionKind.RSHIFT rShift => Binary(rShift.Item1, rShift.Item2),
                 QsExpressionKind.CONDITIONAL cond => Many(new[] { cond.Item1, cond.Item2, cond.Item3 }),
                 QsExpressionKind.CopyAndUpdate update => Binary(update.Item1, update.Item3),
-                QsExpressionKind.UnwrapApplication unwrap => DeclarationsInExpression(unwrap.Item, position),
-                QsExpressionKind.AdjointApplication adj => DeclarationsInExpression(adj.Item, position),
-                QsExpressionKind.ControlledApplication ctl => DeclarationsInExpression(ctl.Item, position),
+                QsExpressionKind.UnwrapApplication unwrap => FindExpressionByPosition(unwrap.Item, position),
+                QsExpressionKind.AdjointApplication adj => FindExpressionByPosition(adj.Item, position),
+                QsExpressionKind.ControlledApplication ctl => FindExpressionByPosition(ctl.Item, position),
+                QsExpressionKind.CallLikeExpression call => Binary(call.Item1, call.Item2),
+                QsExpressionKind.SizedArray sizedArray => Binary(sizedArray.value, sizedArray.size),
+                QsExpressionKind.Lambda lambda => FindExpressionByPosition(lambda.Item.Body, position),
+                _ => null,
+            };
+
+            return child ?? expression;
+
+            TypedExpression? Binary(TypedExpression e1, TypedExpression e2) =>
+                FindExpressionByPosition(e1, position) ?? FindExpressionByPosition(e2, position);
+
+            TypedExpression? Many(IEnumerable<TypedExpression> es) =>
+                es.Select(e => FindExpressionByPosition(e, position)).FirstOrDefault(e => !(e is null));
+        }
+
+        private static IEnumerable<TypedExpression> ExpressionsInStatement(QsStatement statement)
+        {
+            return statement.Statement switch
+            {
+                QsStatementKind.QsExpressionStatement expression => new[] { expression.Item },
+                QsStatementKind.QsReturnStatement @return => new[] { @return.Item },
+                QsStatementKind.QsFailStatement fail => new[] { fail.Item },
+                QsStatementKind.QsVariableDeclaration declaration => new[] { declaration.Item.Rhs },
+                QsStatementKind.QsValueUpdate update => new[] { update.Item.Rhs },
+                QsStatementKind.QsConditionalStatement cond => cond.Item.ConditionalBlocks.Select(CondBlockExpression),
+                QsStatementKind.QsForStatement @for => new[] { @for.Item.IterationValues },
+                QsStatementKind.QsWhileStatement @while => new[] { @while.Item.Condition },
+                QsStatementKind.QsRepeatStatement repeat => new[] { repeat.Item.SuccessCondition },
+                _ => Enumerable.Empty<TypedExpression>(),
+            };
+
+            TypedExpression CondBlockExpression(Tuple<TypedExpression, QsPositionedBlock> b)
+            {
+                if (statement.Location.IsNull || b.Item2.Location.IsNull)
+                {
+                    return b.Item1;
+                }
+
+                var offset = b.Item2.Location.Item.Offset - statement.Location.Item.Offset;
+                return new ExpressionOffsetTransformation(offset).OnTypedExpression(b.Item1);
+            }
+        }
+
+        private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInExpressionByPosition(
+            TypedExpression expression, Position position)
+        {
+            if (expression.Range.IsNull || !expression.Range.Item.Contains(position))
+            {
+                return Enumerable.Empty<LocalVariableDeclaration<string>>();
+            }
+
+            return expression.Expression switch
+            {
+                QsExpressionKind.ValueTuple tuple => Many(tuple.Item),
+                QsExpressionKind.StringLiteral str => Many(str.Item2),
+                QsExpressionKind.RangeLiteral range => Binary(range.Item1, range.Item2),
+                QsExpressionKind.NewArray array => DeclarationsInExpressionByPosition(array.Item2, position),
+                QsExpressionKind.ValueArray array => Many(array.Item),
+                QsExpressionKind.ArrayItem arrayItem => Binary(arrayItem.Item1, arrayItem.Item2),
+                QsExpressionKind.NamedItem namedItem => DeclarationsInExpressionByPosition(namedItem.Item1, position),
+                QsExpressionKind.NEG neg => DeclarationsInExpressionByPosition(neg.Item, position),
+                QsExpressionKind.NOT not => DeclarationsInExpressionByPosition(not.Item, position),
+                QsExpressionKind.BNOT bNot => DeclarationsInExpressionByPosition(bNot.Item, position),
+                QsExpressionKind.ADD add => Binary(add.Item1, add.Item2),
+                QsExpressionKind.SUB sub => Binary(sub.Item1, sub.Item2),
+                QsExpressionKind.MUL mul => Binary(mul.Item1, mul.Item2),
+                QsExpressionKind.DIV div => Binary(div.Item1, div.Item2),
+                QsExpressionKind.MOD mod => Binary(mod.Item1, mod.Item2),
+                QsExpressionKind.POW pow => Binary(pow.Item1, pow.Item2),
+                QsExpressionKind.EQ eq => Binary(eq.Item1, eq.Item2),
+                QsExpressionKind.NEQ neq => Binary(neq.Item1, neq.Item2),
+                QsExpressionKind.LT lt => Binary(lt.Item1, lt.Item2),
+                QsExpressionKind.LTE lte => Binary(lte.Item1, lte.Item2),
+                QsExpressionKind.GT gt => Binary(gt.Item1, gt.Item2),
+                QsExpressionKind.GTE gte => Binary(gte.Item1, gte.Item2),
+                QsExpressionKind.AND and => Binary(and.Item1, and.Item2),
+                QsExpressionKind.OR or => Binary(or.Item1, or.Item2),
+                QsExpressionKind.BOR bOr => Binary(bOr.Item1, bOr.Item2),
+                QsExpressionKind.BAND bAnd => Binary(bAnd.Item1, bAnd.Item2),
+                QsExpressionKind.BXOR bXor => Binary(bXor.Item1, bXor.Item2),
+                QsExpressionKind.LSHIFT lShift => Binary(lShift.Item1, lShift.Item2),
+                QsExpressionKind.RSHIFT rShift => Binary(rShift.Item1, rShift.Item2),
+                QsExpressionKind.CONDITIONAL cond => Many(new[] { cond.Item1, cond.Item2, cond.Item3 }),
+                QsExpressionKind.CopyAndUpdate update => Binary(update.Item1, update.Item3),
+                QsExpressionKind.UnwrapApplication unwrap => DeclarationsInExpressionByPosition(unwrap.Item, position),
+                QsExpressionKind.AdjointApplication adj => DeclarationsInExpressionByPosition(adj.Item, position),
+                QsExpressionKind.ControlledApplication ctl => DeclarationsInExpressionByPosition(ctl.Item, position),
                 QsExpressionKind.CallLikeExpression call => Binary(call.Item1, call.Item2),
                 QsExpressionKind.SizedArray sizedArray => Binary(sizedArray.value, sizedArray.size),
                 QsExpressionKind.Lambda lambda => Lambda(lambda.Item),
@@ -535,17 +535,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             };
 
             IEnumerable<LocalVariableDeclaration<string>> Binary(TypedExpression e1, TypedExpression e2) =>
-                DeclarationsInExpression(e1, position).Concat(DeclarationsInExpression(e2, position));
+                DeclarationsInExpressionByPosition(e1, position)
+                    .Concat(DeclarationsInExpressionByPosition(e2, position));
 
             IEnumerable<LocalVariableDeclaration<string>> Many(IEnumerable<TypedExpression> es) =>
-                es.SelectMany(e => DeclarationsInExpression(e, position));
+                es.SelectMany(e => DeclarationsInExpressionByPosition(e, position));
 
             IEnumerable<LocalVariableDeclaration<string>> Lambda(Lambda<TypedExpression> lambda)
             {
                 var inputType = CallableInputType(expression.ResolvedType);
                 var inferred = new InferredExpressionInformation(false, true);
                 return DeclarationsInTypedSymbol(lambda.Param, inputType, inferred)
-                    .Concat(DeclarationsInExpression(lambda.Body, position));
+                    .Concat(DeclarationsInExpressionByPosition(lambda.Body, position));
             }
 
             static ResolvedType CallableInputType(ResolvedType type) => type.Resolution switch
