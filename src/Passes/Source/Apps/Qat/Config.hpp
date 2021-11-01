@@ -65,7 +65,7 @@ namespace quantum
         String load_{""};
         bool   generate_{false};
         bool   validate_{false};
-        String profile_{"baseProfile"};
+        String profile_{"generic"};
         bool   emit_llvm_{false};
         bool   opt0_{false};
         bool   opt1_{false};

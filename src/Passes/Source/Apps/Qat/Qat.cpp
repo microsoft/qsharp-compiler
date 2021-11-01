@@ -53,6 +53,8 @@
 #include "RuleTransformationPass/RulePass.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/FactoryConfig.hpp"
+#include "ValidationPass/ValidationConfiguration.hpp"
+#include "Validator/Validator.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -64,9 +66,53 @@
 
 using namespace llvm;
 using namespace microsoft::quantum;
+void init();
+void init()
+{
+    // Initialize passes
+    PassRegistry& registry = *PassRegistry::getPassRegistry();
+
+    initializeCore(registry);
+
+    initializeCoroutines(registry);
+    initializeScalarOpts(registry);
+    initializeObjCARCOpts(registry);
+    initializeVectorization(registry);
+    initializeIPO(registry);
+    initializeAnalysis(registry);
+    initializeTransformUtils(registry);
+    initializeInstCombine(registry);
+    initializeAggressiveInstCombine(registry);
+    initializeInstrumentation(registry);
+    initializeTarget(registry);
+
+    initializeExpandMemCmpPassPass(registry);
+    initializeScalarizeMaskedMemIntrinPass(registry);
+    initializeCodeGenPreparePass(registry);
+    initializeAtomicExpandPass(registry);
+    initializeRewriteSymbolsLegacyPassPass(registry);
+    initializeWinEHPreparePass(registry);
+    initializeDwarfEHPreparePass(registry);
+    initializeSafeStackLegacyPassPass(registry);
+    initializeSjLjEHPreparePass(registry);
+    initializePreISelIntrinsicLoweringLegacyPassPass(registry);
+    initializeGlobalMergePass(registry);
+    initializeIndirectBrExpandPassPass(registry);
+    initializeInterleavedLoadCombinePass(registry);
+    initializeInterleavedAccessPass(registry);
+    initializeEntryExitInstrumenterPass(registry);
+    initializePostInlineEntryExitInstrumenterPass(registry);
+    initializeUnreachableBlockElimLegacyPassPass(registry);
+    initializeExpandReductionsPass(registry);
+    initializeWasmEHPreparePass(registry);
+    initializeWriteBitcodePassPass(registry);
+    initializeHardwareLoopsPass(registry);
+    initializeTypePromotionPass(registry);
+}
 
 int main(int argc, char** argv)
 {
+
     try
     {
         // Default generator. A future version of QAT may allow the generator to be selected
@@ -87,6 +133,10 @@ int main(int argc, char** argv)
 
         // Getting the main configuration
         auto config = configuration_manager.get<QatConfig>();
+
+        // Setting profile validation configuration
+        configuration_manager.addConfig<ValidationPassConfiguration>(
+            "validation-configuration", ValidationPassConfiguration::fromProfileName(config.profile()));
 
         // Loading components
         //
@@ -141,9 +191,12 @@ int main(int argc, char** argv)
 
                     auto& pass_builder = ptr->passBuilder();
                     auto& npm          = ptr->modulePassManager();
-                    if (!pass_builder.parsePassPipeline(npm, pass_pipeline, false, false))
+
+                    if (auto err = pass_builder.parsePassPipeline(npm, pass_pipeline, false, false))
                     {
-                        throw std::runtime_error("Failed to set pass pipeline up.");
+                        throw std::runtime_error(
+                            "Failed to set pass pipeline up. Value: '" + pass_pipeline +
+                            "', error: " + toString(std::move(err)));
                     }
                 }
                 else if (cfg.alwaysInline())
@@ -160,20 +213,25 @@ int main(int argc, char** argv)
                 {
                     auto& mpm = ptr->modulePassManager();
 
+                    llvm::PassBuilder::OptimizationLevel opt = llvm::PassBuilder::OptimizationLevel::O3;
+
                     // If not explicitly disabled, we fall back to the default LLVM pipeline
                     auto&                   pass_builder = ptr->passBuilder();
-                    llvm::ModulePassManager pipeline1 =
-                        pass_builder.buildPerModuleDefaultPipeline(ptr->optimisationLevel());
+                    llvm::ModulePassManager pipeline1    = pass_builder.buildPerModuleDefaultPipeline(opt);
                     mpm.addPass(std::move(pipeline1));
 
-                    llvm::ModulePassManager pipeline2 = pass_builder.buildModuleSimplificationPipeline(
-                        ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None);
+                    llvm::ModulePassManager pipeline2 =
+                        pass_builder.buildModuleSimplificationPipeline(opt, llvm::PassBuilder::ThinLTOPhase::None);
                     mpm.addPass(std::move(pipeline2));
+
+                    llvm::ModulePassManager pipeline3 = pass_builder.buildModuleOptimizationPipeline(opt, ptr->debug());
+                    mpm.addPass(std::move(pipeline3));
                 }
             });
 
         // Reconfiguring to get all the arguments of the passes registered
         parser.reset();
+
         configuration_manager.setupArguments(parser);
         parser.parseArgs(argc, argv);
         configuration_manager.configure(parser);
@@ -199,7 +257,9 @@ int main(int argc, char** argv)
         // Loading IR from file(s).
         //
 
-        LLVMContext  context;
+        LLVMContext context;
+        init();
+
         auto         module = std::make_unique<Module>("qat-link", context);
         ModuleLoader loader(module.get());
 
@@ -242,7 +302,7 @@ int main(int argc, char** argv)
         //
 
         // Creating the profile that will be used for generation and validation
-        auto profile = generator->newProfile(optimisation_level, config.debug());
+        auto profile = generator->newProfile(config.profile(), optimisation_level, config.debug());
 
         if (config.generate())
         {
@@ -273,7 +333,7 @@ int main(int argc, char** argv)
         {
             if (!profile.validate(*module))
             {
-                std::cerr << "QIR is not compliant with profile." << std::endl;
+                std::cerr << "IR did not validate to the profile constraints." << std::endl;
                 exit(-1);
             }
         }

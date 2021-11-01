@@ -4,6 +4,7 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
+#include "Validator/Validator.hpp"
 #include "ValueTracker/ValueTracker.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -24,12 +25,23 @@ namespace quantum
         /// Allocation manager pointer type. Used to reference to concrete allocation manager
         /// implementations which defines the allocation logic of the profile.
         using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
-        using ValueTrackerPtr      = ValueTracker::ValueTrackerPtr;
+
+        /// Validator class used to check that an IR fulfils a given specification
+        using ValidatorPtr = Validator::ValidatorPtr;
+
+        /// Standard types
+        //
+        using String = std::string;
+
+        using ValueTrackerPtr = ValueTracker::ValueTrackerPtr;
+
         // Constructors
         //
 
         explicit Profile(
+            String const&        name,
             bool                 debug,
+            llvm::TargetMachine* target_machine            = nullptr,
             AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
             AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew(),
             ValueTrackerPtr      value_tracker             = ValueTracker::createNew());
@@ -59,9 +71,7 @@ namespace quantum
         AllocationManagerPtr getQubitAllocationManager();
         AllocationManagerPtr getResultAllocationManager();
 
-        // Access functions to LLVM instances for running the
-        // module pass manager
-        //
+        String name() const;
 
       protected:
         // Ensuring that IProfileGenerator has access to following protected functions.
@@ -69,6 +79,9 @@ namespace quantum
 
         /// Sets the module pass manager used for the transformation of the IR.
         void setModulePassManager(llvm::ModulePassManager&& manager);
+
+        /// Sets the validator
+        void setValidator(ValidatorPtr&& validator);
 
         /// Returns a reference to the pass builder.
         llvm::PassBuilder& passBuilder();
@@ -86,13 +99,47 @@ namespace quantum
         llvm::ModuleAnalysisManager& moduleAnalysisManager();
 
       private:
+        using PassInstrumentationCallbacksPtr = std::unique_ptr<llvm::PassInstrumentationCallbacks>;
+        using StandardInstrumentationsPtr     = std::unique_ptr<llvm::StandardInstrumentations>;
+        using PassBuilderPtr                  = std::unique_ptr<llvm::PassBuilder>;
+
+        void registerEPCallbacks(bool verify_each_pass, bool debug);
+
+        template <typename PassManager>
+        bool tryParsePipelineText(llvm::PassBuilder& pass_builder, std::string const& pipeline_options)
+        {
+            if (pipeline_options.empty())
+            {
+                return false;
+            }
+
+            PassManager pass_manager;
+            if (auto err = pass_builder.parsePassPipeline(pass_manager, pipeline_options))
+            {
+                llvm::errs() << "Could not parse -" << pipeline_options << " pipeline: " << toString(std::move(err))
+                             << "\n";
+                return false;
+            }
+            return true;
+        }
+
+        /// Name of the selected profile
+        String name_{};
+
         // LLVM logic to run the passes
         //
-        llvm::PassBuilder             pass_builder_;
+
         llvm::LoopAnalysisManager     loop_analysis_manager_;
         llvm::FunctionAnalysisManager function_analysis_manager_;
         llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
         llvm::ModuleAnalysisManager   module_analysis_manager_;
+
+        llvm::Optional<llvm::PGOOptions> pgo_options_;
+        PassInstrumentationCallbacksPtr  pass_instrumentation_callbacks_;
+        StandardInstrumentationsPtr      standard_instrumentations_;
+        llvm::PipelineTuningOptions      pipeline_tuning_options_;
+
+        PassBuilderPtr pass_builder_;
 
         llvm::ModulePassManager module_pass_manager_{};
 
@@ -107,8 +154,20 @@ namespace quantum
         /// determined by its implementation details.
         AllocationManagerPtr result_allocation_manager_{};
 
+        ///
+        ValidatorPtr validator_{};
+
         /// Value Tracker
         ValueTrackerPtr value_tracker_{};
+
+        std::string peephole_ep_pipeline_{""};
+        std::string late_loop_optimizations_ep_pipeline_{""};
+        std::string loop_optimizer_end_ep_pipeline_{""};
+        std::string scalar_optimizer_late_ep_pipeline_{""};
+        std::string cgscc_optimizer_late_ep_pipeline_{""};
+        std::string vectorizer_start_ep_pipeline_{""};
+        std::string pipeline_start_ep_pipeline_{""};
+        std::string optimizer_last_ep_pipeline_{""};
     };
 
 } // namespace quantum

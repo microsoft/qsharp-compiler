@@ -94,7 +94,7 @@ namespace quantum
         //
 
         /// Adds a new configuration of type T.
-        template <typename T> inline void addConfig(String const& id = "");
+        template <typename T> inline void addConfig(String const& id = "", T const& default_value = T());
 
         /// Whether or not the component associated with T is active.
         template <typename T> inline bool isActive();
@@ -116,11 +116,11 @@ namespace quantum
         Sections config_sections_{}; ///< All available sections within the ConfigurationManager instance
     };
 
-    template <typename T> inline void ConfigurationManager::addConfig(String const& id)
+    template <typename T> inline void ConfigurationManager::addConfig(String const& id, T const& default_value)
     {
         Section new_section{std::type_index(typeid(T))};
 
-        auto ptr                  = std::make_shared<T>();
+        auto ptr                  = std::make_shared<T>(default_value);
         new_section.configuration = ptr;
         new_section.active        = std::make_shared<bool>(true);
         new_section.id            = id;

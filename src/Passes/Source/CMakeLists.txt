@@ -9,6 +9,10 @@ microsoft_add_library_tests(Commandline)
 microsoft_add_library(Profile)
 microsoft_add_library_tests(Profile)
 
+microsoft_add_library(Validator)
+microsoft_add_library_tests(Validator ValidationPass)
+microsoft_add_library(ValidationPass)
+
 
 # microsoft_add_library(ModuleLoader)
 
@@ -18,7 +22,7 @@ microsoft_add_library_tests(AllocationManager)
 
 microsoft_add_library(RuleTransformationPass)
 target_link_libraries(RuleTransformationPass PRIVATE Rules Commandline AllocationManager)
-microsoft_add_library_tests(RuleTransformationPass Rules RuleTransformationPass AllocationManager Commandline Generators)
+microsoft_add_library_tests(RuleTransformationPass Rules RuleTransformationPass AllocationManager Commandline Generators Validator ValidationPass) 
 
 
 microsoft_add_library(Rules)
@@ -27,7 +31,7 @@ microsoft_add_library_tests(Rules Rules RuleTransformationPass AllocationManager
 target_link_libraries(Rules PRIVATE AllocationManager)
 
 microsoft_add_library(Generators)
-target_link_libraries(Generators PRIVATE Rules Commandline AllocationManager RuleTransformationPass Profile)
+target_link_libraries(Generators PRIVATE Rules Commandline AllocationManager RuleTransformationPass Profile Validator ValidationPass)
 microsoft_add_library_tests(Generators Rules RuleTransformationPass AllocationManager Commandline Generators)
 
 add_subdirectory(Apps)

@@ -59,7 +59,7 @@ namespace quantum
         /// Creates a new profile based on the registered components, optimisation level and debug
         /// requirements. The returned profile can be applied to an IR to transform it in accordance with
         /// the configurations given.
-        Profile newProfile(OptimizationLevel const& optimisation_level, bool debug);
+        Profile newProfile(String const& name, OptimizationLevel const& optimisation_level, bool debug);
 
         // Defining the generator
         //

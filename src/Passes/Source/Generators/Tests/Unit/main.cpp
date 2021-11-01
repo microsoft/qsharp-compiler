@@ -83,7 +83,7 @@ class TestAnalysis
 
 TEST(GeneratorsTestSuite, ConfigureFunction)
 {
-    Profile  profile{false};
+    Profile  profile{"test", false};
     uint64_t call_count{0};
     auto     configure = [&call_count](RuleSet&) { ++call_count; };
     auto     generator = std::make_shared<ExposedDefaultProfileGenerator>(configure);
@@ -100,7 +100,7 @@ TEST(GeneratorsTestSuite, ConfigureFunction)
 
 TEST(GeneratorsTestSuite, ConfigurationManager)
 {
-    Profile               profile{false};
+    Profile               profile{"test", false};
     auto                  generator             = std::make_shared<ExposedDefaultProfileGenerator>();
     ConfigurationManager& configuration_manager = generator->configurationManager();
     configuration_manager.addConfig<FactoryConfiguration>();

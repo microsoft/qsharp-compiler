@@ -65,6 +65,17 @@
 // Bitcode output
 #include "llvm/Bitcode/BitcodeWriter.h"
 
+/// Initialization
+
+#include "llvm/InitializePasses.h"
+#include "llvm/LinkAllIR.h"
+#include "llvm/LinkAllPasses.h"
+#include "llvm/MC/SubtargetFeature.h"
+#include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Support/InitLLVM.h"
+#include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetMachine.h"
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
