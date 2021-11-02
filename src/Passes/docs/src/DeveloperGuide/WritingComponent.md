@@ -110,7 +110,7 @@ Hello world configuration - Demonstration configuration for building a component
 
 Next we generate a QIR to test this with:
 
-```
+```bash
 pushd ../QirExamples/LoopRecursion/QSharpVersion
 make
 popd
