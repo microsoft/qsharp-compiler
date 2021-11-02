@@ -69,6 +69,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
         /// <param name="scope">A scope that contains <paramref name="position"/>.</param>
         /// <param name="position">The position to split by.</param>
         /// <returns>The innermost scope and statements before and after <paramref name="position"/>.</returns>
+        /// <remarks>
+        /// Statements that do not have a location are treated as if they occur after <paramref name="position"/>.
+        /// </remarks>
         internal static (QsScope, ImmutableList<QsStatement>, ImmutableList<QsStatement>) SplitStatementsByPosition(
             QsScope scope, Position position)
         {
@@ -258,9 +261,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
 
             IEnumerable<LocalVariableDeclaration<string>> Lambda(Lambda<TypedExpression> lambda)
             {
-                var inputType = CallableInputType(expression.ResolvedType);
+                // Since lambda parameters are bound later to a value from any source, pessimistically assume it has a
+                // local quantum dependency.
                 var inferred = new InferredExpressionInformation(false, true);
-                return DeclarationsInTypedSymbol(lambda.Param, inputType, inferred)
+
+                return DeclarationsInTypedSymbol(lambda.Param, CallableInputType(expression.ResolvedType), inferred)
                     .Concat(DeclarationsInExpressionByPosition(lambda.Body, position));
             }
 
@@ -278,7 +283,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
             switch (symbol.Symbol, type.Resolution)
             {
                 case (QsSymbolKind.Symbol name, _):
-                    var range = symbol.Range.ValueOr(Range.Zero);
+                    var range = symbol.Range.IsValue
+                        ? symbol.Range.Item
+                        : throw new ArgumentException("Range is null.", nameof(symbol));
+
                     var position = QsNullable<Position>.NewValue(range.Start);
                     return new[]
                     {
