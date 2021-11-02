@@ -126,7 +126,9 @@ module SymbolOccurrence =
     let inFragment fragment =
         match fragment with
         | NamespaceDeclaration s -> [ Declaration s ]
-        | OpenDirective (_, s) -> QsNullable<_>.Choose id [ s ] |> Seq.toList |> List.map Declaration
+        | OpenDirective (ns, a) ->
+            let alias = QsNullable<_>.Map (Declaration >> List.singleton) a |> QsNullable.defaultValue []
+            UsedVariable ns :: alias
         | DeclarationAttribute (s, e) -> UsedVariable s :: inExpression e
         | OperationDeclaration c
         | FunctionDeclaration c -> inCallable c
