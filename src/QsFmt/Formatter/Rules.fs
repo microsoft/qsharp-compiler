@@ -165,7 +165,7 @@ let forParensUpdate =
 /// </summary>
 let ensureComma (item: 'a SequenceItem) =
     match item.Comma with
-    | None -> { Item = item.Item; Comma = Some({ Prefix = []; Text = "," }) }
+    | None -> { Item = item.Item; Comma = { Prefix = []; Text = "," } |> Some }
     | Some _ -> item
 
 /// <summary>
@@ -176,7 +176,7 @@ let ensureEllipsis (parameters: Terminal Tuple) =
         { Prefix = [ spaces nspace ]; Text = "..." }
 
     let ellipsisItem nspace =
-        { Item = Some(ellipsis nspace); Comma = None }
+        { Item = ellipsis nspace |> Some; Comma = None }
 
     { parameters with
         Items =
@@ -207,9 +207,9 @@ let specializationUpdate =
                     parameters =
                         (match parameters with
                          // Replace, e.g., `body` with `body (...)`
-                         | None -> Some(ensureEllipsis emptyTuple)
+                         | None -> ensureEllipsis emptyTuple |> Some
                          // Replace, e.g., `body ()` with `body (...)`
-                         | Some par -> Some(ensureEllipsis par)),
+                         | Some par -> ensureEllipsis par |> Some),
                     statements = statements
                 )
             | _ -> generator
