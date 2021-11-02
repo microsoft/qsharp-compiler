@@ -91,6 +91,7 @@ let versionToUpdateRules (version: Version option) =
                 simpleRule unitUpdate
                 simpleRule forParensUpdate
                 simpleRule arraySyntaxUpdate
+                simpleRule booleanOperatorUpdate
             ]
 
     rules |> List.fold (>>) id
