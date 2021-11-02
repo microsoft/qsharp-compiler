@@ -58,7 +58,7 @@ public:
                         "Message which is printed when setting the component up.");
   }
 
-  String message() const
+  String const& message() const
   {
     return message_;
   }
