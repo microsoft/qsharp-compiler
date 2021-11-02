@@ -94,7 +94,7 @@ namespace quantum
         /// Matches a invoke instruction
         IOperandPrototypePtr unnamedInvoke();
 
-        /// Matches a phi node. TODO(tfr): More description
+        /// Matches a phi node with N arguments.
         template <typename... Args> IOperandPrototypePtr phi(Args... args);
 
         /// Shorthand notation to match an instruction with a specified name.
@@ -148,7 +148,6 @@ namespace quantum
 
         /// Matches a load instruction with one argument.
         IOperandPrototypePtr basicBlock();
-        /// @}
 
         /// @addtogroup shorthandNotation
         /// @{

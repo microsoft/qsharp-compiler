@@ -17,7 +17,6 @@ namespace quantum
         auto qubit_allocation_manager  = BasicAllocationManager::createNew();
         auto result_allocation_manager = BasicAllocationManager::createNew();
 
-        // TODO(tfr): Make separate configuration for the allocation manager
         auto cfg = configuration_manager_.get<RuleTransformationPassConfiguration>();
         qubit_allocation_manager->setReuseRegisters(cfg.reuseQubits());
         result_allocation_manager->setReuseRegisters(cfg.reuseResults());

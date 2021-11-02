@@ -29,8 +29,6 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
     ir_manip->declareFunction("void @__quantum__rt__string_update_alias_count(%String*, i32)");
     ir_manip->declareFunction("void @__quantum__rt__string_update_reference_count(%String*, i32)");
 
-    // TODO(tfr): Add test for   %1 = call %String* @__quantum__rt__result_to_string(%Result* %0)
-
     if (!ir_manip->fromBodyString(script))
     {
         llvm::outs() << ir_manip->getErrorMessage() << "\n";

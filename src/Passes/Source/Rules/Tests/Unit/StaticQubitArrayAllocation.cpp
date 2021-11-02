@@ -84,7 +84,7 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationGetPtr)
   )script");
 
     // TODO(tfr): Possibly the "correct" way to deal with this is to
-    // do a more granular approch, translating __quantum__rt__array_get_element_ptr_1d
+    // do a more granular approach, translating __quantum__rt__array_get_element_ptr_1d
     // int to a constant i8*. For discussion with team. A good example is
     //
     // %array1 = call %Array* @__quantum__rt__qubit_allocate_array(i64 10)

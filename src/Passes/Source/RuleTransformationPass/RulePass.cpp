@@ -337,7 +337,7 @@ namespace quantum
                     for (uint32_t i = 0; i < br_instr->getNumOperands(); ++i)
                     {
                         // TODO(tfr): This may not work on multi path branches (conditional)
-                        // as we may accidently add the final path (contains qubit release)
+                        // as we may accidentality add the final path (contains qubit release)
                         // and we cannot make assumptions since optimisation may have rearranged
                         // everything. In this case, we should revert to the order they appear in the
                         // function

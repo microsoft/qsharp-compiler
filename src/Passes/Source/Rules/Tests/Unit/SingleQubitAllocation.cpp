@@ -138,8 +138,6 @@ TEST(RuleSetTestSuite, AllocateReleaseMultipleTimes)
 
     ir_manip->applyProfile(profile);
 
-    // TODO(tfr): Ideally these shoulw all have the same id, however,
-    // this require more thought with regards to the qubit allocation
     EXPECT_TRUE(ir_manip->hasInstructionSequence({
         "%qubit1 = inttoptr i64 0 to %Qubit*",
         "%qubit2 = inttoptr i64 0 to %Qubit*",
@@ -185,7 +183,8 @@ TEST(RuleSetTestSuite, ErrorAllocateReleaseByName)
 
     ir_manip->applyProfile(profile);
 
-    // TODO(tfr): Test that an error was emitted
+    EXPECT_FALSE(ir_manip->isModuleBroken());
+    EXPECT_TRUE(ir_manip->hasInstructionSequence({"%leftMessage = call %Qubit* @__non_standard_allocator()"}));
 }
 
 TEST(RuleSetTestSuite, ErrorAllocateReleaseByNameWithNoName)
@@ -206,7 +205,8 @@ TEST(RuleSetTestSuite, ErrorAllocateReleaseByNameWithNoName)
 
     ir_manip->applyProfile(profile);
 
-    // TODO(tfr): Test that an error was emitted
+    EXPECT_FALSE(ir_manip->isModuleBroken());
+    EXPECT_TRUE(ir_manip->hasInstructionSequence({"%0 = call %Qubit* @__non_standard_allocator()"}));
 }
 
 TEST(RuleSetTestSuite, ErrorReleaseWithTypeErasedAllocation)
@@ -228,5 +228,6 @@ TEST(RuleSetTestSuite, ErrorReleaseWithTypeErasedAllocation)
 
     ir_manip->applyProfile(profile);
 
-    // TODO(tfr): Test that an error was emitted
+    EXPECT_FALSE(ir_manip->isModuleBroken());
+    EXPECT_TRUE(ir_manip->hasInstructionSequence({"%0 = call i8* @__non_standard_int_allocator()"}));
 }
