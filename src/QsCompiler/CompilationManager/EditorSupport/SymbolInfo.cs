@@ -360,6 +360,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <param name="scope">A scope that contains <paramref name="position"/>.</param>
         /// <param name="position">The position to split by.</param>
         /// <returns>The innermost scope and statements before and after <paramref name="position"/>.</returns>
+        /// <remarks>
+        /// Statements that do not have a location are treated as if they occur after <paramref name="position"/>.
+        /// </remarks>
         private static (QsScope, ImmutableList<QsStatement>, ImmutableList<QsStatement>) SplitStatementsByPosition(
             QsScope scope, Position position)
         {
