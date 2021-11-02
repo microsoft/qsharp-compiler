@@ -11,6 +11,7 @@ For our second component, we will use a standard LLVM pass to demonstrate how to
 Our first component will not do anything except for printing out a custom message upon configuring the profile. To this end, we need a configuration which allows the user to specify the message and we capture this configuration in a class which we name `HelloWorldConfig`:
 
 ```c++
+using String = std::string;
 class HelloWorldConfig
 {
 public:
