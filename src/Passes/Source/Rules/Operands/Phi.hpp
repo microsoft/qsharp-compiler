@@ -2,44 +2,47 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
 #include "Rules/OperandPrototype.hpp"
+
+#include "Llvm/Llvm.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-
-class PhiPattern : public IOperandPrototype
+namespace microsoft
 {
-public:
-  using String = std::string;
+namespace quantum
+{
 
-  // Construction of the call pattern by name or move only.
-  //
+    class PhiPattern : public IOperandPrototype
+    {
+      public:
+        using String = std::string;
 
-  /// Construction by name.
-  PhiPattern() = default;
+        // Construction of the call pattern by name or move only.
+        //
 
-  /// Copy construction prohibited.
-  PhiPattern(PhiPattern const &other) = delete;
+        /// Construction by name.
+        PhiPattern() = default;
 
-  /// Move construction allowed.
-  PhiPattern(PhiPattern &&other) = default;
+        /// Copy construction prohibited.
+        PhiPattern(PhiPattern const& other) = delete;
 
-  /// Destructor implementation.
-  ~PhiPattern() override;
+        /// Move construction allowed.
+        PhiPattern(PhiPattern&& other) = default;
 
-  // Phi implmenetation of the member functions in IOperandPrototype.
-  //
+        /// Destructor implementation.
+        ~PhiPattern() override;
 
-  /// Matches the phi node.
-  bool match(Value *instr, Captures &captures) const override;
+        // Phi implmenetation of the member functions in IOperandPrototype.
+        //
 
-  /// Creates a copy of itself.
-  Child copy() const override;
-};
+        /// Matches the phi node.
+        bool match(Value* instr, Captures& captures) const override;
 
-}  // namespace quantum
-}  // namespace microsoft
+        /// Creates a copy of itself.
+        Child copy() const override;
+    };
+
+} // namespace quantum
+} // namespace microsoft
