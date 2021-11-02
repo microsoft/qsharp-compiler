@@ -133,7 +133,7 @@ Next, we make a component that just runs a single LLVM pass. We we will use the 
 
 We create a single option for activating the pass:
 
-```sh
+```c++
 class InlinerConfig
 {
 public:
