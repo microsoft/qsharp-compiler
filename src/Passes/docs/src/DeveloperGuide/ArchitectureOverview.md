@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This document assumes familiarity with LLVM, LLVM intermediate representation (IR), LLVM passes and the `opt` which is used to apply passes to IRs. We also assume that the reader is familiar with the QIR specification, the conventions used for functions and its opaque types.We further assume that the reader is familiar with basic C++. This is in particular true later on when we dig into the details of building pass components. Throughout this document we will assume that any reference to a QIR, is a valid within the specification requirements.
+This document assumes familiarity with LLVM, [LLVM intermediate representation (IR)](https://llvm.org/docs/LangRef.html), LLVM passes and the `opt` which is used to apply passes to IRs. We also assume that the reader is familiar with the [QIR specification](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR), the conventions used for functions and its opaque types. We further assume that the reader is familiar with basic C++. This is in particular true later on when we dig into the details of building pass components. Throughout this document we will assume that any reference to a QIR, is a valid within the specification requirements.
 
 The aim of this document is to walk the reader through the vision and architecture of the QIR adaptor tool (QAT). To this end, we will be discussing how QAT uses both native and custom written LLVM passes to transform generic QIRs into ones which are targeted specific platforms and/or capabilities.
 
