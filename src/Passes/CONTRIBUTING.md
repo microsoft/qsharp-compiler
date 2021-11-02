@@ -1,16 +1,16 @@
-# Contributing (Proposal - WiP)
+# Contributing
 
-This document is work in progress and nothing is set in stone. In case you do not want to feel like reading this style guide, just run
+This document sets out some light requirements for contributing to QAT. In case you do not feel like reading this style guide, just run
 
 ```sh
 ./manage runci
 ```
 
-from the `Passes` directory as all points defined in this document is automatically enforces. You can then refer to this guide for an explanation for why and how.
+from the `src/Passes` directory before making a pull request. This script enforces all requirements described below programmatically. You can then refer to this guide for an explanation for why and how.
 
 ## Why do we need a style guide?
 
-Consistency and readibility such that it is easy to read and understand code that was not written by yourself. For example, if one developer uses `CamelCase` for namespaces and `snake_case` for classes while another uses `snake_case` for namespaces and `CamelCase` you may end up with code sections that looks like this
+Consistency and readability such that it is easy to read and understand code that was not written by yourself. For example, if one developer uses `CamelCase` for namespaces and `snake_case` for classes while another uses `snake_case` for namespaces and `CamelCase` you may end up with code sections that looks like this
 
 ```cpp
 int32_t main()
@@ -26,10 +26,10 @@ which is hard to read.
 
 The style guide applies to any new code written as well as code that is being refactored added to the `Passes` library. We do not rewrite existing code for the sake just changing the style.
 
-## Style discrepency
+## Style discrepancy
 
-In case of a discrepency between this guideline and `clang-tidy` or `clang-format`,
-clang tools rule. In case of discrency between this guide and any guides subsequently referenced guides, this guide rule. However, feel free to suggest changes. Changes will be incorporated on the basis
+In case of a discrepancy between this guideline and `clang-tidy` or `clang-format`,
+clang tools rule. In case of discrepancy between this guide and any guides subsequently referenced guides, this guide rule. However, feel free to suggest changes. Changes will be incorporated on the basis
 that updated styles are apply to new code and not existing code.
 
 ## Naming

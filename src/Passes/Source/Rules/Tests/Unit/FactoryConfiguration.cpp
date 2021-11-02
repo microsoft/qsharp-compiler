@@ -11,9 +11,9 @@ using namespace microsoft::quantum;
 // Single allocation with action and then release
 TEST(RuleSetTestSuite, FactoryConfiguration)
 {
-    FactoryConfiguration c1 = FactoryConfiguration::disable();
-    EXPECT_TRUE(c1.isDisabled());
+  FactoryConfiguration c1 = FactoryConfiguration::disable();
+  EXPECT_TRUE(c1.isDisabled());
 
-    FactoryConfiguration c2{};
-    EXPECT_TRUE(c2.isDefault());
+  FactoryConfiguration c2{};
+  EXPECT_TRUE(c2.isDefault());
 }

@@ -19,7 +19,7 @@ This will generate a QIR that will have the path `./QirExamples/SimpleLoop/QShar
 By using an application called QAT you can transform the QIR that was generated into a QIR that is tailored to a specific profile. Performing a transformation of the QIR from the `./Debug` folder is done by typing the following commands:
 
 ```sh
-./Source/Apps/qat --apply --profile baseProfile -S ../QirExamples/SimpleLoop/QSharpVersion/qir/Example.ll
+./Source/Apps/qat --apply --profile base -S ../QirExamples/SimpleLoop/QSharpVersion/qir/Example.ll
 ```
 
 Validation of QIR profiles is not supported by the tool at the moment. We're working on this feature, and will add the quickstart documentation here when it is available.
@@ -55,7 +55,7 @@ namespace SimpleLoop {
 }
 ```
 
-The tool was ran with three options: `--apply`, `--profile baseProfile` and `-S`. First, it tells the tool to apply the profile to the QIR so that it can become a profile-specific QIR according to the profile selected. By specifying the value `baseProfile` to the argument `--profile`, we select which profile to use in the tool and the third argument ensures that LLVM IR will be printed to the terminal in a human readable format. The resulting code emitted (omitting declarations) is:
+The tool was ran with three options: `--apply`, `--profile base` and `-S`. First, it tells the tool to apply the profile to the QIR so that it can become a profile-specific QIR according to the profile selected. By specifying the value `baseProfile` to the argument `--profile`, we select which profile to use in the tool and the third argument ensures that LLVM IR will be printed to the terminal in a human readable format. The resulting code emitted (omitting declarations) is:
 
 ```ll
 ; ModuleID = 'QSharpVersion/qir/Example.ll'

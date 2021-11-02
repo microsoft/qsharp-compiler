@@ -217,8 +217,6 @@ extern "C" void loadComponent(IProfileGenerator *generator)
           ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
         }
 
-        // TODO(tfr): These two passes could be combined into one if RulePass had support
-        // for reverse DAG traversal
         if (cfg.replaceAccess())
         {
           RuleSet rule_set;

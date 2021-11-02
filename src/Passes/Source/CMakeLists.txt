@@ -13,10 +13,6 @@ microsoft_add_library(Validator)
 microsoft_add_library_tests(Validator ValidationPass)
 microsoft_add_library(ValidationPass)
 
-
-# microsoft_add_library(ModuleLoader)
-
-
 microsoft_add_library(AllocationManager)
 microsoft_add_library_tests(AllocationManager)
 

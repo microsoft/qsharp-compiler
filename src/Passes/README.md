@@ -30,13 +30,13 @@ For full instructions on dependencies and how to build, follow [these instructio
 Once the project is built (see next sections), you can transform a QIR according to a profile as follows:
 
 ```sh
-./Source/Apps/qat --generate --profile baseProfile -S ../examples/QirAllocationAnalysis/analysis-example.ll
+./Source/Apps/qat --generate --profile base -S path/to/example.ll
 ```
 
 Likewise, you can validate that a QIR follows a specification by running (Note, not implemented yet):
 
 ```sh
-./Source/Apps/qat --validate --profile baseProfile -S ../examples/QirAllocationAnalysis/analysis-example.ll
+./Source/Apps/qat --validate --profile base -S path/to/example.ll
 ```
 
 ## Documentation

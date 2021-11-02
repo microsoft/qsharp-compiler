@@ -2,38 +2,32 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Rules/OperandPrototype.hpp"
-
 #include "Llvm/Llvm.hpp"
+#include "Rules/OperandPrototype.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+
+/// Pattern that matches any operand.
+class AnyPattern : public IOperandPrototype
 {
-namespace quantum
-{
+public:
+  // Constructors.
+  //
+  AnyPattern();
+  ~AnyPattern() override;
 
-    /// Pattern that matches any operand.
-    class AnyPattern : public IOperandPrototype
-    {
-      public:
-        /// Constructors.
-        /// @{
-        AnyPattern();
-        ~AnyPattern() override;
-        /// @}
+  // "Any" implementation of the member functions in IOperandPrototype.
 
-        /// "Any" implmenetation of the member functions in IOperandPrototype.
-        /// @{
+  /// Match of any operand always returns true and ignores children.
+  bool match(Value *instr, Captures &captures) const override;
 
-        /// Match of any operand always returns true and ignores children.
-        bool match(Value* instr, Captures& captures) const override;
+  /// Creates a copy of the AnyPattern instance.
+  Child copy() const override;
+};
 
-        /// Creates a copy of the AnyPattern instance.
-        Child copy() const override;
-        /// @}
-    };
-
-} // namespace quantum
-} // namespace microsoft
+}  // namespace quantum
+}  // namespace microsoft
