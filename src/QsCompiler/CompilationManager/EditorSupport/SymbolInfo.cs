@@ -491,7 +491,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             switch (symbol.Symbol, type.Resolution)
             {
                 case (QsSymbolKind.Symbol name, _):
-                    var range = symbol.Range.ValueOr(Range.Zero);
+                    var range = symbol.Range.IsValue
+                        ? symbol.Range.Item
+                        : throw new ArgumentException("Range is null.", nameof(symbol));
+
                     var position = QsNullable<Position>.NewValue(range.Start);
                     return new[]
                     {
