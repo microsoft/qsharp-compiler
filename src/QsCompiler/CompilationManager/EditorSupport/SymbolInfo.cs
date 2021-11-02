@@ -466,9 +466,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             IEnumerable<LocalVariableDeclaration<string>> Lambda(Lambda<TypedExpression> lambda)
             {
-                var inputType = CallableInputType(expression.ResolvedType);
+                // Since lambda parameters are bound later to a value from any source, pessimistically assume it has a
+                // local quantum dependency.
                 var inferred = new InferredExpressionInformation(false, true);
-                return DeclarationsInTypedSymbol(lambda.Param, inputType, inferred)
+
+                return DeclarationsInTypedSymbol(lambda.Param, CallableInputType(expression.ResolvedType), inferred)
                     .Concat(DeclarationsInExpression(lambda.Body, position));
             }
 
