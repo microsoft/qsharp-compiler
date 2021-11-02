@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -73,18 +74,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
 
         /// <summary>
-        /// Returns the symbol occurrence that overlaps with <paramref name="position"/> in <paramref name="file"/>.
+        /// Returns the symbol occurrence that overlaps with <paramref name="position"/> in <paramref name="fragment"/>.
         /// </summary>
-        /// <param name="file">The file to look in.</param>
+        /// <param name="fragment">The fragment to look in.</param>
         /// <param name="position">The position to look at.</param>
         /// <param name="includeEnd">
         /// True if an overlapping symbol's end position can be equal to <paramref name="position"/>.
         /// </param>
         /// <returns>The overlapping occurrence.</returns>
-        internal static SymbolOccurrence? SymbolOccurrence(FileContentManager file, Position position, bool includeEnd)
+        internal static SymbolOccurrence? SymbolOccurrence(CodeFragment fragment, Position position, bool includeEnd)
         {
-            var fragment = file.TryGetFragmentAt(position, out _, includeEnd);
-            return fragment?.Kind is null
+            return fragment.Kind is null
                 ? null
                 : SymbolOccurrenceModule.InFragment(fragment.Kind).SingleOrDefault(OccurrenceOverlaps);
 
@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             bool RangeOverlaps(QsNullable<Range> range)
             {
-                if (fragment is null || range.IsNull)
+                if (range.IsNull)
                 {
                     return false;
                 }
@@ -177,12 +177,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             (referenceLocations, declarationLocation) = (null, null);
 
             var fragment = file.TryGetFragmentAt(position, out _, true);
-            if (fragment?.Kind is QsFragmentKind.NamespaceDeclaration)
+            if (fragment is null || fragment.Kind is QsFragmentKind.NamespaceDeclaration)
             {
                 return false;
             }
 
-            var occurrence = SymbolOccurrence(file, position, true);
+            var occurrence = SymbolOccurrence(fragment, position, true);
             var sym = occurrence?.Match(
                 declaration: s => s,
                 usedType: t => (t.Type as QsTypeKind.UserDefinedType)?.Item,

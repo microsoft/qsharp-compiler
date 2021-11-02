@@ -47,12 +47,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static Location? DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Position? position)
         {
-            if (position is null)
+            var fragment = file.TryGetFragmentAt(position, out _, true);
+            if (position is null || fragment is null)
             {
                 return null;
             }
 
-            var occurrence = SymbolInfo.SymbolOccurrence(file, position, true);
+            var occurrence = SymbolInfo.SymbolOccurrence(fragment, position, true);
             if (occurrence is null)
             {
                 return null;
@@ -230,7 +231,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // TODO: Add hover for new array expressions.
             // TODO: Add nested types (requires SymbolInfo.SymbolOccurrence to return the closest match).
             var markdown = format == MarkupKind.Markdown;
-            var occurrence = SymbolInfo.SymbolOccurrence(file, position, false);
+            var fragment = file.TryGetFragmentAt(position, out _);
+            var occurrence = fragment is null ? null : SymbolInfo.SymbolOccurrence(fragment, position, false);
             var info = occurrence?.Match(
                 declaration: s => WithContext((locals, nsName) =>
                     compilation.GlobalSymbols.DeclarationInfo(locals, nsName, file.FileName, s, markdown)),
