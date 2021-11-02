@@ -14,34 +14,19 @@ which is compatible with the target platform:
 
 ```text
 ┌──────────────────────┐
-│                      │
 │       Frontend       │
-│                      │
 └──────────────────────┘
            │
-           │
+           │ QIR
            ▼
 ┌──────────────────────┐
-│                      │
-│         QIR          │
-│                      │
+│  QIR Adaptor Tool    │ <─────── QIR Profile
 └──────────────────────┘
            │
-   QIR Adaptor Tool
-           │
+           │ Adapted QIR
            ▼
 ┌──────────────────────┐
-│                      │
-│     QIR Profile      │
-│                      │
-└──────────────────────┘
-           │
-           │
-           ▼
-┌──────────────────────┐
-│                      │
 │       Backend        │
-│                      │
 └──────────────────────┘
 ```
 

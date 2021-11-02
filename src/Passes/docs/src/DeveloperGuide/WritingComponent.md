@@ -95,6 +95,8 @@ This will generate a `HelloWorld` dynamic library with path `./ComponentExamples
 
 ## Loading the component
 
+Executing `qat` and loading the `libHelloWorld` library, we see that our new settings are added to help page:
+
 ```sh
 % ./Source/Apps/qat --load ./ComponentExamples/libHelloWorld.dylib
 Usage: ./Source/Apps/qat [options] filename
@@ -109,23 +111,11 @@ Hello world configuration - Demonstration configuration for building a component
 ...
 ```
 
-Next we generate a QIR to test this with:
-
-```bash
-pushd ../QirExamples/LoopRecursion/QSharpVersion
-make
-popd
-```
-
-To test that the setup function is invoked upon generating the profile, we run
+For the next part, we assume that you have a QIR located in `path/to/example.ll`. To test that the setup function is invoked upon setting the profile up, we run
 
 ```
- % ./Source/Apps/qat --load ./ComponentExamples/libHelloWorld.dylib ../QirExamples/LoopRecursion/QSharpVersion/qir/Example.ll
+ % ./Source/Apps/qat --load ./ComponentExamples/libHelloWorld.dylib path/to/example.ll
 Message: Hello world
-```
-
-```sh
-% ./Source/Apps/qat --load ./ComponentExamples/libHelloWorld.dylib
 ```
 
 ## Creating a Pass Component

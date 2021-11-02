@@ -1,10 +1,11 @@
 # Quick start
 
-Before we start, you will need to build the QAT tool. To this end, create a new folder `Debug` and type `make qat`:
+Before we start, you will need to build the QAT tool. To this end, enter `src/Passes` from the root of the repository and create a new folder `Debug`. Then run `cmake ..` and use `make` to build `qat`:
 
 ```sh
 mkdir Debug
 cd Debug
+cmake ..
 make qat
 ```
 
@@ -56,11 +57,11 @@ namespace SimpleLoop {
 
 The tool was ran with three options: `--apply`, `--profile baseProfile` and `-S`. First, it tells the tool to apply the profile to the QIR so that it can become a profile-specific QIR according to the profile selected. By specifying the value `baseProfile` to the argument `--profile`, we select which profile to use in the tool and the third argument ensures that LLVM IR will be printed to the terminal in a human readable format. The resulting code emitted (omitting declarations) is:
 
-```
+```ll
 ; ModuleID = 'QSharpVersion/qir/Example.ll'
 source_filename = "QSharpVersion/qir/Example.ll"
 
-; …
+; ...
 
 define void @SimpleLoop__Main() local_unnamed_addr #0 {
 entry:

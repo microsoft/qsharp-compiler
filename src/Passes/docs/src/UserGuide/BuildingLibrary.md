@@ -97,11 +97,11 @@ By doing this, we will ensure that CMake can find LLVM and that all headers and 
 
 # Build instructions for users
 
-First
+From the root folder in the repository, go to `src/Passes`, then create a build folder `Debug` and use CMake to build the executable:
 
 ```sh
 cd Debug
-Cmake ..
+cmake ..
 make qat
 ```
 
