@@ -49,7 +49,7 @@ As an example, a hardware based quantum platform may only have support for seque
 
 ## Generic QIR specification
 
-TODO: Generic QIR description
+See [Quantum Intermediate Representation (QIR)](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR)
 
 ## Pipeline profile
 
