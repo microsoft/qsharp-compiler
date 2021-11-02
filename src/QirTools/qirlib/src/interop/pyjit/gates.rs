@@ -1,7 +1,5 @@
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-#![allow(dead_code)]
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 use lazy_static::lazy_static;
 use microsoft_quantum_qir_runtime_sys::QUBIT;

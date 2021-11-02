@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use crate::emit::intrinsics::Intrinsics;
 use crate::emit::Context;
 use crate::interop::pyjit::gates::CURRENT_GATES;

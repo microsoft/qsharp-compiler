@@ -6,7 +6,7 @@ use std::num::ParseIntError;
 
 use llvm_ir;
 
-// This module introdues extensions to the existing types exposed by llvm_ir to bring in some
+// This module introduces extensions to the existing types exposed by llvm_ir to bring in some
 // convenience functions as well as QIR-specific utilities.
 
 pub trait ModuleExt {

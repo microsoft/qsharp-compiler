@@ -102,3 +102,9 @@ Note: For Windows, the packaging will look for python installations available an
 For manylinux, this is controlled through the Docker image build in the `build.ps1`.
 
 The builds target Python ABI 3.6.
+
+The Rust binary uses embedded versions of the QIR basic runtime. In order to interop
+with Python, the tooling needs to build a `cdylib`. Normally we could build the
+static version of the QIR runtime and link it, but [Re-exporting C symbols for cdylib](https://github.com/rust-lang/rfcs/issues/2771) has been broken for years.
+The tooling also only allows the one `cdlib` binary to be packaged. This is being
+tracked upstream in [Maturin](https://github.com/PyO3/maturin/issues/258).

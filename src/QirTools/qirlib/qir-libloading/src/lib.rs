@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use libloading::{library_filename, Library};
 use log;
 use std::error::Error;

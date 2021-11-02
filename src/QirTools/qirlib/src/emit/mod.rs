@@ -7,6 +7,7 @@ use self::runtime_library::RuntimeLibrary;
 use self::types::Types;
 use inkwell::module::Module;
 use inkwell::values::BasicValueEnum;
+use inkwell::OptimizationLevel;
 
 use super::interop::SemanticModel;
 use std::collections::HashMap;
@@ -125,6 +126,7 @@ fn write_instructions<'ctx>(
 pub struct Context<'ctx> {
     pub(crate) context: &'ctx inkwell::context::Context,
     pub(crate) module: inkwell::module::Module<'ctx>,
+    pub(crate) execution_engine: inkwell::execution_engine::ExecutionEngine<'ctx>,
     pub(crate) builder: inkwell::builder::Builder<'ctx>,
     pub(crate) types: Types<'ctx>,
     pub(crate) runtime_library: RuntimeLibrary<'ctx>,
@@ -144,6 +146,9 @@ impl<'ctx> Context<'ctx> {
     ) -> Result<Self, String> {
         let builder = context.create_builder();
         let module = Context::load_module(context, context_type)?;
+        let execution_engine = module
+            .create_jit_execution_engine(OptimizationLevel::None)
+            .expect("Could not create JIT Engine");
         let types = Types::new(&context, &module);
         let runtime_library = RuntimeLibrary::new(&module);
         let intrinsics = Intrinsics::new(&module);
@@ -151,6 +156,7 @@ impl<'ctx> Context<'ctx> {
         Ok(Context {
             builder,
             module,
+            execution_engine,
             types,
             context,
             runtime_library,

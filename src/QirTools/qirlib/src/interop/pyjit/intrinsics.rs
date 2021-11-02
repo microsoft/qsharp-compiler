@@ -1,13 +1,11 @@
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #![allow(dead_code)]
 #![allow(unused_variables)]
-#![allow(unused_imports)]
 
 use microsoft_quantum_qir_runtime_sys::{PauliId, QirArray, QirRTuple, QirRuntime, QUBIT};
 use mut_static::ForceSomeRwLockWriteGuard;
-use std::ops::DerefMut;
 
 use super::gates::BaseProfile;
 
@@ -52,6 +50,7 @@ pub unsafe extern "C" fn __quantum__qis__r__body(pauli: PauliId, theta: f64, qub
     log::debug!("/__quantum__qis__r__body/");
     let mut gs = get_current_gate_processor();
     match pauli {
+        0 => { /* identity */ }
         1 => gs.rx(theta, qubit),
         3 => gs.ry(theta, qubit),
         2 => gs.rz(theta, qubit),
