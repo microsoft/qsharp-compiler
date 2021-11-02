@@ -181,7 +181,7 @@ let ensureEllipsis (parameters: Terminal Tuple) =
     { parameters with
         Items =
             match parameters.Items with
-            // Replace, e.g., `body()` with `body(...)`
+            // Replace, e.g., `body ()` with `body (...)`
             | [] -> [ ellipsisItem 0 ]
             // Replace, e.g., `controlled (q)` with `controlled (q, ...)`
             | [ x ] ->
@@ -194,12 +194,21 @@ let ensureEllipsis (parameters: Terminal Tuple) =
 let specializationUpdate =
     { new Rewriter<_>() with
         override _.SpecializationGenerator((), generator) =
+            let emptyTuple =
+                {
+                    OpenParen = { Prefix = [ spaces 1 ]; Text = "(" }
+                    Items = []
+                    CloseParen = { Prefix = []; Text = ")" }
+                }
+
             match generator with
             | Provided (parameters, statements) ->
                 Provided(
                     parameters =
                         (match parameters with
-                         | None -> parameters
+                         // Replace, e.g., `body` with `body (...)`
+                         | None -> Some(ensureEllipsis emptyTuple)
+                         // Replace, e.g., `body ()` with `body (...)`
                          | Some par -> Some(ensureEllipsis par)),
                     statements = statements
                 )

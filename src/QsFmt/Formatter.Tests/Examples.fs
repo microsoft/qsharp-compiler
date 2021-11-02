@@ -274,6 +274,22 @@ let ``Update Specialization Declaration`` =
 }"""
 
 [<Example(ExampleKind.Update)>]
+let ``Update Specialization Declaration No Parens`` =
+    """namespace Foo {
+    operation Bar() : Unit is Ctl + Adj {
+        body {}
+        adjoint {}
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit is Ctl + Adj {
+        body (...) {}
+        adjoint (...) {}
+    }
+}"""
+
+[<Example(ExampleKind.Update)>]
 let ``Allows size as an Identifier`` =
     """namespace Foo {
     operation Bar() : Unit {
