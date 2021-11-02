@@ -9,10 +9,10 @@ namespace microsoft
 namespace quantum
 {
 
-    template <typename T> InstructionPattern<T>::~InstructionPattern() = default;
-    template <typename T> bool InstructionPattern<T>::match(Value* instr, Captures& captures) const
+    StorePattern::~StorePattern() = default;
+    bool StorePattern::match(Value* instr, Captures& captures) const
     {
-        auto* load_instr = llvm::dyn_cast<T>(instr);
+        auto* load_instr = llvm::dyn_cast<llvm::StoreInst>(instr);
         if (load_instr == nullptr)
         {
             return fail(instr, captures);
@@ -21,36 +21,164 @@ namespace quantum
         return success(instr, captures);
     }
 
-    template <typename T> typename InstructionPattern<T>::Child InstructionPattern<T>::copy() const
+    StorePattern::Child StorePattern::copy() const
     {
-        auto ret = std::make_shared<InstructionPattern<T>>();
+        auto ret = std::make_shared<StorePattern>();
         ret->copyPropertiesFrom(*this);
         return std::move(ret);
     }
 
-// TODO(QAT-private-issue-34): This seems to be a bug in LLVM. Template instantiations in
-// a single translation unit is not supposed to reinstantiate across other
-// translation units.
-//
-// However, it is suspecious that htis problem has been around since Clang 8.
-// so this needs more investigation. For now, this work around suffices
-// See
-// https://bugs.llvm.org/show_bug.cgi?id=18733
-// https://stackoverflow.com/questions/56041900/why-does-explicit-template-instantiation-result-in-weak-template-vtables-warning
-// for more information
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-template-vtables"
-    template class InstructionPattern<llvm::StoreInst>;
-    template class InstructionPattern<llvm::LoadInst>;
-    template class InstructionPattern<llvm::BitCastInst>;
-    template class InstructionPattern<llvm::IntToPtrInst>;
-    template class InstructionPattern<llvm::BranchInst>;
-    template class InstructionPattern<llvm::SelectInst>;
-    template class InstructionPattern<llvm::ConstantInt>;
-    template class InstructionPattern<llvm::BasicBlock>;
-    template class InstructionPattern<llvm::SwitchInst>;
+    LoadPattern::~LoadPattern() = default;
+    bool LoadPattern::match(Value* instr, Captures& captures) const
+    {
+        auto* load_instr = llvm::dyn_cast<llvm::LoadInst>(instr);
+        if (load_instr == nullptr)
+        {
+            return fail(instr, captures);
+        }
 
-#pragma clang diagnostic pop
+        return success(instr, captures);
+    }
+
+    LoadPattern::Child LoadPattern::copy() const
+    {
+        auto ret = std::make_shared<LoadPattern>();
+        ret->copyPropertiesFrom(*this);
+        return std::move(ret);
+    }
+
+    BitCastPattern::~BitCastPattern() = default;
+    bool BitCastPattern::match(Value* instr, Captures& captures) const
+    {
+        auto* load_instr = llvm::dyn_cast<llvm::BitCastInst>(instr);
+        if (load_instr == nullptr)
+        {
+            return fail(instr, captures);
+        }
+
+        return success(instr, captures);
+    }
+
+    BitCastPattern::Child BitCastPattern::copy() const
+    {
+        auto ret = std::make_shared<BitCastPattern>();
+        ret->copyPropertiesFrom(*this);
+        return std::move(ret);
+    }
+
+    IntToPtrPattern::~IntToPtrPattern() = default;
+    bool IntToPtrPattern::match(Value* instr, Captures& captures) const
+    {
+        auto* load_instr = llvm::dyn_cast<llvm::IntToPtrInst>(instr);
+        if (load_instr == nullptr)
+        {
+            return fail(instr, captures);
+        }
+
+        return success(instr, captures);
+    }
+
+    IntToPtrPattern::Child IntToPtrPattern::copy() const
+    {
+        auto ret = std::make_shared<IntToPtrPattern>();
+        ret->copyPropertiesFrom(*this);
+        return std::move(ret);
+    }
+
+    ConstIntPattern::~ConstIntPattern() = default;
+    bool ConstIntPattern::match(Value* instr, Captures& captures) const
+    {
+        auto* load_instr = llvm::dyn_cast<llvm::ConstantInt>(instr);
+        if (load_instr == nullptr)
+        {
+            return fail(instr, captures);
+        }
+
+        return success(instr, captures);
+    }
+
+    ConstIntPattern::Child ConstIntPattern::copy() const
+    {
+        auto ret = std::make_shared<ConstIntPattern>();
+        ret->copyPropertiesFrom(*this);
+        return std::move(ret);
+    }
+
+    BranchPattern::~BranchPattern() = default;
+    bool BranchPattern::match(Value* instr, Captures& captures) const
+    {
+        auto* load_instr = llvm::dyn_cast<llvm::BranchInst>(instr);
+        if (load_instr == nullptr)
+        {
+            return fail(instr, captures);
+        }
+
+        return success(instr, captures);
+    }
+
+    BranchPattern::Child BranchPattern::copy() const
+    {
+        auto ret = std::make_shared<BranchPattern>();
+        ret->copyPropertiesFrom(*this);
+        return std::move(ret);
+    }
+
+    SelectPattern::~SelectPattern() = default;
+    bool SelectPattern::match(Value* instr, Captures& captures) const
+    {
+        auto* load_instr = llvm::dyn_cast<llvm::SelectInst>(instr);
+        if (load_instr == nullptr)
+        {
+            return fail(instr, captures);
+        }
+
+        return success(instr, captures);
+    }
+
+    SelectPattern::Child SelectPattern::copy() const
+    {
+        auto ret = std::make_shared<SelectPattern>();
+        ret->copyPropertiesFrom(*this);
+        return std::move(ret);
+    }
+
+    BasicBlockPattern::~BasicBlockPattern() = default;
+    bool BasicBlockPattern::match(Value* instr, Captures& captures) const
+    {
+        auto* load_instr = llvm::dyn_cast<llvm::BasicBlock>(instr);
+        if (load_instr == nullptr)
+        {
+            return fail(instr, captures);
+        }
+
+        return success(instr, captures);
+    }
+
+    BasicBlockPattern::Child BasicBlockPattern::copy() const
+    {
+        auto ret = std::make_shared<BasicBlockPattern>();
+        ret->copyPropertiesFrom(*this);
+        return std::move(ret);
+    }
+
+    SwitchPattern::~SwitchPattern() = default;
+    bool SwitchPattern::match(Value* instr, Captures& captures) const
+    {
+        auto* load_instr = llvm::dyn_cast<llvm::SwitchInst>(instr);
+        if (load_instr == nullptr)
+        {
+            return fail(instr, captures);
+        }
+
+        return success(instr, captures);
+    }
+
+    SwitchPattern::Child SwitchPattern::copy() const
+    {
+        auto ret = std::make_shared<SwitchPattern>();
+        ret->copyPropertiesFrom(*this);
+        return std::move(ret);
+    }
 
 } // namespace quantum
 } // namespace microsoft
