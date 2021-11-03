@@ -22,7 +22,7 @@ public:
 
   void setup(ConfigurationManager &config)
   {
-    config.setSectionName("CArrayMap", "Transformations to enable C style array allocation.");
+    config.setSectionName("CArrayMap", "Transformations to enable C-style array allocation.");
     config.addParameter(replace_allocators_, "replace-allocators",
                         "Replace allocators with C++ allocators.");
 
