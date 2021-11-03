@@ -418,7 +418,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnReturnStatement(TypedExpression ex)
         {
-            this.SharedState.DIManager.EmitLocation(Position.Zero);
             var result = this.SharedState.EvaluateSubexpression(ex);
             this.SharedState.AddReturn(result, ex.ResolvedType.Resolution.IsUnitType);
             return QsStatementKind.EmptyStatement;

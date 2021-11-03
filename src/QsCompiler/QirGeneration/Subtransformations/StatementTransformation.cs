@@ -35,6 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             QsNullable<QsLocation> loc = stm.Location;
             this.SharedState.DIManager.StatementLocationStack.Push(loc);
+            this.SharedState.DIManager.EmitLocation(Position.Zero);
             QsStatement result = base.OnStatement(stm);
             this.SharedState.DIManager.StatementLocationStack.Pop();
             return result;
