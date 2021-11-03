@@ -1,9 +1,4 @@
 steps:
-# Windows CI is disabled until we have a fully working 
-# configuration of LLVM with CMake
-# - pwsh: ./passes-windows.ps1
-#   displayName: "Passes style, build & test"
-#   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
 - pwsh: ./build.ps1
   displayName: "Build all"
