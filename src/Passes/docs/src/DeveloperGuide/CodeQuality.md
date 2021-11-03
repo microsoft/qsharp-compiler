@@ -164,4 +164,4 @@ No test configuration file found!
 *********************************
 ```
 
-The key idea here is to make it extremely easy to be complaint with the style guide, correct any issues that might come as a result of static analysis and at the same time enforce this when a PR is made.
+The key idea here is to make it extremely easy to be compliant with the style guide, correct any issues that might come as a result of static analysis and at the same time enforce this when a PR is made.
