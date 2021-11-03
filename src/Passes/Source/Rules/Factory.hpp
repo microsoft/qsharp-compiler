@@ -7,6 +7,7 @@
 #include "Rules/FactoryConfig.hpp"
 #include "Rules/ReplacementRule.hpp"
 #include "Rules/RuleSet.hpp"
+#include "Types/Types.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -22,8 +23,6 @@ namespace quantum
     class RuleFactory
     {
       public:
-        using String = std::string;
-
         /// ReplacementRule pointer type used for the construction of replacement rules
         using ReplacementRulePtr = std::shared_ptr<ReplacementRule>;
 

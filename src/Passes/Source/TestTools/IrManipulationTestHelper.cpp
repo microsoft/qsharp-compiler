@@ -49,7 +49,7 @@ namespace quantum
         return !compilation_failed_;
     }
 
-    IrManipulationTestHelper::String IrManipulationTestHelper::toString() const
+    String IrManipulationTestHelper::toString() const
     {
         String                   str;
         llvm::raw_string_ostream ostream(str);
@@ -156,8 +156,7 @@ namespace quantum
         function_declarations_.insert(declaration);
     }
 
-    IrManipulationTestHelper::String IrManipulationTestHelper::generateScript(String const& body, String const& args)
-        const
+    String IrManipulationTestHelper::generateScript(String const& body, String const& args) const
     {
         String script = R"script(
 ; ModuleID = 'IrManipulationTestHelper'
@@ -184,7 +183,7 @@ source_filename = "IrManipulationTestHelper.ll"
         return script;
     }
 
-    IrManipulationTestHelper::String IrManipulationTestHelper::getErrorMessage() const
+    String IrManipulationTestHelper::getErrorMessage() const
     {
         String                   str;
         llvm::raw_string_ostream ostream(str);

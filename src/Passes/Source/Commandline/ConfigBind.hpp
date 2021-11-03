@@ -142,21 +142,19 @@ namespace quantum
         return true;
     }
 
-    template <typename T> typename ConfigBind<T>::String ConfigBind<T>::value()
+    template <typename T> String ConfigBind<T>::value()
     {
         return valueAsString<Type>(default_value_);
     }
 
-    template <typename T> template <typename A> typename ConfigBind<T>::String ConfigBind<T>::valueAsString(A const&)
+    template <typename T> template <typename A> String ConfigBind<T>::valueAsString(A const&)
     {
         std::stringstream ss{""};
         ss << bind_;
         return static_cast<String>(ss.str());
     }
 
-    template <typename T>
-    template <typename A>
-    typename ConfigBind<T>::String ConfigBind<T>::valueAsString(EnableIf<A, bool, A> const&)
+    template <typename T> template <typename A> String ConfigBind<T>::valueAsString(EnableIf<A, bool, A> const&)
     {
         std::stringstream ss{""};
         ss << (bind_ ? "true" : "false");

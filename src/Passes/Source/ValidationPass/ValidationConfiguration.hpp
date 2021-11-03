@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ConfigurationManager.hpp"
+#include "Types/Types.hpp"
 
 namespace microsoft
 {
@@ -12,8 +13,7 @@ namespace quantum
     class ValidationPassConfiguration
     {
       public:
-        using String = std::string;
-        using Set    = std::unordered_set<std::string>;
+        using Set = std::unordered_set<std::string>;
         // Setup and construction
         //
 

@@ -4,6 +4,7 @@
 
 #include "Commandline/ConfigurationManager.hpp"
 #include "Profile/Profile.hpp"
+#include "Types/Types.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -20,10 +21,6 @@ namespace quantum
         using PassBuilder             = llvm::PassBuilder;
         using OptimizationLevel       = PassBuilder::OptimizationLevel;
         using FunctionAnalysisManager = llvm::FunctionAnalysisManager;
-
-        // Types used for defining a component
-        //
-        using String = std::string;
 
         /// Setup function that uses a configuration type R to
         /// configure the profile and/or generator.

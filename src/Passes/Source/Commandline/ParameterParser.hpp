@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Types/Types.hpp"
+
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -17,7 +19,6 @@ namespace quantum
     class ParameterParser
     {
       public:
-        using String      = std::string;
         using Arguments   = std::vector<String>;
         using Flags       = std::unordered_set<String>;
         using SettingsMap = std::unordered_map<String, String>;
@@ -64,10 +65,10 @@ namespace quantum
         String const& getArg(Arguments::size_type const& n) const;
 
         /// Gets a named setting, falling back to a default if the key is not found.
-        String get(String const& name, String const& default_value) const noexcept;
+        String const& get(String const& name, String const& default_value) const noexcept;
 
         /// Gets a named setting. This method throws if the setting is not present.
-        String get(String const& name) const;
+        String const& get(String const& name) const;
 
         /// Checks whether or not a given parameter is present.
         bool has(String const& name) const noexcept;

@@ -4,6 +4,7 @@
 
 #include "Logging/ILogger.hpp"
 #include "Profile/Profile.hpp"
+#include "Types/Types.hpp"
 #include "ValidationPass/ValidationConfiguration.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -22,7 +23,6 @@ namespace quantum
       public:
         using Instruction       = llvm::Instruction;
         using Value             = llvm::Value;
-        using String            = std::string;
         using ConstantArguments = std::unordered_map<std::string, llvm::ConstantInt*>;
         using ILoggerPtr        = std::shared_ptr<ILogger>;
 

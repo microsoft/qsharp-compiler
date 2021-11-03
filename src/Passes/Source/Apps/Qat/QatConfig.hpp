@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ConfigurationManager.hpp"
+#include "Types/Types.hpp"
 
 namespace microsoft
 {
@@ -13,8 +14,6 @@ namespace quantum
     class QatConfig
     {
       public:
-        using String = std::string;
-
         // Functions required by configuration manager
         //
 

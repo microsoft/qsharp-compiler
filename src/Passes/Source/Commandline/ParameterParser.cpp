@@ -58,7 +58,7 @@ namespace quantum
         flags_.insert(v);
     }
 
-    ParameterParser::String ParameterParser::get(String const& name, String const& default_value) const noexcept
+    String const& ParameterParser::get(String const& name, String const& default_value) const noexcept
     {
         auto it = settings_.find(name);
         if (it == settings_.end())
@@ -69,7 +69,7 @@ namespace quantum
         return it->second;
     }
 
-    ParameterParser::String ParameterParser::get(String const& name) const
+    String const& ParameterParser::get(String const& name) const
     {
         auto it = settings_.find(name);
         if (it == settings_.end())
@@ -90,7 +90,8 @@ namespace quantum
     {
         return arguments_;
     }
-    ParameterParser::String const& ParameterParser::getArg(Arguments::size_type const& n) const
+
+    String const& ParameterParser::getArg(Arguments::size_type const& n) const
     {
         return arguments_[n];
     }

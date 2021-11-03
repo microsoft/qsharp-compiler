@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 
 #include "StripAttributesPass/StripAttributes.hpp"
+#include "Types/Types.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -17,7 +18,6 @@ namespace quantum
         using PassBuilder             = llvm::PassBuilder;
         using OptimizationLevel       = PassBuilder::OptimizationLevel;
         using FunctionAnalysisManager = llvm::FunctionAnalysisManager;
-        using String                  = std::string;
 
         explicit SingleModuleTransformation(
             OptimizationLevel const& optimisation_level = OptimizationLevel::O0,
@@ -75,7 +75,6 @@ namespace quantum
       public:
         using Module       = llvm::Module;
         using Linker       = llvm::Linker;
-        using String       = std::string;
         using SMDiagnostic = llvm::SMDiagnostic;
 
         explicit ModuleLoader(Module* final_module)

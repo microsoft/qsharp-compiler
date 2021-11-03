@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Types/Types.hpp"
+
 #include "Llvm/Llvm.hpp"
 
 #include <functional>
@@ -16,7 +18,6 @@ namespace quantum
     class StripAttributesPass : public llvm::PassInfoMixin<StripAttributesPass>
     {
       public:
-        using String = std::string;
         StripAttributesPass()
           : allowed_attrs_{{static_cast<String>("EntryPoint"), static_cast<String>("InteropFriendly")}}
         {

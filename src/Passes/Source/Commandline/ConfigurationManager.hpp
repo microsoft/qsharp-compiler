@@ -5,6 +5,7 @@
 #include "Commandline/ConfigBind.hpp"
 #include "Commandline/IConfigBind.hpp"
 #include "Commandline/ParameterParser.hpp"
+#include "Types/Types.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -29,7 +30,6 @@ namespace quantum
     class ConfigurationManager
     {
       public:
-        using String         = std::string;
         using IConfigBindPtr = std::shared_ptr<IConfigBind>; ///< Pointer class used to bind a parameter to a value.
         using ConfigList     = std::vector<IConfigBindPtr>;  ///< List of bound variables.
         using VoidPtr        = std::shared_ptr<void>;        ///< Type-erased configuration pointer.
@@ -113,6 +113,9 @@ namespace quantum
         template <typename T> inline void addParameter(T& bind, String const& name, String const& description);
 
       private:
+        /// Helper function to get a reference to the configuration of type T.
+        template <typename T> inline T& getInternal() const;
+
         Sections config_sections_{}; ///< All available sections within the ConfigurationManager instance
     };
 
@@ -129,30 +132,7 @@ namespace quantum
         ptr->setup(*this);
     }
 
-    template <typename T> inline void ConfigurationManager::setConfig(T const& value)
-    {
-        auto    type = std::type_index(typeid(T));
-        VoidPtr ptr{nullptr};
-
-        for (auto& section : config_sections_)
-        {
-            if (section.type == type)
-            {
-                ptr = section.configuration;
-                break;
-            }
-        }
-
-        if (ptr == nullptr)
-        {
-            throw std::runtime_error("Could not find configuration class.");
-        }
-
-        auto& config = *static_cast<T*>(ptr.get());
-        config       = value;
-    }
-
-    template <typename T> inline T const& ConfigurationManager::get() const
+    template <typename T> inline T& ConfigurationManager::getInternal() const
     {
         VoidPtr ptr{nullptr};
         auto    type = std::type_index(typeid(T));
@@ -172,6 +152,17 @@ namespace quantum
         }
 
         return *static_cast<T*>(ptr.get());
+    }
+
+    template <typename T> inline void ConfigurationManager::setConfig(T const& value)
+    {
+        auto& config = getInternal<T>();
+        config       = value;
+    }
+
+    template <typename T> inline T const& ConfigurationManager::get() const
+    {
+        return getInternal<T>();
     }
 
     template <typename T> inline bool ConfigurationManager::isActive()

@@ -19,12 +19,12 @@ namespace quantum
 
     IConfigBind::~IConfigBind() = default;
 
-    IConfigBind::String IConfigBind::name() const
+    String IConfigBind::name() const
     {
         return name_;
     }
 
-    IConfigBind::String IConfigBind::description() const
+    String IConfigBind::description() const
     {
         return description_;
     }
@@ -39,7 +39,7 @@ namespace quantum
         return is_flag_;
     }
 
-    IConfigBind::String IConfigBind::defaultValue() const
+    String IConfigBind::defaultValue() const
     {
         return str_default_value_;
     }

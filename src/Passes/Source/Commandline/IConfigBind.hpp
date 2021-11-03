@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ParameterParser.hpp"
+#include "Types/Types.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -23,8 +24,6 @@ namespace quantum
     class IConfigBind
     {
       public:
-        using String = std::string;
-
         // Deleted constructors and deleted operators
         //
         // Strictly speaking the code would remain correct if we allowed copy and/or move, but

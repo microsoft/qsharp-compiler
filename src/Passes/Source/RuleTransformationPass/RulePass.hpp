@@ -6,6 +6,7 @@
 #include "Profile/Profile.hpp"
 #include "RuleTransformationPass/Configuration.hpp"
 #include "Rules/RuleSet.hpp"
+#include "Types/Types.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -82,7 +83,6 @@ namespace quantum
         using Builder              = ReplacementRule::Builder;
         using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
         using Captures             = RuleSet::Captures;
-        using String               = std::string;
         using ConstantArguments    = std::unordered_map<std::string, llvm::ConstantInt*>;
         using ILoggerPtr           = std::shared_ptr<ILogger>;
 

@@ -4,6 +4,7 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
+#include "Types/Types.hpp"
 #include "Validator/Validator.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -27,10 +28,6 @@ namespace quantum
 
         /// Validator class used to check that an IR fulfils a given specification
         using ValidatorPtr = Validator::ValidatorPtr;
-
-        /// Standard types
-        //
-        using String = std::string;
 
         // Constructors
         //

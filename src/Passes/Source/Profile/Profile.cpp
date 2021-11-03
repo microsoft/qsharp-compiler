@@ -158,7 +158,7 @@ namespace quantum
         return validator_->validate(module);
     }
 
-    Profile::String Profile::name() const
+    String Profile::name() const
     {
         return name_;
     }

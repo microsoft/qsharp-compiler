@@ -40,7 +40,7 @@ namespace quantum
         return validate_;
     }
 
-    QatConfig::String QatConfig::profile() const
+    String QatConfig::profile() const
     {
         return profile_;
     }
@@ -85,7 +85,7 @@ namespace quantum
         return dump_config_;
     }
 
-    QatConfig::String QatConfig::load() const
+    String QatConfig::load() const
     {
         return load_;
     }

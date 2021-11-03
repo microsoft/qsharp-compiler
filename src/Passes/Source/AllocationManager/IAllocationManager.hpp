@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Types/Types.hpp"
+
 #include <memory>
 #include <string>
 
@@ -15,9 +17,8 @@ namespace quantum
     class IAllocationManager
     {
       public:
-        using Address              = uint64_t;    ///< Value type for address
-        using Index                = uint64_t;    ///< Index type used to access an array element.
-        using String               = std::string; ///< String type used for naming segments.
+        using Address              = uint64_t; ///< Value type for address
+        using Index                = uint64_t; ///< Index type used to access an array element.
         using AllocationManagerPtr = std::shared_ptr<IAllocationManager>; ///< Pointer interface.
 
         // Construction, moves and copies

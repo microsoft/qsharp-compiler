@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Types/Types.hpp"
+
 #include <cstdint>
 #include <string>
 
@@ -15,8 +17,6 @@ namespace quantum
     class ILogger
     {
       public:
-        using String = std::string; ///< Class uses the standard string as string.
-
         // Constructors, copy and move operators and destructors
         //
 
