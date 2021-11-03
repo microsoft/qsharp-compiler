@@ -1547,7 +1547,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <returns>The kind of the Q# type on top of the expression type stack</returns>
         internal ResolvedType CurrentExpressionType() =>
-            this.ExpressionTypeStack.Peek();
+            this.ExpressionTypeStack.Peek(); // RyanTODO: this can throw a null exception
 
         /// <returns>The QIR equivalent for the Q# type that is on top of the expression type stack</returns>
         internal ITypeRef CurrentLlvmExpressionType() =>

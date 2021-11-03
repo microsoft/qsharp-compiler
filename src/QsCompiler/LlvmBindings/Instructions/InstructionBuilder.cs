@@ -47,7 +47,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         public InstructionBuilder SetDebugLocation(uint line, uint col, DILocalScope scope, DILocation? inlinedAt = null)
         {
             var loc = new DILocation(this.Context, line, col, scope, inlinedAt);
-            return SetDebugLocation(loc);
+            return this.SetDebugLocation(loc);
         }
 
         /// <summary>Set the current debug location for this <see cref="InstructionBuilder"/></summary>

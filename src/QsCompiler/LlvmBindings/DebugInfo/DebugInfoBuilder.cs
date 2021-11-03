@@ -357,7 +357,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="alignInBits">Variable alignment (in Bits)</param>
         /// <returns><see cref="DILocalVariable"/></returns>
         [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call")]
-        public DILocalVariable CreateLocalVariable(
+        public DILocalVariable CreateLocalVariable( // RyanNote: need this
             DIScope? scope,
             string name,
             DIFile? file,

@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -76,6 +77,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal QsLocation? CurrentNamespaceElementLocation { get; set; }
 
         /// <summary>
+        /// Contains the location information for the Expression we are inside
+        /// </summary>
+        internal Stack<DataTypes.Range?> ExpressionRangeStack { get; }
+
+        /// <summary>
         /// The GenerationContext that owns this DebugInfoManager
         /// </summary>
         private readonly GenerationContext sharedState;
@@ -99,12 +105,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Access to the GenerationContext's Context's InstructionBuilder
         /// </summary>
-        private InstructionBuilder InstructionBuilder => this.sharedState.CurrentBuilder;
+        private InstructionBuilder CurrentInstrBuilder => this.sharedState.CurrentBuilder;
 
         internal DebugInfoManager(GenerationContext generationContext)
         {
             this.sharedState = generationContext;
             this.StatementLocationStack = new Stack<QsNullable<QsLocation>>();
+            this.ExpressionRangeStack = new Stack<DataTypes.Range?>();
             this.dIBuilders = new Dictionary<string, DebugInfoBuilder>();
         }
 
@@ -132,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             foreach (QsNullable<QsLocation> loc in this.StatementLocationStack)
             {
-                if (!loc.IsNull)
+                if (loc.IsValue)
                 {
                     offset += loc.Item.Offset;
                 }
@@ -140,6 +147,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             return offset;
         }
+
+        /// <summary>
+        /// Sums up the offsets from the stack of expression ranges <see cref="ExpressionRangeStack"/>.
+        /// </summary>
+        internal Position TotalOffsetFromExpressions() // TODO: should it be added up like this?
+        {
+            Position offset = Position.Zero;
+
+            foreach (DataTypes.Range? range in this.ExpressionRangeStack)
+            {
+                if (range != null)
+                {
+                    offset += range.Start;
+                }
+
+            }
+            return offset;
+        }
+
+
 
         /// <summary>
         /// Creates a moduleID which lists all source files with debug info
@@ -298,6 +325,68 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
 // return DIBasicType::get(VMContext, dwarf::DW_TAG_unspecified_type, Name); look at dwarfenumeration tags to get more complicted like this for user defined types
 
+        internal void CreateLocalVariable(string name, IValue value) // TODO: should I be doing something with this local variable so it gets updated properly???
+        {
+            if (this.DebugFlag)
+            {
+                DISubProgram? subProgram = this.sharedState.CurrentFunction?.DISubProgram;
+                string? sourcePath = subProgram?.File?.Path;
+                if (string.IsNullOrEmpty(sourcePath))
+                {
+                    return;
+                }
+
+                DebugInfoBuilder diBuilder = this.GetOrCreateDIBuilder(sourcePath);
+                ResolvedType? resType = value.QSharpType;
+
+                DIType? dIType;
+                try
+                {
+                    dIType = resType == null ? null : this.GetDebugTypeFor(resType, diBuilder).DIType;
+                }
+                catch (Exception)
+                {
+                    dIType = null;
+                }
+
+                Position absolutePosition = this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions();
+                if (subProgram != null)
+                {
+                    DILocalVariable dIVar = diBuilder.CreateLocalVariable(
+                    subProgram,
+                    name,
+                    diBuilder.CompileUnit?.File,
+                    (uint)absolutePosition.Line,
+                    dIType,
+                    alwaysPreserve: true,
+                    DebugInfoFlags.None);
+
+                    DILocation dILoc = new DILocation(
+                        this.Context,
+                        (uint)absolutePosition.Line,
+                        (uint)absolutePosition.Column,
+                        subProgram);
+
+                    var nativeType = value.Value.NativeType;
+
+                    if (this.sharedState.CurrentBlock != null && dIType != null)
+                    {
+                        diBuilder.InsertDeclare(
+                            storage: value.Value,
+                            varInfo: dIVar,
+                            location: dILoc,
+                            insertAtEnd: this.sharedState.CurrentBlock);
+                    }
+                }
+
+                // Only need to emit debug information if the variable is from a source file RyanTODO: move this to the manager registerVariable so we have access to stack
+                // if (fromLocalID != null)
+                // {
+                //     DILocalScope scope = null; // RyanTODO: where do I get this
+                //     this.SharedState.DIManager.emitLocation(scope);
+                // }
+            }
+        }
         internal IrFunction CreateLocalFunction(QsSpecialization spec, string name, IFunctionType signature, bool isDefinition, ITypeRef retType, ITypeRef[] argTypes)
         {
             if (this.DebugFlag && spec.Kind == QsSpecializationKind.QsBody)
@@ -402,17 +491,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal void EmitLocation(uint line, uint col, DILocalScope? localScope, DebugInfoBuilder? di = null)
         {
-            // The way we store line/col is 0-indexed but InstructionBuilder is expecting 1-indexed.
-            line += 1;
-            col += 1;
-
-            if (localScope == null)
+            if (this.DebugFlag)
             {
-                // scope = di.GetCompileUnit(); // Would be nice functionality, but bindings not set up for DIScope rather than DILocalScope rn
-                throw new ArgumentException("Cannot set a debug location with a null scope."); // TODO: remove, doesn't need to throw an exception this is just for testing
-            }
+                // The way we store line/col is 0-indexed but InstructionBuilder is expecting 1-indexed.
+                line += 1;
+                col += 1;
 
-            this.InstructionBuilder.SetDebugLocation(line, col, localScope);
+                if (localScope == null)
+                {
+                    // scope = di.GetCompileUnit(); // Would be nice functionality, but bindings not set up for DIScope rather than DILocalScope rn
+                    throw new ArgumentException("Cannot set a debug location with a null scope."); // TODO: remove, doesn't need to throw an exception this is just for testing
+                }
+
+                this.CurrentInstrBuilder.SetDebugLocation(line, col, localScope);
+            }
+        }
+
+        internal void EmitLocation(Position? relativePosition)
+        {
+            if (this.DebugFlag)
+            {
+                DISubProgram? sp = this.sharedState.CurrentFunction?.DISubProgram;
+                QsLocation? namespaceLoc = this.sharedState.DIManager.CurrentNamespaceElementLocation;
+                if (namespaceLoc != null && relativePosition != null && sp != null)
+                {
+                    Position absolutePosition = namespaceLoc.Offset + this.TotalOffsetFromStatements() + relativePosition;
+                    this.EmitLocation((uint)absolutePosition.Line, (uint)absolutePosition.Column, sp);
+                }
+            }
         }
     }
 }

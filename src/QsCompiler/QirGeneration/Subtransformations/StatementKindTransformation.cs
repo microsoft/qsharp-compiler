@@ -478,11 +478,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     if (stm.Kind.IsMutableBinding)
                     {
-                        value = this.SharedState.Values.CreatePointer(value);
+                        value = this.SharedState.Values.CreatePointer(value); // RyanNote: Mutable Binding has a pointer to a value!!
                     }
 
                     QirExpressionKindTransformation.AccessViaLocalId(ex, out var localId);
                     this.SharedState.ScopeMgr.RegisterVariable(varName, value, fromLocalId: localId);
+                    this.SharedState.DIManager.CreateLocalVariable(varName, value);
                 };
 
             this.BindSymbolTuple(stm.Lhs, stm.Rhs, (syms, boundEx) =>

@@ -33,7 +33,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override TypedExpression OnTypedExpression(TypedExpression ex)
         {
             this.SharedState.ExpressionTypeStack.Push(ex.ResolvedType);
+            this.SharedState.DIManager.ExpressionRangeStack.Push(ex.Range.Item);
             var result = base.OnTypedExpression(ex);
+            this.SharedState.DIManager.ExpressionRangeStack.Pop();
             this.SharedState.ExpressionTypeStack.Pop();
             return result;
         }

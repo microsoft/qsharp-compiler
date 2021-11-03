@@ -1540,15 +1540,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpressionKind OnCallLikeExpression(TypedExpression method, TypedExpression arg)
         {
             // get the debug location of the call
-            DISubProgram? sp = this.SharedState.CurrentFunction?.DISubProgram;
             DataTypes.Range? relativeRange = method.Range.IsNull ? null : method.Range.Item;
-            QsLocation? namespaceLoc = this.SharedState.DIManager.CurrentNamespaceElementLocation;
-            if (namespaceLoc != null && relativeRange != null && sp != null)
-            {
-                Position absolutePosition = namespaceLoc.Offset + this.SharedState.DIManager.TotalOffsetFromStatements() + relativeRange.Start;
-                this.SharedState.DIManager.EmitLocation((uint)absolutePosition.Line, (uint)absolutePosition.Column, sp);
-            }
-
+            Position? relativePosition = relativeRange?.Start;
+            this.SharedState.DIManager.EmitLocation(relativePosition);
             return base.OnCallLikeExpression(method, arg);
         }
 
@@ -1644,6 +1638,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
+            this.SharedState.DIManager.EmitLocation(Position.Zero);
             return ResolvedExpressionKind.InvalidExpr;
         }
 
