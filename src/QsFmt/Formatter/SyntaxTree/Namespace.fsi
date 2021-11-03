@@ -32,7 +32,7 @@ type internal SpecializationGenerator =
     | BuiltIn of name: Terminal * semicolon: Terminal
 
     /// A provided specialization.
-    | Provided of parameters: Terminal option * statements: Statement Block
+    | Provided of parameters: Terminal Tuple option * statements: Statement Block
 
 /// A specialization.
 type internal Specialization =
