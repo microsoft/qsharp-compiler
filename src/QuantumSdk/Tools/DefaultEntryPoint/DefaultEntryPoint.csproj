@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>netcoreapp3.1</TargetFramework>
+        <TargetFramework>net6.0</TargetFramework>
         <AssemblyName>Microsoft.Quantum.Sdk.DefaultEntryPoint.Generation</AssemblyName>
         <AssemblyTitle>Build tool to generate a minimal C# entry point when no C# files are included in the compilation.</AssemblyTitle>
     </PropertyGroup>
