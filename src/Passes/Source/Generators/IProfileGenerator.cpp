@@ -92,7 +92,7 @@ namespace quantum
         return optimisation_level_;
     }
 
-    bool IProfileGenerator::debug() const
+    bool IProfileGenerator::isDebugMode() const
     {
         return debug_;
     }

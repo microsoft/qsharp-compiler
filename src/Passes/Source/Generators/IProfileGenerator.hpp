@@ -82,7 +82,7 @@ namespace quantum
         OptimizationLevel optimisationLevel() const;
 
         /// Flag indicating whether we are operating in debug mode or not.
-        bool debug() const;
+        bool isDebugMode() const;
 
       protected:
         /// Internal function that creates a module pass for QIR transformation. The module pass is

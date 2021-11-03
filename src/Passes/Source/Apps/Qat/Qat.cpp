@@ -205,7 +205,7 @@ int main(int argc, char** argv)
                     ret.addPass(llvm::AlwaysInlinerPass());
 
                     auto inliner_pass = pass_builder.buildInlinerPipeline(
-                        ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->debug());
+                        ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->isDebugMode());
                     ret.addPass(std::move(inliner_pass));
                 }
                 else if (!cfg.disableDefaultPipeline())
@@ -223,7 +223,8 @@ int main(int argc, char** argv)
                         pass_builder.buildModuleSimplificationPipeline(opt, llvm::PassBuilder::ThinLTOPhase::None);
                     mpm.addPass(std::move(pipeline2));
 
-                    llvm::ModulePassManager pipeline3 = pass_builder.buildModuleOptimizationPipeline(opt, ptr->debug());
+                    llvm::ModulePassManager pipeline3 =
+                        pass_builder.buildModuleOptimizationPipeline(opt, ptr->isDebugMode());
                     mpm.addPass(std::move(pipeline3));
                 }
             });
@@ -238,7 +239,7 @@ int main(int argc, char** argv)
         // In case we debug, we also print the settings to allow provide a full
         // picture of what is going. This step deliberately comes before validating
         // the input to allow dumping the configuration if something goes wrong.
-        if (config.dumpConfig())
+        if (config.shouldDumpConfig())
         {
             configuration_manager.printConfiguration();
         }
@@ -282,17 +283,17 @@ int main(int argc, char** argv)
         auto optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
 
         // Setting the optimisation level
-        if (config.opt1())
+        if (config.isOpt1Enabled())
         {
             optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
         }
 
-        if (config.opt2())
+        if (config.isOpt2Enabled())
         {
             optimisation_level = llvm::PassBuilder::OptimizationLevel::O2;
         }
 
-        if (config.opt3())
+        if (config.isOpt3Enabled())
         {
             optimisation_level = llvm::PassBuilder::OptimizationLevel::O3;
         }
@@ -301,16 +302,16 @@ int main(int argc, char** argv)
         //
 
         // Creating the profile that will be used for generation and validation
-        auto profile = generator->newProfile(config.profile(), optimisation_level, config.debug());
+        auto profile = generator->newProfile(config.profile(), optimisation_level, config.isDebugMode());
 
-        if (config.generate())
+        if (config.shouldGenerate())
         {
             profile.apply(*module);
         }
 
         // We deliberately emit LLVM prior to verification and validation
         // to allow output the IR for debugging purposes.
-        if (config.emitLlvm())
+        if (config.shouldEmitLlvm())
         {
             llvm::outs() << *module << "\n";
         }
@@ -328,7 +329,7 @@ int main(int argc, char** argv)
             }
         }
 
-        if (config.validate())
+        if (config.shouldValidate())
         {
             if (!profile.validate(*module))
             {

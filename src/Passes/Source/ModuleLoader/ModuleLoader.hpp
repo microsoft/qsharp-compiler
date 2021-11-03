@@ -53,7 +53,7 @@ namespace quantum
             return true;
         }
 
-        bool debug() const
+        bool isDebugMode() const
         {
             return debug_;
         }

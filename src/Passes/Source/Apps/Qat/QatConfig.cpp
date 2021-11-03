@@ -30,12 +30,12 @@ namespace quantum
         config.addParameter(dump_config_, "dump-config", "Prints the configuration to the standard output.");
     }
 
-    bool QatConfig::generate() const
+    bool QatConfig::shouldGenerate() const
     {
         return generate_;
     }
 
-    bool QatConfig::validate() const
+    bool QatConfig::shouldValidate() const
     {
         return validate_;
     }
@@ -45,27 +45,27 @@ namespace quantum
         return profile_;
     }
 
-    bool QatConfig::emitLlvm() const
+    bool QatConfig::shouldEmitLlvm() const
     {
         return emit_llvm_;
     }
 
-    bool QatConfig::opt0() const
+    bool QatConfig::isOpt0Enabled() const
     {
         return opt0_;
     }
 
-    bool QatConfig::opt1() const
+    bool QatConfig::isOpt1Enabled() const
     {
         return opt1_;
     }
 
-    bool QatConfig::opt2() const
+    bool QatConfig::isOpt2Enabled() const
     {
         return opt2_;
     }
 
-    bool QatConfig::opt3() const
+    bool QatConfig::isOpt3Enabled() const
     {
         return opt3_;
     }
@@ -75,12 +75,12 @@ namespace quantum
         return verify_module_;
     }
 
-    bool QatConfig::debug() const
+    bool QatConfig::isDebugMode() const
     {
         return debug_;
     }
 
-    bool QatConfig::dumpConfig() const
+    bool QatConfig::shouldDumpConfig() const
     {
         return dump_config_;
     }

@@ -64,7 +64,7 @@ namespace quantum
                     ret.addPass(llvm::AlwaysInlinerPass());
 
                     auto inliner_pass = pass_builder.buildInlinerPipeline(
-                        ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->debug());
+                        ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->isDebugMode());
                     ret.addPass(std::move(inliner_pass));
                 }
                 else if (!cfg.disableDefaultPipeline())
@@ -135,7 +135,7 @@ namespace quantum
                     ret.addPass(llvm::AlwaysInlinerPass());
 
                     auto inliner_pass = pass_builder.buildInlinerPipeline(
-                        ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->debug());
+                        ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->isDebugMode());
                     ret.addPass(std::move(inliner_pass));
                 }
                 else if (!cfg.disableDefaultPipeline())

@@ -29,37 +29,37 @@ namespace quantum
         String load() const;
 
         /// Flag that indicates whether or not we are generating a new QIR by applying a profile.
-        bool generate() const;
+        bool shouldGenerate() const;
 
         /// Flag to indicate whether or not to verify that the (Q)IR is a valid LLVM IR.
         bool verifyModule() const;
 
         /// Flag to indicate whether or not to validate the compliance with the QIR profile.
-        bool validate() const;
+        bool shouldValidate() const;
 
         /// String to request a specific profile name. Default is base.
         String profile() const;
 
         /// Indicates whether or not the QIR adaptor tool should emit LLVM IR to the standard output.
-        bool emitLlvm() const;
+        bool shouldEmitLlvm() const;
 
-        /// Enables optimisation level 0. Note higher OX override lower ones.
-        bool opt0() const;
+        /// Tells if the optimisation level 0 is enabled. Note higher OX override lower ones.
+        bool isOpt0Enabled() const;
 
-        /// Enables optimisation level 1. Note higher OX override lower ones.
-        bool opt1() const;
+        /// Tells if the optimisation level 1 is enabled. Note higher OX override lower ones.
+        bool isOpt1Enabled() const;
 
-        /// Enables optimisation level 2. Note higher OX override lower ones.
-        bool opt2() const;
+        /// Tells if the optimisation level 2 is enabled. Note higher OX override lower ones.
+        bool isOpt2Enabled() const;
 
-        /// Enables optimisation level 3. Note higher OX override lower ones.
-        bool opt3() const;
+        /// Tells if the optimisation level 3 is enabled. Note higher OX override lower ones.
+        bool isOpt3Enabled() const;
 
         /// Enables debug output.
-        bool debug() const;
+        bool isDebugMode() const;
 
         /// Request the full configuration to be dumped to the screen.
-        bool dumpConfig() const;
+        bool shouldDumpConfig() const;
 
       private:
         // Variables to be bound to the configuration manager

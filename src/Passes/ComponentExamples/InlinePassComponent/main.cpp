@@ -38,7 +38,7 @@ extern "C" void loadComponent(IProfileGenerator *generator)
           // Adds the inline pipeline
           auto &pass_builder = ptr->passBuilder();
           auto  inliner_pass = pass_builder.buildInlinerPipeline(
-              ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->debug());
+              ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->isDebugMode());
           module_pass_manager.addPass(std::move(inliner_pass));
         }
       });
