@@ -34,10 +34,7 @@ type SpecializationGeneratorVisitor(tokens) =
 
     override _.VisitProvidedGenerator context =
         let tospecializationParameters tokens (context: QSharpParser.SpecializationParameterTupleContext) =
-            let toSpecializationParameter (context: QSharpParser.SpecializationParameterContext) =
-                { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() }
-
-            let parameters = context._parameters |> Seq.map toSpecializationParameter
+            let parameters = context._parameters |> Seq.map (Node.toUnknown tokens)
             let commas = context._commas |> Seq.map (Node.toTerminal tokens)
 
             {
