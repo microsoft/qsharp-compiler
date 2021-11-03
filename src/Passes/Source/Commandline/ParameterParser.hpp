@@ -61,7 +61,7 @@ namespace quantum
         Arguments const& arguments() const;
 
         /// Returns the n'th commandline argument.
-        String const& getArg(uint64_t const& n);
+        String const& getArg(uint64_t const& n) const;
 
         /// Gets a named setting, falling back to a default if the key is not found.
         String get(String const& name, String const& default_value) const noexcept;
