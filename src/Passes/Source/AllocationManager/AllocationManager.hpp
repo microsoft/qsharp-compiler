@@ -21,18 +21,34 @@ namespace quantum
     class BasicAllocationManager : public IAllocationManager
     {
       public:
-        /// Defines a named register/memory segment with start
-        /// position, end position and size.
-        struct MemoryMapping
+        /// Defines a named register/memory address segment with start
+        /// position, end position and count. We think of the address space
+        /// as a continuous sequence of spaces that can store values and we
+        /// refer to a bounded continuous sequence memory addresses as a
+        /// segment (or memory address segment):
+        ///
+        ///              start                   end
+        ///                │                      │
+        ///                ▼                      ▼
+        ///             ┌  ─  ─  ─  ─  ─  ─  ─
+        /// ┌ ─ ─ ┬ ─ ─ ┬─────┬─────┐    ┌─────┼ ─ ─ ┬ ─ ─ ┐
+        ///    0     1  │  2  │  3  │... │ N+1 │ N+2   N+3
+        /// └ ─ ─ ┴ ─ ─ ┴─────┴─────┘    └─────┴ ─ ─ ┴ ─ ─ ┘
+        /// Address                            │
+        /// space       │    Memory address
+        ///                     segment
+        ///                  of N elements     │
+        ///             └  ─  ─  ─  ─  ─  ─  ─
+        ///
+        struct AllocatedMemoryBlock
         {
             String  name{""}; ///< Name of the segment, if any given
-            Index   index{0}; ///< Index of the allocation
-            Index   size{0};  ///< Size of memory segment
-            Address start{0}; ///< Start index of memory segment
-            Address end{0};   ///< Index not included in memory segment
+            Index   count{0}; ///< Number of elements contained within memory address segment
+            Address start{0}; ///< Start address of memory address segment
+            Address end{0};   ///< End address (not included in memory address segment)
         };
 
-        using Mappings                  = std::vector<MemoryMapping>;              ///< Vector of memory segments
+        using Mappings                  = std::vector<AllocatedMemoryBlock>;       ///< Vector of memory segments
         using BasicAllocationManagerPtr = std::shared_ptr<BasicAllocationManager>; ///< Allocator pointer type
 
         // Construction only allowed using smart pointer allocation through static functions.
@@ -47,11 +63,11 @@ namespace quantum
         // Allocation and release functions
         //
 
-        /// Allocates a possibly named segment of a given size. Calling allocate without and
+        /// Allocates a possibly named segment of a given count. Calling allocate without and
         /// arguments allocates a single anonymous resource and returns the address. In case
         /// of a larger segment, the function returns the address pointing to the first element.
         /// Allocation is guaranteed to be sequential.
-        Address allocate(String const& name = "", Index const& size = 1) override;
+        Address allocate(String const& name = "", Index const& count = 1) override;
 
         /// Releases the segment by address.
         void release(Address const& address) override;
@@ -79,7 +95,7 @@ namespace quantum
         //
 
         /// Each allocation has a register/memory mapping which
-        /// keeps track of the allocation index, the segment size
+        /// keeps track of the allocation index, the segment count
         /// and its name (if any).
         Mappings mappings_{};
         Index    allocation_index_{0};

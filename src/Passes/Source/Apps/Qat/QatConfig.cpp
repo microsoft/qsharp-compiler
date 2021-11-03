@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Apps/Qat/Config.hpp"
+#include "Apps/Qat/QatConfig.hpp"
 #include "Commandline/ConfigurationManager.hpp"
 
 namespace microsoft

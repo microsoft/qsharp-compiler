@@ -41,7 +41,7 @@
 ///
 ///
 
-#include "Apps/Qat/Config.hpp"
+#include "Apps/Qat/QatConfig.hpp"
 #include "Commandline/ConfigurationManager.hpp"
 #include "Commandline/ParameterParser.hpp"
 #include "Generators/DefaultProfileGenerator.hpp"

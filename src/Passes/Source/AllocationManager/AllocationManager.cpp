@@ -20,28 +20,27 @@ namespace quantum
         return ret;
     }
 
-    BasicAllocationManager::Index BasicAllocationManager::allocate(String const& name, Index const& size)
+    BasicAllocationManager::Index BasicAllocationManager::allocate(String const& name, Index const& count)
     {
         auto ret = next_qubit_index_;
 
         // Creating a memory segment mapping in case we are dealing with qubits
-        MemoryMapping map;
+        AllocatedMemoryBlock map;
         map.name  = name;
-        map.index = allocation_index_;
-        map.size  = size;
+        map.count = count;
 
         map.start = next_qubit_index_;
 
         // Advancing start
-        next_qubit_index_ += size;
-        map.end = map.start + size;
+        next_qubit_index_ += count;
+        map.end = map.start + count;
 
         mappings_.emplace_back(std::move(map));
 
         // Advancing the allocation index
         ++allocation_index_;
 
-        updateRegistersInUse(registersInUse() + size);
+        updateRegistersInUse(registersInUse() + count);
 
         return ret;
     }
@@ -69,13 +68,13 @@ namespace quantum
         }
         else
         {
-            if (it->size > registersInUse())
+            if (it->count > registersInUse())
             {
                 throw std::runtime_error("Attempting to release more qubits than what is currently allocated.");
             }
 
             // In case we are reusing registers, we update how many we are currently using
-            updateRegistersInUse(registersInUse() - it->size);
+            updateRegistersInUse(registersInUse() - it->count);
 
             mappings_.erase(it);
 
@@ -89,7 +88,7 @@ namespace quantum
             else
             {
                 auto& b           = mappings_.back();
-                next_qubit_index_ = b.start + b.size;
+                next_qubit_index_ = b.end;
             }
         }
     }

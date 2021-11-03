@@ -103,7 +103,7 @@ namespace quantum
     {
         std::stringstream ss{""};
         ss << default_value;
-        setDefault(ss.str());
+        setDefault(static_cast<String>(ss.str()));
     }
 
     template <typename T> void ConfigBind<T>::alterNameBasedOnType(bool const& default_value)
@@ -151,7 +151,7 @@ namespace quantum
     {
         std::stringstream ss{""};
         ss << bind_;
-        return ss.str();
+        return static_cast<String>(ss.str());
     }
 
     template <typename T>
@@ -160,7 +160,7 @@ namespace quantum
     {
         std::stringstream ss{""};
         ss << (bind_ ? "true" : "false");
-        return ss.str();
+        return static_cast<String>(ss.str());
     }
 
     template <typename T>

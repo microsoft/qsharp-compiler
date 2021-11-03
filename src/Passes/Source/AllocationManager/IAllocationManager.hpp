@@ -2,12 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
-
 #include <memory>
 #include <string>
-#include <unordered_map>
-#include <vector>
 
 namespace microsoft
 {
@@ -39,7 +35,7 @@ namespace quantum
         /// Abstract member function to allocate an element or sequence of elements. The developer
         /// should not assume continuity of the address segment as this is not guaranteed. Note this
         /// function may throw if allocation is not possible.
-        virtual Address allocate(String const& name = "", Index const& size = 1) = 0;
+        virtual Address allocate(String const& name = "", Index const& count = 1) = 0;
 
         /// Abstract member function to release a previously allocated function. Note this function may
         /// throw if an invalid address is passed.
