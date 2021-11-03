@@ -31,9 +31,3 @@ steps:
   inputs:
     command: 'custom'
     customCommand: 'install -g npm@latest'
-
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: "3.9"
-    addToPath: true
-    architecture: "x64" 
