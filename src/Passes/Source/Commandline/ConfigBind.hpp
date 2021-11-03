@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Commandline/ConfigurationBindInterface.hpp"
+#include "Commandline/IConfigBind.hpp"
 #include "Commandline/ParameterParser.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -18,9 +18,9 @@ namespace microsoft
 namespace quantum
 {
 
-    /// Generic implementation of the bind interface for different types. This class holds the reference
-    /// to the variable and the name of the parameter. It implements serialisers and deserialisers to
-    /// allow transforming strings to native values and vice versa.
+    /// Generic implementation of the bind interface for different types. This class holds the name of
+    /// the command line parameter and a reference variable corresponding to it. It implements
+    /// serialisers and deserialisers to allow transforming strings to native values and vice versa.
     template <typename T> class ConfigBind : public IConfigBind
     {
       public:

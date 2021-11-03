@@ -3,7 +3,7 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ConfigBind.hpp"
-#include "Commandline/ConfigurationBindInterface.hpp"
+#include "Commandline/IConfigBind.hpp"
 #include "Commandline/ParameterParser.hpp"
 
 #include "Llvm/Llvm.hpp"

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ConfigurationManager.hpp"
+#include "Commandline/IConfigBind.hpp"
 
 using namespace microsoft::quantum;
 

@@ -18,18 +18,25 @@ namespace quantum
 {
 
     /// Interface class to bind a variable to a configuration flag. This class provides
-    /// the necessary means to
+    /// the necessary interface to bind variables and populate their value based on given command-line
+    /// arguments.
     class IConfigBind
     {
       public:
         using String = std::string;
 
-        // Deteled constructors, deleted operators and destructor
+        // Deleted constructors and deleted operators
         //
+        // Strictly speaking the code would remain correct if we allowed copy and/or move, but
+        // we have chosen to ban them by choice as potential bugs arising from allowing copy and/or
+        // move can be difficult to find. We consider this behaviour a part of the interface definition.
         IConfigBind(IConfigBind const&) = delete;
         IConfigBind(IConfigBind&&)      = delete;
         IConfigBind& operator=(IConfigBind const&) = delete;
         IConfigBind& operator=(IConfigBind&&) = delete;
+
+        // Virtual destructor
+        //
         virtual ~IConfigBind();
 
         // Interface
@@ -37,12 +44,14 @@ namespace quantum
 
         /// Interface function to register configuration in the parser. This function
         /// register the configuration to the parameter parser. This makes the configuration
-        /// available in the parameter parsers help function.
+        /// available in the parameter parsers help function.  This method should return true if arguments
+        /// were successfully setup.
         virtual bool setupArguments(ParameterParser& parser) = 0;
 
-        /// Interface function to extract configuration. Given an instance of the
-        /// parameter parser, the this function is meant to extract and update the
-        /// bound variable value if present.
+        /// Interface function to extract configuration from the command line arguments. Given an instance
+        /// of the command line parameter parser, this function is meant to read the command line
+        /// arguments, interpret it and set the bound variable value (if present). This method should
+        /// return true if configure operation was successful.
         virtual bool configure(ParameterParser const& parser) = 0;
 
         /// Interface function to return a string representation of the current value of the

@@ -21,7 +21,10 @@ namespace quantum
         {
             for (auto& c : section.settings)
             {
-                c->setupArguments(parser);
+                if (!c->setupArguments(parser))
+                {
+                    throw std::runtime_error("Failed to set parser arguments up.");
+                }
             }
         }
     }
@@ -38,7 +41,10 @@ namespace quantum
         {
             for (auto& c : section.settings)
             {
-                c->configure(parser);
+                if (!c->configure(parser))
+                {
+                    throw std::runtime_error("Failed configure the section.");
+                }
             }
         }
     }
