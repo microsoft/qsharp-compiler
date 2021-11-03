@@ -80,4 +80,4 @@ For header files, prefer to put `#prama once` before the copyright.
 
 ## Tabs vs. spaces
 
-Seriously, this should not even be a discussion: It does not matter. If you prefer one over the other feel free to write in whatever style you prefer as long as you use `clang-format` before making a PR. Again, the key here is consistency and readibility.
+We indent with 2 spaces. Nested namespaces are not indented.
