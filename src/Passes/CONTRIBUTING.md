@@ -50,7 +50,7 @@ Naming is taken from the [Microsoft AirSim](https://github.com/microsoft/AirSim/
 
 ## Modernise when possible
 
-In general, modernise the code where possible. For instance, prefer `using` of `typedef`.
+In general, modernise the code where possible. For instance, prefer `using` over `typedef`.
 
 ## Header guards
 
