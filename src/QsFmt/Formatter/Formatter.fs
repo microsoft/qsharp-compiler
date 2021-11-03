@@ -84,6 +84,7 @@ let versionToUpdateRules (version: Version option) =
                 simpleRule qubitBindingUpdate
                 simpleRule unitUpdate
                 simpleRule forParensUpdate
+                simpleRule specializationUpdate
                 simpleRule arraySyntaxUpdate
                 simpleRule booleanOperatorUpdate
             ]
