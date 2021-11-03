@@ -27,7 +27,7 @@ public:
                         "Replace allocators with C++ allocators.");
 
     config.addParameter(remove_array_copies_, "remove-array-copies",
-                        "Removing all array copies and replacing them with the original array.");
+                        "Remove all array copies and replaces them with the original array.");
 
     config.addParameter(repalce_access_operators_, "replace-access-operators",
                         "Assumes that allocators use continuous memory.");
