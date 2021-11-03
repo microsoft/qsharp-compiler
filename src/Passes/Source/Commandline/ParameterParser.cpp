@@ -90,7 +90,7 @@ namespace quantum
     {
         return arguments_;
     }
-    ParameterParser::String const& ParameterParser::getArg(uint64_t const& n)
+    ParameterParser::String const& ParameterParser::getArg(Arguments::size_type n)
     {
         return arguments_[n];
     }
