@@ -22,6 +22,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 {
     using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
 
     /// <summary>
     /// This class holds shared utility routines for generating QIR debug information.
@@ -287,12 +288,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return new DebugBasicType(this.sharedState.Types.Int, dIBuilder, TypeNames.Int, DiTypeKind.Signed);
             }
-            else if (resolvedType.Resolution.Equals(QsTypeKind.String))
-            {
-                // dIBuilder.CreatePointerType
-                // this is causing an exception bc llvmtype pased in isn't one of the expected for a basic type
-                return new DebugBasicType(this.sharedState.Types.String, dIBuilder, TypeNames.String, DiTypeKind.Signed);
-            }
+            // else if (resolvedType.Resolution.Equals(QsTypeKind.String))
+            // {
+            //     // dIBuilder.CreatePointerType
+            //     // this is causing an exception bc llvmtype pased in isn't one of the expected for a basic type
+            //     return new DebugBasicType(this.sharedState.Types.String, dIBuilder, TypeNames.String, DiTypeKind.Signed);
+            // }
             else if (resolvedType.Resolution.Equals(QsTypeKind.UnitType))
             {
                 return DebugType.Create<ITypeRef, DIType>(this.Context.VoidType, null);
@@ -302,6 +303,36 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new Exception("Only handling a couple things for testing rn");
             }
         }
+
+// DebugType.Create( fooPtr, constFoo ) from LLVM.NET
+// var fooBody = new[ ] //from LLVM.NET
+//     {
+//         new DebugMemberInfo( 0, "a", diFile, 3, i32 ),
+//         new DebugMemberInfo( 1, "b", diFile, 4, f32 ),
+//         new DebugMemberInfo( 2, "c", diFile, 5, i32Array_0_32 ),
+//     };
+
+// var fooType = new DebugStructType( module, "struct.foo", module.DICompileUnit, "foo", diFile, 1, DebugInfoFlags.None, fooBody );
+
+
+// example creation of debug types from LLVM.NET
+    // DebugType.Create( llvmType.ValidateNotNull( nameof( llvmType ) ).ElementType, elementType )
+    // var i32 = new DebugBasicType( module.Context.Int32Type, module, "int", DiTypeKind.Signed );
+    //         var f32 = new DebugBasicType( module.Context.FloatType, module, "float", DiTypeKind.Float );
+    // var doubleType = new DebugBasicType( llvmContext.DoubleType, module, "double", DiTypeKind.Float );
+
+    // CGDebugInfo.cpp in clang has examples in RVV_TYPE
+    // uint64_t Size = CGM.getContext().getTypeSize(BT);
+//   return DBuilder.createBasicType(BTName, Size, Encoding);
+
+    // public DebugFunctionType( // here's what I need to construct a DebugFunctionType
+    //         IFunctionType llvmType,
+    //         BitcodeModule module,
+    //         DebugInfoFlags debugFlags,
+    //         IDebugType<ITypeRef, DIType> retType,
+    //         params IDebugType<ITypeRef, DIType>[] argTypes)
+
+    // this.Context.GetFunctionType(returnTypeRef, argTypeRefs); // from context.cs in QIR
 
     // enum QsTypeKind: useful for basic types
         // UnitType,
@@ -349,22 +380,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     dIType = null;
                 }
 
-                Position absolutePosition = this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions();
+                QsLocation? namespaceLoc = this.sharedState.DIManager.CurrentNamespaceElementLocation;
+                Position namespaceOffset = namespaceLoc?.Offset ?? Position.Zero;
+                Position absolutePosition = namespaceOffset + this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions(); // TODO: helper func
                 if (subProgram != null)
                 {
                     DILocalVariable dIVar = diBuilder.CreateLocalVariable(
                     subProgram,
                     name,
                     diBuilder.CompileUnit?.File,
-                    (uint)absolutePosition.Line,
+                    (uint)absolutePosition.Line + 1, // helper function for the translation
                     dIType,
                     alwaysPreserve: true,
                     DebugInfoFlags.None);
 
                     DILocation dILoc = new DILocation(
                         this.Context,
-                        (uint)absolutePosition.Line,
-                        (uint)absolutePosition.Column,
+                        (uint)absolutePosition.Line + 1, // TODO: helper function for the +1 stuff
+                        (uint)absolutePosition.Column + 1,
                         subProgram);
 
                     var nativeType = value.Value.NativeType;
@@ -378,21 +411,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             insertAtEnd: this.sharedState.CurrentBlock);
                     }
                 }
-
-                // Only need to emit debug information if the variable is from a source file RyanTODO: move this to the manager registerVariable so we have access to stack
-                // if (fromLocalID != null)
-                // {
-                //     DILocalScope scope = null; // RyanTODO: where do I get this
-                //     this.SharedState.DIManager.emitLocation(scope);
-                // }
             }
         }
-        internal IrFunction CreateLocalFunction(QsSpecialization spec, string name, IFunctionType signature, bool isDefinition, ITypeRef retType, ITypeRef[] argTypes)
+
+        internal IrFunction CreateLocalFunction(QsSpecialization spec, string mangledName, IFunctionType signature, bool isDefinition, ITypeRef retType, ITypeRef[] argTypes, ArgumentTuple? argTuple)
         {
             if (this.DebugFlag && spec.Kind == QsSpecializationKind.QsBody)
             {
+                string shortName = spec.Parent.Name;
+
                 // get the debug location of the function
-                QsNullable<QsLocation> debugLoc = spec.Location; // RyanNote: here's where we get the location.
+                QsNullable<QsLocation> debugLoc = spec.Location;
                 if (debugLoc.IsNull)
                 {
                     throw new ArgumentException("Expected a specialiazation with a non-null location");
@@ -420,72 +449,80 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 catch (Exception)
                 {
                     Console.WriteLine("exception in converting to debugtype");
-                    return this.Module.CreateFunction(name, signature);
+                    return this.Module.CreateFunction(mangledName, signature);
                 }
 
                 DebugInfoFlags debugFlags = DebugInfoFlags.None; // RyanTODO: Might want flags here. Also might want to define our own. Also can we have multiple?
-                // DebugFunctionType debugSignature = new DebugFunctionType(signature, curDIBuilder, debugFlags, voidType, voidTypeArr); // RyanTODO: the voidType stuff is for sure wrong, but just want to compile rn
-                // DebugFunctionType debugSignature = this.Context.CreateFunctionType(curDIBuilder, retDebugType, argDebugTypes);
-                // CreateFunctionType( DebugInfoBuilder diBuilder
-                //                                    , IDebugType<ITypeRef, DIType> retType
-                //                                    , params IDebugType<ITypeRef, DIType>[ ] argTypes
-                //                                    )
-               //  signature: context.CreateFunctionType(module.DIBuilder, i32)
+
                 DebugFunctionType debugSignature = new DebugFunctionType(signature, curDIBuilder, debugFlags, retDebugType, argDebugTypes);
-
-
-// DebugType.Create( fooPtr, constFoo ) from LLVM.NET
-// var fooBody = new[ ] //from LLVM.NET
-//     {
-//         new DebugMemberInfo( 0, "a", diFile, 3, i32 ),
-//         new DebugMemberInfo( 1, "b", diFile, 4, f32 ),
-//         new DebugMemberInfo( 2, "c", diFile, 5, i32Array_0_32 ),
-//     };
-
-// var fooType = new DebugStructType( module, "struct.foo", module.DICompileUnit, "foo", diFile, 1, DebugInfoFlags.None, fooBody );
-
-
-// example creation of debug types from LLVM.NET
-    // DebugType.Create( llvmType.ValidateNotNull( nameof( llvmType ) ).ElementType, elementType )
-    // var i32 = new DebugBasicType( module.Context.Int32Type, module, "int", DiTypeKind.Signed );
-    //         var f32 = new DebugBasicType( module.Context.FloatType, module, "float", DiTypeKind.Float );
-    // var doubleType = new DebugBasicType( llvmContext.DoubleType, module, "double", DiTypeKind.Float );
-
-    // CGDebugInfo.cpp in clang has examples in RVV_TYPE
-    // uint64_t Size = CGM.getContext().getTypeSize(BT);
-//   return DBuilder.createBasicType(BTName, Size, Encoding);
-
-    // public DebugFunctionType( // here's what I need to construct a DebugFunctionType
-    //         IFunctionType llvmType,
-    //         BitcodeModule module,
-    //         DebugInfoFlags debugFlags,
-    //         IDebugType<ITypeRef, DIType> retType,
-    //         params IDebugType<ITypeRef, DIType>[] argTypes)
-
-    // this.Context.GetFunctionType(returnTypeRef, argTypeRefs); // from context.cs in QIR
-
-
                 IrFunction func = this.Module.CreateFunction(
                     scope: curDIBuilder.GetCompileUnit(),
-                    name: name,
-                    mangledName: null, // RyanTODO: figure out what mangling we might need
+                    name: shortName,
+                    mangledName: mangledName,
                     file: debugFile,
-                    line: line,
+                    line: line + 1,
                     signature: debugSignature,
                     isLocalToUnit: true, // we're using the compile unit from the source file this was declared in
                     // isDefinition: isDefinition,
                     isDefinition: true,
-                    scopeLine: line, // RyanTODO: Need to be more exact bc of formatting (see lastParamLocation in Kaleidescope tutorial)
+                    scopeLine: line + 1, // RyanTODO: Need to be more exact bc of formatting (see lastParamLocation in Kaleidescope tutorial)
                     debugFlags: debugFlags,
                     isOptimized: false, // RyanQuestion: is this always the case?
                     curDIBuilder);
+
+                // TODORyan: would be much cleaner to have the creation of arguments here
 
                 this.EmitLocation(line, col, func.DISubProgram, curDIBuilder); // do I need this when we create the function?
                 return func;
             }
             else
             {
-                return this.Module.CreateFunction(name, signature);
+                return this.Module.CreateFunction(mangledName, signature);
+            }
+        }
+
+        internal void CreateFunctionArgument(QsSpecialization spec, string name, IValue value, int argNo)
+        {
+            // get the DIBuilder
+            string sourcePath = spec.Source.CodeFile;
+            DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
+            DIFile debugFile = curDIBuilder.CreateFile(Path.ChangeExtension(sourcePath, ".c")); // TODO: this will get changed after language/extension issue figured out
+
+            // get the debug location of the function
+            QsNullable<QsLocation> debugLoc = spec.Location;
+            if (debugLoc.IsNull)
+            {
+                throw new ArgumentException("Expected a specialiazation with a non-null location");
+            }
+
+            uint line = (uint)debugLoc.Item.Offset.Line; // RyanTODO: make specific to the argument
+
+            DIType? dIType = this.GetDebugTypeFor(value.QSharpType, curDIBuilder).DIType;
+            DISubProgram? sp = this.sharedState.CurrentFunction?.DISubProgram;
+
+            DILocalVariable dIVar = curDIBuilder.CreateArgument(
+                sp,
+                name,
+                debugFile,
+                line + 1,
+                dIType,
+                alwaysPreserve: true,
+                DebugInfoFlags.None,
+                (ushort)argNo); // arg numbers are 1-indexed
+
+            if (this.sharedState.CurrentBlock != null && dIType != null && sp != null)
+            {
+                DILocation dILoc = new DILocation(
+                this.Context,
+                (uint)line + 1, // TODO: helper function for the +1 stuff
+                1,
+                sp);
+
+                curDIBuilder.InsertDeclare(
+                    storage: value.Value,
+                    varInfo: dIVar,
+                    location: dILoc,
+                    insertAtEnd: this.sharedState.CurrentBlock);
             }
         }
 

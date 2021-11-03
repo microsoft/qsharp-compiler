@@ -497,22 +497,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal bool TryGetGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable) =>
             this.globalCallables.TryGetValue(fullName, out callable);
 
-        internal bool TryGetQualifiedNameFromCallable(QsCallable targetCallable, [MaybeNullWhen(false)] out QsQualifiedName fullName)
-        {
-            var keyValuePair = this.globalCallables.FirstOrDefault(item => item.Value.Equals(targetCallable));
-            fullName = keyValuePair.Key;
-            return true;
-            // if (keyValuePair == null) // TODO: check for default
-            // {
-            //     return false;
-            // }
-            // else
-            // {
-            //     fullName = keyValuePair.Key;
-            //     return true;
-            // }
-        }
-
         /// <summary>
         /// Tries to find a Q# user-defined type in the current compilation.
         /// </summary>
@@ -621,7 +605,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// generated as declarations with no definition.
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function</param>
-        internal IrFunction RegisterFunction(QsSpecialization spec)
+        internal IrFunction RegisterFunction(QsSpecialization spec, ArgumentTuple? argTuple = null)
         {
             var name = NameGeneration.FunctionName(spec.Parent, spec.Kind);
             var returnTypeRef = spec.Signature.ReturnType.Resolution.IsUnitType
@@ -633,7 +617,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
-            return this.DIManager.CreateLocalFunction(spec, name, signature, isDefinition: false, returnTypeRef, argTypeRefs); // RyanQuestion: can I assume it's not extern here? (see input to GenerateFunctionHeader) What about local? (see implementation of CreateLocalFunction)
+            return this.DIManager.CreateLocalFunction(spec, name, signature, isDefinition: false, returnTypeRef, argTypeRefs, argTuple); // RyanQuestion: can I assume it's not extern here? (see input to GenerateFunctionHeader) What about local? (see implementation of CreateLocalFunction)
 
             // return this.Module.CreateFunction(name, signature); // RyanTODO: swap this out for the new function creation
         }
@@ -674,7 +658,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : new[] { LocalVarName(arg) };
             }
 
-            this.CurrentFunction = this.RegisterFunction(spec);
+            this.CurrentFunction = this.RegisterFunction(spec, argTuple);
             this.CurrentFunction.Linkage = shouldBeExtern ? Linkage.External : Linkage.Internal;
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
@@ -686,6 +670,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var innerTuples = new Queue<(string?, ArgumentTuple)>();
             var outerArgItems = ArgTupleToArgItems(argTuple, innerTuples);
             var innerTupleValues = new Queue<TupleValue>();
+            int argNo = 1; // arg numbers are 1-indexed!
 
             // If we have a single named tuple-valued argument, then the items of the tuple
             // are the arguments to the function and we need to reconstruct the tuple.
@@ -724,6 +709,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.CurrentFunction.Parameters[i].Name = argName;
                         this.ScopeMgr.RegisterVariable(argName, argValue, fromLocalId: null);
+                        this.DIManager.CreateFunctionArgument(spec, argName, argValue, argNo); // RyanTODO: will need to deal with the other RegisteredVariables
+                        argNo++;
                     }
                     else
                     {
@@ -827,6 +814,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return function;
             }
+
+            // // TODO: remove this; this is hacky because of the mangledName vs name getting used when creating IrFunction
+            // if (this.TryGetGlobalCallable(fullName, out QsCallable? callableH))
+            // {
+            //     var spec = callableH.Specializations.First(spec => spec.Kind == kind);
+            //     if (this.Module.TryGetFunction(spec.Parent.Name, out IrFunction? functionH))
+            //     {
+            //         return functionH;
+            //     }
+            // }
+
 
             // Otherwise, we need to find the function's callable to get the signature,
             // and then register the function

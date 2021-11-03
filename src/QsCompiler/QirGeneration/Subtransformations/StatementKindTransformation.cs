@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -417,6 +418,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnReturnStatement(TypedExpression ex)
         {
+            this.SharedState.DIManager.EmitLocation(Position.Zero);
             var result = this.SharedState.EvaluateSubexpression(ex);
             this.SharedState.AddReturn(result, ex.ResolvedType.Resolution.IsUnitType);
             return QsStatementKind.EmptyStatement;
