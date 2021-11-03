@@ -18,7 +18,7 @@ namespace quantum
 {
 
     /// Interface class to bind a variable to a configuration flag. This class provides
-    /// the neccessary means to
+    /// the necessary means to
     class IConfigBind
     {
       public:
