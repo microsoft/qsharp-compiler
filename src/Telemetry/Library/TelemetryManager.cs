@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.Telemetry
                     {
                         // After completing the next line, the current process
                         // will exit with exit code 0.
-                        new OutOfProcessServer(configuration).RunAndExit();
+                        new OutOfProcessServer(configuration, Console.In).RunAndExit();
                     }
                     else
                     {

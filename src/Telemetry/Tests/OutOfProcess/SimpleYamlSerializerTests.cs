@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
             Assert.AreEqual(command, commandResults[0]);
 
             // Test that the serialized text is as expected
-            var expectedSerializedResults = 
+            var expectedSerializedResults =
 @"- command: !LogEvent
     __name__: !String eventName0
     stringProp: !String stringPropValue0
@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
 ";
             Assert.AreEqual(expectedSerializedResults, serializedText);
 
-            var unexpectedCommandType = 
+            var unexpectedCommandType =
 @"- command: !MyNewCommand
     longProp: !Long 123
     boolPropPii: !Boolean+Pii True
@@ -81,7 +81,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
             commandResults = (await AsyncEnumerableToEnumerable(deserializedResults)).ToList();
             Assert.AreEqual(0, commandResults.Count);
 
-            var unexpectedLines = 
+            var unexpectedLines =
 @"--- # line to ignore
 
 another line to ignore

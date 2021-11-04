@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Microsoft.Quantum.Telemetry.OutOfProcess
@@ -14,18 +15,20 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         private Stopwatch idleStopwatch = new();
         private TelemetryManagerConfig configuration;
         private IOutOfProcessSerializer serializer;
+        private TextReader inputTextReader;
 
-        public OutOfProcessServer(TelemetryManagerConfig configuration)
+        public OutOfProcessServer(TelemetryManagerConfig configuration, TextReader inputTextReader)
         {
             this.serializer = (IOutOfProcessSerializer)Activator.CreateInstance(configuration.OutOfProcessSerializerType)!;
             this.configuration = configuration;
+            this.inputTextReader = inputTextReader;
         }
 
-        private async IAsyncEnumerable<string> ConsoleReadLineAsync()
+        private async IAsyncEnumerable<string> ReadInputLineAsync()
         {
             while (true)
             {
-                var message = Console.ReadLine();
+                var message = this.inputTextReader.ReadLine();
                 if (message != null)
                 {
                     yield return message;
@@ -38,7 +41,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         }
 
         private IAsyncEnumerable<OutOfProcessCommand> ReceiveCommandsAsync() =>
-            this.serializer.Read(this.ConsoleReadLineAsync());
+            this.serializer.Read(this.ReadInputLineAsync());
 
         private async Task ReceiveAndProcessCommandsAsync()
         {

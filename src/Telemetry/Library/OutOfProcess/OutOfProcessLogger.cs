@@ -2,22 +2,68 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Applications.Events;
 
 namespace Microsoft.Quantum.Telemetry.OutOfProcess
 {
     internal class OutOfProcessLogger : ILogger
     {
-        private Process? externalProcess;
+        internal interface IExternalProcess
+        {
+            StreamWriter In { get; }
+
+            StreamReader Out { get; }
+
+            bool HasExited { get; }
+
+            void WaitForExit();
+        }
+
+        internal class ExternalProcess : IExternalProcess
+        {
+            private Process process;
+
+            private ExternalProcess(Process process)
+            {
+                this.process = process;
+            }
+
+            public StreamWriter In => this.process.StandardInput;
+
+            public StreamReader Out => this.process.StandardOutput;
+
+            public bool HasExited => this.process.HasExited;
+
+            public void WaitForExit() => this.process.WaitForExit();
+
+            public static IExternalProcess StartNew(string fileName, string arguments)
+            {
+                var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = fileName,
+                    Arguments = arguments,
+                    RedirectStandardInput = true,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                });
+
+                if (process == null)
+                {
+                    throw new InvalidOperationException($"Unable to start external process {fileName} {arguments}");
+                }
+
+                return new ExternalProcess(process);
+            }
+        }
+
+        private IExternalProcess? externalProcess;
         private IOutOfProcessSerializer serializer;
         private TelemetryManagerConfig configuration;
         private object instanceLock = new();
@@ -66,37 +112,24 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             #endif
         }
 
-        private Process? CreateExternalProcess()
+        private IExternalProcess? CreateExternalProcess()
         {
-            var currentExecutablePath = Process.GetCurrentProcess().MainModule!.FileName;
-            if (currentExecutablePath != null)
+            var currentExecutablePath = Process.GetCurrentProcess().MainModule!.FileName!;
+
+            StringBuilder arguments = new();
+
+            // if this is not a self-contained application, we need to run it via the dotnet cli
+            if (string.Equals(
+                            Path.GetFileNameWithoutExtension(currentExecutablePath),
+                            "dotnet",
+                            StringComparison.InvariantCultureIgnoreCase))
             {
-                StringBuilder arguments = new();
-
-                // if this is not a self-contained application, we need to run it via the dotnet cli
-                if (string.Equals(
-                                Path.GetFileNameWithoutExtension(currentExecutablePath),
-                                "dotnet",
-                                StringComparison.InvariantCultureIgnoreCase))
-                {
-                    arguments.Append($"run {Assembly.GetEntryAssembly()!.Location} ");
-                }
-
-                arguments.Append(TelemetryManager.OUTOFPROCESSUPLOADARG);
-
-                return Process.Start(new ProcessStartInfo
-                {
-                    FileName = currentExecutablePath,
-                    Arguments = arguments.ToString(),
-                    RedirectStandardInput = true,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden,
-                });
+                arguments.Append($"run {Assembly.GetEntryAssembly()!.Location} ");
             }
 
-            return null;
+            arguments.Append(TelemetryManager.OUTOFPROCESSUPLOADARG);
+
+            return ExternalProcess.StartNew(currentExecutablePath, arguments.ToString());
         }
 
         private EVTStatus SendCommand(OutOfProcessCommand command)
@@ -119,7 +152,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                 {
                     foreach (var message in messages)
                     {
-                        this.externalProcess.StandardInput.WriteLine(message);
+                        this.externalProcess.In.WriteLine(message);
                     }
                 }
             }
@@ -179,7 +212,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             {
                 while (this.externalProcess != null && !this.externalProcess.HasExited)
                 {
-                    var message = this.externalProcess.StandardOutput.ReadLine();
+                    var message = this.externalProcess.Out.ReadLine();
                     if (message != null)
                     {
                         TelemetryManager.LogToDebug($"OutOfProcessUploader sent: {message}");
