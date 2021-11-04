@@ -53,8 +53,8 @@ TEST(RuleSetTestSuite, AllocationActionRelease)
     };
 
     auto profile = std::make_shared<DefaultProfileGenerator>(
-        std::move(configure_profile), RuleTransformationPassConfiguration::disable(),
-        LlvmPassesConfiguration::disable());
+        std::move(configure_profile), RuleTransformationPassConfiguration::createDisabled(),
+        LlvmPassesConfiguration::createDisabled());
 
     ir_manip->applyProfile(profile);
 
@@ -80,7 +80,7 @@ TEST(RuleSetTestSuite, MultipleAllocationsNoRelease)
 
             factory.useStaticQubitAllocation();
         },
-        RuleTransformationPassConfiguration::disable(), LlvmPassesConfiguration::disable());
+        RuleTransformationPassConfiguration::createDisabled(), LlvmPassesConfiguration::createDisabled());
 
     ir_manip->applyProfile(profile);
 
@@ -134,7 +134,7 @@ TEST(RuleSetTestSuite, AllocateReleaseMultipleTimes)
 
             factory.useStaticQubitAllocation();
         },
-        RuleTransformationPassConfiguration::disable(), LlvmPassesConfiguration::disable());
+        RuleTransformationPassConfiguration::createDisabled(), LlvmPassesConfiguration::createDisabled());
 
     ir_manip->applyProfile(profile);
 
@@ -179,7 +179,7 @@ TEST(RuleSetTestSuite, ErrorAllocateReleaseByName)
 
             factory.useStaticQubitAllocation();
         },
-        RuleTransformationPassConfiguration::disable(), LlvmPassesConfiguration::disable());
+        RuleTransformationPassConfiguration::createDisabled(), LlvmPassesConfiguration::createDisabled());
 
     ir_manip->applyProfile(profile);
 
@@ -201,7 +201,7 @@ TEST(RuleSetTestSuite, ErrorAllocateReleaseByNameWithNoName)
 
             factory.useStaticQubitAllocation();
         },
-        RuleTransformationPassConfiguration::disable(), LlvmPassesConfiguration::disable());
+        RuleTransformationPassConfiguration::createDisabled(), LlvmPassesConfiguration::createDisabled());
 
     ir_manip->applyProfile(profile);
 
@@ -224,7 +224,7 @@ TEST(RuleSetTestSuite, ErrorReleaseWithTypeErasedAllocation)
 
             factory.useStaticQubitAllocation();
         },
-        RuleTransformationPassConfiguration::disable(), LlvmPassesConfiguration::disable());
+        RuleTransformationPassConfiguration::createDisabled(), LlvmPassesConfiguration::createDisabled());
 
     ir_manip->applyProfile(profile);
 

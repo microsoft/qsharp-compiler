@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Rules/OperandPrototype.hpp"
+#include "Rules/IOperandPrototype.hpp"
 
 #include "Llvm/Llvm.hpp"
 

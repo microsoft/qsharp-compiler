@@ -5,46 +5,48 @@
 #include "Commandline/ConfigurationManager.hpp"
 #include "Generators/LlvmPassesConfiguration.hpp"
 #include "Generators/ProfileGenerator.hpp"
-#include "Llvm/Llvm.hpp"
 #include "RuleTransformationPass/RuleTransformationPassConfiguration.hpp"
 #include "Rules/FactoryConfig.hpp"
 #include "Rules/RuleSet.hpp"
 
-namespace microsoft {
-namespace quantum {
+#include "Llvm/Llvm.hpp"
 
-/// DefaultProfileGenerator defines a profile that configures the rule set used by the Profile
-/// pass. This profile is useful for generating dynamic profiles and is well suited for testing
-/// purposes or YAML configured transformation of the IR.
-class DefaultProfileGenerator : public ProfileGenerator
+namespace microsoft
 {
-public:
-  using ConfigureFunction =
-      std::function<void(RuleSet &)>;  ///< Function type that configures a rule set.
+namespace quantum
+{
 
-  /// Default constructor. This constructor adds components for rule transformation and LLVM passes.
-  /// These are configurable through the corresponding configuration classes which can be access
-  /// through the configuration manager.
-  DefaultProfileGenerator();
+    /// DefaultProfileGenerator defines a profile that configures the rule set used by the Profile
+    /// pass. This profile is useful for generating dynamic profiles and is well suited for testing
+    /// purposes or YAML configured transformation of the IR.
+    class DefaultProfileGenerator : public ProfileGenerator
+    {
+      public:
+        using ConfigureFunction = std::function<void(RuleSet&)>; ///< Function type that configures a rule set.
 
-  /// The constructor takes a lambda function which configures the rule set. This
-  /// function is invoked during the creation of the generation module. This constructor
-  /// further overrides the default configuration
-  explicit DefaultProfileGenerator(
-      ConfigureFunction const &                  configure,
-      RuleTransformationPassConfiguration const &profile_pass_config =
-          RuleTransformationPassConfiguration::disable(),
-      LlvmPassesConfiguration const &llvm_config = LlvmPassesConfiguration());
+        /// Default constructor. This constructor adds components for rule transformation and LLVM passes.
+        /// These are configurable through the corresponding configuration classes which can be access
+        /// through the configuration manager.
+        DefaultProfileGenerator();
 
-  // Shorthand notation to access configurations
-  //
+        /// The constructor takes a lambda function which configures the rule set. This
+        /// function is invoked during the creation of the generation module. This constructor
+        /// further overrides the default configuration
+        explicit DefaultProfileGenerator(
+            ConfigureFunction const&                   configure,
+            RuleTransformationPassConfiguration const& profile_pass_config =
+                RuleTransformationPassConfiguration::createDisabled(),
+            LlvmPassesConfiguration const& llvm_config = LlvmPassesConfiguration());
 
-  /// Returns a constant reference to the rule transformation configuration.
-  RuleTransformationPassConfiguration const &ruleTransformationConfig() const;
+        // Shorthand notation to access configurations
+        //
 
-  /// Returns a constant reference to the LLVM passes configuration.
-  LlvmPassesConfiguration const &llvmPassesConfig() const;
-};
+        /// Returns a constant reference to the rule transformation configuration.
+        RuleTransformationPassConfiguration const& ruleTransformationConfig() const;
 
-}  // namespace quantum
-}  // namespace microsoft
+        /// Returns a constant reference to the LLVM passes configuration.
+        LlvmPassesConfiguration const& llvmPassesConfig() const;
+    };
+
+} // namespace quantum
+} // namespace microsoft

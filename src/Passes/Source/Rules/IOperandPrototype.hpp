@@ -15,7 +15,7 @@ namespace quantum
     /// IOperandPrototype describes an IR pattern and allows matching against
     /// LLVMs llvm::Value type. Each value may or may not be captured during the
     /// matching process which means that they are stored in a map under a given name.
-    /// Capturing is enabled using `enableCapture(name)` which sets the name the
+    /// Capturing is enabled using `captureAs(name)` which sets the name the
     /// value should be stored under.
     class IOperandPrototype
     {
@@ -56,7 +56,7 @@ namespace quantum
         /// that the captured operand is given a name. The subsequent logic
         /// in this class is responsible for capturing (upon match) and
         /// uncapturing (upon backtrack) with specified name
-        void enableCapture(std::string capture_name);
+        void captureAs(std::string capture_name);
 
       protected:
         // Function to indicate match success or failure. Either of these
@@ -76,12 +76,6 @@ namespace quantum
         /// Subroutine to match all children.
         bool matchChildren(Value* value, Captures& captures) const;
 
-        /// Captures the value into the captures table if needed.
-        void capture(Value* value, Captures& captures) const;
-
-        /// Removes any captures from the captures table upon backtracking
-        void uncapture(Value* value, Captures& captures) const;
-
         // Helper functions for operation
         //
 
@@ -94,6 +88,12 @@ namespace quantum
         }
 
       private:
+        /// Captures the value into the captures table if needed.
+        void capture(Value* value, Captures& captures) const;
+
+        /// Removes any captures from the captures table upon backtracking
+        void uncapture(Value* value, Captures& captures) const;
+
         // Data variables for common matching functionality
         //
 

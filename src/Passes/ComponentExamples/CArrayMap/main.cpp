@@ -213,7 +213,7 @@ extern "C" void loadComponent(ProfileGenerator *generator)
         {
           RuleSet rule_set;
           removeArrayCopies(rule_set);
-          auto config = RuleTransformationPassConfiguration::disable();
+          auto config = RuleTransformationPassConfiguration::createDisabled();
           ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
         }
 
@@ -221,7 +221,7 @@ extern "C" void loadComponent(ProfileGenerator *generator)
         {
           RuleSet rule_set;
           replaceAccess(rule_set);
-          auto config = RuleTransformationPassConfiguration::disable();
+          auto config = RuleTransformationPassConfiguration::createDisabled();
           ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
         }
 
@@ -229,7 +229,7 @@ extern "C" void loadComponent(ProfileGenerator *generator)
         {
           RuleSet rule_set;
           activateAllocatorReplacement(rule_set);
-          auto config = RuleTransformationPassConfiguration::disable();
+          auto config = RuleTransformationPassConfiguration::createDisabled();
           ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
         }
       });

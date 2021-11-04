@@ -53,8 +53,8 @@ TEST(RuleSetTestSuite, ResultTranslatedTo)
     };
 
     auto profile = std::make_shared<DefaultProfileGenerator>(
-        std::move(configure_profile), RuleTransformationPassConfiguration::disable(),
-        LlvmPassesConfiguration::disable());
+        std::move(configure_profile), RuleTransformationPassConfiguration::createDisabled(),
+        LlvmPassesConfiguration::createDisabled());
     ir_manip->applyProfile(profile);
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence({

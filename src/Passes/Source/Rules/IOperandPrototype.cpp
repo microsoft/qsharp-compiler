@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Rules/OperandPrototype.hpp"
+#include "Rules/IOperandPrototype.hpp"
 
 namespace microsoft
 {
@@ -11,9 +11,10 @@ namespace quantum
     IOperandPrototype::~IOperandPrototype() = default;
     bool IOperandPrototype::matchChildren(Value* value, Captures& captures) const
     {
-        auto user = llvm::dyn_cast<llvm::User>(value);
         if (!children_.empty())
         {
+            auto user = llvm::dyn_cast<llvm::User>(value);
+
             if (user == nullptr)
             {
                 return false;
@@ -49,7 +50,7 @@ namespace quantum
         children_.push_back(child);
     }
 
-    void IOperandPrototype::enableCapture(std::string capture_name)
+    void IOperandPrototype::captureAs(std::string capture_name)
     {
         capture_name_ = std::move(capture_name);
     }
@@ -83,6 +84,12 @@ namespace quantum
     {
         if (!capture_name_.empty())
         {
+            auto it = captures.find(capture_name_);
+            if (it == captures.end())
+            {
+                throw std::runtime_error("Previously captured name " + capture_name_ + " not found in capture list.");
+            }
+
             captures.erase(captures.find(capture_name_));
         }
     }

@@ -19,26 +19,26 @@ namespace quantum
         void setup(ConfigurationManager& config);
 
         /// Creates a configuration where all functionality is disabled.
-        static RuleTransformationPassConfiguration disable();
+        static RuleTransformationPassConfiguration createDisabled();
 
         // Configuration classes
         //
 
-        /// Testing whether this is the default configuration.
+        /// Tests whether all functionality is disabled for this component.
         bool isDisabled() const;
 
-        /// Tests whether all functionality is disabled for this component.
+        /// Testing whether this is the default configuration.
         bool isDefault() const;
 
         // Properties
         //
 
         /// Whether or not the component should delete dead code.
-        bool deleteDeadCode() const;
+        bool shouldDeleteDeadCode() const;
 
         /// Whether or not the component should clone functions. This is relevant in relation to qubit
         /// allocation if execution paths are expanded.
-        bool cloneFunctions() const;
+        bool shouldCloneFunctions() const;
 
         /// Whether or not we assume that the code does not throw at runtime.
         bool assumeNoExceptions() const;
@@ -47,32 +47,32 @@ namespace quantum
         /// all parts of the code. For statically allocated qubits one generally wants to follow the
         /// execution path whereas it makes more sense to apply to all parts of the code for dynamic qubit
         /// allocation.
-        bool transformExecutionPathOnly() const;
+        bool shouldTransformExecutionPathOnly() const;
 
         /// The maximum recursion acceptable when unrolling the execution path.
         uint64_t maxRecursion() const;
 
         /// Whether or not to reuse qubits.
-        bool reuseQubits() const;
+        bool shouldReuseQubits() const;
 
         /// Whether or not to annotate entry point with the number of qubits they use.
-        bool annotateQubitUse() const;
+        bool shouldAnnotateQubitUse() const;
 
         /// Whether or not to reuse result registers.
-        bool reuseResults() const;
+        bool shouldReuseResults() const;
 
         /// Whether or not to annotate entry point with the number of results they use.
-        bool annotateResultUse() const;
+        bool shouldAnnotateResultUse() const;
 
         /// Whether or not the component should attempt to group measurements.
-        bool groupMeasurements() const;
+        bool shouldGroupMeasurements() const;
 
         /// Whether or not the target supports measurement (and result interpretation) during the circuit
         /// execution.
         bool oneShotMeasurement() const;
 
         /// Whether or not simplify the IR using LLVM passes prior to transforming the IR.
-        bool simplifyPriorTransform() const;
+        bool shouldSimplifyPriorTransform() const;
 
         /// Attribute which indicate that a function is the entry point.
         std::string entryPointAttr() const;

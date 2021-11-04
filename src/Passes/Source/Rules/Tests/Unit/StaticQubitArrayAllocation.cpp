@@ -62,8 +62,8 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationOffsets)
     };
 
     auto profile = std::make_shared<DefaultProfileGenerator>(
-        std::move(configure_profile), RuleTransformationPassConfiguration::disable(),
-        LlvmPassesConfiguration::disable());
+        std::move(configure_profile), RuleTransformationPassConfiguration::createDisabled(),
+        LlvmPassesConfiguration::createDisabled());
     ir_manip->applyProfile(profile);
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
@@ -102,8 +102,8 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationGetPtr)
     };
 
     auto profile = std::make_shared<DefaultProfileGenerator>(
-        std::move(configure_profile), RuleTransformationPassConfiguration::disable(),
-        LlvmPassesConfiguration::disable());
+        std::move(configure_profile), RuleTransformationPassConfiguration::createDisabled(),
+        LlvmPassesConfiguration::createDisabled());
 
     ir_manip->applyProfile(profile);
 
@@ -148,8 +148,8 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationAdvanced)
     };
 
     auto profile = std::make_shared<DefaultProfileGenerator>(
-        std::move(configure_profile), RuleTransformationPassConfiguration::disable(),
-        LlvmPassesConfiguration::disable());
+        std::move(configure_profile), RuleTransformationPassConfiguration::createDisabled(),
+        LlvmPassesConfiguration::createDisabled());
 
     ir_manip->applyProfile(profile);
 

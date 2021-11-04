@@ -45,7 +45,7 @@ namespace quantum
                 "Maps result allocation to static allocation.");
         }
 
-        static FactoryConfiguration disable()
+        static FactoryConfiguration createDisabled()
         {
             FactoryConfiguration ret;
             ret.disable_reference_counting_        = false;

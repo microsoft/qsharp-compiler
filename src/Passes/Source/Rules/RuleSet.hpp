@@ -3,7 +3,7 @@
 // Licensed under the MIT License.
 
 #include "AllocationManager/IAllocationManager.hpp"
-#include "Rules/OperandPrototype.hpp"
+#include "Rules/IOperandPrototype.hpp"
 #include "Rules/ReplacementRule.hpp"
 
 #include "Llvm/Llvm.hpp"

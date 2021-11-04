@@ -28,7 +28,7 @@ namespace quantum
         IOperandPrototypePtr Capture::operator=(IOperandPrototypePtr const& other) // NOLINT
         {
             auto ret = other->copy();
-            ret->enableCapture(name_);
+            ret->captureAs(name_);
             return ret;
         }
 
