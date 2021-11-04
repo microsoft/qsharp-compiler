@@ -55,7 +55,7 @@
     <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">BasicQuantumFunctionality</ResolvedRuntimeCapabilities>
     <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">BasicMeasurementFeedback</ResolvedRuntimeCapabilities>
     <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">FullComputation</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">FullComputation</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(QirGeneration)' == 'true' Or ('$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor')">FullComputation</ResolvedRuntimeCapabilities>
   </PropertyGroup>
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
