@@ -54,12 +54,12 @@ namespace quantum
             return ret;
         }
 
-        std::unordered_set<std::string> const& allowedOpcodes() const
+        Set const& allowedOpcodes() const
         {
             return opcodes_;
         }
 
-        std::unordered_set<std::string> const& allowedExternalCallNames() const
+        Set const& allowedExternalCallNames() const
         {
             return external_calls_;
         }
