@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         }
 
         private static string ReplaceLineBreaks(string text) =>
-            ReplaceLineBreaksRegex.Replace(text, Environment.NewLine);
+            ReplaceLineBreaksRegex.Replace(text, "\r\n");
 
         private static string SetContextArgsToYamlString(SetContextArgs args) =>
             PropertyToYamlString(
