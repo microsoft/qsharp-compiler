@@ -15,29 +15,29 @@ dotnet build ./App/App.fsproj
 
 ## Usage
 
-Updates the source code in input files:  
-&nbsp;&nbsp;&nbsp;&nbsp;`qsfmt update --input Path\To\My\File1.qs Path\To\My\File2.qs`  
-Updates the source code in project:  
+Updates the source code in input files:
+&nbsp;&nbsp;&nbsp;&nbsp;`qsfmt update --input Path\To\My\File1.qs Path\To\My\File2.qs`
+Updates the source code in project:
 &nbsp;&nbsp;&nbsp;&nbsp;`qsfmt update --project Path\To\My\Project.csproj`
 
-Command Line Options:  
-&nbsp;&nbsp;&nbsp;&nbsp;`-i`, `--input`: Required. Files or folders to update.  
-&nbsp;&nbsp;&nbsp;&nbsp;`-p`, `--project`: Required. The project file for the project to update.  
-&nbsp;&nbsp;&nbsp;&nbsp;`-b`, `--backup`: Option to create backup files of input files.  
-&nbsp;&nbsp;&nbsp;&nbsp;`-r`, `--recurse`: Option to process input folders recursively.  
-&nbsp;&nbsp;&nbsp;&nbsp;`--qsharp-version`: Option to provide a Q# version to the tool.  
-&nbsp;&nbsp;&nbsp;&nbsp;`--help`: Display this help screen.  
+Command Line Options:
+&nbsp;&nbsp;&nbsp;&nbsp;`-i`, `--input`: Required. Files or folders to update.
+&nbsp;&nbsp;&nbsp;&nbsp;`-p`, `--project`: Required. The project file for the project to update.
+&nbsp;&nbsp;&nbsp;&nbsp;`-b`, `--backup`: Option to create backup files of input files.
+&nbsp;&nbsp;&nbsp;&nbsp;`-r`, `--recurse`: Option to process input folders recursively.
+&nbsp;&nbsp;&nbsp;&nbsp;`--qsharp-version`: Option to provide a Q# version to the tool.
+&nbsp;&nbsp;&nbsp;&nbsp;`--help`: Display this help screen.
 &nbsp;&nbsp;&nbsp;&nbsp;`--version`: Display version information.
 
-Either the `--input` option or the `--project` must be used to specify the input files to the tool.  
+Either the `--input` option or the `--project` must be used to specify the input files to the tool.
 The `--recurse` and `--qsharp-version` options can only be used with the `--input` option.
 
 ## Input and Output
-Input to the formatter can be specified in one of two ways.  
+Input to the formatter can be specified in one of two ways.
 Individual files or folders can be specified with the `--input` command-line argument.
 Multiple files and folders can be specified after the argument, but at least one is expected.
 .qs extension directly under the folder will be processed. If the `--recurse` option is
-specified, subfolders will be processed recursively for Q# files.  
+specified, subfolders will be processed recursively for Q# files.
 The other method of providing input to the formatter is by specifying a Q# project file
 with the `--project` command-line argument. When this method is used, exactly one project file
 is expected after the argument, and the tool will use MSBuild to determine all applicable Q# source
@@ -57,6 +57,7 @@ Updating rules currently in use:
  - Array Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/2-enhanced-array-literals.md)
  - Using and Borrowing Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/1-implicitly-scoped-qubit-allocation.md)
  - Parentheses in For Loop Syntax - Removes deprecated parentheses around for-loop range expressions.
+ - Specialization Declaration Syntax - Add `...` to deprecated forms of the parameter list in specialization declarations.
  - Unit Syntax - Replaces deprecated unit syntax `()` for `Unit`.
  - Boolean Operator Syntax - Replaces deprecated use of boolean operators `&&`, `||`, and `!` with
    their keyword equivalence `and`, `or`, and `not` respectively.
