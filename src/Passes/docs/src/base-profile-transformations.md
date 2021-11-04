@@ -59,8 +59,7 @@ This transformation is considered to be the smallest, non-trivial case of QIR tr
 To demonstrate the feasibility of this proposal, we use Q# as a frontend and will attempt to map the following code
 
 ```
-namespace Feasibility
-{
+namespace Feasibility {
     open Microsoft.Quantum.Intrinsic;
 
     @EntryPoint()
