@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ConfigurationManager.hpp"
-#include "Generators/IProfileGenerator.hpp"
+#include "Generators/ProfileGenerator.hpp"
 #include "Llvm/Llvm.hpp"
 #include "RuleTransformationPass/RulePass.hpp"
 #include "Rules/Notation/Notation.hpp"
@@ -10,7 +10,7 @@
 
 using namespace microsoft::quantum;
 
-extern "C" void loadComponent(IProfileGenerator *generator);
+extern "C" void loadComponent(ProfileGenerator *generator);
 void            activateAllocatorReplacement(RuleSet &ruleset);
 void            removeArrayCopies(RuleSet &ruleset);
 void            replaceAccess(RuleSet &ruleset);
@@ -203,10 +203,10 @@ void removeArrayCopies(RuleSet &ruleset)
   ruleset.addRule({call("__quantum__rt__array_copy", "array"_cap = _, _), replacer});
 }
 
-extern "C" void loadComponent(IProfileGenerator *generator)
+extern "C" void loadComponent(ProfileGenerator *generator)
 {
   generator->registerProfileComponent<CArrayMapConfig>(
-      "c-array-map", [](CArrayMapConfig const &cfg, IProfileGenerator *ptr, Profile &profile) {
+      "c-array-map", [](CArrayMapConfig const &cfg, ProfileGenerator *ptr, Profile &profile) {
         auto &ret = ptr->modulePassManager();
 
         if (cfg.removeArrayCopies())

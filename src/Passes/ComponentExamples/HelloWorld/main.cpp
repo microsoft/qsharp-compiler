@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ConfigurationManager.hpp"
-#include "Generators/IProfileGenerator.hpp"
+#include "Generators/ProfileGenerator.hpp"
 using namespace microsoft::quantum;
 
-extern "C" void loadComponent(IProfileGenerator *generator);
+extern "C" void loadComponent(ProfileGenerator *generator);
 
 class HelloWorldConfig
 {
@@ -29,11 +29,11 @@ private:
   String message_{"Hello world"};
 };
 
-extern "C" void loadComponent(IProfileGenerator *generator)
+extern "C" void loadComponent(ProfileGenerator *generator)
 {
   generator->registerProfileComponent<HelloWorldConfig>(
       "hello-world",
-      [](HelloWorldConfig const &cfg, IProfileGenerator * /*ptr*/, Profile & /*profile*/) {
+      [](HelloWorldConfig const &cfg, ProfileGenerator * /*ptr*/, Profile & /*profile*/) {
         std::cout << "Message: " << cfg.message() << std::endl;
       });
 }

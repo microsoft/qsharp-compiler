@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ConfigurationManager.hpp"
-#include "Generators/IProfileGenerator.hpp"
+#include "Generators/ProfileGenerator.hpp"
 using namespace microsoft::quantum;
 
-extern "C" void loadComponent(IProfileGenerator *generator);
+extern "C" void loadComponent(ProfileGenerator *generator);
 
 class InlinerConfig
 {
@@ -27,10 +27,10 @@ private:
   bool inline_{false};  ///< Default behaviour is that we do not add the inliner pass
 };
 
-extern "C" void loadComponent(IProfileGenerator *generator)
+extern "C" void loadComponent(ProfileGenerator *generator)
 {
   generator->registerProfileComponent<InlinerConfig>(
-      "inliner", [](InlinerConfig const &cfg, IProfileGenerator *ptr, Profile & /*profile*/) {
+      "inliner", [](InlinerConfig const &cfg, ProfileGenerator *ptr, Profile & /*profile*/) {
         if (cfg.shouldInline())
         {
           auto &module_pass_manager = ptr->modulePassManager();
