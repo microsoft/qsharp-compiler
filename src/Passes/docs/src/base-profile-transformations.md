@@ -1,7 +1,7 @@
 # Proposal: QIR Adaptor Tool Specification
 
 This document discusses a tool that transforms QIR into a restricted version of the QIR (known as a profile).
-We aim to make a specification for a generic tool that allows the user to
+We aim to make a specification for a generic tool that allows the user to:
 
 1. Create or use an existing profile without the need of writing code.
 2. Validate that a QIR is compliant with the specific profile.
