@@ -134,7 +134,7 @@ namespace Microsoft.Quantum.Telemetry
             { typeof(TimeSpan), TimeSpanToString },
         };
 
-        internal static Tuple<TelemetryPropertyType, object>? ConvertValue(object value, bool serializeJson)
+        internal static Tuple<TelemetryPropertyType, object>? ConvertValue(object? value, bool serializeJson)
         {
             if (value == null)
             {
@@ -154,6 +154,18 @@ namespace Microsoft.Quantum.Telemetry
             // Note that GetType() will return the underlying type of a Nullable type
             // https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/nullable-value-types#how-to-identify-a-nullable-value-type
             Type fromType = value.GetType();
+
+            // Handle F# Option type the same way we would handle a Nullable type in C#
+            if (FSharpOptionHelper.IsFSharpOptionType(fromType))
+            {
+                value = FSharpOptionHelper.GetOptionValue(value, fromType);
+                fromType = fromType.GenericTypeArguments[0];
+            }
+
+            if (value == null)
+            {
+                return null;
+            }
 
             if (convertValueFunctions.TryGetValue(fromType, out var conversionFunction))
             {
@@ -203,5 +215,60 @@ namespace Microsoft.Quantum.Telemetry
 
         public static PropertyInfo[] GetProperties(Type type) =>
             propertyInfoCache.GetOrAdd(type, (t) => t.GetProperties().Where((p) => p.CanRead).ToArray());
+
+        private static ConcurrentDictionary<Type, Type?> genericTypeDefinitionCache = new();
+
+        public static Type? GetGenericTypeDefinition(Type type) =>
+            genericTypeDefinitionCache.GetOrAdd(type, (t) => t.IsGenericType ? t.GetGenericTypeDefinition() : null);
+    }
+
+    /// <summary>
+    /// Helper class to interact with FSharp Option types
+    /// </summary>
+    internal static class FSharpOptionHelper
+    {
+        internal class OptionValueGetter
+        {
+            private MethodInfo? isSomeMethod;
+            private MethodInfo? getValueMethod;
+
+            public OptionValueGetter(Type fSharpOptionType)
+            {
+                this.isSomeMethod = fSharpOptionType.GetMethod("get_IsSome");
+                this.getValueMethod = fSharpOptionType.GetMethod("get_Value");
+            }
+
+            public object? GetValue(object? optionValue)
+            {
+                if (optionValue == null)
+                {
+                    return null;
+                }
+
+                if (object.Equals(true, this.isSomeMethod?.Invoke(optionValue, new object[] { optionValue })))
+                {
+                    return this.getValueMethod?.Invoke(optionValue, null);
+                }
+
+                return null;
+            }
+        }
+
+        private static Type? fSharpOptionType = AppDomain
+                                                    .CurrentDomain
+                                                    .GetAssemblies()
+                                                    .FirstOrDefault((a) => a.GetName().Name == "FSharp.Core")
+                                                    ?.GetType("Microsoft.FSharp.Core.FSharpOption`1");
+
+        public static bool IsFSharpOptionType(Type type) =>
+            fSharpOptionType != null
+            && object.Equals(fSharpOptionType, ReflectionCache.GetGenericTypeDefinition(type));
+
+        private static ConcurrentDictionary<Type, OptionValueGetter?> optionValueGetterCache = new();
+
+        public static object? GetOptionValue(object optionValue, Type type) =>
+            optionValueGetterCache
+                .GetOrAdd(type, (t) => IsFSharpOptionType(type) ? new(type) : null)
+                ?.GetValue(optionValue);
     }
 }

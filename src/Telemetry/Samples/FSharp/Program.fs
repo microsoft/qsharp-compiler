@@ -25,8 +25,8 @@ type ExecutionCompleted =
         SampleObjectToBeSerialized: Map<string, string>
         SampleObjectToBeIgnored: obj
         SampleException: Exception
-        SampleNullableWithValue: Nullable<int>
-        SampleNullableWithNull: Nullable<int>
+        SampleOptionWithValue: int option
+        SampleOptionWithNone: int option
     }
 
 // The following 3 functions are just an artifact to
@@ -139,8 +139,8 @@ let main args =
                 SampleObjectToBeIgnored = [ 1 .. 10 ]
                 SampleGuid = Guid.NewGuid()
                 SampleException = createExceptionWithStackTrace true
-                SampleNullableWithValue = System.Nullable(123)
-                SampleNullableWithNull = System.Nullable()
+                SampleOptionWithValue = Some 123
+                SampleOptionWithNone = None
             }
 
         TelemetryManager.LogObject(executionCompletedEvent)
