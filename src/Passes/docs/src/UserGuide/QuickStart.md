@@ -33,8 +33,7 @@ namespace SimpleLoop {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Measurement;
 
-    function Value(r: Result): Int
-    {
+    function Value(r : Result) : Int {
          return r == Zero ? 122 | 1337;
     }
 
