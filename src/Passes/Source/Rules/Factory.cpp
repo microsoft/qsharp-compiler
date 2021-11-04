@@ -489,7 +489,7 @@ namespace quantum
             }
 
             auto                      module   = orig_instr->getModule();
-            auto                      function = module->getFunction("__quantum__qir__read_result");
+            auto                      function = module->getFunction("__quantum__qis__read_result__body");
             std::vector<llvm::Value*> arguments;
             arguments.push_back(result);
 
@@ -506,7 +506,7 @@ namespace quantum
 
                 llvm::FunctionType* fnc_type = llvm::FunctionType::get(return_type, types, false);
                 function                     = llvm::Function::Create(
-                    fnc_type, llvm::Function::ExternalLinkage, "__quantum__qir__read_result", module);
+                    fnc_type, llvm::Function::ExternalLinkage, "__quantum__qis__read_result__body", module);
             }
 
             builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
@@ -562,7 +562,7 @@ namespace quantum
             }
 
             auto                      module   = orig_instr->getModule();
-            auto                      function = module->getFunction("__quantum__qir__read_result");
+            auto                      function = module->getFunction("__quantum__qis__read_result__body");
             std::vector<llvm::Value*> arguments;
             arguments.push_back(result);
 
@@ -579,7 +579,7 @@ namespace quantum
 
                 llvm::FunctionType* fnc_type = llvm::FunctionType::get(return_type, types, false);
                 function                     = llvm::Function::Create(
-                    fnc_type, llvm::Function::ExternalLinkage, "__quantum__qir__read_result", module);
+                    fnc_type, llvm::Function::ExternalLinkage, "__quantum__qis__read_result__body", module);
             }
 
             builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));

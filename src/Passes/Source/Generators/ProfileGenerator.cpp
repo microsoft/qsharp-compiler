@@ -3,7 +3,7 @@
 
 #include "Generators/ProfileGenerator.hpp"
 #include "RuleTransformationPass/RuleTransformationPassConfiguration.hpp"
-#include "ValidationPass/ValidationConfiguration.hpp"
+#include "ValidationPass/ValidationPassConfiguration.hpp"
 
 #include "Llvm/Llvm.hpp"
 

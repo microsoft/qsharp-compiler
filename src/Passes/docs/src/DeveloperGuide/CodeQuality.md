@@ -8,7 +8,6 @@ unit test passes and that there are no erros found by the static analyser.
 To setup the CI environment, run following commands
 
 ```sh
-source develop.env
 virtualenv develop__venv
 source develop__venv/bin/activate
 pip install -r requirements.txt
@@ -76,7 +75,7 @@ TODO(tfr): Write this section
 
 ## Modifying code quality requirements
 
-This component is the largest part of this PR. The continuous integration component includes:
+The continuous integration component includes:
 
 1. Style formatting to ensure that everything looks the same. This includes checking that relevant copyrights are in place.
 2. Static analysis
@@ -106,7 +105,7 @@ SOURCE_PIPELINES = [
 ]
 ```
 
-This part defines pipelines for `.hpp` files and `.cpp` files allowing the developer to add such requirements such as having copyright in the op of the source file and ensure that formatting follows that given by `.clang-format`.
+This part defines pipelines for `.hpp` files and `.cpp` files allowing the developer to add such requirements as having copyright in the op of the source file and ensure that formatting follows that given by `.clang-format`.
 
 Each of these CI stages can be executed individually using `./manage` or you can run the entire CI process by invoking `./manage runci`. An example of what this may look like is here:
 

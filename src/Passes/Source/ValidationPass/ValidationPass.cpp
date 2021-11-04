@@ -80,9 +80,9 @@ namespace quantum
             }
         }
 
-        auto const& allowed_functions = config_.allowedExternalCallNames();
         if (config_.whitelistOpcodes())
         {
+            auto const& allowed_functions = config_.allowedExternalCallNames();
             for (auto const& k : external_calls_)
             {
                 if (allowed_functions.find(k.first) == allowed_functions.end())

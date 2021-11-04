@@ -60,7 +60,7 @@ TEST(RuleSetTestSuite, SelectOnOne)
     auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
     ir_manip->applyProfile(profile);
 
-    // This optimisation is specific to the the __quantum__qir__read_result which
+    // This optimisation is specific to the the __quantum__qis__read_result__body which
     // returns 1 or 0 depending on the result. We expect that
     //
     // %1 = tail call %Result* @__quantum__rt__result_get_one()
@@ -70,7 +70,7 @@ TEST(RuleSetTestSuite, SelectOnOne)
     //
     // will be mapped to using this instruction.
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
-        {"%0 = tail call i1 @__quantum__qir__read_result(%Result* "
+        {"%0 = tail call i1 @__quantum__qis__read_result__body(%Result* "
          "nonnull inttoptr (i64 1 to %Result*))",
          "%1 = select i1 %0, i8 5, i8 6"}));
 

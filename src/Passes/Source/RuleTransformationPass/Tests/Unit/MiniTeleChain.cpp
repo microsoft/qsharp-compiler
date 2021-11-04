@@ -192,7 +192,7 @@ TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit: 
       "tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))",
       "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* null)",
       "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))",
-      "%0 = tail call i1 @__quantum__qir__read_result(%Result* null)",
+      "%0 = tail call i1 @__quantum__qis__read_result__body(%Result* null)",
       "br i1 %0, label %then0__1.i.i.i, label %continue__1.i.i.i",
         // clang-format on
     }));
@@ -201,7 +201,7 @@ TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit: 
         // clang-format off
       "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull inttoptr (i64 1 to %Result*))",
       "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))",
-      "%1 = tail call i1 @__quantum__qir__read_result(%Result* nonnull inttoptr (i64 1 to %Result*))",
+      "%1 = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 1 to %Result*))",
       "br i1 %1, label %then0__2.i.i.i, label %TeleportChain__TeleportQubitUsingPresharedEntanglement__body.2.exit.i",
         // clang-format on
 
@@ -213,7 +213,7 @@ TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit: 
       "tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*))",
       "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*), %Result* nonnull inttoptr (i64 2 to %Result*))",
       "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*))",
-      "%2 = tail call i1 @__quantum__qir__read_result(%Result* nonnull inttoptr (i64 2 to %Result*))",
+      "%2 = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 2 to %Result*))",
       "br i1 %2, label %then0__1.i.i2.i, label %continue__1.i.i4.i",
         // clang-format on
     }));
@@ -222,7 +222,7 @@ TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit: 
         // clang-format off
       "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*), %Result* nonnull inttoptr (i64 3 to %Result*))",
       "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*))",
-      "%3 = tail call i1 @__quantum__qir__read_result(%Result* nonnull inttoptr (i64 3 to %Result*))",
+      "%3 = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 3 to %Result*))",
       "br i1 %3, label %then0__2.i.i5.i, label %TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit",
         // clang-format on
     }));

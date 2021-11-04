@@ -15,10 +15,10 @@ namespace microsoft
 namespace quantum
 {
 
-    class StripAttributesPass : public llvm::PassInfoMixin<StripAttributesPass>
+    class RemoveDisallowedAttribubtesPass : public llvm::PassInfoMixin<RemoveDisallowedAttribubtesPass>
     {
       public:
-        StripAttributesPass()
+        RemoveDisallowedAttribubtesPass()
           : allowed_attrs_{{static_cast<String>("EntryPoint"), static_cast<String>("InteropFriendly")}}
         {
         }
@@ -27,7 +27,7 @@ namespace quantum
         {
             for (auto& function : module)
             {
-                std::unordered_set<String> to_insert;
+                std::unordered_set<String> to_keep;
 
                 // Finding all valid attributes
                 for (auto& attrset : function.getAttributes())
@@ -45,14 +45,14 @@ namespace quantum
                         // Inserting if allowed
                         if (allowed_attrs_.find(r) != allowed_attrs_.end())
                         {
-                            to_insert.insert(r);
+                            to_keep.insert(r);
                         }
                     }
                 }
 
                 // Deleting every
                 function.setAttributes({});
-                for (auto& attr : to_insert)
+                for (auto& attr : to_keep)
                 {
                     function.addFnAttr(attr);
                 }

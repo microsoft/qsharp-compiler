@@ -52,7 +52,7 @@
 #include "RuleTransformationPass/RuleTransformationPassConfiguration.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/FactoryConfig.hpp"
-#include "ValidationPass/ValidationConfiguration.hpp"
+#include "ValidationPass/ValidationPassConfiguration.hpp"
 #include "Validator/Validator.hpp"
 
 #include "Llvm/Llvm.hpp"

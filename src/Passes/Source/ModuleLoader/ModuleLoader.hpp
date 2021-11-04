@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "StripAttributesPass/StripAttributes.hpp"
+#include "RemoveDisallowedAttribubtesPass/RemoveDisallowedAttribubtesPass.hpp"
 #include "Types/Types.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -38,7 +38,7 @@ namespace quantum
             pass_builder_.crossRegisterProxies(
                 loop_analysis_manager_, function_analysis_manager_, gscc_analysis_manager_, module_analysis_manager_);
 
-            module_pass_manager_.addPass(StripAttributesPass());
+            module_pass_manager_.addPass(RemoveDisallowedAttribubtesPass());
         }
 
         bool apply(llvm::Module* module)

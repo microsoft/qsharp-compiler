@@ -136,7 +136,7 @@ namespace quantum
         /// is mapped into
         ///
         /// ```
-        /// %1 = call i1 @__quantum__qir__read_result(%Result* %0)
+        /// %1 = call i1 @__quantum__qis__read_result__body(%Result* %0)
         /// br i1 %1, label %then0__1, label %continue__1
         /// ```
         ///

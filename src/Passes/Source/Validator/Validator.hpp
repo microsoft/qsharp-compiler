@@ -4,7 +4,7 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
-#include "ValidationPass/ValidationConfiguration.hpp"
+#include "ValidationPass/ValidationPassConfiguration.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -31,8 +31,8 @@ namespace quantum
             bool                               debug,
             llvm::TargetMachine*               target_machine = nullptr);
 
-        // Default construction not allowed as this leads to invalid configuration of the allocation
-        // managers.
+        // Default construction not allowed to ensure that LLVM modules and passes are set up correctly.
+        // Copy construction is prohibited due to restriction on classes held by Validator.
 
         Validator()                 = delete;
         Validator(Validator const&) = delete;
@@ -44,7 +44,8 @@ namespace quantum
         // Validator methods
         //
 
-        /// Validates that a module complies with the specified QIR profile.
+        /// Validates that a module complies with the specified QIR profile. Returns true if the module is
+        /// valid and false otherwise.
         bool validate(llvm::Module& module);
 
       protected:

@@ -40,12 +40,13 @@ namespace quantum
                 ret.whitelist_external_calls_ = true;
                 ret.whitelist_opcodes_        = true;
                 ret.opcodes_                  = Set{"br", "call", "unreachable", "ret"};
-                ret.external_calls_           = Set{
-                    "__quantum__qis__mz__body",   "__quantum__qir__read_result", "__quantum__qis__reset__body",
-                    "__quantum__qis__z__body",    "__quantum__qis__s__adj",      "__quantum__qis__dumpregister__body",
-                    "__quantum__qis__y__body",    "__quantum__qis__x__body",     "__quantum__qis__t__body",
-                    "__quantum__qis__cz__body",   "__quantum__qis__s__body",     "__quantum__qis__h__body",
-                    "__quantum__qis__cnot__body", "__quantum__qis__sqrt__body"};
+                ret.external_calls_           = Set{"__quantum__qis__mz__body",    "__quantum__qis__read_result__body",
+                                          "__quantum__qis__reset__body", "__quantum__qis__z__body",
+                                          "__quantum__qis__s__adj",      "__quantum__qis__dumpregister__body",
+                                          "__quantum__qis__y__body",     "__quantum__qis__x__body",
+                                          "__quantum__qis__t__body",     "__quantum__qis__cz__body",
+                                          "__quantum__qis__s__body",     "__quantum__qis__h__body",
+                                          "__quantum__qis__cnot__body",  "__quantum__qis__sqrt__body"};
             }
             else
             {

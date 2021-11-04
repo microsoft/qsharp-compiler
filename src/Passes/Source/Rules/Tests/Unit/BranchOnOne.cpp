@@ -74,7 +74,7 @@ continue__1:
     auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
     ir_manip->applyProfile(profile);
 
-    // This optimistation is specific to the the __quantum__qir__read_result which
+    // This optimistation is specific to the the __quantum__qis__read_result__body which
     // returns 1 or 0 depending on the result. We expect that
     //
     // %1 = tail call %Result* @__quantum__rt__result_get_one()
@@ -83,7 +83,7 @@ continue__1:
     //
     // will be mapped to using this instruction.
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
-        {"%0 = tail call i1 @__quantum__qir__read_result(%Result* null)",
+        {"%0 = tail call i1 @__quantum__qis__read_result__body(%Result* null)",
          "br i1 %0, label %then0__1, label %continue__1"}));
 
     EXPECT_FALSE(
