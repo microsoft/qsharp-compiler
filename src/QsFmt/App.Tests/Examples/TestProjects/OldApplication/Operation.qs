@@ -1,7 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
-
-namespace test14 {
+﻿namespace OldApplication {
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
 

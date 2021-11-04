@@ -3,41 +3,13 @@
 
 module Microsoft.Quantum.QsFmt.App.Program
 
-open Argu
-open Microsoft.Quantum.QsFmt.Formatter
 open System
+open System.Collections.Generic
 open System.IO
-
-/// A command-line argument.
-[<HelpDescription "Display this list of options.">]
-type Argument =
-    /// The path to the input file.
-    | [<MainCommand; Unique; Last>] Inputs of string list
-    | [<InheritAttribute; Unique; AltCommandLine("-b")>] Backup
-    | [<InheritAttribute; Unique; AltCommandLine("-r")>] Recurse
-    | [<SubCommand; CliPrefix(CliPrefix.None)>] Update
-    | [<SubCommand; CliPrefix(CliPrefix.None)>] Format
-
-    interface IArgParserTemplate with
-        member arg.Usage =
-            match arg with
-            | Inputs _ -> "Files or folders to format or \"-\" to read from standard input."
-            | Backup -> "Create backup files of input files."
-            | Recurse -> "Process the input folder recursively."
-            | Update _ -> "Update depreciated syntax in the input files."
-            | Format _ -> "Format the source code in input files."
-
-type CommandKind =
-    | Update
-    | Format
-
-type Arguments =
-    {
-        CommandKind: CommandKind
-        RecurseFlag: bool
-        BackupFlag: bool
-        Inputs: string list
-    }
+open CommandLine
+open Microsoft.Quantum.QsFmt.App.Arguments
+open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
+open Microsoft.Quantum.QsFmt.Formatter
 
 let makeFullPath input =
     if input = "-" then input else Path.GetFullPath input
@@ -77,8 +49,8 @@ let run arguments inputs =
 
                     let command =
                         match arguments.CommandKind with
-                        | Update -> Formatter.update input
-                        | Format -> Formatter.format
+                        | Update -> Formatter.update input arguments.QSharp_Version
+                        | Format -> Formatter.format arguments.QSharp_Version
 
                     match command source with
                     | Ok result ->
@@ -102,29 +74,35 @@ let run arguments inputs =
 
     doMany arguments inputs
 
+let runUpdate (arguments: UpdateArguments) =
+    match Arguments.fromUpdateArguments arguments with
+    | Ok args -> args.Input |> run args
+    | Error errorCode -> errorCode
+
+let runFormat (arguments: FormatArguments) =
+    let asUpdateArguments =
+        {
+            Backup = arguments.Backup
+            Recurse = arguments.Recurse
+            QdkVersion = arguments.QdkVersion
+            InputFiles = arguments.InputFiles
+            ProjectFile = arguments.ProjectFile
+        }
+
+    match Arguments.fromUpdateArguments asUpdateArguments with
+    | Ok args -> args.Input |> run { args with CommandKind = Format }
+    | Error errorCode -> errorCode
+
 [<CompiledName "Main">]
 [<EntryPoint>]
 let main args =
-    let parser = ArgumentParser.Create()
 
-    try
-        let results = parser.Parse args
+    assemblyLoadContextSetup ()
 
-        let args =
-            {
-                CommandKind =
-                    match results.TryGetSubCommand() with
-                    | None // default to update command
-                    | Some Argument.Update -> Update
-                    | Some Argument.Format -> Format
-                    | _ -> failwith "unrecognized command used"
-                RecurseFlag = results.Contains Recurse
-                BackupFlag = results.Contains Backup
-                Inputs = results.GetResult Inputs
-            }
+    let result = CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments> args
 
-        args.Inputs |> run args
-    with
-    | :? ArguParseException as ex ->
-        eprintf "%s" ex.Message
-        2
+    result.MapResult(
+        (fun (options: FormatArguments) -> options |> runFormat),
+        (fun (options: UpdateArguments) -> options |> runUpdate),
+        (fun (_: IEnumerable<Error>) -> 2)
+    )

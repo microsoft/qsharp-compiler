@@ -29,9 +29,15 @@ val unitUpdate : unit Rewriter
 /// Updates for-loops to remove deprecated parentheses.
 val forParensUpdate: unit Rewriter
 
+/// Updates deprecated specialization declarations to add a `...` parameter.
+val specializationUpdate: unit Rewriter
+
 /// Updates the `new <Type>[n]` array syntax to the new `[val, size = n]` array syntax.
 val arraySyntaxUpdate: unit Rewriter
 
-/// Provides warnings for deprecated syntax still in the syntax tree.
-/// Takes the file name as well as the syntax tree.
-val updateChecker: string -> Document -> string list
+/// Provides warnings for deprecated array syntax still in the syntax tree.
+val checkArraySyntax: string -> Document -> string list
+
+/// Replaces deprecated use of boolean operators `&&`, `||`, and `!` with their keyword
+/// equivalence `and`, `or`, and `not` respectively.
+val booleanOperatorUpdate : unit Rewriter
