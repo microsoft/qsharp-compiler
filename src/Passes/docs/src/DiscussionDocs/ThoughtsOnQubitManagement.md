@@ -70,7 +70,7 @@ The use statement creates a allocate instruction and release instructions are in
   }
 ```
 
-This case makes it hard to analyse which qubits stays in scope and which are escaping. We note that we have two scopes where qubits can escape: The Test function and the for loop.
+This case makes it hard to analyze which qubits stays in scope and which are escaping. We note that we have two scopes where qubits can escape: The `Test` operation and the `for` loop.
 
 Analysing and providing garantuees on the whether a qubit is in use is the core problem that either needs to be solved in the QIR or the frontend.
 
