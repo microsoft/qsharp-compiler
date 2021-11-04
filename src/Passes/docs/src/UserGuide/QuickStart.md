@@ -38,8 +38,7 @@ namespace SimpleLoop {
     }
 
     @EntryPoint()
-    operation Main(): Int
-    {
+    operation RunMain() : Int {
         let nrIter = 5;
         mutable ret = 1;
         for _ in 1 .. nrIter {
