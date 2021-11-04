@@ -238,13 +238,8 @@ namespace Microsoft.Quantum.Telemetry
                 this.getValueMethod = fSharpOptionType.GetMethod("get_Value");
             }
 
-            public object? GetValue(object? optionValue)
+            public object? GetValue(object optionValue)
             {
-                if (optionValue == null)
-                {
-                    return null;
-                }
-
                 if (object.Equals(true, this.isSomeMethod?.Invoke(optionValue, new object[] { optionValue })))
                 {
                     return this.getValueMethod?.Invoke(optionValue, null);
@@ -260,15 +255,26 @@ namespace Microsoft.Quantum.Telemetry
                                                     .FirstOrDefault((a) => a.GetName().Name == "FSharp.Core")
                                                     ?.GetType("Microsoft.FSharp.Core.FSharpOption`1");
 
-        public static bool IsFSharpOptionType(Type type) =>
-            fSharpOptionType != null
+        public static bool IsFSharpOptionType(Type? type) =>
+            type != null
+            && fSharpOptionType != null
             && object.Equals(fSharpOptionType, ReflectionCache.GetGenericTypeDefinition(type));
 
         private static ConcurrentDictionary<Type, OptionValueGetter?> optionValueGetterCache = new();
 
-        public static object? GetOptionValue(object optionValue, Type type) =>
-            optionValueGetterCache
-                .GetOrAdd(type, (t) => IsFSharpOptionType(type) ? new(type) : null)
-                ?.GetValue(optionValue);
+        public static object? GetOptionValue(object? optionValue, Type? type)
+        {
+            if (optionValue == null || type == null)
+            {
+                return null;
+            }
+
+            return optionValueGetterCache
+                        .GetOrAdd(type, (t) => IsFSharpOptionType(type) ? new(type) : null)
+                        ?.GetValue(optionValue);
+        }
+
+        public static object? GetOptionValue(object? optionValue) =>
+            GetOptionValue(optionValue, optionValue?.GetType());
     }
 }
