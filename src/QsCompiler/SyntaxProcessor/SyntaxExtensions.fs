@@ -18,8 +18,14 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
-
 // utils for providing information for editor commands based on syntax tokens
+
+let rec private symbolDeclarations s =
+    match s.Symbol with
+    | SymbolTuple items -> Seq.collect symbolDeclarations items |> Seq.toList
+    | InvalidSymbol
+    | MissingSymbol -> []
+    | _ -> [ s ]
 
 let rec private collectWith collector (exs: 'a seq, ts: QsType seq) : QsSymbol list * QsType list * QsExpression list =
     let (varFromExs, tsFromExs, bsFromExs) =
@@ -110,7 +116,7 @@ and private SymbolsFromExpr item : QsSymbol list * QsType list * QsExpression li
     | QsExpressionKind.CONDITIONAL (cond, case1, case2) -> ([ cond; case1; case2 ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.Lambda lambda ->
         let symbols, types, expressions = collectWith SymbolsFromExpr ([ lambda.Body ], [])
-        lambda.Param :: symbols, types, expressions
+        symbolDeclarations lambda.Param @ symbols, types, expressions
     | QsExpressionKind.MissingExpr -> [], [], [ item ]
     | QsExpressionKind.InvalidExpr -> [], [], [ item ]
 
@@ -119,21 +125,9 @@ let private AttributeAsCallExpr (sym: QsSymbol, ex: QsExpression) =
     let id = { Expression = QsExpressionKind.Identifier(sym, Null); Range = sym.Range }
     { Expression = QsExpressionKind.CallLikeExpression(id, ex); Range = combinedRange }
 
-let rec private SymbolDeclarations (sym: QsSymbol) =
-    match sym.Symbol with
-    | SymbolTuple items ->
-        [
-            for item in items do
-                yield item
-        ]
-        |> List.collect SymbolDeclarations
-    | InvalidSymbol
-    | MissingSymbol -> []
-    | _ -> [ sym ]
-
 let private SymbolsInGenerator (gen: QsSpecializationGenerator) =
     match gen.Generator with
-    | UserDefinedImplementation sym -> sym |> SymbolDeclarations
+    | UserDefinedImplementation sym -> symbolDeclarations sym
     | _ -> []
 
 let private SymbolsInArgumentTuple (declName, argTuple) =
@@ -157,13 +151,10 @@ let private SymbolsInArgumentTuple (declName, argTuple) =
                     yield item
             ]
             |> recur extract
-        | QsTupleItem (sym, t) -> sym |> SymbolDeclarations, t |> TypeNameSymbols
+        | QsTupleItem (sym, t) -> symbolDeclarations sym, TypeNameSymbols t
 
-    let decl, types = argTuple |> extract
-
-    List.concat [ declName |> SymbolDeclarations
-                  decl ],
-    ([], types, [])
+    let decl, types = extract argTuple
+    symbolDeclarations declName @ decl, ([], types, [])
 
 let private SymbolsInCallableDeclaration (name: QsSymbol, signature: CallableSignature) =
     let symDecl, (vars, types, exs) = SymbolsInArgumentTuple(name, signature.Argument)
@@ -208,21 +199,20 @@ let public SymbolInformation fragmentKind =
     | QsFragmentKind.ExpressionStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.ReturnStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.FailStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.MutableBinding (sym, ex) -> sym |> SymbolDeclarations, ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ImmutableBinding (sym, ex) ->
-        sym |> SymbolDeclarations, ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.MutableBinding (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ImmutableBinding (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.ValueUpdate (lhs, rhs) -> [], ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.IfClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.ElifClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.ElseClause -> [], ([], [], [])
-    | QsFragmentKind.ForLoopIntro (sym, ex) -> sym |> SymbolDeclarations, ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ForLoopIntro (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.WhileLoopIntro ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.RepeatIntro -> [], ([], [], [])
     | QsFragmentKind.UntilSuccess (ex, _) -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.WithinBlockIntro -> [], ([], [], [])
     | QsFragmentKind.ApplyBlockIntro -> [], ([], [], [])
-    | QsFragmentKind.UsingBlockIntro (sym, init) -> sym |> SymbolDeclarations, init |> VariablesInInitializer
-    | QsFragmentKind.BorrowingBlockIntro (sym, init) -> sym |> SymbolDeclarations, init |> VariablesInInitializer
+    | QsFragmentKind.UsingBlockIntro (sym, init) -> symbolDeclarations sym, VariablesInInitializer init
+    | QsFragmentKind.BorrowingBlockIntro (sym, init) -> symbolDeclarations sym, VariablesInInitializer init
     | QsFragmentKind.BodyDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
     | QsFragmentKind.AdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
     | QsFragmentKind.ControlledDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
@@ -233,7 +223,7 @@ let public SymbolInformation fragmentKind =
     | QsFragmentKind.TypeDefinition typeDef -> (typeDef.Name, typeDef.UnderlyingType) |> SymbolsInArgumentTuple
     | QsFragmentKind.DeclarationAttribute (sym, ex) ->
         [], ([ AttributeAsCallExpr(sym, ex) ], []) |> collectWith SymbolsFromExpr |> addVariable sym
-    | QsFragmentKind.NamespaceDeclaration sym -> sym |> SymbolDeclarations, ([], [], [])
+    | QsFragmentKind.NamespaceDeclaration sym -> symbolDeclarations sym, ([], [], [])
     | QsFragmentKind.OpenDirective (nsName, alias) -> [ alias ] |> chooseValues, ([ nsName ], [], [])
     | QsFragmentKind.InvalidFragment _ -> [], ([], [], [])
     |> SymbolInformation.New

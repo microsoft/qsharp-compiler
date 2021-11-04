@@ -125,6 +125,15 @@ module QsNullable =
     [<CompiledName "IsValue">]
     let isValue nullable = isNull nullable |> not
 
+// C# interoperability.
+type QsNullable<'T> with
+    /// <summary>
+    /// Applies <paramref name="f"/> to the value inside the nullable if it has a value.
+    /// </summary>
+    /// <param name="f">The function to apply to the value.</param>
+    /// <return>The transformed nullable.</return>
+    member nullable.Map(f: Func<'T, 'a>) = QsNullable<_>.Map f.Invoke nullable
+
 /// A position in a text document.
 type Position =
     private
@@ -226,6 +235,10 @@ type Range =
     /// Adds the range's start and end positions to the given position.
     static member (+)(position: Position, range: Range) =
         Range(position + range.Start, position + range.End)
+
+    /// Subtracts the position from the range's start and end positions.
+    static member (-)(range: Range, position: Position) =
+        Range(range.Start - position, range.End - position)
 
     /// Returns true if the ranges have the same start and end positions.
     static member op_Equality(a: Range, b: Range) = a = b

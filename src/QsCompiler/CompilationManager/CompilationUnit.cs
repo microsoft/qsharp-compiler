@@ -1035,7 +1035,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName? parentCallable, bool includeDeclaredAtPosition = false)
         {
             var implementation = this.TryGetSpecializationAt(file, pos, out parentCallable, out var callablePos, out var specPos);
-            var declarations = implementation?.LocalDeclarationsAt(pos - specPos, includeDeclaredAtPosition);
+            var declarations = implementation is null ? null
+                : SymbolInfo.LocalsInScope(implementation, pos - specPos, includeDeclaredAtPosition);
             return this.PositionedDeclarations(parentCallable, callablePos, specPos, declarations);
         }
 
