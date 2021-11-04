@@ -594,7 +594,7 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
 
-            if (this.config.ConvertClassicalControl && !this.config.PrepareQirGeneration)
+            if (this.config.ConvertClassicalControl)
             {
                 var rewriteStep = new LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConvertClassicalControl)));
