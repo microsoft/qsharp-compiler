@@ -20,6 +20,7 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     using QsExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using QsInitializerKind = QsInitializerKind<ResolvedInitializer, TypedExpression>;
     using QsSymbolKind = QsSymbolKind<QsSymbol>;
     using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
@@ -161,6 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 QsStatementKind.QsForStatement @for => ExpressionDeclarations(@for.Item.IterationValues),
                 QsStatementKind.QsWhileStatement @while => ExpressionDeclarations(@while.Item.Condition),
                 QsStatementKind.QsRepeatStatement repeat => ExpressionDeclarations(repeat.Item.SuccessCondition),
+                QsStatementKind.QsQubitScope qubit => QubitInitDeclarations(qubit.Item.Binding.Rhs),
                 _ => Enumerable.Empty<LocalVariableDeclaration<string>>(),
             };
 
@@ -178,6 +180,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 LastConditionBlockBefore(cond, position) is ({ } lastCond, var lastBlock)
                     ? DeclarationsInExpression(lastCond, position - lastBlock.Location.Item.Offset)
                     : Enumerable.Empty<LocalVariableDeclaration<string>>();
+
+            IEnumerable<LocalVariableDeclaration<string>> QubitInitDeclarations(ResolvedInitializer init) =>
+                init.Resolution switch
+                {
+                    QsInitializerKind.QubitRegisterAllocation r => ExpressionDeclarations(r.Item),
+                    QsInitializerKind.QubitTupleAllocation t => t.Item.SelectMany(QubitInitDeclarations),
+                    _ => Enumerable.Empty<LocalVariableDeclaration<string>>(),
+                };
 
             LocalVariableDeclaration<string> AddStatementOffset(LocalVariableDeclaration<string> decl)
             {
