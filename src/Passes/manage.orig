@@ -14,6 +14,11 @@ sys.path.insert(0, os.path.join(ROOT, "site-packages"))
 # Loading the CLI tool and running it
 from tasks_ci.cli import cli  # noqa: E402
 
+<<<<<<< HEAD
+# Running the CLI tool defined in site-packages/tasks_ci/cli
+cli()
+=======
 # Running the CLI tool defined in site-packages/TasksCI/cli
 if __name__ == "__main__":
     cli()
+>>>>>>> b21da15866d36ab40f1c4b9a8cb766b847e5df49

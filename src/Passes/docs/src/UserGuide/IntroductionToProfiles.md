@@ -54,7 +54,7 @@ As an example of how these types can be used:
 %0 = Qubit* inttoptr 1 to Qubit*
 ```
 
-which expresses that we store the handle to qubit with ID 1 in the variable `%0`. Result registers are referred to in a similar manner
+which expresses that we store the handle to qubit with ID 1 in the variable `%0`. Result registers are referred to in a similar manner.
 
 ## Base Profile
 
