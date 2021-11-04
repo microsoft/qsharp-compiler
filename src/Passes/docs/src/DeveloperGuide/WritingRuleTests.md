@@ -71,7 +71,7 @@ The `IrManipulationTestHelper` contains a member function to run the profile on 
   ir_manip->applyProfile(profile);
 ```
 
-This will run the above generated rule set on the IR we have supplied. At this point, we could print the IR to the screen and use LIT to perform that actually transformation test. However, to keep this test framework self-contained and easy to use, we supply LIT-like functionality. This has the benefit that the tests do not rely on Python and the lit framework and that the tooling around the test is substantially simpler.
+This will run the above generated rule set on the IR we have supplied. At this point, we could print the IR to the screen and use LIT to perform that actually transformation test. However, to keep this test framework self-contained and easy to use, we supply LIT-like functionality. This has the benefit that the tests do not rely on Python and the LIT framework and that the tooling around the test is substantially simpler.
 
 ## Testing the modified IR
 
