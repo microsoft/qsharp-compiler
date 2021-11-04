@@ -15,6 +15,7 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
 {
     using QsExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using QsInitializerKind = QsInitializerKind<ResolvedInitializer, TypedExpression>;
     using QsSymbolKind = QsSymbolKind<QsSymbol>;
     using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
@@ -187,6 +188,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
                 QsStatementKind.QsForStatement @for => new[] { @for.Item.IterationValues },
                 QsStatementKind.QsWhileStatement @while => new[] { @while.Item.Condition },
                 QsStatementKind.QsRepeatStatement repeat => new[] { repeat.Item.SuccessCondition },
+                QsStatementKind.QsQubitScope qubit => InitializerExpressions(qubit.Item.Binding.Rhs),
                 _ => Enumerable.Empty<TypedExpression>(),
             };
 
@@ -200,6 +202,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
                 var offset = b.Item2.Location.Item.Offset - statement.Location.Item.Offset;
                 return new ExpressionOffsetTransformation(offset).OnTypedExpression(b.Item1);
             }
+
+            static IEnumerable<TypedExpression> InitializerExpressions(ResolvedInitializer i) => i.Resolution switch
+            {
+                QsInitializerKind.QubitRegisterAllocation r => new[] { r.Item },
+                QsInitializerKind.QubitTupleAllocation t => t.Item.SelectMany(InitializerExpressions),
+                _ => Enumerable.Empty<TypedExpression>(),
+            };
         }
 
         private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInExpressionByPosition(
