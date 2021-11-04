@@ -29,7 +29,7 @@ The style guide applies to any new code written as well as code that is being re
 ## Style discrepancy
 
 In case of a discrepancy between this guideline and `clang-tidy` or `clang-format`,
-clang tools rule. In case of discrepancy between this guide and any guides subsequently referenced guides, this guide rule. However, feel free to suggest changes. Changes will be incorporated on the basis
+clang tools rule. In case of discrepancy between this guide and any guides subsequently referenced guides, this guide rules. However, feel free to suggest changes. Changes will be incorporated on the basis
 that updated styles are apply to new code and not existing code.
 
 ## Naming

@@ -19,7 +19,7 @@ Those using Mac OS X can install CMake through the use of a command-line tool ca
 brew install cmake
 ```
 
-It should not even be necessary to install anything else on top of Mac OS X, since the compiler comes preinstalled. There is no need to read the next subsection ([Developer prerequisites](#developer-prerequisites)) if you are not intending to modify the core library and can safely jump to the section [Library Dependencies](#library-dependencies)
+It should not even be necessary to install anything else on top of macOS, since the compiler comes preinstalled. There is no need to read the next subsection ([Developer prerequisites](#developer-prerequisites)) if you are not intending to modify the core library and can safely jump to the section [Library Dependencies](#library-dependencies)
 
 ### On Ubuntu 20.04
 

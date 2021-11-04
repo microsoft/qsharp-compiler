@@ -63,7 +63,7 @@ namespace Feasibility {
     open Microsoft.Quantum.Intrinsic;
 
     @EntryPoint()
-    operation QubitMapping() : Unit {
+    operation Run() : Unit {
         use qs = Qubit[3];
         for q in 8..10 {
             X(qs[q - 8]);
@@ -72,10 +72,10 @@ namespace Feasibility {
 }
 ```
 
-to the base profile. We will do so using a combination of existing LLVM passes and custom written passes which are specific to the QIR. The above code is interesting as it is not base profile compliant with regards to two aspects: 1) Qubit allocation is not allowed and 2) arithmetic operations are not supported. Using the Q# QIR generator, the `QubitMapping` functions body becomes:
+to the base profile. We will do so using a combination of existing LLVM passes and custom written passes which are specific to the QIR. The above code is interesting as it is not base profile compliant with regards to two aspects: 1) Qubit allocation is not allowed and 2) arithmetic operations are not supported. Using the Q# QIR generator, the `Run` functions body becomes:
 
 ```
-define internal void @Feasibility__QubitMapping__body() {
+define internal void @Feasibility__Run__body() {
 entry:
   %qs = call %Array* @__quantum__rt__qubit_allocate_array(i64 3)
   call void @__quantum__rt__array_update_alias_count(%Array* %qs, i32 1)
@@ -108,7 +108,7 @@ exit__1:                                          ; preds = %header__1
 After applying the our demo profile transformation, the QIR is reduced to:
 
 ```
-define void @Feasibility__QubitMapping__Interop() local_unnamed_addr #0 {
+define void @Feasibility__Run__Interop() local_unnamed_addr #0 {
 entry:
   call void @__quantum__qis__x__body(%Qubit* null)
   call void @__quantum__qis__x__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))

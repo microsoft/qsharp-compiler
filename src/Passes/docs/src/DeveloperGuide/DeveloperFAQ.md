@@ -10,7 +10,7 @@ Failed to load passes from '../../Debug/libQSharpPasses.dylib'. Request ignored.
 opt: unknown pass name 'operation-counter'
 ```
 
-This is likely becuase you have forgotten to instantiate static class members. For instance, in the case of an instance of `llvm::AnalysisInfoMixin` you are required to have static member `Key`:
+This is likely becuase you have forgotten to instantiate static class members. For instance, in the case of an instance of `llvm::AnalysisInfoMixin` you are required to have a static member `Key`:
 
 ```cpp
 class COpsCounterPass :  public llvm::AnalysisInfoMixin<COpsCounterPass> {

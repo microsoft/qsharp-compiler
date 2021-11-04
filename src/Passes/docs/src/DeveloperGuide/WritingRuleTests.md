@@ -1,10 +1,10 @@
 # Writing rule tests
 
-To make it easy to write tests for transformation rules, we have created two components to easy the burden of writing tests: `RuleSetProfile` and `IrManipulationTestHelper`. The `RuleSetProfile` is a profile that is dynamically defined when instatiated through a configuration lambda function.
+To make it easy to write tests for transformation rules, we have created two components to ease the burden of writing tests: `DefaultProfileGenerator` and `IrManipulationTestHelper`. The `DefaultProfileGenerator` is a profile that is dynamically defined when instatiated through a configuration lambda function.
 
 ## Creating the profile
 
-Creating the profile using the `RuleSetProfile` is done by first defining the lambda function and then instantiating the `RuleSetProfile` with the lambda function to define the profile. Using the `RuleFactory`, a profile for transforming the single qubit allocations is created as follows:
+Creating the profile using the `DefaultProfileGenerator` is done by first defining the lambda function and then instantiating the `DefaultProfileGenerator` with the lambda function to define the profile. Using the `RuleFactory`, a profile for transforming the single qubit allocations is created as follows:
 
 ```c++
   auto configure_profile = [](RuleSet &rule_set) {
@@ -13,7 +13,7 @@ Creating the profile using the `RuleSetProfile` is done by first defining the la
     factory.useStaticQubitAllocation();
   }
 
-  auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
+  auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 ```
 
 This profile is intended to transform
@@ -96,25 +96,25 @@ By design, the test would pass as long as these two instructions are found (in o
 
 ```
   call void printHelloWorld()
-  %qubit = inttoptr i64 0 to %Qubit*,
-  %q2 = inttoptr i64 1 to %Qubit*,
-  %q3 = inttoptr i64 1 to %Qubit*,
+  %qubit = inttoptr i64 0 to %Qubit*
+  %q2 = inttoptr i64 1 to %Qubit*
+  %q3 = inttoptr i64 2 to %Qubit*
   tail call void @__quantum__qis__h__body(%Qubit* %q3)
   tail call void @__quantum__qis__h__body(%Qubit* %qubit)
-  tail call void @__quantum__qis__h__body(%Qubit* %q0)
+  tail call void @__quantum__qis__h__body(%Qubit* %q2)
 ```
 
 but would fail
 
 ```
   tail call void @__quantum__qis__h__body(%Qubit* %qubit)
-  %qubit = inttoptr i64 0 to %Qubit*,
+  %qubit = inttoptr i64 0 to %Qubit*
 ```
 
 and
 
 ```
-  %qubit = inttoptr i64 0 to %Qubit*,
+  %qubit = inttoptr i64 0 to %Qubit*
 ```
 
 as the first has the wrong order of the calls and the second is missing one instruction.
