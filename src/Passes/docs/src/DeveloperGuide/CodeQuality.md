@@ -13,7 +13,7 @@ source develop__venv/bin/activate
 pip install -r requirements.txt
 ```
 
-These adds the necessary environment variables to ensure that you have the `TasksCI` package and all required dependencies.
+These adds the necessary environment variables to ensure that you have the `tasks_ci` package and all required dependencies.
 
 To check the style, run
 

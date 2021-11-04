@@ -11,15 +11,15 @@ It is necessary for you to have the following tools before you get started on ma
 
 If you are compiling and using the command-line tool, these are necessary tools regardless of whether you plan to develop the library itself. The build configuration is handled by CMake, which informs you if a compiler needs to be installed.
 
-### On OS X
+### On Mac OS X
 
-Those using OS X can install CMake through the use of a command-line tool called `brew`, as follows:
+Those using Mac OS X can install CMake through the use of a command-line tool called `brew`, as follows:
 
 ```sh
 brew install cmake
 ```
 
-It should not even be necessary to install anything else on top of OS X, since the compiler comes preinstalled. There is no need to read the next subsection ([Developer prerequisites](#developer-prerequisites)) if you are not intending to modify the core library and can safely jump to the section [Library Dependencies](#library-dependencies)
+It should not even be necessary to install anything else on top of Mac OS X, since the compiler comes preinstalled. There is no need to read the next subsection ([Developer prerequisites](#developer-prerequisites)) if you are not intending to modify the core library and can safely jump to the section [Library Dependencies](#library-dependencies)
 
 ### On Ubuntu 20.04
 
@@ -42,7 +42,7 @@ Development of the core library requires additional tools. These are used format
 
 The installation process varies depending on the platform you use. The following subsections provide details on how to install these tools on each platform.
 
-### On OS X
+### On Mac OS X
 
 TODO:
 
@@ -81,7 +81,7 @@ The QAT library itself is written in C++ and depends on LLVM for compilation and
 git submodule update --init --recursive
 ```
 
-### Installing LLVM on OS X
+### Installing LLVM on Mac OS X
 
 TODO:
 
