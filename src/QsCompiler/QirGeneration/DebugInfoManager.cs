@@ -296,11 +296,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return DebugType.Create<ITypeRef, DIType>(this.Context.VoidType, null);
             }
-            else
-            { // RyanTODO: this is definitely not right, I'm assuming everything else is a callable for the sake of demo
+            else if (resolvedType.Resolution.IsFunction)
+            {
                 IEnumerable<DebugMemberInfo> structBody = new List<DebugMemberInfo>();
                 var structType = new DebugStructType(dIBuilder, "callable", dIBuilder.GetCompileUnit(), "callable", dIBuilder.GetCompileUnit()?.File, 1, DebugInfoFlags.None, structBody);
                 return new DebugPointerType(structType, dIBuilder);
+            }
+            else
+            {
                 throw new Exception("Only handling a couple things for testing rn");
             }
         }
@@ -390,15 +393,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     subProgram,
                     name,
                     diBuilder.CompileUnit?.File,
-                    (uint)absolutePosition.Line + 1, // helper function for the translation
+                    ConvertToDebugPosition(absolutePosition),
                     dIType,
                     alwaysPreserve: true,
                     DebugInfoFlags.None);
 
                     DILocation dILoc = new DILocation(
                         this.Context,
-                        (uint)absolutePosition.Line + 1, // TODO: helper function for the +1 stuff
-                        (uint)absolutePosition.Column + 1,
+                        ConvertToDebugPosition(absolutePosition),
                         subProgram);
 
                     var nativeType = value.Value.NativeType;
@@ -429,17 +431,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     throw new ArgumentException("Expected a specialiazation with a non-null location");
                 }
-                uint line = (uint)debugLoc.Item.Offset.Line;
-                uint col = (uint)debugLoc.Item.Offset.Column;
+                Position position = debugLoc.Item.Offset;
 
                 // set up the DIBuilder
                 string sourcePath = spec.Source.CodeFile;
                 DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
-                DIFile debugFile = curDIBuilder.CreateFile(Path.ChangeExtension(sourcePath, ".c")); // TODO: this will get changed after language/extension issue figured out
+                DIFile debugFile = curDIBuilder.CreateFile(Path.ChangeExtension(sourcePath, ".c"));
 
-                // create the debugSignature
-                // IDebugType<ITypeRef, DIType> voidType = DebugType.Create<ITypeRef, DIType>(this.Module.Context.VoidType, null); // RyanNote: pass retType in for first arg, DIType for second which is null just cause void doesn't have debug info
-                // IDebugType<ITypeRef, DIType> retDebugType = voidType;
                 IDebugType<ITypeRef, DIType> retDebugType;
                 IDebugType<ITypeRef, DIType>[] argDebugTypes;
                 try
@@ -451,31 +449,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 catch (Exception)
                 {
-                    Console.WriteLine("exception in converting to debugtype");
+                    Console.WriteLine("exception in converting to DebugType");
                     return this.Module.CreateFunction(mangledName, signature);
                 }
 
-                DebugInfoFlags debugFlags = DebugInfoFlags.None; // RyanTODO: Might want flags here. Also might want to define our own. Also can we have multiple?
-
-                DebugFunctionType debugSignature = new DebugFunctionType(signature, curDIBuilder, debugFlags, retDebugType, argDebugTypes);
+                DebugFunctionType debugSignature = new DebugFunctionType(signature, curDIBuilder, DebugInfoFlags.None, retDebugType, argDebugTypes);
                 IrFunction func = this.Module.CreateFunction(
                     scope: curDIBuilder.GetCompileUnit(),
                     name: this.useShortName ? shortName : mangledName,
                     mangledName: mangledName,
                     file: debugFile,
-                    line: line + 1,
+                    linePosition: ConvertToDebugPosition(position),
                     signature: debugSignature,
                     isLocalToUnit: true, // we're using the compile unit from the source file this was declared in
                     // isDefinition: isDefinition,
                     isDefinition: true,
-                    scopeLine: line + 1, // RyanTODO: Need to be more exact bc of formatting (see lastParamLocation in Kaleidescope tutorial)
-                    debugFlags: debugFlags,
+                    scopeLinePosition: ConvertToDebugPosition(position), // RyanTODO: Need to be more exact bc of formatting (see lastParamLocation in Kaleidescope tutorial)
+                    debugFlags: DebugInfoFlags.None,
                     isOptimized: false, // RyanQuestion: is this always the case?
                     curDIBuilder);
 
                 // TODORyan: would be much cleaner to have the creation of arguments here
 
-                this.EmitLocation(line, col, func.DISubProgram, curDIBuilder); // do I need this when we create the function?
+                this.EmitLocation(position, func.DISubProgram, curDIBuilder); // do I need this when we create the function?
                 return func;
             }
             else
@@ -500,7 +496,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     throw new ArgumentException("Expected a specialiazation with a non-null location");
                 }
 
-                uint line = (uint)debugLoc.Item.Offset.Line; // RyanTODO: make specific to the argument
+
+                DebugPosition debugPos = DebugPosition.FromZeroBasedLine(debugLoc.Item.Offset.Line); // RyanTODO: make specific to the argument with column
 
                 DIType? dIType;
                 try
@@ -518,7 +515,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     sp,
                     name,
                     debugFile,
-                    line + 1,
+                    debugPos,
                     dIType,
                     alwaysPreserve: true,
                     DebugInfoFlags.None,
@@ -528,8 +525,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     DILocation dILoc = new DILocation(
                     this.Context,
-                    (uint)line + 1, // TODO: helper function for the +1 stuff
-                    1,
+                    debugPos,
                     sp);
 
                     curDIBuilder.InsertDeclare(
@@ -541,24 +537,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
-        internal void EmitLocation(uint line, uint col, DILocalScope? localScope, DebugInfoBuilder? di = null)
+        internal static DebugPosition ConvertToDebugPosition(Position position)
+        {
+            return DebugPosition.FromZeroBased(position.Line, position.Column);
+        }
+
+        /// Expects a 0-based position and then converts to a 1-based position for the LLVM Bindings
+        internal void EmitLocation(Position position, DILocalScope? localScope, DebugInfoBuilder? di = null)
         {
             if (this.DebugFlag)
             {
-                // The way we store line/col is 0-indexed but InstructionBuilder is expecting 1-indexed.
-                line += 1;
-                col += 1;
-
                 if (localScope == null)
                 {
                     // scope = di.GetCompileUnit(); // Would be nice functionality, but bindings not set up for DIScope rather than DILocalScope rn
                     throw new ArgumentException("Cannot set a debug location with a null scope."); // TODO: remove, doesn't need to throw an exception this is just for testing
                 }
 
-                this.CurrentInstrBuilder.SetDebugLocation(line, col, localScope);
+                this.CurrentInstrBuilder.SetDebugLocation(ConvertToDebugPosition(position), localScope);
             }
         }
 
+        /// Expects a 0-based position
         internal void EmitLocation(Position? relativePosition)
         {
             if (this.DebugFlag)
@@ -569,7 +568,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (namespaceLoc != null && relativePosition != null && sp != null)
                 {
                     Position absolutePosition = namespaceLoc.Offset + this.TotalOffsetFromStatements() + relativePosition;
-                    this.EmitLocation((uint)absolutePosition.Line, (uint)absolutePosition.Column, sp);
+                    this.EmitLocation(absolutePosition, sp);
                 }
             }
         }

@@ -618,8 +618,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
             return this.DIManager.CreateLocalFunction(spec, name, signature, isDefinition: false, returnTypeRef, argTypeRefs, argTuple); // RyanQuestion: can I assume it's not extern here? (see input to GenerateFunctionHeader) What about local? (see implementation of CreateLocalFunction)
-
-            // return this.Module.CreateFunction(name, signature); // RyanTODO: swap this out for the new function creation
         }
 
         /// <summary>
