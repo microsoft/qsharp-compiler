@@ -36,17 +36,19 @@ that updated styles are apply to new code and not existing code.
 
 Naming is taken from the [Microsoft AirSim](https://github.com/microsoft/AirSim/blob/master/docs/coding_guidelines.md) project.
 
-| **Code Element**      | **Style**                        | **Comment**                                                                                                                                   |
-| --------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Namespace             | snake_case                       | Differentiates `namespace::ClassName` and `ClassName::SubClass` names                                                                         |
-| Class name            | CamelCase                        | To differentiate from STL types which ISO recommends (do not use "C" or "T" prefixes)                                                         |
-| Function name         | camelCase                        | Lower case start is almost universal except for .NET world                                                                                    |
-| Parameters/Locals     | snake_case                       | Vast majority of standards recommends this because \_ is more readable to C++ crowd (although not much to Java/.NET crowd)                    |
-| Member variables      | snake_case_with\_                | The prefix \_ is heavily discouraged as ISO has rules around reserving \_identifiers, so we recommend suffix instead                          |
-| Enums and its members | CamelCase                        | Most except very old standards agree with this one                                                                                            |
-| Globals               | g_snake_case                     | Avoid using globals whenever possible, but if you have to use `g_`.                                                                           |
-| Constants             | UPPER_CASE                       | Very contentious and we just have to pick one here, unless if is a private constant in class or method, then use naming for Members or Locals |
-| File names            | Match case of class name in file | Lot of pro and cons either way but this removes inconsistency in auto generated code (important for ROS)                                      |
+| **Code Element**         | **Style**                        | **Comment**                                                                                                                                   |
+| ------------------------ | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Namespace                | snake_case                       | Differentiates `namespace::ClassName` and `ClassName::SubClass` names                                                                         |
+| Class name               | CamelCase                        | To differentiate from STL types which ISO recommends (do not use "C" or "T" prefixes)                                                         |
+| Type aliases             | CamelCase                        | To differentiate from STL types which ISO recommends                                                                                          |
+| Template type parameters | CamelCase                        | To differentiate from STL types which ISO recommends                                                                                          |
+| Function name            | camelCase                        | Lower case start is almost universal except for .NET world                                                                                    |
+| Parameters/Locals        | snake_case                       | Vast majority of standards recommends this because \_ is more readable to C++ crowd (although not much to Java/.NET crowd)                    |
+| Member variables         | snake_case_with\_                | The prefix \_ is heavily discouraged as ISO has rules around reserving \_identifiers, so we recommend suffix instead                          |
+| Enums and its members    | CamelCase                        | Most except very old standards agree with this one                                                                                            |
+| Globals                  | g_snake_case                     | Avoid using globals whenever possible, but if you have to use `g_`.                                                                           |
+| Constants                | UPPER_CASE                       | Very contentious and we just have to pick one here, unless if is a private constant in class or method, then use naming for Members or Locals |
+| File names               | Match case of class name in file | Lot of pro and cons either way but this removes inconsistency in auto generated code (important for ROS)                                      |
 
 ## Modernise when possible
 
