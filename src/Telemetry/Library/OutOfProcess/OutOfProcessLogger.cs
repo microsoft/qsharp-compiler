@@ -197,8 +197,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         {
             var debugThread = new Thread(() =>
             {
-                while (this.externalProcess.IsRunning
-                       && this.externalProcess.OutputTextReader != null)
+                while (this.externalProcess.OutputTextReader != null)
                 {
                     var message = this.externalProcess.OutputTextReader.ReadLine();
                     if (message != null)
@@ -208,6 +207,11 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                     else
                     {
                         Thread.Sleep(TimeSpan.FromSeconds(1));
+
+                        if (!this.externalProcess.IsRunning)
+                        {
+                            break;
+                        }
                     }
                 }
 
