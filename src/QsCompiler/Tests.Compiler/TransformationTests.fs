@@ -76,7 +76,7 @@ and private SyntaxCounterExpressionKinds(parent: SyntaxCounter) =
 
 let private buildSyntaxTree code =
     let fileId = new Uri(Path.GetFullPath "test-file.qs")
-    let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message)
+    let compilationUnit = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
     let file = CompilationUnitManager.InitializeFileManager(fileId, code)
     // spawns a task that modifies the current compilation
     compilationUnit.AddOrUpdateSourceFileAsync file |> ignore

@@ -3,12 +3,12 @@
 
 module Microsoft.Quantum.QsFmt.Formatter.ParseTree.Node
 
+open System.Collections.Generic
+open System.Collections.Immutable
 open Antlr4.Runtime
 open Antlr4.Runtime.Tree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
-open System.Collections.Generic
-open System.Collections.Immutable
 
 /// <summary>
 /// The contiguous sequence of tokens in the hidden channel that occur before the token with the given

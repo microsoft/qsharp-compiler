@@ -59,6 +59,12 @@ type RuntimeCapability =
         | "Unknown" -> Value FullComputation
         | _ -> Null
 
+    member this.Name =
+        match this with
+        | BasicQuantumFunctionality -> "BasicQuantumFunctionality"
+        | BasicMeasurementFeedback -> "BasicMeasurementFeedback"
+        | FullComputation -> "FullComputation"
+
 // TODO: RELEASE 2021-04: Remove RuntimeCapabilitiesExtensions.
 [<Extension>]
 [<Obsolete "Use Microsoft.Quantum.QsCompiler.RuntimeCapability.">]
