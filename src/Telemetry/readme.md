@@ -7,7 +7,10 @@ Run:
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) }"
 
 Run:
-dotnet restore --interactive   
+dotnet restore --interactive
+
+dotnet nuget push ./microsoft.applications.events.client.1.1.1.337.nupkg --source https://ms-quantum.pkgs.visualstudio.com/_packaging/alpha/nuget/v3/index.json --interactive --api-key AzureDevOps
+
 
 Env vars:
     QDK_TELEMETRY_OPT_OUT
