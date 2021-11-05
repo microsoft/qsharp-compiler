@@ -4,38 +4,38 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Quantum.Telemetry.OutOfProcess;
+using Microsoft.Quantum.Telemetry.Commands;
 
-namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
+namespace Microsoft.Quantum.Telemetry.Tests
 {
-    public class OutOfProcessCommandsTestCommon
+    public class CommandsTestCommon
     {
-        internal class NullOutOfProcessServer : IOutOfProcessServer
+        internal class NullOutOfProcessServer : ICommandProcessor
         {
-            public OutOfProcessCommand? LastProcessedCommand { get; private set; }
+            public CommandBase? LastProcessedCommand { get; private set; }
 
             public Type? LastProcessedType { get; private set; }
 
             private void InternalProcess<T>(T command)
-                where T : OutOfProcessCommand
+                where T : CommandBase
             {
                 this.LastProcessedCommand = command;
                 this.LastProcessedType = typeof(T);
             }
 
-            public void ProcessCommand(OutOfProcessQuitCommand command) =>
+            public void ProcessCommand(QuitCommand command) =>
                 this.InternalProcess(command);
 
-            public void ProcessCommand(OutOfProcessLogEventCommand command) =>
+            public void ProcessCommand(LogEventCommand command) =>
                 this.InternalProcess(command);
 
-            public void ProcessCommand(OutOfProcessSetContextCommand command) =>
+            public void ProcessCommand(SetContextCommand command) =>
                 this.InternalProcess(command);
         }
 
         internal static NullOutOfProcessServer CreateNullOutOfProcessServer() => new();
 
-        internal static OutOfProcessQuitCommand CreateOutOfProcessQuitCommand() => new();
+        internal static QuitCommand CreateQuitCommand() => new();
 
         internal static Applications.Events.EventProperties CreateEventProperties(int seed)
         {
@@ -57,18 +57,18 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
             return eventProperties;
         }
 
-        internal static OutOfProcessLogEventCommand CreateOutOfProcessLogEventCommand(int seed) =>
+        internal static LogEventCommand CreateLogEventCommand(int seed) =>
             new(CreateEventProperties(seed));
 
-        internal static IEnumerable<OutOfProcessLogEventCommand> CreateOutOfProcessLogEventCommands()
+        internal static IEnumerable<LogEventCommand> CreateLogEventCommands()
         {
             for (int i = 0; i < 10; i++)
             {
-                yield return CreateOutOfProcessLogEventCommand(seed: i);
+                yield return CreateLogEventCommand(seed: i);
             }
         }
 
-        internal static IEnumerable<OutOfProcessSetContextCommand> CreateOutOfProcessSetContextCommands()
+        internal static IEnumerable<SetContextCommand> CreateSetContextCommands()
         {
             var setContextArgs = new SetContextArgs[]
             {
@@ -85,7 +85,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
                 new SetContextArgs("commonGuidPii", Guid.Parse("a96106d9-ed92-42e3-87bc-8d3a1d10e120"), TelemetryPropertyType.Guid, true),
                 new SetContextArgs("commonLongPii", 123L, TelemetryPropertyType.Long, true),
             };
-            return setContextArgs.Select((args) => new OutOfProcessSetContextCommand(args));
+            return setContextArgs.Select((args) => new SetContextCommand(args));
         }
     }
 }

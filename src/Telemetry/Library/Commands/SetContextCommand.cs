@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Telemetry.OutOfProcess
+namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal class OutOfProcessSetContextCommand : OutOfProcessCommand
+    internal class SetContextCommand : CommandBase
     {
-        public OutOfProcessSetContextCommand(SetContextArgs? setContextArgs = null)
-            : base(OutOfProcessCommandType.SetContext, setContextArgs ?? new())
+        public SetContextCommand(SetContextArgs? setContextArgs = null)
+            : base(CommandType.SetContext, setContextArgs ?? new())
         {
         }
 
@@ -16,13 +16,13 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         }
 
         public override bool Equals(object? obj) =>
-            (obj is OutOfProcessSetContextCommand setContextCommand)
+            (obj is SetContextCommand setContextCommand)
             && object.Equals(this.Args, setContextCommand.Args);
 
         public override int GetHashCode() =>
             this.CommandType.GetHashCode() ^ this.Args.GetHashCode();
 
-        public override void Process(IOutOfProcessServer server) =>
+        public override void Process(ICommandProcessor server) =>
             server.ProcessCommand(this);
     }
 

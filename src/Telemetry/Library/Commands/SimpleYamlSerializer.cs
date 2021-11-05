@@ -3,14 +3,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Applications.Events;
 
-namespace Microsoft.Quantum.Telemetry.OutOfProcess
+namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal class SimpleYamlSerializer : IOutOfProcessSerializer
+    internal class SimpleYamlSerializer : ICommandSerializer
     {
         private static readonly string LineBreak = @"__\r\n__";
         private static readonly string EventNamePropertyName = "__name__";
@@ -51,18 +50,18 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                 value: property.Value,
                 isPii: isPii);
 
-        public IEnumerable<string> Write(IEnumerable<OutOfProcessCommand> commands) =>
+        public IEnumerable<string> Write(IEnumerable<CommandBase> commands) =>
             commands.SelectMany((command) => this.Write(command));
 
-        public IEnumerable<string> Write(OutOfProcessCommand command)
+        public IEnumerable<string> Write(CommandBase command)
         {
             yield return $"- command: !{command.CommandType}";
 
-            if (command is OutOfProcessSetContextCommand setContextCommand)
+            if (command is SetContextCommand setContextCommand)
             {
                 yield return SetContextArgsToYamlString(setContextCommand.Args);
             }
-            else if (command is OutOfProcessLogEventCommand logEventCommand)
+            else if (command is LogEventCommand logEventCommand)
             {
                 var eventProperties = logEventCommand.Args;
                 yield return PropertyToYamlString(
@@ -80,10 +79,10 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             yield return "";
         }
 
-        public async IAsyncEnumerable<OutOfProcessCommand> Read(IAsyncEnumerable<string> messages)
+        public async IAsyncEnumerable<CommandBase> Read(IAsyncEnumerable<string> messages)
         {
             var enumerator = messages.GetAsyncEnumerator();
-            OutOfProcessCommand? command = null;
+            CommandBase? command = null;
 
             while (await enumerator.MoveNextAsync())
             {
@@ -113,14 +112,14 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                         var commandType = match.Groups["commandType"].Value;
                         switch (commandType)
                         {
-                            case nameof(OutOfProcessCommandType.LogEvent):
-                                command = new OutOfProcessLogEventCommand();
+                            case nameof(CommandType.LogEvent):
+                                command = new LogEventCommand();
                                 break;
-                            case nameof(OutOfProcessCommandType.Quit):
-                                yield return new OutOfProcessQuitCommand();
+                            case nameof(CommandType.Quit):
+                                yield return new QuitCommand();
                                 break;
-                            case nameof(OutOfProcessCommandType.SetContext):
-                                command = new OutOfProcessSetContextCommand();
+                            case nameof(CommandType.SetContext):
+                                command = new SetContextCommand();
                                 break;
                             default:
                                 #if DEBUG
@@ -142,11 +141,11 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                             type = nameof(TelemetryPropertyType.String);
                         }
 
-                        if (command is OutOfProcessLogEventCommand logEventCommand)
+                        if (command is LogEventCommand logEventCommand)
                         {
                             SetLogEventProperty(logEventCommand, key, type, value, piiKind);
                         }
-                        else if (command is OutOfProcessSetContextCommand setContextCommand)
+                        else if (command is SetContextCommand setContextCommand)
                         {
                             var propertyType = Enum.Parse<TelemetryPropertyType>(type);
                             setContextCommand.Args.Name = key;
@@ -191,7 +190,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             }
         }
 
-        private static void SetLogEventProperty(OutOfProcessLogEventCommand logEventCommand, string key, string type, string value, PiiKind piiKind)
+        private static void SetLogEventProperty(LogEventCommand logEventCommand, string key, string type, string value, PiiKind piiKind)
         {
             switch (type)
             {

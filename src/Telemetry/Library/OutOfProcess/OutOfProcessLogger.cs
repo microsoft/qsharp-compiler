@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using Microsoft.Applications.Events;
+using Microsoft.Quantum.Telemetry.Commands;
 
 namespace Microsoft.Quantum.Telemetry.OutOfProcess
 {
@@ -74,7 +75,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
     internal class OutOfProcessLogger : ILogger
     {
         private IExternalProcessConnector externalProcess;
-        private IOutOfProcessSerializer serializer;
+        private ICommandSerializer serializer;
         private TelemetryManagerConfig configuration;
         private object instanceLock = new();
         #if DEBUG
@@ -84,7 +85,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         public OutOfProcessLogger(TelemetryManagerConfig configuration, IExternalProcessConnector? externalProcessConnector = null)
         {
             this.configuration = configuration;
-            this.serializer = (IOutOfProcessSerializer)Activator.CreateInstance(configuration.OutOfProcessSerializerType)!;
+            this.serializer = (ICommandSerializer)Activator.CreateInstance(configuration.OutOfProcessSerializerType)!;
             this.externalProcess = externalProcessConnector ?? new DefaultExternalProcessConnector();
         }
 
@@ -118,10 +119,10 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             #endif
         }
 
-        private EVTStatus SendCommand(OutOfProcessCommand command)
+        private EVTStatus SendCommand(CommandBase command)
         {
             // let's not start a new process just to ask it to quit
-            if (!(command is OutOfProcessQuitCommand))
+            if (!(command is QuitCommand))
             {
                 this.CreateExternalProcessIfNeeded();
 
@@ -147,13 +148,13 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         }
 
         public void Quit() =>
-            this.SendCommand(new OutOfProcessQuitCommand());
+            this.SendCommand(new QuitCommand());
 
         public EVTStatus LogEvent(EventProperties eventProperties) =>
-            this.SendCommand(new OutOfProcessLogEventCommand(eventProperties));
+            this.SendCommand(new LogEventCommand(eventProperties));
 
         public EVTStatus SetContext(string name, object value, TelemetryPropertyType type, PiiKind piiKind = PiiKind.None) =>
-            this.SendCommand(new OutOfProcessSetContextCommand(new SetContextArgs(name, value, type, piiKind != PiiKind.None)));
+            this.SendCommand(new SetContextCommand(new SetContextArgs(name, value, type, piiKind != PiiKind.None)));
 
         public EVTStatus SetContext(string name, string value, PiiKind piiKind = PiiKind.None) =>
             this.SetContext(name, value, TelemetryPropertyType.String, piiKind);

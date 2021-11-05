@@ -5,13 +5,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Quantum.Telemetry.Commands;
 using Microsoft.Quantum.Telemetry.OutOfProcess;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
 {
     [TestClass]
-    public class SimpleYamlSerializerTests : OutOfProcessCommandsTestCommon
+    public class SimpleYamlSerializerTests : CommandsTestCommon
     {
         private static async IAsyncEnumerable<T> EnumerableToAsyncEnumerable<T>(IEnumerable<T> items, int delayInMilliseconds = 1)
         {
@@ -41,7 +42,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
         {
             var yamlSerializer = new SimpleYamlSerializer();
 
-            var command = CreateOutOfProcessLogEventCommand(seed: 0);
+            var command = CreateLogEventCommand(seed: 0);
 
             var serializedResults = yamlSerializer.Write(command).ToList();
             var serializedText = string.Join(System.Environment.NewLine, serializedResults);
@@ -104,7 +105,7 @@ another line to ignore
 ";
             deserializedResults = yamlSerializer.Read(EnumerableToAsyncEnumerable(unexpectedLines));
             var logEventCommandResults = (await AsyncEnumerableToEnumerable(deserializedResults))
-                .OfType<OutOfProcessLogEventCommand>().ToList();
+                .OfType<LogEventCommand>().ToList();
             Assert.AreEqual(2, logEventCommandResults.Count);
             Assert.AreEqual("eventName0", logEventCommandResults[0].Args.Name);
             Assert.AreEqual("stringPropValue0", logEventCommandResults[0].Args.Properties["stringProp"]);
@@ -117,10 +118,10 @@ another line to ignore
         {
             var yamlSerializer = new SimpleYamlSerializer();
 
-            List<OutOfProcessCommand> commands = new();
-            commands.AddRange(CreateOutOfProcessSetContextCommands());
-            commands.AddRange(CreateOutOfProcessLogEventCommands());
-            commands.Add(new OutOfProcessQuitCommand());
+            List<CommandBase> commands = new();
+            commands.AddRange(CreateSetContextCommands());
+            commands.AddRange(CreateLogEventCommands());
+            commands.Add(new QuitCommand());
 
             var serializedResults = yamlSerializer.Write(commands).ToList();
             var deserializedResults = yamlSerializer.Read(EnumerableToAsyncEnumerable(serializedResults));

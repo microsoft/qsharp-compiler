@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Telemetry.OutOfProcess
+namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal enum OutOfProcessCommandType
+    internal enum CommandType
     {
         SetContext,
         LogEvent,

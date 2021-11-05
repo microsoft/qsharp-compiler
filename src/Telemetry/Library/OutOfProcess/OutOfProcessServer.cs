@@ -5,24 +5,26 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.Quantum.Telemetry.Commands;
 
 namespace Microsoft.Quantum.Telemetry.OutOfProcess
 {
-    internal class OutOfProcessServer : IOutOfProcessServer
+    internal class OutOfProcessServer : ICommandProcessor
     {
         #if DEBUG
         private DateTime startTime;
         #endif
         private Stopwatch idleStopwatch = new();
         private TelemetryManagerConfig configuration;
-        private IOutOfProcessSerializer serializer;
+        private ICommandSerializer serializer;
         private TextReader inputTextReader;
         private bool mustQuit = false;
 
         public OutOfProcessServer(TelemetryManagerConfig configuration, TextReader inputTextReader)
         {
-            this.serializer = (IOutOfProcessSerializer)Activator.CreateInstance(configuration.OutOfProcessSerializerType)!;
+            this.serializer = (ICommandSerializer)Activator.CreateInstance(configuration.OutOfProcessSerializerType)!;
             this.configuration = configuration;
             this.inputTextReader = inputTextReader;
         }
@@ -43,7 +45,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             }
         }
 
-        private IAsyncEnumerable<OutOfProcessCommand> ReceiveCommandsAsync() =>
+        private IAsyncEnumerable<CommandBase> ReceiveCommandsAsync() =>
             this.serializer.Read(this.ReadInputLineAsync());
 
         private async Task ReceiveAndProcessCommandsAsync()
@@ -94,7 +96,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         public void RunAndExit() =>
             this.RunAndExitAsync().Wait();
 
-        private void ProcessCommand(OutOfProcessCommand command)
+        private void ProcessCommand(CommandBase command)
         {
             try
             {
@@ -131,20 +133,21 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                 this.mustQuit = true;
 
                 // We don't want to exit from the process that is running the unit tests
-                if (!TelemetryManager.TestMode)
+                var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
+                if (!string.Equals("testhost", entryAssemblyName, StringComparison.InvariantCultureIgnoreCase))
                 {
                     Environment.Exit(0);
                 }
             }
         }
 
-        public void ProcessCommand(OutOfProcessQuitCommand command) =>
+        public void ProcessCommand(QuitCommand command) =>
             this.Quit();
 
-        public void ProcessCommand(OutOfProcessLogEventCommand command) =>
+        public void ProcessCommand(LogEventCommand command) =>
             TelemetryManager.LogEvent(command.Args);
 
-        public void ProcessCommand(OutOfProcessSetContextCommand command) =>
+        public void ProcessCommand(SetContextCommand command) =>
             TelemetryManager.SetContext(
                 command.Args.Name!,
                 command.Args.Value!,

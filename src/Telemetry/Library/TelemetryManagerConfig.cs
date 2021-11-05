@@ -3,6 +3,7 @@
 
 using System;
 using System.Text.RegularExpressions;
+using Microsoft.Quantum.Telemetry.Commands;
 using Microsoft.Quantum.Telemetry.OutOfProcess;
 
 namespace Microsoft.Quantum.Telemetry
@@ -113,6 +114,13 @@ namespace Microsoft.Quantum.Telemetry
         public bool SendTelemetryInitializedEvent { get; set; } = true;
 
         public bool SendTelemetryTearDownEvent { get; set; } = true;
+
+        /// <summary>
+        /// The name of the environment variable to control whether the telemetry library is in Test mode.
+        /// The value of this env var will be used if the TestMode option is false.
+        /// If the value is "1" the Test mode will be enabled.
+        /// </summary>
+        public string EnableTelemetryTestVariableName { get; set; } = "ENABLE_QDK_TELEMETRY_TEST";
 
         public bool TestMode { get; set; }
 

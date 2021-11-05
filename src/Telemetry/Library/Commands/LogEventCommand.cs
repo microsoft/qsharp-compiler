@@ -3,12 +3,12 @@
 
 using Microsoft.Applications.Events;
 
-namespace Microsoft.Quantum.Telemetry.OutOfProcess
+namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal class OutOfProcessLogEventCommand : OutOfProcessCommand
+    internal class LogEventCommand : CommandBase
     {
-        public OutOfProcessLogEventCommand(EventProperties? eventProperties = null)
-            : base(OutOfProcessCommandType.LogEvent, eventProperties ?? new())
+        public LogEventCommand(EventProperties? eventProperties = null)
+            : base(CommandType.LogEvent, eventProperties ?? new())
         {
         }
 
@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
 
         public override bool Equals(object? obj)
         {
-            if (obj is OutOfProcessLogEventCommand logEventCommand)
+            if (obj is LogEventCommand logEventCommand)
             {
                 if ((logEventCommand.Args.Name != this.Args.Name)
                     || (logEventCommand.Args.PiiProperties.Count != this.Args.PiiProperties.Count)
@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         public override int GetHashCode() =>
             this.CommandType.GetHashCode() ^ this.Args.Name.GetHashCode();
 
-        public override void Process(IOutOfProcessServer server) =>
+        public override void Process(ICommandProcessor server) =>
             server.ProcessCommand(this);
     }
 }
