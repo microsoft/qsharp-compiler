@@ -36,6 +36,8 @@ steps:
 # Restore Microsoft.Applications.Events.Client used by the Telemetry Library such
 # that the private package gets correctly downloaded.
 ##
+- task: NuGetAuthenticate@0
+
 - task: NuGetCommand@2
   displayName: 'Restore Telemetry Dependency'
   inputs:
