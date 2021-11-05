@@ -64,23 +64,22 @@ Updating rules currently in use:
 
 ## Update vs. Format
 
-Currently the formatter only supports rules that update deprecated syntax
+Currently the formatter primarily supports rules that update deprecated syntax
 through the use of the `update` command. A `format` command is being worked on
-but is not yet ready for release. This command, when ready, will format Q#
-code by running such rules like:
+but while it can be invoked, the formatting support is still very limited and the command is currently hidden, meaning it is not suggested in the command line help.
+The implemented rules for formatting Q# code may still have gaps and are limited to:
  - Collapsed Spaces - removes duplicate spaces so that there is only a single space where spaces are used
  - Operator Spacing - ensure that operators have the appropriate spaces in them
  - New Lines - removes excessive new lines
  - Indentation - ensures that there are appropriate indentation for the text
 
+Formatting, to the extend that it is implemented, is supported in the Q# extensions for Visual Studio and VS Code starting with extensions newer than 0.20.2110171573. That support relies on QsFmt, and any contributions/improvements to the QsFmt will automatically be available in the extensions as well.  
+
 ## Limitations
 
-- Currently the formatter only supports rules that update deprecated syntax through
-  the use of the `update` command. The `format` command is not yet ready for release.
-- Many types of syntax are not yet supported and will remain unchanged by the formatter.
-- There are several bugs related to other types of syntax, especially callable declaration syntax like
-  attributes, type parameters, and specializations. These may be swallowed by the formatter,
-  resulting in incorrect output.
+- Currently the formatter primarily supports rules that update deprecated syntax through
+  the use of the `update` command. The `format` command provides limited support for code formatting, and we welcome contributions.
+- Some syntax patterns are not yet supported and will remain unchanged by the formatter. Please file issues for code that should be updated but remains unchanged.
 
 ## Design
 

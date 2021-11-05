@@ -6,6 +6,7 @@
     <AssemblyName>Tests.Microsoft.Quantum.QsLanguageServer</AssemblyName>
     <OutputType>Library</OutputType>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
+    <EnlistmentRoot>$([MSBuild]::NormalizeDirectory($(MSBuildThisFileDirectory)..\..\..\))</EnlistmentRoot>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -13,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Client" Version="16.9.1180" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.0.0" />
     <PackageReference Include="MSTest.TestFramework" Version="2.0.0" />
@@ -36,5 +37,19 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <Target Name="PublishQsFmt" BeforeTargets="BeforeCompile">
+    <Message Importance="high" Text="Publishing QsFmt"/>
+    <Exec Command="dotnet publish $(EnlistmentRoot)src\QsFmt\App\App.fsproj" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
+      <Output TaskParameter="ExitCode" PropertyName="QsFmtPublishExitCode"/>
+    </Exec>
+    <ItemGroup>
+      <QsFmtFiles Include="$(EnlistmentRoot)src\QsFmt\App\bin\**\publish\**\*" />
+    </ItemGroup>
+    <Error Condition ="'$(QsFmtPublishExitCode)' != '0'" Text="Publishing QsFmt failed." />
+    <Error Condition ="'@(QsFmtFiles->Count())' == '0'" Text="Missing QsFmtFiles." />
+    <MakeDir Directories="$(OutputPath)\qsfmt" />    
+    <Copy SourceFiles="@(QsFmtFiles)" DestinationFolder="$(OutputPath)\qsfmt" ContinueOnError="false" />
+  </Target>
 
 </Project>

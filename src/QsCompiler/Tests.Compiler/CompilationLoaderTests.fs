@@ -36,7 +36,7 @@ type CompilationLoaderTests(output: ITestOutputHelper) =
     /// Compiles a snippet of Q# source code.
     /// </summary>
     let compileQSharp source =
-        use compilationManager = new CompilationUnitManager()
+        use compilationManager = new CompilationUnitManager(ProjectProperties.Empty)
 
         let fileManager uri content =
             CompilationUnitManager.InitializeFileManager(uri, content)

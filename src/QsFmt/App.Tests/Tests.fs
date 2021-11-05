@@ -6,6 +6,7 @@ module Microsoft.Quantum.QsFmt.App.Tests
 
 open System
 open System.IO
+open Microsoft.Quantum.QsFmt.App.Arguments
 open Microsoft.Quantum.QsFmt.App.Program
 open Xunit
 
@@ -28,6 +29,7 @@ type private TestFile =
         Original: string
         Formatted: string
         Updated: string
+        UpdatedAndFormatted: String
     }
 
 /// <summary>
@@ -66,6 +68,17 @@ let private makeTestFile (path: string) =
                 "namespace %s { function Bar() : Int { for i in 0..1 {} return 0; } }
 "
             |> standardizeNewLines
+        UpdatedAndFormatted =
+            name
+            |> sprintf
+                "namespace %s {
+    function Bar() : Int {
+        for i in 0..1 {}
+        return 0;
+    }
+}
+"
+            |> standardizeNewLines
     }
 
 let private Example1 = makeTestFile "Examples\\Example1.qs"
@@ -93,6 +106,15 @@ let private StandardInputTest =
             |> standardizeNewLines
         Updated =
             "namespace StandardIn { function Bar() : Int { for i in 0..1 {} return 0; } }
+"
+            |> standardizeNewLines
+        UpdatedAndFormatted =
+            "namespace StandardIn {
+    function Bar() : Int {
+        for i in 0..1 {}
+        return 0;
+    }
+}
 "
             |> standardizeNewLines
     }
@@ -125,21 +147,35 @@ let private run args input =
         Console.SetOut previousOutput
         Console.SetError previousError
 
-let private runWithFiles isUpdate files standardInput expectedOutput args =
+let private runWithFiles (commandKind: CommandKind) files standardInput expectedOutput args =
     try
         Assert.Equal(expectedOutput, run args standardInput)
 
         for file in files do
             let after = File.ReadAllText file.Path |> standardizeNewLines
-            let expected = (if isUpdate then file.Updated else file.Formatted)
+
+            let expected =
+                match commandKind with
+                | Format -> file.Formatted
+                | Update -> file.Updated
+                | UpdateAndFormat -> file.UpdatedAndFormatted
+
             Assert.Equal(expected, after)
     finally
         for file in files do
             File.WriteAllText(file.Path, file.Original)
 
 [<Fact>]
-let ``Updates file`` () =
-    runWithFiles true [ Example1 ] "" CleanResult [| "update"; "-i"; Example1.Path |]
+let ``Format file`` () =
+    runWithFiles Format [ Example1 ] "" CleanResult [| "format"; "-i"; Example1.Path |]
+
+[<Fact>]
+let ``Update file`` () =
+    runWithFiles Update [ Example1 ] "" CleanResult [| "update"; "-i"; Example1.Path |]
+
+[<Fact>]
+let ``Update and format file`` () =
+    runWithFiles UpdateAndFormat [ Example1 ] "" CleanResult [| "update-and-format"; "-i"; Example1.Path |]
 
 [<Fact(Skip = "Standard Input is not currently supported.")>]
 let ``Updates standard input`` () =
@@ -177,19 +213,42 @@ let ``Shows file not found error`` () =
 let ``Input multiple files`` () =
     let files = [ Example1; Example2 ]
 
-    runWithFiles true files "" CleanResult [| "update"; "-i"; Example1.Path; Example2.Path |]
+    runWithFiles Format files "" CleanResult [| "format"; "-i"; Example1.Path; Example2.Path |]
+    runWithFiles Update files "" CleanResult [| "update"; "-i"; Example1.Path; Example2.Path |]
+    runWithFiles UpdateAndFormat files "" CleanResult [| "update-and-format"; "-i"; Example1.Path; Example2.Path |]
 
 [<Fact>]
 let ``Input directories`` () =
     let files = [ SubExample1; SubExample2; SubExample3 ]
 
-    runWithFiles true files "" CleanResult [| "update"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
+    runWithFiles Format files "" CleanResult [| "format"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
+    runWithFiles Update files "" CleanResult [| "update"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
+
+    runWithFiles
+        UpdateAndFormat
+        files
+        ""
+        CleanResult
+        [|
+            "update-and-format"
+            "-i"
+            "Examples\\SubExamples1"
+            "Examples\\SubExamples2"
+        |]
 
 [<Fact>]
 let ``Input directories with files`` () =
     let files = [ Example1; SubExample1; SubExample2 ]
 
-    runWithFiles true files "" CleanResult [| "update"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
+    runWithFiles Format files "" CleanResult [| "format"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
+    runWithFiles Update files "" CleanResult [| "update"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
+
+    runWithFiles
+        UpdateAndFormat
+        files
+        ""
+        CleanResult
+        [| "update-and-format"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
 
 [<Fact>]
 let ``Input directories with recursive flag`` () =
@@ -203,9 +262,9 @@ let ``Input directories with recursive flag`` () =
             NestedExample2
         ]
 
-    let args =
+    let args verb =
         [|
-            "update"
+            verb
             "-r"
             "-i"
             Example1.Path
@@ -213,7 +272,9 @@ let ``Input directories with recursive flag`` () =
             "Examples\\SubExamples2"
         |]
 
-    runWithFiles true files "" CleanResult args
+    args "format" |> runWithFiles Format files "" CleanResult
+    args "update" |> runWithFiles Update files "" CleanResult
+    args "update-and-format" |> runWithFiles UpdateAndFormat files "" CleanResult
 
 [<Fact>]
 let ``Process correct files while erroring on incorrect`` () =
@@ -268,15 +329,19 @@ This input has already been processed: Examples\Example1.qs
                 |> standardizeNewLines
         }
 
-    [|
-        "update"
-        "-i"
-        Example1.Path
-        "Examples\\SubExamples1"
-        SubExample1.Path
-        Example1.Path
-    |]
-    |> runWithFiles true files "" outputResult
+    let args verb =
+        [|
+            verb
+            "-i"
+            Example1.Path
+            "Examples\\SubExamples1"
+            SubExample1.Path
+            Example1.Path
+        |]
+
+    args "format" |> runWithFiles Format files "" outputResult
+    args "update" |> runWithFiles Update files "" outputResult
+    args "update-and-format" |> runWithFiles UpdateAndFormat files "" outputResult
 
 [<Fact>]
 let ``Project file as input`` () =
@@ -302,6 +367,18 @@ let ``Project file as input`` () =
                     "namespace TestTarget { function Bar%i() : Int { for i in 0..1 {} return 0; } }
 "
                 |> standardizeNewLines
+            UpdatedAndFormatted =
+                index
+                |> sprintf
+                    "namespace TestTarget {
+    function Bar%i() : Int {
+        for i in 0..1 {}
+        return 0;
+    }
+}
+"
+                |> standardizeNewLines
+
         }
 
     let TestTargetProgram =
@@ -323,6 +400,15 @@ let ``Project file as input`` () =
                 "namespace TestTarget { @EntryPoint() operation Bar() : Unit { for i in 0..1 {} } }
 "
                 |> standardizeNewLines
+            UpdatedAndFormatted =
+                "namespace TestTarget {
+    @EntryPoint()
+    operation Bar() : Unit {
+        for i in 0..1 {}
+    }
+}
+"
+                |> standardizeNewLines
         }
 
     let TestTargetIncluded = makeTestFile "Examples\\TestTarget\\Included.qs" 1
@@ -332,14 +418,25 @@ let ``Project file as input`` () =
 
     let files = [ TestTargetProgram; TestTargetIncluded ]
 
-    [| "update"; "-p"; "Examples\\TestTarget\\TestTarget.csproj" |]
-    |> runWithFiles true files "" CleanResult
+    let testCommand commandKind =
+        let verb =
+            match commandKind with
+            | Format -> "format"
+            | Update -> "update"
+            | UpdateAndFormat -> "update-and-format"
 
-    let excluded1 = File.ReadAllText TestTargetExcluded1.Path
-    Assert.Equal(excluded1, TestTargetExcluded1.Original)
+        [| verb; "-p"; "Examples\\TestTarget\\TestTarget.csproj" |]
+        |> runWithFiles commandKind files "" CleanResult
 
-    let excluded2 = File.ReadAllText TestTargetExcluded2.Path
-    Assert.Equal(excluded2, TestTargetExcluded2.Original)
+        let excluded1 = File.ReadAllText TestTargetExcluded1.Path
+        Assert.Equal(excluded1, TestTargetExcluded1.Original)
+
+        let excluded2 = File.ReadAllText TestTargetExcluded2.Path
+        Assert.Equal(excluded2, TestTargetExcluded2.Original)
+
+    testCommand Format
+    testCommand Update
+    testCommand UpdateAndFormat
 
 [<Fact>]
 let ``Outdated version project file as input`` () =
