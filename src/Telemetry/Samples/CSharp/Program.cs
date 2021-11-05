@@ -27,11 +27,14 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                 },
                 SendTelemetryInitializedEvent = true,
                 SendTelemetryTearDownEvent = true,
+
+                // When TestMode is true, the events won't be sent to Microsoft servers
+                // but will only be printed to the Debug Console
+                TestMode = true,
             };
 
             // REQUIRED: Initialize
             // Initialize the TelemetryManager right at the beginning of your program
-
             // The Initialize method returns an IDisposable handle, which when disposed
             // will call the TelemetryManager.TearDown() method for you.
             //

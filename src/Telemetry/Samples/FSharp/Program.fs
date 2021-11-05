@@ -46,6 +46,8 @@ let createExceptionWithStackTrace throw : Exception =
 [<EntryPoint>]
 let main args =
     // Initialize the TelemetryManager
+    // When TestMode is true, the events won't be sent to Microsoft servers
+    // but will only be printed to the Debug Console
     let telemetryConfig =
         TelemetryManagerConfig(
             AppId = "SampleFSharpApp",
@@ -56,7 +58,8 @@ let main args =
             ExceptionLoggingOptions =
                 ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
             SendTelemetryInitializedEvent = true,
-            SendTelemetryTearDownEvent = true
+            SendTelemetryTearDownEvent = true,
+            TestMode = true
         )
 
     // REQUIRED: Initialize
