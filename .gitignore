@@ -342,7 +342,6 @@ ASALocalRun/
 src/ProjectTemplates/Quantum.App1/Quantum.App1.csproj
 src/ProjectTemplates/Quantum.Library1/Quantum.Library1.csproj
 src/ProjectTemplates/Quantum.Test1/Quantum.Test1.csproj
-src/QsCompiler/LanguageServer/TemporaryProject.cs
 src/QuantumSdk/DefaultItems/DefaultItems.props
 src/ProjectTemplates/Quantum.App1/.template.config/template.json
 src/ProjectTemplates/Quantum.Library1/.template.config/template.json
@@ -366,3 +365,6 @@ src/ProjectTemplates/Quantum.Test1/.template.config/template.json
 src/QsCompiler/QirGeneration/QirGeneration.nuspec
 /examples/QIR/Development/qir/*
 /examples/QIR/Development/build
+
+# MSBuild logs
+MSBuild_Logs/

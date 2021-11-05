@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsLanguageServer
@@ -28,7 +30,6 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private readonly Action<PublishDiagnosticParams> publish;
         private readonly Action<string, Dictionary<string, string?>, Dictionary<string, int>> sendTelemetry;
-        private readonly Action<Uri>? onTemporaryProjectLoaded;
 
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
@@ -60,8 +61,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             Action<PublishDiagnosticParams>? publishDiagnostics,
             Action<string, Dictionary<string, string?>, Dictionary<string, int>>? sendTelemetry,
             Action<string, MessageType>? log,
-            Action<Exception>? onException,
-            Action<Uri>? onTemporaryProjectLoaded)
+            Action<Exception>? onException)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
             this.sendTelemetry = sendTelemetry ?? ((eventName, properties, measurements) => { });
@@ -86,7 +86,6 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish);
-            this.onTemporaryProjectLoaded = onTemporaryProjectLoaded;
         }
 
         /// <summary>
@@ -120,64 +119,41 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return false;
             }
 
-            var outputDir = projectInstance.GetPropertyValue("OutputPath");
-            var targetFile = projectInstance.GetPropertyValue("TargetFileName");
-            var outputPath = Path.Combine(projectInstance.Directory, outputDir, targetFile);
-
-            var processorArchitecture = projectInstance.GetPropertyValue("ResolvedProcessorArchitecture");
-            var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
-            var runtimeCapability = RuntimeCapability.TryParse(resRuntimeCapability).ValueOr(RuntimeCapability.FullComputation);
-
+            // project item groups
             var sourceFiles = GetItemsByType(projectInstance, "QSharpCompile");
-            var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
             var references = GetItemsByType(projectInstance, "Reference");
 
-            var version = projectInstance.GetPropertyValue("QSharpLangVersion");
-            var isExecutable = "QSharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQSharpOutputType"), StringComparison.OrdinalIgnoreCase);
-            var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.OrdinalIgnoreCase);
+            // telemetry data
             var defaultSimulator = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();
-
+            var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
             var telemetryMeas = new Dictionary<string, int>();
             telemetryMeas["sources"] = sourceFiles.Count();
             telemetryMeas["csharpfiles"] = csharpFiles.Count();
             telemetryProps["defaultSimulator"] = defaultSimulator;
             this.sendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
+
+            // project properties
+            void AddProperty(IDictionary<string, string?> props, string property) =>
+                props.Add(property, projectInstance.GetPropertyValue(property));
+
+            var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
+            AddProperty(buildProperties, MSBuildProperties.TargetPath);
+            AddProperty(buildProperties, MSBuildProperties.ResolvedProcessorArchitecture);
+            AddProperty(buildProperties, MSBuildProperties.QuantumSdkPath);
+            AddProperty(buildProperties, MSBuildProperties.QuantumSdkVersion);
+            AddProperty(buildProperties, MSBuildProperties.QsharpLangVersion);
+            AddProperty(buildProperties, MSBuildProperties.ResolvedRuntimeCapabilities);
+            AddProperty(buildProperties, MSBuildProperties.ResolvedQsharpOutputType);
+            AddProperty(buildProperties, MSBuildProperties.ExposeReferencesViaTestNames);
+            AddProperty(buildProperties, MSBuildProperties.QsFmtExe);
+
             info = new ProjectInformation(
-                version,
-                outputPath,
-                runtimeCapability,
-                isExecutable,
-                string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture,
-                loadTestNames,
-                sourceFiles,
-                projectReferences,
-                references);
+                sourceFiles: sourceFiles,
+                projectReferences: projectReferences,
+                references: references,
+                buildProperties);
             return true;
-        }
-
-        internal Uri QsTemporaryProjectLoader(Uri sourceFileUri, string? sdkVersion)
-        {
-            var sourceFolderPath = Path.GetDirectoryName(sourceFileUri.LocalPath) ?? "";
-            var projectFileName = string.Join(
-                "_x2f_", // arbitrary string to help avoid collisions
-                sourceFolderPath
-                    .Replace("_", "_x5f_") // arbitrary string to help avoid collisions
-                    .Split(Path.GetInvalidFileNameChars()));
-            var projectFolderPath = Directory.CreateDirectory(Path.Combine(
-                Path.GetTempPath(),
-                "qsharp",
-                projectFileName)).FullName;
-            var projectFilePath = Path.Combine(projectFolderPath, $"generated.csproj");
-            using (var outputFile = new StreamWriter(projectFilePath))
-            {
-                outputFile.WriteLine(
-                    TemporaryProject.GetFileContents(
-                        compilationScope: Path.Combine(sourceFolderPath, "*.qs"),
-                        sdkVersion: sdkVersion));
-            }
-
-            return new Uri(projectFilePath);
         }
 
         /// <summary>
@@ -412,6 +388,15 @@ namespace Microsoft.Quantum.QsLanguageServer
             ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.Rename(param, versionedChanges) : null;
 
         /// <summary>
+        /// Returns the edits to format the file according to the specified settings.
+        /// Returns null if the specified uri is not a valid file uri,
+        /// or the given file is listed as to be ignored,
+        /// or if some parameters are unspecified (null).
+        /// </summary>
+        public TextEdit[]? Formatting(DocumentFormattingParams param) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.Formatting(param) : null;
+
+        /// <summary>
         /// Returns the source file and position where the item at the given position is declared at,
         /// if such a declaration exists, and returns the given position and file otherwise.
         /// Returns null if the given file is listed as to be ignored or if the information cannot be determined at this point.
@@ -472,7 +457,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
         /// Returns null if the given file is listed as to be ignored, or if the given parameter or its uri is null.
         /// </summary>
-        public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams param) =>
+        public IEnumerable<CodeAction>? CodeActions(CodeActionParams param) =>
             ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.CodeActions(param) : null;
 
         /// <summary>

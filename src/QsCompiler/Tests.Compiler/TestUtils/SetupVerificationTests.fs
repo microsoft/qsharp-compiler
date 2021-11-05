@@ -15,6 +15,7 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 
 
 type CompilerTests(compilation: CompilationUnitManager.Compilation) =
@@ -149,8 +150,10 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         let references = defaultArg references []
         let capability = defaultArg capability FullComputation
         let paths = fileNames |> Seq.map (fun file -> Path.Combine(srcFolder, file) |> Path.GetFullPath)
+        let props = ImmutableDictionary.CreateBuilder()
+        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, capability.Name)
         let mutable exceptions = []
-        use manager = new CompilationUnitManager((fun e -> exceptions <- e :: exceptions), capability = capability)
+        use manager = new CompilationUnitManager(new ProjectProperties(props), (fun e -> exceptions <- e :: exceptions))
 
         paths.ToImmutableDictionary(Uri, File.ReadAllText)
         |> CompilationUnitManager.InitializeFileManagers
