@@ -297,7 +297,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 TelemetryManager.LogObject(this.CreateTestEventObject());
                 Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
 
-                TelemetryManager.LogObject(this.CreateTestEventObject(), "MyCustomEventName");
+                TelemetryManager.LogObject("MyCustomEventName", this.CreateTestEventObject());
                 Assert.AreEqual(2, TelemetryManager.TotalEventsCount);
             }
         }

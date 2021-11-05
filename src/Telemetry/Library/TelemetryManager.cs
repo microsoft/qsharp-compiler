@@ -252,7 +252,33 @@ namespace Microsoft.Quantum.Telemetry
         ///   - Properties with [SerializeJson] attribute will be serialized as Json.
         ///   - All other property types won't be logged.
         /// </summary>
-        public static void LogObject(object obj, string? eventName = null) =>
+        public static void LogObject(string eventName, object obj) =>
+            InternalLogObject(eventName, obj);
+
+        /// <summary>
+        /// Logs all public properties of the object into an event, respecting the following rules:
+        /// - Exception objects will be partially serialized to Json respecting the Configuration.ExceptionLoggingOptions.
+        ///   - The name of the event will be "Quantum_{AppId}_.Exception"
+        ///   - We only serialize the exception full type name, and based on the ExceptionLoggingOptions we can serialize:
+        ///     - TargetSite (the signature of the method that raised the exception)
+        ///     - SanitizedStackTrace (the stack trace without the file paths)
+        ///   - Other properties are not captured as they could contain customer data or PII.
+        /// - Null objects won't be logged.
+        /// - Value types will not get logged.
+        /// - Other object types will be logged in an event named $"Quantum_{AppId}_{object type name}".
+        ///   - Properties with null values will not be logged.
+        ///   - Properties of Value types will be converted to values accepted by Aria.
+        ///   - Properties with Nullable types will be converted their corresponding non-nullable types accepted by Aria.
+        ///   - Properties of Exception types will be partially serialized to Json respecting the Configuration.ExceptionLoggingOptions.
+        ///   - Properties of Enum types will be converted to strings.
+        ///   - Properties with [PiiData] attribute will be marked as PII and will be hashed.
+        ///   - Properties with [SerializeJson] attribute will be serialized as Json.
+        ///   - All other property types won't be logged.
+        /// </summary>
+        public static void LogObject(object obj) =>
+            InternalLogObject(null, obj);
+
+        private static void InternalLogObject(string? eventName, object obj) =>
             CheckAndRunSafe(() =>
             {
                 if (obj == null || obj is ValueType)
