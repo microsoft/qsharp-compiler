@@ -2,66 +2,64 @@
 // Licensed under the MIT License.
 
 #include "Generators/DefaultProfileGenerator.hpp"
+#include "Llvm/Llvm.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
 #include "gtest/gtest.h"
-
-#include "Llvm/Llvm.hpp"
 
 #include <functional>
 
 using namespace microsoft::quantum;
 
-namespace
-{
+namespace {
 using IrManipulationTestHelperPtr = std::shared_ptr<IrManipulationTestHelper>;
-IrManipulationTestHelperPtr newIrManip(std::string const& script)
+IrManipulationTestHelperPtr newIrManip(std::string const &script)
 {
-    IrManipulationTestHelperPtr ir_manip = std::make_shared<IrManipulationTestHelper>();
+  IrManipulationTestHelperPtr ir_manip = std::make_shared<IrManipulationTestHelper>();
 
-    ir_manip->declareOpaque("Qubit");
-    ir_manip->declareOpaque("Result");
-    ir_manip->declareOpaque("Array");
-    ir_manip->declareOpaque("Tuple");
-    ir_manip->declareOpaque("Range");
-    ir_manip->declareOpaque("Callable");
-    ir_manip->declareOpaque("String");
+  ir_manip->declareOpaque("Qubit");
+  ir_manip->declareOpaque("Result");
+  ir_manip->declareOpaque("Array");
+  ir_manip->declareOpaque("Tuple");
+  ir_manip->declareOpaque("Range");
+  ir_manip->declareOpaque("Callable");
+  ir_manip->declareOpaque("String");
 
-    ir_manip->declareFunction("%Qubit* @__quantum__rt__qubit_allocate()");
-    ir_manip->declareFunction("void @__quantum__rt__qubit_release(%Qubit*)");
-    ir_manip->declareFunction("void @__quantum__qis__h__body(%Qubit*)");
+  ir_manip->declareFunction("%Qubit* @__quantum__rt__qubit_allocate()");
+  ir_manip->declareFunction("void @__quantum__rt__qubit_release(%Qubit*)");
+  ir_manip->declareFunction("void @__quantum__qis__h__body(%Qubit*)");
 
-    ir_manip->declareFunction("%Array* @__quantum__rt__qubit_allocate_array(i64)");
-    ir_manip->declareFunction("void @__quantum__rt__array_update_alias_count(%Array*, i32)");
-    ir_manip->declareFunction("void @__quantum__qis__cnot__body(%Qubit*, %Qubit*)");
-    ir_manip->declareFunction("i8* @__quantum__rt__array_get_element_ptr_1d(%Array*, i64)");
-    ir_manip->declareFunction("%Result* @__quantum__qis__m__body(%Qubit*)");
-    ir_manip->declareFunction("void @__quantum__qis__reset__body(%Qubit*)");
-    ir_manip->declareFunction("%Result* @__quantum__rt__result_get_one()");
-    ir_manip->declareFunction("i1 @__quantum__rt__result_equal(%Result*, %Result*)");
-    ir_manip->declareFunction("void @__quantum__rt__result_update_reference_count(%Result*, i32)");
-    ir_manip->declareFunction("void @__quantum__qis__z__body(%Qubit*)");
-    ir_manip->declareFunction("void @__quantum__qis__x__body(%Qubit*)");
-    ir_manip->declareFunction("void @__quantum__rt__message(%String*)");
-    ir_manip->declareFunction("void @__quantum__rt__qubit_release_array(%Array*)");
-    ir_manip->declareFunction("%String* @__quantum__rt__result_to_string(%Result*)");
-    ir_manip->declareFunction("void @__quantum__rt__string_update_reference_count(%String*, i32)");
+  ir_manip->declareFunction("%Array* @__quantum__rt__qubit_allocate_array(i64)");
+  ir_manip->declareFunction("void @__quantum__rt__array_update_alias_count(%Array*, i32)");
+  ir_manip->declareFunction("void @__quantum__qis__cnot__body(%Qubit*, %Qubit*)");
+  ir_manip->declareFunction("i8* @__quantum__rt__array_get_element_ptr_1d(%Array*, i64)");
+  ir_manip->declareFunction("%Result* @__quantum__qis__m__body(%Qubit*)");
+  ir_manip->declareFunction("void @__quantum__qis__reset__body(%Qubit*)");
+  ir_manip->declareFunction("%Result* @__quantum__rt__result_get_one()");
+  ir_manip->declareFunction("i1 @__quantum__rt__result_equal(%Result*, %Result*)");
+  ir_manip->declareFunction("void @__quantum__rt__result_update_reference_count(%Result*, i32)");
+  ir_manip->declareFunction("void @__quantum__qis__z__body(%Qubit*)");
+  ir_manip->declareFunction("void @__quantum__qis__x__body(%Qubit*)");
+  ir_manip->declareFunction("void @__quantum__rt__message(%String*)");
+  ir_manip->declareFunction("void @__quantum__rt__qubit_release_array(%Array*)");
+  ir_manip->declareFunction("%String* @__quantum__rt__result_to_string(%Result*)");
+  ir_manip->declareFunction("void @__quantum__rt__string_update_reference_count(%String*, i32)");
 
-    if (!ir_manip->fromBodyString(script))
-    {
-        llvm::outs() << ir_manip->generateScript(script) << "\n\n";
-        llvm::outs() << ir_manip->getErrorMessage() << "\n";
-        exit(-1);
-    }
-    return ir_manip;
+  if (!ir_manip->fromBodyString(script))
+  {
+    llvm::outs() << ir_manip->generateScript(script) << "\n\n";
+    llvm::outs() << ir_manip->getErrorMessage() << "\n";
+    exit(-1);
+  }
+  return ir_manip;
 }
 
-} // namespace
+}  // namespace
 
 // Single allocation with action and then release
-TEST(RuleTransformationPass, TeleportChain)
+TEST(TransformationRulesPass, TeleportChain)
 {
-    auto ir_manip = newIrManip(R"script(
+  auto ir_manip = newIrManip(R"script(
   %leftMessage.i = tail call %Qubit* @__quantum__rt__qubit_allocate()
   %rightMessage.i = tail call %Qubit* @__quantum__rt__qubit_allocate()
   %leftPreshared.i = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
@@ -173,15 +171,15 @@ TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit: 
   tail call void @__quantum__rt__string_update_reference_count(%String* %38, i32 -1)
   )script");
 
-    auto profile = std::make_shared<DefaultProfileGenerator>();
+  auto profile = std::make_shared<DefaultProfileGenerator>();
 
-    ConfigurationManager& configuration_manager = profile->configurationManager();
-    configuration_manager.addConfig<FactoryConfiguration>();
+  ConfigurationManager &configuration_manager = profile->configurationManager();
+  configuration_manager.addConfig<FactoryConfiguration>();
 
-    ir_manip->applyProfile(profile);
-    llvm::outs() << *ir_manip->module() << "\n";
-    EXPECT_TRUE(ir_manip->hasInstructionSequence({
-        // clang-format off
+  ir_manip->applyProfile(profile);
+  llvm::outs() << *ir_manip->module() << "\n";
+  EXPECT_TRUE(ir_manip->hasInstructionSequence({
+      // clang-format off
       "tail call void @__quantum__qis__h__body(%Qubit* null)",
       "tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))",
       "tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))",
@@ -194,36 +192,36 @@ TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit: 
       "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))",
       "%0 = tail call i1 @__quantum__qis__read_result__body(%Result* null)",
       "br i1 %0, label %then0__1.i.i.i, label %continue__1.i.i.i",
-        // clang-format on
-    }));
+      // clang-format on
+  }));
 
-    EXPECT_TRUE(ir_manip->hasInstructionSequence({
-        // clang-format off
+  EXPECT_TRUE(ir_manip->hasInstructionSequence({
+      // clang-format off
       "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull inttoptr (i64 1 to %Result*))",
       "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))",
       "%1 = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 1 to %Result*))",
       "br i1 %1, label %then0__2.i.i.i, label %TeleportChain__TeleportQubitUsingPresharedEntanglement__body.2.exit.i",
-        // clang-format on
+      // clang-format on
 
-    }));
+  }));
 
-    EXPECT_TRUE(ir_manip->hasInstructionSequence({
-        // clang-format off
+  EXPECT_TRUE(ir_manip->hasInstructionSequence({
+      // clang-format off
       "tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*), %Qubit* nonnull inttoptr (i64 3 to %Qubit*))",
       "tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*))",
       "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*), %Result* nonnull inttoptr (i64 2 to %Result*))",
       "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*))",
       "%2 = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 2 to %Result*))",
       "br i1 %2, label %then0__1.i.i2.i, label %continue__1.i.i4.i",
-        // clang-format on
-    }));
+      // clang-format on
+  }));
 
-    EXPECT_TRUE(ir_manip->hasInstructionSequence({
-        // clang-format off
+  EXPECT_TRUE(ir_manip->hasInstructionSequence({
+      // clang-format off
       "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*), %Result* nonnull inttoptr (i64 3 to %Result*))",
       "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*))",
       "%3 = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 3 to %Result*))",
       "br i1 %3, label %then0__2.i.i5.i, label %TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit",
-        // clang-format on
-    }));
+      // clang-format on
+  }));
 }

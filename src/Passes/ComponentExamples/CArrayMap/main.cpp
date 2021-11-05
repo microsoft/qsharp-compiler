@@ -4,9 +4,9 @@
 #include "Commandline/ConfigurationManager.hpp"
 #include "Generators/ProfileGenerator.hpp"
 #include "Llvm/Llvm.hpp"
-#include "RuleTransformationPass/RulePass.hpp"
 #include "Rules/Notation/Notation.hpp"
 #include "Rules/RuleSet.hpp"
+#include "TransformationRulesPass/TransformationRulesPass.hpp"
 
 using namespace microsoft::quantum;
 
@@ -213,24 +213,24 @@ extern "C" void loadComponent(ProfileGenerator *generator)
         {
           RuleSet rule_set;
           removeArrayCopies(rule_set);
-          auto config = RuleTransformationPassConfiguration::createDisabled();
-          ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
+          auto config = TransformationRulesPassConfiguration::createDisabled();
+          ret.addPass(TransformationRulesPass(std::move(rule_set), config, &profile));
         }
 
         if (cfg.replaceAccess())
         {
           RuleSet rule_set;
           replaceAccess(rule_set);
-          auto config = RuleTransformationPassConfiguration::createDisabled();
-          ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
+          auto config = TransformationRulesPassConfiguration::createDisabled();
+          ret.addPass(TransformationRulesPass(std::move(rule_set), config, &profile));
         }
 
         if (cfg.replaceAllocators())
         {
           RuleSet rule_set;
           activateAllocatorReplacement(rule_set);
-          auto config = RuleTransformationPassConfiguration::createDisabled();
-          ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
+          auto config = TransformationRulesPassConfiguration::createDisabled();
+          ret.addPass(TransformationRulesPass(std::move(rule_set), config, &profile));
         }
       });
 }
