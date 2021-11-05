@@ -2,126 +2,132 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
 #include "RemoveDisallowedAttributesPass/RemoveDisallowedAttributesPass.hpp"
 #include "Types/Types.hpp"
 
-namespace microsoft {
-namespace quantum {
+#include "Llvm/Llvm.hpp"
 
-class ModuleLoader
+namespace microsoft
 {
-public:
-  using Module       = llvm::Module;
-  using Linker       = llvm::Linker;
-  using SMDiagnostic = llvm::SMDiagnostic;
+namespace quantum
+{
 
-  explicit ModuleLoader(Module *final_module)
-    : final_module_{final_module}
-    , linker_{*final_module}
-
-  {}
-
-  bool addModule(std::unique_ptr<Module> &&module, String const &filename = "unknown")
-  {
-    if (llvm::verifyModule(*module, &llvm::errs()))
+    class ModuleLoader
     {
-      llvm::errs() << filename << ": "
-                   << "input module is broken!\n";
-      return false;
-    }
+      public:
+        using Module       = llvm::Module;
+        using Linker       = llvm::Linker;
+        using SMDiagnostic = llvm::SMDiagnostic;
 
-    return !linker_.linkInModule(std::move(module), Linker::Flags::None);
-  }
+        explicit ModuleLoader(Module* final_module)
+          : final_module_{final_module}
+          , linker_{*final_module}
 
-  bool addIrFile(String const &filename)
-  {
+        {
+        }
 
-    // Loading module
-    SMDiagnostic            err;
-    std::unique_ptr<Module> module = llvm::parseIRFile(filename, err, final_module_->getContext());
-    if (!module)
-    {
-      llvm::errs() << "Failed to load " << filename << "\n";
-      return false;
-    }
+        bool addModule(std::unique_ptr<Module>&& module, String const& filename = "unknown")
+        {
+            if (llvm::verifyModule(*module, &llvm::errs()))
+            {
+                llvm::errs() << filename << ": "
+                             << "input module is broken!\n";
+                return false;
+            }
 
-    // Transforming module
-    SingleModuleTransformation transformation;
-    if (!transformation.apply(module.get()))
-    {
-      llvm::errs() << "Failed to transform " << filename << "\n";
-      return false;
-    }
+            return !linker_.linkInModule(std::move(module), Linker::Flags::None);
+        }
 
-    // Linking
-    return addModule(std::move(module), filename);
-  }
+        bool addIrFile(String const& filename)
+        {
 
-private:
-  Module *final_module_;
-  Linker  linker_;
+            // Loading module
+            SMDiagnostic            err;
+            std::unique_ptr<Module> module = llvm::parseIRFile(filename, err, final_module_->getContext());
+            if (!module)
+            {
+                llvm::errs() << "Failed to load " << filename << "\n";
+                return false;
+            }
 
-  // Single Module Transformation
-  //
+            // Transforming module
+            SingleModuleTransformation transformation;
+            if (!transformation.apply(module.get()))
+            {
+                llvm::errs() << "Failed to transform " << filename << "\n";
+                return false;
+            }
 
-  class SingleModuleTransformation
-  {
-  public:
-    using PassBuilder             = llvm::PassBuilder;
-    using OptimizationLevel       = PassBuilder::OptimizationLevel;
-    using FunctionAnalysisManager = llvm::FunctionAnalysisManager;
+            // Linking
+            return addModule(std::move(module), filename);
+        }
 
-    explicit SingleModuleTransformation(
-        OptimizationLevel const &optimisation_level = OptimizationLevel::O0, bool debug = false)
-      : loop_analysis_manager_{debug}
-      , function_analysis_manager_{debug}
-      , gscc_analysis_manager_{debug}
-      , module_analysis_manager_{debug}
-      , optimisation_level_{optimisation_level}
-      , debug_{debug}
-    {
+      private:
+        Module* final_module_;
+        Linker  linker_;
 
-      pass_builder_.registerModuleAnalyses(module_analysis_manager_);
-      pass_builder_.registerCGSCCAnalyses(gscc_analysis_manager_);
-      pass_builder_.registerFunctionAnalyses(function_analysis_manager_);
-      pass_builder_.registerLoopAnalyses(loop_analysis_manager_);
+        // Single Module Transformation
+        //
 
-      pass_builder_.crossRegisterProxies(loop_analysis_manager_, function_analysis_manager_,
-                                         gscc_analysis_manager_, module_analysis_manager_);
+        class SingleModuleTransformation
+        {
+          public:
+            using PassBuilder             = llvm::PassBuilder;
+            using OptimizationLevel       = PassBuilder::OptimizationLevel;
+            using FunctionAnalysisManager = llvm::FunctionAnalysisManager;
 
-      module_pass_manager_.addPass(RemoveDisallowedAttributesPass());
-    }
+            explicit SingleModuleTransformation(
+                OptimizationLevel const& optimisation_level = OptimizationLevel::O0,
+                bool                     debug              = false)
+              : loop_analysis_manager_{debug}
+              , function_analysis_manager_{debug}
+              , gscc_analysis_manager_{debug}
+              , module_analysis_manager_{debug}
+              , optimisation_level_{optimisation_level}
+              , debug_{debug}
+            {
 
-    bool apply(llvm::Module *module)
-    {
-      module_pass_manager_.run(*module, module_analysis_manager_);
+                pass_builder_.registerModuleAnalyses(module_analysis_manager_);
+                pass_builder_.registerCGSCCAnalyses(gscc_analysis_manager_);
+                pass_builder_.registerFunctionAnalyses(function_analysis_manager_);
+                pass_builder_.registerLoopAnalyses(loop_analysis_manager_);
 
-      if (llvm::verifyModule(*module, &llvm::errs()))
-      {
-        return false;
-      }
+                pass_builder_.crossRegisterProxies(
+                    loop_analysis_manager_, function_analysis_manager_, gscc_analysis_manager_,
+                    module_analysis_manager_);
 
-      return true;
-    }
+                module_pass_manager_.addPass(RemoveDisallowedAttributesPass());
+            }
 
-    bool isDebugMode() const
-    {
-      return debug_;
-    }
+            bool apply(llvm::Module* module)
+            {
+                module_pass_manager_.run(*module, module_analysis_manager_);
 
-  private:
-    llvm::PassBuilder             pass_builder_;
-    llvm::LoopAnalysisManager     loop_analysis_manager_;
-    llvm::FunctionAnalysisManager function_analysis_manager_;
-    llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
-    llvm::ModuleAnalysisManager   module_analysis_manager_;
+                if (llvm::verifyModule(*module, &llvm::errs()))
+                {
+                    return false;
+                }
 
-    llvm::ModulePassManager module_pass_manager_{};
-    OptimizationLevel       optimisation_level_{};
-    bool                    debug_{false};
-  };
-};
+                return true;
+            }
 
-}  // namespace quantum
-}  // namespace microsoft
+            bool isDebugMode() const
+            {
+                return debug_;
+            }
+
+          private:
+            llvm::PassBuilder             pass_builder_;
+            llvm::LoopAnalysisManager     loop_analysis_manager_;
+            llvm::FunctionAnalysisManager function_analysis_manager_;
+            llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
+            llvm::ModuleAnalysisManager   module_analysis_manager_;
+
+            llvm::ModulePassManager module_pass_manager_{};
+            OptimizationLevel       optimisation_level_{};
+            bool                    debug_{false};
+        };
+    };
+
+} // namespace quantum
+} // namespace microsoft
