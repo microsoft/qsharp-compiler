@@ -44,6 +44,29 @@ type internal Specialization =
         Generator: SpecializationGenerator
     }
 
+/// An open directive
+type internal OpenDirective =
+    {
+        /// <summary>
+        /// The <c>open</c> keyword.
+        /// </summary>
+        OpenKeyword: Terminal
+
+        /// The name of the opened namespace.
+        OpenName: Terminal
+
+        /// <summary>
+        /// The optional <c>as</c> keyword.
+        /// </summary>
+        AsKeyword: Terminal option
+
+        /// The alias name of the opened namespace.
+        AsName: Terminal option
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
 /// The body of a callable declaration.
 type internal CallableBody =
     /// An implicit body specialization with statements.
@@ -88,6 +111,9 @@ type internal CallableDeclaration =
 
 /// An item in a namespace.
 type internal NamespaceItem =
+    /// An open directive
+    | OpenDirective of OpenDirective
+
     /// A callable declaration
     | CallableDeclaration of CallableDeclaration
 

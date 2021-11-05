@@ -27,8 +27,20 @@ type 'context Rewriter() =
 
     default rewriter.NamespaceItem(context, item) =
         match item with
+        | OpenDirective directive -> rewriter.OpenDirective(context, directive) |> OpenDirective
         | CallableDeclaration callable -> rewriter.CallableDeclaration(context, callable) |> CallableDeclaration
         | Unknown terminal -> rewriter.Terminal(context, terminal) |> Unknown
+
+    abstract OpenDirective : context: 'context * directive: OpenDirective -> OpenDirective
+
+    default rewriter.OpenDirective(context, directive) =
+        {
+            OpenKeyword = rewriter.Terminal(context, directive.OpenKeyword)
+            OpenName = rewriter.Terminal(context, directive.OpenName)
+            AsKeyword = directive.AsKeyword |> Option.map (curry rewriter.Terminal context)
+            AsName = directive.AsName |> Option.map (curry rewriter.Terminal context)
+            Semicolon = rewriter.Terminal(context, directive.Semicolon)
+        }
 
     abstract Attribute : context: 'context * attribute: Attribute -> Attribute
 

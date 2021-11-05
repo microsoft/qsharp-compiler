@@ -32,6 +32,12 @@ type internal 'context Rewriter =
     default NamespaceItem: context:'context * item:NamespaceItem -> NamespaceItem
 
     /// <summary>
+    /// Rewrites an <see cref="OpenDirective"/> node.
+    /// </summary>
+    abstract OpenDirective: context:'context * directive:OpenDirective -> OpenDirective
+    default OpenDirective: context:'context * directive:OpenDirective -> OpenDirective
+
+    /// <summary>
     /// Rewrites an <see cref="Attribute"/> node.
     /// </summary>
     abstract Attribute: context:'context * attribute:Attribute -> Attribute

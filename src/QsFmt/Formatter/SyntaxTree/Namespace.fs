@@ -22,6 +22,15 @@ type SpecializationGenerator =
 
 type Specialization = { Names: Terminal list; Generator: SpecializationGenerator }
 
+type OpenDirective =
+    {
+        OpenKeyword: Terminal
+        OpenName: Terminal
+        AsKeyword: Terminal option
+        AsName: Terminal option
+        Semicolon: Terminal
+    }
+
 type CallableBody =
     | Statements of Statement Block
     | Specializations of Specialization Block
@@ -40,12 +49,16 @@ type CallableDeclaration =
     }
 
 type NamespaceItem =
+    | OpenDirective of OpenDirective
     | CallableDeclaration of CallableDeclaration
     | Unknown of Terminal
 
 module NamespaceItem =
     let mapPrefix mapper =
         function
+        | OpenDirective openDirective ->
+            { openDirective with OpenKeyword = Terminal.mapPrefix mapper openDirective.OpenKeyword }
+            |> OpenDirective
         | CallableDeclaration callable ->
             { callable with
                 CallableKeyword = Terminal.mapPrefix mapper callable.CallableKeyword

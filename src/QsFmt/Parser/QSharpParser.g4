@@ -21,14 +21,14 @@ namespace
 qualifiedName : Identifier ('.' Identifier)*;
 
 namespaceElement
-    : openDirective # OpenElement
+    : directive=openDirective # OpenElement
     | typeDeclaration # TypeElement
     | callable=callableDeclaration # CallableElement
     ;
 
 // Open Directive
 
-openDirective : 'open' qualifiedName ('as' qualifiedName)? ';';
+openDirective : open='open' openName=qualifiedName (as='as' asName=qualifiedName)? semicolon=';';
 
 // Declaration
 

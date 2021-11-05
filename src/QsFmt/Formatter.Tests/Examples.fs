@@ -60,6 +60,7 @@ let ``Adds newlines and indents`` =
 [<Example(ExampleKind.Format)>]
 let ``Removes extraneous spaces`` =
     """namespace     Foo {
+    open qualified.name     as qn;
     function Bar() : Int [     ] {
         let x= // Newlines are preserved.
             (7 *   1) // Comments too.
@@ -70,6 +71,7 @@ let ``Removes extraneous spaces`` =
 }""",
 
     """namespace Foo {
+    open qualified.name as qn;
     function Bar() : Int [ ] {
         let x = // Newlines are preserved.
             (7 * 1) // Comments too.

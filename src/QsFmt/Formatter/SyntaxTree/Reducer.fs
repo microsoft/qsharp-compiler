@@ -31,8 +31,18 @@ type internal 'result Reducer() as reducer =
 
     default _.NamespaceItem item =
         match item with
+        | OpenDirective directive -> reducer.OpenDirective directive
         | CallableDeclaration callable -> reducer.CallableDeclaration callable
         | Unknown terminal -> reducer.Terminal terminal
+
+    abstract OpenDirective : directive: OpenDirective -> 'result
+
+    default _.OpenDirective directive =
+        [ reducer.Terminal directive.OpenKeyword; reducer.Terminal directive.OpenName ]
+        @ (directive.AsKeyword |> Option.map reducer.Terminal |> Option.toList)
+          @ (directive.AsName |> Option.map reducer.Terminal |> Option.toList)
+            @ [ reducer.Terminal directive.Semicolon ]
+        |> reduce
 
     abstract Attribute : attribute: Attribute -> 'result
 

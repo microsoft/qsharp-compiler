@@ -146,6 +146,16 @@ type NamespaceItemVisitor(tokens) =
 
     override _.VisitChildren node = Node.toUnknown tokens node |> Unknown
 
+    override _.VisitOpenElement context =
+        {
+            OpenKeyword = context.directive.``open`` |> Node.toTerminal tokens
+            OpenName = context.directive.openName |> Node.toUnknown tokens
+            AsKeyword = context.directive.``as`` |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            AsName = context.directive.asName |> Option.ofObj |> Option.map (Node.toUnknown tokens)
+            Semicolon = context.directive.semicolon |> Node.toTerminal tokens
+        }
+        |> OpenDirective
+
     override _.VisitCallableElement context =
         {
             Attributes =
