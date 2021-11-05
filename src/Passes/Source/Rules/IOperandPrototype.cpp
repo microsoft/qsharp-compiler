@@ -90,7 +90,7 @@ namespace quantum
                 throw std::runtime_error("Previously captured name " + capture_name_ + " not found in capture list.");
             }
 
-            captures.erase(captures.find(capture_name_));
+            captures.erase(it);
         }
     }
 
