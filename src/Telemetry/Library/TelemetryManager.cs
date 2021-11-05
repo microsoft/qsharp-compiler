@@ -128,6 +128,10 @@ namespace Microsoft.Quantum.Telemetry
                     {
                         telemetryLogger = new OutOfProcessLogger(configuration);
                     }
+                    else if (configuration.TestMode)
+                    {
+                        telemetryLogger = new DebugConsoleLogger();
+                    }
                     else
                     {
                         InitializeLogManager();
