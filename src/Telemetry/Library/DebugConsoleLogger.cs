@@ -10,7 +10,7 @@ namespace Microsoft.Quantum.Telemetry
 {
     internal class DebugConsoleLogger : ILogger
     {
-        private SimpleYamlSerializer yamlSerializer = new();
+        private SimpleYamlSerializer yamlSerializer = new SimpleYamlSerializer();
 
         private EVTStatus SendCommand(CommandBase command)
         {

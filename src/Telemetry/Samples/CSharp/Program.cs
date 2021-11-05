@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                 TelemetryOptOutVariableName = "QDK_TELEMETRY_OPT_OUT",
                 MaxTeardownUploadTime = TimeSpan.FromSeconds(2),
                 OutOfProcessUpload = true,
-                ExceptionLoggingOptions = new()
+                ExceptionLoggingOptions = new ExceptionLoggingOptions()
                 {
                     CollectTargetSite = true,
                     CollectSanitizedStackTrace = true,
@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                     // Log an event using Aria EventProperties object
                     // Properties that contain PII or customer data should be tagged
                     // with the PiiKind != None
-                    Microsoft.Applications.Events.EventProperties eventProperties = new()
+                    Microsoft.Applications.Events.EventProperties eventProperties = new Applications.Events.EventProperties()
                         {
                             Name = "SampleEvent",
                         };
@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                     // Custom objects will have all of their non-null public properties
                     // logged with some rules applied.
                     // Please check the TelemetryManager.LogObject documentation.
-                    ExecutionCompleted executionCompletedEvent = new()
+                    ExecutionCompleted executionCompletedEvent = new ExecutionCompleted()
                         {
                             SampleDateTime = DateTime.Now,
                             SampleString = "sample string",
@@ -109,7 +109,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                             SampleArray = new string[] { "element1", "element2" },
                             SampleTimeSpan = new TimeSpan(10, 9, 8, 7, 654),
                             SampleInt = 42,
-                            SampleDictionary = new()
+                            SampleDictionary = new Dictionary<string, string>()
                             {
                                 { "key1", "value1" },
                                 { "key2", "value2" },
@@ -177,7 +177,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
         SampleEnumValue2,
     }
 
-    public record ExecutionCompleted
+    public class ExecutionCompleted
     {
         public DateTime SampleDateTime { get; set; }
 

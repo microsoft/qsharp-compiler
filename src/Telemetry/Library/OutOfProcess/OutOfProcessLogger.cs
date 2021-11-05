@@ -41,7 +41,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         {
             var currentExecutablePath = Process.GetCurrentProcess().MainModule!.FileName!;
 
-            StringBuilder arguments = new();
+            StringBuilder arguments = new StringBuilder();
 
             // if this is not a self-contained application, we need to run it via the dotnet cli
             if (string.Equals(
@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         private IExternalProcessConnector externalProcess;
         private ICommandSerializer serializer;
         private TelemetryManagerConfig configuration;
-        private object instanceLock = new();
+        private object instanceLock = new object();
         #if DEBUG
         private Thread? debugThread;
         #endif

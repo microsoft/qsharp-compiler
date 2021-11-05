@@ -6,7 +6,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
     internal class SetContextCommand : CommandBase
     {
         public SetContextCommand(SetContextArgs? setContextArgs = null)
-            : base(CommandType.SetContext, setContextArgs ?? new())
+            : base(CommandType.SetContext, setContextArgs ?? new SetContextArgs())
         {
         }
 
@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
             server.ProcessCommand(this);
     }
 
-    internal record SetContextArgs
+    internal class SetContextArgs
     {
         public SetContextArgs()
         {
@@ -47,5 +47,23 @@ namespace Microsoft.Quantum.Telemetry.Commands
         public object? Value { get; set; }
 
         public bool IsPii { get; set; }
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is SetContextArgs setContextArgs)
+            {
+                return object.Equals(setContextArgs.IsPii, this.IsPii)
+                       && object.Equals(setContextArgs.Name, this.Name)
+                       && object.Equals(setContextArgs.PropertyType, this.PropertyType)
+                       && object.Equals(setContextArgs.Value, this.Value);
+            }
+
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return (this.Name?.GetHashCode() ?? 0) ^ this.PropertyType.GetHashCode();
+        }
     }
 }

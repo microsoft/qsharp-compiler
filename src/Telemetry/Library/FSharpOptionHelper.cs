@@ -37,7 +37,7 @@ namespace Microsoft.Quantum.Telemetry
             && fSharpOptionType != null
             && object.Equals(fSharpOptionType, ReflectionCache.GetGenericTypeDefinition(type));
 
-        private static ConcurrentDictionary<Type, OptionValueGetter?> optionValueGetterCache = new();
+        private static ConcurrentDictionary<Type, OptionValueGetter?> optionValueGetterCache = new ConcurrentDictionary<Type, OptionValueGetter?>();
 
         public static object? GetOptionValue(object? optionValue, Type? type)
         {
@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.Telemetry
             }
 
             return optionValueGetterCache
-                        .GetOrAdd(type, (t) => IsFSharpOptionType(type) ? new(type) : null)
+                        .GetOrAdd(type, (t) => IsFSharpOptionType(type) ? new OptionValueGetter(type) : null)
                         ?.GetValue(optionValue);
         }
 

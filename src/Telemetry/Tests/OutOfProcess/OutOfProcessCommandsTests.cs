@@ -42,12 +42,10 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
         [TestMethod]
         public async Task TestOutOfProcessClientAndServer()
         {
-            TelemetryManagerConfig telemetryManagerConfig = new TelemetryManagerConfig() with
-            {
-                OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero,
-                OutOfProcessMaxIdleTime = TimeSpan.FromSeconds(10),
-                TestMode = true,
-            };
+            TelemetryManagerConfig telemetryManagerConfig = new TelemetryManagerConfig();
+            telemetryManagerConfig.OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero;
+            telemetryManagerConfig.OutOfProcessMaxIdleTime = TimeSpan.FromSeconds(10);
+            telemetryManagerConfig.TestMode = true;
 
             using var clientToServerStream = new MemoryStream();
             using var serverToClientStream = new MemoryStream();

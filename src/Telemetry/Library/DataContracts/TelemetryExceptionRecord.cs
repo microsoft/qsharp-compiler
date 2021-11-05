@@ -6,7 +6,7 @@ namespace Microsoft.Quantum.Telemetry
     /// <summary>
     /// Contains non-sensitive/identifiable information from an Exception
     /// </summary>
-    public record TelemetryExceptionRecord
+    public class TelemetryExceptionRecord
     {
         public string? FullName { get; set; }
 

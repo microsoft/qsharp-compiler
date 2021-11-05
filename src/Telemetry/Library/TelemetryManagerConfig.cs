@@ -8,14 +8,14 @@ using Microsoft.Quantum.Telemetry.OutOfProcess;
 
 namespace Microsoft.Quantum.Telemetry
 {
-    public record ExceptionLoggingOptions
+    public class ExceptionLoggingOptions
     {
         public bool CollectTargetSite { get; set; } = true;
 
         public bool CollectSanitizedStackTrace { get; set; } = true;
     }
 
-    public record TelemetryManagerConfig
+    public class TelemetryManagerConfig
     {
         private string appId = "DefaultQDKApp";
 
@@ -109,7 +109,7 @@ namespace Microsoft.Quantum.Telemetry
 
         public Type OutOfProcessSerializerType { get; set; } = typeof(SimpleYamlSerializer);
 
-        public ExceptionLoggingOptions ExceptionLoggingOptions { get; set; } = new();
+        public ExceptionLoggingOptions ExceptionLoggingOptions { get; set; } = new ExceptionLoggingOptions();
 
         public bool SendTelemetryInitializedEvent { get; set; } = true;
 
@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.Telemetry
 
         public bool TestMode { get; set; }
 
-        private static readonly Regex NameValidationRegex = new("^[a-zA-Z0-9]{3,20}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex NameValidationRegex = new Regex("^[a-zA-Z0-9]{3,20}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static string ValidateName(string value)
         {

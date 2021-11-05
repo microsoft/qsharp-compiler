@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         #if DEBUG
         private DateTime startTime;
         #endif
-        private Stopwatch idleStopwatch = new();
+        private Stopwatch idleStopwatch = new Stopwatch();
         private TelemetryManagerConfig configuration;
         private ICommandSerializer serializer;
         private TextReader inputTextReader;

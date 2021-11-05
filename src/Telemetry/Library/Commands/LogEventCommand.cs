@@ -8,7 +8,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
     internal class LogEventCommand : CommandBase
     {
         public LogEventCommand(EventProperties? eventProperties = null)
-            : base(CommandType.LogEvent, eventProperties ?? new())
+            : base(CommandType.LogEvent, eventProperties ?? new EventProperties())
         {
         }
 

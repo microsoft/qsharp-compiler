@@ -20,7 +20,8 @@ namespace Microsoft.Quantum.Telemetry
         internal static PiiKind ToPiiKind(this bool isPii) =>
             isPii ? PiiKind.GenericData : PiiKind.None;
 
-        private static Dictionary<TelemetryPropertyType, Action<ILogger, string, object, PiiKind>> setContextActions = new()
+        private static Dictionary<TelemetryPropertyType, Action<ILogger, string, object, PiiKind>> setContextActions =
+        new Dictionary<TelemetryPropertyType, Action<ILogger, string, object, PiiKind>>()
         {
             { TelemetryPropertyType.Boolean, (logger, name, value, piiKind) => logger.SetContext(name, (bool)value, piiKind) },
             { TelemetryPropertyType.DateTime, (logger, name, value, piiKind) => logger.SetContext(name, (DateTime)value, piiKind) },
@@ -33,7 +34,8 @@ namespace Microsoft.Quantum.Telemetry
         internal static void SetContext(this ILogger logger, string name, object value, TelemetryPropertyType propertyType, bool isPii) =>
             setContextActions[propertyType](logger, name, value, isPii.ToPiiKind());
 
-        private static Dictionary<TelemetryPropertyType, Action<EventProperties, string, object, PiiKind>> setPropertyMethods = new()
+        private static Dictionary<TelemetryPropertyType, Action<EventProperties, string, object, PiiKind>> setPropertyMethods =
+        new Dictionary<TelemetryPropertyType, Action<EventProperties, string, object, PiiKind>>()
         {
             { TelemetryPropertyType.Boolean, (eventProperties, name, value, piiKind) => eventProperties.SetProperty(name, (bool)value, piiKind) },
             { TelemetryPropertyType.DateTime, (eventProperties, name, value, piiKind) => eventProperties.SetProperty(name, (DateTime)value, piiKind) },
@@ -80,7 +82,8 @@ namespace Microsoft.Quantum.Telemetry
         private static Tuple<TelemetryPropertyType, object> TimeSpanToString(object value) =>
             new Tuple<TelemetryPropertyType, object>(TelemetryPropertyType.String, $"{value:G}");
 
-        internal static Dictionary<Type, TelemetryPropertyType> TypeMap { get; private set; } = new()
+        internal static Dictionary<Type, TelemetryPropertyType> TypeMap { get; private set; } =
+        new Dictionary<Type, TelemetryPropertyType>()
         {
             // Values accepted by Aria
             { typeof(string), TelemetryPropertyType.String },
@@ -107,7 +110,8 @@ namespace Microsoft.Quantum.Telemetry
             { typeof(TimeSpan), TelemetryPropertyType.String },
         };
 
-        private static Dictionary<Type, Func<object, Tuple<TelemetryPropertyType, object>>> convertValueFunctions = new()
+        private static Dictionary<Type, Func<object, Tuple<TelemetryPropertyType, object>>> convertValueFunctions =
+        new Dictionary<Type, Func<object, Tuple<TelemetryPropertyType, object>>>()
         {
             // Values accepted by Aria
             { typeof(string), KeepOriginalType<string> },
@@ -188,7 +192,7 @@ namespace Microsoft.Quantum.Telemetry
                 StackTrace = loggingOptions.CollectSanitizedStackTrace ? SanitizeStackTrace(exception.StackTrace) : null,
             };
 
-        private static readonly Regex StackTraceSanitizerRegex = new(@"^\s*(at)?\s+(?<method>[^)]*\)).*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+        private static readonly Regex StackTraceSanitizerRegex = new Regex(@"^\s*(at)?\s+(?<method>[^)]*\)).*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
         private static string? SanitizeStackTrace(string? originalStackTrace)
         {
@@ -211,12 +215,12 @@ namespace Microsoft.Quantum.Telemetry
     /// </summary>
     internal static class ReflectionCache
     {
-        private static ConcurrentDictionary<Type, PropertyInfo[]> propertyInfoCache = new();
+        private static ConcurrentDictionary<Type, PropertyInfo[]> propertyInfoCache = new ConcurrentDictionary<Type, PropertyInfo[]>();
 
         public static PropertyInfo[] GetProperties(Type type) =>
             propertyInfoCache.GetOrAdd(type, (t) => t.GetProperties().Where((p) => p.CanRead).ToArray());
 
-        private static ConcurrentDictionary<Type, Type?> genericTypeDefinitionCache = new();
+        private static ConcurrentDictionary<Type, Type?> genericTypeDefinitionCache = new ConcurrentDictionary<Type, Type?>();
 
         public static Type? GetGenericTypeDefinition(Type type) =>
             genericTypeDefinitionCache.GetOrAdd(type, (t) => t.IsGenericType ? t.GetGenericTypeDefinition() : null);

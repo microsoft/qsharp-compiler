@@ -39,7 +39,18 @@ namespace Microsoft.Quantum.Telemetry
         }
     }
 
-    internal record TelemetryTearDown(TimeSpan? TotalRunningTime, int TotalEventsCount);
+    internal class TelemetryTearDown
+    {
+        public TimeSpan? TotalRunningTime { get; set; }
+
+        public int TotalEventsCount { get; set; }
+
+        public TelemetryTearDown(TimeSpan? totalRunningTime, int totalEventsCount)
+        {
+            this.TotalEventsCount = totalEventsCount;
+            this.TotalRunningTime = totalRunningTime;
+        }
+    }
 
     /// <summary>
     /// Handles general telemetry logic that is used accross Microsoft Quantum developer tools.
@@ -94,7 +105,7 @@ namespace Microsoft.Quantum.Telemetry
 
         static TelemetryManager()
         {
-            Configuration = new();
+            Configuration = new TelemetryManagerConfig();
             EnableTelemetryExceptions = GetEnableTelemetryExceptions();
         }
 
@@ -255,7 +266,7 @@ namespace Microsoft.Quantum.Telemetry
                     return;
                 }
 
-                EventProperties eventProperties = new();
+                EventProperties eventProperties = new EventProperties();
                 string? eventName = null;
 
                 // We don't log exception fields as they can potentially contain customer data
@@ -405,7 +416,7 @@ namespace Microsoft.Quantum.Telemetry
             return enableTelemetryExceptions;
         }
 
-        private static readonly Regex EventNameValidationRegex = new("^[a-zA-Z0-9]{3,30}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex EventNameValidationRegex = new Regex("^[a-zA-Z0-9]{3,30}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static string ValidateEventName(string value)
         {
