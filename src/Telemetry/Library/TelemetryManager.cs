@@ -252,7 +252,7 @@ namespace Microsoft.Quantum.Telemetry
         ///   - Properties with [SerializeJson] attribute will be serialized as Json.
         ///   - All other property types won't be logged.
         /// </summary>
-        public static void LogObject(object obj) =>
+        public static void LogObject(object obj, string? eventName = null) =>
             CheckAndRunSafe(() =>
             {
                 if (obj == null || obj is ValueType)
@@ -267,10 +267,9 @@ namespace Microsoft.Quantum.Telemetry
                 }
 
                 EventProperties eventProperties = new EventProperties();
-                string? eventName = null;
 
                 // We don't log exception fields as they can potentially contain customer data
-                if (obj is Exception exception)
+                if (eventName == null && obj is Exception exception)
                 {
                     obj = exception.ToExceptionLogRecord(Configuration.ExceptionLoggingOptions);
                     eventName = $"{Configuration.EventNamePrefix}_{Configuration.AppId}_Exception";
