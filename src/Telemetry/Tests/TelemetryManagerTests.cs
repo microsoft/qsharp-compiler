@@ -28,6 +28,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 },
                 SendTelemetryInitializedEvent = false,
                 SendTelemetryTearDownEvent = false,
+                TestMode = true,
             };
 
         private Exception CreateExceptionWithStackTrace()
@@ -136,7 +137,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
             Assert.AreEqual("QDK_HOSTING_ENV", telemetryManagerConfig.HostingEnvironmentVariableName);
             Assert.AreEqual(TimeSpan.FromSeconds(2), telemetryManagerConfig.MaxTeardownUploadTime);
             Assert.AreEqual(TimeSpan.FromSeconds(30), telemetryManagerConfig.OutOfProcessMaxTeardownUploadTime);
-            Assert.AreEqual(TimeSpan.FromSeconds(30), telemetryManagerConfig.OutOProcessMaxIdleTime);
+            Assert.AreEqual(TimeSpan.FromSeconds(30), telemetryManagerConfig.OutOfProcessMaxIdleTime);
             Assert.AreEqual(TimeSpan.FromSeconds(1), telemetryManagerConfig.OutOfProcessPollWaitTime);
             Assert.AreEqual(false, telemetryManagerConfig.OutOfProcessUpload);
             Assert.AreEqual(true, telemetryManagerConfig.SendTelemetryInitializedEvent);
@@ -161,7 +162,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 Assert.AreEqual(TelemetryManager.Configuration.HostingEnvironmentVariableName, telemetryManagerConfig.HostingEnvironmentVariableName);
                 Assert.AreEqual(TelemetryManager.Configuration.MaxTeardownUploadTime, telemetryManagerConfig.MaxTeardownUploadTime);
                 Assert.AreEqual(TelemetryManager.Configuration.OutOfProcessMaxTeardownUploadTime, telemetryManagerConfig.OutOfProcessMaxTeardownUploadTime);
-                Assert.AreEqual(TelemetryManager.Configuration.OutOProcessMaxIdleTime, telemetryManagerConfig.OutOProcessMaxIdleTime);
+                Assert.AreEqual(TelemetryManager.Configuration.OutOfProcessMaxIdleTime, telemetryManagerConfig.OutOfProcessMaxIdleTime);
                 Assert.AreEqual(TelemetryManager.Configuration.OutOfProcessPollWaitTime, telemetryManagerConfig.OutOfProcessPollWaitTime);
                 Assert.AreEqual(TelemetryManager.Configuration.OutOfProcessUpload, telemetryManagerConfig.OutOfProcessUpload);
                 Assert.AreEqual(TelemetryManager.Configuration.SendTelemetryInitializedEvent, telemetryManagerConfig.SendTelemetryInitializedEvent);
@@ -205,7 +206,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
             var outOfProcessConfig = telemetryManagerConfig with
             {
                 OutOfProcessUpload = true,
-                OutOProcessMaxIdleTime = TimeSpan.Zero,
+                OutOfProcessMaxIdleTime = TimeSpan.Zero,
                 OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero,
                 SendTelemetryInitializedEvent = false,
                 SendTelemetryTearDownEvent = false,
@@ -352,42 +353,6 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 TelemetryManager.SetContext("CommonBool", true);
                 TelemetryManager.SetContext("CommonPIIData", "username", isPii: true);
                 TelemetryManager.SetContext("CommonPIIData2", "username", TelemetryPropertyType.String, isPii: true);
-            }
-        }
-
-        // [TestMethod]
-        public void TestLogObjectOutOfProcess()
-        {
-            var telemetryManagerConfig = this.GetConfig() with
-            {
-                OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero,
-                OutOProcessMaxIdleTime = TimeSpan.Zero,
-                OutOfProcessUpload = true,
-            };
-            var args = new string[] { };
-
-            using (TelemetryManager.Initialize(telemetryManagerConfig, args))
-            {
-                TelemetryManager.SetContext("CommonDateTime", DateTime.Now);
-                TelemetryManager.SetContext("CommonString", "my string");
-                TelemetryManager.SetContext("CommonLong", 123);
-                TelemetryManager.SetContext("CommonDouble", 123.123);
-                TelemetryManager.SetContext("CommonGuid", Guid.NewGuid());
-                TelemetryManager.SetContext("CommonBool", true);
-                TelemetryManager.SetContext("CommonPIIData", "username", isPii: true);
-
-                var telemetryLogger = typeof(TelemetryManager)
-                                      .GetField("telemetryLogger", BindingFlags.Static | BindingFlags.NonPublic)!
-                                      .GetValue(null) as Applications.Events.ILogger;
-                telemetryLogger!.SetContext("CommonSByte", (sbyte)123);
-                telemetryLogger!.SetContext("CommonByte", (byte)123);
-                telemetryLogger!.SetContext("CommonUShort", (ushort)123);
-                telemetryLogger!.SetContext("CommonShort", (short)123);
-                telemetryLogger!.SetContext("CommonUInt", 123u);
-                telemetryLogger!.SetContext("CommonInt", (int)123);
-
-                TelemetryManager.LogObject(this.CreateTestEventObject());
-                Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
             }
         }
 

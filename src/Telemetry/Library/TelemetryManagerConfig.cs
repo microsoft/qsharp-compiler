@@ -90,7 +90,7 @@ namespace Microsoft.Quantum.Telemetry
         /// the external process running forever.
         /// Defaults to 30 seconds.
         /// </summary>
-        public TimeSpan OutOProcessMaxIdleTime { get; set; } = TimeSpan.FromSeconds(30);
+        public TimeSpan OutOfProcessMaxIdleTime { get; set; } = TimeSpan.FromSeconds(30);
 
         /// <summary>
         /// How long the external process will await when receiving no messages in the message loop.
@@ -113,6 +113,8 @@ namespace Microsoft.Quantum.Telemetry
         public bool SendTelemetryInitializedEvent { get; set; } = true;
 
         public bool SendTelemetryTearDownEvent { get; set; } = true;
+
+        public bool TestMode { get; set; }
 
         private static readonly Regex NameValidationRegex = new("^[a-zA-Z0-9]{3,20}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 

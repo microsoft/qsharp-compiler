@@ -99,7 +99,7 @@ another line to ignore
 - command: !LogEvent
     __name__: !String eventName1
   yet another line to ignore
-    stringProp: !String stringPropValue1
+    stringProp: stringPropValue1
 
 ";
             deserializedResults = yamlSerializer.Read(EnumerableToAsyncEnumerable(unexpectedLines));

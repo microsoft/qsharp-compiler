@@ -108,8 +108,8 @@ namespace Microsoft.Quantum.Telemetry
             Configuration = configuration;
             EnableTelemetryExceptions = GetEnableTelemetryExceptions();
             TelemetryOptOut = GetTelemetryOptOut(configuration);
-            IsOutOfProcessInstance = args != null && args.Contains(OUTOFPROCESSUPLOADARG);
-            TestMode = args != null && args.Contains(TESTMODE);
+            IsOutOfProcessInstance = args?.Contains(OUTOFPROCESSUPLOADARG) == true;
+            TestMode = (args?.Contains(TESTMODE) == true) || configuration.TestMode;
 
             CheckAndRunSafe(
                 () =>

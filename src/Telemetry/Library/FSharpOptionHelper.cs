@@ -15,24 +15,15 @@ namespace Microsoft.Quantum.Telemetry
     {
         internal class OptionValueGetter
         {
-            private MethodInfo? isSomeMethod;
             private MethodInfo? getValueMethod;
 
             public OptionValueGetter(Type fSharpOptionType)
             {
-                this.isSomeMethod = fSharpOptionType.GetMethod("get_IsSome");
                 this.getValueMethod = fSharpOptionType.GetMethod("get_Value");
             }
 
-            public object? GetValue(object optionValue)
-            {
-                if (object.Equals(true, this.isSomeMethod?.Invoke(optionValue, new object[] { optionValue })))
-                {
-                    return this.getValueMethod?.Invoke(optionValue, null);
-                }
-
-                return null;
-            }
+            public object? GetValue(object optionValue) =>
+                this.getValueMethod?.Invoke(optionValue, null);
         }
 
         private static Type? fSharpOptionType = AppDomain

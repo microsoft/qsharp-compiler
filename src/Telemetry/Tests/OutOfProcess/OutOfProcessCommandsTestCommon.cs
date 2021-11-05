@@ -37,25 +37,28 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
 
         internal static OutOfProcessQuitCommand CreateOutOfProcessQuitCommand() => new();
 
-        internal static OutOfProcessLogEventCommand CreateOutOfProcessLogEventCommand(int seed)
+        internal static Applications.Events.EventProperties CreateEventProperties(int seed)
         {
-            OutOfProcessLogEventCommand outOfProcessLogEventCommand = new(new Applications.Events.EventProperties());
-            outOfProcessLogEventCommand.Args.Name = $"eventName{seed}";
-            outOfProcessLogEventCommand.Args.SetProperty("stringProp", $"stringPropValue{seed}");
-            outOfProcessLogEventCommand.Args.SetProperty("stringMultilineProp", $"line1_{seed}\r\nline2\r\nline3");
-            outOfProcessLogEventCommand.Args.SetProperty("longProp", 123L + seed);
-            outOfProcessLogEventCommand.Args.SetProperty("doubleProp", (double)123.123 + seed);
-            outOfProcessLogEventCommand.Args.SetProperty("dateTimeProp", new DateTime(2021, 08, 12, 08, 09, 10) + TimeSpan.FromHours(seed));
-            outOfProcessLogEventCommand.Args.SetProperty("boolProp", true);
-            outOfProcessLogEventCommand.Args.SetProperty("guidProp", new Guid(seed, 123, 456, 1, 2, 3, 4, 5, 6, 7, 8));
-            outOfProcessLogEventCommand.Args.SetProperty("stringPropPii", "stringPropValue{seed}", Applications.Events.PiiKind.GenericData);
-            outOfProcessLogEventCommand.Args.SetProperty("longPropPii", 123L + seed, Applications.Events.PiiKind.GenericData);
-            outOfProcessLogEventCommand.Args.SetProperty("doublePropPii", (double)123.123 + seed, Applications.Events.PiiKind.GenericData);
-            outOfProcessLogEventCommand.Args.SetProperty("dateTimePropPii", new DateTime(2021, 08, 12, 08, 09, 10) + TimeSpan.FromHours(seed), Applications.Events.PiiKind.GenericData);
-            outOfProcessLogEventCommand.Args.SetProperty("boolPropPii", true, Applications.Events.PiiKind.GenericData);
-            outOfProcessLogEventCommand.Args.SetProperty("guidPropPii", new Guid(seed, 890, 456, 1, 2, 3, 4, 5, 6, 7, 8), Applications.Events.PiiKind.GenericData);
-            return outOfProcessLogEventCommand;
+            Applications.Events.EventProperties eventProperties = new();
+            eventProperties.Name = $"eventName{seed}";
+            eventProperties.SetProperty("stringProp", $"stringPropValue{seed}");
+            eventProperties.SetProperty("stringMultilineProp", $"line1_{seed}\r\nline2\r\nline3");
+            eventProperties.SetProperty("longProp", 123L + seed);
+            eventProperties.SetProperty("doubleProp", (double)123.123 + seed);
+            eventProperties.SetProperty("dateTimeProp", new DateTime(2021, 08, 12, 08, 09, 10) + TimeSpan.FromHours(seed));
+            eventProperties.SetProperty("boolProp", true);
+            eventProperties.SetProperty("guidProp", new Guid(seed, 123, 456, 1, 2, 3, 4, 5, 6, 7, 8));
+            eventProperties.SetProperty("stringPropPii", "stringPropValue{seed}", Applications.Events.PiiKind.GenericData);
+            eventProperties.SetProperty("longPropPii", 123L + seed, Applications.Events.PiiKind.GenericData);
+            eventProperties.SetProperty("doublePropPii", (double)123.123 + seed, Applications.Events.PiiKind.GenericData);
+            eventProperties.SetProperty("dateTimePropPii", new DateTime(2021, 08, 12, 08, 09, 10) + TimeSpan.FromHours(seed), Applications.Events.PiiKind.GenericData);
+            eventProperties.SetProperty("boolPropPii", true, Applications.Events.PiiKind.GenericData);
+            eventProperties.SetProperty("guidPropPii", new Guid(seed, 890, 456, 1, 2, 3, 4, 5, 6, 7, 8), Applications.Events.PiiKind.GenericData);
+            return eventProperties;
         }
+
+        internal static OutOfProcessLogEventCommand CreateOutOfProcessLogEventCommand(int seed) =>
+            new(CreateEventProperties(seed));
 
         internal static IEnumerable<OutOfProcessLogEventCommand> CreateOutOfProcessLogEventCommands()
         {

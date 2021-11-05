@@ -16,6 +16,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         private TelemetryManagerConfig configuration;
         private IOutOfProcessSerializer serializer;
         private TextReader inputTextReader;
+        private bool mustQuit = false;
 
         public OutOfProcessServer(TelemetryManagerConfig configuration, TextReader inputTextReader)
         {
@@ -26,7 +27,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
 
         private async IAsyncEnumerable<string> ReadInputLineAsync()
         {
-            while (true)
+            while (!this.mustQuit)
             {
                 var message = this.inputTextReader.ReadLine();
                 if (message != null)
@@ -54,7 +55,8 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
 
         private async Task QuitIfIdleAsync()
         {
-            while (this.idleStopwatch.Elapsed < this.configuration.OutOProcessMaxIdleTime)
+            while (!this.mustQuit
+                   && (this.idleStopwatch.Elapsed < this.configuration.OutOfProcessMaxIdleTime))
             {
                 await Task.Delay(this.configuration.OutOfProcessPollWaitTime);
             }
@@ -71,11 +73,6 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             {
                 this.idleStopwatch.Restart();
 
-                if (TelemetryManager.TestMode)
-                {
-                    return;
-                }
-
                 await Task.WhenAll(
                     this.QuitIfIdleAsync(),
                     this.ReceiveAndProcessCommandsAsync());
@@ -84,8 +81,6 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             {
                 TelemetryManager.LogToDebug(exception.ToString());
             }
-
-            this.Quit();
         }
 
         public void RunAndExit() =>
@@ -106,19 +101,24 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
 
         private void Quit()
         {
-            TelemetryManager.UploadNow();
-
-            #if DEBUG
-            var totalRunningTime = DateTime.Now - this.startTime;
-            TelemetryManager.LogToDebug($"Exited. Total running time: {totalRunningTime:G})");
-            #endif
-
-            TelemetryManager.TearDown();
-
-            // We don't want to exit from the process that is running the unit tests
-            if (!TelemetryManager.TestMode)
+            if (!this.mustQuit)
             {
-                Environment.Exit(0);
+                TelemetryManager.UploadNow();
+
+                #if DEBUG
+                var totalRunningTime = DateTime.Now - this.startTime;
+                TelemetryManager.LogToDebug($"Exited. Total running time: {totalRunningTime:G})");
+                #endif
+
+                TelemetryManager.TearDown();
+
+                this.mustQuit = true;
+
+                // We don't want to exit from the process that is running the unit tests
+                if (!TelemetryManager.TestMode)
+                {
+                    Environment.Exit(0);
+                }
             }
         }
 
