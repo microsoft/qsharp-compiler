@@ -43,5 +43,5 @@ steps:
     arguments: >
       install Microsoft.Applications.Events.Client
       -Version "1.1.1.337"
-      -Source https://msasg.pkgs.visualstudio.com/_packaging/OneSDK/nuget/v3/index.json
+      -Source https://ms-quantum.pkgs.visualstudio.com/_packaging/alpha/nuget/v3/index.json
       -OutputDirectory $(UserProfile)/.nuget/packages
