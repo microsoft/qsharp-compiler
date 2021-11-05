@@ -51,6 +51,7 @@ let run arguments inputs =
                         match arguments.CommandKind with
                         | Update -> Formatter.update input arguments.QSharp_Version
                         | Format -> Formatter.format arguments.QSharp_Version
+                        | UpdateAndFormat -> Formatter.updateAndFormat input arguments.QSharp_Version
 
                     match command source with
                     | Ok result ->
@@ -80,7 +81,7 @@ let runUpdate (arguments: UpdateArguments) =
     | Error errorCode -> errorCode
 
 let runFormat (arguments: FormatArguments) =
-    let asUpdateArguments =
+    let asUpdateArguments : UpdateArguments =
         {
             Backup = arguments.Backup
             Recurse = arguments.Recurse
@@ -93,16 +94,32 @@ let runFormat (arguments: FormatArguments) =
     | Ok args -> args.Input |> run { args with CommandKind = Format }
     | Error errorCode -> errorCode
 
+let runUpdateAndFormat (arguments: UpdateAndFormatArguments) =
+    let asUpdateArguments : UpdateArguments =
+        {
+            Backup = arguments.Backup
+            Recurse = arguments.Recurse
+            QdkVersion = arguments.QdkVersion
+            InputFiles = arguments.InputFiles
+            ProjectFile = arguments.ProjectFile
+        }
+
+    match Arguments.fromUpdateArguments asUpdateArguments with
+    | Ok args -> args.Input |> run { args with CommandKind = UpdateAndFormat }
+    | Error errorCode -> errorCode
+
 [<CompiledName "Main">]
 [<EntryPoint>]
 let main args =
 
     assemblyLoadContextSetup ()
 
-    let result = CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments> args
+    let result =
+        CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments, UpdateAndFormatArguments> args
 
     result.MapResult(
         (fun (options: FormatArguments) -> options |> runFormat),
         (fun (options: UpdateArguments) -> options |> runUpdate),
+        (fun (options: UpdateAndFormatArguments) -> options |> runUpdateAndFormat),
         (fun (_: IEnumerable<Error>) -> 2)
     )
