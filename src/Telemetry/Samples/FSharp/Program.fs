@@ -60,7 +60,7 @@ let main args =
         )
 
     // REQUIRED: Initialize
-    // Initialize the TelemetryManager right at the beggining of your program
+    // Initialize the TelemetryManager right at the beginning of your program
     // The Initialize method returns an IDisposable handle, which when disposed
     // will call the TelemetryManager.TearDown() method for you.
     //
