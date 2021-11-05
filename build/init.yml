@@ -32,18 +32,3 @@ steps:
     command: 'custom'
     customCommand: 'install -g npm@latest'
 
-##
-# Restore Microsoft.Applications.Events.Client used by the Telemetry Library such
-# that the private package gets correctly downloaded.
-##
-- task: NuGetAuthenticate@0
-
-- task: NuGetCommand@2
-  displayName: 'Restore Telemetry Dependency'
-  inputs:
-    command: 'custom'
-    arguments: >
-      install Microsoft.Applications.Events.Client
-      -Version "1.1.1.337"
-      -Source https://ms-quantum.pkgs.visualstudio.com/_packaging/alpha/nuget/v3/index.json
-      -OutputDirectory $(UserProfile)/.nuget/packages
