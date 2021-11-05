@@ -315,17 +315,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         internal NamespaceManager GlobalSymbols { get; private set; }
 
+        internal ProjectProperties BuildProperties { get; }
+
         private readonly Dictionary<QsQualifiedName, QsCallable> compiledCallables;
         private readonly Dictionary<QsQualifiedName, QsCustomType> compiledTypes;
 
         private readonly ReaderWriterLockSlim syncRoot;
         private readonly HashSet<ReaderWriterLockSlim> dependentLocks;
-
-        internal RuntimeCapability RuntimeCapability { get; }
-
-        internal bool IsExecutable { get; }
-
-        internal string ProcessorArchitecture { get; }
 
         /// <inheritdoc/>
         public void Dispose()
@@ -338,9 +334,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// with <paramref name="dependentLocks"/> registered as dependent locks if not null.
         /// </summary>
         internal CompilationUnit(
-            RuntimeCapability capability,
-            bool isExecutable,
-            string processorArchitecture,
+            ProjectProperties projectProperties,
             References? externals = null,
             IEnumerable<ReaderWriterLockSlim>? dependentLocks = null)
         {
@@ -350,14 +344,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.syncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.dependentLocks = new HashSet<ReaderWriterLockSlim>(dependentLocks);
 
-            this.RuntimeCapability = capability;
-            this.IsExecutable = isExecutable;
-            this.ProcessorArchitecture = processorArchitecture;
-
             this.compiledCallables = new Dictionary<QsQualifiedName, QsCallable>();
             this.compiledTypes = new Dictionary<QsQualifiedName, QsCustomType>();
             this.Externals = externals;
+            this.BuildProperties = projectProperties;
             this.GlobalSymbols = this.CreateGlobalSymbols();
+        }
+
+        /// <inheritdoc cref="CompilationUnit(ProjectProperties, References?, IEnumerable{ReaderWriterLockSlim}?)" />
+        internal CompilationUnit(CompilationUnit compilationUnit, IEnumerable<ReaderWriterLockSlim>? dependentLocks = null)
+            : this(compilationUnit.BuildProperties, compilationUnit.Externals, dependentLocks ?? compilationUnit.dependentLocks)
+        {
         }
 
         /// <summary>
@@ -369,8 +366,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.Externals.Declarations.Values.SelectMany(h =>
                 h.Specializations.Select(t => Tuple.Create(t.Item1, t.Item2))),
             this.Externals.Declarations.Values.SelectMany(h => h.Types),
-            this.RuntimeCapability,
-            this.IsExecutable);
+            this.BuildProperties.RuntimeCapability,
+            this.BuildProperties.IsExecutable);
 
         /// <summary>
         /// Replaces <see cref="GlobalSymbols"/> to match <paramref name="externals"/>.
