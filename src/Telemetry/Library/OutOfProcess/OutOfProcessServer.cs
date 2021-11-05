@@ -11,7 +11,9 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
 {
     internal class OutOfProcessServer : IOutOfProcessServer
     {
+        #if DEBUG
         private DateTime startTime;
+        #endif
         private Stopwatch idleStopwatch = new();
         private TelemetryManagerConfig configuration;
         private IOutOfProcessSerializer serializer;
@@ -77,10 +79,16 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                     this.QuitIfIdleAsync(),
                     this.ReceiveAndProcessCommandsAsync());
             }
+            #if DEBUG
             catch (Exception exception)
             {
                 TelemetryManager.LogToDebug(exception.ToString());
             }
+            #else
+            catch
+            {
+            }
+            #endif
         }
 
         public void RunAndExit() =>
@@ -91,12 +99,20 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             try
             {
                 command.Process(this);
+                #if DEBUG
                 TelemetryManager.LogToDebug($"OutOfProcess command processed: {command.CommandType}");
+                #endif
             }
+            #if DEBUG
             catch (Exception exception)
             {
                 TelemetryManager.LogToDebug($"Error at processing out of process command:{Environment.NewLine}{exception.ToString()}");
             }
+            #else
+            catch
+            {
+            }
+            #endif
         }
 
         private void Quit()

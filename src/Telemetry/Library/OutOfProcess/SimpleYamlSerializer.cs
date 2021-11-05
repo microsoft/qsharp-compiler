@@ -123,7 +123,9 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                                 command = new OutOfProcessSetContextCommand();
                                 break;
                             default:
+                                #if DEBUG
                                 TelemetryManager.LogToDebug($"Unexpected YAML commandType: {commandType}");
+                                #endif
                                 break;
                         }
                     }
@@ -156,7 +158,9 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                 }
                 else
                 {
+                    #if DEBUG
                     TelemetryManager.LogToDebug($"Unexpected YAML string: {line}");
+                    #endif
                 }
             }
 
@@ -218,7 +222,9 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
 
                     break;
                 default:
+                    #if DEBUG
                     TelemetryManager.LogToDebug($"Unexpected YAML type: {type}");
+                    #endif
                     break;
             }
         }
