@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
             eventProperties.SetProperty("dateTimeProp", new DateTime(2021, 08, 12, 08, 09, 10) + TimeSpan.FromHours(seed));
             eventProperties.SetProperty("boolProp", true);
             eventProperties.SetProperty("guidProp", new Guid(seed, 123, 456, 1, 2, 3, 4, 5, 6, 7, 8));
-            eventProperties.SetProperty("stringPropPii", "stringPropValue{seed}", Applications.Events.PiiKind.GenericData);
+            eventProperties.SetProperty("stringPropPii", $"stringPropValue{seed}", Applications.Events.PiiKind.GenericData);
             eventProperties.SetProperty("longPropPii", 123L + seed, Applications.Events.PiiKind.GenericData);
             eventProperties.SetProperty("doublePropPii", (double)123.123 + seed, Applications.Events.PiiKind.GenericData);
             eventProperties.SetProperty("dateTimePropPii", new DateTime(2021, 08, 12, 08, 09, 10) + TimeSpan.FromHours(seed), Applications.Events.PiiKind.GenericData);

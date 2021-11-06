@@ -111,11 +111,16 @@ another line to ignore
             var logEventCommandResults = (await AsyncEnumerableToEnumerable(deserializedResults))
                 .OfType<LogEventCommand>().ToList();
             Assert.AreEqual(4, logEventCommandResults.Count);
+
             Assert.AreEqual("eventName0", logEventCommandResults[0].Args.Name);
             Assert.AreEqual("stringPropValue0", logEventCommandResults[0].Args.Properties["stringProp"]);
+            Assert.AreEqual(2, logEventCommandResults[0].Args.Properties.Count);
+
             Assert.AreEqual("eventName1", logEventCommandResults[1].Args.Name);
             Assert.AreEqual("stringPropValue1", logEventCommandResults[1].Args.Properties["stringProp"]);
+
             Assert.AreEqual("consecutiveEvent1", logEventCommandResults[2].Args.Name);
+
             Assert.AreEqual("consecutiveEvent2", logEventCommandResults[3].Args.Name);
         }
 
