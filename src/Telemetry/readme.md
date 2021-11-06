@@ -188,27 +188,10 @@ Steps:
 iex "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) }"
 ```
 
-2. Run the following script setting the appropriate package version
+2. Run the following script passing the appropriate package version
 
 ```powershell
-$PackageVersion = "1.1.1.337"
-$PackagePath = "$HOME/.nuget/packages/microsoft.applications.events.client/$PackageVersion/microsoft.applications.events.client.$($PackageVersion).nupkg"
-$QdkAlphaSource = "https://ms-quantum.pkgs.visualstudio.com/_packaging/alpha/nuget/v3/index.json"
-
-# Enable the `OneSDK` source and disable `QDK Alpha` source
-dotnet nuget enable source "OneSDK"
-dotnet nuget disable source "QDK Alpha"
-
-# Remove the old version and add the new version of the package
-dotnet remove ./Library/Telemetry.csproj package Microsoft.Applications.Events.Client
-dotnet add ./Library/Telemetry.csproj package Microsoft.Applications.Events.Client -v $PackageVersion --interactive
-
-# Push the new version to the QDK Alpha source
-dotnet nuget push $PackagePath --source $QdkAlphaSource --interactive --api-key AzureDevOps --skip-duplicate
-
-# Enable the `QDK Alpha` source and disable `OneSDK` source
-dotnet nuget enable source "QDK Alpha"
-dotnet nuget disable source "OneSDK"
+./Build/update-aria-package.ps1 1.1.1.337
 ```
 
 ## Development
