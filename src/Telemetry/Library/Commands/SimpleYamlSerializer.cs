@@ -9,6 +9,52 @@ using Microsoft.Applications.Events;
 
 namespace Microsoft.Quantum.Telemetry.Commands
 {
+    /// <summary>
+    /// This is a simplified Yaml serializer to serialize and deserialize specific
+    /// objects (of CommandBase descendent types) for two purposes:
+    /// 1. Send telemetry commands to an out-of-process telemetry uploader
+    ///    (see OutOfProcessLogger and OutOfProcessServer)
+    /// 2. Print events to the console for debugging purposes
+    ///
+    /// Supported types to be Serialized and Deserialized:
+    /// - SetContextCommand
+    /// - QuitCommand
+    /// - LogEventCommand
+    ///
+    /// Serialization format:
+    ///   The serialization format is a simplified version of Yaml 1.1 (https://yaml.org/spec/1.1/)
+    ///   in which we serialize/deserialize a list of telemetry commands, specifying its type
+    ///   and each command can contain a list of properties, also with their types specified.
+    ///   Everything else is ignored.
+    ///
+    /// Example of a LogEvent command:
+    ///
+    /// ```yaml
+    /// - command: !LogEvent
+    ///     __name__: !String eventName0
+    ///     stringProp: !String stringPropValue0
+    ///     stringMultilineProp: !String line1_0__\r\n__line2__\r\n__line3
+    ///     stringPropPii: !String+Pii stringPropValue0
+    /// ```
+    ///
+    /// Please see the SimpleYamlSerializerTests for more examples.
+    ///
+    /// Notes:
+    /// - As with the Yaml spec, the `-` prefixes an item in a list
+    /// - As with the Yaml spec, the `:` is a separator between a key and a value
+    /// - As with the Yaml spec, the `!` prefixes the user-defined type of the value
+    /// - The user-defined types that we use are one of the values of the CommandType enum for command items,
+    ///   or the TelemetryPropertyType enum for property items
+    /// - As with the Yaml spec, indentation is used to determine sub-nodes (properties in our case)
+    ///   but different than Yaml, we only support two levels of indentation:
+    ///   - The zero indentation for the commands
+    ///   - The four-space indentation for properties
+    /// - Different than Yaml, we escape all new line characters from a string property value with a
+    ///   `__\r\n__` constant.
+    /// - Specifically for the LogEvent command, we serialize the event name in the `__name__` property.
+    /// - Different than Yaml, everything else that does not match the above formats will be ignored.
+    ///
+    /// </summary>
     public class SimpleYamlSerializer : ICommandSerializer
     {
         private static readonly string LineBreak = @"__\r\n__";

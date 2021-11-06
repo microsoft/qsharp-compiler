@@ -234,7 +234,7 @@ dotnet test
 #### Test coverage report
 
 ```powershell
-./build/test.ps1
+./build/test-coverage.ps1
 ```
 
 ### F# style formatter

@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Quantum.Telemetry.Commands;
-using Microsoft.Quantum.Telemetry.OutOfProcess;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
@@ -64,7 +63,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
     dateTimeProp: !DateTime 8/12/2021 8:09:10 AM
     boolProp: !Boolean True
     guidProp: !Guid 00000000-007b-01c8-0102-030405060708
-    stringPropPii: !String+Pii stringPropValue{seed}
+    stringPropPii: !String+Pii stringPropValue0
     longPropPii: !Long+Pii 123
     doublePropPii: !Double+Pii 123.123
     dateTimePropPii: !DateTime+Pii 8/12/2021 8:09:10 AM
@@ -102,15 +101,22 @@ another line to ignore
   yet another line to ignore
     stringProp: stringPropValue1
 
+- command: !LogEvent
+    __name__: !String consecutiveEvent1
+- command: !LogEvent
+    __name__: !String consecutiveEvent2
+
 ";
             deserializedResults = yamlSerializer.Read(EnumerableToAsyncEnumerable(unexpectedLines));
             var logEventCommandResults = (await AsyncEnumerableToEnumerable(deserializedResults))
                 .OfType<LogEventCommand>().ToList();
-            Assert.AreEqual(2, logEventCommandResults.Count);
+            Assert.AreEqual(4, logEventCommandResults.Count);
             Assert.AreEqual("eventName0", logEventCommandResults[0].Args.Name);
             Assert.AreEqual("stringPropValue0", logEventCommandResults[0].Args.Properties["stringProp"]);
             Assert.AreEqual("eventName1", logEventCommandResults[1].Args.Name);
             Assert.AreEqual("stringPropValue1", logEventCommandResults[1].Args.Properties["stringProp"]);
+            Assert.AreEqual("consecutiveEvent1", logEventCommandResults[2].Args.Name);
+            Assert.AreEqual("consecutiveEvent2", logEventCommandResults[3].Args.Name);
         }
 
         [TestMethod]
