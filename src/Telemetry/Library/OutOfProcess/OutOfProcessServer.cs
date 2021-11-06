@@ -11,7 +11,7 @@ using Microsoft.Quantum.Telemetry.Commands;
 
 namespace Microsoft.Quantum.Telemetry.OutOfProcess
 {
-    internal class OutOfProcessServer : ICommandProcessor
+    public class OutOfProcessServer : ICommandProcessor
     {
         #if DEBUG
         private DateTime startTime;

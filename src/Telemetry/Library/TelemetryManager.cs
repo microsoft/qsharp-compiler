@@ -11,8 +11,6 @@ using System.Text.RegularExpressions;
 using Microsoft.Applications.Events;
 using Microsoft.Quantum.Telemetry.OutOfProcess;
 
-[assembly: InternalsVisibleTo("Microsoft.Quantum.Telemetry.Tests")]
-
 namespace Microsoft.Quantum.Telemetry
 {
     public class TelemetryManagerHandle : IDisposable

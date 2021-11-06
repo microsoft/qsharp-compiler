@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal class QuitCommand : CommandBase
+    public class QuitCommand : CommandBase
     {
         public QuitCommand()
             : base(CommandType.Quit)

@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal enum CommandType
+    public enum CommandType
     {
         SetContext,
         LogEvent,

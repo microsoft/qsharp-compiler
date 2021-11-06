@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal class SetContextCommand : CommandBase
+    public class SetContextCommand : CommandBase
     {
         public SetContextCommand(SetContextArgs? setContextArgs = null)
             : base(CommandType.SetContext, setContextArgs ?? new SetContextArgs())
@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
             server.ProcessCommand(this);
     }
 
-    internal class SetContextArgs
+    public class SetContextArgs
     {
         public SetContextArgs()
         {

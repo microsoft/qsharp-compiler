@@ -11,7 +11,7 @@ namespace Microsoft.Quantum.Telemetry
     /// <summary>
     /// Helper class to interact with FSharp Option types
     /// </summary>
-    internal static class FSharpOptionHelper
+    public static class FSharpOptionHelper
     {
         internal class OptionValueGetter
         {

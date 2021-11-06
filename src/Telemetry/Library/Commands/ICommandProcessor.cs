@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal interface ICommandProcessor
+    public interface ICommandProcessor
     {
         void ProcessCommand(QuitCommand command);
 

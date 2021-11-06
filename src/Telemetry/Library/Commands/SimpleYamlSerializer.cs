@@ -9,7 +9,7 @@ using Microsoft.Applications.Events;
 
 namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal class SimpleYamlSerializer : ICommandSerializer
+    public class SimpleYamlSerializer : ICommandSerializer
     {
         private static readonly string LineBreak = @"__\r\n__";
         private static readonly string EventNamePropertyName = "__name__";

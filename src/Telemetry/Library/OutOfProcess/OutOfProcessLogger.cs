@@ -12,7 +12,7 @@ using Microsoft.Quantum.Telemetry.Commands;
 
 namespace Microsoft.Quantum.Telemetry.OutOfProcess
 {
-    internal interface IExternalProcessConnector
+    public interface IExternalProcessConnector
     {
         TextWriter? InputTextWriter { get; }
 
@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         }
     }
 
-    internal class OutOfProcessLogger : ILogger
+    public class OutOfProcessLogger : ILogger
     {
         private IExternalProcessConnector externalProcess;
         private ICommandSerializer serializer;

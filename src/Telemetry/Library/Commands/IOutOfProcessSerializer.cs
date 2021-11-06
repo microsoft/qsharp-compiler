@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal interface ICommandSerializer
+    public interface ICommandSerializer
     {
         IEnumerable<string> Write(IEnumerable<CommandBase> commands);
 

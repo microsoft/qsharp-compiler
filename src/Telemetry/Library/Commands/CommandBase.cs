@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.Telemetry.Commands
 {
-    internal abstract class CommandBase
+    public abstract class CommandBase
     {
         public CommandBase(CommandType commandType, object? args = null)
         {
