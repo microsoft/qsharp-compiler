@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
 
         private static async Task<IEnumerable<T>> AsyncEnumerableToEnumerable<T>(IAsyncEnumerable<T> items)
         {
-            List<T> result = new();
+            List<T> result = new List<T>();
             await foreach (var item in items)
             {
                 result.Add(item);
@@ -118,7 +118,7 @@ another line to ignore
         {
             var yamlSerializer = new SimpleYamlSerializer();
 
-            List<CommandBase> commands = new();
+            List<CommandBase> commands = new List<CommandBase>();
             commands.AddRange(CreateSetContextCommands());
             commands.AddRange(CreateLogEventCommands());
             commands.Add(new QuitCommand());

@@ -21,7 +21,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 TelemetryOptOutVariableName = "QDKTELTEST_TELEMETRY_OPT_OUT",
                 MaxTeardownUploadTime = TimeSpan.Zero,
                 OutOfProcessUpload = false,
-                ExceptionLoggingOptions = new()
+                ExceptionLoggingOptions = new ExceptionLoggingOptions()
                 {
                     CollectTargetSite = true,
                     CollectSanitizedStackTrace = true,
@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
             new System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'");
 
         private TestEvent CreateTestEventObject() =>
-            new()
+            new TestEvent()
             {
                 SampleDateTime = DateTime.Now,
                 SampleString = "sample string",
@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 SampleArray = new string[] { "element1", "element2" },
                 SampleTimeSpan = new TimeSpan(10, 9, 8, 7, 654),
                 SampleInt = 42,
-                SampleDictionary = new()
+                SampleDictionary = new Dictionary<string, string>()
                 {
                     { "key1", "value1" },
                     { "key2", "value2" },
@@ -78,7 +78,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
 
         private Microsoft.Applications.Events.EventProperties CreateEventPropertiesObject()
         {
-            Microsoft.Applications.Events.EventProperties eventProperties = new()
+            Microsoft.Applications.Events.EventProperties eventProperties = new Applications.Events.EventProperties()
             {
                 Name = "SampleEvent",
             };
@@ -419,7 +419,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
         SampleEnumValue2,
     }
 
-    public record TestEvent
+    public class TestEvent
     {
         public DateTime SampleDateTime { get; set; } = DateTime.Now;
 
@@ -440,7 +440,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
         public Guid SampleGuid { get; set; } = Guid.NewGuid();
 
         [SerializeJson]
-        public Dictionary<string, string>? SampleDictionary { get; set; } = new()
+        public Dictionary<string, string> SampleDictionary { get; set; } = new Dictionary<string, string>()
             {
                 { "key1", "value1" },
                 { "key2", "value2" },

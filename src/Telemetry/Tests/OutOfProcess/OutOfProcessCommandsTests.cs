@@ -58,8 +58,8 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
 
             using (TelemetryManager.Initialize(telemetryManagerConfig))
             {
-                ExternalProcessMock externalProcessMock = new(clientInputTextWriter, serverOutputTextReader);
-                OutOfProcessLogger outOfProcessLogger = new(telemetryManagerConfig, externalProcessMock);
+                ExternalProcessMock externalProcessMock = new ExternalProcessMock(clientInputTextWriter, serverOutputTextReader);
+                OutOfProcessLogger outOfProcessLogger = new OutOfProcessLogger(telemetryManagerConfig, externalProcessMock);
 
                 outOfProcessLogger.LogEvent(CreateEventProperties(0));
 
@@ -87,7 +87,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
 
             using (TelemetryManager.Initialize(telemetryManagerConfig))
             {
-                OutOfProcessServer outOfProcessServer = new(telemetryManagerConfig, serverInputTextReader);
+                OutOfProcessServer outOfProcessServer = new OutOfProcessServer(telemetryManagerConfig, serverInputTextReader);
                 await outOfProcessServer.RunAndExitAsync();
             }
         }

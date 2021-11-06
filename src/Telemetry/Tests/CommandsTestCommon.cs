@@ -33,13 +33,13 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 this.InternalProcess(command);
         }
 
-        internal static NullOutOfProcessServer CreateNullOutOfProcessServer() => new();
+        internal static NullOutOfProcessServer CreateNullOutOfProcessServer() => new NullOutOfProcessServer();
 
-        internal static QuitCommand CreateQuitCommand() => new();
+        internal static QuitCommand CreateQuitCommand() => new QuitCommand();
 
         internal static Applications.Events.EventProperties CreateEventProperties(int seed)
         {
-            Applications.Events.EventProperties eventProperties = new();
+            Applications.Events.EventProperties eventProperties = new Applications.Events.EventProperties();
             eventProperties.Name = $"eventName{seed}";
             eventProperties.SetProperty("stringProp", $"stringPropValue{seed}");
             eventProperties.SetProperty("stringMultilineProp", $"line1_{seed}\r\nline2\r\nline3");
@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
         }
 
         internal static LogEventCommand CreateLogEventCommand(int seed) =>
-            new(CreateEventProperties(seed));
+            new LogEventCommand(CreateEventProperties(seed));
 
         internal static IEnumerable<LogEventCommand> CreateLogEventCommands()
         {
