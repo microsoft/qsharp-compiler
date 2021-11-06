@@ -120,7 +120,9 @@ namespace Microsoft.Quantum.Telemetry
             EnableTelemetryExceptions = GetEnableTelemetryExceptions();
             TelemetryOptOut = GetTelemetryOptOut(configuration);
             IsOutOfProcessInstance = args?.Contains(OUTOFPROCESSUPLOADARG) == true;
-            TestMode = (args?.Contains(TESTMODE) == true) || configuration.TestMode;
+            TestMode = (args?.Contains(TESTMODE) == true)
+                       || configuration.TestMode
+                       || "1".Equals(Environment.GetEnvironmentVariable(Configuration.EnableTelemetryTestVariableName));
 
             CheckAndRunSafe(
                 () =>
