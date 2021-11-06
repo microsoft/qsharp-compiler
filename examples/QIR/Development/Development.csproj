@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <BuildOutputPath>$(MSBuildThisFileDirectory)build</BuildOutputPath>
     <ExecutablePath>$(BuildOutputPath)\$(MSBuildProjectName)</ExecutablePath>
   </PropertyGroup>
@@ -26,7 +26,7 @@
 
   <PropertyGroup>
     <CSharpGeneration>false</CSharpGeneration>
-    <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
+    <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/net6.0/qsc.dll</QscExe>
     <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) QirOutputPath:"qir"</_QscCommandPredefinedAssemblyProperties>
   </PropertyGroup>
 
