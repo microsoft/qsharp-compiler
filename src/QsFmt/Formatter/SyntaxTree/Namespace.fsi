@@ -73,9 +73,7 @@ type internal TypeDeclaration =
         /// The attributes attached to the type declaration.
         Attributes: Attribute list
 
-        /// <summary>
-        /// The <c>internal</c> keyword.
-        /// </summary>
+        /// The access modifier for the callable.
         Access: Terminal option
 
         /// <summary>
