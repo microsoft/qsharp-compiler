@@ -136,6 +136,7 @@
     <ItemGroup>
       <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
       <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.hpp" />
+      <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.h" />
     </ItemGroup>
     <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
