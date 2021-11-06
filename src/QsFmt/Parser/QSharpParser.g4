@@ -22,7 +22,7 @@ qualifiedName : Identifier ('.' Identifier)*;
 
 namespaceElement
     : directive=openDirective # OpenElement
-    | typeDeclaration # TypeElement
+    | typeDecl=typeDeclaration # TypeElement
     | callable=callableDeclaration # CallableElement
     ;
 
@@ -40,7 +40,9 @@ declarationPrefix : attributes+=attribute* access?;
 
 // Type Declaration
 
-typeDeclaration : declarationPrefix 'newtype' Identifier '=' underlyingType ';';
+typeDeclaration
+    : prefix=declarationPrefix keyword='newtype' declared=Identifier equals='=' underlying=underlyingType semicolon=';'
+    ;
 
 underlyingType
     : typeDeclarationTuple

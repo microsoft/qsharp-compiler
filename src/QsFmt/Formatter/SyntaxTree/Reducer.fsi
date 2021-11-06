@@ -42,6 +42,12 @@ type internal 'result Reducer =
     default OpenDirective: directive:OpenDirective -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="TypeDeclaration"/> node.
+    /// </summary>
+    abstract TypeDeclaration: declaration:TypeDeclaration -> 'result
+    default TypeDeclaration: declaration:TypeDeclaration -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="Attribute"/> node.
     /// </summary>
     abstract Attribute: attribute:Attribute -> 'result

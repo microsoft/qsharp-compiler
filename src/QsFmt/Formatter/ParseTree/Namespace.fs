@@ -156,6 +156,19 @@ type NamespaceItemVisitor(tokens) =
         }
         |> OpenDirective
 
+    override _.VisitTypeElement context =
+        {
+            Attributes =
+                context.typeDecl.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> Seq.toList
+            Access = context.typeDecl.prefix.access () |> Option.ofObj |> Option.map (Node.toUnknown tokens)
+            NewtypeKeyword = context.typeDecl.keyword |> Node.toTerminal tokens
+            DeclaredType = context.typeDecl.declared |> Node.toTerminal tokens
+            Equals = context.typeDecl.equals |> Node.toTerminal tokens
+            UnderlyingType = context.typeDecl.underlying |> Node.toUnknown tokens
+            Semicolon = context.typeDecl.semicolon |> Node.toTerminal tokens
+        }
+        |> TypeDeclaration
+
     override _.VisitCallableElement context =
         {
             Attributes =

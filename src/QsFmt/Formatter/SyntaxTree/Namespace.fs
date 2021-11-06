@@ -31,6 +31,17 @@ type OpenDirective =
         Semicolon: Terminal
     }
 
+type TypeDeclaration =
+    {
+        Attributes: Attribute list
+        Access: Terminal option
+        NewtypeKeyword: Terminal
+        DeclaredType: Terminal
+        Equals: Terminal
+        UnderlyingType: Terminal
+        Semicolon: Terminal
+    }
+
 type CallableBody =
     | Statements of Statement Block
     | Specializations of Specialization Block
@@ -50,6 +61,7 @@ type CallableDeclaration =
 
 type NamespaceItem =
     | OpenDirective of OpenDirective
+    | TypeDeclaration of TypeDeclaration
     | CallableDeclaration of CallableDeclaration
     | Unknown of Terminal
 
@@ -59,6 +71,12 @@ module NamespaceItem =
         | OpenDirective openDirective ->
             { openDirective with OpenKeyword = Terminal.mapPrefix mapper openDirective.OpenKeyword }
             |> OpenDirective
+        | TypeDeclaration declaration ->
+            match declaration.Attributes, declaration.Access with
+            | head :: tail, _ -> { declaration with Attributes = Attribute.mapPrefix mapper head :: tail }
+            | [], Some access -> { declaration with Access = Terminal.mapPrefix mapper access |> Some }
+            | [], None -> { declaration with NewtypeKeyword = Terminal.mapPrefix mapper declaration.NewtypeKeyword }
+            |> TypeDeclaration
         | CallableDeclaration callable ->
             { callable with
                 CallableKeyword = Terminal.mapPrefix mapper callable.CallableKeyword

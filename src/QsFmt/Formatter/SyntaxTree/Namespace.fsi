@@ -67,6 +67,37 @@ type internal OpenDirective =
         Semicolon: Terminal
     }
 
+/// A type declaration
+type internal TypeDeclaration =
+    {
+        /// The attributes attached to the type declaration.
+        Attributes: Attribute list
+
+        /// <summary>
+        /// The <c>internal</c> keyword.
+        /// </summary>
+        Access: Terminal option
+
+        /// <summary>
+        /// The <c>newtype</c> keyword.
+        /// </summary>
+        NewtypeKeyword: Terminal
+
+        /// The name of the declared type.
+        DeclaredType: Terminal
+
+        /// <summary>
+        /// The <c>=</c> symbol.
+        /// </summary>
+        Equals: Terminal
+
+        /// The underlying type.
+        UnderlyingType: Terminal
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
 /// The body of a callable declaration.
 type internal CallableBody =
     /// An implicit body specialization with statements.
@@ -113,6 +144,9 @@ type internal CallableDeclaration =
 type internal NamespaceItem =
     /// An open directive
     | OpenDirective of OpenDirective
+
+    /// A type declaration
+    | TypeDeclaration of TypeDeclaration
 
     /// A callable declaration
     | CallableDeclaration of CallableDeclaration
