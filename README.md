@@ -42,7 +42,7 @@ dotnet build MyProject.csproj
 If your project builds successfully, edit the project file in the text editor to add the following project property, adjusting the path as needed:
 ```
   <PropertyGroup>
-    <QscExe>dotnet $(MSBuildThisFileDirectory)src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
+    <QscExe>dotnet $(MSBuildThisFileDirectory)src/QsCompiler/CommandLineTool/bin/$(Configuration)/net6.0/qsc.dll</QscExe>
   </PropertyGroup>
 ```
 To confirm that indeed the locally built compiler version is used, you can edit `Run<T>` in your local [Project.cs](./src/QsCompiler/CommandLineTool/Program.cs) file to include the following line:

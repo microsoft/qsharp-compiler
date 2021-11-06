@@ -7,7 +7,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll"</QscExe>
+    <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/net6.0/qsc.dll"</QscExe>
   </PropertyGroup>
 
   <Target Name="RecompileOnChange">
