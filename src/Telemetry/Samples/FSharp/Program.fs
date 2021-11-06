@@ -157,5 +157,5 @@ let main args =
 
         // Not recommended for production code.
         // This is only for debugging purposes of this sample program.
-        printfn $"UnhandledException:  {ex}"
+        printfn "UnhandledException:  %s" (ex.ToString())
         -1
