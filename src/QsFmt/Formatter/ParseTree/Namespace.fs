@@ -132,6 +132,47 @@ type CallableBodyVisitor(tokens) =
         }
         |> Specializations
 
+type UnderlyingTypeVistor(tokens) =
+    inherit QSharpParserBaseVisitor<UnderlyingType>()
+
+    override _.DefaultResult = failwith "Unknown underlying type."
+
+    override visitor.VisitTupleUnderlyingType context =
+        context.typeDeclarationTuple () |> visitor.Visit
+
+    override _.VisitOtherUnderlyingType context =
+        context.``type`` () |> (TypeVisitor tokens).Visit |> Type
+
+    override _.VisitTypeDeclarationTuple context =
+        let parameters = context._items |> Seq.map (TypeTupleItemVistor tokens).Visit
+        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+
+        {
+            OpenParen = context.openParen |> Node.toTerminal tokens
+            Items = Node.tupleItems parameters commas
+            CloseParen = context.closeParen |> Node.toTerminal tokens
+        }
+        |> TypeDeclarationTuple
+
+and TypeTupleItemVistor(tokens) =
+    inherit QSharpParserBaseVisitor<TypeTupleItem>()
+
+    let typeVisitor = TypeVisitor tokens
+
+    override _.DefaultResult = failwith "Unknown type tuple item."
+
+    override visitor.VisitNamedTypeItem context = context.namedItem () |> visitor.Visit
+
+    override _.VisitUnderlyingTypeItem context =
+        context.underlyingType () |> (UnderlyingTypeVistor tokens).Visit |> UnderlyingType
+
+    override _.VisitNamedItem context =
+        {
+            Name = context.name |> Node.toTerminal tokens
+            Type = { Colon = context.colon |> Node.toTerminal tokens; Type = context.itemType |> typeVisitor.Visit }
+        }
+        |> TypeBinding
+
 /// <summary>
 /// Creates syntax tree <see cref="NamespaceItem"/> nodes from a parse tree and the list of tokens.
 /// </summary>
@@ -164,7 +205,7 @@ type NamespaceItemVisitor(tokens) =
             NewtypeKeyword = context.typeDecl.keyword |> Node.toTerminal tokens
             DeclaredType = context.typeDecl.declared |> Node.toTerminal tokens
             Equals = context.typeDecl.equals |> Node.toTerminal tokens
-            UnderlyingType = context.typeDecl.underlying |> Node.toUnknown tokens
+            UnderlyingType = context.typeDecl.underlying |> (UnderlyingTypeVistor tokens).Visit
             Semicolon = context.typeDecl.semicolon |> Node.toTerminal tokens
         }
         |> TypeDeclaration

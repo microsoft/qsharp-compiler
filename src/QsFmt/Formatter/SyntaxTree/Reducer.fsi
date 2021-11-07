@@ -54,6 +54,18 @@ type internal 'result Reducer =
     default Attribute: attribute:Attribute -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="UnderlyingType"/> node.
+    /// </summary>
+    abstract UnderlyingType: underlying:UnderlyingType -> 'result
+    default UnderlyingType: underlying:UnderlyingType -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="TypeTupleItem"/> node.
+    /// </summary>
+    abstract TypeTupleItem: item:TypeTupleItem -> 'result
+    default TypeTupleItem: item:TypeTupleItem -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="CallableDeclaration"/> node.
     /// </summary>
     abstract CallableDeclaration: callable:CallableDeclaration -> 'result

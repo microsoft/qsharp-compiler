@@ -52,7 +52,7 @@ type 'context Rewriter() =
             NewtypeKeyword = rewriter.Terminal(context, declaration.NewtypeKeyword)
             DeclaredType = rewriter.Terminal(context, declaration.DeclaredType)
             Equals = rewriter.Terminal(context, declaration.Equals)
-            UnderlyingType = rewriter.Terminal(context, declaration.UnderlyingType)
+            UnderlyingType = rewriter.UnderlyingType(context, declaration.UnderlyingType)
             Semicolon = rewriter.Terminal(context, declaration.Semicolon)
         }
 
@@ -63,6 +63,20 @@ type 'context Rewriter() =
             At = rewriter.Terminal(context, attribute.At)
             Expression = rewriter.Expression(context, attribute.Expression)
         }
+
+    abstract UnderlyingType : context: 'context * underlying: UnderlyingType -> UnderlyingType
+
+    default rewriter.UnderlyingType(context, underlying) =
+        match underlying with
+        | TypeDeclarationTuple tuple -> rewriter.Tuple(context, rewriter.TypeTupleItem, tuple) |> TypeDeclarationTuple
+        | Type _type -> rewriter.Type(context, _type) |> Type
+
+    abstract TypeTupleItem : context: 'context * item: TypeTupleItem -> TypeTupleItem
+
+    default rewriter.TypeTupleItem(context, item) =
+        match item with
+        | TypeBinding binding -> rewriter.ParameterDeclaration(context, binding) |> TypeBinding
+        | UnderlyingType underlying -> rewriter.UnderlyingType(context, underlying) |> UnderlyingType
 
     abstract CallableDeclaration : context: 'context * callable: CallableDeclaration -> CallableDeclaration
 

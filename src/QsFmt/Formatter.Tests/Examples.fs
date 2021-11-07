@@ -62,7 +62,7 @@ let ``Adds newlines and indents`` =
 let ``Removes extraneous spaces`` =
     """namespace     Foo {
     open qualified.name     as qn;
-    internal newtype InternalType     = Unit;
+    internal newtype Complex = (Real:     Double, Imaginary : Double);
     function Bar() : Int [     ] {
         let x= // Newlines are preserved.
             (7 *   1) // Comments too.
@@ -74,7 +74,7 @@ let ``Removes extraneous spaces`` =
 
     """namespace Foo {
     open qualified.name as qn;
-    internal newtype InternalType = Unit;
+    internal newtype Complex = (Real: Double, Imaginary : Double);
     function Bar() : Int [ ] {
         let x = // Newlines are preserved.
             (7 * 1) // Comments too.

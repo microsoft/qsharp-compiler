@@ -45,15 +45,15 @@ typeDeclaration
     ;
 
 underlyingType
-    : typeDeclarationTuple
-    | type
+    : typeDeclarationTuple # TupleUnderlyingType
+    | type # OtherUnderlyingType
     ;
 
-typeDeclarationTuple : '(' (typeTupleItem (',' typeTupleItem)*)? ')';
+typeDeclarationTuple : openParen='(' (items+=typeTupleItem (commas+=',' items+=typeTupleItem)*)? closeParen=')';
 
 typeTupleItem
-    : namedItem
-    | underlyingType
+    : namedItem # NamedTypeItem
+    | underlyingType # UnderlyingTypeItem
     ;
 
 namedItem : name=Identifier colon=':' itemType=type;

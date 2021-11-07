@@ -50,6 +50,18 @@ type internal 'context Rewriter =
     default Attribute: context:'context * attribute:Attribute -> Attribute
 
     /// <summary>
+    /// Rewrites an <see cref="UnderlyingType"/> node.
+    /// </summary>
+    abstract UnderlyingType: context:'context * underlying:UnderlyingType -> UnderlyingType
+    default UnderlyingType: context:'context * underlying:UnderlyingType -> UnderlyingType
+
+    /// <summary>
+    /// Rewrites an <see cref="TypeTupleItem"/> node.
+    /// </summary>
+    abstract TypeTupleItem: context:'context * item:TypeTupleItem -> TypeTupleItem
+    default TypeTupleItem: context:'context * item:TypeTupleItem -> TypeTupleItem
+
+    /// <summary>
     /// Rewrites a <see cref="CallableDeclaration"/> node.
     /// </summary>
     abstract CallableDeclaration: context:'context * callable:CallableDeclaration -> CallableDeclaration

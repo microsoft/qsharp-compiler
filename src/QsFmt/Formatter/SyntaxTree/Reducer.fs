@@ -54,7 +54,7 @@ type internal 'result Reducer() as reducer =
               reducer.Terminal declaration.NewtypeKeyword
               reducer.Terminal declaration.DeclaredType
               reducer.Terminal declaration.Equals
-              reducer.Terminal declaration.UnderlyingType
+              reducer.UnderlyingType declaration.UnderlyingType
               reducer.Terminal declaration.Semicolon
           ]
         |> reduce
@@ -63,6 +63,20 @@ type internal 'result Reducer() as reducer =
 
     default _.Attribute attribute =
         [ reducer.Terminal attribute.At; reducer.Expression attribute.Expression ] |> reduce
+
+    abstract UnderlyingType : underlying: UnderlyingType -> 'result
+
+    default _.UnderlyingType underlying =
+        match underlying with
+        | TypeDeclarationTuple tuple -> reducer.Tuple(reducer.TypeTupleItem, tuple)
+        | Type _type -> reducer.Type _type
+
+    abstract TypeTupleItem : item: TypeTupleItem -> 'result
+
+    default _.TypeTupleItem item =
+        match item with
+        | TypeBinding binding -> reducer.ParameterDeclaration binding
+        | UnderlyingType underlying -> reducer.UnderlyingType underlying
 
     abstract CallableDeclaration : callable: CallableDeclaration -> 'result
 

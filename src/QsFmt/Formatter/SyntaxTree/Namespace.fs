@@ -31,6 +31,14 @@ type OpenDirective =
         Semicolon: Terminal
     }
 
+type internal UnderlyingType =
+    | TypeDeclarationTuple of TypeTupleItem Tuple
+    | Type of Type
+
+and internal TypeTupleItem =
+    | TypeBinding of ParameterDeclaration
+    | UnderlyingType of UnderlyingType
+
 type TypeDeclaration =
     {
         Attributes: Attribute list
@@ -38,7 +46,7 @@ type TypeDeclaration =
         NewtypeKeyword: Terminal
         DeclaredType: Terminal
         Equals: Terminal
-        UnderlyingType: Terminal
+        UnderlyingType: UnderlyingType
         Semicolon: Terminal
     }
 

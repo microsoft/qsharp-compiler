@@ -67,6 +67,22 @@ type internal OpenDirective =
         Semicolon: Terminal
     }
 
+/// The underlying type of a newly defined type.
+type internal UnderlyingType =
+    /// A tuple of type items.
+    | TypeDeclarationTuple of TypeTupleItem Tuple
+
+    /// A simple type.
+    | Type of Type
+
+/// An item used in type declaration.
+and internal TypeTupleItem =
+    /// A named type item.
+    | TypeBinding of ParameterDeclaration
+
+    /// An anonymous type item.
+    | UnderlyingType of UnderlyingType
+
 /// A type declaration
 type internal TypeDeclaration =
     {
@@ -90,7 +106,7 @@ type internal TypeDeclaration =
         Equals: Terminal
 
         /// The underlying type.
-        UnderlyingType: Terminal
+        UnderlyingType: UnderlyingType
 
         /// The semicolon.
         Semicolon: Terminal
