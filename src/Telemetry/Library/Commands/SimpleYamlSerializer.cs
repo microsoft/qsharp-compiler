@@ -125,12 +125,12 @@ namespace Microsoft.Quantum.Telemetry.Commands
             yield return "";
         }
 
-        public async IAsyncEnumerable<CommandBase> Read(IAsyncEnumerable<string> messages)
+        public IEnumerable<CommandBase> Read(IEnumerable<string> messages)
         {
-            var enumerator = messages.GetAsyncEnumerator();
+            var enumerator = messages.GetEnumerator();
             CommandBase? command = null;
 
-            while (await enumerator.MoveNextAsync())
+            while (enumerator.MoveNext())
             {
                 var line = enumerator.Current;
                 if (line == "")
@@ -168,9 +168,11 @@ namespace Microsoft.Quantum.Telemetry.Commands
                                 command = new SetContextCommand();
                                 break;
                             default:
-                                #if DEBUG
-                                TelemetryManager.LogToDebug($"Unexpected YAML commandType: {commandType}");
-                                #endif
+                                if (TelemetryManager.DebugMode || TelemetryManager.TestMode)
+                                {
+                                    TelemetryManager.LogToDebug($"Unexpected YAML commandType: {commandType}");
+                                }
+
                                 break;
                         }
                     }
@@ -203,9 +205,10 @@ namespace Microsoft.Quantum.Telemetry.Commands
                 }
                 else
                 {
-                    #if DEBUG
-                    TelemetryManager.LogToDebug($"Unexpected YAML string: {line}");
-                    #endif
+                    if (TelemetryManager.DebugMode || TelemetryManager.TestMode)
+                    {
+                        TelemetryManager.LogToDebug($"Unexpected YAML string: {line}");
+                    }
                 }
             }
 
@@ -267,9 +270,11 @@ namespace Microsoft.Quantum.Telemetry.Commands
 
                     break;
                 default:
-                    #if DEBUG
-                    TelemetryManager.LogToDebug($"Unexpected YAML type: {type}");
-                    #endif
+                    if (TelemetryManager.DebugMode || TelemetryManager.TestMode)
+                    {
+                        TelemetryManager.LogToDebug($"Unexpected YAML type: {type}");
+                    }
+
                     break;
             }
         }

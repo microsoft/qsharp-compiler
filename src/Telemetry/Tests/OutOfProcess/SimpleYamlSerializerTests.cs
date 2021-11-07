@@ -11,33 +11,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
 {
     [TestClass]
-    public class SimpleYamlSerializerTests : CommandsTestCommon
+    public class SimpleYamlSerializerTests : TestCommon
     {
-        private static async IAsyncEnumerable<T> EnumerableToAsyncEnumerable<T>(IEnumerable<T> items, int delayInMilliseconds = 1)
-        {
-            foreach (var item in items)
-            {
-                await Task.Delay(delayInMilliseconds);
-                yield return item;
-            }
-        }
-
-        private static IAsyncEnumerable<string> EnumerableToAsyncEnumerable(string text, int delayInMilliseconds = 1) =>
-            EnumerableToAsyncEnumerable(text.Split(new string[] { "\r\n", "\r", "\r", "\n" }, int.MaxValue, StringSplitOptions.None));
-
-        private static async Task<IEnumerable<T>> AsyncEnumerableToEnumerable<T>(IAsyncEnumerable<T> items)
-        {
-            List<T> result = new List<T>();
-            await foreach (var item in items)
-            {
-                result.Add(item);
-            }
-
-            return result;
-        }
+        private static IEnumerable<string> StringToEnumerable(string text, int delayInMilliseconds = 1) =>
+            text.Split(new string[] { "\r\n", "\r", "\r", "\n" }, int.MaxValue, StringSplitOptions.None);
 
         [TestMethod]
-        public async Task TestSimpleYamlSerializerSingleCommand()
+        public void TestSimpleYamlSerializerSingleCommand()
         {
             var yamlSerializer = new SimpleYamlSerializer();
 
@@ -45,8 +25,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
 
             var serializedResults = yamlSerializer.Write(command).ToList();
             var serializedText = string.Join(System.Environment.NewLine, serializedResults);
-            var deserializedResults = yamlSerializer.Read(EnumerableToAsyncEnumerable(serializedResults));
-            var commandResults = (await AsyncEnumerableToEnumerable(deserializedResults)).ToList();
+            var commandResults = yamlSerializer.Read(serializedResults).ToList();
 
             // Test that the deserialized command is equal to the serialized one
             Assert.AreEqual(1, commandResults.Count());
@@ -77,8 +56,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
     longProp: !Long 123
     boolPropPii: !Boolean+Pii True
 ";
-            deserializedResults = yamlSerializer.Read(EnumerableToAsyncEnumerable(unexpectedCommandType));
-            commandResults = (await AsyncEnumerableToEnumerable(deserializedResults)).ToList();
+            commandResults = yamlSerializer.Read(StringToEnumerable(unexpectedCommandType)).ToList();
             Assert.AreEqual(0, commandResults.Count);
 
             var unexpectedLines =
@@ -96,6 +74,10 @@ another line to ignore
     doubleProp: !Double 123.123
     dateTimeProp: !DateTime 8/12/2021 8:09:10 AM
 
+!@#$#@$$@#!#!@#!@#!@#!@#
+%$#@$ Trash Data
+%ˆ#%@#!@#!3
+
 - command: !LogEvent
     __name__: !String eventName1
   yet another line to ignore
@@ -107,9 +89,9 @@ another line to ignore
     __name__: !String consecutiveEvent2
 
 ";
-            deserializedResults = yamlSerializer.Read(EnumerableToAsyncEnumerable(unexpectedLines));
-            var logEventCommandResults = (await AsyncEnumerableToEnumerable(deserializedResults))
-                .OfType<LogEventCommand>().ToList();
+            var logEventCommandResults = yamlSerializer.Read(StringToEnumerable(unexpectedLines))
+                                                       .OfType<LogEventCommand>()
+                                                       .ToList();
             Assert.AreEqual(4, logEventCommandResults.Count);
 
             Assert.AreEqual("eventName0", logEventCommandResults[0].Args.Name);
@@ -125,7 +107,7 @@ another line to ignore
         }
 
         [TestMethod]
-        public async Task TestSimpleYamlSerializerMultipleCommands()
+        public void TestSimpleYamlSerializerMultipleCommands()
         {
             var yamlSerializer = new SimpleYamlSerializer();
 
@@ -135,14 +117,9 @@ another line to ignore
             commands.Add(new QuitCommand());
 
             var serializedResults = yamlSerializer.Write(commands).ToList();
-            var deserializedResults = yamlSerializer.Read(EnumerableToAsyncEnumerable(serializedResults));
-            var commandResults = (await AsyncEnumerableToEnumerable(deserializedResults)).ToList();
+            var commandResults = yamlSerializer.Read(serializedResults).ToList();
 
-            Assert.AreEqual(commands.Count, commandResults.Count);
-            for (int i = 0; i < commands.Count; i++)
-            {
-                Assert.AreEqual(commands[i], commandResults[i]);
-            }
+            CollectionAssert.AreEqual(commands, commandResults);
         }
     }
 }

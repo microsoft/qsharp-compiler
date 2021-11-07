@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telemetry", "Library\Teleme
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{D0BCADBC-2099-48E0-AC89-58C30BB753B7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OutOfProcessExe", "Tests.OutOfProcessExe\OutOfProcessExe.csproj", "{742A7A7F-D741-4CE6-892A-23820E563955}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -74,6 +76,18 @@ Global
 		{D0BCADBC-2099-48E0-AC89-58C30BB753B7}.Release|x64.Build.0 = Release|Any CPU
 		{D0BCADBC-2099-48E0-AC89-58C30BB753B7}.Release|x86.ActiveCfg = Release|Any CPU
 		{D0BCADBC-2099-48E0-AC89-58C30BB753B7}.Release|x86.Build.0 = Release|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Debug|x64.Build.0 = Debug|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Debug|x86.Build.0 = Debug|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Release|Any CPU.Build.0 = Release|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Release|x64.ActiveCfg = Release|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Release|x64.Build.0 = Release|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Release|x86.ActiveCfg = Release|Any CPU
+		{742A7A7F-D741-4CE6-892A-23820E563955}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A9B0A2A6-903D-41C6-B492-0337F5921861} = {681CBC8F-F4BA-4641-9D3E-CA08B92DE15D}

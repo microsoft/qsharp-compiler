@@ -217,6 +217,9 @@ dotnet test
 #### Test coverage report
 
 ```powershell
+# Restore the dotnet-reportgenerator-cli tool
+dotnet tool restore
+
 ./build/test-coverage.ps1
 ```
 
@@ -226,7 +229,7 @@ dotnet test
 
 ```powershell
 dotnet tool install -g fantomas-tool
-dotnet tool restore --configfile .\Nuget.config
+dotnet tool restore
 ```
 
 2. Run Fantomas while developing F# code

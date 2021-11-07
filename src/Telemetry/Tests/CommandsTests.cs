@@ -11,7 +11,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Microsoft.Quantum.Telemetry.Tests
 {
     [TestClass]
-    public class CommandsTests : CommandsTestCommon
+    public class CommandsTests : TestCommon
     {
         [TestMethod]
         public void TestLogEventCommand()

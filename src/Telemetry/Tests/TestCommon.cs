@@ -3,12 +3,17 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using Microsoft.Quantum.Telemetry.Commands;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+[assembly: Parallelize(Workers = 1, Scope = ExecutionScope.MethodLevel)]
 
 namespace Microsoft.Quantum.Telemetry.Tests
 {
-    public class CommandsTestCommon
+    public class TestCommon
     {
         internal class NullOutOfProcessServer : ICommandProcessor
         {
@@ -86,6 +91,25 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 new SetContextArgs("commonLongPii", 123L, TelemetryPropertyType.Long, true),
             };
             return setContextArgs.Select((args) => new SetContextCommand(args));
+        }
+
+        internal static string GetOutOfProcessExecutablePath()
+        {
+            var binPath = Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location)!;
+            var exePath = Path.Combine(binPath, "outofprocess.exe");
+            var dllPath = Path.Combine(binPath, "outofprocess.dll");
+
+            if (File.Exists(exePath))
+            {
+                return exePath;
+            }
+
+            if (File.Exists(dllPath))
+            {
+                return dllPath;
+            }
+
+            throw new FileNotFoundException("Couldn't find outofprocess.dll or outofprocess.exe");
         }
     }
 }

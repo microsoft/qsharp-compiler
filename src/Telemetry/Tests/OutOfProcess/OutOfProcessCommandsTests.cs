@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Applications.Events;
 using Microsoft.Quantum.Telemetry.OutOfProcess;
@@ -12,7 +11,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
 {
     [TestClass]
-    public class OutOfProcessTests : CommandsTestCommon
+    public class OutOfProcessTests : TestCommon
     {
         internal class ExternalProcessMock : IExternalProcessConnector
         {
@@ -37,15 +36,43 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
             {
                 this.IsRunning = false;
             }
+
+            public void Kill()
+            {
+                this.IsRunning = false;
+            }
         }
 
         [TestMethod]
-        public async Task TestOutOfProcessClientAndServer()
+        public void TestOutOfProcessExecutable()
         {
-            TelemetryManagerConfig telemetryManagerConfig = new TelemetryManagerConfig();
-            telemetryManagerConfig.OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero;
-            telemetryManagerConfig.OutOfProcessMaxIdleTime = TimeSpan.FromSeconds(10);
-            telemetryManagerConfig.TestMode = true;
+            var outOfProcessExecutablePath = TestCommon.GetOutOfProcessExecutablePath();
+
+            TelemetryManagerConfig telemetryManagerConfig = new TelemetryManagerConfig()
+            {
+                OutOfProcessExecutablePath = outOfProcessExecutablePath,
+                OutOfProcessUpload = true,
+                TestMode = true,
+            };
+
+            string[] args = new string[0];
+            using (TelemetryManager.Initialize(telemetryManagerConfig, args))
+            {
+                TelemetryManager.LogEvent("MyEvent1");
+                TelemetryManager.LogEvent("break");
+                TelemetryManager.LogEvent("MyEvent2");
+            }
+        }
+
+        [TestMethod]
+        public void TestOutOfProcessClientAndServer()
+        {
+            TelemetryManagerConfig telemetryManagerConfig = new TelemetryManagerConfig()
+            {
+                OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero,
+                OutOfProcessMaxIdleTime = TimeSpan.FromSeconds(10),
+                TestMode = true,
+            };
 
             using var clientToServerStream = new MemoryStream();
             using var serverToClientStream = new MemoryStream();
@@ -88,7 +115,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
             using (TelemetryManager.Initialize(telemetryManagerConfig))
             {
                 OutOfProcessServer outOfProcessServer = new OutOfProcessServer(telemetryManagerConfig, serverInputTextReader);
-                await outOfProcessServer.RunAndExitAsync();
+                outOfProcessServer.RunAndExit();
             }
         }
     }

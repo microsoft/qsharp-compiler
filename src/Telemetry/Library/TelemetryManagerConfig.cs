@@ -70,6 +70,8 @@ namespace Microsoft.Quantum.Telemetry
         /// </summary>
         public string EnableTelemetryExceptionsVariableName { get; set; } = "ENABLE_QDK_TELEMETRY_EXCEPTIONS";
 
+        public bool EnableTelemetryExceptions { get; set; }
+
         /// <summary>
         /// Await up to X milliseconds for the telemetry
         /// to get uploaded before tearing down.
@@ -106,6 +108,8 @@ namespace Microsoft.Quantum.Telemetry
         /// we don't want to add additional runtime just for the sake of uploading telemetry data.
         /// </summary>
         public bool OutOfProcessUpload { get; set; } = false;
+
+        public string? OutOfProcessExecutablePath { get; set; }
 
         public Type OutOfProcessSerializerType { get; set; } = typeof(SimpleYamlSerializer);
 

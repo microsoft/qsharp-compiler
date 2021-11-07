@@ -11,6 +11,6 @@ namespace Microsoft.Quantum.Telemetry.Commands
 
         IEnumerable<string> Write(CommandBase command);
 
-        IAsyncEnumerable<CommandBase> Read(IAsyncEnumerable<string> messages);
+        IEnumerable<CommandBase> Read(IEnumerable<string> messages);
     }
 }

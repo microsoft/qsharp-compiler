@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.Applications.Events;
 using Microsoft.Quantum.Telemetry.OutOfProcess;
@@ -72,10 +71,16 @@ namespace Microsoft.Quantum.Telemetry
         public static bool IsOutOfProcessInstance { get; private set; } = false;
 
         /// <summary>
-        /// True if the UNITTESTARG argument was passed during initialization.
+        /// True if the TESTMODE argument was passed during initialization.
         /// This is used for some special cases of running unit tests.
         /// </summary>
-        public static bool TestMode { get; private set; } = false;
+        public static bool TestMode => Configuration.TestMode;
+
+        #if DEBUG
+        public static bool DebugMode => true;
+        #else
+        public static bool DebugMode => false;
+        #endif
 
         /// <summary>
         /// Compiler directive ENABLE_QDK_TELEMETRY_EXCEPTIONS or DEBUG will set it to true
@@ -83,7 +88,7 @@ namespace Microsoft.Quantum.Telemetry
         /// True if exceptions generated at the telemetry later should be thrown.
         /// False if they should be silenced and suppressed. They will still be logged at Trace.
         /// </summary>
-        public static bool EnableTelemetryExceptions { get; set; }
+        public static bool EnableTelemetryExceptions => Configuration.EnableTelemetryExceptions;
 
         /// <summary>
         /// The active configuration of the TelemetryManager.
@@ -101,10 +106,12 @@ namespace Microsoft.Quantum.Telemetry
         /// </summary>
         public static bool TelemetryOptOut { get; private set; } = false;
 
+        public static event EventHandler<EventProperties>? OnEventLogged;
+
         static TelemetryManager()
         {
             Configuration = new TelemetryManagerConfig();
-            EnableTelemetryExceptions = GetEnableTelemetryExceptions();
+            Configuration.EnableTelemetryExceptions = GetEnableTelemetryExceptions(false);
         }
 
         /// <summary>
@@ -114,13 +121,19 @@ namespace Microsoft.Quantum.Telemetry
         public static IDisposable Initialize(TelemetryManagerConfig configuration, string[]? args = null)
         {
             InitializationTime = DateTime.Now;
-            Configuration = configuration;
-            EnableTelemetryExceptions = GetEnableTelemetryExceptions();
-            TelemetryOptOut = GetTelemetryOptOut(configuration);
+
             IsOutOfProcessInstance = args?.Contains(OUTOFPROCESSUPLOADARG) == true;
-            TestMode = (args?.Contains(TESTMODE) == true)
-                       || configuration.TestMode
-                       || "1".Equals(Environment.GetEnvironmentVariable(Configuration.EnableTelemetryTestVariableName));
+
+            configuration.OutOfProcessUpload = configuration.OutOfProcessUpload
+                                               || IsOutOfProcessInstance;
+            configuration.TestMode = (args?.Contains(TESTMODE) == true)
+                                     || configuration.TestMode
+                                     || "1".Equals(Environment.GetEnvironmentVariable(Configuration.EnableTelemetryTestVariableName));
+            configuration.EnableTelemetryExceptions = GetEnableTelemetryExceptions(configuration.EnableTelemetryExceptions);
+
+            Configuration = configuration;
+
+            TelemetryOptOut = GetTelemetryOptOut(configuration);
 
             CheckAndRunSafe(
                 () =>
@@ -189,9 +202,10 @@ namespace Microsoft.Quantum.Telemetry
                                               Configuration.MaxTeardownUploadTime).TotalMilliseconds,
             });
 
-            #if DEBUG
-            SubscribeTelemetryEventsForDebugging();
-            #endif
+            if (TestMode || DebugMode)
+            {
+                SubscribeTelemetryEventsForDebugging();
+            }
 
             LogManager.SetTransmitProfile("RealTime");
             tearDownLogManager = true;
@@ -216,9 +230,10 @@ namespace Microsoft.Quantum.Telemetry
                     if (telemetryLogger is OutOfProcessLogger outOfProcessLogger)
                     {
                         outOfProcessLogger.Quit();
-                        #if DEBUG
-                        outOfProcessLogger.AwaitForExternalProcessExit();
-                        #endif
+                        if (DebugMode)
+                        {
+                            outOfProcessLogger.AwaitForExternalProcessExit();
+                        }
                     }
 
                     telemetryLogger = null;
@@ -337,9 +352,12 @@ namespace Microsoft.Quantum.Telemetry
 
                 telemetryLogger!.LogEvent(eventProperties);
 
-                #if DEBUG
-                LogToDebug($"{telemetryLogger!.GetType().Name} logged event {eventProperties.Name}");
-                #endif
+                OnEventLogged?.Invoke(telemetryLogger, eventProperties);
+
+                if (DebugMode || TestMode)
+                {
+                    LogToDebug($"{telemetryLogger!.GetType().Name} logged event {eventProperties.Name}");
+                }
             });
 
         /// <summary>
@@ -394,11 +412,15 @@ namespace Microsoft.Quantum.Telemetry
             }
             catch (Exception exception)
             {
-                Trace.TraceError($"QDK Telemetry error. Exception: {exception.ToString()}");
+                var message = $"QDK Telemetry error. Exception: {exception.ToString()}";
 
-                #if DEBUG
-                LogToDebug($"QDK Telemetry error. Exception: {exception.ToString()}");
-                #endif
+                Trace.TraceError(message);
+                Console.Error.WriteLine(message);
+
+                if (DebugMode || TestMode)
+                {
+                    LogToDebug(message);
+                }
 
                 if (EnableTelemetryExceptions)
                 {
@@ -419,10 +441,8 @@ namespace Microsoft.Quantum.Telemetry
         private static bool GetTelemetryOptOut(TelemetryManagerConfig configuration) =>
             Environment.GetEnvironmentVariable(configuration.TelemetryOptOutVariableName) == "1";
 
-        private static bool GetEnableTelemetryExceptions()
+        private static bool GetEnableTelemetryExceptions(bool enableTelemetryExceptions)
         {
-            var enableTelemetryExceptions = false;
-
             #if ENABLE_QDK_TELEMETRY_EXCEPTIONS || DEBUG
             enableTelemetryExceptions = true;
             #endif
@@ -453,7 +473,6 @@ namespace Microsoft.Quantum.Telemetry
             return value;
         }
 
-        #if DEBUG
         internal static void LogToDebug(string message)
         {
             message = $"{DateTime.Now}: {message}";
@@ -479,6 +498,5 @@ namespace Microsoft.Quantum.Telemetry
                 telemetryEvents.TokenRejected += (sender, e) => LogToDebug($"{e.GetType().Name} {e.EventsCount} {e.RejectedReason} {e.TicketType}");
             }
         }
-        #endif
     }
 }

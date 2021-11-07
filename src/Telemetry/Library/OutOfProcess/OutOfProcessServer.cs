@@ -6,21 +6,20 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Quantum.Telemetry.Commands;
 
 namespace Microsoft.Quantum.Telemetry.OutOfProcess
 {
-    public class OutOfProcessServer : ICommandProcessor
+    public class OutOfProcessServer : ICommandProcessor, IDisposable
     {
-        #if DEBUG
         private DateTime startTime;
-        #endif
         private Stopwatch idleStopwatch = new Stopwatch();
         private TelemetryManagerConfig configuration;
         private ICommandSerializer serializer;
         private TextReader inputTextReader;
-        private bool mustQuit = false;
+        private bool disposedValue;
 
         public OutOfProcessServer(TelemetryManagerConfig configuration, TextReader inputTextReader)
         {
@@ -29,9 +28,9 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             this.inputTextReader = inputTextReader;
         }
 
-        private async IAsyncEnumerable<string> ReadInputLineAsync()
+        private IEnumerable<string> ReadInputLine()
         {
-            while (!this.mustQuit)
+            while (!this.disposedValue)
             {
                 var message = this.inputTextReader.ReadLine();
                 if (message != null)
@@ -40,104 +39,95 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                 }
                 else
                 {
-                    await Task.Delay(this.configuration.OutOfProcessPollWaitTime);
+                    Thread.Sleep(this.configuration.OutOfProcessPollWaitTime);
                 }
             }
         }
 
-        private IAsyncEnumerable<CommandBase> ReceiveCommandsAsync() =>
-            this.serializer.Read(this.ReadInputLineAsync());
+        private IEnumerable<CommandBase> ReceiveCommands() =>
+            this.serializer.Read(this.ReadInputLine());
 
-        private async Task ReceiveAndProcessCommandsAsync()
+        private void ReceiveAndProcessCommands()
         {
-            await foreach (var command in this.ReceiveCommandsAsync())
+            foreach (var command in this.ReceiveCommands())
             {
                 this.ProcessCommand(command);
                 this.idleStopwatch.Restart();
             }
         }
 
-        private async Task QuitIfIdleAsync()
+        private void QuitIfIdleLoop()
         {
-            while (!this.mustQuit
+            while (!this.disposedValue
                    && (this.idleStopwatch.Elapsed < this.configuration.OutOfProcessMaxIdleTime))
             {
-                await Task.Delay(this.configuration.OutOfProcessPollWaitTime);
+                Thread.Sleep(this.configuration.OutOfProcessPollWaitTime);
             }
 
             this.Quit();
         }
 
-        public async Task RunAndExitAsync()
+        public void RunAndExit()
         {
-            #if DEBUG
             this.startTime = DateTime.Now;
-            #endif
+
             try
             {
                 this.idleStopwatch.Restart();
 
-                await Task.WhenAll(
-                    this.QuitIfIdleAsync(),
-                    this.ReceiveAndProcessCommandsAsync());
+                new Thread(this.QuitIfIdleLoop).Start();
+
+                this.ReceiveAndProcessCommands();
             }
-            #if DEBUG
             catch (Exception exception)
             {
-                TelemetryManager.LogToDebug(exception.ToString());
+                if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+                {
+                    TelemetryManager.LogToDebug(exception.ToString());
+                }
             }
-            #else
-            catch
+            finally
             {
+                this.Quit();
             }
-            #endif
         }
-
-        public void RunAndExit() =>
-            this.RunAndExitAsync().Wait();
 
         private void ProcessCommand(CommandBase command)
         {
             try
             {
                 command.Process(this);
-                #if DEBUG
-                TelemetryManager.LogToDebug($"OutOfProcess command processed: {command.CommandType}");
-                #endif
+                if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+                {
+                    TelemetryManager.LogToDebug($"OutOfProcess command processed: {command.CommandType}");
+                }
             }
-            #if DEBUG
             catch (Exception exception)
             {
-                TelemetryManager.LogToDebug($"Error at processing out of process command:{Environment.NewLine}{exception.ToString()}");
+                if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+                {
+                    TelemetryManager.LogToDebug($"Error at processing out of process command: {command.CommandType}{Environment.NewLine}{exception.ToString()}");
+
+                    // In test mode, we can throw an OutOfProcessTestException to simulate an
+                    // unhandled exception in the OutOfProcess server
+                    // See Test.OutProcessExe.Program class.
+                    if ("OutOfProcessTestException".Equals(exception.GetType().Name))
+                    {
+                        throw;
+                    }
+                }
             }
-            #else
-            catch
-            {
-            }
-            #endif
         }
 
         private void Quit()
         {
-            if (!this.mustQuit)
+            this.Dispose();
+
+            // We don't want to exit from the process that is running the unit tests
+            var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
+            if (!string.Equals("testhost", entryAssemblyName, StringComparison.InvariantCultureIgnoreCase))
             {
-                TelemetryManager.UploadNow();
-
-                #if DEBUG
-                var totalRunningTime = DateTime.Now - this.startTime;
-                TelemetryManager.LogToDebug($"Exited. Total running time: {totalRunningTime:G})");
-                #endif
-
-                TelemetryManager.TearDown();
-
-                this.mustQuit = true;
-
-                // We don't want to exit from the process that is running the unit tests
-                var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
-                if (!string.Equals("testhost", entryAssemblyName, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    Environment.Exit(0);
-                }
+                Environment.Exit(0);
             }
         }
 
@@ -153,5 +143,32 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                 command.Args.Value!,
                 command.Args.PropertyType,
                 command.Args.IsPii);
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.disposedValue)
+            {
+                if (disposing)
+                {
+                    TelemetryManager.UploadNow();
+
+                    if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+                    {
+                        var totalRunningTime = DateTime.Now - this.startTime;
+                        TelemetryManager.LogToDebug($"Exited. Total running time: {totalRunningTime:G})");
+                    }
+
+                    TelemetryManager.TearDown();
+                }
+
+                this.disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            this.Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 }

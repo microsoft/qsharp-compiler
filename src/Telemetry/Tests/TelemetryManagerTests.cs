@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Microsoft.FSharp.Core;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -105,6 +104,12 @@ namespace Microsoft.Quantum.Telemetry.Tests
             "Invalid.Name",
             new string('a', 31),
         };
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            TelemetryManager.TearDown();
+        }
 
         [TestMethod]
         public void TestTelemetryManagerConfig()
@@ -207,6 +212,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
             outOfProcessConfig.OutOfProcessUpload = true;
             outOfProcessConfig.OutOfProcessMaxIdleTime = TimeSpan.Zero;
             outOfProcessConfig.OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero;
+            outOfProcessConfig.OutOfProcessExecutablePath = TestCommon.GetOutOfProcessExecutablePath();
             outOfProcessConfig.SendTelemetryInitializedEvent = false;
             outOfProcessConfig.SendTelemetryTearDownEvent = false;
 
