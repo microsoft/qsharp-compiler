@@ -41,6 +41,10 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
             {
                 this.IsRunning = false;
             }
+
+            public void Dispose()
+            {
+            }
         }
 
         [TestMethod]
@@ -58,6 +62,7 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
             string[] args = new string[0];
             using (TelemetryManager.Initialize(telemetryManagerConfig, args))
             {
+                TelemetryManager.Configuration.EnableTelemetryExceptions = false;
                 TelemetryManager.LogEvent("MyEvent1");
                 TelemetryManager.LogEvent("break");
                 TelemetryManager.LogEvent("MyEvent2");

@@ -5,15 +5,12 @@ using System;
 
 namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
 {
-    [System.Serializable]
     public class OutOfProcessTestException : Exception
     {
-        public OutOfProcessTestException() { }
-        public OutOfProcessTestException(string message) : base(message) { }
-        public OutOfProcessTestException(string message, System.Exception inner) : base(message, inner) { }
-        protected OutOfProcessTestException(
-            System.Runtime.Serialization.SerializationInfo info,
-            System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+        public OutOfProcessTestException(string message)
+            : base(message)
+        {
+        }
     }
 
     public class Program
@@ -23,7 +20,11 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
             Console.WriteLine("OutOfProcess.exe: started");
             try
             {
-                var telemetryConfig = new TelemetryManagerConfig();
+                TelemetryManagerConfig telemetryConfig = new TelemetryManagerConfig()
+                {
+                    OutOfProcessUpload = true,
+                    TestMode = true,
+                };
                 TelemetryManager.OnEventLogged += (sender, eventsProperty) =>
                 {
                     if (eventsProperty.Name.EndsWith("_break"))
@@ -32,7 +33,13 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
                         throw new OutOfProcessTestException("Exception thrown on purpose when received an event named 'break'.");
                     }
                 };
-                TelemetryManager.Initialize(telemetryConfig, args);
+
+                using (TelemetryManager.Initialize(telemetryConfig, args))
+                {
+                    TelemetryManager.LogEvent("Event1");
+                    TelemetryManager.LogEvent("break");
+                    TelemetryManager.LogEvent("Event2");
+                }
             }
             finally
             {

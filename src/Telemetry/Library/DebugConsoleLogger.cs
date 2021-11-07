@@ -16,17 +16,7 @@ namespace Microsoft.Quantum.Telemetry
         {
             foreach (var line in this.yamlSerializer.Write(command))
             {
-                // If this is a OutOfProcess instance, we write it to
-                // the standard console such that the main program will
-                // receive it and print it to the Debug console
-                if (TelemetryManager.IsOutOfProcessInstance)
-                {
-                    Console.WriteLine(line);
-                }
-                else
-                {
-                    Debug.WriteLine(line, category: "QDK Telemetry");
-                }
+                TelemetryManager.LogToDebug(line);
             }
 
             return EVTStatus.OK;

@@ -2,9 +2,11 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -13,7 +15,7 @@ using Microsoft.Quantum.Telemetry.Commands;
 
 namespace Microsoft.Quantum.Telemetry.OutOfProcess
 {
-    public interface IExternalProcessConnector
+    public interface IExternalProcessConnector : IDisposable
     {
         TextWriter? InputTextWriter { get; }
 
@@ -31,8 +33,9 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
     internal class DefaultExternalProcessConnector : IExternalProcessConnector
     {
         private TelemetryManagerConfig configuration;
-
         private Process? process;
+        private bool disposedValue;
+        private object instanceLock = new object();
 
         public TextWriter? InputTextWriter => this.process?.StandardInput;
 
@@ -47,7 +50,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             this.configuration = configuration;
         }
 
-        public void Start()
+        private Process StartProcess()
         {
             List<string> arguments = new List<string>();
 
@@ -91,33 +94,82 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                 arguments.Add(TelemetryManager.TESTMODE);
             }
 
-            this.process = Process.Start(new ProcessStartInfo
+            var process = new Process()
             {
-                FileName = outOfProcessExecutablePath,
-                Arguments = string.Join(' ', arguments),
-                RedirectStandardInput = true,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden,
-            });
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = outOfProcessExecutablePath,
+                    Arguments = string.Join(' ', arguments),
+                    RedirectStandardInput = true,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    UseShellExecute = false,
+                },
+                EnableRaisingEvents = true,
+            };
+            process.Exited += (sender, e) =>
+            {
+                this.process = null;
+            };
 
+            process.Start();
+
+            return process;
+        }
+
+        public void Start()
+        {
             if (this.process == null)
             {
-                throw new InvalidOperationException($"Unable to start external process {outOfProcessExecutablePath} {arguments}");
+                lock (this.instanceLock)
+                {
+                    if (this.process == null)
+                    {
+                        this.process = this.StartProcess();
+                    }
+                }
             }
         }
 
         public void Kill()
         {
-            this.process?.Kill();
+            try
+            {
+                this.process?.Kill();
+            }
+            catch
+            {
+            }
+
             this.process = null;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this.disposedValue)
+            {
+                if (disposing)
+                {
+                    this.process?.Dispose();
+                }
+
+                this.disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            this.Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 
     public class OutOfProcessLogger : ILogger, IDisposable
     {
         private IExternalProcessConnector externalProcess;
+        private ConcurrentDictionary<Thread, object?>? debugThreads;
         private ICommandSerializer serializer;
         private TelemetryManagerConfig configuration;
         private object instanceLock = new object();
@@ -128,6 +180,11 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             this.configuration = configuration;
             this.serializer = (ICommandSerializer)Activator.CreateInstance(configuration.OutOfProcessSerializerType)!;
             this.externalProcess = externalProcessConnector ?? new DefaultExternalProcessConnector(configuration);
+
+            if (TelemetryManager.DebugMode || configuration.TestMode)
+            {
+                this.debugThreads = new ConcurrentDictionary<Thread, object?>();
+            }
         }
 
         public void AwaitForExternalProcessExit() =>
@@ -145,7 +202,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
 
                         if (TelemetryManager.DebugMode || TelemetryManager.TestMode)
                         {
-                            this.CreateDebugThread();
+                            this.debugThreads!.TryAdd(this.StartDebugThread(), null);
                         }
                     }
                 }
@@ -247,31 +304,45 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         public EVTStatus SetContext(string name, uint value, PiiKind piiKind = PiiKind.None) =>
             this.SetContext(name, (long)value, piiKind);
 
-        private void CreateDebugThread() =>
-            new Thread(this.DebugThreadMethod).Start();
+        private Thread StartDebugThread()
+        {
+            Thread thread = new Thread(this.DebugThreadMethod);
+            thread.Start();
+            return thread;
+        }
 
         private void DebugThreadMethod()
         {
             while (!this.disposedValue
                    && this.externalProcess.OutputTextReader != null)
             {
-                var message = this.externalProcess.OutputTextReader.ReadLine();
-                if (message != null)
+                try
                 {
-                    TelemetryManager.LogToDebug($"OutOfProcessUploader sent: {message}");
-                }
-                else
-                {
-                    Thread.Sleep(TimeSpan.FromSeconds(1));
-
-                    if (!this.externalProcess.IsRunning)
+                    var message = this.externalProcess.OutputTextReader.ReadLine();
+                    if (message != null)
                     {
-                        break;
+                        TelemetryManager.LogToDebug($"OutOfProcessUploader sent: {message}");
                     }
+                    else
+                    {
+                        Thread.Sleep(TimeSpan.FromSeconds(1));
+
+                        if (!this.externalProcess.IsRunning)
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch (Exception exception)
+                {
+                    TelemetryManager.LogToDebug($"OutOfProcessLogger failed to read uploader:{Environment.NewLine}{exception}");
+                    break;
                 }
             }
 
             TelemetryManager.LogToDebug($"OutOfProcessUploader has exited.");
+
+            this.debugThreads?.TryRemove(Thread.CurrentThread, out var _);
         }
 
         protected virtual void Dispose(bool disposing)
@@ -280,9 +351,12 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             {
                 if (disposing)
                 {
+                    this.externalProcess.Dispose();
                 }
 
                 this.disposedValue = true;
+
+                this.debugThreads?.Keys.ToList().ForEach((debugThread) => debugThread.Interrupt());
             }
         }
 

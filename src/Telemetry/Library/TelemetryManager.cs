@@ -476,6 +476,10 @@ namespace Microsoft.Quantum.Telemetry
         internal static void LogToDebug(string message)
         {
             message = $"{DateTime.Now}: {message}";
+
+            // If this is a OutOfProcess instance, we write it to
+            // the standard console such that the main program will
+            // receive it and print it to the Debug console
             if (IsOutOfProcessInstance)
             {
                 Console.WriteLine(message);

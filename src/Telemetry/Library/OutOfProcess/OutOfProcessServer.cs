@@ -19,6 +19,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         private TelemetryManagerConfig configuration;
         private ICommandSerializer serializer;
         private TextReader inputTextReader;
+        private Thread? debugThread;
         private bool disposedValue;
 
         public OutOfProcessServer(TelemetryManagerConfig configuration, TextReader inputTextReader)
@@ -64,6 +65,11 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                 Thread.Sleep(this.configuration.OutOfProcessPollWaitTime);
             }
 
+            if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+            {
+                TelemetryManager.LogToDebug($"Quitting OutOfProcess server due to innactivity ({this.configuration.OutOfProcessMaxIdleTime}).");
+            }
+
             this.Quit();
         }
 
@@ -75,7 +81,12 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             {
                 this.idleStopwatch.Restart();
 
-                new Thread(this.QuitIfIdleLoop).Start();
+                if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+                {
+                    this.debugThread = new Thread(this.QuitIfIdleLoop);
+                    this.debugThread.Priority = ThreadPriority.Lowest;
+                    this.debugThread.Start();
+                }
 
                 this.ReceiveAndProcessCommands();
             }
@@ -162,6 +173,8 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                 }
 
                 this.disposedValue = true;
+
+                this.debugThread?.Interrupt();
             }
         }
 
