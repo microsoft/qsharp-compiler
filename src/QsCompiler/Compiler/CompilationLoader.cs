@@ -529,14 +529,16 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskStart(PerformanceTracking.Task.Build);
             this.compilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
+
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
+            var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
+            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, this.config.RuntimeCapability?.Name);
+            buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, this.config.IsExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
+            buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
+
             var compilationManager = new CompilationUnitManager(
-                this.OnCompilerException,
-                capability: this.config.RuntimeCapability,
-                isExecutable: this.config.IsExecutable,
-                processorArchitecture: string.IsNullOrWhiteSpace(processorArchitecture)
-                    ? "Unspecified"
-                    : processorArchitecture);
+                new ProjectProperties(buildProperties),
+                this.OnCompilerException);
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);
             this.VerifiedCompilation = compilationManager.Build();

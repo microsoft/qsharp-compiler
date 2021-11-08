@@ -176,6 +176,19 @@
       Importance="High" />
   </Target>
 
+  <!-- Invokes the Q# formatting and update tool to update deprecated syntax and common syntax errors. -->
+  <Target Name="UpdateSyntax" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <QSharpSyntaxUpdate Condition="$(QSharpSyntaxUpdate) == ''">$(QsFmtExe) update --qsharp-version $(QuantumSdkVersion) --input </QSharpSyntaxUpdate>
+      <QSharpSyntaxUpdateCommand>$(QSharpSyntaxUpdate) "@(QSharpCompile->'%(FullPath)', '" "')"</QSharpSyntaxUpdateCommand>
+    </PropertyGroup>
+    <Exec Command="$(QSharpSyntaxUpdateCommand)" IgnoreExitCode="true" ContinueOnError="ErrorAndContinue">
+      <Output TaskParameter="ExitCode" PropertyName="QsFmtExitCode"/>
+    </Exec>
+    <Message Importance="low" Text="Invoking QsFmt: $(QSharpSyntaxUpdateCommand)"/>
+    <Message Importance="low" Text="QsFmt command exit code: $(QsFmtExitCode)"/>
+    <Error Text="Q# update tool failed with exit code: $(QsFmtExitCode)." Condition="'$(QsFmtExitCode)' != '0'" />
+  </Target>
 
   <!-- The following targets need to live in this file since they are specifically defined
   anchor the targets that a project may redefine to execute at a certain stage during the build.

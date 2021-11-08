@@ -1,0 +1,13 @@
+# dev-environment.yml
+name: qat-dev
+channels:
+- conda-forge
+dependencies:
+- python>=3.6
+- click # Anything else from requirements.txt could go here, too,
+        # if there's a matching conda package.
+- clang
+- clang-tools # Provides clang-format and clang-tidy
+- pip
+- pip:
+  - lit==12.0.1

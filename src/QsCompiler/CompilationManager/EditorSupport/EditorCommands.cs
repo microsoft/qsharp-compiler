@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <para/>
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </remarks>
-        public static ILookup<string, WorkspaceEdit>? CodeActions(this FileContentManager file, CompilationUnit compilation, Range? range, CodeActionContext? context)
+        public static IEnumerable<(string, WorkspaceEdit)>? CodeActions(this FileContentManager file, CompilationUnit compilation, Range? range, CodeActionContext? context)
         {
             if (range?.Start is null || range.End is null || !file.ContainsRange(range))
             {
@@ -167,8 +167,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(file.IndexRangeSuggestions(compilation, range))
                 .Concat(file.UnreachableCodeSuggestions(diagnostics))
                 .Concat(file.DocCommentSuggestions(range))
-                .Concat(file.BindingSuggestions(compilation, diagnostics))
-                .ToLookup(s => s.Item1, s => s.Item2);
+                .Concat(file.BindingSuggestions(compilation, diagnostics));
         }
 
         /// <summary>
