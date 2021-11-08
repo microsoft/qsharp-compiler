@@ -542,7 +542,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     new[] { sharedState.Context.CreateConstant(0) });
                 var dataArrayPtr = sharedState.CurrentBuilder.BitCast(
                         sizedDataArrayPtr,
-                        sharedState.Types.DataArrayPointer);
+                        sharedState.NativeLlvmTypes.DataArrayPointer);
 
                 var createString = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
                 return sharedState.CurrentBuilder.Call(createString, dataArrayPtr);
@@ -825,24 +825,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 var argList = args.Select(a => a.Value).ToArray();
 
-                // // -----------------
-                // // get the debug location of the function call
-                // DISubProgram? sp = this.SharedState.CurrentFunction?.DISubProgram;
-                // DataTypes.Range? relativeRange = arg.Range.IsNull ? null : arg.Range.Item;
-                // // range is position x position (Start/End) and position is int x int (Line/Column)
-                // QsLocation? namespaceLoc = this.SharedState.DIManager.CurrentNamespaceElementLocation;
-                // // QsLocation is Offset (position) and Range (range)
-                // if (namespaceLoc != null && relativeRange != null && sp != null)
-                // {
-                //     Position position = namespaceLoc.Offset + this.SharedState.DIManager.TotalOffsetFromStatements() + relativeRange.Start;
-                //     this.SharedState.DIManager.EmitLocation((uint)position.Line, (uint)position.Column, sp); // TODO: should be range info for method call not for arguments
-                // }
-                // else
-                // {
-                //     throw new ArgumentException("Expected non-null positions for the expression and namespace and a non-null DISubProgram"); // TODO: can remove this later, just for testing for now
-                // }
-                // // -----------------------
-
                 var res = this.SharedState.CurrentBuilder.Call(func, argList);
                 if (func.Signature.ReturnType.IsVoid)
                 {
@@ -926,8 +908,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (returnType.Resolution.IsUnitType)
             {
                 Value resultTuple = this.SharedState.Constants.UnitValue;
-                // TODO: probs need debug emission here as well
-                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple); // func is to something that invokes the callable Value using the args ad resulting in the resultTuple
+                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple);
                 return this.SharedState.Values.Unit;
             }
             else
@@ -936,25 +917,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
                 TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes);
-
-                // // -----------------
-                // // TODO: turn this into a helper function since it's copied code (also should be in DebugInfoManager)
-                // // get the debug location of the function call
-                // DISubProgram? sp = this.SharedState.CurrentFunction?.DISubProgram;
-                // DataTypes.Range? relativeRange = arg.Range.IsNull ? null : arg.Range.Item;
-                // // range is position x position (Start/End) and position is int x int (Line/Column)
-                // QsLocation? namespaceLoc = this.SharedState.DIManager.CurrentNamespaceElementLocation;
-                // // QsLocation is Offset (position) and Range (range)
-                // if (namespaceLoc != null && relativeRange != null && sp != null)
-                // {
-                //     Position position = namespaceLoc.Offset + this.SharedState.DIManager.TotalOffsetFromStatements() + relativeRange.Start;
-                //     this.SharedState.DIManager.EmitLocation((uint)position.Line, (uint)position.Column, sp);
-                // }
-                // else
-                // {
-                //     throw new ArgumentException("Expected non-null positions for the expression and namespace and a non-null DISubProgram"); // TODO: can remove this later, just for testing for now
-                // }
-                // // -----------------------
 
                 this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer); // RyanQuestion: what is this calling?? params don't match anything
                 return returnType.Resolution.IsTupleType
@@ -1021,7 +983,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // CallableMakeAdjoint and CallableMakeControlled do *not* create a new value
             // but instead modify the given callable in place.
             var applyFunctor = this.SharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
-            // RyanQuestion: Do I need debug info when source code calls built in/intrinsic? If so, they need DISubprograms too then
             this.SharedState.CurrentBuilder.Call(applyFunctor, callable.Value);
             return callable;
         }
@@ -1195,7 +1156,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     new[] { this.SharedState.Context.CreateConstant(0) });
                 var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
                     byteArrayPointer,
-                    this.SharedState.Types.DataArrayPointer);
+                    this.SharedState.NativeLlvmTypes.DataArrayPointer);
                 var res = this.SharedState.CurrentBuilder.Call(createBigInt, n, zeroByteArray);
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
@@ -1485,12 +1446,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f", this.SharedState.Context.DoubleType);
                 var exponent = this.SharedState.CurrentBuilder.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true);
                 var resAsDouble = this.SharedState.CurrentBuilder.Call(powFunc, baseValue, exponent);
-                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.Types.Int);
+                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.NativeLlvmTypes.Int);
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
             {
-                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.pow.f", this.SharedState.Types.Double);
+                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.pow.f", this.SharedState.NativeLlvmTypes.Double);
                 var res = this.SharedState.CurrentBuilder.Call(powFunc, lhs.Value, rhs.Value);
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
@@ -2011,7 +1972,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsPauli)
                 {
                     var pointer = this.SharedState.Constants.PauliI;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pointer);
+                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.NativeLlvmTypes.Pauli, pointer);
                     return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution.IsResult)
@@ -2022,13 +1983,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsQubit)
                 {
-                    var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Qubit);
+                    var value = Constant.ConstPointerToNullFor(this.SharedState.NativeLlvmTypes.Qubit);
                     return this.SharedState.Values.From(value, type);
                 }
                 else if (type.Resolution.IsRange)
                 {
                     var pointer = this.SharedState.Constants.EmptyRange;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Range, pointer);
+                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.NativeLlvmTypes.Range, pointer);
                     return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution is ResolvedTypeKind.TupleType ts)
@@ -2054,7 +2015,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsFunction || type.Resolution.IsOperation)
                 {
-                    var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Callable);
+                    var value = Constant.ConstPointerToNullFor(this.SharedState.NativeLlvmTypes.Callable);
                     return this.SharedState.Values.FromCallable(value, type);
                 }
                 else if (type.Resolution.IsString)
@@ -2085,7 +2046,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         public override ResolvedExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)
-        { // RyanNote: This must be what I was looking for!
+        {
             (TypedExpression, bool, int) StripModifiers(TypedExpression m, bool a, int c) =>
                 m.Expression switch
                 {
@@ -2309,7 +2270,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             IValue LoadPauli(Value pauli)
             {
-                var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pauli);
+                var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.NativeLlvmTypes.Pauli, pauli);
                 var exType = this.SharedState.CurrentExpressionType();
                 return this.SharedState.Values.From(constant, exType);
             }

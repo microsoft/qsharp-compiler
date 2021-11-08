@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the given name as the name of the LLVM value using <see cref="ValueExtensions.RegisterName" />.
         /// Does nothing if a name is already defined for the value.
         /// </summary>
-        internal void RegisterName(string name) //RyanNote: This looks useful
+        internal void RegisterName(string name)
         {
             if (string.IsNullOrEmpty(this.Value.Name))
             {
@@ -252,7 +252,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.customType = type;
             this.ElementTypes = elementTypes;
-            this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
+            this.StructType = this.sharedState.NativeLlvmTypes.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
             this.opaquePointer = this.CreateOpaquePointerCache(this.AllocateTuple(registerWithScopeManager));
             this.typedPointer = this.CreateTypedPointerCache();
             this.tupleElementPointers = this.CreateTupleElementPointersCaches();
@@ -291,7 +291,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.customType = type;
             this.ElementTypes = elementTypes;
-            this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
+            this.StructType = this.sharedState.NativeLlvmTypes.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
             this.opaquePointer = this.CreateOpaquePointerCache(isOpaqueTuple ? tuple : null);
             this.typedPointer = this.CreateTypedPointerCache(isTypedTuple ? tuple : null);
             this.tupleElementPointers = this.CreateTupleElementPointersCaches();
@@ -313,7 +313,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private Value GetOpaquePointer() =>
             this.typedPointer.IsCached
-            ? this.sharedState.CurrentBuilder.BitCast(this.TypedPointer, this.sharedState.Types.Tuple)
+            ? this.sharedState.CurrentBuilder.BitCast(this.TypedPointer, this.sharedState.NativeLlvmTypes.Tuple)
             : throw new InvalidOperationException("tuple pointer is undefined");
 
         private Value GetTypedPointer() =>
@@ -399,7 +399,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public Value Value => this.OpaquePointer;
 
-        public ITypeRef LlvmType => this.sharedState.Types.Array;
+        public ITypeRef LlvmType => this.sharedState.NativeLlvmTypes.Array;
 
         public ResolvedType QSharpType =>
             ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.QSharpElementType));
@@ -553,7 +553,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="captured">All captured values.</param>
         internal CallableValue(ResolvedType callableType, GlobalVariable table, GenerationContext context, ImmutableArray<TypedExpression>? captured = null)
         {
-            this.LlvmType = context.Types.Callable;
+            this.LlvmType = context.NativeLlvmTypes.Callable;
             this.QSharpType = callableType;
 
             // The runtime function CallableCreate creates a new value with reference count 1.
@@ -573,7 +573,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal CallableValue(Value value, ResolvedType type, GenerationContext context)
         {
             this.Value = value;
-            this.LlvmType = context.Types.Callable;
+            this.LlvmType = context.NativeLlvmTypes.Callable;
             this.QSharpType = type;
         }
     }

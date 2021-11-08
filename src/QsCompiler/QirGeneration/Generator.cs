@@ -37,7 +37,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
         public Generator(QsCompilation compilation)
-        : base(new GenerationContext(compilation.Namespaces, compilation.EntryPoints.Length == 0, compilation.EntryPoints), TransformationOptions.NoRebuild)
+        : base(new GenerationContext(compilation.Namespaces, compilation.EntryPoints.Length == 0), TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;
 

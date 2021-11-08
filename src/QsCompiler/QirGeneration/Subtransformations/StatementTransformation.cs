@@ -40,6 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.DIManager.StatementLocationStack.Pop();
             return result;
         }
+
         public override QsScope OnScope(QsScope scope)
         {
             return base.OnScope(scope); // TODO: keep track of location??

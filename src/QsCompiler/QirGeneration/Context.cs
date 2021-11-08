@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// The used QIR types.
         /// </summary>
-        public Types Types { get; }
+        public Types NativeLlvmTypes { get; }
 
         /// <summary>
         /// The used QIR constants.
@@ -181,7 +181,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, ImmutableArray<QsQualifiedName> entryPoints)
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
         {
             this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
@@ -191,10 +191,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.Module = this.Context.CreateBitcodeModule("Demo.qs"); // TODO: get rid of temporary module ID and set it in FinalizeDebugInfo()
             this.DIManager = new DebugInfoManager(this);
-            this.DIManager.AddTopLevelDebugInfo(this.Module, entryPoints);
+            this.DIManager.AddTopLevelDebugInfo(this.Module);
 
-            this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null); // RyanNote: need somethign like this for debug
-            this.Constants = new Constants(this.Context, this.Module, this.Types);
+            this.NativeLlvmTypes = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null); // RyanNote: need somethign like this for debug
+            this.Constants = new Constants(this.Context, this.Module, this.NativeLlvmTypes);
             this.Values = new QirValues(this, this.Constants);
             this.Functions = new Functions(this);
             this.transformation = null; // needs to be set by the instantiating transformation
@@ -275,89 +275,89 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public void InitializeRuntimeLibrary() // RyanNote: Will I need debug info for this?
         {
             // Q# specific helpers
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.HeapAllocate, this.Context.Int8Type.CreatePointerType(), this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.HeapAllocate, this.Context.Int8Type.CreatePointerType(), this.NativeLlvmTypes.Int);
 
             // result library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultGetZero, this.Types.Result);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultGetOne, this.Types.Result);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultUpdateReferenceCount, this.Context.VoidType, this.Types.Result, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultEqual, this.Context.BoolType, this.Types.Result, this.Types.Result);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultGetZero, this.NativeLlvmTypes.Result);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultGetOne, this.NativeLlvmTypes.Result);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultUpdateReferenceCount, this.Context.VoidType, this.NativeLlvmTypes.Result, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultEqual, this.Context.BoolType, this.NativeLlvmTypes.Result, this.NativeLlvmTypes.Result);
 
             // string library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringCreate, this.Types.String, this.Types.DataArrayPointer);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringGetLength, this.Context.Int32Type, this.Types.String);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringGetData, this.Types.DataArrayPointer, this.Types.String);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringUpdateReferenceCount, this.Context.VoidType, this.Types.String, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringConcatenate, this.Types.String, this.Types.String, this.Types.String);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringEqual, this.Context.BoolType, this.Types.String, this.Types.String);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringCreate, this.NativeLlvmTypes.String, this.NativeLlvmTypes.DataArrayPointer);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringGetLength, this.Context.Int32Type, this.NativeLlvmTypes.String);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringGetData, this.NativeLlvmTypes.DataArrayPointer, this.NativeLlvmTypes.String);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringUpdateReferenceCount, this.Context.VoidType, this.NativeLlvmTypes.String, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringConcatenate, this.NativeLlvmTypes.String, this.NativeLlvmTypes.String, this.NativeLlvmTypes.String);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringEqual, this.Context.BoolType, this.NativeLlvmTypes.String, this.NativeLlvmTypes.String);
 
             // to-string conversion functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntToString, this.Types.String, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.DoubleToString, this.Types.String, this.Context.DoubleType);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.IntToString, this.Types.String, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitToString, this.Types.String, this.Types.Qubit);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.RangeToString, this.Types.String, this.Types.Range);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultToString, this.Types.String, this.Types.Result);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntToString, this.NativeLlvmTypes.String, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.DoubleToString, this.NativeLlvmTypes.String, this.Context.DoubleType);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.IntToString, this.NativeLlvmTypes.String, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitToString, this.NativeLlvmTypes.String, this.NativeLlvmTypes.Qubit);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.RangeToString, this.NativeLlvmTypes.String, this.NativeLlvmTypes.Range);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultToString, this.NativeLlvmTypes.String, this.NativeLlvmTypes.Result);
 
             // bigint library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateI64, this.Types.BigInt, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateArray, this.Types.BigInt, this.Context.Int32Type, this.Types.DataArrayPointer);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGetLength, this.Context.Int32Type, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGetData, this.Types.DataArrayPointer, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntUpdateReferenceCount, this.Context.VoidType, this.Types.BigInt, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntNegate, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntAdd, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntSubtract, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntMultiply, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntDivide, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntModulus, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntPower, this.Types.BigInt, this.Types.BigInt, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseAnd, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseOr, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseXor, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseNot, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntShiftLeft, this.Types.BigInt, this.Types.BigInt, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntShiftRight, this.Types.BigInt, this.Types.BigInt, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntEqual, this.Context.BoolType, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGreater, this.Context.BoolType, this.Types.BigInt, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGreaterEq, this.Context.BoolType, this.Types.BigInt, this.Types.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateI64, this.NativeLlvmTypes.BigInt, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateArray, this.NativeLlvmTypes.BigInt, this.Context.Int32Type, this.NativeLlvmTypes.DataArrayPointer);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGetLength, this.Context.Int32Type, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGetData, this.NativeLlvmTypes.DataArrayPointer, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntUpdateReferenceCount, this.Context.VoidType, this.NativeLlvmTypes.BigInt, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntNegate, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntAdd, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntSubtract, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntMultiply, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntDivide, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntModulus, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntPower, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseAnd, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseOr, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseXor, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntBitwiseNot, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntShiftLeft, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntShiftRight, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntEqual, this.Context.BoolType, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGreater, this.Context.BoolType, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGreaterEq, this.Context.BoolType, this.NativeLlvmTypes.BigInt, this.NativeLlvmTypes.BigInt);
 
             // tuple library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCreate, this.Types.Tuple, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateAliasCount, this.Context.VoidType, this.Types.Tuple, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateReferenceCount, this.Context.VoidType, this.Types.Tuple, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCopy, this.Types.Tuple, this.Types.Tuple, this.Context.BoolType);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCreate, this.NativeLlvmTypes.Tuple, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateAliasCount, this.Context.VoidType, this.NativeLlvmTypes.Tuple, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateReferenceCount, this.Context.VoidType, this.NativeLlvmTypes.Tuple, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCopy, this.NativeLlvmTypes.Tuple, this.NativeLlvmTypes.Tuple, this.Context.BoolType);
 
             // array library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCreate1d, this.Types.Array, this.Context.Int32Type, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetElementPtr1d, this.Context.Int8Type.CreatePointerType(), this.Types.Array, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateAliasCount, this.Context.VoidType, this.Types.Array, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateReferenceCount, this.Context.VoidType, this.Types.Array, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array, this.Context.BoolType);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayConcatenate, this.Types.Array, this.Types.Array, this.Types.Array);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice1d, this.Types.Array, this.Types.Array, this.Types.Range, this.Types.Bool);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetSize1d, this.Context.Int64Type, this.Types.Array);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCreate1d, this.NativeLlvmTypes.Array, this.Context.Int32Type, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetElementPtr1d, this.Context.Int8Type.CreatePointerType(), this.NativeLlvmTypes.Array, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateAliasCount, this.Context.VoidType, this.NativeLlvmTypes.Array, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateReferenceCount, this.Context.VoidType, this.NativeLlvmTypes.Array, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.NativeLlvmTypes.Array, this.NativeLlvmTypes.Array, this.Context.BoolType);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayConcatenate, this.NativeLlvmTypes.Array, this.NativeLlvmTypes.Array, this.NativeLlvmTypes.Array);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice1d, this.NativeLlvmTypes.Array, this.NativeLlvmTypes.Array, this.NativeLlvmTypes.Range, this.NativeLlvmTypes.Bool);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetSize1d, this.Context.Int64Type, this.NativeLlvmTypes.Array);
 
             // callable library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCreate, this.Types.Callable, this.Types.CallableTable.CreatePointerType(), this.Types.CallableMemoryManagementTable.CreatePointerType(), this.Types.Tuple);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableInvoke, this.Context.VoidType, this.Types.Callable, this.Types.Tuple, this.Types.Tuple);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.Types.Callable, this.Types.Callable, this.Context.BoolType);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeAdjoint, this.Context.VoidType, this.Types.Callable);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeControlled, this.Context.VoidType, this.Types.Callable);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateAliasCount, this.Context.VoidType, this.Types.Callable, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateReferenceCount, this.Context.VoidType, this.Types.Callable, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CaptureUpdateAliasCount, this.Context.VoidType, this.Types.Callable, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CaptureUpdateReferenceCount, this.Context.VoidType, this.Types.Callable, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCreate, this.NativeLlvmTypes.Callable, this.NativeLlvmTypes.CallableTable.CreatePointerType(), this.NativeLlvmTypes.CallableMemoryManagementTable.CreatePointerType(), this.NativeLlvmTypes.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableInvoke, this.Context.VoidType, this.NativeLlvmTypes.Callable, this.NativeLlvmTypes.Tuple, this.NativeLlvmTypes.Tuple);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.NativeLlvmTypes.Callable, this.NativeLlvmTypes.Callable, this.Context.BoolType);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeAdjoint, this.Context.VoidType, this.NativeLlvmTypes.Callable);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeControlled, this.Context.VoidType, this.NativeLlvmTypes.Callable);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateAliasCount, this.Context.VoidType, this.NativeLlvmTypes.Callable, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateReferenceCount, this.Context.VoidType, this.NativeLlvmTypes.Callable, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CaptureUpdateAliasCount, this.Context.VoidType, this.NativeLlvmTypes.Callable, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CaptureUpdateReferenceCount, this.Context.VoidType, this.NativeLlvmTypes.Callable, this.Context.Int32Type);
 
             // qubit library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocate, this.Types.Qubit);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocateArray, this.Types.Array, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitRelease, this.Context.VoidType, this.Types.Qubit);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitReleaseArray, this.Context.VoidType, this.Types.Array);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocate, this.NativeLlvmTypes.Qubit);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocateArray, this.NativeLlvmTypes.Array, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitRelease, this.Context.VoidType, this.NativeLlvmTypes.Qubit);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitReleaseArray, this.Context.VoidType, this.NativeLlvmTypes.Array);
 
             // diagnostic library functions
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.Fail, this.Context.VoidType, this.Types.String);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.Message, this.Context.VoidType, this.Types.String);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.Fail, this.Context.VoidType, this.NativeLlvmTypes.String);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.Message, this.Context.VoidType, this.NativeLlvmTypes.String);
         }
 
         /// <summary>
@@ -370,7 +370,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public void RegisterQuantumInstructionSet()
         {
             this.quantumInstructionSet.AddFunction(QuantumInstructionSet.DumpMachine, this.Context.VoidType, this.Context.Int8Type.CreatePointerType());
-            this.quantumInstructionSet.AddFunction(QuantumInstructionSet.DumpRegister, this.Context.VoidType, this.Context.Int8Type.CreatePointerType(), this.Types.Array);
+            this.quantumInstructionSet.AddFunction(QuantumInstructionSet.DumpRegister, this.Context.VoidType, this.Context.Int8Type.CreatePointerType(), this.NativeLlvmTypes.Array);
 
             foreach (var c in this.globalCallables.Values)
             {
@@ -605,7 +605,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// generated as declarations with no definition.
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function</param>
-        internal IrFunction RegisterFunction(QsSpecialization spec, ArgumentTuple? argTuple = null)
+        /// <param name="isDefinition">Whether this is a function definition or only a declaration</param>
+        /// <returns>The <see cref="IrFunction"/> that has been registered.</returns>
+        internal IrFunction RegisterFunction(QsSpecialization spec, bool isDefinition)
         {
             var name = NameGeneration.FunctionName(spec.Parent, spec.Kind);
             var returnTypeRef = spec.Signature.ReturnType.Resolution.IsUnitType
@@ -617,7 +619,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
-            return this.DIManager.CreateLocalFunction(spec, name, signature, isDefinition: false, returnTypeRef, argTypeRefs, argTuple); // RyanQuestion: can I assume it's not extern here? (see input to GenerateFunctionHeader) What about local? (see implementation of CreateLocalFunction)
+            return this.DIManager.CreateGlobalFunction(spec, name, signature, isDefinition);
         }
 
         /// <summary>
@@ -625,10 +627,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Specifically, an entry block for the function is created, and the function's arguments are given names.
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function.</param>
+        /// <param name="isDefinition">Whether this is a function definition or only a declaration.</param>
         /// <param name="argTuple">The specialization's argument tuple.</param>
         /// <param name="deconstuctArgument">Whether or not to deconstruct the argument tuple.</param>
         /// <param name="shouldBeExtern">Whether the given specialization should be generated as extern.</param>
-        internal void GenerateFunctionHeader(QsSpecialization spec, ArgumentTuple argTuple, bool deconstuctArgument = true, bool shouldBeExtern = false)
+        internal void GenerateFunctionHeader(QsSpecialization spec, bool isDefinition, ArgumentTuple argTuple, bool deconstuctArgument = true, bool shouldBeExtern = false)
         {
             (string?, ResolvedType)[] ArgTupleToArgItems(ArgumentTuple arg, Queue<(string?, ArgumentTuple)> tupleQueue)
             {
@@ -656,7 +659,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : new[] { LocalVarName(arg) };
             }
 
-            this.CurrentFunction = this.RegisterFunction(spec, argTuple);
+            this.CurrentFunction = this.RegisterFunction(spec, isDefinition);
             this.CurrentFunction.Linkage = shouldBeExtern ? Linkage.External : Linkage.Internal;
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
@@ -748,7 +751,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void GenerateConstructor(QsSpecialization spec, ArgumentTuple argTuple)
         {
-            this.GenerateFunctionHeader(spec, argTuple, deconstuctArgument: false);
+            this.GenerateFunctionHeader(spec, isDefinition: true, argTuple, deconstuctArgument: false);
 
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
@@ -780,7 +783,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal IrFunction GeneratePartialApplication(string name, QsSpecializationKind kind, Action<IReadOnlyList<Argument>> body)
         { // RyanQuestion: What is this for? Does it need debug info?
             var funcName = NameGeneration.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
-            IrFunction func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
+            IrFunction func = this.Module.CreateFunction(funcName, this.NativeLlvmTypes.FunctionSignature);
             func.Linkage = Linkage.Internal;
             this.liftedPartialApplications.Add((func, body));
             return func;
@@ -813,23 +816,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return function;
             }
 
-            // // TODO: remove this; this is hacky because of the mangledName vs name getting used when creating IrFunction
-            // if (this.TryGetGlobalCallable(fullName, out QsCallable? callableH))
-            // {
-            //     var spec = callableH.Specializations.First(spec => spec.Kind == kind);
-            //     if (this.Module.TryGetFunction(spec.Parent.Name, out IrFunction? functionH))
-            //     {
-            //         return functionH;
-            //     }
-            // }
-
-
             // Otherwise, we need to find the function's callable to get the signature,
             // and then register the function
             if (this.TryGetGlobalCallable(fullName, out QsCallable? callable))
             {
                 var spec = callable.Specializations.First(spec => spec.Kind == kind);
-                return this.RegisterFunction(spec);
+                return this.RegisterFunction(spec, isDefinition: false);
             }
 
             // If we can't find the function at all, it's a problem...
@@ -857,12 +849,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    funcs[index] = Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
+                    funcs[index] = Constant.ConstPointerToNullFor(this.NativeLlvmTypes.FunctionSignature.CreatePointerType());
                 }
             }
 
             // Build the callable table
-            var array = ConstantArray.From(this.Types.FunctionSignature.CreatePointerType(), funcs);
+            var array = ConstantArray.From(this.NativeLlvmTypes.FunctionSignature.CreatePointerType(), funcs);
             return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
         }
 
@@ -890,7 +882,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 IrFunction? BuildSpec(QsSpecializationKind kind) =>
                     callable.Specializations.Any(spec => spec.Kind == kind &&
                         (spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic))
-                            ? this.Module.CreateFunction(NameGeneration.FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
+                            ? this.Module.CreateFunction(NameGeneration.FunctionWrapperName(callable.FullName, kind), this.NativeLlvmTypes.FunctionSignature)
                             : null;
 
                 var table = this.CreateCallableTable(tableName, BuildSpec);
@@ -915,7 +907,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (capture == null)
             {
-                return Constant.ConstPointerToNullFor(this.Types.CallableMemoryManagementTable.CreatePointerType());
+                return Constant.ConstPointerToNullFor(this.NativeLlvmTypes.CallableMemoryManagementTable.CreatePointerType());
             }
 
             var type = StripPositionInfo.Apply(capture.QSharpType);
@@ -926,14 +918,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             var name = this.GlobalName("MemoryManagement");
             var funcs = new Constant[2];
-            var func = this.Module.CreateFunction($"{name}__RefCount", this.Types.CaptureCountFunction);
+            var func = this.Module.CreateFunction($"{name}__RefCount", this.NativeLlvmTypes.CaptureCountFunction);
             func.Linkage = Linkage.Internal;
             funcs[0] = func;
-            func = this.Module.CreateFunction($"{name}__AliasCount", this.Types.CaptureCountFunction);
+            func = this.Module.CreateFunction($"{name}__AliasCount", this.NativeLlvmTypes.CaptureCountFunction);
             func.Linkage = Linkage.Internal;
             funcs[1] = func;
 
-            var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
+            var array = ConstantArray.From(this.NativeLlvmTypes.CaptureCountFunction.CreatePointerType(), funcs);
             table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
             this.memoryManagementTables.Add(type, table);
             this.pendingMemoryManagementTables.Add(type);
@@ -1077,22 +1069,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    var func = this.GetFunctionByName(callable.FullName, specKind); // RyanNote: This function shouold be decorated when it's created
-
-                    // // -----------------
-                    // // get the debug location of the function // do I even need this?
-                    // QsNullable<QsLocation> debugLoc = callable.Location; // TODO: Location should be for caller not callee
-                    // if (!debugLoc.IsNull)
-                    // {
-                    //     this.DIManager.EmitLocation((uint)debugLoc.Item.Offset.Line, (uint)debugLoc.Item.Offset.Column, func.DISubProgram);
-                    // }
-
-                    // // -----------------------
+                    var func = this.GetFunctionByName(callable.FullName, specKind);
                     value = this.CurrentBuilder.Call(func, args);
                 }
 
                 var result = this.Values.From(value, callable.Signature.ReturnType);
-                this.ScopeMgr.RegisterValue(result); //RyanNote: example of a registerValue we wouldn't want debug info for necessarily since result isn't from the code
+                this.ScopeMgr.RegisterValue(result);
                 return result;
             }
 
@@ -1286,7 +1268,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>A range with the given start, step and end.</returns>
         internal IValue CreateRange(Value start, Value step, Value end)
         {
-            Value constant = this.CurrentBuilder.Load(this.Types.Range, this.Constants.EmptyRange);
+            Value constant = this.CurrentBuilder.Load(this.NativeLlvmTypes.Range, this.Constants.EmptyRange);
             constant = this.CurrentBuilder.InsertValue(constant, start, 0u);
             constant = this.CurrentBuilder.InsertValue(constant, step, 1u);
             constant = this.CurrentBuilder.InsertValue(constant, end, 2u);
@@ -1347,7 +1329,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var outputValue = initialOutputValue == null ? null : this.CurrentBuilder.PhiNode(initialOutputValue.NativeType);
                 outputValue?.AddIncoming(initialOutputValue!, precedingBlock);
 
-                var loopVariable = this.CurrentBuilder.PhiNode(this.Types.Int);
+                var loopVariable = this.CurrentBuilder.PhiNode(this.NativeLlvmTypes.Int);
                 loopVariable.AddIncoming(startValue, precedingBlock);
 
                 var condition = evaluateCondition(loopVariable);
@@ -1369,6 +1351,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // Update the iteration value (phi node) and enter the next iteration
                 this.SetCurrentBlock(exitingBlock);
+
                 // RyanNote: do I need debug info within this add?
                 var nextValue = this.CurrentBuilder.Add(loopUpdate.LoopVariable, loopUpdate.Increment);
                 loopUpdate.LoopVariable.AddIncoming(nextValue, exitingBlock);
@@ -1551,7 +1534,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <inheritdoc cref="QirTypeTransformation.LlvmTypeFromQsharpType(ResolvedType)"/>
         internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
-            this.Types.Transform.LlvmTypeFromQsharpType(resolvedType);
+            this.NativeLlvmTypes.Transform.LlvmTypeFromQsharpType(resolvedType);
 
         /// <summary>
         /// Computes the size in bytes of an LLVM type as an LLVM value.

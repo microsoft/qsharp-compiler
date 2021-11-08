@@ -157,8 +157,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var lengthPtr = this.sharedState.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(0));
                 var dataArrPtr = this.sharedState.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(1));
-                var length = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Int, lengthPtr);
-                var dataArr = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.DataArrayPointer, dataArrPtr);
+                var length = this.sharedState.CurrentBuilder.Load(this.sharedState.NativeLlvmTypes.Int, lengthPtr);
+                var dataArr = this.sharedState.CurrentBuilder.Load(this.sharedState.NativeLlvmTypes.DataArrayPointer, dataArrPtr);
                 return (length, dataArr);
             }
 
@@ -418,7 +418,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else if (res.QSharpType.Resolution.IsResult)
             {
                 var getZero = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
-                var resType = this.MapToInteropType(this.sharedState.Types.Result)!;
+                var resType = this.MapToInteropType(this.sharedState.NativeLlvmTypes.Result)!;
                 var zeroValue = this.sharedState.Context.CreateConstant(resType, 0u, false);
                 var oneValue = this.sharedState.Context.CreateConstant(resType, ~0u, false);
 
