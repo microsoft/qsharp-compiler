@@ -4,9 +4,9 @@
 
 #include "Llvm/Llvm.hpp"
 #include "Rules/Notation/Notation.hpp"
-#include "Rules/Operands/Any.hpp"
+#include "Rules/Operands/AnyPattern.hpp"
 #include "Rules/Operands/Instruction.hpp"
-#include "Rules/Operands/Phi.hpp"
+#include "Rules/Operands/PhiPattern.hpp"
 #include "Rules/ReplacementRule.hpp"
 
 #include <unordered_map>

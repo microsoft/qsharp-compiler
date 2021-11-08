@@ -1,33 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Rules/Notation/Notation.hpp"
-#include "Rules/Operands/Any.hpp"
-#include "Rules/Operands/Call.hpp"
-#include "Rules/Operands/Instruction.hpp"
-
 #include "Llvm/Llvm.hpp"
+#include "Rules/Notation/Notation.hpp"
+#include "Rules/Operands/AnyPattern.hpp"
+#include "Rules/Operands/CallPattern.hpp"
+#include "Rules/Operands/Instruction.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+namespace notation {
+
+using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
+
+IOperandPrototypePtr load(IOperandPrototypePtr const &arg)
 {
-namespace quantum
-{
-    namespace notation
-    {
+  auto ret = std::make_shared<LoadPattern>();
 
-        using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
+  ret->addChild(arg);
+  return static_cast<IOperandPrototypePtr>(ret);
+}
 
-        IOperandPrototypePtr load(IOperandPrototypePtr const& arg)
-        {
-            auto ret = std::make_shared<LoadPattern>();
-
-            ret->addChild(arg);
-            return static_cast<IOperandPrototypePtr>(ret);
-        }
-
-    } // namespace notation
-} // namespace quantum
-} // namespace microsoft
+}  // namespace notation
+}  // namespace quantum
+}  // namespace microsoft

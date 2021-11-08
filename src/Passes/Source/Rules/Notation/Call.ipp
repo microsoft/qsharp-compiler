@@ -3,8 +3,8 @@
 // Licensed under the MIT License.
 
 #include "Llvm/Llvm.hpp"
-#include "Rules/Operands/Any.hpp"
-#include "Rules/Operands/Call.hpp"
+#include "Rules/Operands/AnyPattern.hpp"
+#include "Rules/Operands/CallPattern.hpp"
 
 #include <unordered_map>
 #include <vector>

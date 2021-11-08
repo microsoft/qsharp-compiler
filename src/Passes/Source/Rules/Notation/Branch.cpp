@@ -1,39 +1,33 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Rules/Notation/Notation.hpp"
-#include "Rules/Operands/Any.hpp"
-#include "Rules/Operands/Call.hpp"
-#include "Rules/Operands/Instruction.hpp"
-
 #include "Llvm/Llvm.hpp"
+#include "Rules/Notation/Notation.hpp"
+#include "Rules/Operands/AnyPattern.hpp"
+#include "Rules/Operands/CallPattern.hpp"
+#include "Rules/Operands/Instruction.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+namespace notation {
+
+using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
+
+IOperandPrototypePtr branch(IOperandPrototypePtr const &cond, IOperandPrototypePtr const &arg1,
+                            IOperandPrototypePtr const &arg2)
 {
-namespace quantum
-{
-    namespace notation
-    {
+  auto branch_pattern = std::make_shared<BranchPattern>();
 
-        using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
+  branch_pattern->addChild(cond);
+  branch_pattern->addChild(arg1);
+  branch_pattern->addChild(arg2);
 
-        IOperandPrototypePtr branch(
-            IOperandPrototypePtr const& cond,
-            IOperandPrototypePtr const& arg1,
-            IOperandPrototypePtr const& arg2)
-        {
-            auto branch_pattern = std::make_shared<BranchPattern>();
+  return static_cast<IOperandPrototypePtr>(branch_pattern);
+}
 
-            branch_pattern->addChild(cond);
-            branch_pattern->addChild(arg1);
-            branch_pattern->addChild(arg2);
-
-            return static_cast<IOperandPrototypePtr>(branch_pattern);
-        }
-
-    } // namespace notation
-} // namespace quantum
-} // namespace microsoft
+}  // namespace notation
+}  // namespace quantum
+}  // namespace microsoft
