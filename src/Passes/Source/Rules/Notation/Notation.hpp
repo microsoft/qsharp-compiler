@@ -7,10 +7,10 @@
 #include "Llvm/Llvm.hpp"
 #include "Rules/Notation/Call.ipp"
 #include "Rules/Notation/Phi.ipp"
-#include "Rules/Operands/AnyPattern.hpp"
-#include "Rules/Operands/CallPattern.hpp"
-#include "Rules/Operands/Instruction.hpp"
-#include "Rules/Operands/PhiPattern.hpp"
+#include "Rules/Patterns/AnyPattern.hpp"
+#include "Rules/Patterns/CallPattern.hpp"
+#include "Rules/Patterns/Instruction.hpp"
+#include "Rules/Patterns/PhiPattern.hpp"
 
 #include <unordered_map>
 #include <vector>

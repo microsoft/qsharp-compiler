@@ -3,9 +3,9 @@
 
 #include "Llvm/Llvm.hpp"
 #include "Rules/Notation/Notation.hpp"
-#include "Rules/Operands/AnyPattern.hpp"
-#include "Rules/Operands/CallPattern.hpp"
-#include "Rules/Operands/Instruction.hpp"
+#include "Rules/Patterns/AnyPattern.hpp"
+#include "Rules/Patterns/CallPattern.hpp"
+#include "Rules/Patterns/Instruction.hpp"
 
 #include <unordered_map>
 #include <vector>

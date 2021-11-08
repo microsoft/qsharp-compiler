@@ -3,7 +3,7 @@
 
 #include "Llvm/Llvm.hpp"
 #include "Rules/Notation/Notation.hpp"
-#include "Rules/Operands/UnnamedInvokePattern.hpp"
+#include "Rules/Patterns/UnnamedInvokePattern.hpp"
 
 #include <unordered_map>
 #include <vector>

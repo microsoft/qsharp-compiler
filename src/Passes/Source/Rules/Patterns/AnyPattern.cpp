@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Rules/Patterns/AnyPattern.hpp"
+
 #include "Rules/IOperandPrototype.hpp"
-#include "Rules/Operands/AnyPattern.hpp"
 
 namespace microsoft {
 namespace quantum {
