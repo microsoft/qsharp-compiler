@@ -43,7 +43,7 @@
   <!-- Creates the CommandArgsFile with all the parameters for the Q# compiler. -->
   <Target Name="PrepareQSharpCompile"
           Condition="'$(DesignTimeBuild)' != 'true'"
-          DependsOnTargets="ResolveQSharpReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQSharpCompile;Restore"
+          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQSharpCompile;Restore;_CopyFilesMarkedCopyLocal"
           BeforeTargets="QSharpCompile">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
@@ -67,6 +67,8 @@
     <ItemGroup>
       <PackageLoadFallbackFolder Include="$(MSBuildProjectDirectory)/$(OutputPath)" Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''" />
       <ResolvedPackageLoadFallbackFolders Include="@(PackageLoadFallbackFolder->'$([MSBuild]::Unescape('%(PackageLoadFallbackFolder.Identity)').Replace('\','/'))')" />
+      <ResolvedQSharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig|serilog')) == false" />
+      <ResolvedQSharpReferences Exclude="@(ResolvedTargetSpecificDecompositions)" />
     </ItemGroup>
     <!-- get the path for the llvm runtime libs -->
     <PropertyGroup Condition="'$(LlvmLibsPath)' == ''">
