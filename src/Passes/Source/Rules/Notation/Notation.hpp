@@ -5,6 +5,7 @@
 /// @defgroup shorthandNotation Shorthand Notation
 
 #include "Llvm/Llvm.hpp"
+#include "Rules/Notation/Call.hpp"
 #include "Rules/Notation/Call.ipp"
 #include "Rules/Notation/Phi.ipp"
 #include "Rules/Patterns/AnyPattern.hpp"
