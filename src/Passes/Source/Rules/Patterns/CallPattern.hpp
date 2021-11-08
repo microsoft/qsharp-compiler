@@ -2,47 +2,50 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
 #include "Rules/IOperandPrototype.hpp"
+
+#include "Llvm/Llvm.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-
-class CallPattern : public IOperandPrototype
+namespace microsoft
 {
-public:
-  using String = std::string;
+namespace quantum
+{
 
-  // Construction of the call pattern by name or move only.
-  //
+    class CallPattern : public IOperandPrototype
+    {
+      public:
+        using String = std::string;
 
-  /// Construction by name.
-  explicit CallPattern(String const &name);
+        // Construction of the call pattern by name or move only.
+        //
 
-  /// Copy construction prohibited.
-  CallPattern(CallPattern const &other) = delete;
+        /// Construction by name.
+        explicit CallPattern(String const& name);
 
-  /// Move construction allowed.
-  CallPattern(CallPattern &&other) = default;
+        /// Copy construction prohibited.
+        CallPattern(CallPattern const& other) = delete;
 
-  /// Destructor implementation.
-  ~CallPattern() override;
+        /// Move construction allowed.
+        CallPattern(CallPattern&& other) = default;
 
-  // Call implmenetation of the member functions in IOperandPrototype.
-  //
+        /// Destructor implementation.
+        ~CallPattern() override;
 
-  /// Matches the callee by name.
-  bool match(Value *instr, Captures &captures) const override;
+        // Call implmenetation of the member functions in IOperandPrototype.
+        //
 
-  /// Creates a copy of itself.
-  Child copy() const override;
+        /// Matches the callee by name.
+        bool match(Value* instr, Captures& captures) const override;
 
-private:
-  String name_{};  ///< Name of the callee to match against.
-};
+        /// Creates a copy of itself.
+        Child copy() const override;
 
-}  // namespace quantum
-}  // namespace microsoft
+      private:
+        String name_{}; ///< Name of the callee to match against.
+    };
+
+} // namespace quantum
+} // namespace microsoft

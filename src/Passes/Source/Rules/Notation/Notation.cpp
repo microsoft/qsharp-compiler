@@ -2,28 +2,31 @@
 // Licensed under the MIT License.
 
 #include "Rules/Notation/Notation.hpp"
-
-#include "Llvm/Llvm.hpp"
 #include "Rules/Patterns/AnyPattern.hpp"
 #include "Rules/Patterns/CallPattern.hpp"
 #include "Rules/Patterns/Instruction.hpp"
 
+#include "Llvm/Llvm.hpp"
+
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-namespace notation {
-
-ReplacerFunction deleteInstruction()
+namespace microsoft
 {
-  return [](ReplacementRule::Builder &, ReplacementRule::Value *val, ReplacementRule::Captures &,
-            ReplacementRule::Replacements &replacements) {
-    replacements.push_back({llvm::dyn_cast<llvm::Instruction>(val), nullptr});
-    return true;
-  };
-}
+namespace quantum
+{
+    namespace notation
+    {
 
-}  // namespace notation
-}  // namespace quantum
-}  // namespace microsoft
+        ReplacerFunction deleteInstruction()
+        {
+            return [](ReplacementRule::Builder&, ReplacementRule::Value* val, ReplacementRule::Captures&,
+                      ReplacementRule::Replacements& replacements) {
+                replacements.push_back({llvm::dyn_cast<llvm::Instruction>(val), nullptr});
+                return true;
+            };
+        }
+
+    } // namespace notation
+} // namespace quantum
+} // namespace microsoft

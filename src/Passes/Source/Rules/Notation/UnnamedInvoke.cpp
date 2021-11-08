@@ -1,26 +1,30 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
 #include "Rules/Notation/Notation.hpp"
 #include "Rules/Patterns/UnnamedInvokePattern.hpp"
+
+#include "Llvm/Llvm.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-namespace notation {
-
-using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
-
-IOperandPrototypePtr unnamedInvoke()
+namespace microsoft
 {
-  auto ret = std::make_shared<UnnamedInvokePattern>();
+namespace quantum
+{
+    namespace notation
+    {
 
-  return static_cast<IOperandPrototypePtr>(ret);
-}
+        using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
 
-}  // namespace notation
-}  // namespace quantum
-}  // namespace microsoft
+        IOperandPrototypePtr unnamedInvoke()
+        {
+            auto ret = std::make_shared<UnnamedInvokePattern>();
+
+            return static_cast<IOperandPrototypePtr>(ret);
+        }
+
+    } // namespace notation
+} // namespace quantum
+} // namespace microsoft
