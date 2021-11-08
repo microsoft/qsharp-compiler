@@ -38,7 +38,7 @@ public:
       ret.allow_internal_calls_     = false;
       ret.whitelist_external_calls_ = true;
       ret.whitelist_opcodes_        = true;
-      ret.opcodes_                  = Set{"br", "call", "unreachable", "ret"};
+      ret.opcodes_                  = Set{"br", "call", "unreachable", "ret", "phi", "select"};
       ret.external_calls_ = Set{"__quantum__qis__mz__body",    "__quantum__qis__read_result__body",
                                 "__quantum__qis__reset__body", "__quantum__qis__z__body",
                                 "__quantum__qis__s__adj",      "__quantum__qis__dumpregister__body",
