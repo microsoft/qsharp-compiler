@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.18.2107151063-beta">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.20.2110171573">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -20,8 +20,8 @@
     <PackageReference Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'"
                       Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0"
                       PrivateAssets="All" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2107151063-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2107151063-beta" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.20.2110171573-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.20.2110171573" GeneratePathProperty="true" />
   </ItemGroup>
     
   <PropertyGroup>
@@ -136,6 +136,7 @@
     <ItemGroup>
       <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
       <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.hpp" />
+      <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.h" />
     </ItemGroup>
     <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />

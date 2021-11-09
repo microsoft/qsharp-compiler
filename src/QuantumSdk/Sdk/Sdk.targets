@@ -43,7 +43,7 @@
   <!-- Creates the CommandArgsFile with all the parameters for the Q# compiler. -->
   <Target Name="PrepareQSharpCompile"
           Condition="'$(DesignTimeBuild)' != 'true'"
-          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQSharpCompile;Restore;_CopyFilesMarkedCopyLocal"
+          DependsOnTargets="ResolveQSharpReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQSharpCompile;Restore"
           BeforeTargets="QSharpCompile">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
@@ -67,7 +67,6 @@
     <ItemGroup>
       <PackageLoadFallbackFolder Include="$(MSBuildProjectDirectory)/$(OutputPath)" Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''" />
       <ResolvedPackageLoadFallbackFolders Include="@(PackageLoadFallbackFolder->'$([MSBuild]::Unescape('%(PackageLoadFallbackFolder.Identity)').Replace('\','/'))')" />
-      <ResolvedQSharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig|serilog')) == false" />
     </ItemGroup>
     <!-- get the path for the llvm runtime libs -->
     <PropertyGroup Condition="'$(LlvmLibsPath)' == ''">
@@ -78,9 +77,7 @@
     </PropertyGroup>
     <!-- build the command for the Q# command line compiler -->
     <PropertyGroup>
-      <!-- For the package ID that gets displayed in documentation, we default
-           to the actual package ID if it's set, but allow overriding with
-           QSharpDocsPackageId. -->
+      <!-- For the package ID that gets displayed in documentation, we default to the actual package ID if it's set, but allow overriding with QSharpDocsPackageId. -->
       <_NewLine>%0D%0A</_NewLine>
       <_NewLineIndent>$(_NewLine)%20%20%20%20</_NewLineIndent>
       <_QscCommandProjFlag>--proj$(_NewLineIndent)"$([System.IO.Path]::GetFullPath('$(PathCompatibleAssemblyName)'))"</_QscCommandProjFlag>
@@ -94,7 +91,7 @@
       <_QscCommandReferencesFlag Condition="@(ResolvedQSharpReferences->Count()) &gt; 0">$(_NewLine)--references$(_NewLineIndent)"@(ResolvedQSharpReferences,'"$(_NewLineIndent)"')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">$(_NewLine)--load$(_NewLineIndent)"@(_PrioritizedResolvedQscReferences,'"$(_NewLineIndent)"')"</_QscCommandLoadFlag>
       <_QscCommandRuntimeFlag>$(_NewLine)--runtime$(_NewLineIndent)$(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag>
-      <_QscCommandSkipMonomorphization Condition="'$(ResolvedRuntimeCapabilities)' == 'FullComputation' And $(CSharpGeneration) And '$(ResolvedProcessorArchitecture)' != 'MicrosoftSimulator'">$(_NewLine)--skip-monomorphization</_QscCommandSkipMonomorphization>
+      <_QscCommandSkipMonomorphization Condition="'$(ResolvedRuntimeCapabilities)' == 'FullComputation' And $(CSharpGeneration) And !$(EnableQirSubmission)">$(_NewLine)--skip-monomorphization</_QscCommandSkipMonomorphization>
       <_QscCommandPerfDataGenerationFlag Condition="$(PerfDataGeneration)">$(_NewLine)--perf$(_NewLineIndent)$(PerfDataOutputPath)</_QscCommandPerfDataGenerationFlag>
       <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">$(_NewLine)--target-specific-decompositions$(_NewLineIndent)"@(ResolvedTargetSpecificDecompositions,'"$(_NewLineIndent)"')"</_QscCommandTargetDecompositionsFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">$(_NewLine)--package-load-fallback-folders$(_NewLineIndent)"@(ResolvedPackageLoadFallbackFolders,'"$(_NewLineIndent)"')"</_QscPackageLoadFallbackFoldersFlag>
@@ -160,13 +157,13 @@
   <!-- Configures the dll built by the C# compiler. This target needs to execute during the C# design time build to get accurate intellisense information for (non-generate) C# source files. -->
   <Target Name="PrepareCSharpCompileAfterCSharpGeneration" DependsOnTargets="QSharpCompile" AfterTargets="QSharpCompile" BeforeTargets="BeforeCSharpCompile;BeforeBuild">
     <PropertyGroup>
-      <_DefaultEntryPoint Condition="$(QirGeneration) And '$(CSharpGeneration)' != 'true' And @(Compile->Count()) == 0">$(GeneratedFilesOutputPath)Main.cs</_DefaultEntryPoint>
+      <_DefaultEntryPoint Condition="$(QirGeneration) And !$(CSharpGeneration) And @(Compile->Count()) == 0">$(GeneratedFilesOutputPath)Main.cs</_DefaultEntryPoint>
       <_GeneratedBinary>$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName)</_GeneratedBinary>
     </PropertyGroup>
     <Exec Condition="$(_DefaultEntryPoint) != ''" Command="$(DefaultEntryPointGeneration) $(_DefaultEntryPoint)" IgnoreExitCode="false" />
     <ItemGroup>
       <EmbeddedResource Include="$(_GeneratedBinary).bson" LogicalName="__qsharp_data_bond_v1__.bson" Visible="false" />
-      <EmbeddedResource Condition="$(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'" Include="$(_GeneratedBinary).bc" LogicalName="__qsharp_data_qir_v1__.bc" Visible="false" />
+      <EmbeddedResource Condition="$(QirGeneration) Or $(EnableQirSubmission)" Include="$(_GeneratedBinary).bc" LogicalName="__qsharp_data_qir_v1__.bc" Visible="false" />
       <Compile Condition="$(CSharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
       <Compile Condition="$(_DefaultEntryPoint) != ''" Include="$(_DefaultEntryPoint)" AutoGen="true" />
     </ItemGroup>
