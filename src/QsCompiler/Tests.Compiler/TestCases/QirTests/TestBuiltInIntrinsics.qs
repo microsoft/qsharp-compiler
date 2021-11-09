@@ -28,7 +28,8 @@ namespace Microsoft.Quantum.Testing.QIR {
             w/ DumpToFile <- DumpMachine
             w/ DumpToConsole <- DumpMachine;
 
-        options::SimpleMessage("Hello");
+        let num = GetHardwareCycleCount() - 5;
+        options::SimpleMessage($"Hello");
         options::DumpToFile("pathToFile");
         options::DumpToConsole();
     }
@@ -44,6 +45,12 @@ namespace Microsoft.Quantum.Intrinsic {
 namespace Microsoft.Quantum.Diagnostics {
 
     function DumpMachine<'T> (arg : 'T) : Unit {
+        body intrinsic;
+    }
+}
+
+namespace Microsoft.Quantum.Core {
+    operation GetHardwareCycleCount() : Int {
         body intrinsic;
     }
 }

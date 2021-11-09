@@ -191,8 +191,13 @@ namespace Microsoft.Quantum.QIR
         private IValue Length(IValue arg) =>
             this.sharedState.Values.FromSimpleValue(((ArrayValue)arg).Length, Int);
 
-        private IValue GetHardwareCycleCounter(IValue arg) =>
-            this.sharedState.Values.FromSimpleValue(this.sharedState.CurrentBuilder.ReadCycleCount(), Int);
+        private IValue GetHardwareCycleCounter(IValue arg)
+        {
+            var func = this.sharedState.CurrentBuilder.ReadCycleCount();
+            var call = this.sharedState.CurrentBuilder.Call(func);
+            System.Console.WriteLine("GOT HERE!!!");
+            return this.sharedState.Values.From(call, Int);
+        }
 
         private IValue IntAsDouble(IValue arg)
         {
