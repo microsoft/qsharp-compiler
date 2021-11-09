@@ -9,6 +9,30 @@ open System.Text.RegularExpressions
 open CommandLine
 open CommandLine.Text
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
+open Microsoft.Quantum.QsFmt.Formatter
+
+type internal ExitCode =
+    | Success = 0
+    | SyntaxErrors = 1
+    | BadArguments = 2
+    | IOError = 3
+    | UnauthorizedAccess = 4
+    | FileAlreadyProcessed = 5
+    | QdkOutOfDate = 6
+    | UnhandledException = 7
+
+type internal RunResult =
+    {
+        FilesProcessed: int
+        ExitCode: ExitCode
+        SyntaxErrors: Errors.SyntaxError list
+    }
+    static member Default =
+        {
+            FilesProcessed = 0
+            ExitCode = ExitCode.Success
+            SyntaxErrors = []
+        }
 
 [<Verb("format", HelpText = "Format the source code in input files.", Hidden = true)>]
 type FormatArguments =
@@ -182,13 +206,20 @@ type CommandKind =
     | Update
     | Format
     | UpdateAndFormat
+    | InvalidCommand
 
-type Arguments =
+type InputKind =
+    | Files
+    | Project
+    | InvalidInputKind
+
+type CommandWithOptions =
     {
         CommandKind: CommandKind
+        InputKind: InputKind
         RecurseFlag: bool
         BackupFlag: bool
-        QSharp_Version: Version option
+        QSharpVersion: Version option
         Input: string list
     }
 
@@ -209,13 +240,13 @@ module Arguments =
 
         if List.isEmpty errors then
 
-            let input, version =
+            let input, version, inputKind =
                 if isNull arguments.ProjectFile then
-                    arguments.InputFiles |> Seq.toList, arguments.QdkVersion |> Option.ofObj
+                    arguments.InputFiles |> Seq.toList, arguments.QdkVersion |> Option.ofObj, InputKind.Files
                 else
-                    getSourceFiles arguments.ProjectFile |> (fun (i, v) -> (i, v |> Some))
+                    getSourceFiles arguments.ProjectFile |> (fun (i, v) -> (i, v |> Some, InputKind.Project))
 
-            let isVersionOkay, qsharp_version =
+            let isVersionOkay, qsharpVersion =
                 match version with
                 | Some v ->
                     let m = Regex.Match(v, "^[0-9\\.]+")
@@ -229,21 +260,22 @@ module Arguments =
                 | None -> true, None
 
             if isVersionOkay then
-                match qsharp_version with
+                match qsharpVersion with
                 | Some v when v < Version("0.16.2104.138035") ->
                     eprintfn
                         "Error: Qdk Version is out of date. Only Qdk version 0.16.2104.138035 or later is supported."
 
-                    6 |> Result.Error
+                    ExitCode.QdkOutOfDate |> Result.Error
                 | _ ->
                     {
                         CommandKind = Update
+                        InputKind = inputKind
                         RecurseFlag = arguments.Recurse
                         BackupFlag = arguments.Backup
-                        QSharp_Version = qsharp_version
+                        QSharpVersion = qsharpVersion
                         Input = input
                     }
-                    |> Result.Ok
+                    |> Ok
             else
                 let s =
                     match version with
@@ -251,9 +283,9 @@ module Arguments =
                     | None -> "."
 
                 eprintfn "Error: Bad Qdk version number%s" s
-                2 |> Result.Error
+                ExitCode.BadArguments |> Result.Error
         else
             for e in errors do
                 eprintfn "%s" e
 
-            2 |> Result.Error
+            ExitCode.BadArguments |> Result.Error
