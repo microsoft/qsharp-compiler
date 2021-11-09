@@ -10,6 +10,21 @@ open CommandLine
 open Microsoft.Quantum.QsFmt.App.Arguments
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
 open Microsoft.Quantum.QsFmt.Formatter
+open Microsoft.Quantum.Telemetry
+
+type RunResult =
+    {
+        FilesProcessed: int
+        ExitCode: int
+        SyntaxErrors: Errors.SyntaxError list
+    }
+    with
+        static member Default =
+            {
+                FilesProcessed = 0
+                ExitCode = 0
+                SyntaxErrors = []
+            }
 
 let makeFullPath input =
     if input = "-" then input else Path.GetFullPath input
@@ -24,7 +39,7 @@ let run arguments inputs =
             // Change the "-" input to say "<Standard Input>" in the error
             let input = if input = "-" then "<Standard Input>" else input
             eprintfn "This input has already been processed: %s" input
-            5
+            { RunResult.Default with ExitCode = 5 }
         else
             paths <- input |> makeFullPath |> paths.Add
 
@@ -56,29 +71,37 @@ let run arguments inputs =
                     match command source with
                     | Ok result ->
                         if input = "-" then printf "%s" result else File.WriteAllText(input, result)
-                        0
+                        { RunResult.Default with FilesProcessed = 1 }
                     | Error errors ->
                         // Change the "-" input to say "<Standard Input>" in the error
                         let input = if input = "-" then "<Standard Input>" else input
                         errors |> List.iter (eprintfn "%s, %O" input)
-                        1
+                        { RunResult.Default with ExitCode = 1; SyntaxErrors = errors }
             with
             | :? IOException as ex ->
                 eprintfn "%s" ex.Message
-                3
+                { RunResult.Default with ExitCode = 3 }
             | :? UnauthorizedAccessException as ex ->
                 eprintfn "%s" ex.Message
-                4
+                { RunResult.Default with ExitCode = 4 }
+
+    and foldResults (previousRunResult: RunResult) filePath =
+        let newRunResult = (filePath |> doOne arguments)
+        {
+            FilesProcessed = previousRunResult.FilesProcessed + newRunResult.FilesProcessed
+            ExitCode = max previousRunResult.ExitCode newRunResult.ExitCode
+            SyntaxErrors = previousRunResult.SyntaxErrors @ newRunResult.SyntaxErrors
+        }
 
     and doMany arguments inputs =
-        inputs |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne arguments)) 0
+        inputs |> Seq.fold foldResults RunResult.Default
 
     doMany arguments inputs
 
 let runUpdate (arguments: UpdateArguments) =
     match Arguments.fromUpdateArguments arguments with
     | Ok args -> args.Input |> run args
-    | Error errorCode -> errorCode
+    | Error errorCode -> { RunResult.Default with ExitCode = errorCode }
 
 let runFormat (arguments: FormatArguments) =
     let asUpdateArguments : UpdateArguments =
@@ -92,7 +115,7 @@ let runFormat (arguments: FormatArguments) =
 
     match Arguments.fromUpdateArguments asUpdateArguments with
     | Ok args -> args.Input |> run { args with CommandKind = Format }
-    | Error errorCode -> errorCode
+    | Error errorCode -> { RunResult.Default with ExitCode = errorCode }
 
 let runUpdateAndFormat (arguments: UpdateAndFormatArguments) =
     let asUpdateArguments : UpdateArguments =
@@ -106,20 +129,117 @@ let runUpdateAndFormat (arguments: UpdateAndFormatArguments) =
 
     match Arguments.fromUpdateArguments asUpdateArguments with
     | Ok args -> args.Input |> run { args with CommandKind = UpdateAndFormat }
-    | Error errorCode -> errorCode
+    | Error errorCode -> { RunResult.Default with ExitCode = errorCode }
+
+type ParseArgsResult =
+    | Success of ParserResult<obj>
+    | Error of Exception
+
+type ExecutionResult =
+    | Success of RunResult
+    | Error of Exception
+
+type InputType =
+    | Files
+    | Project
+
+type ExecutionCompleted =
+    {
+        StartTime: DateTime
+        Command: string
+        RecurseFlag: bool
+        BackupFlag: bool
+        InputType: InputType
+        QSharpVersion: string
+        UnhandledException: Exception option
+        [<SerializeJson>]
+        SyntaxErrors: Errors.SyntaxError list option
+        ExecutionTime: TimeSpan
+        FilesProcessed: int
+        ExitCode: int
+    }
 
 [<CompiledName "Main">]
 [<EntryPoint>]
 let main args =
 
-    assemblyLoadContextSetup ()
+    let startTime = DateTime.Now
+    let telemetryConfig =
+        TelemetryManagerConfig(
+            AppId = "QsFmt",
+            HostingEnvironmentVariableName = "QSFMT_HOSTING_ENV",
+            TelemetryOptOutVariableName = "QSFMT_TELEMETRY_OPT_OUT",
+            MaxTeardownUploadTime = TimeSpan.FromSeconds(2.0),
+            OutOfProcessUpload = true,
+            ExceptionLoggingOptions =
+                ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
+            SendTelemetryInitializedEvent = true,
+            SendTelemetryTearDownEvent = true,
+            TestMode = true
+        )
+    use _telemetryManagerHandle = TelemetryManager.Initialize(telemetryConfig, args)
 
-    let result =
-        CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments, UpdateAndFormatArguments> args
+    let parseArgsResult =
+        try
+            assemblyLoadContextSetup ()
+            ParseArgsResult.Success ( CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments, UpdateAndFormatArguments> args )
+        with
+        | ex -> ParseArgsResult.Error ( ex )
 
-    result.MapResult(
-        (fun (options: FormatArguments) -> options |> runFormat),
-        (fun (options: UpdateArguments) -> options |> runUpdate),
-        (fun (options: UpdateAndFormatArguments) -> options |> runUpdateAndFormat),
-        (fun (_: IEnumerable<Error>) -> 2)
-    )
+    let executionResult =
+        try
+            match parseArgsResult with
+            | ParseArgsResult.Success parsedArgs ->
+                ExecutionResult.Success (
+                    parsedArgs.MapResult(
+                        (fun (options: FormatArguments) -> options |> runFormat),
+                        (fun (options: UpdateArguments) -> options |> runUpdate),
+                        (fun (options: UpdateAndFormatArguments) -> options |> runUpdateAndFormat),
+                        (fun (_: IEnumerable<Error>) -> { RunResult.Default with ExitCode = 2 })
+                    )
+                )
+            | ParseArgsResult.Error ex -> ExecutionResult.Error ( ex )
+        with
+        | ex -> ExecutionResult.Error ( ex )
+
+    let syntaxErrors =
+        match executionResult with
+        | Success runResult -> Some ( runResult.SyntaxErrors )
+        | Error ex -> None
+
+    let filesProcessed =
+        match executionResult with
+        | Success runResult -> runResult.FilesProcessed
+        | Error ex -> 0
+
+    let exitCode =
+        match executionResult with
+        | Success runResult -> runResult.ExitCode
+        | Error ex -> -1
+
+    let unhandledException =
+        match  executionResult with
+        | Success runResult -> None
+        | Error ex -> Some ( ex )
+
+    let executionCompletedEvent =
+        {
+            StartTime = startTime
+            Command = ""
+            RecurseFlag = false
+            BackupFlag = false
+            InputType = InputType.Files
+            QSharpVersion = ""
+            UnhandledException = unhandledException
+            SyntaxErrors = syntaxErrors
+            ExecutionTime = DateTime.Now - startTime
+            FilesProcessed = filesProcessed
+            ExitCode = exitCode
+        }
+
+    TelemetryManager.LogObject(executionCompletedEvent)
+
+    exitCode
+
+
+

@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Formatter\Formatter.fsproj" />
+    <ProjectReference Include="..\..\Telemetry\Library\Telemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>
