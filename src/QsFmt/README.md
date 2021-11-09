@@ -73,7 +73,7 @@ The implemented rules for formatting Q# code may still have gaps and are limited
  - New Lines - removes excessive new lines
  - Indentation - ensures that there are appropriate indentation for the text
 
-Formatting, to the extend that it is implemented, is supported in the Q# extensions for Visual Studio and VS Code starting with extensions newer than 0.20.2110171573. That support relies on QsFmt, and any contributions/improvements to the QsFmt will automatically be available in the extensions as well.  
+Formatting, to the extend that it is implemented, is supported in the Q# extensions for Visual Studio and VS Code starting with extensions newer than 0.20.2111175044-alpha. That support relies on QsFmt, and any contributions/improvements to the QsFmt will automatically be available in the extensions as well.  
 
 ## Limitations
 
