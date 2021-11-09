@@ -38,6 +38,7 @@ function Test-One {
     }
 }
 
+
 Test-One '../QsCompiler.sln'
 Test-One '../QsFmt.sln'
 
