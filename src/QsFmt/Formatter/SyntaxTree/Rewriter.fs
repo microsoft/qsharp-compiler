@@ -210,7 +210,8 @@ type 'context Rewriter() as rewriter =
         | UntilStatement untils -> rewriter.UntilStatement(context, untils) |> UntilStatement
         | WithinStatement withins -> rewriter.WithinStatement(context, withins) |> WithinStatement
         | ApplyStatement apply -> rewriter.ApplyStatement(context, apply) |> ApplyStatement
-        | QubitDeclarationStatement decl -> rewriter.QubitDeclarationStatement(context, decl) |> QubitDeclarationStatement
+        | QubitDeclarationStatement decl ->
+            rewriter.QubitDeclarationStatement(context, decl) |> QubitDeclarationStatement
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
 
     abstract ExpressionStatement : context: 'context * expr: ExpressionStatement -> ExpressionStatement
@@ -308,7 +309,8 @@ type 'context Rewriter() as rewriter =
             Condition = rewriter.Expression(context, untils.Condition)
             Coda =
                 match untils.Coda with
-                | UntilStatementCoda.Semicolon semicolon -> rewriter.Terminal(context, semicolon) |> UntilStatementCoda.Semicolon
+                | UntilStatementCoda.Semicolon semicolon ->
+                    rewriter.Terminal(context, semicolon) |> UntilStatementCoda.Semicolon
                 | Fixup fixup -> rewriter.Fixup(context, fixup) |> Fixup
         }
 
@@ -324,7 +326,8 @@ type 'context Rewriter() as rewriter =
 
     default _.ApplyStatement(context, apply) = defaultBlockStatement context apply
 
-    abstract QubitDeclarationStatement : context: 'context * decl: QubitDeclarationStatement -> QubitDeclarationStatement
+    abstract QubitDeclarationStatement :
+        context: 'context * decl: QubitDeclarationStatement -> QubitDeclarationStatement
 
     default rewriter.QubitDeclarationStatement(context, decl) =
         {

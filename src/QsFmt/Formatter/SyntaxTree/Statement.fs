@@ -194,22 +194,30 @@ module Statement =
         function
         | ExpressionStatement expr ->
             { expr with Expression = expr.Expression |> Expression.mapPrefix mapper } |> ExpressionStatement
-        | ReturnStatement returns -> { returns with Keyword = returns.Keyword |> Terminal.mapPrefix mapper } |> ReturnStatement
+        | ReturnStatement returns ->
+            { returns with Keyword = returns.Keyword |> Terminal.mapPrefix mapper } |> ReturnStatement
         | FailStatement fails -> { fails with Keyword = fails.Keyword |> Terminal.mapPrefix mapper } |> FailStatement
         | LetStatement lets -> { lets with Keyword = lets.Keyword |> Terminal.mapPrefix mapper } |> LetStatement
-        | MutableStatement mutables -> { mutables with Keyword = mutables.Keyword |> Terminal.mapPrefix mapper } |> MutableStatement
+        | MutableStatement mutables ->
+            { mutables with Keyword = mutables.Keyword |> Terminal.mapPrefix mapper } |> MutableStatement
         | SetStatement sets -> { sets with Keyword = sets.Keyword |> Terminal.mapPrefix mapper } |> SetStatement
         | UpdateStatement updates ->
             { updates with SetKeyword = updates.SetKeyword |> Terminal.mapPrefix mapper } |> UpdateStatement
-        | UpdateWithStatement withs -> { withs with SetKeyword = withs.SetKeyword |> Terminal.mapPrefix mapper } |> UpdateWithStatement
+        | UpdateWithStatement withs ->
+            { withs with SetKeyword = withs.SetKeyword |> Terminal.mapPrefix mapper } |> UpdateWithStatement
         | IfStatement ifs -> { ifs with Keyword = ifs.Keyword |> Terminal.mapPrefix mapper } |> IfStatement
         | ElifStatement elifs -> { elifs with Keyword = elifs.Keyword |> Terminal.mapPrefix mapper } |> ElifStatement
         | ElseStatement elses -> { elses with Keyword = elses.Keyword |> Terminal.mapPrefix mapper } |> ElseStatement
         | ForStatement loop -> { loop with ForKeyword = loop.ForKeyword |> Terminal.mapPrefix mapper } |> ForStatement
-        | WhileStatement whiles -> { whiles with Keyword = whiles.Keyword |> Terminal.mapPrefix mapper } |> WhileStatement
-        | RepeatStatement repeats -> { repeats with Keyword = repeats.Keyword |> Terminal.mapPrefix mapper } |> RepeatStatement
-        | UntilStatement untils -> { untils with UntilKeyword = untils.UntilKeyword |> Terminal.mapPrefix mapper } |> UntilStatement
-        | WithinStatement withins -> { withins with Keyword = withins.Keyword |> Terminal.mapPrefix mapper } |> WithinStatement
+        | WhileStatement whiles ->
+            { whiles with Keyword = whiles.Keyword |> Terminal.mapPrefix mapper } |> WhileStatement
+        | RepeatStatement repeats ->
+            { repeats with Keyword = repeats.Keyword |> Terminal.mapPrefix mapper } |> RepeatStatement
+        | UntilStatement untils ->
+            { untils with UntilKeyword = untils.UntilKeyword |> Terminal.mapPrefix mapper } |> UntilStatement
+        | WithinStatement withins ->
+            { withins with Keyword = withins.Keyword |> Terminal.mapPrefix mapper } |> WithinStatement
         | ApplyStatement apply -> { apply with Keyword = apply.Keyword |> Terminal.mapPrefix mapper } |> ApplyStatement
-        | QubitDeclarationStatement decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclarationStatement
+        | QubitDeclarationStatement decl ->
+            { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclarationStatement
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown
