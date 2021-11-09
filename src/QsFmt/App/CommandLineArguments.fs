@@ -206,17 +206,15 @@ type CommandKind =
     | Update
     | Format
     | UpdateAndFormat
-    | InvalidCommand
 
 type InputKind =
     | Files
     | Project
-    | InvalidInputKind
 
 type CommandWithOptions =
     {
-        CommandKind: CommandKind
-        InputKind: InputKind
+        CommandKind: CommandKind option
+        InputKind: InputKind option
         RecurseFlag: bool
         BackupFlag: bool
         QSharpVersion: Version option
@@ -268,8 +266,8 @@ module Arguments =
                     ExitCode.QdkOutOfDate |> Result.Error
                 | _ ->
                     {
-                        CommandKind = Update
-                        InputKind = inputKind
+                        CommandKind = Some Update
+                        InputKind = Some inputKind
                         RecurseFlag = arguments.Recurse
                         BackupFlag = arguments.Backup
                         QSharpVersion = qsharpVersion

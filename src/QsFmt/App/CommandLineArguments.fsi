@@ -95,9 +95,6 @@ type internal CommandKind =
     /// Represents usage of the `update-and-format` command
     | UpdateAndFormat
 
-    /// Represents any other invalid command
-    | InvalidCommand
-
 /// The kind of the input
 type internal InputKind =
 
@@ -107,17 +104,14 @@ type internal InputKind =
     /// Represents usage of the `project` command option
     | Project
 
-    /// Represents any other invalid input kind
-    | InvalidInputKind
-
 /// Represents the fully parsed arguments to the tool.
 type internal CommandWithOptions =
     {
       /// Indicates the command specified.
-      CommandKind: CommandKind
+      CommandKind: CommandKind option
 
       /// The input kind
-      InputKind: InputKind
+      InputKind: InputKind option
 
       /// Flag to indicate if the `--recurse` option was specified.
       RecurseFlag: bool

@@ -11,10 +11,10 @@ open CommandLine
 
 type internal ExecutionCompleted =
     { StartTime: DateTime
-      Command: CommandKind
+      Command: CommandKind option
+      InputKind: InputKind option
       RecurseFlag: bool
       BackupFlag: bool
-      InputKind: InputKind
       QSharpVersion: string
       UnhandledException: Exception option
       [<SerializeJson>]

@@ -49,10 +49,10 @@ let run (commandWithOptions: CommandWithOptions) inputs =
 
                     let command =
                         match commandWithOptions.CommandKind with
-                        | Update -> Formatter.update input commandWithOptions.QSharpVersion
-                        | Format -> Formatter.format commandWithOptions.QSharpVersion
-                        | UpdateAndFormat -> Formatter.updateAndFormat input commandWithOptions.QSharpVersion
-                        | InvalidCommand -> Formatter.identity
+                        | Some Update -> Formatter.update input commandWithOptions.QSharpVersion
+                        | Some Format -> Formatter.format commandWithOptions.QSharpVersion
+                        | Some UpdateAndFormat -> Formatter.updateAndFormat input commandWithOptions.QSharpVersion
+                        | None -> Formatter.identity
 
                     match command source with
                     | Ok result ->
@@ -101,7 +101,7 @@ let runFormat (arguments: FormatArguments) =
         }
 
     match Arguments.fromUpdateArguments asUpdateArguments with
-    | Ok args -> args.Input |> run { args with CommandKind = Format }
+    | Ok args -> args.Input |> run { args with CommandKind = Some Format }
     | Error errorCode -> { RunResult.Default with ExitCode = errorCode }
 
 let runUpdateAndFormat (arguments: UpdateAndFormatArguments) =
@@ -115,7 +115,7 @@ let runUpdateAndFormat (arguments: UpdateAndFormatArguments) =
         }
 
     match Arguments.fromUpdateArguments asUpdateArguments with
-    | Ok args -> args.Input |> run { args with CommandKind = UpdateAndFormat }
+    | Ok args -> args.Input |> run { args with CommandKind = Some UpdateAndFormat }
     | Error errorCode -> { RunResult.Default with ExitCode = errorCode }
 
 [<CompiledName "Main">]

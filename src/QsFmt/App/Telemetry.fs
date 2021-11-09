@@ -13,10 +13,10 @@ open CommandLine
 type internal ExecutionCompleted =
     {
         StartTime: DateTime
-        Command: CommandKind
+        Command: CommandKind option
+        InputKind: InputKind option
         RecurseFlag: bool
         BackupFlag: bool
-        InputKind: InputKind
         QSharpVersion: string
         UnhandledException: Exception option
         [<SerializeJson>]
@@ -61,8 +61,8 @@ let internal logExecutionCompleted
             parsedArgs.MapResult(
                 (fun (options: FormatArguments) ->
                     {
-                        CommandKind = Format
-                        InputKind = if String.IsNullOrEmpty(options.ProjectFile) then Project else Files
+                        CommandKind = Some Format
+                        InputKind = Some (if String.IsNullOrEmpty(options.ProjectFile) then Project else Files)
                         RecurseFlag = options.Recurse
                         BackupFlag = options.Backup
                         QSharpVersion = Some(Version(options.QdkVersion))
@@ -70,8 +70,8 @@ let internal logExecutionCompleted
                     }),
                 (fun (options: UpdateArguments) ->
                     {
-                        CommandKind = Update
-                        InputKind = if String.IsNullOrEmpty(options.ProjectFile) then Project else Files
+                        CommandKind = Some Update
+                        InputKind = Some (if String.IsNullOrEmpty(options.ProjectFile) then Project else Files)
                         RecurseFlag = options.Recurse
                         BackupFlag = options.Backup
                         QSharpVersion = Some(Version(options.QdkVersion))
@@ -79,8 +79,8 @@ let internal logExecutionCompleted
                     }),
                 (fun (options: UpdateAndFormatArguments) ->
                     {
-                        CommandKind = UpdateAndFormat
-                        InputKind = if String.IsNullOrEmpty(options.ProjectFile) then Project else Files
+                        CommandKind = Some UpdateAndFormat
+                        InputKind = Some (if String.IsNullOrEmpty(options.ProjectFile) then Project else Files)
                         RecurseFlag = options.Recurse
                         BackupFlag = options.Backup
                         QSharpVersion = Some(Version(options.QdkVersion))
@@ -88,8 +88,8 @@ let internal logExecutionCompleted
                     }),
                 (fun (_: IEnumerable<Error>) ->
                     {
-                        CommandKind = InvalidCommand
-                        InputKind = InvalidInputKind
+                        CommandKind = None
+                        InputKind = None
                         RecurseFlag = false
                         BackupFlag = false
                         QSharpVersion = None
@@ -98,8 +98,8 @@ let internal logExecutionCompleted
             )
         | Result.Error ex ->
             {
-                CommandKind = InvalidCommand
-                InputKind = InvalidInputKind
+                CommandKind = None
+                InputKind = None
                 RecurseFlag = false
                 BackupFlag = false
                 QSharpVersion = None
