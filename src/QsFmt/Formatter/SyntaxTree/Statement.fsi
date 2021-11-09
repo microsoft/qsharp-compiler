@@ -175,7 +175,8 @@ type internal BindingStatement =
     }
 
 /// <summary>
-/// An <c>update</c> statement.
+/// An <c>update</c> statement, also known as an evaluate-and-reassign statement.
+/// e.g. <c>set x += 3;</c>
 /// </summary>
 type internal UpdateStatement =
     {
@@ -187,7 +188,7 @@ type internal UpdateStatement =
         /// The identifier being updated.
         Name: Terminal
 
-        /// The update operator.
+        /// The update operator, e.g. <c>+=</c>.
         Operator: Terminal
 
         /// The value used as the left-hand side of the update operator.
@@ -198,9 +199,9 @@ type internal UpdateStatement =
     }
 
 /// <summary>
-/// A <c>set w/=</c> statement.
+/// A <c>set w/=</c> statement, also known as an evaluate-and-reassign statement.
 /// </summary>
-type internal SetWith =
+type internal UpdateWithStatement =
     {
         /// <summary>
         /// The <c>set</c> keyword.
@@ -255,7 +256,7 @@ and internal BlockStatement =
 /// <summary>
 /// A <c>for</c> statement.
 /// </summary>
-and internal For =
+and internal ForStatement =
     {
         /// <summary>
         /// The <c>for</c> keyword.
@@ -278,7 +279,7 @@ and internal For =
 /// <summary>
 /// The concluding section of an <c>until</c> statement.
 /// </summary>
-and internal UntilCoda =
+and internal UntilStatementCoda =
 
     /// The semicolon.
     | Semicolon of Terminal
@@ -291,7 +292,7 @@ and internal UntilCoda =
 /// <summary>
 /// An <c>until</c> statement.
 /// </summary>
-and internal  Until =
+and internal  UntilStatement =
     {
         /// <summary>
         /// The <c>until</c> keyword.
@@ -306,11 +307,11 @@ and internal  Until =
         /// <summary>
         /// The concluding section, possibly containing a <c>fixup</c> block.
         /// </summary>
-        Coda: UntilCoda
+        Coda: UntilStatementCoda
     }
 
 /// The concluding section of a qubit declaration.
-and internal QubitDeclarationCoda =
+and internal QubitDeclarationStatementCoda =
 
     /// The semicolon.
     | Semicolon of Terminal
@@ -319,7 +320,7 @@ and internal QubitDeclarationCoda =
     | Block of Statement Block
 
 /// A qubit declaration statement.
-and internal QubitDeclaration =
+and internal QubitDeclarationStatement =
     {
         /// The kind of qubit declaration.
         Kind: QubitDeclarationKind
@@ -337,7 +338,7 @@ and internal QubitDeclaration =
         CloseParen: Terminal option
 
         /// The concluding section.
-        Coda: QubitDeclarationCoda
+        Coda: QubitDeclarationStatementCoda
     }
 
 /// A statement.
@@ -349,22 +350,22 @@ and internal Statement =
     /// <summary>
     /// A <c>return</c> statement.
     /// </summary>
-    | Return of SimpleStatement
+    | ReturnStatement of SimpleStatement
 
     /// <summary>
     /// A <c>fail</c> statement.
     /// </summary>
-    | Fail of SimpleStatement
+    | FailStatement of SimpleStatement
 
     /// <summary>
     /// A <c>let</c> statement.
     /// </summary>
-    | Let of BindingStatement
+    | LetStatement of BindingStatement
 
     /// <summary>
     /// A <c>mutable</c> declaration statement.
     /// </summary>
-    | Mutable of BindingStatement
+    | MutableStatement of BindingStatement
 
     /// <summary>
     /// A <c>set</c> statement.
@@ -372,62 +373,63 @@ and internal Statement =
     | SetStatement of BindingStatement
     
     /// <summary>
-    /// An <c>update</c> statement.
+    /// An <c>update</c> statement, also known as an evaluate-and-reassign statement.
+    /// e.g. <c>set x += 3;</c>
     /// </summary>
     | UpdateStatement of UpdateStatement
 
     /// <summary>
-    /// A <c>set w/=</c> statement.
+    /// A <c>set w/=</c> statement, also known as an evaluate-and-reassign statement.
     /// </summary>
-    | SetWith of SetWith
+    | UpdateWithStatement of UpdateWithStatement
 
     /// <summary>
     /// An <c>if</c> statement.
     /// </summary>
-    | If of ConditionalBlockStatement
+    | IfStatement of ConditionalBlockStatement
 
     /// <summary>
     /// An <c>elif</c> statement.
     /// </summary>
-    | Elif of ConditionalBlockStatement
+    | ElifStatement of ConditionalBlockStatement
 
     /// <summary>
     /// An <c>else</c> statement.
     /// </summary>
-    | Else of BlockStatement
+    | ElseStatement of BlockStatement
 
     /// <summary>
     /// A <c>for</c> statement.
     /// </summary>
-    | For of For
+    | ForStatement of ForStatement
 
     /// <summary>
     /// A <c>while</c> statement.
     /// </summary>
-    | While of ConditionalBlockStatement
+    | WhileStatement of ConditionalBlockStatement
 
     /// <summary>
     /// A <c>repeat</c> statement.
     /// </summary>
-    | Repeat of BlockStatement
+    | RepeatStatement of BlockStatement
 
     /// <summary>
     /// An <c>until</c> statement.
     /// </summary>
-    | Until of Until
+    | UntilStatement of UntilStatement
 
     /// <summary>
     /// A <c>within</c> statement.
     /// </summary>
-    | Within of BlockStatement
+    | WithinStatement of BlockStatement
 
     /// <summary>
     /// An <c>apply</c> statement.
     /// </summary>
-    | Apply of BlockStatement
+    | ApplyStatement of BlockStatement
 
     /// A qubit declaration statement.
-    | QubitDeclaration of QubitDeclaration
+    | QubitDeclarationStatement of QubitDeclarationStatement
 
     /// An unknown statement.
     | Unknown of Terminal

@@ -198,23 +198,23 @@ type internal 'result Reducer() as reducer =
     default _.Statement statement =
         match statement with
         | ExpressionStatement expr -> reducer.ExpressionStatement expr
-        | Return returns -> reducer.Return returns
-        | Fail fails -> reducer.Fail fails
-        | Let lets -> reducer.Let lets
-        | Mutable mutables -> reducer.Mutable mutables
+        | ReturnStatement returns -> reducer.ReturnStatement returns
+        | FailStatement fails -> reducer.FailStatement fails
+        | LetStatement lets -> reducer.LetStatement lets
+        | MutableStatement mutables -> reducer.MutableStatement mutables
         | SetStatement sets -> reducer.SetStatement sets
         | UpdateStatement updates -> reducer.UpdateStatement updates
-        | SetWith withs -> reducer.SetWith withs
-        | If ifs -> reducer.If ifs
-        | Elif elifs -> reducer.Elif elifs
-        | Else elses -> reducer.Else elses
-        | For loop -> reducer.For loop
-        | While whiles -> reducer.While whiles
-        | Repeat repeats -> reducer.Repeat repeats
-        | Until untils -> reducer.Until untils
-        | Within withins -> reducer.Within withins
-        | Apply apply -> reducer.Apply apply
-        | QubitDeclaration decl -> reducer.QubitDeclaration decl
+        | UpdateWithStatement withs -> reducer.UpdateWithStatement withs
+        | IfStatement ifs -> reducer.IfStatement ifs
+        | ElifStatement elifs -> reducer.ElifStatement elifs
+        | ElseStatement elses -> reducer.ElseStatement elses
+        | ForStatement loop -> reducer.ForStatement loop
+        | WhileStatement whiles -> reducer.WhileStatement whiles
+        | RepeatStatement repeats -> reducer.RepeatStatement repeats
+        | UntilStatement untils -> reducer.UntilStatement untils
+        | WithinStatement withins -> reducer.WithinStatement withins
+        | ApplyStatement apply -> reducer.ApplyStatement apply
+        | QubitDeclarationStatement decl -> reducer.QubitDeclarationStatement decl
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
     abstract ExpressionStatement : expr: ExpressionStatement -> 'result
@@ -222,21 +222,21 @@ type internal 'result Reducer() as reducer =
     default _.ExpressionStatement expr =
         [ reducer.Expression expr.Expression; reducer.Terminal expr.Semicolon ] |> reduce
 
-    abstract Return : returns: SimpleStatement -> 'result
+    abstract ReturnStatement : returns: SimpleStatement -> 'result
 
-    default _.Return returns = defaultSimpleStatement returns
+    default _.ReturnStatement returns = defaultSimpleStatement returns
 
-    abstract Fail : fails: SimpleStatement -> 'result
+    abstract FailStatement : fails: SimpleStatement -> 'result
 
-    default _.Fail fails = defaultSimpleStatement fails
+    default _.FailStatement fails = defaultSimpleStatement fails
 
-    abstract Let : lets: BindingStatement -> 'result
+    abstract LetStatement : lets: BindingStatement -> 'result
 
-    default _.Let lets = defaultBindingStatement lets
+    default _.LetStatement lets = defaultBindingStatement lets
 
-    abstract Mutable : mutables: BindingStatement -> 'result
+    abstract MutableStatement : mutables: BindingStatement -> 'result
 
-    default _.Mutable mutables = defaultBindingStatement mutables
+    default _.MutableStatement mutables = defaultBindingStatement mutables
 
     abstract SetStatement : sets: BindingStatement -> 'result
 
@@ -254,9 +254,9 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract SetWith : withs: SetWith -> 'result
+    abstract UpdateWithStatement : withs: UpdateWithStatement -> 'result
 
-    default _.SetWith withs =
+    default _.UpdateWithStatement withs =
         [
             reducer.Terminal withs.SetKeyword
             reducer.Terminal withs.Name
@@ -268,21 +268,21 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract If : ifs: ConditionalBlockStatement -> 'result
+    abstract IfStatement : ifs: ConditionalBlockStatement -> 'result
 
-    default _.If ifs = defaultConditionalBlockStatement ifs
+    default _.IfStatement ifs = defaultConditionalBlockStatement ifs
 
-    abstract Elif : elifs: ConditionalBlockStatement -> 'result
+    abstract ElifStatement : elifs: ConditionalBlockStatement -> 'result
 
-    default _.Elif elifs = defaultConditionalBlockStatement elifs
+    default _.ElifStatement elifs = defaultConditionalBlockStatement elifs
 
-    abstract Else : elses: BlockStatement -> 'result
+    abstract ElseStatement : elses: BlockStatement -> 'result
 
-    default _.Else elses = defaultBlockStatement elses
+    default _.ElseStatement elses = defaultBlockStatement elses
 
-    abstract For : loop: For -> 'result
+    abstract ForStatement : loop: ForStatement -> 'result
 
-    default _.For loop =
+    default _.ForStatement loop =
         [
             reducer.Terminal loop.ForKeyword |> Some
             loop.OpenParen |> Option.map reducer.Terminal
@@ -293,22 +293,22 @@ type internal 'result Reducer() as reducer =
         |> List.choose id
         |> reduce
 
-    abstract While : whiles: ConditionalBlockStatement -> 'result
+    abstract WhileStatement : whiles: ConditionalBlockStatement -> 'result
 
-    default _.While whiles = defaultConditionalBlockStatement whiles
+    default _.WhileStatement whiles = defaultConditionalBlockStatement whiles
 
-    abstract Repeat : repeats: BlockStatement -> 'result
+    abstract RepeatStatement : repeats: BlockStatement -> 'result
 
-    default _.Repeat repeats = defaultBlockStatement repeats
+    default _.RepeatStatement repeats = defaultBlockStatement repeats
 
-    abstract Until : untils: Until -> 'result
+    abstract UntilStatement : untils: UntilStatement -> 'result
 
-    default _.Until untils =
+    default _.UntilStatement untils =
         [
             reducer.Terminal untils.UntilKeyword
             reducer.Expression untils.Condition
             match untils.Coda with
-            | UntilCoda.Semicolon semicolon -> reducer.Terminal semicolon
+            | UntilStatementCoda.Semicolon semicolon -> reducer.Terminal semicolon
             | Fixup fixup -> reducer.Fixup fixup
         ]
         |> reduce
@@ -317,17 +317,17 @@ type internal 'result Reducer() as reducer =
 
     default _.Fixup fixup = defaultBlockStatement fixup
 
-    abstract Within : withins: BlockStatement -> 'result
+    abstract WithinStatement : withins: BlockStatement -> 'result
 
-    default _.Within withins = defaultBlockStatement withins
+    default _.WithinStatement withins = defaultBlockStatement withins
 
-    abstract Apply : apply: BlockStatement -> 'result
+    abstract ApplyStatement : apply: BlockStatement -> 'result
 
-    default _.Apply apply = defaultBlockStatement apply
+    default _.ApplyStatement apply = defaultBlockStatement apply
 
-    abstract QubitDeclaration : decl: QubitDeclaration -> 'result
+    abstract QubitDeclarationStatement : decl: QubitDeclarationStatement -> 'result
 
-    default _.QubitDeclaration decl =
+    default _.QubitDeclarationStatement decl =
         [
             reducer.Terminal decl.Keyword |> Some
             decl.OpenParen |> Option.map reducer.Terminal

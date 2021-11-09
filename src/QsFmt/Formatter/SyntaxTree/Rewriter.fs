@@ -194,23 +194,23 @@ type 'context Rewriter() as rewriter =
     default rewriter.Statement(context, statement) =
         match statement with
         | ExpressionStatement expr -> rewriter.ExpressionStatement(context, expr) |> ExpressionStatement
-        | Return returns -> rewriter.Return(context, returns) |> Return
-        | Fail fails -> rewriter.Fail(context, fails) |> Fail
-        | Let lets -> rewriter.Let(context, lets) |> Let
-        | Mutable mutables -> rewriter.Mutable(context, mutables) |> Mutable
+        | ReturnStatement returns -> rewriter.ReturnStatement(context, returns) |> ReturnStatement
+        | FailStatement fails -> rewriter.FailStatement(context, fails) |> FailStatement
+        | LetStatement lets -> rewriter.LetStatement(context, lets) |> LetStatement
+        | MutableStatement mutables -> rewriter.MutableStatement(context, mutables) |> MutableStatement
         | SetStatement sets -> rewriter.SetStatement(context, sets) |> SetStatement
         | UpdateStatement updates -> rewriter.UpdateStatement(context, updates) |> UpdateStatement
-        | SetWith withs -> rewriter.SetWith(context, withs) |> SetWith
-        | If ifs -> rewriter.If(context, ifs) |> If
-        | Elif elifs -> rewriter.Elif(context, elifs) |> Elif
-        | Else elses -> rewriter.Else(context, elses) |> Else
-        | For loop -> rewriter.For(context, loop) |> For
-        | While whiles -> rewriter.While(context, whiles) |> While
-        | Repeat repeats -> rewriter.Repeat(context, repeats) |> Repeat
-        | Until untils -> rewriter.Until(context, untils) |> Until
-        | Within withins -> rewriter.Within(context, withins) |> Within
-        | Apply apply -> rewriter.Apply(context, apply) |> Apply
-        | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
+        | UpdateWithStatement withs -> rewriter.UpdateWithStatement(context, withs) |> UpdateWithStatement
+        | IfStatement ifs -> rewriter.IfStatement(context, ifs) |> IfStatement
+        | ElifStatement elifs -> rewriter.ElifStatement(context, elifs) |> ElifStatement
+        | ElseStatement elses -> rewriter.ElseStatement(context, elses) |> ElseStatement
+        | ForStatement loop -> rewriter.ForStatement(context, loop) |> ForStatement
+        | WhileStatement whiles -> rewriter.WhileStatement(context, whiles) |> WhileStatement
+        | RepeatStatement repeats -> rewriter.RepeatStatement(context, repeats) |> RepeatStatement
+        | UntilStatement untils -> rewriter.UntilStatement(context, untils) |> UntilStatement
+        | WithinStatement withins -> rewriter.WithinStatement(context, withins) |> WithinStatement
+        | ApplyStatement apply -> rewriter.ApplyStatement(context, apply) |> ApplyStatement
+        | QubitDeclarationStatement decl -> rewriter.QubitDeclarationStatement(context, decl) |> QubitDeclarationStatement
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
 
     abstract ExpressionStatement : context: 'context * expr: ExpressionStatement -> ExpressionStatement
@@ -221,21 +221,21 @@ type 'context Rewriter() as rewriter =
             Semicolon = rewriter.Terminal(context, expr.Semicolon)
         }
 
-    abstract Return : context: 'context * returns: SimpleStatement -> SimpleStatement
+    abstract ReturnStatement : context: 'context * returns: SimpleStatement -> SimpleStatement
 
-    default _.Return(context, returns) = defaultSimpleStatement context returns
+    default _.ReturnStatement(context, returns) = defaultSimpleStatement context returns
 
-    abstract Fail : context: 'context * fails: SimpleStatement -> SimpleStatement
+    abstract FailStatement : context: 'context * fails: SimpleStatement -> SimpleStatement
 
-    default _.Fail(context, fails) = defaultSimpleStatement context fails
+    default _.FailStatement(context, fails) = defaultSimpleStatement context fails
 
-    abstract Let : context: 'context * lets: BindingStatement -> BindingStatement
+    abstract LetStatement : context: 'context * lets: BindingStatement -> BindingStatement
 
-    default _.Let(context, lets) = defaultBindingStatement context lets
+    default _.LetStatement(context, lets) = defaultBindingStatement context lets
 
-    abstract Mutable : context: 'context * mutables: BindingStatement -> BindingStatement
+    abstract MutableStatement : context: 'context * mutables: BindingStatement -> BindingStatement
 
-    default _.Mutable(context, mutables) =
+    default _.MutableStatement(context, mutables) =
         defaultBindingStatement context mutables
 
     abstract SetStatement : context: 'context * sets: BindingStatement -> BindingStatement
@@ -253,9 +253,9 @@ type 'context Rewriter() as rewriter =
             Semicolon = rewriter.Terminal(context, updates.Semicolon)
         }
 
-    abstract SetWith : context: 'context * withs: SetWith -> SetWith
+    abstract UpdateWithStatement : context: 'context * withs: UpdateWithStatement -> UpdateWithStatement
 
-    default rewriter.SetWith(context, withs) =
+    default rewriter.UpdateWithStatement(context, withs) =
         {
             SetKeyword = rewriter.Terminal(context, withs.SetKeyword)
             Name = rewriter.Terminal(context, withs.Name)
@@ -266,23 +266,23 @@ type 'context Rewriter() as rewriter =
             Semicolon = rewriter.Terminal(context, withs.Semicolon)
         }
 
-    abstract If : context: 'context * ifs: ConditionalBlockStatement -> ConditionalBlockStatement
+    abstract IfStatement : context: 'context * ifs: ConditionalBlockStatement -> ConditionalBlockStatement
 
-    default _.If(context, ifs) =
+    default _.IfStatement(context, ifs) =
         defaultConditionalBlockStatement context ifs
 
-    abstract Elif : context: 'context * elifs: ConditionalBlockStatement -> ConditionalBlockStatement
+    abstract ElifStatement : context: 'context * elifs: ConditionalBlockStatement -> ConditionalBlockStatement
 
-    default _.Elif(context, elifs) =
+    default _.ElifStatement(context, elifs) =
         defaultConditionalBlockStatement context elifs
 
-    abstract Else : context: 'context * elses: BlockStatement -> BlockStatement
+    abstract ElseStatement : context: 'context * elses: BlockStatement -> BlockStatement
 
-    default _.Else(context, elses) = defaultBlockStatement context elses
+    default _.ElseStatement(context, elses) = defaultBlockStatement context elses
 
-    abstract For : context: 'context * loop: For -> For
+    abstract ForStatement : context: 'context * loop: ForStatement -> ForStatement
 
-    default rewriter.For(context, loop) =
+    default rewriter.ForStatement(context, loop) =
         {
             ForKeyword = rewriter.Terminal(context, loop.ForKeyword)
             OpenParen = loop.OpenParen |> Option.map (curry rewriter.Terminal context)
@@ -291,24 +291,24 @@ type 'context Rewriter() as rewriter =
             Block = rewriter.Block(context, rewriter.Statement, loop.Block)
         }
 
-    abstract While : context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
+    abstract WhileStatement : context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
 
-    default _.While(context, whiles) =
+    default _.WhileStatement(context, whiles) =
         defaultConditionalBlockStatement context whiles
 
-    abstract Repeat : context: 'context * repeats: BlockStatement -> BlockStatement
+    abstract RepeatStatement : context: 'context * repeats: BlockStatement -> BlockStatement
 
-    default _.Repeat(context, repeats) = defaultBlockStatement context repeats
+    default _.RepeatStatement(context, repeats) = defaultBlockStatement context repeats
 
-    abstract Until : context: 'context * untils: Until -> Until
+    abstract UntilStatement : context: 'context * untils: UntilStatement -> UntilStatement
 
-    default rewriter.Until(context, untils) =
+    default rewriter.UntilStatement(context, untils) =
         {
             UntilKeyword = rewriter.Terminal(context, untils.UntilKeyword)
             Condition = rewriter.Expression(context, untils.Condition)
             Coda =
                 match untils.Coda with
-                | UntilCoda.Semicolon semicolon -> rewriter.Terminal(context, semicolon) |> UntilCoda.Semicolon
+                | UntilStatementCoda.Semicolon semicolon -> rewriter.Terminal(context, semicolon) |> UntilStatementCoda.Semicolon
                 | Fixup fixup -> rewriter.Fixup(context, fixup) |> Fixup
         }
 
@@ -316,17 +316,17 @@ type 'context Rewriter() as rewriter =
 
     default _.Fixup(context, fixup) = defaultBlockStatement context fixup
 
-    abstract Within : context: 'context * withins: BlockStatement -> BlockStatement
+    abstract WithinStatement : context: 'context * withins: BlockStatement -> BlockStatement
 
-    default _.Within(context, withins) = defaultBlockStatement context withins
+    default _.WithinStatement(context, withins) = defaultBlockStatement context withins
 
-    abstract Apply : context: 'context * apply: BlockStatement -> BlockStatement
+    abstract ApplyStatement : context: 'context * apply: BlockStatement -> BlockStatement
 
-    default _.Apply(context, apply) = defaultBlockStatement context apply
+    default _.ApplyStatement(context, apply) = defaultBlockStatement context apply
 
-    abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
+    abstract QubitDeclarationStatement : context: 'context * decl: QubitDeclarationStatement -> QubitDeclarationStatement
 
-    default rewriter.QubitDeclaration(context, decl) =
+    default rewriter.QubitDeclarationStatement(context, decl) =
         {
             Kind = decl.Kind
             Keyword = rewriter.Terminal(context, decl.Keyword)

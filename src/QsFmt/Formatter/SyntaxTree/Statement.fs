@@ -100,9 +100,9 @@ type UpdateStatement =
         Semicolon: Terminal
     }
 
-// Set-With Statement
+// Update-With Statement
 
-type SetWith =
+type UpdateWithStatement =
     {
         SetKeyword: Terminal
         Name: Terminal
@@ -128,7 +128,7 @@ and BlockStatement = { Keyword: Terminal; Block: Statement Block }
 
 // For Statement
 
-and For =
+and ForStatement =
     {
         ForKeyword: Terminal
         OpenParen: Terminal option
@@ -139,54 +139,54 @@ and For =
 
 // Until Statement
 
-and UntilCoda =
+and UntilStatementCoda =
     | Semicolon of Terminal
     | Fixup of BlockStatement
 
-and Until =
+and UntilStatement =
     {
         UntilKeyword: Terminal
         Condition: Expression
-        Coda: UntilCoda
+        Coda: UntilStatementCoda
     }
 
 // Qubit Declaration Statement
 
-and QubitDeclarationCoda =
+and QubitDeclarationStatementCoda =
     | Semicolon of Terminal
     | Block of Statement Block
 
-and QubitDeclaration =
+and QubitDeclarationStatement =
     {
         Kind: QubitDeclarationKind
         Keyword: Terminal
         OpenParen: Terminal option
         Binding: QubitBinding
         CloseParen: Terminal option
-        Coda: QubitDeclarationCoda
+        Coda: QubitDeclarationStatementCoda
     }
 
 // Statement
 
 and Statement =
     | ExpressionStatement of ExpressionStatement
-    | Return of SimpleStatement
-    | Fail of SimpleStatement
-    | Let of BindingStatement
-    | Mutable of BindingStatement
+    | ReturnStatement of SimpleStatement
+    | FailStatement of SimpleStatement
+    | LetStatement of BindingStatement
+    | MutableStatement of BindingStatement
     | SetStatement of BindingStatement
     | UpdateStatement of UpdateStatement
-    | SetWith of SetWith
-    | If of ConditionalBlockStatement
-    | Elif of ConditionalBlockStatement
-    | Else of BlockStatement
-    | For of For
-    | While of ConditionalBlockStatement
-    | Repeat of BlockStatement
-    | Until of Until
-    | Within of BlockStatement
-    | Apply of BlockStatement
-    | QubitDeclaration of QubitDeclaration
+    | UpdateWithStatement of UpdateWithStatement
+    | IfStatement of ConditionalBlockStatement
+    | ElifStatement of ConditionalBlockStatement
+    | ElseStatement of BlockStatement
+    | ForStatement of ForStatement
+    | WhileStatement of ConditionalBlockStatement
+    | RepeatStatement of BlockStatement
+    | UntilStatement of UntilStatement
+    | WithinStatement of BlockStatement
+    | ApplyStatement of BlockStatement
+    | QubitDeclarationStatement of QubitDeclarationStatement
     | Unknown of Terminal
 
 module Statement =
@@ -194,22 +194,22 @@ module Statement =
         function
         | ExpressionStatement expr ->
             { expr with Expression = expr.Expression |> Expression.mapPrefix mapper } |> ExpressionStatement
-        | Return returns -> { returns with Keyword = returns.Keyword |> Terminal.mapPrefix mapper } |> Return
-        | Fail fails -> { fails with Keyword = fails.Keyword |> Terminal.mapPrefix mapper } |> Fail
-        | Let lets -> { lets with Keyword = lets.Keyword |> Terminal.mapPrefix mapper } |> Let
-        | Mutable mutables -> { mutables with Keyword = mutables.Keyword |> Terminal.mapPrefix mapper } |> Mutable
+        | ReturnStatement returns -> { returns with Keyword = returns.Keyword |> Terminal.mapPrefix mapper } |> ReturnStatement
+        | FailStatement fails -> { fails with Keyword = fails.Keyword |> Terminal.mapPrefix mapper } |> FailStatement
+        | LetStatement lets -> { lets with Keyword = lets.Keyword |> Terminal.mapPrefix mapper } |> LetStatement
+        | MutableStatement mutables -> { mutables with Keyword = mutables.Keyword |> Terminal.mapPrefix mapper } |> MutableStatement
         | SetStatement sets -> { sets with Keyword = sets.Keyword |> Terminal.mapPrefix mapper } |> SetStatement
         | UpdateStatement updates ->
             { updates with SetKeyword = updates.SetKeyword |> Terminal.mapPrefix mapper } |> UpdateStatement
-        | SetWith withs -> { withs with SetKeyword = withs.SetKeyword |> Terminal.mapPrefix mapper } |> SetWith
-        | If ifs -> { ifs with Keyword = ifs.Keyword |> Terminal.mapPrefix mapper } |> If
-        | Elif elifs -> { elifs with Keyword = elifs.Keyword |> Terminal.mapPrefix mapper } |> Elif
-        | Else elses -> { elses with Keyword = elses.Keyword |> Terminal.mapPrefix mapper } |> Else
-        | For loop -> { loop with ForKeyword = loop.ForKeyword |> Terminal.mapPrefix mapper } |> For
-        | While whiles -> { whiles with Keyword = whiles.Keyword |> Terminal.mapPrefix mapper } |> While
-        | Repeat repeats -> { repeats with Keyword = repeats.Keyword |> Terminal.mapPrefix mapper } |> Repeat
-        | Until untils -> { untils with UntilKeyword = untils.UntilKeyword |> Terminal.mapPrefix mapper } |> Until
-        | Within withins -> { withins with Keyword = withins.Keyword |> Terminal.mapPrefix mapper } |> Within
-        | Apply apply -> { apply with Keyword = apply.Keyword |> Terminal.mapPrefix mapper } |> Apply
-        | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
+        | UpdateWithStatement withs -> { withs with SetKeyword = withs.SetKeyword |> Terminal.mapPrefix mapper } |> UpdateWithStatement
+        | IfStatement ifs -> { ifs with Keyword = ifs.Keyword |> Terminal.mapPrefix mapper } |> IfStatement
+        | ElifStatement elifs -> { elifs with Keyword = elifs.Keyword |> Terminal.mapPrefix mapper } |> ElifStatement
+        | ElseStatement elses -> { elses with Keyword = elses.Keyword |> Terminal.mapPrefix mapper } |> ElseStatement
+        | ForStatement loop -> { loop with ForKeyword = loop.ForKeyword |> Terminal.mapPrefix mapper } |> ForStatement
+        | WhileStatement whiles -> { whiles with Keyword = whiles.Keyword |> Terminal.mapPrefix mapper } |> WhileStatement
+        | RepeatStatement repeats -> { repeats with Keyword = repeats.Keyword |> Terminal.mapPrefix mapper } |> RepeatStatement
+        | UntilStatement untils -> { untils with UntilKeyword = untils.UntilKeyword |> Terminal.mapPrefix mapper } |> UntilStatement
+        | WithinStatement withins -> { withins with Keyword = withins.Keyword |> Terminal.mapPrefix mapper } |> WithinStatement
+        | ApplyStatement apply -> { apply with Keyword = apply.Keyword |> Terminal.mapPrefix mapper } |> ApplyStatement
+        | QubitDeclarationStatement decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclarationStatement
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown

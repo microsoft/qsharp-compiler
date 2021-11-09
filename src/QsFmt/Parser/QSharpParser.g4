@@ -146,8 +146,8 @@ statement
     | let='let' binding=symbolBinding equals='=' value=expression semicolon=';' # LetStatement
     | mutable='mutable' binding=symbolBinding equals='=' value=expression semicolon=';' # MutableStatement
     | set='set' binding=symbolBinding equals='=' value=expression semicolon=';' # SetStatement
-    | set='set' name=Identifier operator=updateOperator value=expression semicolon=';' # SetUpdateStatement
-    | set='set' name=Identifier with='w/=' index=expression arrow='<-' value=expression semicolon=';' # SetWithStatement
+    | set='set' name=Identifier operator=updateOperator value=expression semicolon=';' # UpdateStatement
+    | set='set' name=Identifier with='w/=' index=expression arrow='<-' value=expression semicolon=';' # UpdateWithStatement
     | if='if' condition=expression body=scope # IfStatement
     | elif='elif' condition=expression body=scope # ElifStatement
     | else='else' body=scope # ElseStatement

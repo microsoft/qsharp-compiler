@@ -122,28 +122,28 @@ type internal 'context Rewriter =
     default ExpressionStatement: context:'context * expr:ExpressionStatement -> ExpressionStatement
 
     /// <summary>
-    /// Rewrites a <see cref="Return"/> statement node.
+    /// Rewrites a <see cref="ReturnStatement"/> statement node.
     /// </summary>
-    abstract Return: context:'context * returns:SimpleStatement -> SimpleStatement
-    default Return: context:'context * returns:SimpleStatement -> SimpleStatement
+    abstract ReturnStatement: context:'context * returns:SimpleStatement -> SimpleStatement
+    default ReturnStatement: context:'context * returns:SimpleStatement -> SimpleStatement
 
     /// <summary>
-    /// Rewrites a <see cref="Fail"/> statement node.
+    /// Rewrites a <see cref="FailStatement"/> statement node.
     /// </summary>
-    abstract Fail: context:'context * fails:SimpleStatement -> SimpleStatement
-    default Fail: context:'context * fails:SimpleStatement -> SimpleStatement
+    abstract FailStatement: context:'context * fails:SimpleStatement -> SimpleStatement
+    default FailStatement: context:'context * fails:SimpleStatement -> SimpleStatement
 
     /// <summary>
-    /// Rewrites a <see cref="Let"/> statement node.
+    /// Rewrites a <see cref="LetStatement"/> statement node.
     /// </summary>
-    abstract Let: context:'context * lets:BindingStatement -> BindingStatement
-    default Let: context:'context * lets:BindingStatement -> BindingStatement
+    abstract LetStatement: context:'context * lets:BindingStatement -> BindingStatement
+    default LetStatement: context:'context * lets:BindingStatement -> BindingStatement
 
     /// <summary>
-    /// Rewrites a <see cref="Mutable"/> declaration statement node.
+    /// Rewrites a <see cref="MutableStatement"/> declaration statement node.
     /// </summary>
-    abstract Mutable: context:'context * mutables:BindingStatement -> BindingStatement
-    default Mutable: context:'context * mutables:BindingStatement -> BindingStatement
+    abstract MutableStatement: context:'context * mutables:BindingStatement -> BindingStatement
+    default MutableStatement: context:'context * mutables:BindingStatement -> BindingStatement
 
     /// <summary>
     /// Rewrites a <see cref="SetStatement"/> statement node.
@@ -158,52 +158,52 @@ type internal 'context Rewriter =
     default UpdateStatement: context:'context * updates:UpdateStatement -> UpdateStatement
 
     /// <summary>
-    /// Rewrites an <see cref="SetWith"/> statement node.
+    /// Rewrites an <see cref="UpdateWithStatement"/> statement node.
     /// </summary>
-    abstract SetWith: context:'context * withs:SetWith -> SetWith
-    default SetWith: context:'context * withs:SetWith -> SetWith
+    abstract UpdateWithStatement: context:'context * withs:UpdateWithStatement -> UpdateWithStatement
+    default UpdateWithStatement: context:'context * withs:UpdateWithStatement -> UpdateWithStatement
 
     /// <summary>
-    /// Rewrites an <see cref="If"/> statement node.
+    /// Rewrites an <see cref="IfStatement"/> statement node.
     /// </summary>
-    abstract If: context:'context * ifs:ConditionalBlockStatement -> ConditionalBlockStatement
-    default If: context:'context * ifs:ConditionalBlockStatement -> ConditionalBlockStatement
+    abstract IfStatement: context:'context * ifs:ConditionalBlockStatement -> ConditionalBlockStatement
+    default IfStatement: context:'context * ifs:ConditionalBlockStatement -> ConditionalBlockStatement
 
     /// <summary>
-    /// Rewrites an <see cref="Elif"/> statement node.
+    /// Rewrites an <see cref="ElifStatement"/> statement node.
     /// </summary>
-    abstract Elif: context:'context * elifs:ConditionalBlockStatement -> ConditionalBlockStatement
-    default Elif: context:'context * elifs:ConditionalBlockStatement -> ConditionalBlockStatement
+    abstract ElifStatement: context:'context * elifs:ConditionalBlockStatement -> ConditionalBlockStatement
+    default ElifStatement: context:'context * elifs:ConditionalBlockStatement -> ConditionalBlockStatement
 
     /// <summary>
-    /// Rewrites an <see cref="Else"/> statement node.
+    /// Rewrites an <see cref="ElseStatement"/> statement node.
     /// </summary>
-    abstract Else: context:'context * elses:BlockStatement -> BlockStatement
-    default Else: context:'context * elses:BlockStatement -> BlockStatement
+    abstract ElseStatement: context:'context * elses:BlockStatement -> BlockStatement
+    default ElseStatement: context:'context * elses:BlockStatement -> BlockStatement
 
     /// <summary>
-    /// Rewrites a <see cref="For"/> statement node.
+    /// Rewrites a <see cref="ForStatement"/> statement node.
     /// </summary>
-    abstract For : context: 'context * loop: For -> For
-    default For : context: 'context * loop: For -> For
+    abstract ForStatement : context: 'context * loop: ForStatement -> ForStatement
+    default ForStatement : context: 'context * loop: ForStatement -> ForStatement
 
     /// <summary>
-    /// Rewrites a <see cref="While"/> statement node.
+    /// Rewrites a <see cref="WhileStatement"/> statement node.
     /// </summary>
-    abstract While : context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
-    default While : context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
+    abstract WhileStatement : context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
+    default WhileStatement : context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
 
     /// <summary>
-    /// Rewrites a <see cref="Repeat"/> statement node.
+    /// Rewrites a <see cref="RepeatStatement"/> statement node.
     /// </summary>
-    abstract Repeat : context: 'context * repeats: BlockStatement -> BlockStatement
-    default Repeat : context: 'context * repeats: BlockStatement -> BlockStatement
+    abstract RepeatStatement : context: 'context * repeats: BlockStatement -> BlockStatement
+    default RepeatStatement : context: 'context * repeats: BlockStatement -> BlockStatement
 
     /// <summary>
-    /// Rewrites a <see cref="Until"/> statement node.
+    /// Rewrites a <see cref="UntilStatement"/> statement node.
     /// </summary>
-    abstract Until : context: 'context * untils: Until -> Until
-    default Until : context: 'context * untils: Until -> Until
+    abstract UntilStatement : context: 'context * untils: UntilStatement -> UntilStatement
+    default UntilStatement : context: 'context * untils: UntilStatement -> UntilStatement
 
     /// <summary>
     /// Rewrites a <see cref="Fixup"/> node.
@@ -212,22 +212,22 @@ type internal 'context Rewriter =
     default Fixup : context: 'context * fixup: BlockStatement -> BlockStatement
 
     /// <summary>
-    /// Rewrites a <see cref="Within"/> statement node.
+    /// Rewrites a <see cref="WithinStatement"/> statement node.
     /// </summary>
-    abstract Within : context: 'context * withins: BlockStatement -> BlockStatement
-    default Within : context: 'context * withins: BlockStatement -> BlockStatement
+    abstract WithinStatement : context: 'context * withins: BlockStatement -> BlockStatement
+    default WithinStatement : context: 'context * withins: BlockStatement -> BlockStatement
 
     /// <summary>
-    /// Rewrites a <see cref="Apply"/> statement node.
+    /// Rewrites a <see cref="ApplyStatement"/> statement node.
     /// </summary>
-    abstract Apply : context: 'context * apply: BlockStatement -> BlockStatement
-    default Apply : context: 'context * apply: BlockStatement -> BlockStatement
+    abstract ApplyStatement : context: 'context * apply: BlockStatement -> BlockStatement
+    default ApplyStatement : context: 'context * apply: BlockStatement -> BlockStatement
 
     /// <summary>
-    /// Rewrites a <see cref="QubitDeclaration"/> statement node.
+    /// Rewrites a <see cref="QubitDeclarationStatement"/> statement node.
     /// </summary>
-    abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
-    default QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
+    abstract QubitDeclarationStatement : context: 'context * decl: QubitDeclarationStatement -> QubitDeclarationStatement
+    default QubitDeclarationStatement : context: 'context * decl: QubitDeclarationStatement -> QubitDeclarationStatement
 
     /// <summary>
     /// Rewrites a <see cref="ParameterBinding"/> node.

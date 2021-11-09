@@ -117,7 +117,7 @@ type StatementVisitor(tokens) =
             Expression = expressionVisitor.Visit context.value
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
-        |> Return
+        |> ReturnStatement
 
     override _.VisitFailStatement context =
         {
@@ -125,7 +125,7 @@ type StatementVisitor(tokens) =
             Expression = expressionVisitor.Visit context.value
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
-        |> Fail
+        |> FailStatement
 
     override _.VisitLetStatement context =
         {
@@ -135,7 +135,7 @@ type StatementVisitor(tokens) =
             Value = expressionVisitor.Visit context.value
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
-        |> Let
+        |> LetStatement
 
     override _.VisitMutableStatement context =
         {
@@ -145,7 +145,7 @@ type StatementVisitor(tokens) =
             Value = expressionVisitor.Visit context.value
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
-        |> Mutable
+        |> MutableStatement
 
     override _.VisitSetStatement context =
         {
@@ -157,7 +157,7 @@ type StatementVisitor(tokens) =
         }
         |> SetStatement
 
-    override _.VisitSetUpdateStatement context =
+    override _.VisitUpdateStatement context =
         {
             SetKeyword = context.set |> Node.toTerminal tokens
             Name = context.name |> Node.toTerminal tokens
@@ -168,7 +168,7 @@ type StatementVisitor(tokens) =
         }
         |> UpdateStatement
 
-    override _.VisitSetWithStatement context =
+    override _.VisitUpdateWithStatement context =
         {
             SetKeyword = context.set |> Node.toTerminal tokens
             Name = context.name |> Node.toTerminal tokens
@@ -178,7 +178,7 @@ type StatementVisitor(tokens) =
             Value = expressionVisitor.Visit context.value
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
-        |> SetWith
+        |> UpdateWithStatement
 
     override visitor.VisitIfStatement context =
         {
@@ -191,7 +191,7 @@ type StatementVisitor(tokens) =
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
         }
-        |> If
+        |> IfStatement
 
     override visitor.VisitElifStatement context =
         {
@@ -204,7 +204,7 @@ type StatementVisitor(tokens) =
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
         }
-        |> Elif
+        |> ElifStatement
 
     override visitor.VisitElseStatement context =
         {
@@ -216,7 +216,7 @@ type StatementVisitor(tokens) =
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
         }
-        |> Else
+        |> ElseStatement
 
     override visitor.VisitForStatement context =
         {
@@ -231,7 +231,7 @@ type StatementVisitor(tokens) =
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
         }
-        |> For
+        |> ForStatement
 
     override visitor.VisitWhileStatement context =
         {
@@ -244,7 +244,7 @@ type StatementVisitor(tokens) =
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
         }
-        |> While
+        |> WhileStatement
 
     override visitor.VisitRepeatStatement context =
         {
@@ -256,7 +256,7 @@ type StatementVisitor(tokens) =
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
         }
-        |> Repeat
+        |> RepeatStatement
 
     override visitor.VisitUntilStatement context =
         {
@@ -275,9 +275,9 @@ type StatementVisitor(tokens) =
                     }
                     |> Fixup
                 else
-                    context.semicolon |> Node.toTerminal tokens |> UntilCoda.Semicolon
+                    context.semicolon |> Node.toTerminal tokens |> UntilStatementCoda.Semicolon
         }
-        |> Until
+        |> UntilStatement
 
     override visitor.VisitWithinStatement context =
         {
@@ -289,7 +289,7 @@ type StatementVisitor(tokens) =
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
         }
-        |> Within
+        |> WithinStatement
 
     override visitor.VisitApplyStatement context =
         {
@@ -301,7 +301,7 @@ type StatementVisitor(tokens) =
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
         }
-        |> Apply
+        |> ApplyStatement
 
     override visitor.VisitQubitDeclaration context =
         {
@@ -325,4 +325,4 @@ type StatementVisitor(tokens) =
                 else
                     context.semicolon |> Node.toTerminal tokens |> Semicolon
         }
-        |> QubitDeclaration
+        |> QubitDeclarationStatement

@@ -126,28 +126,28 @@ type internal 'result Reducer =
     default ExpressionStatement: expr:ExpressionStatement -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Return"/> statement node.
+    /// Reduces a <see cref="ReturnStatement"/> statement node.
     /// </summary>
-    abstract Return: returns:SimpleStatement -> 'result
-    default Return: returns:SimpleStatement -> 'result
+    abstract ReturnStatement: returns:SimpleStatement -> 'result
+    default ReturnStatement: returns:SimpleStatement -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Fail"/> statement node.
+    /// Reduces a <see cref="FailStatement"/> statement node.
     /// </summary>
-    abstract Fail: fails:SimpleStatement -> 'result
-    default Fail: fails:SimpleStatement -> 'result
+    abstract FailStatement: fails:SimpleStatement -> 'result
+    default FailStatement: fails:SimpleStatement -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Let"/> statement node.
+    /// Reduces a <see cref="LetStatement"/> statement node.
     /// </summary>
-    abstract Let: lets:BindingStatement -> 'result
-    default Let: lets:BindingStatement -> 'result
+    abstract LetStatement: lets:BindingStatement -> 'result
+    default LetStatement: lets:BindingStatement -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Mutable"/> declaration statement node.
+    /// Reduces a <see cref="MutableStatement"/> declaration statement node.
     /// </summary>
-    abstract Mutable: mutables:BindingStatement -> 'result
-    default Mutable: mutables:BindingStatement -> 'result
+    abstract MutableStatement: mutables:BindingStatement -> 'result
+    default MutableStatement: mutables:BindingStatement -> 'result
 
     /// <summary>
     /// Reduces a <see cref="SetStatement"/> statement node.
@@ -162,52 +162,52 @@ type internal 'result Reducer =
     default UpdateStatement: updates:UpdateStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="SetWith"/> statement node.
+    /// Reduces an <see cref="UpdateWithStatement"/> statement node.
     /// </summary>
-    abstract SetWith: withs:SetWith -> 'result
-    default SetWith: withs:SetWith -> 'result
+    abstract UpdateWithStatement: withs:UpdateWithStatement -> 'result
+    default UpdateWithStatement: withs:UpdateWithStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="If"/> statement node.
+    /// Reduces an <see cref="IfStatement"/> statement node.
     /// </summary>
-    abstract If: ifs:ConditionalBlockStatement -> 'result
-    default If: ifs:ConditionalBlockStatement -> 'result
+    abstract IfStatement: ifs:ConditionalBlockStatement -> 'result
+    default IfStatement: ifs:ConditionalBlockStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="Elif"/> statement node.
+    /// Reduces an <see cref="ElifStatement"/> statement node.
     /// </summary>
-    abstract Elif: elifs:ConditionalBlockStatement -> 'result
-    default Elif: elifs:ConditionalBlockStatement -> 'result
+    abstract ElifStatement: elifs:ConditionalBlockStatement -> 'result
+    default ElifStatement: elifs:ConditionalBlockStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="Else"/> statement node.
+    /// Reduces an <see cref="ElseStatement"/> statement node.
     /// </summary>
-    abstract Else: elses:BlockStatement -> 'result
-    default Else: elses:BlockStatement -> 'result
+    abstract ElseStatement: elses:BlockStatement -> 'result
+    default ElseStatement: elses:BlockStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="For"/> statement node.
+    /// Reduces an <see cref="ForStatement"/> statement node.
     /// </summary>
-    abstract For : loop: For -> 'result
-    default For : loop: For -> 'result
+    abstract ForStatement : loop: ForStatement -> 'result
+    default ForStatement : loop: ForStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="While"/> statement node.
+    /// Reduces an <see cref="WhileStatement"/> statement node.
     /// </summary>
-    abstract While : whiles: ConditionalBlockStatement -> 'result
-    default While : whiles: ConditionalBlockStatement -> 'result
+    abstract WhileStatement : whiles: ConditionalBlockStatement -> 'result
+    default WhileStatement : whiles: ConditionalBlockStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="Repeat"/> statement node.
+    /// Reduces an <see cref="RepeatStatement"/> statement node.
     /// </summary>
-    abstract Repeat : repeats: BlockStatement -> 'result
-    default Repeat : repeats: BlockStatement -> 'result
+    abstract RepeatStatement : repeats: BlockStatement -> 'result
+    default RepeatStatement : repeats: BlockStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="Until"/> statement node.
+    /// Reduces an <see cref="UntilStatement"/> statement node.
     /// </summary>
-    abstract Until : untils: Until -> 'result
-    default Until : untils: Until -> 'result
+    abstract UntilStatement : untils: UntilStatement -> 'result
+    default UntilStatement : untils: UntilStatement -> 'result
 
     /// <summary>
     /// Reduces an <see cref="Fixup"/> node.
@@ -216,22 +216,22 @@ type internal 'result Reducer =
     default Fixup : fixup: BlockStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="Within"/> statement node.
+    /// Reduces an <see cref="WithinStatement"/> statement node.
     /// </summary>
-    abstract Within : withins: BlockStatement -> 'result
-    default Within : withins: BlockStatement -> 'result
+    abstract WithinStatement : withins: BlockStatement -> 'result
+    default WithinStatement : withins: BlockStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="Apply"/> statement node.
+    /// Reduces an <see cref="ApplyStatement"/> statement node.
     /// </summary>
-    abstract Apply : apply: BlockStatement -> 'result
-    default Apply : apply: BlockStatement -> 'result
+    abstract ApplyStatement : apply: BlockStatement -> 'result
+    default ApplyStatement : apply: BlockStatement -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="QubitDeclaration"/> statement node.
+    /// Reduces a <see cref="QubitDeclarationStatement"/> statement node.
     /// </summary>
-    abstract QubitDeclaration : decl: QubitDeclaration -> 'result
-    default QubitDeclaration : decl: QubitDeclaration -> 'result
+    abstract QubitDeclarationStatement : decl: QubitDeclarationStatement -> 'result
+    default QubitDeclarationStatement : decl: QubitDeclarationStatement -> 'result
 
     /// <summary>
     /// Reduces a <see cref="ParameterBinding"/> node.
