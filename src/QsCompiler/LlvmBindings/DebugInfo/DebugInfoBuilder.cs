@@ -53,7 +53,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         */
     }
 
-
     /// <summary><see cref="DebugPosition"/> represents a line/col position in source code and is 1-based.</summary>
     /// <summary>If a column number is not provided, 1 is used.</summary>
     /// TODO: This could be propogated through the rest of line/col debug information in the LLVMBindings

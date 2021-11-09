@@ -1154,7 +1154,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     new[] { this.SharedState.Context.CreateConstant(0) });
                 var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
                     byteArrayPointer,
-                    this.SharedState.Types.DataArrayPointer);
+                    this.SharedState.NativeLlvmTypes.DataArrayPointer);
                 var res = this.SharedState.CurrentBuilder.Call(createBigInt, n, zeroByteArray);
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
@@ -1444,7 +1444,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f", this.SharedState.Context.DoubleType);
                 var exponent = this.SharedState.CurrentBuilder.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true);
                 var resAsDouble = this.SharedState.CurrentBuilder.Call(powFunc, baseValue, exponent);
-                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.Types.Int);
+                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.NativeLlvmTypes.Int);
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
