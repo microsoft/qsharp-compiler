@@ -100,8 +100,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 diagnostics => this.PublishDiagnosticsAsync(diagnostics),
                 (name, props, meas) => this.SendTelemetryAsync(name, props, meas),
                 this.LogToWindow,
-                this.OnInternalError,
-                this.OnTemporaryProjectLoaded);
+                this.OnInternalError);
             this.waitForInit.Set();
         }
 
@@ -214,9 +213,6 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
         }
 
-        private void OnTemporaryProjectLoaded(Uri projectUri) =>
-            this.fileWatcher.ListenAsync(Path.GetDirectoryName(projectUri.LocalPath), false, null, "*.csproj").Wait();
-
         /* jsonrpc methods for initialization and shut down */
 
         private Task InitializeWorkspaceAsync(ImmutableDictionary<Uri, ImmutableHashSet<string>> folders)
@@ -292,6 +288,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.WorkspaceSymbolProvider = false;
             capabilities.RenameProvider = true;
             capabilities.HoverProvider = true;
+            capabilities.DocumentFormattingProvider = true;
             capabilities.DocumentHighlightProvider = true;
             capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "(", "," };
             capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities
@@ -418,6 +415,33 @@ namespace Microsoft.Quantum.QsLanguageServer
             catch
             {
                 return null;
+            }
+        }
+
+        [JsonRpcMethod(Methods.TextDocumentFormattingName)]
+        public object OnFormatting(JToken arg)
+        {
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
+            var param = Utils.TryJTokenAs<DocumentFormattingParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentFormattingName}, but got null.");
+            }
+
+            try
+            {
+                return
+                    QsCompilerError.RaiseOnFailure(
+                        () => this.editorState.Formatting(param) ?? Array.Empty<TextEdit>(),
+                        "Formatting threw an exception");
+            }
+            catch
+            {
+                return Array.Empty<TextEdit>();
             }
         }
 
@@ -660,15 +684,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCodeActionName)]
         public object OnCodeAction(JToken arg)
         {
-            CodeAction CreateAction(string title, WorkspaceEdit edit)
-            {
-                return new CodeAction
-                {
-                    Title = title,
-                    Edit = edit,
-                };
-            }
-
             if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
@@ -685,9 +700,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return
                     QsCompilerError.RaiseOnFailure(
-                        () => this.editorState.CodeActions(param)
-                            ?.SelectMany(vs => vs.Select(v => CreateAction(vs.Key, v)))
-                            ?? Enumerable.Empty<CodeAction>(),
+                        () => this.editorState.CodeActions(param) ?? Enumerable.Empty<CodeAction>(),
                         "CodeAction threw an exception")
                     .ToArray();
             }

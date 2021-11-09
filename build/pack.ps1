@@ -89,6 +89,7 @@ Publish-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj'
 Publish-One '../src/QsCompiler/LlvmBindings/LlvmBindings.csproj'
 Publish-One '../src/QuantumSdk/Tools/BuildConfiguration/BuildConfiguration.csproj'
 Publish-One '../src/QuantumSdk/Tools/DefaultEntryPoint/DefaultEntryPoint.csproj'
+Publish-One '../src/QsFmt/App/App.fsproj'
 
 Pack-One '../src/QsCompiler/Compiler/Compiler.csproj' '-IncludeReferencedProjects'
 Pack-One '../src/QsCompiler/QirGeneration/QirGeneration.csproj'

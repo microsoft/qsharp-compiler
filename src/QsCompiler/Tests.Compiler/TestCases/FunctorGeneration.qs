@@ -156,14 +156,14 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     operation ControlledAdjointGenDirective10 (q : Qubit) : Unit {
         body (...) { }
         adjoint (...) { }
-        controlled adjoint self; 
+        controlled adjoint self;
         controlled auto;
     }
 
     operation ControlledAdjointGenDirective11 (q : Qubit) : Unit {
         body (...) { }
         adjoint invert;
-        controlled adjoint self; 
+        controlled adjoint self;
         controlled auto;
     }
 
@@ -291,30 +291,30 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     // checking that functor support is verified for local variables and partial application as well
 
     operation VariableNeedsFunctorSupport1 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             let op = Controllable;
-            op(q); 
+            op(q);
         }
         adjoint auto;
     }
 
     operation VariableNeedsFunctorSupport2 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             let op = Adjointable;
-            op(q); 
+            op(q);
         }
         controlled auto;
     }
 
     operation VariableNeedsFunctorSupport3 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             (Controllable(_))(q);
         }
         adjoint auto;
     }
 
     operation VariableNeedsFunctorSupport4 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             (Adjointable(_))(q);
         }
         controlled auto;
@@ -322,30 +322,30 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 
     operation VariableWithFunctorSupport1 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             let op = Controllable;
-            op(q); 
+            op(q);
         }
         controlled auto;
     }
 
     operation VariableWithFunctorSupport2 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             let op = Adjointable;
-            op(q); 
+            op(q);
         }
         adjoint auto;
     }
 
     operation VariableWithFunctorSupport3 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             (Controllable(_))(q);
         }
         controlled auto;
     }
 
     operation VariableWithFunctorSupport4 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             (Adjointable(_))(q);
         }
         adjoint auto;
@@ -401,7 +401,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     }
 
     operation NeedsFunctorSupport10 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             within { Controllable(q); }
             apply {}
         }
@@ -409,7 +409,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     }
 
     operation NeedsFunctorSupport11 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             within { }
             apply { Operation(q); }
         }
@@ -417,7 +417,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     }
 
     operation NeedsFunctorSupport12 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             within { }
             apply { Operation(q); }
         }
@@ -425,7 +425,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     }
 
     operation NeedsFunctorSupport13 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             within { }
             apply { Controllable(q); }
         }
@@ -445,7 +445,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     operation NeedsFunctorSupport16(q : Qubit) : Unit {
         body (...) {
             within { Operation(q); }
-            apply { }        
+            apply { }
         }
         adjoint self;
     }
@@ -453,7 +453,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     operation NeedsFunctorSupport17(q : Qubit) : Unit
     is Adj {
         within { Controllable(q); }
-        apply { }        
+        apply { }
     }
 
 
@@ -520,7 +520,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     }
 
     operation FunctorSupport13 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             within { Adjointable(q); }
             apply {}
         }
@@ -528,7 +528,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     }
 
     operation FunctorSupport14 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             within { Adjointable(q); }
             apply {}
         }
@@ -536,7 +536,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     }
 
     operation FunctorSupport15 (q : Qubit) : Unit {
-        body (...) { 
+        body (...) {
             within {}
             apply { Operation(q); }
         }
@@ -614,9 +614,9 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation InvalidAutoInversion1(q : Qubit) : Unit {
         body (...) {
-            return ();            
+            return ();
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion2(q : Qubit) : Unit {
@@ -625,21 +625,21 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
             until (true)
             fixup {}
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion3(q : Qubit) : Unit {
         body (...) {
             set _ = 1;
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion4(q : Qubit) : Unit {
         body (...) {
             if (true) { return (); }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion5(q : Qubit) : Unit {
@@ -650,21 +650,21 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
                 fixup {}
             }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion6(q : Qubit) : Unit {
         body (...) {
             if (true) { set _ = 1; }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion7(q : Qubit) : Unit {
         body (...) {
             for i in 1..10 { return (); }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion8(q : Qubit) : Unit {
@@ -675,21 +675,21 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
                 fixup {}
             }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion9(q : Qubit) : Unit {
         body (...) {
             for i in 1..10 { set _ = 1; }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion10(q : Qubit) : Unit {
         body (...) {
             use c = Qubit() { return (); }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion11(q : Qubit) : Unit {
@@ -700,21 +700,21 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
                 fixup {}
             }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion12(q : Qubit) : Unit {
         body (...) {
             use c = Qubit() { set _ = 1; }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion13(q : Qubit) : Unit {
         body (...) {
             borrow c = Qubit() { return (); }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion14(q : Qubit) : Unit {
@@ -725,14 +725,14 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
                 fixup {}
             }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion15(q : Qubit) : Unit {
         body (...) {
             borrow c = Qubit() { set _ = 1; }
         }
-        adjoint auto;    
+        adjoint auto;
     }
 
     operation InvalidAutoInversion16(q : Qubit) : Unit {
@@ -756,7 +756,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation ValidInversion1(q : Qubit) : Unit {
         body (...) {
-            return ();            
+            return ();
         }
         adjoint self;
     }
@@ -767,7 +767,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
             until (true)
             fixup {}
         }
-        adjoint self;    
+        adjoint self;
     }
 
     operation ValidInversion3(q : Qubit) : Unit {
@@ -775,15 +775,15 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
             mutable foo = 0;
             set foo = 1;
         }
-        adjoint self;    
+        adjoint self;
     }
 
     operation ValidInversion4(q : Qubit) : Unit {
         body (...) {
-            // NOTE: this is ok because, opposed to a return-statement, 
+            // NOTE: this is ok because, opposed to a return-statement,
             // there is no way modify control flow in a meaningful way using a fail
             // (the computation fails either way albeit potentially a bit earlier rather than later)
-            fail "not yet implemented";  
+            fail "not yet implemented";
         }
         adjoint auto;
     }
@@ -848,7 +848,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation WithInvalidQuantumDependency5 (q : Qubit) : Unit {
         body (...) {
-            for i in CoinFlip() ? new Int[0] | new Int[1] {}
+            for i in CoinFlip() ? [] | [0] {}
         }
         adjoint auto;
     }
@@ -929,7 +929,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation InvalidControlled2 (q : Qubit) : Unit {
         body (...) {
-            for i in CoinFlip() ? new Int[0] | new Int[1] {}
+            for i in CoinFlip() ? [] | [0] {}
         }
         controlled auto;
     }
@@ -951,42 +951,42 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
     operation ValidControlled1 (q : Qubit) : Unit {
         body (...) {
-            let _ = Controllable (q);        
+            let _ = Controllable (q);
         }
         controlled auto;
     }
 
     operation ValidControlled2 (q : Qubit) : Unit {
         body (...) {
-            mutable _ = Controllable (q);        
+            mutable _ = Controllable (q);
         }
         controlled auto;
     }
 
     operation ValidControlled3 (q : Qubit) : Unit {
         body (...) {
-            set _ = Controllable (q);        
+            set _ = Controllable (q);
         }
         controlled auto;
     }
 
     operation ValidControlled4 (q : Qubit) : Unit {
         body (...) {
-            return Controllable(q);        
+            return Controllable(q);
         }
         controlled auto;
     }
 
     operation ValidControlled5 (q : Qubit) : Unit {
         body (...) {
-            fail $"{Controllable (q)}";        
+            fail $"{Controllable (q)}";
         }
         controlled auto;
     }
 
     operation ValidControlled6 (q : Qubit) : Unit {
         body (...) {
-            if (true) { Controllable(q); }        
+            if (true) { Controllable(q); }
         }
         controlled auto;
     }
@@ -1063,7 +1063,7 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
         controlled auto;
         controlled adjoint invert;
     }
-    
+
 
     operation ValidControlledAdjointGeneration1 (q : Qubit) : Unit {
         body (...) { Operation (q); }
@@ -1194,51 +1194,51 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
 
 
     operation AutoAdjSpec () : Unit {
-        adjoint auto; 
+        adjoint auto;
     }
 
     operation InvertAdjSpec () : Unit {
-        adjoint invert; 
+        adjoint invert;
     }
 
     operation SelfAdjSpec () : Unit {
-        adjoint self; 
+        adjoint self;
     }
 
     operation AutoCtlSpec () : Unit {
         controlled auto;
-    } 
+    }
 
     operation DistrCtlSpec () : Unit {
-        controlled distribute; 
+        controlled distribute;
     }
 
     operation CtlAffAutoAdjSpec () : Unit is Ctl {
-        adjoint auto; 
+        adjoint auto;
     }
 
     operation CtlAffInvertAdjSpec () : Unit is Ctl {
-        adjoint invert; 
+        adjoint invert;
     }
 
     operation CtlAffSelfAdjSpec () : Unit is Ctl {
-        adjoint self; 
+        adjoint self;
     }
 
     operation AdjAffAutoCtlSpec () : Unit is Adj {
         controlled auto;
-    } 
+    }
 
     operation AdjAffDistrCtlSpec () : Unit is Adj {
-        controlled distribute; 
+        controlled distribute;
     }
 
 
     // operation characteristics expressions
 
     operation OperationCharacteristics1 (qs : Qubit[]) : Unit {
-        NoAffiliation(); 
-        AdjAffiliation(); 
+        NoAffiliation();
+        AdjAffiliation();
         CtlAffiliation();
         CtlAdjAffiliation();
         AdjCtlAffiliation();
@@ -1251,96 +1251,96 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
         Adjoint AdjCtlAffiliation();
         Adjoint AdjViaIntersection();
         Controlled CtlAffiliation(qs, ());
-        Controlled CtlAdjAffiliation(qs, ()); 
-        Controlled AdjCtlAffiliation(qs, ()); 
-        Controlled CtlViaIntersection(qs, ()); 
+        Controlled CtlAdjAffiliation(qs, ());
+        Controlled AdjCtlAffiliation(qs, ());
+        Controlled CtlViaIntersection(qs, ());
     }
 
     operation OperationCharacteristics2 (qs : Qubit[]) : Unit {
-        Adjoint NoAffiliation(); 
+        Adjoint NoAffiliation();
     }
 
     operation OperationCharacteristics3 (qs : Qubit[]) : Unit {
-        Controlled NoAffiliation((), qs); 
+        Controlled NoAffiliation((), qs);
     }
 
     operation OperationCharacteristics4 (qs : Qubit[]) : Unit {
-        Controlled AdjAffiliation((), qs);        
+        Controlled AdjAffiliation((), qs);
     }
 
     operation OperationCharacteristics5 (qs : Qubit[]) : Unit {
-        Adjoint CtlAffiliation();        
+        Adjoint CtlAffiliation();
     }
 
     operation OperationCharacteristics6 (qs : Qubit[]) : Unit {
-        Adjoint AdjCtlIntersection();        
+        Adjoint AdjCtlIntersection();
     }
 
     operation OperationCharacteristics7 (qs : Qubit[]) : Unit {
-        Adjoint CtlAdjIntersection();        
+        Adjoint CtlAdjIntersection();
     }
 
     operation OperationCharacteristics8 (qs : Qubit[]) : Unit {
-        Adjoint CtlViaIntersection();        
+        Adjoint CtlViaIntersection();
     }
 
     operation OperationCharacteristics9 (qs : Qubit[]) : Unit {
-        Controlled AdjCtlIntersection(qs, ());        
+        Controlled AdjCtlIntersection(qs, ());
     }
 
     operation OperationCharacteristics10 (qs : Qubit[]) : Unit {
-        Controlled CtlAdjIntersection(qs, ());        
+        Controlled CtlAdjIntersection(qs, ());
     }
 
     operation OperationCharacteristics11 (qs : Qubit[]) : Unit {
-        Controlled AdjViaIntersection(qs, ());        
+        Controlled AdjViaIntersection(qs, ());
     }
 
     operation OperationCharacteristics12 (qs : Qubit[]) : Unit {
-        Adjoint EmptyIntersection1();        
+        Adjoint EmptyIntersection1();
     }
 
     operation OperationCharacteristics13 (qs : Qubit[]) : Unit {
-        Adjoint EmptyIntersection2();        
+        Adjoint EmptyIntersection2();
     }
 
     operation OperationCharacteristics14 (qs : Qubit[]) : Unit {
-        Controlled EmptyIntersection1(qs, ());        
+        Controlled EmptyIntersection1(qs, ());
     }
 
     operation OperationCharacteristics15 (qs : Qubit[]) : Unit {
-        Controlled EmptyIntersection2(qs, ());        
+        Controlled EmptyIntersection2(qs, ());
     }
 
     operation OperationCharacteristics16 (qs : Qubit[]) : Unit {
-        CtlAffAutoAdjSpec(); 
-        CtlAffInvertAdjSpec(); 
+        CtlAffAutoAdjSpec();
+        CtlAffInvertAdjSpec();
         CtlAffSelfAdjSpec();
         Adjoint CtlAffAutoAdjSpec();
         Adjoint CtlAffInvertAdjSpec();
         Adjoint CtlAffSelfAdjSpec();
-        Controlled CtlAffAutoAdjSpec(qs, ()); 
-        Controlled CtlAffInvertAdjSpec(qs, ()); 
-        Controlled CtlAffSelfAdjSpec(qs, ()); 
+        Controlled CtlAffAutoAdjSpec(qs, ());
+        Controlled CtlAffInvertAdjSpec(qs, ());
+        Controlled CtlAffSelfAdjSpec(qs, ());
     }
 
     operation OperationCharacteristics17 (qs : Qubit[]) : Unit {
-        AdjAffAutoCtlSpec(); 
+        AdjAffAutoCtlSpec();
         AdjAffDistrCtlSpec();
         Adjoint AdjAffAutoCtlSpec();
         Adjoint AdjAffDistrCtlSpec();
-        Controlled AdjAffAutoCtlSpec(qs, ()); 
-        Controlled AdjAffDistrCtlSpec(qs, ()); 
+        Controlled AdjAffAutoCtlSpec(qs, ());
+        Controlled AdjAffDistrCtlSpec(qs, ());
     }
 
     operation OperationCharacteristics18 (qs : Qubit[]) : Unit {
-        AutoCtlSpec(); 
+        AutoCtlSpec();
         DistrCtlSpec();
-        AutoAdjSpec(); 
-        InvertAdjSpec(); 
+        AutoAdjSpec();
+        InvertAdjSpec();
         SelfAdjSpec();
-        Controlled AutoCtlSpec(qs, ()); 
-        Controlled DistrCtlSpec(qs, ()); 
+        Controlled AutoCtlSpec(qs, ());
+        Controlled DistrCtlSpec(qs, ());
         Adjoint AutoAdjSpec();
         Adjoint InvertAdjSpec();
         Adjoint SelfAdjSpec();
@@ -1355,15 +1355,15 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
     }
 
     operation OperationCharacteristics21 (qs : Qubit[]) : Unit {
-        Controlled AutoAdjSpec(qs, ()); 
+        Controlled AutoAdjSpec(qs, ());
     }
 
     operation OperationCharacteristics22 (qs : Qubit[]) : Unit {
-        Controlled InvertAdjSpec(qs, ()); 
+        Controlled InvertAdjSpec(qs, ());
     }
 
     operation OperationCharacteristics23 (qs : Qubit[]) : Unit {
-        Controlled SelfAdjSpec(qs, ()); 
+        Controlled SelfAdjSpec(qs, ());
     }
 
 }

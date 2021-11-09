@@ -114,7 +114,14 @@ namespace N1
             let file = CompilationUnitManager.InitializeFileManager(fileId, File.ReadAllText fileName)
             mgr.AddOrUpdateSourceFileAsync file |> ignore
         // TODO: catch compilation errors and fail
-        let mgr = new CompilationUnitManager(null, (fun ps -> ps.Diagnostics |> Array.iter addError))
+        let mgr =
+            new CompilationUnitManager(
+                ProjectProperties.Empty,
+                (fun ex -> raise ex),
+                (fun msg _ -> printf "%s" msg),
+                (fun (ps: PublishDiagnosticParams) -> ps.Diagnostics |> Array.iter addError)
+            )
+
         files |> List.iter (addSourceFile mgr)
 
         try
