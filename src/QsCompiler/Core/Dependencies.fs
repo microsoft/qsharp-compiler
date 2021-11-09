@@ -183,6 +183,12 @@ type BuiltIn =
             Kind = Function(TypeParameters = ImmutableArray.Create "T")
         }
 
+    static member GetHardwareCycleCounter =
+        {
+            FullName = { Name = "GetHardwareCycleCounter"; Namespace = BuiltIn.CoreNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
+        }
+
     static member RangeStart =
         {
             FullName = { Name = "RangeStart"; Namespace = BuiltIn.CoreNamespace }

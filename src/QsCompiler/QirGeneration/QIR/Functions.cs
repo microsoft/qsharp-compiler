@@ -48,6 +48,7 @@ namespace Microsoft.Quantum.QIR
             var builtIn = ImmutableDictionary.CreateBuilder<QsQualifiedName, Func<IValue, IValue>>();
             var optBuiltIn = ImmutableDictionary.CreateBuilder<QsQualifiedName, Func<TypedExpression, IValue>>();
             builtIn.Add(QsCompiler.BuiltIn.Length.FullName, this.Length);
+            builtIn.Add(QsCompiler.BuiltIn.GetHardwareCycleCounter.FullName, this.GetHardwareCycleCounter);
             builtIn.Add(QsCompiler.BuiltIn.IntAsDouble.FullName, this.IntAsDouble);
             builtIn.Add(QsCompiler.BuiltIn.DoubleAsInt.FullName, this.DoubleAsInt);
             builtIn.Add(QsCompiler.BuiltIn.IntAsBigInt.FullName, this.IntAsBigInt);
@@ -189,6 +190,9 @@ namespace Microsoft.Quantum.QIR
 
         private IValue Length(IValue arg) =>
             this.sharedState.Values.FromSimpleValue(((ArrayValue)arg).Length, Int);
+
+        private IValue GetHardwareCycleCounter(IValue arg) =>
+            this.sharedState.Values.FromSimpleValue(this.sharedState.CurrentBuilder.ReadCycleCount(), Int);
 
         private IValue IntAsDouble(IValue arg)
         {
