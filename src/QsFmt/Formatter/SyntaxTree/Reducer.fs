@@ -189,7 +189,7 @@ type internal 'result Reducer() as reducer =
         match generator with
         | BuiltIn (name, semicolon) -> [ reducer.Terminal name; reducer.Terminal semicolon ] |> reduce
         | Provided (parameters, statements) ->
-            (parameters |> Option.map reducer.Terminal |> Option.toList)
+            (parameters |> Option.map (curry reducer.Tuple reducer.Terminal) |> Option.toList)
             @ [ reducer.Block(reducer.Statement, statements) ]
             |> reduce
 

@@ -109,7 +109,8 @@ specializationGenerator
 
 providedSpecialization : parameters=specializationParameterTuple? block=scope;
 
-specializationParameterTuple : '(' (specializationParameter (',' specializationParameter)*)? ')';
+specializationParameterTuple
+    : openParen='(' (parameters+=specializationParameter (commas+=',' parameters+=specializationParameter)*)? closeParen=')';
 
 specializationParameter
     : Identifier

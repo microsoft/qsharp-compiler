@@ -31,6 +31,7 @@
   <PropertyGroup>
     <QscVerbosity>Normal</QscVerbosity>
     <CSharpGeneration>true</CSharpGeneration> <!-- at some point we may want to make False the default -->
+    <EnableQirSubmission>false</EnableQirSubmission>
     <IncludeQSharpCorePackages>true</IncludeQSharpCorePackages>
     <IncludeProviderPackages>true</IncludeProviderPackages>
     <IncludeCSharpRuntime>true</IncludeCSharpRuntime>
@@ -54,6 +55,8 @@
     <QscBuildConfigExe>$(DefaultQscBuildConfigExe)</QscBuildConfigExe>
     <DefaultQscExe>dotnet "$(MSBuildThisFileDirectory)../tools/qsc/qsc.dll"</DefaultQscExe>
     <QscExe>$(DefaultQscExe)</QscExe>
+    <DefaultQsFmtExe>dotnet "$(MSBuildThisFileDirectory)../tools/qsfmt/qsfmt.dll"</DefaultQsFmtExe>
+    <QsFmtExe>$(DefaultQsFmtExe)</QsFmtExe>
     <GenerateConcreteIntrinsic>false</GenerateConcreteIntrinsic>
   </PropertyGroup>
 

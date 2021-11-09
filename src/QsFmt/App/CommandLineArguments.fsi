@@ -4,7 +4,6 @@
 module Microsoft.Quantum.QsFmt.App.Arguments
 
     open System
-    open CommandLine
     open CommandLine.Text
 
     /// Object for capturing the arguments used with the `format` command.
@@ -51,6 +50,28 @@ module Microsoft.Quantum.QsFmt.App.Arguments
             /// Provides example usage.
             static member examples : seq<Example>
 
+    /// Object for capturing the arguments used with the `update-and-format` command.
+    type UpdateAndFormatArguments =
+        {
+            /// Flag to indicate if the `--backup` option was specified.
+            Backup: bool
+
+            /// Flag to indicate if the `--recurse` option was specified.
+            Recurse: bool
+
+            /// Optional argument for the `--qsharp-version` option.
+            QdkVersion: string
+
+            /// The input files specified by the `--input` argument.
+            InputFiles: seq<string>
+
+            /// The project file specified by the `--project` argument.
+            ProjectFile: string
+        }
+        with
+            /// Provides example usage.
+            static member examples : seq<Example>
+
     /// The kind of command used
     type internal CommandKind =
 
@@ -60,6 +81,8 @@ module Microsoft.Quantum.QsFmt.App.Arguments
         /// Represents usage of the `format` command
         | Format
 
+        /// Represents usage of the `update-and-format` command
+        | UpdateAndFormat
 
     /// Represents the fully parsed arguments to the tool.
     type internal Arguments =
