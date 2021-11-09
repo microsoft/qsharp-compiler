@@ -76,14 +76,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal Stack<QsNullable<QsLocation>> StatementLocationStack { get; }
 
         /// <summary>
-        /// Contains the location information for the namespace element we are inside
-        /// </summary>
-        internal QsLocation? CurrentNamespaceElementLocation { get; set; }
-
-        /// <summary>
         /// Contains the location information for the Expression we are inside
         /// </summary>
         internal Stack<DataTypes.Range?> ExpressionRangeStack { get; }
+
+        /// <summary>
+        /// Contains the location information for the namespace element we are inside
+        /// </summary>
+        internal QsLocation? CurrentNamespaceElementLocation { get; set; }
 
 // SECTION: Private member variables
 
@@ -380,10 +380,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                // TODO: If we need compilation flags (an optional argument to CreateBitcodeModule) in the future we will need
-                // to figure out how to get the compile options in the CompilationLoader.Configuration
-                // and turn them into a string (although the compilation flags don't seem to be emitted to the IR anyways)
-
                 // Change the extension for to .c because of the language/extension issue
                 string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
 

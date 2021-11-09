@@ -189,7 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.Context = new Context();
 
-            this.Module = this.Context.CreateBitcodeModule("Demo.qs"); // TODO: get rid of temporary module ID and set it in FinalizeDebugInfo()
+            this.Module = this.Context.CreateBitcodeModule("Temporary Module ID"); // TODO: get rid of temporary module ID and set it in FinalizeDebugInfo()
             this.DIManager = new DebugInfoManager(this);
             this.DIManager.AddTopLevelDebugInfo(this.Module);
 

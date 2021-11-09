@@ -591,19 +591,6 @@ namespace Ubiquity.NET.Llvm
             return this.moduleCache.CreateBitcodeModule(moduleId);
         }
 
-        /// <inheritdoc/>
-        public BitcodeModule CreateBitcodeModule(
-                string moduleId,
-                SourceLanguage language,
-                string srcFilePath,
-                string producer,
-                bool optimized = false,
-                string compilationFlags = "",
-                uint runtimeVersion = 0)
-        {
-            return this.moduleCache.CreateBitcodeModule(moduleId, language, srcFilePath, producer, optimized, compilationFlags, runtimeVersion);
-        }
-
         /// <summary>Gets non-zero Metadata kind ID for a given name.</summary>
         /// <param name="name">name of the metadata kind.</param>
         /// <returns>integral constant for the ID.</returns>
