@@ -38,7 +38,11 @@ let internal initializeTelemetry args =
                 ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
             SendTelemetryInitializedEvent = false,
             SendTelemetryTearDownEvent = false,
+            #if TELEMETRY
+            TestMode = false
+            #else
             TestMode = true
+            #endif
         )
 
     TelemetryManager.Initialize(telemetryConfig, args)
@@ -59,7 +63,7 @@ let internal logExecutionCompleted
         match parseArgsResult with
         | Ok parsedArgs ->
             parsedArgs.MapResult(
-                (fun (options: FormatArguments) ->
+                (fun (options: IArguments) ->
                     {
                         CommandKind = Some Format
                         InputKind = Some (if String.IsNullOrEmpty(options.ProjectFile) then Project else Files)

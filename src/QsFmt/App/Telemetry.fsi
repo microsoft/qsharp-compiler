@@ -25,4 +25,5 @@ type internal ExecutionCompleted =
 
 val internal initializeTelemetry : string [] -> IDisposable
 
-val internal logExecutionCompleted : Result<ParserResult<obj>, Exception> -> Result<RunResult, Exception> -> DateTime -> TimeSpan -> unit
+val internal logExecutionCompleted :
+    Result<ParserResult<obj>, Exception> -> Result<RunResult, Exception> -> DateTime -> TimeSpan -> unit

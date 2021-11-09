@@ -34,6 +34,23 @@ type internal RunResult =
             SyntaxErrors = []
         }
 
+type CommandKind =
+    | Update
+    | Format
+    | UpdateAndFormat
+
+type InputKind =
+    | Files
+    | Project
+
+type internal IArguments =
+    abstract member Backup : bool
+    abstract member Recurse : bool
+    abstract member QdkVersion : string
+    abstract member InputFiles : seq<string>
+    abstract member ProjectFile : string
+    abstract member CommandKind : CommandKind
+
 [<Verb("format", HelpText = "Format the source code in input files.", Hidden = true)>]
 type FormatArguments =
     {
@@ -57,6 +74,14 @@ type FormatArguments =
                  HelpText = "The project file for the project to format.")>]
         ProjectFile: string
     }
+
+    interface IArguments with
+        member this.Backup = this.Backup
+        member this.Recurse = this.Recurse
+        member this.QdkVersion = this.QdkVersion
+        member this.InputFiles = this.InputFiles
+        member this.ProjectFile = this.ProjectFile
+        member this.CommandKind = CommandKind.Format
 
     [<Usage(ApplicationAlias = "qsfmt")>]
     static member examples =
@@ -114,6 +139,14 @@ type UpdateArguments =
         ProjectFile: string
     }
 
+    interface IArguments with
+        member this.Backup = this.Backup
+        member this.Recurse = this.Recurse
+        member this.QdkVersion = this.QdkVersion
+        member this.InputFiles = this.InputFiles
+        member this.ProjectFile = this.ProjectFile
+        member this.CommandKind = CommandKind.Update
+
     [<Usage(ApplicationAlias = "qsfmt")>]
     static member examples =
         seq {
@@ -170,6 +203,14 @@ type UpdateAndFormatArguments =
         ProjectFile: string
     }
 
+    interface IArguments with
+        member this.Backup = this.Backup
+        member this.Recurse = this.Recurse
+        member this.QdkVersion = this.QdkVersion
+        member this.InputFiles = this.InputFiles
+        member this.ProjectFile = this.ProjectFile
+        member this.CommandKind = CommandKind.UpdateAndFormat
+
     [<Usage(ApplicationAlias = "qsfmt")>]
     static member examples =
         seq {
@@ -202,15 +243,6 @@ type UpdateAndFormatArguments =
                 )
         }
 
-type CommandKind =
-    | Update
-    | Format
-    | UpdateAndFormat
-
-type InputKind =
-    | Files
-    | Project
-
 type CommandWithOptions =
     {
         CommandKind: CommandKind option
@@ -221,8 +253,8 @@ type CommandWithOptions =
         Input: string list
     }
 
-module Arguments =
-    let private checkArguments (arguments: UpdateArguments) =
+module CommandWithOptions =
+    let private checkArguments (arguments: IArguments) =
         let mutable errors = []
 
         if not (isNull arguments.ProjectFile) && String.IsNullOrWhiteSpace arguments.ProjectFile then
@@ -233,7 +265,7 @@ module Arguments =
 
         errors
 
-    let fromUpdateArguments (arguments: UpdateArguments) =
+    let fromIArguments (arguments: IArguments) =
         let errors = checkArguments arguments
 
         if List.isEmpty errors then
@@ -266,7 +298,7 @@ module Arguments =
                     ExitCode.QdkOutOfDate |> Result.Error
                 | _ ->
                     {
-                        CommandKind = Some Update
+                        CommandKind = Some arguments.CommandKind
                         InputKind = Some inputKind
                         RecurseFlag = arguments.Recurse
                         BackupFlag = arguments.Backup

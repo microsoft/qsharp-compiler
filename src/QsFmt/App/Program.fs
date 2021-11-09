@@ -14,11 +14,11 @@ open Microsoft.Quantum.QsFmt.Formatter
 let makeFullPath input =
     if input = "-" then input else Path.GetFullPath input
 
-let run (commandWithOptions: CommandWithOptions) inputs =
+let runCommand (commandWithOptions: CommandWithOptions) inputs =
 
     let mutable paths = Set.empty
 
-    let rec doOne input =
+    let rec runOneCommand input =
         // Make sure inputs are not processed more than once.
         if input |> makeFullPath |> paths.Contains then
             // Change the "-" input to say "<Standard Input>" in the error
@@ -38,7 +38,7 @@ let run (commandWithOptions: CommandWithOptions) inputs =
                         else
                             topLevelFiles
 
-                    newInputs |> doMany
+                    newInputs |> runManyCommands
                 else
                     let source =
                         if input = "-" then
@@ -72,7 +72,7 @@ let run (commandWithOptions: CommandWithOptions) inputs =
                 { RunResult.Default with ExitCode = ExitCode.UnauthorizedAccess }
 
     and foldResults (previousRunResult: RunResult) filePath =
-        let newRunResult = (filePath |> doOne)
+        let newRunResult = (filePath |> runOneCommand)
 
         {
             FilesProcessed = previousRunResult.FilesProcessed + newRunResult.FilesProcessed
@@ -80,42 +80,14 @@ let run (commandWithOptions: CommandWithOptions) inputs =
             SyntaxErrors = previousRunResult.SyntaxErrors @ newRunResult.SyntaxErrors
         }
 
-    and doMany inputs =
+    and runManyCommands inputs =
         inputs |> Seq.fold foldResults RunResult.Default
 
-    doMany inputs
+    runManyCommands inputs
 
-let runUpdate (arguments: UpdateArguments) =
-    match Arguments.fromUpdateArguments arguments with
-    | Ok args -> args.Input |> run args
-    | Error errorCode -> { RunResult.Default with ExitCode = errorCode }
-
-let runFormat (arguments: FormatArguments) =
-    let asUpdateArguments : UpdateArguments =
-        {
-            Backup = arguments.Backup
-            Recurse = arguments.Recurse
-            QdkVersion = arguments.QdkVersion
-            InputFiles = arguments.InputFiles
-            ProjectFile = arguments.ProjectFile
-        }
-
-    match Arguments.fromUpdateArguments asUpdateArguments with
-    | Ok args -> args.Input |> run { args with CommandKind = Some Format }
-    | Error errorCode -> { RunResult.Default with ExitCode = errorCode }
-
-let runUpdateAndFormat (arguments: UpdateAndFormatArguments) =
-    let asUpdateArguments : UpdateArguments =
-        {
-            Backup = arguments.Backup
-            Recurse = arguments.Recurse
-            QdkVersion = arguments.QdkVersion
-            InputFiles = arguments.InputFiles
-            ProjectFile = arguments.ProjectFile
-        }
-
-    match Arguments.fromUpdateArguments asUpdateArguments with
-    | Ok args -> args.Input |> run { args with CommandKind = Some UpdateAndFormat }
+let runCommandFromArguments (arguments: IArguments) =
+    match CommandWithOptions.fromIArguments arguments with
+    | Ok args -> args.Input |> runCommand { args with CommandKind = Some Format }
     | Error errorCode -> { RunResult.Default with ExitCode = errorCode }
 
 [<CompiledName "Main">]
@@ -143,9 +115,7 @@ let main args =
             | Ok parsedArgs ->
                 Ok(
                     parsedArgs.MapResult(
-                        (fun (options: FormatArguments) -> options |> runFormat),
-                        (fun (options: UpdateArguments) -> options |> runUpdate),
-                        (fun (options: UpdateAndFormatArguments) -> options |> runUpdateAndFormat),
+                        (fun (options: IArguments) -> options |> runCommandFromArguments),
                         (fun (_: IEnumerable<Error>) -> { RunResult.Default with ExitCode = ExitCode.BadArguments })
                     )
                 )
