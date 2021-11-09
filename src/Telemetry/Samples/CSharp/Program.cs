@@ -9,6 +9,17 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
 {
     public class Program
     {
+        // By default, we set the TestMode to true unless the
+        // TELEMETRY compiler constant is passed during the build.
+        // We do that to prevent unintentional telemetry to be sent
+        // to Microsoft via the Sample Telemetry app.
+        private static bool IsTestMode =>
+            #if TELEMETRY
+                false;
+            #else
+                true;
+            #endif
+
         public static void Main(string[] args)
         {
             var stopwatch = Stopwatch.StartNew();
@@ -30,7 +41,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
 
                 // When TestMode is true, the events won't be sent to Microsoft servers
                 // but will only be printed to the Debug Console
-                TestMode = true,
+                TestMode = IsTestMode,
             };
 
             // REQUIRED: Initialize

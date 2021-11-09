@@ -38,6 +38,7 @@ function Test-One {
     }
 }
 
+
 Test-One '../QsCompiler.sln'
 Test-One '../src/Telemetry/Telemetry.sln'
 Test-One '../QsFmt.sln'

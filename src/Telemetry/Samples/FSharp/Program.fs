@@ -4,6 +4,17 @@
 open System
 open Microsoft.Quantum.Telemetry
 
+// By default, we set the TestMode to true unless the
+// TELEMETRY compiler constant is passed during the build.
+// We do that to prevent unintentional telemetry to be sent
+// to Microsoft via the Sample Telemetry app.
+let IsTestMode =
+#if TELEMETRY
+    false
+#else
+    true
+#endif
+
 type SampleUnionType =
     | SampleEnumValue1
     | SampleEnumValue2
@@ -59,7 +70,7 @@ let main args =
                 ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
             SendTelemetryInitializedEvent = true,
             SendTelemetryTearDownEvent = true,
-            TestMode = true
+            TestMode = IsTestMode
         )
 
     // REQUIRED: Initialize
