@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            private static IValue LoadValue(IValue value) // RyanNote: handles pointer to pointer to pointer situation
+            private static IValue LoadValue(IValue value)
             {
                 while (value is PointerValue ptr)
                 {
@@ -522,7 +522,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    // RyanNote: not a body func
                     this.sharedState.CurrentBuilder.Call(func, arg, change);
                 }
             }

@@ -189,11 +189,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.Context = new Context();
 
-            this.Module = this.Context.CreateBitcodeModule("Temporary Module ID"); // TODO: get rid of temporary module ID and set it in FinalizeDebugInfo()
+            this.Module = this.Context.CreateBitcodeModule("Temporary ModuleID"); // TODO: get rid of temporary module ID and set it in FinalizeDebugInfo()
             this.DIManager = new DebugInfoManager(this);
             this.DIManager.AddTopLevelDebugInfo(this.Module);
 
-            this.NativeLlvmTypes = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null); // RyanNote: need somethign like this for debug
+            this.NativeLlvmTypes = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
             this.Constants = new Constants(this.Context, this.Module, this.NativeLlvmTypes);
             this.Values = new QirValues(this, this.Constants);
             this.Functions = new Functions(this);
@@ -272,7 +272,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Initializes the QIR runtime library.
         /// </summary>
-        public void InitializeRuntimeLibrary() // RyanNote: Will I need debug info for this?
+        public void InitializeRuntimeLibrary()
         {
             // Q# specific helpers
             this.runtimeLibrary.AddFunction(RuntimeLibrary.HeapAllocate, this.Context.Int8Type.CreatePointerType(), this.NativeLlvmTypes.Int);
@@ -419,7 +419,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// <inheritdoc cref="Interop.GenerateWrapper(GenerationContext, string, ArgumentTuple, ResolvedType, IrFunction, QsLocation)"/>
+        /// <inheritdoc cref="Interop.GenerateWrapper(GenerationContext, string, ArgumentTuple, ResolvedType, IrFunction)"/>
         /// <br/>
         /// Adds an <see cref="AttributeNames.InteropFriendly"/> attribute marking the created wrapper as interop wrapper.
         /// If no wrapper needed to be created because the signature of the callable is interop-friendly,
@@ -431,7 +431,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             string wrapperName = NameGeneration.InteropFriendlyWrapperName(qualifiedName);
             IrFunction InteropWrapper(QsCallable callable, IrFunction implementation) =>
-                Interop.GenerateWrapper(this, wrapperName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation, callable.Location.Item ?? null);
+                Interop.GenerateWrapper(this, wrapperName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation);
             this.CreateBridgeFunction(qualifiedName, QsSpecializationKind.QsBody, InteropWrapper, AttributeNames.InteropFriendly);
         }
 

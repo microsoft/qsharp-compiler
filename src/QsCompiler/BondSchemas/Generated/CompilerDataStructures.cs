@@ -661,7 +661,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         protected InferredCallableInformation(string fullName, string name)
         {
-
         }
     }
 
@@ -687,7 +686,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
     }
 
     [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
-    public enum QsTypeKind // RyanNote: looks useful
+    public enum QsTypeKind
     {
         UnitType,
         Int,

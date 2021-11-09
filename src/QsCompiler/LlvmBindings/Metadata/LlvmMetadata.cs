@@ -248,7 +248,7 @@ namespace Ubiquity.NET.Llvm
                     return new DIGlobalVariable(handle);
 
                 case MetadataKind.DILocalVariable:
-                    return new DILocalVariable(handle); // RyanNote: Might want this
+                    return new DILocalVariable(handle);
 
                 case MetadataKind.DIObjCProperty:
                     return new DIObjCProperty(handle);

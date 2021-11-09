@@ -56,7 +56,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
     /// <summary><see cref="DebugPosition"/> represents a line/col position in source code and is 1-based.</summary>
     /// <summary>If a column number is not provided, 1 is used.</summary>
-    /// TODO: propogate through the rest of line/col debug information in the LLVMBindings
+    /// TODO: This could be propogated through the rest of line/col debug information in the LLVMBindings
     public class DebugPosition
     {
         public uint Line { get; set; }
@@ -108,7 +108,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             return FromZeroBasedLine((uint)line);
         }
-
     }
 
     /// <summary>DebugInfoBuilder is a factory class for creating DebugInformation for an LLVM <see cref="BitcodeModule"/></summary>

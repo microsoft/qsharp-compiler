@@ -56,16 +56,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /* public overrides */
 
-        public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
-        {
-            return base.OnLocation(loc); // RyanNote: useful debug point
-        }
-
-        public override QsNamespace OnNamespace(QsNamespace ns)
-        {
-            return base.OnNamespace(ns); // RyanNote: useful debug point
-        }
-
         public override QsNamespaceElement OnNamespaceElement(QsNamespaceElement nse)
         {
             QsNullable<QsLocation> locNullable = nse switch
@@ -106,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.context.GetCurrentCallable().Source.AssemblyFile.IsNull &&
                 this.context.GetCurrentCallable().Access.IsPublic;
             this.SharedState.GenerateFunctionHeader(this.context.GetCurrentSpecialization(), isDefinition: true, argTuple, deconstuctArgument: true, shouldBeExtern);
-            this.Transformation.Statements.OnScope(body); // RyanNote: this is where I need to figure out where the calls are
+            this.Transformation.Statements.OnScope(body);
             this.SharedState.EndFunction(generatePending: true);
             return Tuple.Create(argTuple, body);
         }

@@ -28,7 +28,7 @@ namespace Ubiquity.NET.Llvm
         Invalid = 0,
 
         /// <summary>Emits an error if two values disagree, otherwise the resulting value is that of the operands.</summary>
-        Error = 1,
+        Error = 1, // There is currently a bug in LLVMSharp such that all values in the LLVMModuleFlagBehavior enum are off by one.
         // LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorError,
 
         /// <summary>Emits a warning if two values disagree. The result will be the operand for the flag from the first module being linked.</summary>

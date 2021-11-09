@@ -67,7 +67,7 @@ type CharacteristicsKind<'S> =
 
 type Characteristics = { Characteristics: CharacteristicsKind<Characteristics>; Range: QsNullable<Range> }
 
-type QsTypeKind<'Type, 'UdtName, 'TParam, 'Characteristics> = //RyanNote: THis might be useful, Might need a switch statement from this to debug type
+type QsTypeKind<'Type, 'UdtName, 'TParam, 'Characteristics> =
     // Note: while templates need to be part of the type system, they cannot be identified at parsing time
     | UnitType
     | Int

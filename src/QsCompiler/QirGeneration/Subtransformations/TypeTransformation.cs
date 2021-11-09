@@ -65,16 +65,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /* public overrides */
 
-        public override QsNullable<DataTypes.Range> OnRangeInformation(QsNullable<DataTypes.Range> range)
-        {
-            return base.OnRangeInformation(range); // RyanNote: Useful DebugPoint
-        }
-
-        public override TypeRange OnTypeRange(TypeRange range)
-        {
-            return base.OnTypeRange(range); // RyanNote: Useful DebugPoint
-        }
-
         public override QsResolvedTypeKind OnArrayType(ResolvedType b)
         {
             this.builtType = this.qirTypes.Array;
@@ -162,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return QsResolvedTypeKind.InvalidType;
         }
 
-        public override QsResolvedTypeKind OnUserDefinedType(UserDefinedType udt) // RyanNote: This looks useful
+        public override QsResolvedTypeKind OnUserDefinedType(UserDefinedType udt)
         {
             // User-defined types are represented by a tuple of their items.
             var udtDefinition = this.getTypeDeclaration(udt.GetFullName());

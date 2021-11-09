@@ -824,7 +824,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var argList = args.Select(a => a.Value).ToArray();
-
                 var res = this.SharedState.CurrentBuilder.Call(func, argList);
                 if (func.Signature.ReturnType.IsVoid)
                 {
@@ -917,8 +916,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
                 TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes);
-
-                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer); // RyanQuestion: what is this calling?? params don't match anything
+                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer);
                 return returnType.Resolution.IsTupleType
                     ? resultTuple
                     : resultTuple.GetTupleElements().Single();
@@ -1156,7 +1154,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     new[] { this.SharedState.Context.CreateConstant(0) });
                 var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
                     byteArrayPointer,
-                    this.SharedState.NativeLlvmTypes.DataArrayPointer);
+                    this.SharedState.Types.DataArrayPointer);
                 var res = this.SharedState.CurrentBuilder.Call(createBigInt, n, zeroByteArray);
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
@@ -1446,7 +1444,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f", this.SharedState.Context.DoubleType);
                 var exponent = this.SharedState.CurrentBuilder.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true);
                 var resAsDouble = this.SharedState.CurrentBuilder.Call(powFunc, baseValue, exponent);
-                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.NativeLlvmTypes.Int);
+                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.Types.Int);
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
@@ -1500,7 +1498,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnCallLikeExpression(TypedExpression method, TypedExpression arg)
         {
-            // get the debug location of the call
+            // create a debug location for the call
             DataTypes.Range? relativeRange = method.Range.IsNull ? null : method.Range.Item;
             Position? relativePosition = relativeRange?.Start;
             this.SharedState.DIManager.EmitLocation(relativePosition);

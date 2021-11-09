@@ -479,7 +479,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     if (stm.Kind.IsMutableBinding)
                     {
-                        value = this.SharedState.Values.CreatePointer(value); // RyanNote: Mutable Binding has a pointer to a value!!
+                        value = this.SharedState.Values.CreatePointer(value);
                     }
 
                     QirExpressionKindTransformation.AccessViaLocalId(ex, out var localId);

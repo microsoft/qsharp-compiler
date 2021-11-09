@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="name">The simple, unmangled name of the function.</param>
         /// <returns>The object that represents the function.</returns>
-        public IrFunction GetOrCreateFunction(string name) // RyanNote: Debug info here? Need to use longer version of CreateFunction?
+        public IrFunction GetOrCreateFunction(string name)
         {
             var mappedName = this.nameMapper(name);
             var func = this.module.TryGetFunction(mappedName, out var fct) ?
