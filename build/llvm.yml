@@ -30,7 +30,7 @@ jobs:
     name: Sha
 
 - job: LLVMLinuxBuild
-  timeoutInMinutes: 75
+  timeoutInMinutes: 300
   dependsOn: GetLlvmSha
   displayName: LLVM Linux Build
   variables:
@@ -80,7 +80,7 @@ jobs:
 
 
 - job: LLVMWindowsBuild
-  timeoutInMinutes: 180
+  timeoutInMinutes: 300
   dependsOn: GetLlvmSha
   displayName: LLVM Windows Build
   variables:
@@ -128,7 +128,7 @@ jobs:
 
 
 - job: LLVMMacOS1014Build
-  timeoutInMinutes: 75
+  timeoutInMinutes: 300
   dependsOn: GetLlvmSha
   displayName: LLVM MacOS 10.14 Build
   variables:
