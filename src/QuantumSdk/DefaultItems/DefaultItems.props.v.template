@@ -31,6 +31,7 @@
   <PropertyGroup>
     <QscVerbosity>Normal</QscVerbosity>
     <CSharpGeneration>true</CSharpGeneration> <!-- at some point we may want to make False the default -->
+    <EnableQirSubmission>false</EnableQirSubmission>
     <IncludeQSharpCorePackages>true</IncludeQSharpCorePackages>
     <IncludeProviderPackages>true</IncludeProviderPackages>
     <IncludeCSharpRuntime>true</IncludeCSharpRuntime>
