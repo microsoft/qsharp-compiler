@@ -72,7 +72,11 @@ if ($IsLinux) {
 
         Write-Vso "Building container image manylinux-llvm-builder"
         exec -wd $buildDir {
-            Get-Content manylinux.Dockerfile | docker build -t manylinux-llvm-builder --build-arg LLVM_BUILD_DIR="$llvmBuildDir" -
+            $userName = [Environment]::UserName
+            $userId = $(id -u)
+            $groupId = $(id -g)
+            Write-BuildLog "Get-Content manylinux.Dockerfile | docker build -t manylinux-llvm-builder --build-arg USERNAME=$userName --build-arg USER_UID=$userId --build-arg USER_GID=$groupId --build-arg LLVM_BUILD_DIR=""$llvmBuildDir"" -" "command"
+            Get-Content manylinux.Dockerfile | docker build -t manylinux-llvm-builder --build-arg USERNAME=$userName --build-arg USER_UID=$userId --build-arg USER_GID=$groupId --build-arg LLVM_BUILD_DIR="$llvmBuildDir" -
         }
     }
 
@@ -87,21 +91,22 @@ if ($IsLinux) {
         Write-Vso "Running container image:"
         $srcVolume = "$($srcRoot):$($srcRoot)"
         $cacheVolume = "$($cacheRoot):$($cacheRoot)"
+        $userSpec = [Environment]::UserName
 
         if (Test-Path env:\CMAKE_INSTALL_PREFIX) {
             if (!(Test-Path $env:CMAKE_INSTALL_PREFIX)) {
                 New-Item -ItemType Directory -Path $env:CMAKE_INSTALL_PREFIX -Force | Out-Null
             }
             $cmakeInstallVolume = "$($env:CMAKE_INSTALL_PREFIX):$($env:CMAKE_INSTALL_PREFIX)"
-            Write-Vso "docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume -v $cmakeInstallVolume -e LLVM_INSTALL_DIR=$Env:CMAKE_INSTALL_PREFIX -e CMAKE_FLAGS=""-D CMAKE_INSTALL_PREFIX=$($Env:CMAKE_INSTALL_PREFIX)"" manylinux-llvm-builder" "command"
+            Write-Vso "docker run --rm -t --user $userSpec -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume -v $cmakeInstallVolume -e LLVM_INSTALL_DIR=$Env:CMAKE_INSTALL_PREFIX -e CMAKE_FLAGS=""-D CMAKE_INSTALL_PREFIX=$($Env:CMAKE_INSTALL_PREFIX)"" manylinux-llvm-builder" "command"
             exec {
-                docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume -v $cmakeInstallVolume -e LLVM_INSTALL_DIR=$Env:CMAKE_INSTALL_PREFIX -e CMAKE_FLAGS="-D CMAKE_INSTALL_PREFIX=$($Env:CMAKE_INSTALL_PREFIX)" manylinux-llvm-builder
+                docker run --rm -t --user $userSpec -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume -v $cmakeInstallVolume -e LLVM_INSTALL_DIR=$Env:CMAKE_INSTALL_PREFIX -e CMAKE_FLAGS="-D CMAKE_INSTALL_PREFIX=$($Env:CMAKE_INSTALL_PREFIX)" manylinux-llvm-builder
             }
         }
         else {
-            Write-Vso "docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume manylinux-llvm-builder" "command"
+            Write-Vso "docker run --rm -t --user $userSpec -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume manylinux-llvm-builder" "command"
             exec {
-                docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume manylinux-llvm-builder
+                docker run --rm -t --user $userSpec -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume manylinux-llvm-builder
             }
         }
     }

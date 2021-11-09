@@ -3,6 +3,9 @@
 
 cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 
+set(LLVM_ENABLE_PROJECTS "clang;clang-tools-extra;lld" CACHE STRING "")
+set(LLVM_ENABLE_RUNTIMES "compiler-rt;libcxx;libcxxabi" CACHE STRING "")
+
 message(STATUS CMAKE_HOST_SYSTEM_NAME=${CMAKE_HOST_SYSTEM_NAME})
 
 if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows")
