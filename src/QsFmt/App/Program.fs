@@ -142,11 +142,18 @@ type ExecutionResult =
 type InputType =
     | Files
     | Project
+    | Unknown
+
+type CommandType =
+    | Update
+    | Format
+    | UpdateFormat
+    | Unknown
 
 type ExecutionCompleted =
     {
         StartTime: DateTime
-        Command: string
+        Command: CommandType
         RecurseFlag: bool
         BackupFlag: bool
         InputType: InputType
@@ -158,6 +165,24 @@ type ExecutionCompleted =
         FilesProcessed: int
         ExitCode: int
     }
+
+type ArgumentOptions =
+    {
+        Command: CommandType
+        RecurseFlag: bool
+        BackupFlag: bool
+        InputType: InputType
+        QSharpVersion: string
+    }
+    with
+        static member Default =
+            {
+                Command = CommandType.Unknown
+                RecurseFlag = false
+                BackupFlag = false
+                InputType = InputType.Unknown
+                QSharpVersion = ""
+            }
 
 [<CompiledName "Main">]
 [<EntryPoint>]
@@ -173,8 +198,8 @@ let main args =
             OutOfProcessUpload = true,
             ExceptionLoggingOptions =
                 ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
-            SendTelemetryInitializedEvent = true,
-            SendTelemetryTearDownEvent = true,
+            SendTelemetryInitializedEvent = false,
+            SendTelemetryTearDownEvent = false,
             TestMode = true
         )
     use _telemetryManagerHandle = TelemetryManager.Initialize(telemetryConfig, args)
@@ -190,7 +215,7 @@ let main args =
         try
             match parseArgsResult with
             | ParseArgsResult.Success parsedArgs ->
-                ExecutionResult.Success (
+                Success (
                     parsedArgs.MapResult(
                         (fun (options: FormatArguments) -> options |> runFormat),
                         (fun (options: UpdateArguments) -> options |> runUpdate),
@@ -198,9 +223,9 @@ let main args =
                         (fun (_: IEnumerable<Error>) -> { RunResult.Default with ExitCode = 2 })
                     )
                 )
-            | ParseArgsResult.Error ex -> ExecutionResult.Error ( ex )
+            | ParseArgsResult.Error ex -> Error ( ex )
         with
-        | ex -> ExecutionResult.Error ( ex )
+        | ex -> Error ( ex )
 
     let syntaxErrors =
         match executionResult with
@@ -222,14 +247,49 @@ let main args =
         | Success runResult -> None
         | Error ex -> Some ( ex )
 
+    let argumentOptions =
+        match parseArgsResult with
+        | ParseArgsResult.Success parsedArgs ->
+            parsedArgs.MapResult(
+                (fun (options: FormatArguments) ->
+                    {
+                        RecurseFlag = options.Recurse
+                        BackupFlag = options.Backup
+                        Command = Format
+                        InputType = if String.IsNullOrEmpty(options.ProjectFile) then Project else Files
+                        QSharpVersion = options.QdkVersion
+                    }
+                ),
+                (fun (options: UpdateArguments) ->
+                    {
+                        RecurseFlag = options.Recurse
+                        BackupFlag = options.Backup
+                        Command = Update
+                        InputType = if String.IsNullOrEmpty(options.ProjectFile) then Project else Files
+                        QSharpVersion = options.QdkVersion
+                    }
+                ),
+                (fun (options: UpdateAndFormatArguments) ->
+                    {
+                        RecurseFlag = options.Recurse
+                        BackupFlag = options.Backup
+                        Command = UpdateFormat
+                        InputType = if String.IsNullOrEmpty(options.ProjectFile) then Project else Files
+                        QSharpVersion = options.QdkVersion
+                    }
+                ),
+                (fun (_: IEnumerable<Error>) -> ArgumentOptions.Default )
+            )
+        | ParseArgsResult.Error ex -> ArgumentOptions.Default
+
     let executionCompletedEvent =
         {
             StartTime = startTime
-            Command = ""
-            RecurseFlag = false
-            BackupFlag = false
-            InputType = InputType.Files
-            QSharpVersion = ""
+            Command = argumentOptions.Command
+            RecurseFlag = argumentOptions.RecurseFlag
+            BackupFlag = argumentOptions.BackupFlag
+            InputType = argumentOptions.InputType
+            QSharpVersion = argumentOptions.QSharpVersion
             UnhandledException = unhandledException
             SyntaxErrors = syntaxErrors
             ExecutionTime = DateTime.Now - startTime
@@ -240,6 +300,3 @@ let main args =
     TelemetryManager.LogObject(executionCompletedEvent)
 
     exitCode
-
-
-
