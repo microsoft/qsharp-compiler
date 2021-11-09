@@ -27,9 +27,9 @@
     <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.20.2111175044-alpha" />
     <!-- Provider packages included for specific execution targets. -->
     <PackageReference Condition="$(EnableQirSubmission) And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Core" Version="0.20.2111175044-alpha" />
-    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.20.2111175044-alpha" />
-    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.20.2111175044-alpha" />
-    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.20.2111175044-alpha" />
+    <PackageReference Condition="$(ResolvedProcessorArchitecture.Contains('Honeywell')) And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.20.2111175044-alpha" />
+    <PackageReference Condition="$(ResolvedProcessorArchitecture.Contains('IonQ')) And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.20.2111175044-alpha" />
+    <PackageReference Condition="$(ResolvedProcessorArchitecture.Contains('QCI')) And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.20.2111175044-alpha" />
     <!-- Target packages included for specific execution targets. -->
     <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type1' And $(ResolvedProcessorArchitecture.Contains('QirProcessor'))" Include="Microsoft.Quantum.Type1.Core" Version="0.20.2111175044-alpha" IsTargetPackage='true' />
     <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type2' And $(ResolvedProcessorArchitecture.Contains('QirProcessor'))" Include="Microsoft.Quantum.Type2.Core" Version="0.20.2111175044-alpha" IsTargetPackage='true' />
@@ -81,6 +81,7 @@
 
   <!-- Empty target that can be redefined to run tasks just before QSharpCompile. -->
   <Target Name="BeforeQSharpCompile">
+    <Message Importance="High" Text="SDK DEBUG - EnableQirSubmission: '$(EnableQirSubmission)', ResolvedProcessorArchitecture: '$(ResolvedProcessorArchitecture)', ResolvedRuntimeCapabilities: '$(ResolvedRuntimeCapabilities)'" />
   </Target>
 
   <!-- Empty target that can be redefined to run tasks just before CSharpCompile. -->
