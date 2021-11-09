@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Whether or not to emit debug information during QIR generation
         /// </summary>
-        public bool DebugFlag { get; } = true;
+        public bool DebugFlag { get; } = false;
 
         /// <summary>
         /// Dwarf version we are using for the debug info in the QIR generation
@@ -73,7 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Contains the location information for the statement nodes we are currently parsing
         /// </summary>
-        internal Stack<QsNullable<QsLocation>> StatementLocationStack { get; }
+        internal Stack<QsLocation?> StatementLocationStack { get; }
 
         /// <summary>
         /// Contains the location information for the Expression we are inside
@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal DebugInfoManager(GenerationContext generationContext)
         {
             this.sharedState = generationContext;
-            this.StatementLocationStack = new Stack<QsNullable<QsLocation>>();
+            this.StatementLocationStack = new Stack<QsLocation?>();
             this.ExpressionRangeStack = new Stack<DataTypes.Range?>();
             this.dIBuilders = new Dictionary<string, DebugInfoBuilder>();
         }
@@ -116,7 +116,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Note: because this is called from within the constructor of the GenerationContext,
         /// we cannot access this.Module or anything else that uses this.sharedState
         /// </summary>
-        /// <param name="owningModule">The sBitcodeModule that this DebugInfoManager is related to</param>
+        /// <param name="owningModule">The <see cref="BitcodeModule"/> that this DebugInfoManager is related to</param>
         internal void AddTopLevelDebugInfo(BitcodeModule owningModule)
         {
             if (this.DebugFlag)
@@ -206,7 +206,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // get the location information for the variable declaration
                 QsLocation? namespaceLoc = this.sharedState.DIManager.CurrentNamespaceElementLocation;
                 Position namespaceOffset = namespaceLoc?.Offset ?? Position.Zero;
-                Position absolutePosition = namespaceOffset + this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions(); // TODO: helper func
+                Position absolutePosition = namespaceOffset + this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions();
 
                 if (subProgram != null)
                 {
@@ -286,12 +286,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         signature: debugSignature,
                         isLocalToUnit: true, // we're using the compile unit from the source file this was declared in
                         isDefinition: isDefinition,
-                        scopeLinePosition: ConvertToDebugPosition(absolutePosition), // RyanTODO: Need to be more exact bc of formatting (see lastParamLocation in Kaleidescope tutorial)
+                        scopeLinePosition: ConvertToDebugPosition(absolutePosition), // TODO: Could make more exact bc of formatting and white space (see lastParamLocation in Kaleidescope tutorial)
                         debugFlags: DebugInfoFlags.None,
-                        isOptimized: false, // RyanQuestion: is this always the case?
+                        isOptimized: false,
                         curDIBuilder);
-
-                    // TODORyan: would be much cleaner to have the creation of arguments here
 
                     this.EmitLocation(absolutePosition, func.DISubProgram);
                     return func;
@@ -321,7 +319,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // get the DIBuilder
                 string sourcePath = spec.Source.CodeFile;
                 DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
-                DIFile debugFile = curDIBuilder.CreateFile(Path.ChangeExtension(sourcePath, ".c")); // TODO: this will get changed after language/extension issue figured out
+                DIFile debugFile = curDIBuilder.CreateFile(Path.ChangeExtension(sourcePath, ".c")); // TODO: change this now that we have a language solution
 
                 // get the debug location of the function
                 QsNullable<QsLocation> debugLoc = spec.Location;
@@ -330,7 +328,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     throw new ArgumentException("Expected a specialiazation with a non-null location");
                 }
 
-                // RyanTODO: make specific to the argument with column
+                // TODO: make this more exact by calculating absolute column position as well
                 DebugPosition debugPos = DebugPosition.FromZeroBasedLine(debugLoc.Item.Offset.Line); // Because spec is its own namespace, this is an absolute position
 
                 // get necessary debug information
@@ -385,8 +383,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 di = this.Module.CreateDIBuilder();
                 di.CreateCompileUnit(
-                    QSharpLanguage, // Note that to debug the source file, you'll have to copy the content of the .qs file into a .c file with the same name
-                    cSourcePath,
+                    QSharpLanguage,
+                    cSourcePath, // TODO: change this now that we have a solution to language/extension issue
                     GetQirProducerIdent(),
                     null);
                 this.dIBuilders.Add(sourcePath, di);
@@ -403,14 +401,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The Debug Type corresponding to the given Q# type. Returns null if the debug type is not implemented.</returns>
         private IDebugType<ITypeRef, DIType>? GetDebugTypeFor(ResolvedType resolvedType, DebugInfoBuilder dIBuilder)
         {
-            // Question: Should I be using a type transformation instead of this like we discussed?
-            // Problem with transformation: Tried to have an abstract types class that nativetype and debugtype both inherit from,
-            // but C# doesn't support covariant return types in overrides, so I can't specify that we need outputs that implement IDebugType.
-            // If NativeType and DebugType don't both inherit from some Type, then can't reuse TypeTransformation. It seems like quite the
-            // overhead to implement another TypeTransformation when we're not actually transforming anything
-            // (the existing TypeTransformation just usies a builtType side effect to get the LLVM Native Type)
-            // Problem with typetransformation: we need a dIBuilder, so we would need a different typetransformation for each source file.
-
             // TODO: include other variable types including callables
             if (resolvedType.Resolution.IsInt)
             {
@@ -472,12 +462,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             Position offset = Position.Zero;
 
-            foreach (QsNullable<QsLocation> loc in this.StatementLocationStack)
+            foreach (QsLocation? loc in this.StatementLocationStack)
             {
-                if (loc.IsValue)
+                if (loc != null)
                 {
-                    offset += loc.Item.Offset;
-                    return offset; // TODO: not sure if we should add all or not
+                    offset += loc.Offset;
+                    return offset;
                 }
             }
 
@@ -488,7 +478,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Sums up the offsets from the stack of expression ranges <see cref="ExpressionRangeStack"/>.
         /// </summary>
         /// <returns>The offset that the current stack of expression yields as a <see cref="Position"/>.</returns>
-        private Position TotalOffsetFromExpressions() // TODO: should it be added up like this?
+        private Position TotalOffsetFromExpressions()
         {
             Position offset = Position.Zero;
 
