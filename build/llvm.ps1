@@ -15,14 +15,10 @@ $llvmDir = Join-Path $llvmRootDir llvm
 if (Test-CommandExists sccache) {
     Write-Vso "Found sccache command"
     # Set cap and make sure dir is created
-    if ((Test-Path Env:\SCCACHE_DIR)) {
-        $Env:SCCACHE_DIR = Resolve-Path $Env:SCCACHE_DIR
-        if (!(Test-Path $Env:SCCACHE_DIR)) {
-            mkdir $Env:SCCACHE_DIR | Out-Null
-        }
-    }
     $Env:SCCACHE_CACHE_SIZE = "2G"
+    Write-Vso "Starting sccache server"
     & { sccache --start-server } -ErrorAction SilentlyContinue
+    Write-Vso "Started sccache server"
 }
 elseif (Test-CommandExists ccache) {
     Write-Vso "Found ccache command"
