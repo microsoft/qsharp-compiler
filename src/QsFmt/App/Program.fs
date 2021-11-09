@@ -9,7 +9,6 @@ open System.IO
 open CommandLine
 open Microsoft.Quantum.QsFmt.App.Arguments
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
-open Microsoft.Quantum.QsFmt.App.Telemetry
 open Microsoft.Quantum.QsFmt.Formatter
 
 let makeFullPath input =
@@ -124,6 +123,7 @@ let runUpdateAndFormat (arguments: UpdateAndFormatArguments) =
 let main args =
 
     let startTime = DateTime.Now
+    let executionTime = System.Diagnostics.Stopwatch.StartNew()
     use _telemetryManagerHandle = Telemetry.initializeTelemetry args
 
     let parseArgsResult =
@@ -153,7 +153,7 @@ let main args =
         with
         | ex -> Result.Error(ex)
 
-    Telemetry.logExecutionCompleted parseArgsResult runResult
+    Telemetry.logExecutionCompleted parseArgsResult runResult startTime executionTime.Elapsed
 
     match runResult with
     | Ok runResult -> runResult.ExitCode |> int

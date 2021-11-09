@@ -46,6 +46,8 @@ let internal initializeTelemetry args =
 let internal logExecutionCompleted
     (parseArgsResult: Result<ParserResult<obj>, Exception>)
     (runResult: Result<RunResult, Exception>)
+    (startTime: DateTime)
+    (executionTime: TimeSpan)
     =
 
     let (syntaxErrors, filesProcessed, exitCode, unhandledException) =
@@ -106,7 +108,7 @@ let internal logExecutionCompleted
 
     let executionCompletedEvent =
         {
-            StartTime = DateTime.Now
+            StartTime = startTime
             Command = argumentOptions.CommandKind
             RecurseFlag = argumentOptions.RecurseFlag
             BackupFlag = argumentOptions.BackupFlag
@@ -114,7 +116,7 @@ let internal logExecutionCompleted
             QSharpVersion = argumentOptions.QSharpVersion |> string
             UnhandledException = unhandledException
             SyntaxErrors = syntaxErrors
-            ExecutionTime = DateTime.Now - DateTime.Now
+            ExecutionTime = executionTime
             FilesProcessed = filesProcessed
             ExitCode = exitCode
         }
