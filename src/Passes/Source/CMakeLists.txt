@@ -9,9 +9,11 @@ microsoft_add_library_tests(Commandline)
 microsoft_add_library(Profile)
 microsoft_add_library_tests(Profile)
 
-microsoft_add_library(Validator)
+microsoft_add_library(Logging)
+
+microsoft_add_library(Validator Logging)
 microsoft_add_library_tests(Validator ValidationPass)
-microsoft_add_library(ValidationPass)
+microsoft_add_library(ValidationPass Logging)
 
 microsoft_add_library(AllocationManager)
 microsoft_add_library_tests(AllocationManager)
