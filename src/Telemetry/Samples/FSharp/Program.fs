@@ -9,11 +9,11 @@ open Microsoft.Quantum.Telemetry
 // We do that to prevent unintentional telemetry to be sent
 // to Microsoft via the Sample Telemetry app.
 let IsTestMode =
-    #if TELEMETRY
-        false;
-    #else
-        true;
-    #endif
+#if TELEMETRY
+    false
+#else
+    true
+#endif
 
 type SampleUnionType =
     | SampleEnumValue1
