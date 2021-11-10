@@ -11,7 +11,7 @@ open CommandLine.Text
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
 open Microsoft.Quantum.QsFmt.Formatter
 
-type internal ExitCode =
+type ExitCode =
     | Success = 0
     | SyntaxErrors = 1
     | BadArguments = 2

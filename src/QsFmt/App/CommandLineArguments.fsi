@@ -7,7 +7,7 @@ open System
 open CommandLine.Text
 open Microsoft.Quantum.QsFmt.Formatter
 
-type internal ExitCode =
+type ExitCode =
     | Success = 0
     | SyntaxErrors = 1
     | BadArguments = 2
@@ -24,7 +24,7 @@ type internal RunResult =
     static member Default : RunResult
 
 /// The kind of command used
-type internal CommandKind =
+type CommandKind =
 
     /// Represents usage of the `update` command
     | Update
@@ -36,7 +36,7 @@ type internal CommandKind =
     | UpdateAndFormat
 
 /// The kind of the input
-type internal InputKind =
+type InputKind =
 
     /// Represents usage of the `input` command option
     | Files

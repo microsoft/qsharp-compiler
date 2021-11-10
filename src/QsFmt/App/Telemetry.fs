@@ -10,7 +10,7 @@ open Microsoft.Quantum.QsFmt.Formatter
 open Microsoft.Quantum.Telemetry
 open CommandLine
 
-type internal ExecutionCompleted =
+type ExecutionCompleted =
     {
         StartTime: DateTime
         Command: CommandKind option

@@ -9,19 +9,21 @@ open Microsoft.Quantum.QsFmt.Formatter
 open Microsoft.Quantum.Telemetry
 open CommandLine
 
-type internal ExecutionCompleted =
-    { StartTime: DateTime
-      Command: CommandKind option
-      InputKind: InputKind option
-      RecurseFlag: bool
-      BackupFlag: bool
-      QSharpVersion: string
-      UnhandledException: Exception option
-      [<SerializeJson>]
-      SyntaxErrors: Errors.SyntaxError list option
-      ExecutionTime: TimeSpan
-      FilesProcessed: int
-      ExitCode: ExitCode }
+type ExecutionCompleted =
+    {
+        StartTime: DateTime
+        Command: CommandKind option
+        InputKind: InputKind option
+        RecurseFlag: bool
+        BackupFlag: bool
+        QSharpVersion: string
+        UnhandledException: Exception option
+        [<SerializeJson>]
+        SyntaxErrors: Errors.SyntaxError list option
+        ExecutionTime: TimeSpan
+        FilesProcessed: int
+        ExitCode: ExitCode
+    }
 
 val internal initializeTelemetry : string [] -> IDisposable
 
