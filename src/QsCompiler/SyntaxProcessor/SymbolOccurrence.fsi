@@ -30,28 +30,24 @@ type SymbolOccurrence =
         'a
 
     /// <summary>
-    /// The occurring symbol if this occurrence is a declaration, or <c>null</c>.
+    /// Gets the occurring symbol if this occurrence is a declaration.
     /// </summary>
-    [<MaybeNull>]
-    member AsDeclaration : QsSymbol
+    member TryGetDeclaration : symbol: QsSymbol outref -> bool
 
     /// <summary>
-    /// The occurring type if this occurrence is a used type, or <c>null</c>.
+    /// Gets the occurring type if this occurrence is a used type.
     /// </summary>
-    [<MaybeNull>]
-    member AsUsedType : QsType
+    member TryGetUsedType : ``type``: QsType outref -> bool
 
     /// <summary>
-    /// The occurring symbol if this occurrence is a used variable, or <c>null</c>.
+    /// Gets the occurring symbol if this occurrence is a used variable.
     /// </summary>
-    [<MaybeNull>]
-    member AsUsedVariable : QsSymbol
+    member TryGetUsedVariable : symbol: QsSymbol outref -> bool
 
     /// <summary>
-    /// The occurring expression if this occurrence is a used literal, or <c>null</c>.
+    /// Gets the occurring expression if this occurrence is a used literal.
     /// </summary>
-    [<MaybeNull>]
-    member AsUsedLiteral : QsExpression
+    member TryGetUsedLiteral : expression: QsExpression outref -> bool
 
 module SymbolOccurrence =
     /// <summary>

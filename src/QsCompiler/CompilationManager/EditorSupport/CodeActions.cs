@@ -51,8 +51,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this FileContentManager file, Position pos, CompilationUnit compilation, out string? idName)
         {
             var fragment = file.TryGetFragmentAt(pos, out _, true);
-            var variable = fragment is null ? null : SymbolInfo.SymbolOccurrence(fragment, pos, true)?.AsUsedVariable;
-            idName = variable?.Symbol.AsDeclarationName(null);
+            var occurrence = fragment is null ? null : SymbolInfo.SymbolOccurrence(fragment, pos, true);
+
+            idName = !(occurrence is null) && occurrence.TryGetUsedVariable(out var variable)
+                ? variable.Symbol.AsDeclarationName(null)
+                : null;
+
             return idName is null
                 ? ImmutableArray<string>.Empty
                 : compilation.GlobalSymbols.NamespacesContainingCallable(idName);
@@ -71,8 +75,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this FileContentManager file, Position pos, CompilationUnit compilation, out string? typeName)
         {
             var fragment = file.TryGetFragmentAt(pos, out _, true);
-            var type = fragment is null ? null : SymbolInfo.SymbolOccurrence(fragment, pos, true)?.AsUsedType;
-            typeName = type?.Type is QsTypeKind.UserDefinedType udt ? udt.Item.Symbol.AsDeclarationName(null) : null;
+            var occurrence = fragment is null ? null : SymbolInfo.SymbolOccurrence(fragment, pos, true);
+
+            typeName = !(occurrence is null) && occurrence.TryGetUsedType(out var type) && type.Type is QsTypeKind.UserDefinedType udt
+                ? udt.Item.Symbol.AsDeclarationName(null)
+                : null;
+
             return typeName is null
                 ? ImmutableArray<string>.Empty
                 : compilation.GlobalSymbols.NamespacesContainingType(typeName);
@@ -94,11 +102,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 select otherName;
 
             var fragment = file.TryGetFragmentAt(pos, out _, true);
-            var symbolKind = fragment is null
-                ? null
-                : SymbolInfo.SymbolOccurrence(fragment, pos, true)?.AsUsedVariable?.Symbol;
+            var occurrence = fragment is null ? null : SymbolInfo.SymbolOccurrence(fragment, pos, true);
+            var symbolKind = !(occurrence is null) && occurrence.TryGetUsedVariable(out var variable)
+                ? variable.Symbol
+                : null;
 
-            return symbolKind.AsDeclarationName(null)?.Apply(AlternateNames) ?? Enumerable.Empty<string>();
+            return symbolKind?.AsDeclarationName(null)?.Apply(AlternateNames) ?? Enumerable.Empty<string>();
         }
 
         /// <summary>
@@ -117,8 +126,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 select otherName;
 
             var fragment = file.TryGetFragmentAt(pos, out _, true);
-            var typeKind = fragment is null ? null : SymbolInfo.SymbolOccurrence(fragment, pos, true)?.AsUsedType?.Type;
-            var udt = typeKind as QsTypeKind.UserDefinedType;
+            var occurrence = fragment is null ? null : SymbolInfo.SymbolOccurrence(fragment, pos, true);
+            var udt = !(occurrence is null) && occurrence.TryGetUsedType(out var type)
+                ? type.Type as QsTypeKind.UserDefinedType
+                : null;
+
             return udt?.Item.Symbol.AsDeclarationName(null)?.Apply(AlternateNames) ?? Enumerable.Empty<string>();
         }
 

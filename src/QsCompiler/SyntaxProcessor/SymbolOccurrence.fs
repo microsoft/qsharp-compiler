@@ -4,7 +4,6 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
 
 open System
 open System.Collections.Immutable
-open System.Diagnostics.CodeAnalysis
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
@@ -171,26 +170,30 @@ type SymbolOccurrence with
         | UsedVariable s -> usedVariable.Invoke s
         | UsedLiteral e -> usedLiteral.Invoke e
 
-    [<MaybeNull>]
-    member occurrence.AsDeclaration =
+    member occurrence.TryGetDeclaration(symbol: QsSymbol outref) =
         match occurrence with
-        | Declaration s -> s
-        | _ -> Unchecked.defaultof<QsSymbol>
+        | Declaration s ->
+            symbol <- s
+            true
+        | _ -> false
 
-    [<MaybeNull>]
-    member occurrence.AsUsedType =
+    member occurrence.TryGetUsedType(``type``: QsType outref) =
         match occurrence with
-        | UsedType t -> t
-        | _ -> Unchecked.defaultof<QsType>
+        | UsedType t ->
+            ``type`` <- t
+            true
+        | _ -> false
 
-    [<MaybeNull>]
-    member occurrence.AsUsedVariable =
+    member occurrence.TryGetUsedVariable(symbol: QsSymbol outref) =
         match occurrence with
-        | UsedVariable s -> s
-        | _ -> Unchecked.defaultof<QsSymbol>
+        | UsedVariable s ->
+            symbol <- s
+            true
+        | _ -> false
 
-    [<MaybeNull>]
-    member occurrence.AsUsedLiteral =
+    member occurrence.TryGetUsedLiteral(expression: QsExpression outref) =
         match occurrence with
-        | UsedLiteral e -> e
-        | _ -> Unchecked.defaultof<QsExpression>
+        | UsedLiteral e ->
+            expression <- e
+            true
+        | _ -> false
