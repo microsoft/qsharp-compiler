@@ -241,7 +241,7 @@ type BuiltIn =
 
     static member ReadCycleCounter =
         {
-            FullName = { Name = "ReadCycleCounter"; Namespace = BuiltIn.DiagnosticsNamespace };
+            FullName = { Name = "ReadCycleCounter"; Namespace = BuiltIn.DiagnosticsNamespace }
             Kind = Operation(TypeParameters = ImmutableArray.Empty, IsSelfAdjoint = false)
         }
 
