@@ -145,11 +145,6 @@ namespace Microsoft.Quantum.Telemetry
                 return null;
             }
 
-            if (value is Exception exception)
-            {
-                return AnyToJson(exception.ToExceptionLogRecord(TelemetryManager.Configuration.ExceptionLoggingOptions));
-            }
-
             if (serializeJson)
             {
                 return AnyToJson(value);
@@ -169,6 +164,11 @@ namespace Microsoft.Quantum.Telemetry
             if (value == null)
             {
                 return null;
+            }
+
+            if (value is Exception exception)
+            {
+                return AnyToJson(exception.ToExceptionLogRecord(TelemetryManager.Configuration.ExceptionLoggingOptions));
             }
 
             if (convertValueFunctions.TryGetValue(fromType, out var conversionFunction))
