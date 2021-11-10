@@ -6,12 +6,11 @@
 /// </summary>
 module Microsoft.Quantum.QsFmt.Formatter.Tests.FixedPoints
 
+open System.IO
 open Antlr4.Runtime
 open Microsoft.Quantum.QsFmt.Formatter
 open Microsoft.Quantum.QsFmt.Formatter.Tests
 open Microsoft.Quantum.QsFmt.Parser
-open System
-open System.IO
 open Xunit
 
 /// <summary>

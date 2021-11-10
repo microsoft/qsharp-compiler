@@ -2,9 +2,12 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
@@ -138,7 +141,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             initReply.Capabilities.WorkspaceSymbolProvider.AssertCapability(shouldHave: false);
             initReply.Capabilities.RenameProvider.AssertCapability();
             initReply.Capabilities.HoverProvider.AssertCapability();
-            initReply.Capabilities.DocumentFormattingProvider.AssertCapability(shouldHave: false);
+            initReply.Capabilities.DocumentFormattingProvider.AssertCapability(shouldHave: true);
             initReply.Capabilities.DocumentRangeFormattingProvider.AssertCapability(shouldHave: false);
             initReply.Capabilities.CodeActionProvider.AssertCapability();
         }
@@ -274,9 +277,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 }
             }
 
-            await RunTest(emptyLastLine: true, useQsExtension: false);
-            await RunTest(emptyLastLine: false, useQsExtension: false);
             await RunTest(emptyLastLine: true, useQsExtension: true);
+            await RunTest(emptyLastLine: true, useQsExtension: false);
+            await RunTest(emptyLastLine: false, useQsExtension: true);
+            await RunTest(emptyLastLine: false, useQsExtension: false);
         }
 
         [TestMethod]
@@ -312,6 +316,53 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Assert.AreEqual(expectedContent.Count(), trackedContent.Count(), $"expected: \n{expected} \ngot: \n{got}");
                 Assert.AreEqual(expected, got);
             }
+        }
+
+        [TestMethod]
+        public async Task UpdateAndFormatAsync()
+        {
+            ManualResetEvent eventSignal = new ManualResetEvent(false);
+            async void CheckForLoadingCompleted(string msg, MessageType messageType)
+            {
+                await Console.Error.WriteLineAsync(msg);
+                if (msg.StartsWith("Done loading project"))
+                {
+                    eventSignal.Set();
+                }
+            }
+
+            async Task RunFormattingTestAsync(string projectName)
+            {
+                var projectFile = ProjectLoaderTests.ProjectUri(projectName);
+                var projDir = Path.GetDirectoryName(projectFile.LocalPath) ?? "";
+                var projectManager = new ProjectManager(ex => Assert.IsNull(ex), CheckForLoadingCompleted);
+                await projectManager.LoadProjectsAsync(
+                    new[] { projectFile },
+                    CompilationContext.Editor.QsProjectLoader,
+                    enableLazyLoading: false);
+
+                // Note that the formatting command will return null until the project has finished loading,
+                // and similarly when a project is reloaded because it has been modified.
+                // All in all, that seem like reasonable behavior.
+                eventSignal.WaitOne();
+                eventSignal.Reset();
+
+                var fileToFormat = new Uri(Path.Combine(projDir, "format", "Unformatted.qs"));
+                var expectedContent = File.ReadAllText(Path.Combine(projDir, "format", "Formatted.qs"));
+                var param = new DocumentFormattingParams
+                {
+                    TextDocument = new TextDocumentIdentifier { Uri = fileToFormat },
+                    Options = new FormattingOptions { TabSize = 2, InsertSpaces = false, OtherOptions = new Dictionary<string, object>() },
+                };
+
+                var edits = projectManager.Formatting(param);
+                Assert.IsNotNull(edits);
+                Assert.AreEqual(1, edits!.Length);
+                Assert.AreEqual(expectedContent, edits[0].NewText);
+            }
+
+            await RunFormattingTestAsync("test12");
+            await RunFormattingTestAsync("test15");
         }
     }
 }

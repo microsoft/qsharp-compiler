@@ -9,7 +9,6 @@ open System.IO
 open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.DependencyAnalysis
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
@@ -21,16 +20,12 @@ open Xunit.Abstractions
 
 type CallGraphTests(output: ITestOutputHelper) =
 
-    let compilationManager = new CompilationUnitManager(new Action<Exception>(fun ex -> failwith ex.Message))
+    let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
 
     let compilationManagerExe =
-        new CompilationUnitManager(
-            Action<_>(fun ex -> failwith ex.Message),
-            null,
-            false,
-            FullComputation,
-            isExecutable = true
-        )
+        let props = ImmutableDictionary.CreateBuilder()
+        props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
+        new CompilationUnitManager(new ProjectProperties(props), (fun ex -> failwith ex.Message))
 
     let getTempFile () =
         new Uri(Path.GetFullPath(Path.GetRandomFileName()))

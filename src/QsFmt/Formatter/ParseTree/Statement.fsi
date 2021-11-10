@@ -3,10 +3,10 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 
+open System.Collections.Immutable
 open Antlr4.Runtime
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
-open System.Collections.Immutable
 
 /// <summary>
 /// Creates syntax tree <see cref="Statement"/> nodes from a parse tree.

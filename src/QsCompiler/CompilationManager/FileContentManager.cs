@@ -1148,12 +1148,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Forces the processing of all currently queued changes, and return the current file content.
+        /// </summary>
+        internal string GetFileContent()
+        {
+            this.SyncRoot.EnterUpgradeableReadLock();
+            try
+            {
+                this.Flush();
+                return string.Concat(this.content.Get().Select(line => line.Text));
+            }
+            finally
+            {
+                this.SyncRoot.ExitUpgradeableReadLock();
+            }
+        }
+
+        /// <summary>
         /// Forces the processing of all currently queued changes.
         /// </summary>
         /// <remarks>
         /// Does *NOT* call <see cref="TimerTriggeredUpdateEvent"/> with the update.
         /// </remarks>
-        /// <!-- TODO: is this remarks change correct? -->
         internal void Flush()
         {
             this.timer.Stop();
