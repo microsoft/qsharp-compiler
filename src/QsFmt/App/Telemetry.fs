@@ -4,11 +4,9 @@
 module Microsoft.Quantum.QsFmt.App.Telemetry
 
 open System
-open System.Collections.Generic
 open Microsoft.Quantum.QsFmt.App.Arguments
 open Microsoft.Quantum.QsFmt.Formatter
 open Microsoft.Quantum.Telemetry
-open CommandLine
 
 type ExecutionCompleted =
     {
@@ -26,60 +24,74 @@ type ExecutionCompleted =
         ExitCode: ExitCode
     }
 
-let internal initializeTelemetry args =
-    let telemetryConfig =
-        TelemetryManagerConfig(
-            AppId = "QsFmt",
-            HostingEnvironmentVariableName = "QSFMT_HOSTING_ENV",
-            TelemetryOptOutVariableName = "QSFMT_TELEMETRY_OPT_OUT",
-            MaxTeardownUploadTime = TimeSpan.FromSeconds(2.0),
-            OutOfProcessUpload = false,
-            ExceptionLoggingOptions =
-                ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
-            SendTelemetryInitializedEvent = false,
-            SendTelemetryTearDownEvent = false,
-            #if TELEMETRY
-            TestMode = false
-            #else
-            TestMode = true
-            #endif
-        )
+module Telemetry =
+    let internal initializeTelemetry args =
+        let telemetryConfig =
+            TelemetryManagerConfig(
+                AppId = "QsFmt",
+                HostingEnvironmentVariableName = "QSFMT_HOSTING_ENV",
+                TelemetryOptOutVariableName = "QSFMT_TELEMETRY_OPT_OUT",
+                MaxTeardownUploadTime = TimeSpan.FromSeconds(2.0),
+                OutOfProcessUpload = false,
+                ExceptionLoggingOptions =
+                    ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
+                SendTelemetryInitializedEvent = false,
+                SendTelemetryTearDownEvent = false,
+                #if TELEMETRY
+                TestMode = false
+                #else
+                TestMode = true
+                #endif
+            )
 
-    TelemetryManager.Initialize(telemetryConfig, args)
+        TelemetryManager.Initialize(telemetryConfig, args)
 
-let internal logExecutionCompleted
-    (commandWithOptions: Result<Result<CommandWithOptions, ExitCode>, Exception>)
-    (runResult: Result<RunResult, Exception>)
-    (startTime: DateTime)
-    (executionTime: TimeSpan)
-    =
+    let internal logExecutionCompleted
+        (commandWithOptions: Result<Result<CommandWithOptions, ExitCode>, Exception>)
+        (runResult: Result<RunResult, Exception>)
+        (startTime: DateTime)
+        (executionTime: TimeSpan)
+        =
 
-    let (syntaxErrors, filesProcessed, exitCode, unhandledException) =
-        match runResult with
-        | Ok runResult -> (Some runResult.SyntaxErrors, runResult.FilesProcessed, runResult.ExitCode, None)
-        | Error ex -> (None, 0, ExitCode.UnhandledException, Some ex)
+        let (syntaxErrors, filesProcessed, exitCode, unhandledException) =
+            match runResult with
+            | Ok runResult ->
+                (Some runResult.SyntaxErrors,
+                 runResult.FilesProcessed,
+                 runResult.ExitCode,
+                 None)
+            | Error ex ->
+                (None,
+                 0,
+                 ExitCode.UnhandledException,
+                 Some ex)
 
-    let (commandKind, inputKind, recurseFlag, backupFlag, qsharpVersion) =
-        match commandWithOptions with
-        | Ok commandWithOptions ->
+        let (commandKind, inputKind, recurseFlag, backupFlag, qsharpVersion) =
             match commandWithOptions with
-                | Ok commandWithOptions -> (Some commandWithOptions.CommandKind, Some commandWithOptions.InputKind, Some commandWithOptions.RecurseFlag, Some commandWithOptions.BackupFlag, commandWithOptions.QSharpVersion)
-                | Error exitCode -> (None, None, None, None, None)
-        | Result.Error ex -> (None, None, None, None, None)
+            | Ok commandWithOptions ->
+                match commandWithOptions with
+                    | Ok commandWithOptions ->
+                        (Some commandWithOptions.CommandKind,
+                         Some commandWithOptions.InputKind,
+                         Some commandWithOptions.RecurseFlag,
+                         Some commandWithOptions.BackupFlag,
+                         commandWithOptions.QSharpVersion)
+                    | Error _ -> (None, None, None, None, None)
+            | Error _ -> (None, None, None, None, None)
 
-    let executionCompletedEvent =
-        {
-            StartTime = startTime
-            Command = commandKind
-            RecurseFlag = recurseFlag
-            BackupFlag = backupFlag
-            InputKind = inputKind
-            QSharpVersion = qsharpVersion |> string
-            UnhandledException = unhandledException
-            SyntaxErrors = syntaxErrors
-            ExecutionTime = executionTime
-            FilesProcessed = filesProcessed
-            ExitCode = exitCode
-        }
+        let executionCompletedEvent =
+            {
+                StartTime = startTime
+                Command = commandKind
+                RecurseFlag = recurseFlag
+                BackupFlag = backupFlag
+                InputKind = inputKind
+                QSharpVersion = qsharpVersion |> string
+                UnhandledException = unhandledException
+                SyntaxErrors = syntaxErrors
+                ExecutionTime = executionTime
+                FilesProcessed = filesProcessed
+                ExitCode = exitCode
+            }
 
-    TelemetryManager.LogObject(executionCompletedEvent)
+        TelemetryManager.LogObject(executionCompletedEvent)

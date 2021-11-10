@@ -7,7 +7,6 @@ open System
 open Microsoft.Quantum.QsFmt.App.Arguments
 open Microsoft.Quantum.QsFmt.Formatter
 open Microsoft.Quantum.Telemetry
-open CommandLine
 
 type ExecutionCompleted =
     { StartTime: DateTime
@@ -23,11 +22,12 @@ type ExecutionCompleted =
       FilesProcessed: int
       ExitCode: ExitCode }
 
-val internal initializeTelemetry : string [] -> IDisposable
+module Telemetry =
+    val internal initializeTelemetry : string [] -> IDisposable
 
-val internal logExecutionCompleted :
-    Result<Result<CommandWithOptions, ExitCode>, Exception> ->
-    Result<RunResult, Exception> ->
-    DateTime ->
-    TimeSpan ->
-    unit
+    val internal logExecutionCompleted :
+        Result<Result<CommandWithOptions, ExitCode>, Exception> ->
+        Result<RunResult, Exception> ->
+        DateTime ->
+        TimeSpan ->
+        unit
