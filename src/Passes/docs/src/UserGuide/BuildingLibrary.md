@@ -108,7 +108,7 @@ make qat
 then
 
 ```sh
-./Source/Apps/qat
+./qir/qat/Apps/qat
 ```
 
 # Building the documentation
