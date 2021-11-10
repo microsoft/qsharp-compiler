@@ -4,6 +4,7 @@
 namespace Microsoft.Quantum.Testing.QIR {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Llvm;
 
     newtype Options = (
         SimpleMessage: (String -> Unit),
@@ -47,6 +48,9 @@ namespace Microsoft.Quantum.Diagnostics {
     function DumpMachine<'T> (arg : 'T) : Unit {
         body intrinsic;
     }
+}
+
+namespace Microsoft.Quantum.Llvm {
 
     operation ReadCycleCounter() : Int {
         body intrinsic;
