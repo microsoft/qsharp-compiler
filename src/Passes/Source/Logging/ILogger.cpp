@@ -6,8 +6,10 @@
 #include <cstdint>
 #include <string>
 
-namespace microsoft {
-namespace quantum {
-ILogger::~ILogger() = default;
+namespace microsoft
+{
+namespace quantum
+{
+    ILogger::~ILogger() = default;
 }
-}  // namespace microsoft
+} // namespace microsoft

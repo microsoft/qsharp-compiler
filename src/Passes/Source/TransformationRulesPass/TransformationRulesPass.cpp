@@ -773,6 +773,7 @@ namespace quantum
         }
         else
         {
+
             // Otherwise we apply to all sections of the code.
             replacements_.clear();
             for (auto& function : module)
@@ -788,6 +789,40 @@ namespace quantum
 
             processReplacements();
         }
+
+        /*
+        replacements_.clear();
+        for (auto &function : module)
+        {
+
+          std::vector<llvm::BasicBlock *> blocks;
+          for (auto &block : function)
+          {
+            blocks.push_back(&block);
+          }
+
+          for (auto it_block = blocks.rbegin(); it_block != blocks.rend(); ++it_block)
+          {
+            auto &block = **it_block;
+
+            // Deleteing blocks in reverse order
+            std::vector<llvm::Instruction *> instructions;
+            for (auto &instr : block)
+            {
+              instructions.push_back(&instr);
+            }
+
+            // Removing backwards to avoid segfault
+            for (auto it_inst = instructions.rbegin(); it_inst != instructions.rend(); ++it_inst)
+            {
+              auto &instr = **it_inst;
+              rule_set_.matchAndReplace(&instr, replacements_);
+            }
+          }
+        }
+
+        processReplacements();
+        */
 
         return llvm::PreservedAnalyses::none();
     }
