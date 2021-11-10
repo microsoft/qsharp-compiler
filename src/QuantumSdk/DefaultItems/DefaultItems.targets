@@ -31,11 +31,11 @@
   <!-- Initializing the ResolvedProcessorArchitecture to either HoneywellProcessor, IonQProcessor, QCIProcessor, MicrosoftSimulator or Unspecified.-->
   <PropertyGroup>
     <!-- These architectures are in production and available for public use. -->
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('honeywell'))">HoneywellProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('ionq'))">IonQProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('qci'))">QCIProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('microsoft.simulator'))">MicrosoftSimulator</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="'$(ExecutionTarget)' == 'Any'">Unspecified</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('honeywell'))">HoneywellProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('ionq'))">IonQProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('qci'))">QCIProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('microsoft.simulator'))">MicrosoftSimulator</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.Equals('Any', StringComparison.InvariantCultureIgnoreCase))">Unspecified</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor' And '$(ResolvedProcessorArchitecture)' != 'Unspecified' And '$(ResolvedProcessorArchitecture)' != 'MicrosoftSimulator'"></ResolvedProcessorArchitecture>
     <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values must match 'ionq*', 'honeywell*', 'qci*', 'microsoft.simulator*', or 'Any'.</ValidExecutionTargets>
     <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
@@ -43,8 +43,8 @@
       These architectures are currently under active development and not available for public use yet. 
       Targeting is disabled since the code will be targeted by the QIR compiler, and Q# diagnostics are not yet enabled for these architectures. 
     -->
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('honeywell.qir'))">HoneywellQirProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('qci.qir'))">QCIQirProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('honeywell.qir'))">HoneywellQirProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('qci.qir'))">QCIQirProcessor</ResolvedProcessorArchitecture>
   </PropertyGroup>
 
   <!-- Resolving the QuantumIntrinsics to either Type1, Type2, Type3, or Default.-->
