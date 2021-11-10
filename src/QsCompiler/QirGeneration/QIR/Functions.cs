@@ -193,9 +193,8 @@ namespace Microsoft.Quantum.QIR
 
         private IValue GetHardwareCycleCounter(IValue arg)
         {
-            var func = this.sharedState.CurrentBuilder.ReadCycleCount();
+            var func = this.sharedState.Module.GetIntrinsicDeclaration("llvm.readcyclecounter", this.sharedState.Types.Int);
             var call = this.sharedState.CurrentBuilder.Call(func);
-            System.Console.WriteLine("GOT HERE!!!");
             return this.sharedState.Values.From(call, Int);
         }
 

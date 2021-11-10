@@ -1174,16 +1174,6 @@ namespace Ubiquity.NET.Llvm.Instructions
             return Value.FromHandle<CallInstruction>(hCall)!;
         }
 
-        /// <summary>Creates a llvm.readcyclecounter call.</summary>
-        /// <returns><see cref="CallInstruction"/>.</returns>
-        public CallInstruction ReadCycleCount()
-        {
-            BitcodeModule module = this.GetModuleOrThrow();
-            var func = module.GetIntrinsicDeclaration("llvm.readcyclecounter");
-            var hCall = this.BuildCall(func);
-            return Value.FromHandle<CallInstruction>(hCall)!;
-        }
-
         /// <summary>Creates a llvm.debugtrap call.</summary>
         /// <returns><see cref="CallInstruction"/>.</returns>
         public CallInstruction DebugTrap()
