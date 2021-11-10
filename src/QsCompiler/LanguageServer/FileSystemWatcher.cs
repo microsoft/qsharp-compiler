@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         public delegate void FileEventHandler(FileEvent e);
 
-#if NET6_0_OR_GREATER
+#if !NET6_0_OR_GREATER
         [PermissionSet(SecurityAction.Demand, Name = "FullTrust")]
 #endif
         public FileWatcher(Action<Exception> onException)
