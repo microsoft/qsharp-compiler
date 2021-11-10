@@ -118,12 +118,12 @@ type UpdateAndFormatArguments =
 
 /// Represents the fully parsed arguments to the tool.
 type internal CommandWithOptions =
-  {
+    {
       /// Indicates the command specified.
-      CommandKind: CommandKind option
+      CommandKind: CommandKind
 
       /// The input kind
-      InputKind: InputKind option
+      InputKind: InputKind
 
       /// Flag to indicate if the `--recurse` option was specified.
       RecurseFlag: bool
@@ -135,8 +135,7 @@ type internal CommandWithOptions =
       QSharpVersion: Version option
 
       /// The paths to the files to process.
-      Input: string list
-    }
+      Input: string list }
     static member Default : CommandWithOptions
 
 module internal CommandWithOptions =

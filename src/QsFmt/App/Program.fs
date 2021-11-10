@@ -49,10 +49,9 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
 
                     let command =
                         match commandWithOptions.CommandKind with
-                        | Some Update -> Formatter.update input commandWithOptions.QSharpVersion
-                        | Some Format -> Formatter.format commandWithOptions.QSharpVersion
-                        | Some UpdateAndFormat -> Formatter.updateAndFormat input commandWithOptions.QSharpVersion
-                        | None -> Formatter.identity
+                        | Update -> Formatter.update input commandWithOptions.QSharpVersion
+                        | Format -> Formatter.format commandWithOptions.QSharpVersion
+                        | UpdateAndFormat -> Formatter.updateAndFormat input commandWithOptions.QSharpVersion
 
                     match command source with
                     | Ok result ->
@@ -85,11 +84,6 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
 
     processManyInputs inputs
 
-let runCommandFromArguments (arguments: IArguments) =
-    match CommandWithOptions.fromIArguments arguments with
-    | Ok args -> args.Input |> runCommand { args with CommandKind = Some Format }
-    | Error errorCode -> { RunResult.Default with ExitCode = errorCode }
-
 [<CompiledName "Main">]
 [<EntryPoint>]
 let main args =
@@ -113,10 +107,10 @@ let main args =
         try
             match parseArgsResult with
             | Ok parsedArgs ->
-                Ok (
+                Ok(
                     parsedArgs.MapResult(
-                        (fun (options: IArguments) -> options |> CommandWithOptions.fromIArguments ),
-                        (fun (_: IEnumerable<Error>) -> Result.Error ExitCode.BadArguments )
+                        (fun (options: IArguments) -> options |> CommandWithOptions.fromIArguments),
+                        (fun (_: IEnumerable<Error>) -> Result.Error ExitCode.BadArguments)
                     )
                 )
             | Result.Error ex -> Result.Error(ex)
@@ -127,10 +121,10 @@ let main args =
         try
             match commandWithOptions with
             | Ok commandWithOptions ->
-                Ok (
+                Ok(
                     match commandWithOptions with
-                        | Ok commandWithOptions -> runCommand commandWithOptions commandWithOptions.Input
-                        | Error exitCode -> { RunResult.Default with ExitCode = exitCode }
+                    | Ok commandWithOptions -> runCommand commandWithOptions commandWithOptions.Input
+                    | Error exitCode -> { RunResult.Default with ExitCode = exitCode }
                 )
             | Result.Error ex -> Result.Error(ex)
         with
@@ -141,5 +135,5 @@ let main args =
     match runResult with
     | Ok runResult -> runResult.ExitCode |> int
     | Error ex ->
-        eprintf "Unexpected Error: %s" ( ex.ToString() )
+        eprintf "Unexpected Error: %s" (ex.ToString())
         ExitCode.UnhandledException |> int

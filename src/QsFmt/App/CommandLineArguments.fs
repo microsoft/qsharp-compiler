@@ -245,8 +245,8 @@ type UpdateAndFormatArguments =
 
 type CommandWithOptions =
     {
-        CommandKind: CommandKind option
-        InputKind: InputKind option
+        CommandKind: CommandKind
+        InputKind: InputKind
         RecurseFlag: bool
         BackupFlag: bool
         QSharpVersion: Version option
@@ -254,8 +254,8 @@ type CommandWithOptions =
     }
     static member Default =
         {
-            CommandKind = None
-            InputKind = None
+            CommandKind = CommandKind.Format
+            InputKind = InputKind.Files
             RecurseFlag = false
             BackupFlag = false
             QSharpVersion = None
@@ -309,8 +309,8 @@ module CommandWithOptions =
                     ExitCode.QdkOutOfDate |> Result.Error
                 | _ ->
                     {
-                        CommandKind = Some arguments.CommandKind
-                        InputKind = Some inputKind
+                        CommandKind = arguments.CommandKind
+                        InputKind = inputKind
                         RecurseFlag = arguments.Recurse
                         BackupFlag = arguments.Backup
                         QSharpVersion = qsharpVersion

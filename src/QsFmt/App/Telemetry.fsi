@@ -10,22 +10,24 @@ open Microsoft.Quantum.Telemetry
 open CommandLine
 
 type ExecutionCompleted =
-    {
-        StartTime: DateTime
-        Command: CommandKind option
-        InputKind: InputKind option
-        RecurseFlag: bool
-        BackupFlag: bool
-        QSharpVersion: string
-        UnhandledException: Exception option
-        [<SerializeJson>]
-        SyntaxErrors: Errors.SyntaxError list option
-        ExecutionTime: TimeSpan
-        FilesProcessed: int
-        ExitCode: ExitCode
-    }
+    { StartTime: DateTime
+      Command: CommandKind option
+      InputKind: InputKind option
+      RecurseFlag: bool option
+      BackupFlag: bool option
+      QSharpVersion: string
+      UnhandledException: Exception option
+      [<SerializeJson>]
+      SyntaxErrors: Errors.SyntaxError list option
+      ExecutionTime: TimeSpan
+      FilesProcessed: int
+      ExitCode: ExitCode }
 
 val internal initializeTelemetry : string [] -> IDisposable
 
 val internal logExecutionCompleted :
-    Result<Result<CommandWithOptions, ExitCode>, Exception> -> Result<RunResult, Exception> -> DateTime -> TimeSpan -> unit
+    Result<Result<CommandWithOptions, ExitCode>, Exception> ->
+    Result<RunResult, Exception> ->
+    DateTime ->
+    TimeSpan ->
+    unit

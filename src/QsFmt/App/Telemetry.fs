@@ -15,8 +15,8 @@ type ExecutionCompleted =
         StartTime: DateTime
         Command: CommandKind option
         InputKind: InputKind option
-        RecurseFlag: bool
-        BackupFlag: bool
+        RecurseFlag: bool option
+        BackupFlag: bool option
         QSharpVersion: string
         UnhandledException: Exception option
         [<SerializeJson>]
@@ -59,22 +59,22 @@ let internal logExecutionCompleted
         | Ok runResult -> (Some runResult.SyntaxErrors, runResult.FilesProcessed, runResult.ExitCode, None)
         | Error ex -> (None, 0, ExitCode.UnhandledException, Some ex)
 
-    let commandWithOptions =
+    let (commandKind, inputKind, recurseFlag, backupFlag, qsharpVersion) =
         match commandWithOptions with
         | Ok commandWithOptions ->
             match commandWithOptions with
-                | Ok commandWithOptions -> commandWithOptions
-                | Error exitCode -> CommandWithOptions.Default
-        | Result.Error ex -> CommandWithOptions.Default
+                | Ok commandWithOptions -> (Some commandWithOptions.CommandKind, Some commandWithOptions.InputKind, Some commandWithOptions.RecurseFlag, Some commandWithOptions.BackupFlag, commandWithOptions.QSharpVersion)
+                | Error exitCode -> (None, None, None, None, None)
+        | Result.Error ex -> (None, None, None, None, None)
 
     let executionCompletedEvent =
         {
             StartTime = startTime
-            Command = commandWithOptions.CommandKind
-            RecurseFlag = commandWithOptions.RecurseFlag
-            BackupFlag = commandWithOptions.BackupFlag
-            InputKind = commandWithOptions.InputKind
-            QSharpVersion = commandWithOptions.QSharpVersion |> string
+            Command = commandKind
+            RecurseFlag = recurseFlag
+            BackupFlag = backupFlag
+            InputKind = inputKind
+            QSharpVersion = qsharpVersion |> string
             UnhandledException = unhandledException
             SyntaxErrors = syntaxErrors
             ExecutionTime = executionTime
