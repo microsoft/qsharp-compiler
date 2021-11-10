@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.Testing.QIR {
         options::SimpleMessage("Hello");
         options::DumpToFile("pathToFile");
         options::DumpToConsole();
-        return GetCycleCount();
+        return ReadCycleCounter();
     }
 }
 
@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.Diagnostics {
         body intrinsic;
     }
 
-    operation GetCycleCount() : Int {
+    operation ReadCycleCounter() : Int {
         body intrinsic;
     }
 }

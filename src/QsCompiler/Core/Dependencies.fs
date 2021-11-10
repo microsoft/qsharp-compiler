@@ -86,6 +86,7 @@ type BuiltIn =
             // in Microsoft.Quantum.Diagnostics
             BuiltIn.Test
             BuiltIn.EnableTestingViaName
+            BuiltIn.ReadCycleCounter
             BuiltIn.DumpMachine
             BuiltIn.DumpRegister
             // in Microsoft.Quantum.Canon
@@ -233,16 +234,16 @@ type BuiltIn =
 
     // dependencies in Microsoft.Quantum.Diagnostics
 
-    static member GetCycleCount =
-        {
-            FullName = { Name = "GetCycleCount"; Namespace = BuiltIn.DiagnosticsNamespace };
-            Kind = Operation(TypeParameters = ImmutableArray.Empty, IsSelfAdjoint = false)
-        }
-
     static member Test = { FullName = { Name = "Test"; Namespace = BuiltIn.DiagnosticsNamespace }; Kind = Attribute }
 
     static member EnableTestingViaName =
         { FullName = { Name = "EnableTestingViaName"; Namespace = BuiltIn.DiagnosticsNamespace }; Kind = Attribute }
+
+    static member ReadCycleCounter =
+        {
+            FullName = { Name = "ReadCycleCounter"; Namespace = BuiltIn.DiagnosticsNamespace };
+            Kind = Operation(TypeParameters = ImmutableArray.Empty, IsSelfAdjoint = false)
+        }
 
     static member DumpMachine =
         {
