@@ -121,9 +121,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsNotNull(initReply.Capabilities.CompletionProvider);
             Assert.IsTrue(initReply.Capabilities.CompletionProvider!.ResolveProvider);
             Assert.IsNotNull(initReply.Capabilities.CompletionProvider.TriggerCharacters);
-            Assert.IsTrue(initReply.Capabilities.CompletionProvider.TriggerCharacters.SequenceEqual(new[] { ".", "(" }));
+            Assert.IsTrue(initReply.Capabilities.CompletionProvider.TriggerCharacters!.SequenceEqual(new[] { ".", "(" }));
             Assert.IsNotNull(initReply.Capabilities.SignatureHelpProvider?.TriggerCharacters);
-            Assert.IsTrue(initReply.Capabilities.SignatureHelpProvider!.TriggerCharacters.Any());
+            Assert.IsTrue(initReply.Capabilities.SignatureHelpProvider!.TriggerCharacters!.Any());
             Assert.IsNotNull(initReply.Capabilities.ExecuteCommandProvider?.Commands);
             Assert.IsTrue(initReply.Capabilities.ExecuteCommandProvider!.Commands.Contains(CommandIds.ApplyEdit));
             Assert.IsTrue(initReply.Capabilities.TextDocumentSync.OpenClose);

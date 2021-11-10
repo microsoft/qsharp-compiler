@@ -206,8 +206,8 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
 
     public static class Formatting
     {
-        public static IEnumerable<string>? Indent(params string[] items) =>
-            items?.Select(msg => $"    {msg}");
+        public static IEnumerable<string> Indent(params string[] items) =>
+            items?.Select(msg => $"    {msg}") ?? Enumerable.Empty<string>();
 
         /// <summary>
         /// Returns a string that contains all information about the given diagnostic in human readable format.
