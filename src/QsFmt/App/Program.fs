@@ -18,7 +18,7 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
 
     let mutable paths = Set.empty
 
-    let rec runOneCommand input =
+    let rec processOneInput input =
         // Make sure inputs are not processed more than once.
         if input |> makeFullPath |> paths.Contains then
             // Change the "-" input to say "<Standard Input>" in the error
@@ -38,7 +38,7 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
                         else
                             topLevelFiles
 
-                    newInputs |> runManyCommands
+                    newInputs |> processManyInputs
                 else
                     let source =
                         if input = "-" then
@@ -72,7 +72,7 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
                 { RunResult.Default with ExitCode = ExitCode.UnauthorizedAccess }
 
     and foldResults (previousRunResult: RunResult) filePath =
-        let newRunResult = (filePath |> runOneCommand)
+        let newRunResult = (filePath |> processOneInput)
 
         {
             FilesProcessed = previousRunResult.FilesProcessed + newRunResult.FilesProcessed
@@ -80,10 +80,10 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
             SyntaxErrors = previousRunResult.SyntaxErrors @ newRunResult.SyntaxErrors
         }
 
-    and runManyCommands inputs =
+    and processManyInputs inputs =
         inputs |> Seq.fold foldResults RunResult.Default
 
-    runManyCommands inputs
+    processManyInputs inputs
 
 let runCommandFromArguments (arguments: IArguments) =
     match CommandWithOptions.fromIArguments arguments with
