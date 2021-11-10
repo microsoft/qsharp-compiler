@@ -11,7 +11,9 @@ microsoft_add_library_tests(Commandline Logging)
 microsoft_add_library(Profile)
 microsoft_add_library_tests(Profile)
 
-microsoft_add_library(Validator Logging)
+microsoft_add_library(Validator)
+target_link_libraries(Validator PRIVATE Logging)
+
 microsoft_add_library_tests(Validator ValidationPass Logging)
 microsoft_add_library(ValidationPass Logging)
 
@@ -29,7 +31,7 @@ microsoft_add_library_tests(Rules Rules TransformationRulesPass AllocationManage
 target_link_libraries(Rules PRIVATE AllocationManager)
 
 microsoft_add_library(Generators)
-target_link_libraries(Generators PRIVATE Rules Commandline AllocationManager TransformationRulesPass Profile Validator ValidationPass Logging)
+target_link_libraries(Generators PRIVATE Rules Commandline AllocationManager TransformationRulesPass Profile Validator ValidationPass)
 microsoft_add_library_tests(Generators Rules TransformationRulesPass AllocationManager Commandline Generators Logging)
 
 add_subdirectory(Apps)
