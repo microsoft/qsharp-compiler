@@ -21,12 +21,15 @@
     <Compile Include="DesignTimeBuild.fs" />
     <Compile Include="CommandLineArguments.fsi" />
     <Compile Include="CommandLineArguments.fs" />
+    <Compile Include="Telemetry.fsi" />
+    <Compile Include="Telemetry.fs" />
     <Compile Include="Program.fsi" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Formatter\Formatter.fsproj" />
+    <ProjectReference Include="..\..\Telemetry\Library\Telemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>
