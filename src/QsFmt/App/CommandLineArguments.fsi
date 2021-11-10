@@ -118,7 +118,7 @@ type UpdateAndFormatArguments =
 
 /// Represents the fully parsed arguments to the tool.
 type internal CommandWithOptions =
-    {
+  {
       /// Indicates the command specified.
       CommandKind: CommandKind option
 
@@ -135,7 +135,9 @@ type internal CommandWithOptions =
       QSharpVersion: Version option
 
       /// The paths to the files to process.
-      Input: string list }
+      Input: string list
+    }
+    static member Default : CommandWithOptions
 
 module internal CommandWithOptions =
 

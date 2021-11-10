@@ -252,6 +252,17 @@ type CommandWithOptions =
         QSharpVersion: Version option
         Input: string list
     }
+    static member Default =
+        {
+            CommandKind = None
+            InputKind = None
+            RecurseFlag = false
+            BackupFlag = false
+            QSharpVersion = None
+            Input = List.empty<string>
+        }
+
+
 
 module CommandWithOptions =
     let private checkArguments (arguments: IArguments) =

@@ -33,7 +33,7 @@ let internal initializeTelemetry args =
             HostingEnvironmentVariableName = "QSFMT_HOSTING_ENV",
             TelemetryOptOutVariableName = "QSFMT_TELEMETRY_OPT_OUT",
             MaxTeardownUploadTime = TimeSpan.FromSeconds(2.0),
-            OutOfProcessUpload = true,
+            OutOfProcessUpload = false,
             ExceptionLoggingOptions =
                 ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
             SendTelemetryInitializedEvent = false,
@@ -48,7 +48,7 @@ let internal initializeTelemetry args =
     TelemetryManager.Initialize(telemetryConfig, args)
 
 let internal logExecutionCompleted
-    (parseArgsResult: Result<ParserResult<obj>, Exception>)
+    (commandWithOptions: Result<Result<CommandWithOptions, ExitCode>, Exception>)
     (runResult: Result<RunResult, Exception>)
     (startTime: DateTime)
     (executionTime: TimeSpan)
@@ -59,65 +59,22 @@ let internal logExecutionCompleted
         | Ok runResult -> (Some runResult.SyntaxErrors, runResult.FilesProcessed, runResult.ExitCode, None)
         | Error ex -> (None, 0, ExitCode.UnhandledException, Some ex)
 
-    let argumentOptions =
-        match parseArgsResult with
-        | Ok parsedArgs ->
-            parsedArgs.MapResult(
-                (fun (options: IArguments) ->
-                    {
-                        CommandKind = Some Format
-                        InputKind = Some (if String.IsNullOrEmpty(options.ProjectFile) then Project else Files)
-                        RecurseFlag = options.Recurse
-                        BackupFlag = options.Backup
-                        QSharpVersion = Some(Version(options.QdkVersion))
-                        Input = List.empty<string>
-                    }),
-                (fun (options: UpdateArguments) ->
-                    {
-                        CommandKind = Some Update
-                        InputKind = Some (if String.IsNullOrEmpty(options.ProjectFile) then Project else Files)
-                        RecurseFlag = options.Recurse
-                        BackupFlag = options.Backup
-                        QSharpVersion = Some(Version(options.QdkVersion))
-                        Input = List.empty<string>
-                    }),
-                (fun (options: UpdateAndFormatArguments) ->
-                    {
-                        CommandKind = Some UpdateAndFormat
-                        InputKind = Some (if String.IsNullOrEmpty(options.ProjectFile) then Project else Files)
-                        RecurseFlag = options.Recurse
-                        BackupFlag = options.Backup
-                        QSharpVersion = Some(Version(options.QdkVersion))
-                        Input = List.empty<string>
-                    }),
-                (fun (_: IEnumerable<Error>) ->
-                    {
-                        CommandKind = None
-                        InputKind = None
-                        RecurseFlag = false
-                        BackupFlag = false
-                        QSharpVersion = None
-                        Input = List.empty<string>
-                    })
-            )
-        | Result.Error ex ->
-            {
-                CommandKind = None
-                InputKind = None
-                RecurseFlag = false
-                BackupFlag = false
-                QSharpVersion = None
-                Input = List.empty<string>
-            }
+    let commandWithOptions =
+        match commandWithOptions with
+        | Ok commandWithOptions ->
+            match commandWithOptions with
+                | Ok commandWithOptions -> commandWithOptions
+                | Error exitCode -> CommandWithOptions.Default
+        | Result.Error ex -> CommandWithOptions.Default
 
     let executionCompletedEvent =
         {
             StartTime = startTime
-            Command = argumentOptions.CommandKind
-            RecurseFlag = argumentOptions.RecurseFlag
-            BackupFlag = argumentOptions.BackupFlag
-            InputKind = argumentOptions.InputKind
-            QSharpVersion = argumentOptions.QSharpVersion |> string
+            Command = commandWithOptions.CommandKind
+            RecurseFlag = commandWithOptions.RecurseFlag
+            BackupFlag = commandWithOptions.BackupFlag
+            InputKind = commandWithOptions.InputKind
+            QSharpVersion = commandWithOptions.QSharpVersion |> string
             UnhandledException = unhandledException
             SyntaxErrors = syntaxErrors
             ExecutionTime = executionTime

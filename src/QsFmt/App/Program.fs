@@ -95,7 +95,7 @@ let runCommandFromArguments (arguments: IArguments) =
 let main args =
 
     let startTime = DateTime.Now
-    let executionTime = System.Diagnostics.Stopwatch.StartNew()
+    let executionTime = Diagnostics.Stopwatch.StartNew()
     use _telemetryManagerHandle = Telemetry.initializeTelemetry args
 
     let parseArgsResult =
@@ -109,22 +109,37 @@ let main args =
         with
         | ex -> Result.Error(ex)
 
-    let runResult =
+    let commandWithOptions =
         try
             match parseArgsResult with
             | Ok parsedArgs ->
-                Ok(
+                Ok (
                     parsedArgs.MapResult(
-                        (fun (options: IArguments) -> options |> runCommandFromArguments),
-                        (fun (_: IEnumerable<Error>) -> { RunResult.Default with ExitCode = ExitCode.BadArguments })
+                        (fun (options: IArguments) -> options |> CommandWithOptions.fromIArguments ),
+                        (fun (_: IEnumerable<Error>) -> Result.Error ExitCode.BadArguments )
                     )
                 )
             | Result.Error ex -> Result.Error(ex)
         with
         | ex -> Result.Error(ex)
 
-    Telemetry.logExecutionCompleted parseArgsResult runResult startTime executionTime.Elapsed
+    let runResult =
+        try
+            match commandWithOptions with
+            | Ok commandWithOptions ->
+                Ok (
+                    match commandWithOptions with
+                        | Ok commandWithOptions -> runCommand commandWithOptions commandWithOptions.Input
+                        | Error exitCode -> { RunResult.Default with ExitCode = exitCode }
+                )
+            | Result.Error ex -> Result.Error(ex)
+        with
+        | ex -> Result.Error(ex)
+
+    Telemetry.logExecutionCompleted commandWithOptions runResult startTime executionTime.Elapsed
 
     match runResult with
     | Ok runResult -> runResult.ExitCode |> int
-    | Error ex -> ExitCode.UnhandledException |> int
+    | Error ex ->
+        eprintf "Unexpected Error: %s" ( ex.ToString() )
+        ExitCode.UnhandledException |> int
