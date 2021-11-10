@@ -233,6 +233,12 @@ type BuiltIn =
 
     // dependencies in Microsoft.Quantum.Diagnostics
 
+    static member GetCycleCount =
+        {
+            FullName = { Name = "GetCycleCount"; Namespace = BuiltIn.DiagnosticsNamespace };
+            Kind = Operation(TypeParameters = ImmutableArray.Empty, IsSelfAdjoint = false)
+        }
+
     static member Test = { FullName = { Name = "Test"; Namespace = BuiltIn.DiagnosticsNamespace }; Kind = Attribute }
 
     static member EnableTestingViaName =

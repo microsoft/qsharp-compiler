@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.Testing.QIR {
     }
 
     @EntryPoint()
-    operation TestBuiltInIntrinsics() : Unit {
+    operation TestBuiltInIntrinsics() : Int {
         let options = DefaultOptions()
             w/ SimpleMessage <- Message
             w/ DumpToFile <- DumpMachine
@@ -31,6 +31,7 @@ namespace Microsoft.Quantum.Testing.QIR {
         options::SimpleMessage("Hello");
         options::DumpToFile("pathToFile");
         options::DumpToConsole();
+        return GetCycleCount();
     }
 }
 
@@ -44,6 +45,10 @@ namespace Microsoft.Quantum.Intrinsic {
 namespace Microsoft.Quantum.Diagnostics {
 
     function DumpMachine<'T> (arg : 'T) : Unit {
+        body intrinsic;
+    }
+
+    operation GetCycleCount() : Int {
         body intrinsic;
     }
 }
