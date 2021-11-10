@@ -24,6 +24,12 @@ type ExecutionCompleted =
         ExitCode: ExitCode
     }
 
+#if TELEMETRY
+let testMode = false
+#else
+let testMode = true
+#endif
+
 module Telemetry =
     let internal initializeTelemetry args =
         let telemetryConfig =
@@ -37,11 +43,7 @@ module Telemetry =
                     ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
                 SendTelemetryInitializedEvent = false,
                 SendTelemetryTearDownEvent = false,
-                #if TELEMETRY
-                TestMode = false
-                #else
-                TestMode = true
-                #endif
+                TestMode = testMode
             )
 
         TelemetryManager.Initialize(telemetryConfig, args)
@@ -55,28 +57,20 @@ module Telemetry =
 
         let (syntaxErrors, filesProcessed, exitCode, unhandledException) =
             match runResult with
-            | Ok runResult ->
-                (Some runResult.SyntaxErrors,
-                 runResult.FilesProcessed,
-                 runResult.ExitCode,
-                 None)
-            | Error ex ->
-                (None,
-                 0,
-                 ExitCode.UnhandledException,
-                 Some ex)
+            | Ok runResult -> (Some runResult.SyntaxErrors, runResult.FilesProcessed, runResult.ExitCode, None)
+            | Error ex -> (None, 0, ExitCode.UnhandledException, Some ex)
 
         let (commandKind, inputKind, recurseFlag, backupFlag, qsharpVersion) =
             match commandWithOptions with
             | Ok commandWithOptions ->
                 match commandWithOptions with
-                    | Ok commandWithOptions ->
-                        (Some commandWithOptions.CommandKind,
-                         Some commandWithOptions.InputKind,
-                         Some commandWithOptions.RecurseFlag,
-                         Some commandWithOptions.BackupFlag,
-                         commandWithOptions.QSharpVersion)
-                    | Error _ -> (None, None, None, None, None)
+                | Ok commandWithOptions ->
+                    (Some commandWithOptions.CommandKind,
+                     Some commandWithOptions.InputKind,
+                     Some commandWithOptions.RecurseFlag,
+                     Some commandWithOptions.BackupFlag,
+                     commandWithOptions.QSharpVersion)
+                | Error _ -> (None, None, None, None, None)
             | Error _ -> (None, None, None, None, None)
 
         let executionCompletedEvent =

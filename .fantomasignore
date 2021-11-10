@@ -1,7 +1,2 @@
 ﻿# Ignore signature files because of formatting bugs.
 *.fsi
-
-# Ignoring Telemetry.fs file because of Fantomas bug.
-# Fantomas is trying to format the input multiple times due to the detect of multiple defines.
-# There is a problem with merging all the code back together. Please raise an issue at https://github.com/fsprojects/fantomas/issues.
-Telemetry.fs
