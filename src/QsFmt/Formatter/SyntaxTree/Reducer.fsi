@@ -36,7 +36,7 @@ type internal 'result Reducer =
     default NamespaceItem: item:NamespaceItem -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="OpenDirective"/> node.
+    /// Reduces an <see cref="OpenDirective"/> node.
     /// </summary>
     abstract OpenDirective: directive:OpenDirective -> 'result
     default OpenDirective: directive:OpenDirective -> 'result
