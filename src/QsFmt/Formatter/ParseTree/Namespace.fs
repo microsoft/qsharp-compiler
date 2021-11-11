@@ -191,11 +191,14 @@ type NamespaceItemVisitor(tokens) =
 
     override _.VisitChildren node = Node.toUnknown tokens node |> Unknown
 
-    override visitor.VisitOpenElement context = context.openDirective() |> visitor.Visit
+    override visitor.VisitOpenElement context =
+        context.openDirective () |> visitor.Visit
 
-    override visitor.VisitTypeElement context = context.typeDeclaration() |> visitor.Visit
+    override visitor.VisitTypeElement context =
+        context.typeDeclaration () |> visitor.Visit
 
-    override visitor.VisitCallableElement context = context.callableDeclaration () |> visitor.Visit
+    override visitor.VisitCallableElement context =
+        context.callableDeclaration () |> visitor.Visit
 
     override _.VisitOpenDirective context =
         {
@@ -209,8 +212,7 @@ type NamespaceItemVisitor(tokens) =
 
     override _.VisitTypeDeclaration context =
         {
-            Attributes =
-                context.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> Seq.toList
+            Attributes = context.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> Seq.toList
             Access = context.prefix.access () |> Option.ofObj |> Option.map (Node.toUnknown tokens)
             NewtypeKeyword = context.keyword |> Node.toTerminal tokens
             DeclaredType = context.declared |> Node.toTerminal tokens
@@ -222,22 +224,16 @@ type NamespaceItemVisitor(tokens) =
 
     override _.VisitCallableDeclaration context =
         {
-            Attributes =
-                context.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> Seq.toList
+            Attributes = context.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> Seq.toList
             Access = context.prefix.access () |> Option.ofObj |> Option.map (Node.toUnknown tokens)
             CallableKeyword = context.keyword |> Node.toTerminal tokens
             Name = context.name |> Node.toTerminal tokens
             TypeParameters =
-                Option.ofObj context.typeParameters
-                |> Option.map (NamespaceContext.toTypeParameterBinding tokens)
+                Option.ofObj context.typeParameters |> Option.map (NamespaceContext.toTypeParameterBinding tokens)
             Parameters = parameterVisitor.Visit context.tuple
             ReturnType =
-                {
-                    Colon = context.colon |> Node.toTerminal tokens
-                    Type = typeVisitor.Visit context.returnType
-                }
-            CharacteristicSection =
-                Option.ofObj context.returnChar |> Option.map (toCharacteristicSection tokens)
+                { Colon = context.colon |> Node.toTerminal tokens; Type = typeVisitor.Visit context.returnType }
+            CharacteristicSection = Option.ofObj context.returnChar |> Option.map (toCharacteristicSection tokens)
             Body = callableBodyVisitor.Visit context.body
         }
         |> CallableDeclaration
