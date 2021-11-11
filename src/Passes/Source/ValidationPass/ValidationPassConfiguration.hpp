@@ -24,6 +24,8 @@ namespace quantum
             config.setSectionName("Validation configuration", "");
             config.addParameter(
                 allow_internal_calls_, "allow-internal-calls", "Whether or not internal calls are allowed.");
+            config.addParameter(
+                save_report_to_, "save-validation-report", "Saves the validation report to specified filename.");
         }
 
         static ValidationPassConfiguration fromProfileName(String const& name)
@@ -40,14 +42,21 @@ namespace quantum
                 ret.allow_internal_calls_     = false;
                 ret.whitelist_external_calls_ = true;
                 ret.whitelist_opcodes_        = true;
-                ret.opcodes_                  = Set{"br", "call", "unreachable", "ret"};
-                ret.external_calls_           = Set{"__quantum__qis__mz__body",    "__quantum__qis__read_result__body",
-                                          "__quantum__qis__reset__body", "__quantum__qis__z__body",
-                                          "__quantum__qis__s__adj",      "__quantum__qis__dumpregister__body",
-                                          "__quantum__qis__y__body",     "__quantum__qis__x__body",
-                                          "__quantum__qis__t__body",     "__quantum__qis__cz__body",
-                                          "__quantum__qis__s__body",     "__quantum__qis__h__body",
-                                          "__quantum__qis__cnot__body",  "__quantum__qis__sqrt__body"};
+                ret.opcodes_                  = Set{"br", "call", "unreachable", "ret", "phi", "select"};
+                ret.external_calls_           = Set{
+                    "__quantum__qis__mz__body",     "__quantum__qis__read_result__body",
+                    "__quantum__qis__reset__body",  "__quantum__qis__z__body",
+                    "__quantum__qis__s__adj",       "__quantum__qis__dumpregister__body",
+                    "__quantum__qis__y__body",      "__quantum__qis__x__body",
+                    "__quantum__qis__t__body",      "__quantum__qis__cz__body",
+                    "__quantum__qis__s__body",      "__quantum__qis__h__body",
+                    "__quantum__qis__cnot__body",   "__quantum__qis__sqrt__body",
+                    "__quantum__qis__crz__body",    "__quantum__qis__rz__body",
+                    "__quantum__qis__arcsin__body", "__quantum__qis__drawrandomint__body",
+                    "__quantum__qis__rx__body",     "__quantum__qis__m__body",
+                    "__quantum__qis__t__adj",
+
+                };
             }
             else
             {
@@ -81,9 +90,15 @@ namespace quantum
             return whitelist_external_calls_;
         }
 
+        String const& saveReportTo() const
+        {
+            return save_report_to_;
+        }
+
       private:
-        Set opcodes_{};
-        Set external_calls_{};
+        Set    opcodes_{};
+        Set    external_calls_{};
+        String save_report_to_{""};
 
         bool whitelist_opcodes_{true};
         bool whitelist_external_calls_{true};

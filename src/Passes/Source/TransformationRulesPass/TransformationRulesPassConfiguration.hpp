@@ -85,7 +85,7 @@ namespace quantum
         bool        clone_functions_{true};
         bool        transform_execution_path_only_{true};
         uint64_t    max_recursion_{512};
-        std::string entry_point_attr_{"EntryPoint"};
+        std::string entry_point_attr_{"InteropFriendly"};
 
         bool simplify_prior_transformation_{true};
 

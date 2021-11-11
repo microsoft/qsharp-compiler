@@ -23,12 +23,14 @@ namespace quantum
       public:
         using Instruction = llvm::Instruction;
         using Value       = llvm::Value;
+        using ILoggerPtr  = std::shared_ptr<ILogger>;
 
         // Construction and destruction configuration.
         //
 
-        explicit ValidationPass(ValidationPassConfiguration const& cfg)
+        explicit ValidationPass(ValidationPassConfiguration const& cfg, ILoggerPtr const& logger = nullptr)
           : config_{cfg}
+          , logger_{logger}
         {
         }
 
@@ -51,6 +53,8 @@ namespace quantum
         std::unordered_map<std::string, uint64_t> opcodes_;
         std::unordered_map<std::string, uint64_t> external_calls_;
         std::unordered_map<std::string, uint64_t> internal_calls_;
+
+        ILoggerPtr logger_{nullptr};
     };
 
 } // namespace quantum
