@@ -26,7 +26,7 @@ namespace quantum
         ILogger& operator=(ILogger const&) = default;
         ILogger& operator=(ILogger&&) = default;
 
-        virtual ~ILogger() = default;
+        virtual ~ILogger();
 
         // Abstract interface methods
         //
