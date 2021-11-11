@@ -199,17 +199,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         // TODO: RELEASE 2022-05: Remove IdentifierReferences.Find(..., QsScope, ...).
         [Obsolete("Use IdentifierReferences.FindInScope.")]
         public static ImmutableHashSet<Location> Find(
-            string idName,
-            QsScope scope,
-            string sourceFile,
-            Position rootLoc)
-        {
-            var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
-            finder.SharedState.Source = sourceFile;
-            finder.SharedState.DeclarationOffset = rootLoc;
-            finder.Statements.OnScope(scope);
-            return finder.SharedState.Locations;
-        }
+            string idName, QsScope scope, string sourceFile, Position rootLoc) =>
+            FindInScope(sourceFile, rootLoc, scope, idName);
 
         // TODO: RELEASE 2022-05: Remove IdentifierReferences.Find(..., QsNamespace, ...).
         [Obsolete]
