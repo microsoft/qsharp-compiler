@@ -1208,7 +1208,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         public Hover? HoverInformation(TextDocumentPositionParams? param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.HoverInformation(c, param?.Position?.ToQSharp(), format), suppressExceptionLogging: true);
+                param?.TextDocument,
+                (f, c) => param?.Position?.ToQSharp() is { } p ? f.HoverInformation(c, p, format) : null,
+                suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns an array with all usages of the identifier at the given position (if any) as an array of <see cref="DocumentHighlight"/>.
