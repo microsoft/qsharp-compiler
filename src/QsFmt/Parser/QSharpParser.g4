@@ -21,9 +21,9 @@ namespace
 qualifiedName : Identifier ('.' Identifier)*;
 
 namespaceElement
-    : directive=openDirective # OpenElement
-    | typeDecl=typeDeclaration # TypeElement
-    | callable=callableDeclaration # CallableElement
+    : openDirective # OpenElement
+    | typeDeclaration # TypeElement
+    | callableDeclaration # CallableElement
     ;
 
 // Open Directive
