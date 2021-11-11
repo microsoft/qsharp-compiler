@@ -137,7 +137,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// If <paramref name="compilation"/> or <paramref name="fullName"/> is null, returns false without raising an exception.
         /// </remarks>
-        internal static bool TryGetReferences(
+        private static bool TryGetReferences(
             this CompilationUnit compilation,
             QsQualifiedName? fullName,
             out Location? declarationLocation,
@@ -145,7 +145,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IImmutableSet<string>? limitToSourceFiles = null)
         {
             (declarationLocation, referenceLocations) = (null, null);
-            if (compilation == null || fullName == null)
+            if (fullName is null)
             {
                 return false;
             }
@@ -157,14 +157,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             Tuple<string, QsLocation>? declLoc = null;
             var defaultOffset = new QsLocation(Position.Zero, Range.Zero);
-            referenceLocations = namespaces.SelectMany(ns =>
+
+            referenceLocations = namespaces
+                .SelectMany(ns =>
+                {
+                    var references = new IdentifierReferences(fullName, defaultOffset, limitToSourceFiles);
+                    references.Namespaces.OnNamespace(ns);
+                    declLoc ??= references.SharedState.DeclarationLocation;
+                    return references.SharedState.Locations;
+                })
+                .Select(AsLocation)
+                .ToArray(); // ToArray is needed here to force the execution before checking declLoc
+
+            if (!(declLoc is null))
             {
-                var locs = IdentifierReferences.Find(fullName, ns, defaultOffset, out var dLoc, limitToSourceFiles);
-                declLoc ??= dLoc;
-                return locs;
-            })
-            .Select(AsLocation).ToArray(); // ToArray is needed here to force the execution before checking declLoc
-            declarationLocation = declLoc == null ? null : AsLocation(declLoc.Item1, declLoc.Item2.Offset, declLoc.Item2.Range);
+                declarationLocation = AsLocation(declLoc.Item1, declLoc.Item2.Offset, declLoc.Item2.Range);
+            }
+
             return true;
         }
 
@@ -256,7 +265,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .Where(spec => spec.Source.AssemblyOrCodeFile == file.FileName)
                     .SelectMany(spec =>
                         spec.Implementation is SpecializationImplementation.Provided impl && spec.Location.IsValue
-                            ? IdentifierReferences.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Item.Offset)
+                            ? IdentifierReferences.FindInScope(file.FileName, spec.Location.Item.Offset, impl.Item2, definition.Item.Item1)
                             : ImmutableHashSet<IdentifierReferences.Location>.Empty)
                     .Select(AsLocation);
             }
@@ -277,33 +286,33 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         private static IEnumerable<Location> StatementOrExpressionReferences(
-            string fileName,
+            string file,
             Position specPosition,
-            QsScope spec,
-            Position defPosition,
-            string defName,
+            QsScope scope,
+            Position identPosition,
+            string ident,
             LocalDeclarations locals)
         {
-            var (_, statementsBefore, statementsAfter) = SyntaxUtils.SplitStatementsByPosition(spec, defPosition);
+            var (_, statementsBefore, statementsAfter) = SyntaxUtils.SplitStatementsByPosition(scope, identPosition);
             if (!(statementsBefore.LastOrDefault() is { Location: { IsValue: true } } statement))
             {
                 return StatementReferences();
             }
 
-            var defPositionInStatement = defPosition - statement.Location.Item.Offset;
+            var defPositionInStatement = identPosition - statement.Location.Item.Offset;
             if (!(SyntaxUtils.FindExpressionInStatementByPosition(statement, defPositionInStatement) is { } expr))
             {
                 return StatementReferences();
             }
 
             var location = statement.Location.IsValue ? statement.Location.Item : null;
-            return IdentifierReferences.FindInExpression(defName, expr, fileName, specPosition, location)
+            return IdentifierReferences.FindInExpression(file, specPosition, location, expr, ident)
                 .Select(AsLocation);
 
             IEnumerable<Location> StatementReferences()
             {
                 var scopeAfter = new QsScope(statementsAfter.ToImmutableArray(), locals);
-                return IdentifierReferences.Find(defName, scopeAfter, fileName, specPosition).Select(AsLocation);
+                return IdentifierReferences.FindInScope(file, specPosition, scopeAfter, ident).Select(AsLocation);
             }
         }
     }
