@@ -773,6 +773,7 @@ namespace quantum
         }
         else
         {
+
             // Otherwise we apply to all sections of the code.
             replacements_.clear();
             for (auto& function : module)

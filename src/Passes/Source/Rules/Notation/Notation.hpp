@@ -4,12 +4,13 @@
 
 /// @defgroup shorthandNotation Shorthand Notation
 
+#include "Rules/Notation/Call.hpp"
 #include "Rules/Notation/Call.ipp"
 #include "Rules/Notation/Phi.ipp"
-#include "Rules/Operands/Any.hpp"
-#include "Rules/Operands/Call.hpp"
-#include "Rules/Operands/Instruction.hpp"
-#include "Rules/Operands/Phi.hpp"
+#include "Rules/Patterns/AnyPattern.hpp"
+#include "Rules/Patterns/CallPattern.hpp"
+#include "Rules/Patterns/Instruction.hpp"
+#include "Rules/Patterns/PhiPattern.hpp"
 
 #include "Llvm/Llvm.hpp"
 

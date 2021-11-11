@@ -80,10 +80,13 @@ namespace quantum
             return false;
         }
 
+<<<<<<< HEAD
         saveReportToFileIfNeeded();
         return true;
     }
 
+=======
+>>>>>>> main
     llvm::PassBuilder& Validator::passBuilder()
     {
         return *pass_builder_;

@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Rules/IOperandPrototype.hpp"
-#include "Rules/Operands/Any.hpp"
+#include "Rules/Patterns/AnyPattern.hpp"
 
 namespace microsoft
 {

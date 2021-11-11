@@ -4,7 +4,7 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
-#include "Types/Types.hpp"
+#include "QatTypes/QatTypes.hpp"
 #include "Validator/Validator.hpp"
 
 #include "Llvm/Llvm.hpp"

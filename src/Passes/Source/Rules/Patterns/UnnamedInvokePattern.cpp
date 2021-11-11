@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Rules/IOperandPrototype.hpp"
-#include "Rules/Operands/UnnamedInvoke.hpp"
+#include "Rules/Patterns/UnnamedInvokePattern.hpp"
 
 namespace microsoft
 {

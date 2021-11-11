@@ -4,10 +4,10 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "Commandline/ConfigurationManager.hpp"
+#include "QatTypes/QatTypes.hpp"
 #include "Rules/FactoryConfig.hpp"
 #include "Rules/ReplacementRule.hpp"
 #include "Rules/RuleSet.hpp"
-#include "Types/Types.hpp"
 
 #include "Llvm/Llvm.hpp"
 

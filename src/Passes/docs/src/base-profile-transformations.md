@@ -150,7 +150,7 @@ displayName: Profile Name
 ```
 
 Additionally, top level also contains the fields `version` and `mode`. The version refers to the QIR version which forms the basis for the specification and `mode` explains how the profile is defined.
-The final two top level fields are lists named `specification` and `generation`. These contains the specification and generation producedure, respectively.
+The final two top level fields are lists named `specification` and `generation`. These contains the specification and generation procedure, respectively.
 
 ## Specification
 

@@ -190,3 +190,312 @@ Warning: Unable to updated deprecated new array syntax in input from line 6, cha
 """
 
     run input expectedOutput expectedWarnings
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Expression Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar1(x : Int) : Unit {}
+    operation Bar2() : Unit {
+        Bar1((new Int[3])[2]);
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar1(x : Int) : Unit {}
+    operation Bar2() : Unit {
+        Bar1(([0, size = 3])[2]);
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Return Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Int {
+        return (new Int[3])[0];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Int {
+        return ([0, size = 3])[0];
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Fail Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        fail (new String[3])[0];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        fail (["", size = 3])[0];
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Let Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        let x = new Double[3];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        let x = [0.0, size = 3];
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Mutable Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = new Double[3];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = [0.0, size = 3];
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Set Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = new Double[3];
+        set x = new Double[4];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = [0.0, size = 3];
+        set x = [0.0, size = 4];
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Update Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = 4;
+        set x += (new Int[2])[0];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = 4;
+        set x += ([0, size = 2])[0];
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Set With Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = new Double[][3];
+        set x w/= (new Int[2])[0] <- new Double[2];
+        set x w/= 1 <- new Double[3];
+        set x w/= 2 <- new Double[4];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = [[0.0, size = 0], size = 3];
+        set x w/= ([0, size = 2])[0] <- [0.0, size = 2];
+        set x w/= 1 <- [0.0, size = 3];
+        set x w/= 2 <- [0.0, size = 4];
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``If Statements Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        if ((new Bool[1])[0]) {
+            let x1 = new Int[3];
+        } elif ((new Bool[2])[0]) {
+            let x2 = new Double[2];
+        } else {
+            let x3 = new String[1];
+        }
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        if (([false, size = 1])[0]) {
+            let x1 = [0, size = 3];
+        } elif (([false, size = 2])[0]) {
+            let x2 = [0.0, size = 2];
+        } else {
+            let x3 = ["", size = 1];
+        }
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``For Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        for i in (new Range[1])[0] {
+            let x = new Int[3];
+        }
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        for i in ([1..0, size = 1])[0] {
+            let x = [0, size = 3];
+        }
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``While Statement Support`` () =
+    let input =
+        """namespace Foo {
+    function Bar() : Unit {
+        while (new Bool[1])[0] {
+            let x = new Int[3];
+        }
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    function Bar() : Unit {
+        while ([false, size = 1])[0] {
+            let x = [0, size = 3];
+        }
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Repeat-Until Statements Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        repeat
+        {
+            let x1 = new Int[3];
+        } until (new Bool[1])[0];
+
+        repeat
+        {
+            let x2 = new Double[4];
+        } until (new Bool[1])[0]
+        fixup {
+            let x3 = new String[2];
+        }
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        repeat
+        {
+            let x1 = [0, size = 3];
+        } until ([false, size = 1])[0];
+
+        repeat
+        {
+            let x2 = [0.0, size = 4];
+        } until ([false, size = 1])[0]
+        fixup {
+            let x3 = ["", size = 2];
+        }
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Within-Apply Statements Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        within {
+            let x1 = new Int[3];
+        } apply {
+            let x2 = new Double[4];
+        }
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        within {
+            let x1 = [0, size = 3];
+        } apply {
+            let x2 = [0.0, size = 4];
+        }
+    }
+}"""
+
+    run input expectedOutput String.Empty

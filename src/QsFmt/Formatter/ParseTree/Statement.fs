@@ -104,13 +104,204 @@ type StatementVisitor(tokens) =
     override _.VisitChildren node =
         Node.toUnknown tokens node |> Statement.Unknown
 
+    override _.VisitExpressionStatement context =
+        {
+            Expression = context.value |> expressionVisitor.Visit
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> ExpressionStatement
+
     override _.VisitReturnStatement context =
         {
-            ReturnKeyword = context.``return`` |> Node.toTerminal tokens
+            Keyword = context.``return`` |> Node.toTerminal tokens
             Expression = expressionVisitor.Visit context.value
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
-        |> Return
+        |> ReturnStatement
+
+    override _.VisitFailStatement context =
+        {
+            Keyword = context.fail |> Node.toTerminal tokens
+            Expression = expressionVisitor.Visit context.value
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> FailStatement
+
+    override _.VisitLetStatement context =
+        {
+            Keyword = context.``let`` |> Node.toTerminal tokens
+            Binding = symbolBindingVisitor.Visit context.binding
+            Equals = context.equals |> Node.toTerminal tokens
+            Value = expressionVisitor.Visit context.value
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> LetStatement
+
+    override _.VisitMutableStatement context =
+        {
+            Keyword = context.``mutable`` |> Node.toTerminal tokens
+            Binding = symbolBindingVisitor.Visit context.binding
+            Equals = context.equals |> Node.toTerminal tokens
+            Value = expressionVisitor.Visit context.value
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> MutableStatement
+
+    override _.VisitSetStatement context =
+        {
+            Keyword = context.set |> Node.toTerminal tokens
+            Binding = symbolBindingVisitor.Visit context.binding
+            Equals = context.equals |> Node.toTerminal tokens
+            Value = expressionVisitor.Visit context.value
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> SetStatement
+
+    override _.VisitUpdateStatement context =
+        {
+            SetKeyword = context.set |> Node.toTerminal tokens
+            Name = context.name |> Node.toTerminal tokens
+            Operator =
+                { Prefix = Node.prefix tokens context.operator.Start.TokenIndex; Text = context.operator.GetText() }
+            Value = expressionVisitor.Visit context.value
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> UpdateStatement
+
+    override _.VisitUpdateWithStatement context =
+        {
+            SetKeyword = context.set |> Node.toTerminal tokens
+            Name = context.name |> Node.toTerminal tokens
+            With = context.``with`` |> Node.toTerminal tokens
+            Item = expressionVisitor.Visit context.index
+            Arrow = context.arrow |> Node.toTerminal tokens
+            Value = expressionVisitor.Visit context.value
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> UpdateWithStatement
+
+    override visitor.VisitIfStatement context =
+        {
+            Keyword = context.``if`` |> Node.toTerminal tokens
+            Condition = expressionVisitor.Visit context.condition
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> IfStatement
+
+    override visitor.VisitElifStatement context =
+        {
+            Keyword = context.``elif`` |> Node.toTerminal tokens
+            Condition = expressionVisitor.Visit context.condition
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> ElifStatement
+
+    override visitor.VisitElseStatement context =
+        {
+            Keyword = context.``else`` |> Node.toTerminal tokens
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> ElseStatement
+
+    override visitor.VisitForStatement context =
+        {
+            ForKeyword = context.``for`` |> Node.toTerminal tokens
+            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            Binding = context.binding |> forBindingVisitor.Visit
+            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> ForStatement
+
+    override visitor.VisitWhileStatement context =
+        {
+            Keyword = context.``while`` |> Node.toTerminal tokens
+            Condition = expressionVisitor.Visit context.condition
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> WhileStatement
+
+    override visitor.VisitRepeatStatement context =
+        {
+            Keyword = context.repeat |> Node.toTerminal tokens
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> RepeatStatement
+
+    override visitor.VisitUntilStatement context =
+        {
+            UntilKeyword = context.until |> Node.toTerminal tokens
+            Condition = expressionVisitor.Visit context.condition
+            Coda =
+                if context.body <> null then
+                    {
+                        Keyword = context.fixup |> Node.toTerminal tokens
+                        Block =
+                            {
+                                OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                                Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                                CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                            }
+                    }
+                    |> Fixup
+                else
+                    context.semicolon |> Node.toTerminal tokens |> UntilStatementCoda.Semicolon
+        }
+        |> UntilStatement
+
+    override visitor.VisitWithinStatement context =
+        {
+            Keyword = context.within |> Node.toTerminal tokens
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> WithinStatement
+
+    override visitor.VisitApplyStatement context =
+        {
+            Keyword = context.apply |> Node.toTerminal tokens
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> ApplyStatement
 
     override visitor.VisitQubitDeclaration context =
         {
@@ -134,54 +325,4 @@ type StatementVisitor(tokens) =
                 else
                     context.semicolon |> Node.toTerminal tokens |> Semicolon
         }
-        |> QubitDeclaration
-
-    override _.VisitLetStatement context =
-        {
-            LetKeyword = context.``let`` |> Node.toTerminal tokens
-            Binding = symbolBindingVisitor.Visit context.binding
-            Equals = context.equals |> Node.toTerminal tokens
-            Value = expressionVisitor.Visit context.value
-            Semicolon = context.semicolon |> Node.toTerminal tokens
-        }
-        |> Let
-
-    override visitor.VisitIfStatement context =
-        {
-            IfKeyword = context.``if`` |> Node.toTerminal tokens
-            Condition = expressionVisitor.Visit context.condition
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
-        }
-        |> If
-
-    override visitor.VisitElseStatement context =
-        {
-            ElseKeyword = context.``else`` |> Node.toTerminal tokens
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
-        }
-        |> Else
-
-    override visitor.VisitForStatement context =
-        {
-            ForKeyword = context.``for`` |> Node.toTerminal tokens
-            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
-            Binding = context.binding |> forBindingVisitor.Visit
-            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
-        }
-        |> For
+        |> QubitDeclarationStatement

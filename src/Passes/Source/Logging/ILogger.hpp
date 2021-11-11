@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Types/Types.hpp"
+#include "QatTypes/QatTypes.hpp"
 
 #include <cstdint>
 #include <string>
@@ -26,7 +26,7 @@ namespace quantum
         ILogger& operator=(ILogger const&) = default;
         ILogger& operator=(ILogger&&) = default;
 
-        virtual ~ILogger() = default;
+        virtual ~ILogger();
 
         // Abstract interface methods
         //

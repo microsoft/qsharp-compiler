@@ -30,6 +30,7 @@ namespace quantum
                     {
                         opcodes_[opname] = 1;
                     }
+
                     auto call_instr = llvm::dyn_cast<llvm::CallBase>(&instr);
                     if (call_instr != nullptr)
                     {
@@ -75,7 +76,7 @@ namespace quantum
             {
                 if (allowed_ops.find(k.first) == allowed_ops.end())
                 {
-                    llvm::errs() << "; Error: '" << k.first << "' is not allowed for this profile.\n";
+                    logger_->error("'" + k.first + "' is not allowed for this profile.");
                 }
             }
         }
@@ -87,14 +88,14 @@ namespace quantum
             {
                 if (allowed_functions.find(k.first) == allowed_functions.end())
                 {
-                    llvm::errs() << "; Error: '" << k.first << "' is not allowed for this profile.\n";
+                    logger_->error("'" + k.first + "' is not allowed for this profile.");
                 }
             }
         }
 
         if (!config_.allowInternalCalls() && !internal_calls_.empty())
         {
-            llvm::errs() << "; Error: Calls to custom defined functions not allowed\n";
+            logger_->error("Calls to custom defined functions not allowed.");
             raise_exception = true;
         }
 
