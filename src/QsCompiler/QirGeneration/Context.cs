@@ -612,7 +612,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var name = NameGeneration.FunctionName(spec.Parent, spec.Kind);
             var returnTypeRef = spec.Signature.ReturnType.Resolution.IsUnitType
                 ? this.Context.VoidType
-                : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType); // RyanNote: here's where I can find some types
+                : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
             var argTypeRefs =
                 spec.Signature.ArgumentType.Resolution.IsUnitType ? new ITypeRef[0] :
                 spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
@@ -710,7 +710,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.CurrentFunction.Parameters[i].Name = argName;
                         this.ScopeMgr.RegisterVariable(argName, argValue, fromLocalId: null);
-                        this.DIManager.CreateFunctionArgument(spec, argName, argValue, argNo); // RyanTODO: will need to deal with the other RegisteredVariables
+                        this.DIManager.CreateFunctionArgument(spec, argName, argValue, argNo);
                         argNo++;
                     }
                     else
@@ -781,7 +781,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// as arguments and returns void.
         /// </summary>
         internal IrFunction GeneratePartialApplication(string name, QsSpecializationKind kind, Action<IReadOnlyList<Argument>> body)
-        { // RyanQuestion: What is this for? Does it need debug info?
+        {
             var funcName = NameGeneration.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
             IrFunction func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
             func.Linkage = Linkage.Internal;
@@ -1352,7 +1352,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Update the iteration value (phi node) and enter the next iteration
                 this.SetCurrentBlock(exitingBlock);
 
-                // RyanNote: do I need debug info within this add?
                 var nextValue = this.CurrentBuilder.Add(loopUpdate.LoopVariable, loopUpdate.Increment);
                 loopUpdate.LoopVariable.AddIncoming(nextValue, exitingBlock);
                 outputUpdate?.PhiNode.AddIncoming(outputUpdate.Value.NewValue, exitingBlock);
@@ -1526,7 +1525,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <returns>The kind of the Q# type on top of the expression type stack</returns>
         internal ResolvedType CurrentExpressionType() =>
-            this.ExpressionTypeStack.Peek(); // RyanTODO: this can throw a null exception
+            this.ExpressionTypeStack.Peek();
 
         /// <returns>The QIR equivalent for the Q# type that is on top of the expression type stack</returns>
         internal ITypeRef CurrentLlvmExpressionType() =>
@@ -1669,7 +1668,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Generates a unique name for a local variable.
         /// </summary>
-        internal string VariableName(string name) // RyanNote: This looks useful
+        internal string VariableName(string name)
         {
             var index = this.uniqueLocalNames.TryGetValue(name, out int n) ? n + 1 : 0;
             this.uniqueLocalNames[name] = index;
