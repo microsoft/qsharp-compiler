@@ -36,7 +36,7 @@ let collapsedSpaces =
 
 let operatorSpacing =
     { new Rewriter<_>() with
-        override _.Let((), lets) =
+        override _.LetStatement((), lets) =
             let equals = { lets.Equals with Prefix = [ spaces 1 ] }
             { lets with Equals = equals }
     }
@@ -90,7 +90,7 @@ let newLines =
             let statement = base.Statement((), statement)
 
             match statement with
-            | Else _ -> statement
+            | ElseStatement _ -> statement
             | _ -> Statement.mapPrefix ensureNewLine statement
 
         override _.Block((), mapper, block) =
@@ -112,7 +112,7 @@ let getTrivia paren =
 
 let qubitBindingUpdate =
     { new Rewriter<_>() with
-        override rewriter.QubitDeclaration(_, decl) =
+        override rewriter.QubitDeclarationStatement(_, decl) =
             let openTrivia = decl.OpenParen |> getTrivia
             let closeTrivia = decl.CloseParen |> getTrivia
 
@@ -148,7 +148,7 @@ let unitUpdate =
 
 let forParensUpdate =
     { new Rewriter<_>() with
-        override rewriter.For((), loop) =
+        override rewriter.ForStatement((), loop) =
             let openTrivia = loop.OpenParen |> getTrivia
             let closeTrivia = loop.CloseParen |> getTrivia
 
