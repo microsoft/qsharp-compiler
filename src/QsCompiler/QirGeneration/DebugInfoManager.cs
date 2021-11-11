@@ -208,8 +208,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 Position namespaceOffset = namespaceLoc?.Offset ?? Position.Zero;
                 Position absolutePosition = namespaceOffset + this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions();
 
-                if (subProgram != null)
+                if (subProgram != null && dIType != null)
                 {
+                    // LLVM Native API has a bug and will crash if we pass in a null dIType for either CreateLocalVariable or InsertDeclare
+
                     // create the debug info for the local variable
                     DILocalVariable dIVar = diBuilder.CreateLocalVariable(
                         subProgram,
@@ -225,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         ConvertToDebugPosition(absolutePosition),
                         subProgram);
 
-                    if (this.sharedState.CurrentBlock != null && dIType != null)
+                    if (this.sharedState.CurrentBlock != null)
                     {
                         // create the debug info for the local variable declaration
                         diBuilder.InsertDeclare(
@@ -254,7 +256,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // set up the DIBuilder
                 string sourcePath = spec.Source.CodeFile;
                 DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
-                DIFile debugFile = curDIBuilder.CreateFile(Path.ChangeExtension(sourcePath, ".c"));
+                DIFile debugFile = curDIBuilder.CreateFile(sourcePath);
 
                 // set up debug info for the function
                 IDebugType<ITypeRef, DIType>? retDebugType;
@@ -278,7 +280,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // create the function with debug info
                     DebugFunctionType debugSignature = new DebugFunctionType(signature, curDIBuilder, DebugInfoFlags.None, retDebugType, argDebugTypes!);
                     IrFunction func = this.Module.CreateFunction(
-                        scope: curDIBuilder.GetCompileUnit(),
+                        scope: curDIBuilder.CompileUnit,
                         name: shortName,
                         mangledName: mangledName,
                         file: debugFile,
@@ -319,7 +321,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // get the DIBuilder
                 string sourcePath = spec.Source.CodeFile;
                 DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
-                DIFile debugFile = curDIBuilder.CreateFile(Path.ChangeExtension(sourcePath, ".c")); // TODO: change this now that we have a language solution
+                DIFile debugFile = curDIBuilder.CreateFile(sourcePath);
 
                 // get the debug location of the function
                 QsNullable<QsLocation> debugLoc = spec.Location;
@@ -378,13 +380,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                // Change the extension for to .c because of the language/extension issue
-                string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
-
                 di = this.Module.CreateDIBuilder();
                 di.CreateCompileUnit(
                     QSharpLanguage,
-                    cSourcePath, // TODO: change this now that we have a solution to language/extension issue
+                    sourcePath,
                     GetQirProducerIdent(),
                     null);
                 this.dIBuilders.Add(sourcePath, di);

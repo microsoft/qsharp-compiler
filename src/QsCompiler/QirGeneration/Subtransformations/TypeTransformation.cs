@@ -23,6 +23,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Types qirTypes;
         private readonly Func<QsQualifiedName, QsCustomType?> getTypeDeclaration;
 
+        private DebugInfoBuilder CurrentDIBuilder; // TODO: have another builtDebugType that's guarded by the DebugFlag
+
         public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
         : base(TransformationOptions.NoRebuild)
         {
