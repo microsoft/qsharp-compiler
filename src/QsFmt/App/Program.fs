@@ -96,11 +96,7 @@ let main args =
     let parseArgsResult =
         try
             assemblyLoadContextSetup ()
-
-            Ok(
-                CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments, UpdateAndFormatArguments>
-                    args
-            )
+            CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments, UpdateAndFormatArguments> args |> Ok
         with
         | ex -> Result.Error(ex)
 
@@ -108,12 +104,10 @@ let main args =
         try
             match parseArgsResult with
             | Ok parsedArgs ->
-                Ok(
-                    parsedArgs.MapResult(
-                        (fun (options: IArguments) -> options |> CommandWithOptions.fromIArguments),
-                        (fun (_: IEnumerable<Error>) -> Result.Error ExitCode.BadArguments)
-                    )
-                )
+                parsedArgs.MapResult(
+                    (fun (options: IArguments) -> options |> CommandWithOptions.fromIArguments),
+                    (fun (_: IEnumerable<Error>) -> Result.Error ExitCode.BadArguments)
+                ) |> Ok
             | Result.Error ex -> Result.Error(ex)
         with
         | ex -> Result.Error(ex)
@@ -122,11 +116,10 @@ let main args =
         try
             match commandWithOptions with
             | Ok commandWithOptions ->
-                Ok(
-                    match commandWithOptions with
-                    | Ok commandWithOptions -> runCommand commandWithOptions commandWithOptions.Input
-                    | Error exitCode -> { RunResult.Default with ExitCode = exitCode }
-                )
+                match commandWithOptions with
+                | Ok commandWithOptions -> runCommand commandWithOptions commandWithOptions.Input
+                | Error exitCode -> { RunResult.Default with ExitCode = exitCode }
+                |> Ok
             | Result.Error ex -> Result.Error(ex)
         with
         | ex -> Result.Error(ex)
