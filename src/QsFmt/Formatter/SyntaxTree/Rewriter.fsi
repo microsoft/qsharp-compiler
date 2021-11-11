@@ -56,7 +56,7 @@ type internal 'context Rewriter =
     default UnderlyingType: context:'context * underlying:UnderlyingType -> UnderlyingType
 
     /// <summary>
-    /// Rewrites an <see cref="TypeTupleItem"/> node.
+    /// Rewrites a <see cref="TypeTupleItem"/> node.
     /// </summary>
     abstract TypeTupleItem: context:'context * item:TypeTupleItem -> TypeTupleItem
     default TypeTupleItem: context:'context * item:TypeTupleItem -> TypeTupleItem
