@@ -21,6 +21,8 @@
     <Compile Include="StatementVerification.fs" />
     <Compile Include="TreeVerification.fs" />
     <Compile Include="DeclarationVerification.fs" />
+    <Compile Include="SymbolOccurrence.fsi" />
+    <Compile Include="SymbolOccurrence.fs" />
     <Compile Include="SyntaxExtensions.fs" />
   </ItemGroup>
 
