@@ -70,7 +70,7 @@ namespace quantum
         llvm::ModuleAnalysisManager& moduleAnalysisManager();
 
       private:
-        void saveLogsToFileIfNeeded();
+        void saveReportToFileIfNeeded();
 
         // LLVM logic to run the passes
         //

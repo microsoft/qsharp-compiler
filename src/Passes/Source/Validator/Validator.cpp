@@ -61,7 +61,7 @@ namespace quantum
                 logger_->error("Fatal error: Invalid IR.");
             }
 
-            saveLogsToFileIfNeeded();
+            saveReportToFileIfNeeded();
             return false;
         }
 
@@ -76,11 +76,11 @@ namespace quantum
                 logger_->error("Fatal error: " + static_cast<std::string>(e.what()));
             }
 
-            saveLogsToFileIfNeeded();
+            saveReportToFileIfNeeded();
             return false;
         }
 
-        saveLogsToFileIfNeeded();
+        saveReportToFileIfNeeded();
         return true;
     }
 
@@ -109,7 +109,7 @@ namespace quantum
         return module_analysis_manager_;
     }
 
-    void Validator::saveLogsToFileIfNeeded()
+    void Validator::saveReportToFileIfNeeded()
     {
         if (!save_to_filename_.empty() && logger_)
         {
