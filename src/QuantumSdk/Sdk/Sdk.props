@@ -81,7 +81,6 @@
 
   <!-- Empty target that can be redefined to run tasks just before QSharpCompile. -->
   <Target Name="BeforeQSharpCompile">
-    <Message Importance="High" Text="SDK DEBUG - EnableQirSubmission: '$(EnableQirSubmission)', ResolvedProcessorArchitecture: '$(ResolvedProcessorArchitecture)', ResolvedRuntimeCapabilities: '$(ResolvedRuntimeCapabilities)', ResolvedQuantumIntrinsics: '$(ResolvedQuantumIntrinsics)', IncludeQSharpCorePackages: '$(IncludeQSharpCorePackages)'" />
   </Target>
 
   <!-- Empty target that can be redefined to run tasks just before CSharpCompile. -->
