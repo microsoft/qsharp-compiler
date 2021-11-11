@@ -542,7 +542,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     new[] { sharedState.Context.CreateConstant(0) });
                 var dataArrayPtr = sharedState.CurrentBuilder.BitCast(
                         sizedDataArrayPtr,
-                        sharedState.ArrayPointer);
+                        sharedState.Types.DataArrayPointer);
 
                 var createString = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
                 return sharedState.CurrentBuilder.Call(createString, dataArrayPtr);
@@ -1043,7 +1043,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // The runtime function BigIntAdd creates a new value with reference count 1.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntAdd);
-                var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value); // RyanQuestion: places like this where it's intrinsic do we need debug info for the call (separate from if a variable is set etc.)?
+                var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1501,7 +1501,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create a debug location for the call
             DataTypes.Range? relativeRange = method.Range.IsNull ? null : method.Range.Item;
             Position? relativePosition = relativeRange?.Start;
-            this.SharedState.DIManager.EmitLocation(relativePosition);
+            this.SharedState.DIManager.EmitLocationWithOffset(relativePosition);
             return base.OnCallLikeExpression(method, arg);
         }
 
@@ -1569,7 +1569,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpressionKind.InvalidExpr;
         }
 
-        // TODO: Here's the local variable identifiers!
         public override ResolvedExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
         {
             var exType = this.SharedState.CurrentExpressionType();
@@ -1597,7 +1596,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            this.SharedState.DIManager.EmitLocation(Position.Zero);
+            this.SharedState.DIManager.EmitLocation();
             return ResolvedExpressionKind.InvalidExpr;
         }
 

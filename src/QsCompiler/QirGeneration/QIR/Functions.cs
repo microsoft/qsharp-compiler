@@ -192,13 +192,13 @@ namespace Microsoft.Quantum.QIR
 
         private IValue IntAsDouble(IValue arg)
         {
-            var cast = this.sharedState.CurrentBuilder.SIToFPCast(arg.Value, this.sharedState.le);
+            var cast = this.sharedState.CurrentBuilder.SIToFPCast(arg.Value, this.sharedState.Types.Double);
             return this.sharedState.Values.FromSimpleValue(cast, Double);
         }
 
         private IValue DoubleAsInt(IValue arg)
         {
-            var cast = this.sharedState.CurrentBuilder.FPToSICast(arg.Value, this.sharedState.;
+            var cast = this.sharedState.CurrentBuilder.FPToSICast(arg.Value, this.sharedState.Types.Int);
             return this.sharedState.Values.FromSimpleValue(cast, Int);
         }
 

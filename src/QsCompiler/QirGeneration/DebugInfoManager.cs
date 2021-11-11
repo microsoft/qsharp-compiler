@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Whether or not to emit debug information during QIR generation
         /// </summary>
-        public bool DebugFlag { get; } = false;
+        public bool DebugFlag { get; } = true;
 
         /// <summary>
         /// Dwarf version we are using for the debug info in the QIR generation
@@ -160,12 +160,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// If <see cref="DebugFlag"/> is set, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
-        /// relative to the namespace and stack of parent <see cref="QsStatement"/>s,
-        /// which is converted to a 1-based <see cref="DebugPosition"/>. The position
+        /// relative to the namespace and statement stack of parent <see cref="QsStatement"/>s,
+        /// which is converted to a 1-based <see cref="DebugPosition"/>.
         /// </summary>
-        /// <param name="relativePosition">The 0-based <see cref="Position"/> at which to emit the location,
+        /// <param name="relativePosition">The 0-based <see cref="Position"/> at which to emit the location
         /// relative to the namespace and stack of parent <see cref="QsStatement"/>s.</param>
-        internal void EmitLocation(Position? relativePosition)
+        internal void EmitLocationWithOffset(Position? relativePosition)
         {
             if (this.DebugFlag)
             {
@@ -177,6 +177,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     Position absolutePosition = namespaceLoc.Offset + this.TotalOffsetFromStatements() + relativePosition;
                     this.EmitLocation(absolutePosition, sp);
                 }
+            }
+        }
+
+        /// <summary>
+        /// If <see cref="DebugFlag"/> is set, emits the current location allowing for a breakpoint when debugging.
+        /// </summary>
+        internal void EmitLocation()
+        {
+            if (this.DebugFlag)
+            {
+                this.EmitLocationWithOffset(Position.Zero);
             }
         }
 
@@ -273,7 +284,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return this.CreateFunctionNoDebug(mangledName, signature);
                 }
 
-                Position absolutePosition = debugLoc.Item.Offset; // Because spec is its own namespace, the position is already an absolute position
+                Position absolutePosition = debugLoc.Item.Offset; // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
 
                 if (retDebugType != null && !argDebugTypes.Contains(null))
                 {
@@ -331,7 +342,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 // TODO: make this more exact by calculating absolute column position as well
-                DebugPosition debugPos = DebugPosition.FromZeroBasedLine(debugLoc.Item.Offset.Line); // Because spec is its own namespace, this is an absolute position
+                DebugPosition debugPos = DebugPosition.FromZeroBasedLine(debugLoc.Item.Offset.Line); // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
 
                 // get necessary debug information
                 DIType? dIType = this.GetDebugTypeFor(value.QSharpType, curDIBuilder)?.DIType;

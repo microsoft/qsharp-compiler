@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QIR;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -22,8 +21,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private ITypeRef? builtType;
         private readonly Types qirTypes;
         private readonly Func<QsQualifiedName, QsCustomType?> getTypeDeclaration;
-
-        private DebugInfoBuilder CurrentDIBuilder; // TODO: have another builtDebugType that's guarded by the DebugFlag
 
         public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
         : base(TransformationOptions.NoRebuild)

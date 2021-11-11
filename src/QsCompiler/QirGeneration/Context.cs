@@ -959,7 +959,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Does *not* generate any required functions that have been added by <paramref name="executeBody"/>;
         /// it is up to the caller to ensure that the necessary functions are created.
         /// </summary>
-        internal void GenerateFunction(IrFunction func, string?[] argNames, Action<IReadOnlyList<Argument>> executeBody) // I think this is mutually exclusive to OnProvidedImplementation
+        internal void GenerateFunction(IrFunction func, string?[] argNames, Action<IReadOnlyList<Argument>> executeBody)
         {
             this.StartFunction();
             this.CurrentFunction = func;
