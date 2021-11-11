@@ -60,7 +60,7 @@ type internal 'result Reducer =
     default UnderlyingType: underlying:UnderlyingType -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="TypeTupleItem"/> node.
+    /// Reduces a <see cref="TypeTupleItem"/> node.
     /// </summary>
     abstract TypeTupleItem: item:TypeTupleItem -> 'result
     default TypeTupleItem: item:TypeTupleItem -> 'result
