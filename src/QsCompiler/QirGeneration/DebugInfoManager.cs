@@ -403,11 +403,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: include other variable types including callables
             if (resolvedType.Resolution.IsInt)
             {
-                return new DebugBasicType(this.sharedState.NativeLlvmTypes.Int, dIBuilder, TypeNames.Int, DiTypeKind.Signed);
+                return new DebugBasicType(this.sharedState.Types.Int, dIBuilder, TypeNames.Int, DiTypeKind.Signed);
             }
             else if (resolvedType.Resolution.IsUnitType)
             {
-                return DebugType.Create<ITypeRef, DIType>(this.sharedState.NativeLlvmTypes.Void, null);
+                return DebugType.Create<ITypeRef, DIType>(this.sharedState.Types.Void, null);
             }
             else
             {
