@@ -36,7 +36,7 @@ let collapsedSpaces =
 
 let operatorSpacing =
     { new Rewriter<_>() with
-        override _.Let((), lets) =
+        override _.LetStatement((), lets) =
             let equals = { lets.Equals with Prefix = [ spaces 1 ] }
             { lets with Equals = equals }
     }
@@ -90,7 +90,7 @@ let newLines =
             let statement = base.Statement((), statement)
 
             match statement with
-            | Else _ -> statement
+            | ElseStatement _ -> statement
             | _ -> Statement.mapPrefix ensureNewLine statement
 
         override _.Block((), mapper, block) =
@@ -112,7 +112,7 @@ let getTrivia paren =
 
 let qubitBindingUpdate =
     { new Rewriter<_>() with
-        override rewriter.QubitDeclaration(_, decl) =
+        override rewriter.QubitDeclarationStatement(_, decl) =
             let openTrivia = decl.OpenParen |> getTrivia
             let closeTrivia = decl.CloseParen |> getTrivia
 
@@ -148,7 +148,7 @@ let unitUpdate =
 
 let forParensUpdate =
     { new Rewriter<_>() with
-        override rewriter.For((), loop) =
+        override rewriter.ForStatement((), loop) =
             let openTrivia = loop.OpenParen |> getTrivia
             let closeTrivia = loop.CloseParen |> getTrivia
 
@@ -158,6 +158,61 @@ let forParensUpdate =
                 CloseParen = None
                 Block = rewriter.Block((), rewriter.Statement, loop.Block) |> Block.mapPrefix ((@) closeTrivia)
             }
+    }
+
+/// <summary>
+/// Make sure that a <see cref="SequenceItem"/> contains a comma.
+/// </summary>
+let ensureComma (item: 'a SequenceItem) =
+    match item.Comma with
+    | None -> { Item = item.Item; Comma = { Prefix = []; Text = "," } |> Some }
+    | Some _ -> item
+
+/// <summary>
+/// Prepends the <paramref name="parameters"/> with an ellipsis <see cref="Terminal"/> item if it does not already contain one.
+/// </summary>
+let ensureEllipsis (parameters: Terminal Tuple) =
+    let ellipsis nspace =
+        { Prefix = [ spaces nspace ]; Text = "..." }
+
+    let ellipsisItem nspace =
+        { Item = ellipsis nspace |> Some; Comma = None }
+
+    { parameters with
+        Items =
+            match parameters.Items with
+            // Replace, e.g., `body ()` with `body (...)`
+            | [] -> [ ellipsisItem 0 ]
+            // Replace, e.g., `controlled (q)` with `controlled (q, ...)`
+            | [ x ] ->
+                match Option.get(x.Item).Text with
+                | "..." -> [ x ]
+                | _ -> [ ensureComma x; ellipsisItem 1 ]
+            | _ -> parameters.Items
+    }
+
+let specializationUpdate =
+    { new Rewriter<_>() with
+        override _.SpecializationGenerator((), generator) =
+            let emptyTuple =
+                {
+                    OpenParen = { Prefix = [ spaces 1 ]; Text = "(" }
+                    Items = []
+                    CloseParen = { Prefix = []; Text = ")" }
+                }
+
+            match generator with
+            | Provided (parameters, statements) ->
+                Provided(
+                    parameters =
+                        (match parameters with
+                         // Replace, e.g., `body` with `body (...)`
+                         | None -> ensureEllipsis emptyTuple |> Some
+                         // Replace, e.g., `body ()` with `body (...)`
+                         | Some par -> ensureEllipsis par |> Some),
+                    statements = statements
+                )
+            | _ -> generator
     }
 
 let arraySyntaxUpdate =
@@ -261,7 +316,7 @@ let arraySyntaxUpdate =
             | _ -> base.Expression((), expression)
     }
 
-let updateChecker fileName document =
+let checkArraySyntax fileName document =
     let mutable lineNumber = 1
     let mutable charNumber = 1
 
@@ -323,3 +378,44 @@ let updateChecker fileName document =
         }
 
     reducer.Document document
+
+/// <summary>
+/// Insert a whitespace to <paramref name="prefix"/> if it is empty.
+/// </summary>
+let ensureSpace prefix =
+    if List.isEmpty prefix then [ spaces 1 ] else prefix
+
+let booleanOperatorUpdate =
+    { new Rewriter<_>() with
+        override _.Expression((), expression) =
+            let dict =
+                Map [ ("!", "not")
+                      ("&&", "and")
+                      ("||", "or") ]
+
+            let updated =
+                match expression with
+                | PrefixOperator prefixOperator when dict |> Map.containsKey prefixOperator.PrefixOperator.Text ->
+                    {
+                        PrefixOperator =
+                            { prefixOperator.PrefixOperator with
+                                Text = dict |> Map.find prefixOperator.PrefixOperator.Text
+                            }
+                        Operand = prefixOperator.Operand |> Expression.mapPrefix ensureSpace
+                    }
+                    |> PrefixOperator
+                | InfixOperator infixOperator when dict |> Map.containsKey infixOperator.InfixOperator.Text ->
+                    {
+                        Left = infixOperator.Left
+                        InfixOperator =
+                            {
+                                Prefix = infixOperator.InfixOperator.Prefix |> ensureSpace
+                                Text = dict |> Map.find infixOperator.InfixOperator.Text
+                            }
+                        Right = infixOperator.Right |> Expression.mapPrefix ensureSpace
+                    }
+                    |> InfixOperator
+                | _ -> expression
+
+            base.Expression((), updated)
+    }

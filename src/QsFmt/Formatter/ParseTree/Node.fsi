@@ -4,10 +4,10 @@
 /// Tools for creating syntax tree nodes from parse tree nodes.
 module internal Microsoft.Quantum.QsFmt.Formatter.ParseTree.Node
 
+open System.Collections.Immutable
 open Antlr4.Runtime
 open Antlr4.Runtime.Tree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
-open System.Collections.Immutable
 
 /// <summary>
 /// The <see cref="Trivia"/> tokens that occur before the token with the given <paramref name="index"/> in

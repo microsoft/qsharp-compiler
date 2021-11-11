@@ -1666,8 +1666,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
                     var context = ScopeContext.Create(
                         compilation.GlobalSymbols,
-                        compilation.RuntimeCapability,
-                        compilation.ProcessorArchitecture,
+                        compilation.BuildProperties.RuntimeCapability,
+                        compilation.BuildProperties.ProcessorArchitecture,
                         spec);
                     implementation = BuildUserDefinedImplementation(
                         root, spec.Source.AssemblyOrCodeFile, arg, requiredFunctorSupport, context, diagnostics);
