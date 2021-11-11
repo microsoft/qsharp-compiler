@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Rules/IOperandPrototype.hpp"
-#include "Rules/Operands/Call.hpp"
+#include "Rules/Patterns/CallPattern.hpp"
 
 namespace microsoft
 {

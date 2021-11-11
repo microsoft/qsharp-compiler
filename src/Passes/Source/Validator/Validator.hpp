@@ -51,9 +51,6 @@ namespace quantum
       protected:
         using PassBuilderPtr = std::unique_ptr<llvm::PassBuilder>;
 
-        /// Sets the module pass manager used for the transformation of the IR.
-        void setModulePassManager(llvm::ModulePassManager&& manager);
-
         /// Returns a reference to the pass builder.
         llvm::PassBuilder& passBuilder();
 

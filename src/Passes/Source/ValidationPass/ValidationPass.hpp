@@ -4,7 +4,7 @@
 
 #include "Logging/ILogger.hpp"
 #include "Profile/Profile.hpp"
-#include "Types/Types.hpp"
+#include "QatTypes/QatTypes.hpp"
 #include "ValidationPass/ValidationPassConfiguration.hpp"
 
 #include "Llvm/Llvm.hpp"

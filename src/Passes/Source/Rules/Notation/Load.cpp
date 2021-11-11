@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 #include "Rules/Notation/Notation.hpp"
-#include "Rules/Operands/Any.hpp"
-#include "Rules/Operands/Call.hpp"
-#include "Rules/Operands/Instruction.hpp"
+#include "Rules/Patterns/AnyPattern.hpp"
+#include "Rules/Patterns/CallPattern.hpp"
+#include "Rules/Patterns/Instruction.hpp"
 
 #include "Llvm/Llvm.hpp"
 

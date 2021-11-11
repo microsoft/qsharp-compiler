@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Rules/IOperandPrototype.hpp"
-#include "Rules/Operands/Phi.hpp"
+#include "Rules/Patterns/PhiPattern.hpp"
 
 namespace microsoft
 {

@@ -54,11 +54,6 @@ namespace quantum
         return true;
     }
 
-    void Validator::setModulePassManager(llvm::ModulePassManager&& manager)
-    {
-        module_pass_manager_ = std::move(manager);
-    }
-
     llvm::PassBuilder& Validator::passBuilder()
     {
         return *pass_builder_;

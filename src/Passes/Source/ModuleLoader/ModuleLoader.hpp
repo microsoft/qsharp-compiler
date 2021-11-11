@@ -2,8 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "QatTypes/QatTypes.hpp"
 #include "RemoveDisallowedAttributesPass/RemoveDisallowedAttributesPass.hpp"
-#include "Types/Types.hpp"
 
 #include "Llvm/Llvm.hpp"
 
