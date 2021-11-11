@@ -6,12 +6,13 @@ module Microsoft.Quantum.QsFmt.App.Telemetry
 open System
 open Microsoft.Quantum.QsFmt.App.Arguments
 
-module Telemetry =
-    val internal initializeTelemetry : string [] -> IDisposable
+/// Initializes the telemetry manager. This is required before logging telemetry.
+val internal initializeTelemetry : string [] -> IDisposable
 
-    val internal logExecutionCompleted :
-        Result<Result<CommandWithOptions, ExitCode>, Exception> ->
-        Result<RunResult, Exception> ->
-        DateTime ->
-        TimeSpan ->
-        unit
+/// Logs the ExecutionCompleted telemetry event.
+val internal logExecutionCompleted :
+    Result<Result<CommandWithOptions, ExitCode>, Exception> ->
+    Result<RunResult, Exception> ->
+    DateTime ->
+    TimeSpan ->
+    unit
