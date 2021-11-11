@@ -246,6 +246,50 @@ let ``Removes For-Loop Parens`` =
 }"""
 
 [<Example(ExampleKind.Update)>]
+let ``Update Specialization Declaration`` =
+    """namespace Foo {
+    operation Bar() : Unit is Ctl + Adj {
+        body () {
+        }
+        adjoint () {
+        }
+        controlled (q) {
+        }
+        controlled adjoint (q) {
+        }
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit is Ctl + Adj {
+        body (...) {
+        }
+        adjoint (...) {
+        }
+        controlled (q, ...) {
+        }
+        controlled adjoint (q, ...) {
+        }
+    }
+}"""
+
+[<Example(ExampleKind.Update)>]
+let ``Update Specialization Declaration No Parens`` =
+    """namespace Foo {
+    operation Bar() : Unit is Ctl + Adj {
+        body {}
+        adjoint {}
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit is Ctl + Adj {
+        body (...) {}
+        adjoint (...) {}
+    }
+}"""
+
+[<Example(ExampleKind.Update)>]
 let ``Allows size as an Identifier`` =
     """namespace Foo {
     operation Bar() : Unit {
@@ -366,5 +410,23 @@ let ``Array Syntax Expression Size`` =
     operation Bar() : Unit {
         let t1 = [0, size = [5, 7, 1][2]];
         let t2 = [0.0, size = 2+1];
+    }
+}"""
+
+[<Example(ExampleKind.Update)>]
+let ``Updates Binary Boolean Operators`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = True &&  False;
+        let t2 = True||False;
+        let t3 = !!True;
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = True and  False;
+        let t2 = True or False;
+        let t3 = not not True;
     }
 }"""

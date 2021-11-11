@@ -1,0 +1,13 @@
+{
+  "baseUrl": "/",
+  "indexInFolders": true,
+  "linkLowercase": false,
+  "indexClassesName": "index",
+  "indexFilesName": "index",
+  "indexGroupsName": "index",
+  "indexNamespacesName": "index",
+  "indexRelatedPagesName": "index",
+  "indexExamplesName": "index",
+  "mainPageInRoot": true,
+  "mainPageName": "index"
+}

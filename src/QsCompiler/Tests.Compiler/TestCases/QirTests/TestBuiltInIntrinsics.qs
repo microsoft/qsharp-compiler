@@ -4,6 +4,7 @@
 namespace Microsoft.Quantum.Testing.QIR {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Llvm;
 
     newtype Options = (
         SimpleMessage: (String -> Unit),
@@ -22,7 +23,7 @@ namespace Microsoft.Quantum.Testing.QIR {
     }
 
     @EntryPoint()
-    operation TestBuiltInIntrinsics() : Unit {
+    operation TestBuiltInIntrinsics() : Int {
         let options = DefaultOptions()
             w/ SimpleMessage <- Message
             w/ DumpToFile <- DumpMachine
@@ -31,6 +32,7 @@ namespace Microsoft.Quantum.Testing.QIR {
         options::SimpleMessage("Hello");
         options::DumpToFile("pathToFile");
         options::DumpToConsole();
+        return ReadCycleCounter();
     }
 }
 
@@ -44,6 +46,13 @@ namespace Microsoft.Quantum.Intrinsic {
 namespace Microsoft.Quantum.Diagnostics {
 
     function DumpMachine<'T> (arg : 'T) : Unit {
+        body intrinsic;
+    }
+}
+
+namespace Microsoft.Quantum.Llvm {
+
+    operation ReadCycleCounter() : Int {
         body intrinsic;
     }
 }

@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
 
     // tests related to auto-generation of functor specializations for operations involving conjugations
 
-    operation SpecGenForConjugations () : Unit 
+    operation SpecGenForConjugations () : Unit
     is Adj + Ctl {
 
         within {
@@ -64,11 +64,11 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
     }
 
     operation ConjugationsInControlled () : Unit {
-        Controlled SpecGenForConjugations(new Qubit[0], ());
+        Controlled SpecGenForConjugations([], ());
     }
 
     operation ConjugationsInControlledAdjoint () : Unit {
-        Controlled Adjoint SpecGenForConjugations(new Qubit[0], ());
+        Controlled Adjoint SpecGenForConjugations([], ());
     }
 
 
