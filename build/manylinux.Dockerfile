@@ -1,6 +1,22 @@
-FROM quay.io/pypa/manylinux2014_x86_64 as llvm-builder
+FROM quay.io/pypa/manylinux_2_24_x86_64 as llvm-builder
 
-RUN yum install -y ninja-build ccache sudo
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ninja-build \
+    sudo \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# ccache in apt sources is too old and errors out.
+# build it from source
+WORKDIR /tmp
+RUN git clone --depth 1 https://github.com/ccache/ccache -b v4.4.2 && \
+    cmake -B /tmp/ccache/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DZSTD_FROM_INTERNET=ON -DREDIS_STORAGE_BACKEND=OFF -DENABLE_TESTING=OFF /tmp/ccache && \
+    cd /tmp/ccache/build && \
+    ninja install && \
+    rm -rf /tmp/build
+WORKDIR /tmp
 
 ENV LLVM_CMAKEFILE ""
 ENV LLVM_DIR ""
@@ -21,6 +37,8 @@ RUN echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME
 RUN chmod 0440 /etc/sudoers.d/$USERNAME
 
 RUN echo "#!/bin/bash" >> /tmp/entrypoint.sh && \
+    echo "echo \"set -e\"" >> /tmp/entrypoint.sh && \
+    echo "set -e" >> /tmp/entrypoint.sh && \
     echo "echo \"([ ! -z \"\${LLVM_INSTALL_DIR}\" ] && sudo chown -R ${USER_UID}:${USER_GID} \${LLVM_INSTALL_DIR}) || [ -z \"\${LLVM_INSTALL_DIR}\" ]\"" >> /tmp/entrypoint.sh && \
     echo "([ ! -z \"\${LLVM_INSTALL_DIR}\" ] && sudo chown -R ${USER_UID}:${USER_GID} \${LLVM_INSTALL_DIR}) || [ -z \"\${LLVM_INSTALL_DIR}\" ]" >> /tmp/entrypoint.sh && \
     echo "echo \"sudo chown -R ${USER_UID}:${USER_GID} \${LLVM_DIR}\"" >> /tmp/entrypoint.sh && \
