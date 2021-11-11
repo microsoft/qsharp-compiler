@@ -738,7 +738,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             var releaseFunctionName =
                 Types.IsArray(value.LlvmType) ? RuntimeLibrary.QubitReleaseArray :
-                Types.IsQubit(this.sharedState.NativeLlvmTypes.Qubit) ? RuntimeLibrary.QubitRelease :
+                Types.IsQubit(this.sharedState.t) ? RuntimeLibrary.QubitRelease :
                 throw new ArgumentException("AddQubitValue expects an argument of type Qubit or Qubit[]");
             var release = this.sharedState.GetOrCreateRuntimeFunction(releaseFunctionName);
             this.scopes.Peek().RegisterRelease(value, loaded => this.sharedState.CurrentBuilder.Call(release, loaded.Value));

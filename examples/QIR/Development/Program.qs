@@ -1,37 +1,17 @@
-﻿namespace Fake.Namespace {
+﻿namespace Microsoft.Quantum.Qir.Development {
 
-}
-
-namespace Microsoft.Quantum.Qir.Development {
+    open Microsoft.Quantum.Arrays;
+    open Microsoft.Quantum.Canon;
+    open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Math;
 
     @EntryPoint()
-    operation RunExample() : Int {
-        if (true)
-        {
-            return MainFunc();
-        }
-        return -1;
-    }
+    operation RunExample() : String {
 
-    operation MainFunc() : Int {
-        let var_x = GetTwentySix();
-        let add_four = Add(4, _);
-        let var_y = add_four(var_x); // 30
+        // Add additional code here
+        // for experimenting with and debugging QIR generation.
 
-        let add_three = Add(3, _);
-        return TakesCallable(var_y, add_three); // 33
-    }
-
-    operation Add(var_left: Int, var_right: Int) : Int {
-        return var_left + var_right;
-    }
-
-    operation TakesCallable(given_int: Int, callable: Int => Int) : Int {
-        return callable(given_int);
-    }
-
-    operation GetTwentySix() : Int {
-        return 26;
+        return "Executed successfully!";
     }
 }
-

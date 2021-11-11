@@ -252,7 +252,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.customType = type;
             this.ElementTypes = elementTypes;
-            this.StructType = this.sharedState.NativeLlvmTypes.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
+            this.StructType = this.sharedState.dTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
             this.opaquePointer = this.CreateOpaquePointerCache(this.AllocateTuple(registerWithScopeManager));
             this.typedPointer = this.CreateTypedPointerCache();
             this.tupleElementPointers = this.CreateTupleElementPointersCaches();
@@ -291,7 +291,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.customType = type;
             this.ElementTypes = elementTypes;
-            this.StructType = this.sharedState.NativeLlvmTypes.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
+            this.StructType = this.sharedState.dTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
             this.opaquePointer = this.CreateOpaquePointerCache(isOpaqueTuple ? tuple : null);
             this.typedPointer = this.CreateTypedPointerCache(isTypedTuple ? tuple : null);
             this.tupleElementPointers = this.CreateTupleElementPointersCaches();
@@ -313,7 +313,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private Value GetOpaquePointer() =>
             this.typedPointer.IsCached
-            ? this.sharedState.CurrentBuilder.BitCast(this.TypedPointer, this.sharedState.NativeLlvmTypes.Tuple)
+            ? this.sharedState.CurrentBuilder.BitCast(this.TypedPointer, this.sharedState.e)
             : throw new InvalidOperationException("tuple pointer is undefined");
 
         private Value GetTypedPointer() =>
@@ -399,7 +399,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public Value Value => this.OpaquePointer;
 
-        public ITypeRef LlvmType => this.sharedState.NativeLlvmTypes.Array;
+        public ITypeRef LlvmType => this.sharedState.y;
 
         public ResolvedType QSharpType =>
             ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.QSharpElementType));
@@ -553,7 +553,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="captured">All captured values.</param>
         internal CallableValue(ResolvedType callableType, GlobalVariable table, GenerationContext context, ImmutableArray<TypedExpression>? captured = null)
         {
-            this.LlvmType = context.NativeLlvmTypes.Callable;
+            this.LlvmType = context.able;
             this.QSharpType = callableType;
 
             // The runtime function CallableCreate creates a new value with reference count 1.
@@ -573,7 +573,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal CallableValue(Value value, ResolvedType type, GenerationContext context)
         {
             this.Value = value;
-            this.LlvmType = context.NativeLlvmTypes.Callable;
+            this.LlvmType = context.able;
             this.QSharpType = type;
         }
     }

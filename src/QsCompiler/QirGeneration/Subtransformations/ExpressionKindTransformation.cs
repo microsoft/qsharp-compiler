@@ -542,7 +542,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     new[] { sharedState.Context.CreateConstant(0) });
                 var dataArrayPtr = sharedState.CurrentBuilder.BitCast(
                         sizedDataArrayPtr,
-                        sharedState.NativeLlvmTypes.DataArrayPointer);
+                        sharedState.ArrayPointer);
 
                 var createString = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
                 return sharedState.CurrentBuilder.Call(createString, dataArrayPtr);
@@ -1154,7 +1154,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     new[] { this.SharedState.Context.CreateConstant(0) });
                 var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
                     byteArrayPointer,
-                    this.SharedState.NativeLlvmTypes.DataArrayPointer);
+                    this.SharedState.Types.DataArrayPointer);
                 var res = this.SharedState.CurrentBuilder.Call(createBigInt, n, zeroByteArray);
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
@@ -1444,12 +1444,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f", this.SharedState.Context.DoubleType);
                 var exponent = this.SharedState.CurrentBuilder.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true);
                 var resAsDouble = this.SharedState.CurrentBuilder.Call(powFunc, baseValue, exponent);
-                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.NativeLlvmTypes.Int);
+                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.Types.Int);
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
             {
-                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.pow.f", this.SharedState.NativeLlvmTypes.Double);
+                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.pow.f", this.SharedState.Types.Double);
                 var res = this.SharedState.CurrentBuilder.Call(powFunc, lhs.Value, rhs.Value);
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
@@ -1970,7 +1970,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsPauli)
                 {
                     var pointer = this.SharedState.Constants.PauliI;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.NativeLlvmTypes.Pauli, pointer);
+                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pointer);
                     return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution.IsResult)
@@ -1981,13 +1981,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsQubit)
                 {
-                    var value = Constant.ConstPointerToNullFor(this.SharedState.NativeLlvmTypes.Qubit);
+                    var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Qubit);
                     return this.SharedState.Values.From(value, type);
                 }
                 else if (type.Resolution.IsRange)
                 {
                     var pointer = this.SharedState.Constants.EmptyRange;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.NativeLlvmTypes.Range, pointer);
+                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Range, pointer);
                     return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution is ResolvedTypeKind.TupleType ts)
@@ -2013,7 +2013,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsFunction || type.Resolution.IsOperation)
                 {
-                    var value = Constant.ConstPointerToNullFor(this.SharedState.NativeLlvmTypes.Callable);
+                    var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Callable);
                     return this.SharedState.Values.FromCallable(value, type);
                 }
                 else if (type.Resolution.IsString)
@@ -2268,7 +2268,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             IValue LoadPauli(Value pauli)
             {
-                var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.NativeLlvmTypes.Pauli, pauli);
+                var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pauli);
                 var exType = this.SharedState.CurrentExpressionType();
                 return this.SharedState.Values.From(constant, exType);
             }
