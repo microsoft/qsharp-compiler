@@ -98,7 +98,7 @@ let main args =
             assemblyLoadContextSetup ()
             CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments, UpdateAndFormatArguments> args |> Ok
         with
-        | ex -> Result.Error(ex)
+        | ex -> ex |> Result.Error
 
     let commandWithOptions =
         try
@@ -108,9 +108,9 @@ let main args =
                     (fun (options: IArguments) -> options |> CommandWithOptions.fromIArguments),
                     (fun (_: IEnumerable<Error>) -> Result.Error ExitCode.BadArguments)
                 ) |> Ok
-            | Result.Error ex -> Result.Error(ex)
+            | Result.Error ex -> ex |> Result.Error
         with
-        | ex -> Result.Error(ex)
+        | ex -> ex |> Result.Error
 
     let runResult =
         try
@@ -120,9 +120,9 @@ let main args =
                 | Ok commandWithOptions -> runCommand commandWithOptions commandWithOptions.Input
                 | Error exitCode -> { RunResult.Default with ExitCode = exitCode }
                 |> Ok
-            | Result.Error ex -> Result.Error(ex)
+            | Result.Error ex -> ex |> Result.Error
         with
-        | ex -> Result.Error(ex)
+        | ex -> ex |> Result.Error
 
     Telemetry.logExecutionCompleted commandWithOptions runResult startTime executionTime.Elapsed
 

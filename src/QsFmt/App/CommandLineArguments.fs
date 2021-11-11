@@ -81,7 +81,7 @@ type FormatArguments =
         member this.QdkVersion = this.QdkVersion
         member this.InputFiles = this.InputFiles
         member this.ProjectFile = this.ProjectFile
-        member this.CommandKind = CommandKind.Format
+        member _.CommandKind = CommandKind.Format
 
     [<Usage(ApplicationAlias = "qsfmt")>]
     static member examples =
@@ -145,7 +145,7 @@ type UpdateArguments =
         member this.QdkVersion = this.QdkVersion
         member this.InputFiles = this.InputFiles
         member this.ProjectFile = this.ProjectFile
-        member this.CommandKind = CommandKind.Update
+        member _.CommandKind = CommandKind.Update
 
     [<Usage(ApplicationAlias = "qsfmt")>]
     static member examples =
@@ -209,7 +209,7 @@ type UpdateAndFormatArguments =
         member this.QdkVersion = this.QdkVersion
         member this.InputFiles = this.InputFiles
         member this.ProjectFile = this.ProjectFile
-        member this.CommandKind = CommandKind.UpdateAndFormat
+        member _.CommandKind = CommandKind.UpdateAndFormat
 
     [<Usage(ApplicationAlias = "qsfmt")>]
     static member examples =
