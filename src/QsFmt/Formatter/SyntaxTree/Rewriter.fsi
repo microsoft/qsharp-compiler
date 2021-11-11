@@ -38,7 +38,7 @@ type internal 'context Rewriter =
     default OpenDirective: context:'context * directive:OpenDirective -> OpenDirective
 
     /// <summary>
-    /// Rewrites an <see cref="TypeDeclaration"/> node.
+    /// Rewrites a <see cref="TypeDeclaration"/> node.
     /// </summary>
     abstract TypeDeclaration: context:'context * declaration:TypeDeclaration -> TypeDeclaration
     default TypeDeclaration: context:'context * declaration:TypeDeclaration -> TypeDeclaration
