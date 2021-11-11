@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Rules/Notation/Notation.hpp"
-#include "Rules/Operands/Instruction.hpp"
+#include "Rules/Patterns/Instruction.hpp"
 
 #include "Llvm/Llvm.hpp"
 
