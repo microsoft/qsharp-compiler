@@ -468,10 +468,11 @@ let ``Outdated system project file as input`` () =
     let result = run [| "update"; "-p"; project |] ""
     Assert.Equal(ExitCode.UnhandledException |> int, result.Code)
     Assert.Equal("", result.Out)
+
     Assert.True(
         result.Error.StartsWith(
             sprintf
                 "Unexpected Error: System.Exception: The given project file, %s is not a Q# project file. Please ensure your project file uses the Microsoft.Quantum.Sdk."
                 project
-            )
         )
+    )

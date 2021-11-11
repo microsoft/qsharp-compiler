@@ -16,7 +16,7 @@ type ExecutionCompleted =
 
         /// Which command was specified on the command-line.
         Command: CommandKind option
-        
+
         /// Which input kind was specified on the command-line.
         InputKind: InputKind option
 
@@ -25,7 +25,7 @@ type ExecutionCompleted =
 
         /// The value of the --backup option specified on the command-line.
         BackupFlag: bool option
-        
+
         /// The value of the optional QDK version used.
         QSharpVersion: string option
 

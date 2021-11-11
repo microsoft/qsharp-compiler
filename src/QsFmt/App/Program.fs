@@ -96,7 +96,9 @@ let main args =
     let parseArgsResult =
         try
             assemblyLoadContextSetup ()
-            CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments, UpdateAndFormatArguments> args |> Ok
+
+            CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments, UpdateAndFormatArguments> args
+            |> Ok
         with
         | ex -> ex |> Result.Error
 
@@ -107,7 +109,8 @@ let main args =
                 parsedArgs.MapResult(
                     (fun (options: IArguments) -> options |> CommandWithOptions.fromIArguments),
                     (fun (_: IEnumerable<Error>) -> Result.Error ExitCode.BadArguments)
-                ) |> Ok
+                )
+                |> Ok
             | Result.Error ex -> ex |> Result.Error
         with
         | ex -> ex |> Result.Error
