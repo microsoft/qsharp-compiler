@@ -671,7 +671,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var innerTuples = new Queue<(string?, ArgumentTuple)>();
             var outerArgItems = ArgTupleToArgItems(argTuple, innerTuples);
             var innerTupleValues = new Queue<TupleValue>();
-            int argNo = 1; // arg numbers are 1-indexed!
+            int argNo = 1; // arg numbers are 1-indexed
 
             // If we have a single named tuple-valued argument, then the items of the tuple
             // are the arguments to the function and we need to reconstruct the tuple.
@@ -973,7 +973,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SetCurrentBlock(this.CurrentFunction.AppendBasicBlock("entry"));
-
             this.ScopeMgr.OpenScope();
             executeBody(this.CurrentFunction.Parameters);
             var isTerminated = this.CurrentBlock?.Terminator != null;

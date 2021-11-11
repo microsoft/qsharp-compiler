@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using LLVMSharp.Interop;
 using Ubiquity.NET.Llvm.DebugInfo;
@@ -39,7 +38,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         public Context Context { get; }
 
         /// <summary>Set the current debug location for this <see cref="InstructionBuilder"/></summary>
-        /// <param name="position">1-based source line/columne</param>
+        /// <param name="position">1-based source <see cref="DebugPosition"/> with line/column info</param>
         /// <param name="scope"><see cref="DIScope"/> for the location</param>
         /// <param name="inlinedAt"><see cref="DILocation"/>the location is inlined into</param>
         /// <returns>This builder for fluent API usage</returns>

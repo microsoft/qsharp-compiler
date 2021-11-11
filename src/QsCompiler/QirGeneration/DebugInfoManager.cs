@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Whether or not to emit debug information during QIR generation
         /// </summary>
-        public bool DebugFlag { get; } = true;
+        public bool DebugFlag { get; } = false;
 
         /// <summary>
         /// Dwarf version we are using for the debug info in the QIR generation
@@ -112,9 +112,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If DebugFlag is set to true, creates Adds top level debug info to the module,
+        /// If DebugFlag is set to true, creates and adds top level debug info to the module.
         /// Note: because this is called from within the constructor of the GenerationContext,
-        /// we cannot access this.Module or anything else that uses this.sharedState
+        /// we cannot access this.Module or anything else that uses <see cref="sharedState"/>.
         /// </summary>
         /// <param name="owningModule">The <see cref="BitcodeModule"/> that this DebugInfoManager is related to</param>
         internal void AddTopLevelDebugInfo(BitcodeModule owningModule)
@@ -159,7 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If <see cref="DebugFlag"/> is set, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
+        /// If <see cref="DebugFlag"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
         /// relative to the namespace and statement stack of parent <see cref="QsStatement"/>s,
         /// which is converted to a 1-based <see cref="DebugPosition"/>.
         /// </summary>
@@ -181,7 +181,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If <see cref="DebugFlag"/> is set, emits the current location allowing for a breakpoint when debugging.
+        /// If <see cref="DebugFlag"/> is set to true, emits the current location allowing for a breakpoint when debugging.
         /// </summary>
         internal void EmitLocation()
         {
@@ -252,7 +252,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Creates a global function. If the debug flag is set, includes debug information
+        /// Creates a global function. If the debug flag is set to true, includes debug information
         /// with the global function.
         /// </summary>
         /// <param name="spec">The <see cref="QsSpecialization"/> for the function.</param>
@@ -440,7 +440,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 // SECTION: Private location-related helper functions
 
         /// <summary>
-        /// If <see cref="DebugFlag"/> is set, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
+        /// If <see cref="DebugFlag"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
         /// which is converted to a 1-based <see cref="DebugPosition"/>.
         /// </summary>
         /// <param name="absolutePosition">The 0-based <see cref="Position"/> at which to emit the location.</param>
