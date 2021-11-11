@@ -417,7 +417,7 @@ namespace Ubiquity.NET.Llvm
 
             if (signature.DIType == null)
             {
-                throw new ArgumentException();
+                throw new ArgumentException("DIType is null");
             }
 
             var func = this.CreateFunction(mangledName, signature);
