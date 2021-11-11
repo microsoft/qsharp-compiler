@@ -135,13 +135,15 @@ type CallableBodyVisitor(tokens) =
 type UnderlyingTypeVistor(tokens) =
     inherit QSharpParserBaseVisitor<UnderlyingType>()
 
+    let typeVisitor = TypeVisitor tokens
+
     override _.DefaultResult = failwith "Unknown underlying type."
 
     override visitor.VisitTupleUnderlyingType context =
         context.typeDeclarationTuple () |> visitor.Visit
 
-    override _.VisitOtherUnderlyingType context =
-        context.``type`` () |> (TypeVisitor tokens).Visit |> Type
+    override _.VisitNonTupleType context =
+        context.``type`` () |> typeVisitor.Visit |> Type
 
     override _.VisitTypeDeclarationTuple context =
         let parameters = context._items |> Seq.map (TypeTupleItemVistor tokens).Visit
@@ -158,13 +160,14 @@ and TypeTupleItemVistor(tokens) =
     inherit QSharpParserBaseVisitor<TypeTupleItem>()
 
     let typeVisitor = TypeVisitor tokens
+    let underlyingTypeVistor = UnderlyingTypeVistor tokens
 
     override _.DefaultResult = failwith "Unknown type tuple item."
 
     override visitor.VisitNamedTypeItem context = context.namedItem () |> visitor.Visit
 
     override _.VisitUnderlyingTypeItem context =
-        context.underlyingType () |> (UnderlyingTypeVistor tokens).Visit |> UnderlyingType
+        context.underlyingType () |> underlyingTypeVistor.Visit |> UnderlyingType
 
     override _.VisitNamedItem context =
         {
@@ -182,53 +185,60 @@ type NamespaceItemVisitor(tokens) =
     let parameterVisitor = ParameterVisitor tokens
     let typeVisitor = TypeVisitor tokens
     let callableBodyVisitor = CallableBodyVisitor tokens
+    let underlyingTypeVistor = UnderlyingTypeVistor tokens
 
     override _.DefaultResult = failwith "Unknown namespace element."
 
     override _.VisitChildren node = Node.toUnknown tokens node |> Unknown
 
-    override _.VisitOpenElement context =
+    override visitor.VisitOpenElement context = context.openDirective() |> visitor.Visit
+
+    override visitor.VisitTypeElement context = context.typeDeclaration() |> visitor.Visit
+
+    override visitor.VisitCallableElement context = context.callableDeclaration () |> visitor.Visit
+
+    override _.VisitOpenDirective context =
         {
-            OpenKeyword = context.directive.``open`` |> Node.toTerminal tokens
-            OpenName = context.directive.openName |> Node.toUnknown tokens
-            AsKeyword = context.directive.``as`` |> Option.ofObj |> Option.map (Node.toTerminal tokens)
-            AsName = context.directive.asName |> Option.ofObj |> Option.map (Node.toUnknown tokens)
-            Semicolon = context.directive.semicolon |> Node.toTerminal tokens
+            OpenKeyword = context.``open`` |> Node.toTerminal tokens
+            OpenName = context.openName |> Node.toUnknown tokens
+            AsKeyword = context.``as`` |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            AsName = context.asName |> Option.ofObj |> Option.map (Node.toUnknown tokens)
+            Semicolon = context.semicolon |> Node.toTerminal tokens
         }
         |> OpenDirective
 
-    override _.VisitTypeElement context =
+    override _.VisitTypeDeclaration context =
         {
             Attributes =
-                context.typeDecl.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> Seq.toList
-            Access = context.typeDecl.prefix.access () |> Option.ofObj |> Option.map (Node.toUnknown tokens)
-            NewtypeKeyword = context.typeDecl.keyword |> Node.toTerminal tokens
-            DeclaredType = context.typeDecl.declared |> Node.toTerminal tokens
-            Equals = context.typeDecl.equals |> Node.toTerminal tokens
-            UnderlyingType = context.typeDecl.underlying |> (UnderlyingTypeVistor tokens).Visit
-            Semicolon = context.typeDecl.semicolon |> Node.toTerminal tokens
+                context.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> Seq.toList
+            Access = context.prefix.access () |> Option.ofObj |> Option.map (Node.toUnknown tokens)
+            NewtypeKeyword = context.keyword |> Node.toTerminal tokens
+            DeclaredType = context.declared |> Node.toTerminal tokens
+            Equals = context.equals |> Node.toTerminal tokens
+            UnderlyingType = context.underlying |> underlyingTypeVistor.Visit
+            Semicolon = context.semicolon |> Node.toTerminal tokens
         }
         |> TypeDeclaration
 
-    override _.VisitCallableElement context =
+    override _.VisitCallableDeclaration context =
         {
             Attributes =
-                context.callable.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> Seq.toList
-            Access = context.callable.prefix.access () |> Option.ofObj |> Option.map (Node.toUnknown tokens)
-            CallableKeyword = context.callable.keyword |> Node.toTerminal tokens
-            Name = context.callable.name |> Node.toTerminal tokens
+                context.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> Seq.toList
+            Access = context.prefix.access () |> Option.ofObj |> Option.map (Node.toUnknown tokens)
+            CallableKeyword = context.keyword |> Node.toTerminal tokens
+            Name = context.name |> Node.toTerminal tokens
             TypeParameters =
-                Option.ofObj context.callable.typeParameters
+                Option.ofObj context.typeParameters
                 |> Option.map (NamespaceContext.toTypeParameterBinding tokens)
-            Parameters = parameterVisitor.Visit context.callable.tuple
+            Parameters = parameterVisitor.Visit context.tuple
             ReturnType =
                 {
-                    Colon = context.callable.colon |> Node.toTerminal tokens
-                    Type = typeVisitor.Visit context.callable.returnType
+                    Colon = context.colon |> Node.toTerminal tokens
+                    Type = typeVisitor.Visit context.returnType
                 }
             CharacteristicSection =
-                Option.ofObj context.callable.returnChar |> Option.map (toCharacteristicSection tokens)
-            Body = callableBodyVisitor.Visit context.callable.body
+                Option.ofObj context.returnChar |> Option.map (toCharacteristicSection tokens)
+            Body = callableBodyVisitor.Visit context.body
         }
         |> CallableDeclaration
 

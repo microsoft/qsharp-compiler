@@ -46,7 +46,7 @@ typeDeclaration
 
 underlyingType
     : typeDeclarationTuple # TupleUnderlyingType
-    | type # OtherUnderlyingType
+    | type # NonTupleType
     ;
 
 typeDeclarationTuple : openParen='(' (items+=typeTupleItem (commas+=',' items+=typeTupleItem)*)? closeParen=')';
