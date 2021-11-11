@@ -31,3 +31,4 @@ steps:
   inputs:
     command: 'custom'
     customCommand: 'install -g npm@latest'
+
