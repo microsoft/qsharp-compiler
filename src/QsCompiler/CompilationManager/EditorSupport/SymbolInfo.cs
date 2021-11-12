@@ -158,17 +158,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return new LocalDeclarations((expressionVars ?? statementVars).ToImmutableArray());
 
-            IEnumerable<LocalVariableDeclaration<string>>? ExpressionVars(TypedExpression e) =>
-                e.Range.Any(r => r.Contains(position - currentStatement.Location.Item.Offset))
-                    ? DeclarationsInExpression(e, position - currentStatement.Location.Item.Offset)
-                    : null;
+            IEnumerable<LocalVariableDeclaration<string>>? ExpressionVars(TypedExpression e)
+            {
+                var p = position - currentStatement.Location.Item.Offset;
+                return e.Range.Any(r => r.Contains(p)) ? DeclarationsInExpression(e, p) : null;
+            }
 
             IEnumerable<LocalVariableDeclaration<string>>? CondExpressionVars(QsStatementKind.QsConditionalStatement c)
-                =>
-                LastConditionBlockBefore(c, position) is ({ } lastCond, var lastBlock)
-                && lastCond.Range.Any(r => r.Contains(position - lastBlock.Location.Item.Offset))
-                    ? DeclarationsInExpression(lastCond, position - lastBlock.Location.Item.Offset)
-                    : null;
+            {
+                if (LastConditionBlockBefore(c, position) is ({ } lastCond, var lastBlock))
+                {
+                    var p = position - lastBlock.Location.Item.Offset;
+                    return lastCond.Range.Any(r => r.Contains(p)) ? DeclarationsInExpression(lastCond, p) : null;
+                }
+
+                return null;
+            }
 
             IEnumerable<LocalVariableDeclaration<string>>? QubitInitVars(ResolvedInitializer i) => i.Resolution switch
             {
