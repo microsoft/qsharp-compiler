@@ -26,8 +26,6 @@ schedules:
     - main
   always: true
 
-pool:
-  vmImage: windows-latest
 
 jobs:
 - job: Build
@@ -35,6 +33,20 @@ jobs:
   - template: init.yml
   - template: steps.yml
   - template: wrap-up.yml
+  pool:
+    vmImage: windows-latest
+
+- job: LinuxBuild
+  steps:
+  - template: passes-linux.yml
+  pool:
+    vmImage: ubuntu-20.04
+
+- job: MacOSBuild
+  steps:
+  - template: passes-mac.yml
+  pool:
+    vmImage: macOS-latest
 
 - job: Style
   steps:
@@ -43,3 +55,5 @@ jobs:
 
   - script: dotnet tool run fantomas -- --check --recurse .
     displayName: Fantomas
+  pool:
+    vmImage: windows-latest

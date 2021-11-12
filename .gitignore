@@ -306,6 +306,9 @@ paket-files/
 __pycache__/
 *.pyc
 
+# Python Virtual environments
+*__venv/ 
+
 # Cake - Uncomment if you are using it
 # tools/**
 # !tools/packages.config
@@ -342,7 +345,6 @@ ASALocalRun/
 src/ProjectTemplates/Quantum.App1/Quantum.App1.csproj
 src/ProjectTemplates/Quantum.Library1/Quantum.Library1.csproj
 src/ProjectTemplates/Quantum.Test1/Quantum.Test1.csproj
-src/QsCompiler/LanguageServer/TemporaryProject.cs
 src/QuantumSdk/DefaultItems/DefaultItems.props
 src/ProjectTemplates/Quantum.App1/.template.config/template.json
 src/ProjectTemplates/Quantum.Library1/.template.config/template.json

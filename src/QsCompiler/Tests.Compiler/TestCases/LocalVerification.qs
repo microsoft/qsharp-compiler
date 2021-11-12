@@ -43,13 +43,13 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation TypeArgumentsInference6<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new ('T => Unit)[0];
+        mutable arr = [];
         set arr = [TypeArgumentsInference6(1, _)];
         arr[0](arg);
     }
 
     operation TypeArgumentsInference7<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new ('T => Unit)[0];
+        mutable arr = [];
         set arr += [TypeArgumentsInference7(1, _)];
         arr[0](arg);
     }
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation TypeArgumentsInference10<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new (Int => Unit)[0];
+        mutable arr = [];
         set arr += [TypeArgumentsInference12(_, arg), TypeArgumentsInference12(_, "")];
         arr[0](cnt - 1);
     }
@@ -94,14 +94,14 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation TypeArgumentsInference14<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new (Int => Unit)[0];
+        mutable arr = [];
         set arr = [TypeArgumentsInference14(_, PauliX)];
         set arr = [TypeArgumentsInference14(_, arg)];
         arr[0](cnt - 1);
     }
 
     operation TypeArgumentsInference15<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new (Int => Unit)[0];
+        mutable arr = [];
         set arr += [TypeArgumentsInference15(_, PauliX)];
         set arr += [TypeArgumentsInference15(_, arg)];
         arr[1](cnt - 1);
@@ -300,7 +300,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation VariableDeclaration13<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new ((Int, 'T) => Unit)[0];
+        mutable arr = [];
         set arr += [VariableDeclaration12];
         arr[0](cnt - 1, arg);
     }
@@ -312,13 +312,13 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation VariableDeclaration15<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new ((Int, 'T) => Unit)[0];
+        mutable arr = [];
         set arr = [VariableDeclaration15];
         arr[0](cnt - 1, arg);
     }
 
     operation VariableDeclaration16<'T>(cnt: Int, arg : 'T) : Unit {
-        mutable arr = new ((Int, 'T) => Unit)[0];
+        mutable arr = [];
         set arr += [VariableDeclaration16];
         arr[0](cnt - 1, arg);
     }
@@ -351,7 +351,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         let tuple = (1, (VariableDeclaration21, ""));
         let a1 = [VariableDeclaration21];
         mutable a2 = [VariableDeclaration21];
-        mutable arr = new ((Int, Double) => Unit)[0];
+        mutable arr = [];
         set arr = [VariableDeclaration21];
         set arr += [VariableDeclaration21];
         set arr w/= 0 <- VariableDeclaration21;
@@ -442,7 +442,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function CopyAndUpdateArray3 (arr : Int[][]) : Int[][] {
-        return arr w/ 0 <- new Int[10];
+        return arr w/ 0 <- [0, size = 10];
     }
 
     function CopyAndUpdateArray4<'T> (arr : 'T[]) : 'T[] {
@@ -527,27 +527,27 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     // update-and-reassign array
 
     function UpdateAndReassign1 () : Unit {
-        mutable arr = new Int[10];
+        mutable arr = [0, size = 10];
         set arr w/= 1 <- 0;
     }
 
     function UpdateAndReassign2 () : Unit {
-        mutable arr = new Int[10];
+        mutable arr = [0, size = 10];
         set arr w/= 0 .. 2 <- [0,0,0];
     }
 
     function UpdateAndReassign3 () : Unit {
-        mutable arr = new Int[10];
+        mutable arr = [0, size = 10];
         set arr w/= 0 .. Length(arr)-1 <- arr w/ 0 <- 1;
     }
 
     function UpdateAndReassign4 () : Unit {
-        mutable arr = new Int[10];
+        mutable arr = [0, size = 10];
         set arr w/= 1 <- 0.;
     }
 
     function UpdateAndReassign5 () : Unit {
-        mutable arr = new Int[10];
+        mutable arr = [0, size = 10];
         set arr w/= 0 .. Length(arr) <- 1 .. Length(arr);
     }
 
@@ -634,12 +634,12 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function ApplyAndReassign9 () : Unit {
-        mutable a = new Int[10];
+        mutable a = [0, size = 10];
         set a[0] = 1;
     }
 
     function ApplyAndReassign10 () : Unit {
-        mutable a = new Int[10];
+        mutable a = [0, size = 10];
         set a[0] += 1;
     }
 
@@ -691,7 +691,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
             fail "length mismatch";
         }
 
-        mutable res = new (Int,Int,Int)[0];
+        mutable res = [];
         for (i1, i2) in arg2::Name {
             set res += [(i1, i2, arg1::Name[Length(res)])];
         }
@@ -814,8 +814,8 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     function ItemUpdate9 () : Unit {
         mutable arr = new ArrayType10[5];
         for i in 0..4 {
-            mutable item = arr[i] w/ Phase <- new Int[10];
-            set item w/= Const <- new Double[10];
+            mutable item = arr[i] w/ Phase <- [0, size = 10];
+            set item w/= Const <- [0.0, size = 10];
             set arr w/= i <- item;
         }
     }
@@ -823,7 +823,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     function ItemUpdate10 () : Unit {
         mutable arr = new ArrayType10[5];
         for i in 0..4 {
-            mutable item = arr[i] w/ Phase <- new Int[10];
+            mutable item = arr[i] w/ Phase <- [0, size = 10];
             set item::Phase w/= 0 <- 1;
         }
     }
@@ -831,7 +831,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     function ItemUpdate11 () : Unit {
         mutable arr = new ArrayType10[5];
         for i in 0..4 {
-            set arr[i] w/= Phase <- new Int[10];
+            set arr[i] w/= Phase <- [0, size = 10];
         }
     }
 
