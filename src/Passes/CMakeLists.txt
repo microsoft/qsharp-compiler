@@ -105,13 +105,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
-include_directories(${CMAKE_SOURCE_DIR}/Source)
+include_directories(${CMAKE_SOURCE_DIR}/qir/qat)
 llvm_map_components_to_libnames(llvm_libs support core irreader passes orcjit x86asmparser x86codegen x86desc x86disassembler x86info interpreter objcarcopts)
 
 message(STATUS "${llvm_libs}")
 
 
 # Adding the libraries
-add_subdirectory(Source)
+add_subdirectory(qir/qat)
 
 add_subdirectory(ComponentExamples)
