@@ -134,6 +134,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return new LocalDeclarations(varsBefore);
             }
 
+            // This is null if the position does not occur in an expression of the current statement.
             var expressionVars = (currentStatement.Statement switch
             {
                 QsStatementKind.QsExpressionStatement e => ExpressionVars(e.Item),
