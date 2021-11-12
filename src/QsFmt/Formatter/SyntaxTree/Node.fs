@@ -3,8 +3,8 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-open System.Text.RegularExpressions
 open System
+open System.Text.RegularExpressions
 
 type Trivia =
     /// A contiguous region of whitespace.

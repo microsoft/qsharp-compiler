@@ -1,4 +1,5 @@
 steps:
+
 - pwsh: ./build.ps1
   displayName: "Build all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build

@@ -5,6 +5,10 @@ namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 type Attribute = { At: Terminal; Expression: Expression }
 
+module Attribute =
+    let mapPrefix mapper attribute =
+        { attribute with At = Terminal.mapPrefix mapper attribute.At }
+
 type TypeParameterBinding =
     {
         OpenBracket: Terminal
@@ -14,7 +18,7 @@ type TypeParameterBinding =
 
 type SpecializationGenerator =
     | BuiltIn of name: Terminal * semicolon: Terminal
-    | Provided of parameters: Terminal option * statements: Statement Block
+    | Provided of parameters: Terminal Tuple option * statements: Statement Block
 
 type Specialization = { Names: Terminal list; Generator: SpecializationGenerator }
 
@@ -43,7 +47,10 @@ module NamespaceItem =
     let mapPrefix mapper =
         function
         | CallableDeclaration callable ->
-            { callable with CallableKeyword = Terminal.mapPrefix mapper callable.CallableKeyword }
+            { callable with
+                CallableKeyword = Terminal.mapPrefix mapper callable.CallableKeyword
+                Attributes = callable.Attributes |> List.map (Attribute.mapPrefix mapper)
+            }
             |> CallableDeclaration
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown
 
