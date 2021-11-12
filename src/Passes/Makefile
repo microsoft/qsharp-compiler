@@ -15,7 +15,7 @@ doxygen:
 
 
 linux-docker:
-	docker build -f Docker/CI.Ubuntu20.dockerfile -t qir-passes-ubuntu:latest .
+	docker build --no-cache -f Docker/CI.Ubuntu20.dockerfile -t qir-passes-ubuntu:latest .
 
 linux-ci: linux-docker
 	docker run -it --rm -t qir-passes-ubuntu:latest ./manage runci

@@ -3,7 +3,7 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ConfigurationManager.hpp"
-#include "Types/Types.hpp"
+#include "QatTypes/QatTypes.hpp"
 
 namespace microsoft
 {

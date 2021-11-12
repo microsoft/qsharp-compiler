@@ -17,8 +17,6 @@ namespace quantum
     class StorePattern : public IOperandPrototype
     {
       public:
-        using IOperandPrototype::IOperandPrototype;
-        ~StorePattern() override;
         bool  match(Value* instr, Captures& captures) const override;
         Child copy() const override;
     };
@@ -26,8 +24,6 @@ namespace quantum
     class LoadPattern : public IOperandPrototype
     {
       public:
-        using IOperandPrototype::IOperandPrototype;
-        ~LoadPattern() override;
         bool  match(Value* instr, Captures& captures) const override;
         Child copy() const override;
     };
@@ -35,8 +31,6 @@ namespace quantum
     class BitCastPattern : public IOperandPrototype
     {
       public:
-        using IOperandPrototype::IOperandPrototype;
-        ~BitCastPattern() override;
         bool  match(Value* instr, Captures& captures) const override;
         Child copy() const override;
     };
@@ -44,8 +38,6 @@ namespace quantum
     class IntToPtrPattern : public IOperandPrototype
     {
       public:
-        using IOperandPrototype::IOperandPrototype;
-        ~IntToPtrPattern() override;
         bool  match(Value* instr, Captures& captures) const override;
         Child copy() const override;
     };
@@ -53,8 +45,6 @@ namespace quantum
     class ConstIntPattern : public IOperandPrototype
     {
       public:
-        using IOperandPrototype::IOperandPrototype;
-        ~ConstIntPattern() override;
         bool  match(Value* instr, Captures& captures) const override;
         Child copy() const override;
     };
@@ -62,8 +52,6 @@ namespace quantum
     class BranchPattern : public IOperandPrototype
     {
       public:
-        using IOperandPrototype::IOperandPrototype;
-        ~BranchPattern() override;
         bool  match(Value* instr, Captures& captures) const override;
         Child copy() const override;
     };
@@ -71,8 +59,6 @@ namespace quantum
     class SelectPattern : public IOperandPrototype
     {
       public:
-        using IOperandPrototype::IOperandPrototype;
-        ~SelectPattern() override;
         bool  match(Value* instr, Captures& captures) const override;
         Child copy() const override;
     };
@@ -80,8 +66,6 @@ namespace quantum
     class BasicBlockPattern : public IOperandPrototype
     {
       public:
-        using IOperandPrototype::IOperandPrototype;
-        ~BasicBlockPattern() override;
         bool  match(Value* instr, Captures& captures) const override;
         Child copy() const override;
     };
@@ -89,8 +73,6 @@ namespace quantum
     class SwitchPattern : public IOperandPrototype
     {
       public:
-        using IOperandPrototype::IOperandPrototype;
-        ~SwitchPattern() override;
         bool  match(Value* instr, Captures& captures) const override;
         Child copy() const override;
     };

@@ -4,6 +4,8 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
+#include "Logging/ILogger.hpp"
+#include "Logging/LogCollection.hpp"
 #include "ValidationPass/ValidationPassConfiguration.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -21,7 +23,8 @@ namespace quantum
     class Validator
     {
       public:
-        using ValidatorPtr = std::unique_ptr<Validator>;
+        using ValidatorPtr      = std::unique_ptr<Validator>;
+        using LogColloectionPtr = std::shared_ptr<LogCollection>;
 
         // Constructors
         //
@@ -51,9 +54,6 @@ namespace quantum
       protected:
         using PassBuilderPtr = std::unique_ptr<llvm::PassBuilder>;
 
-        /// Sets the module pass manager used for the transformation of the IR.
-        void setModulePassManager(llvm::ModulePassManager&& manager);
-
         /// Returns a reference to the pass builder.
         llvm::PassBuilder& passBuilder();
 
@@ -70,6 +70,8 @@ namespace quantum
         llvm::ModuleAnalysisManager& moduleAnalysisManager();
 
       private:
+        void saveReportToFileIfNeeded();
+
         // LLVM logic to run the passes
         //
 
@@ -81,6 +83,9 @@ namespace quantum
         PassBuilderPtr pass_builder_;
 
         llvm::ModulePassManager module_pass_manager_{};
+
+        LogColloectionPtr logger_{nullptr}; ///< Logger to keep track of errors and warnings occurring.
+        String            save_to_filename_{""};
     };
 
 } // namespace quantum

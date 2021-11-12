@@ -4,9 +4,9 @@
 
 #include "Logging/ILogger.hpp"
 #include "Profile/Profile.hpp"
+#include "QatTypes/QatTypes.hpp"
 #include "Rules/RuleSet.hpp"
 #include "TransformationRulesPass/TransformationRulesPassConfiguration.hpp"
-#include "Types/Types.hpp"
 
 #include "Llvm/Llvm.hpp"
 

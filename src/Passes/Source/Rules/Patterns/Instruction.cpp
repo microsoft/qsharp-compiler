@@ -2,14 +2,13 @@
 // Licensed under the MIT License.
 
 #include "Rules/IOperandPrototype.hpp"
-#include "Rules/Operands/Instruction.hpp"
+#include "Rules/Patterns/Instruction.hpp"
 
 namespace microsoft
 {
 namespace quantum
 {
 
-    StorePattern::~StorePattern() = default;
     bool StorePattern::match(Value* instr, Captures& captures) const
     {
         auto* load_instr = llvm::dyn_cast<llvm::StoreInst>(instr);
@@ -28,7 +27,6 @@ namespace quantum
         return std::move(ret);
     }
 
-    LoadPattern::~LoadPattern() = default;
     bool LoadPattern::match(Value* instr, Captures& captures) const
     {
         auto* load_instr = llvm::dyn_cast<llvm::LoadInst>(instr);
@@ -47,7 +45,6 @@ namespace quantum
         return std::move(ret);
     }
 
-    BitCastPattern::~BitCastPattern() = default;
     bool BitCastPattern::match(Value* instr, Captures& captures) const
     {
         auto* load_instr = llvm::dyn_cast<llvm::BitCastInst>(instr);
@@ -66,7 +63,6 @@ namespace quantum
         return std::move(ret);
     }
 
-    IntToPtrPattern::~IntToPtrPattern() = default;
     bool IntToPtrPattern::match(Value* instr, Captures& captures) const
     {
         auto* load_instr = llvm::dyn_cast<llvm::IntToPtrInst>(instr);
@@ -85,7 +81,6 @@ namespace quantum
         return std::move(ret);
     }
 
-    ConstIntPattern::~ConstIntPattern() = default;
     bool ConstIntPattern::match(Value* instr, Captures& captures) const
     {
         auto* load_instr = llvm::dyn_cast<llvm::ConstantInt>(instr);
@@ -104,7 +99,6 @@ namespace quantum
         return std::move(ret);
     }
 
-    BranchPattern::~BranchPattern() = default;
     bool BranchPattern::match(Value* instr, Captures& captures) const
     {
         auto* load_instr = llvm::dyn_cast<llvm::BranchInst>(instr);
@@ -123,7 +117,6 @@ namespace quantum
         return std::move(ret);
     }
 
-    SelectPattern::~SelectPattern() = default;
     bool SelectPattern::match(Value* instr, Captures& captures) const
     {
         auto* load_instr = llvm::dyn_cast<llvm::SelectInst>(instr);
@@ -142,7 +135,6 @@ namespace quantum
         return std::move(ret);
     }
 
-    BasicBlockPattern::~BasicBlockPattern() = default;
     bool BasicBlockPattern::match(Value* instr, Captures& captures) const
     {
         auto* load_instr = llvm::dyn_cast<llvm::BasicBlock>(instr);
@@ -161,7 +153,6 @@ namespace quantum
         return std::move(ret);
     }
 
-    SwitchPattern::~SwitchPattern() = default;
     bool SwitchPattern::match(Value* instr, Captures& captures) const
     {
         auto* load_instr = llvm::dyn_cast<llvm::SwitchInst>(instr);
