@@ -22,16 +22,16 @@ namespace Ubiquity.NET.Llvm
 {
     /// <summary>Enumeration to indicate the behavior of module level flags metadata sharing the same name in a <see cref="BitcodeModule"/>.</summary>
     [SuppressMessage("Design", "CA1027:Mark enums with FlagsAttribute", Justification = "It isn't a flags enum")]
-    public enum ModuleFlagBehavior // TODO: There is currently a bug in LLVMSharp such that all values in the LLVMModuleFlagBehavior enum are off by one. (issue: https://github.com/microsoft/LLVMSharp/issues/178#issue-1051246758)
+    public enum ModuleFlagBehavior
     {
         /// <summary>Invalid value (default value for this enumeration).</summary>
         Invalid = 0,
 
         /// <summary>Emits an error if two values disagree, otherwise the resulting value is that of the operands.</summary>
-        Error = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorError + 1,
+        Error = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorError,
 
         /// <summary>Emits a warning if two values disagree. The result will be the operand for the flag from the first module being linked.</summary>
-        Warning = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorWarning + 1,
+        Warning = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorWarning,
 
         /// <summary>Adds a requirement that another module flag be present and have a specified value after linking is performed.</summary>
         /// <remarks>
@@ -39,17 +39,17 @@ namespace Ubiquity.NET.Llvm
         /// second element of the pair is the value the module flag should be restricted to. This behavior can be used to restrict the
         /// allowable results (via triggering of an error) of linking IDs with the <see cref="Override"/> behavior.
         /// </remarks>
-        Require = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorRequire + 1,
+        Require = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorRequire,
 
         /// <summary>Uses the specified value, regardless of the behavior or value of the other module.</summary>
         /// <remarks>If both modules specify Override, but the values differ, and error will be emitted.</remarks>
-        Override = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorOverride + 1,
+        Override = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorOverride,
 
         /// <summary>Appends the two values, which are required to be metadata nodes.</summary>
-        Append = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorAppend + 1,
+        Append = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorAppend,
 
         /// <summary>Appends the two values, which are required to be metadata nodes dropping duplicate entries in the second list.</summary>
-        AppendUnique = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorAppendUnique + 1,
+        AppendUnique = LLVMModuleFlagBehavior.LLVMModuleFlagBehaviorAppendUnique,
     }
 
     /// <summary>LLVM Bit-code module.</summary>
@@ -643,13 +643,7 @@ namespace Ubiquity.NET.Llvm
                 throw new ArgumentException();
             }
 
-            LLVMValueRef flagNode = LLVMValueRef.CreateMDNode(new[]
-            {
-                LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)behavior),
-                this.Context.ContextHandle.GetMDString(name),
-                LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, value),
-            });
-            this.ModuleHandle.AddNamedMetadataOperand("llvm.module.flags", flagNode);
+            this.moduleHandle.AddModuleFlag(name, (LLVMModuleFlagBehavior)behavior, value);
         }
 
         /// <summary>Adds an llvm.ident metadata string to the module</summary>

@@ -67,10 +67,12 @@ namespace LLVMSharp.Interop
             return LLVM.GetNamedGlobalAlias(self, name.AsMarshaledString(), (UIntPtr)name.Length);
         }
 
-        /// <summary>Convenience wrapper for <see cref="LLVM.AddModuleFlag"/>.</summary>
-        public static void AddModuleFlag(this LLVMModuleRef self, LLVMModuleFlagBehavior behavior, string key, LLVMMetadataRef val)
+        /// <summary>Convenience wrapper for <see cref="LLVM.AddModuleFlag"/>.
+        /// TODO: If this PR gets merged to LLVMSharp, we can remove this wrapper: https://github.com/microsoft/LLVMSharp/pull/181/files</summary>
+        public static void AddModuleFlag(this LLVMModuleRef self, string key, LLVMModuleFlagBehavior behavior, uint val)
         {
-            LLVM.AddModuleFlag(self, behavior, key.AsMarshaledString(), (UIntPtr)key.Length, val);
+            LLVMOpaqueMetadata* valAsMetadata = LLVM.ValueAsMetadata(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, val));
+            LLVM.AddModuleFlag(self, behavior, key.AsMarshaledString(), (UIntPtr)key.Length, valAsMetadata);
         }
 
         /// <summary>Convenience wrapper for <see cref="LLVM.GetIntrinsicDeclaration"/>.</summary>

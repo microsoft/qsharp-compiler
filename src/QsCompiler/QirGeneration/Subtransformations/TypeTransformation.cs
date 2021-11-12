@@ -182,7 +182,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.builtLLVMType = this.qirTypes.Tuple;
             if (this.currDIBuilder != null)
             {
-                this.builtDebugType = DebugType.Create<ITypeRef, DIType>(this.qirTypes.Void, null); // TODO: see if we can use Tuple with no debug info
+                this.builtDebugType = DebugType.Create<ITypeRef, DIType>(this.qirTypes.Tuple, null);
             }
 
             return QsResolvedTypeKind.InvalidType;
