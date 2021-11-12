@@ -61,8 +61,34 @@ type 'context Rewriter() as rewriter =
 
     default _.NamespaceItem(context, item) =
         match item with
+        | OpenDirective directive -> rewriter.OpenDirective(context, directive) |> OpenDirective
+        | TypeDeclaration declaration -> rewriter.TypeDeclaration(context, declaration) |> TypeDeclaration
         | CallableDeclaration callable -> rewriter.CallableDeclaration(context, callable) |> CallableDeclaration
         | Unknown terminal -> rewriter.Terminal(context, terminal) |> Unknown
+
+    abstract OpenDirective : context: 'context * directive: OpenDirective -> OpenDirective
+
+    default rewriter.OpenDirective(context, directive) =
+        {
+            OpenKeyword = rewriter.Terminal(context, directive.OpenKeyword)
+            OpenName = rewriter.Terminal(context, directive.OpenName)
+            AsKeyword = directive.AsKeyword |> Option.map (curry rewriter.Terminal context)
+            AsName = directive.AsName |> Option.map (curry rewriter.Terminal context)
+            Semicolon = rewriter.Terminal(context, directive.Semicolon)
+        }
+
+    abstract TypeDeclaration : context: 'context * declaration: TypeDeclaration -> TypeDeclaration
+
+    default rewriter.TypeDeclaration(context, declaration) =
+        {
+            Attributes = declaration.Attributes |> List.map (curry rewriter.Attribute context)
+            Access = declaration.Access |> Option.map (curry rewriter.Terminal context)
+            NewtypeKeyword = rewriter.Terminal(context, declaration.NewtypeKeyword)
+            DeclaredType = rewriter.Terminal(context, declaration.DeclaredType)
+            Equals = rewriter.Terminal(context, declaration.Equals)
+            UnderlyingType = rewriter.UnderlyingType(context, declaration.UnderlyingType)
+            Semicolon = rewriter.Terminal(context, declaration.Semicolon)
+        }
 
     abstract Attribute : context: 'context * attribute: Attribute -> Attribute
 
@@ -71,6 +97,20 @@ type 'context Rewriter() as rewriter =
             At = rewriter.Terminal(context, attribute.At)
             Expression = rewriter.Expression(context, attribute.Expression)
         }
+
+    abstract UnderlyingType : context: 'context * underlying: UnderlyingType -> UnderlyingType
+
+    default rewriter.UnderlyingType(context, underlying) =
+        match underlying with
+        | TypeDeclarationTuple tuple -> rewriter.Tuple(context, rewriter.TypeTupleItem, tuple) |> TypeDeclarationTuple
+        | Type _type -> rewriter.Type(context, _type) |> Type
+
+    abstract TypeTupleItem : context: 'context * item: TypeTupleItem -> TypeTupleItem
+
+    default rewriter.TypeTupleItem(context, item) =
+        match item with
+        | TypeBinding binding -> rewriter.ParameterDeclaration(context, binding) |> TypeBinding
+        | UnderlyingType underlying -> rewriter.UnderlyingType(context, underlying) |> UnderlyingType
 
     abstract CallableDeclaration : context: 'context * callable: CallableDeclaration -> CallableDeclaration
 
