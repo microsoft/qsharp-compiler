@@ -142,7 +142,7 @@ type UnderlyingTypeVistor(tokens) =
     override visitor.VisitTupleUnderlyingType context =
         context.typeDeclarationTuple () |> visitor.Visit
 
-    override _.VisitNonTupleType context =
+    override _.VisitUnnamedTypeItem context =
         context.``type`` () |> typeVisitor.Visit |> Type
 
     override _.VisitTypeDeclarationTuple context =
