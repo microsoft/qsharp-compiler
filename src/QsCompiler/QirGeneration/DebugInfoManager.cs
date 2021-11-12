@@ -212,7 +212,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // get the type information for the variable
                 ResolvedType? resType = value.QSharpType;
-                DIType? dIType = resType == null ? null : this.GetDebugTypeFor(resType, diBuilder)?.DIType;
+                DIType? dIType = resType == null ? null : this.DebugTypeFromQsharpType(resType, diBuilder)?.DIType;
 
                 // get the location information for the variable declaration
                 QsLocation? namespaceLoc = this.sharedState.DIManager.CurrentNamespaceElementLocation;
@@ -221,7 +221,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (subProgram != null && dIType != null)
                 {
-                    // LLVM Native API has a bug and will crash if we pass in a null dIType for either CreateLocalVariable or InsertDeclare
+                    // LLVM Native API has a bug and will crash if we pass in a null dIType
+                    // for either CreateLocalVariable or InsertDeclare (https://bugs.llvm.org/show_bug.cgi?id=52459)
 
                     // create the debug info for the local variable
                     DILocalVariable dIVar = diBuilder.CreateLocalVariable(
@@ -272,9 +273,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // set up debug info for the function
                 IDebugType<ITypeRef, DIType>? retDebugType;
                 IDebugType<ITypeRef, DIType>?[] argDebugTypes;
-                retDebugType = this.GetDebugTypeFor(spec.Signature.ReturnType, curDIBuilder);
-                argDebugTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(t => this.GetDebugTypeFor(t, curDIBuilder)).ToArray() :
-                    new IDebugType<ITypeRef, DIType>?[] { this.GetDebugTypeFor(spec.Signature.ArgumentType, curDIBuilder) };
+                retDebugType = this.DebugTypeFromQsharpType(spec.Signature.ReturnType, curDIBuilder);
+                argDebugTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(t => this.DebugTypeFromQsharpType(t, curDIBuilder)).ToArray() :
+                    new IDebugType<ITypeRef, DIType>?[] { this.DebugTypeFromQsharpType(spec.Signature.ArgumentType, curDIBuilder) };
                 string shortName = spec.Parent.Name; // We want to show the user the short name in the debug info instead of the mangled name
 
                 // get the location info
@@ -345,7 +346,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 DebugPosition debugPos = DebugPosition.FromZeroBasedLine(debugLoc.Item.Offset.Line); // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
 
                 // get necessary debug information
-                DIType? dIType = this.GetDebugTypeFor(value.QSharpType, curDIBuilder)?.DIType;
+                DIType? dIType = this.DebugTypeFromQsharpType(value.QSharpType, curDIBuilder)?.DIType;
                 DISubProgram? sp = this.sharedState.CurrentFunction?.DISubProgram;
                 DILocalVariable dIVar = curDIBuilder.CreateArgument(
                     sp,
@@ -403,29 +404,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Creates a debug type for a particular Q# type. The debug type connects a debug info type with its
-        /// corresponding LLVM Native type.
+        /// If <see cref="DebugFlag"/> is set to true, creates a debug type for a particular Q# type.
+        /// The debug type connects a debug info type with its corresponding LLVM Native type.
+        /// Note: If the debug type is not implemented, ideally we would return a <see cref="DebugType"/> with a valid LLVM Native type
+        /// and a null DIType. However, this causes an error in the QIR emission because of a bug in the native LLVM API, so we return null.
         /// </summary>
         /// <param name="resolvedType">The Q# type to create a DebugType from.</param>
         /// <param name="dIBuilder">The <see cref="DebugInfoBuilder"/> to use to create the debug type.</param>
-        /// <returns>The Debug Type corresponding to the given Q# type. Returns null if the debug type is not implemented.</returns>
-        private IDebugType<ITypeRef, DIType>? GetDebugTypeFor(ResolvedType resolvedType, DebugInfoBuilder dIBuilder)
+        /// <returns>The <see cref="DebugType"/> corresponding to the given Q# type. Returns null if the debug type is not implemented.</returns>
+        private IDebugType<ITypeRef, DIType>? DebugTypeFromQsharpType(ResolvedType resolvedType, DebugInfoBuilder dIBuilder)
         {
-            // TODO: include other variable types including callables
-            if (resolvedType.Resolution.IsInt)
+            if (this.DebugFlag)
             {
-                return new DebugBasicType(this.sharedState.Types.Int, dIBuilder, TypeNames.Int, DiTypeKind.Signed);
+                // TODO: implement other variable types in TypeTransformation including callables
+                return this.sharedState.Types.Transform.DebugTypeFromQsharpType(resolvedType, dIBuilder);
             }
-            else if (resolvedType.Resolution.IsUnitType)
-            {
-                return DebugType.Create<ITypeRef, DIType>(this.sharedState.Types.Void, null);
-            }
-            else
-            {
-                // Note: Ideally we would return a DebugType with a valid LLVM Native type and a null DIType. However, this causes an error
-                // in the QIR emission because of a bug in the native LLVM API.
-                return null;
-            }
+
+            return null;
         }
 
         /// <summary>
