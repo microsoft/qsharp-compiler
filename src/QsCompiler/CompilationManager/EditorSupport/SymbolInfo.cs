@@ -159,14 +159,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return new LocalDeclarations((expressionVars ?? statementVars).ToImmutableArray());
 
             IEnumerable<LocalVariableDeclaration<string>>? ExpressionVars(TypedExpression e) =>
-                e.Range.IsValue && e.Range.Item.Contains(position - currentStatement.Location.Item.Offset)
+                e.Range.Any(r => r.Contains(position - currentStatement.Location.Item.Offset))
                     ? DeclarationsInExpression(e, position - currentStatement.Location.Item.Offset)
                     : null;
 
             IEnumerable<LocalVariableDeclaration<string>>? CondExpressionVars(QsStatementKind.QsConditionalStatement c)
                 =>
-                LastConditionBlockBefore(c, position) is ({ Range: { IsValue: true } } lastCond, var lastBlock)
-                && lastCond.Range.Item.Contains(position - lastBlock.Location.Item.Offset)
+                LastConditionBlockBefore(c, position) is ({ } lastCond, var lastBlock)
+                && lastCond.Range.Any(r => r.Contains(position - lastBlock.Location.Item.Offset))
                     ? DeclarationsInExpression(lastCond, position - lastBlock.Location.Item.Offset)
                     : null;
 
@@ -383,7 +383,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : ScopeStartsBefore(nextScope) ? SplitStatementsByPosition(nextScope, position)
                 : (scope, statementsBefore, nextScope.Statements.ToImmutableList());
 
-            bool IsBefore(QsNullable<QsLocation> location) => location.IsValue && location.Item.Offset < position;
+            bool IsBefore(QsNullable<QsLocation> location) => location.Any(l => l.Offset < position);
             bool ScopeStartsBefore(QsScope sc) => sc.Statements.FirstOrDefault() is { } st && IsBefore(st.Location);
 
             static QsScope NextRepeatScope(QsStatementKind.QsRepeatStatement repeat)
@@ -405,14 +405,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : condBlocks;
 
             return blocks
-                .TakeWhile(b => b.Item2.Location.IsValue && b.Item2.Location.Item.Offset < position)
+                .TakeWhile(b => b.Item2.Location.Any(l => l.Offset < position))
                 .LastOrDefault();
         }
 
         private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInExpression(
             TypedExpression expression, Position position)
         {
-            if (expression.Range.IsNull || !expression.Range.Item.Contains(position))
+            if (!expression.Range.Any(r => r.Contains(position)))
             {
                 return Enumerable.Empty<LocalVariableDeclaration<string>>();
             }
