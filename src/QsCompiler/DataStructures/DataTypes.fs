@@ -7,8 +7,11 @@ open System
 open System.Collections
 open System.Collections.Generic
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Newtonsoft.Json
+open Newtonsoft.Json.Converters
 
-// to avoid having to include the F# core in the C# part of the compiler...
+/// A nullable type.
+[<JsonConverter(typeof<DiscriminatedUnionConverter>)>]
 [<Struct>]
 type QsNullable<'T> =
     | Null
