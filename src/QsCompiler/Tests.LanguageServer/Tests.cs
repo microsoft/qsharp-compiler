@@ -364,5 +364,51 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             await RunFormattingTestAsync("test12");
             await RunFormattingTestAsync("test15");
         }
+
+        [TestMethod]
+        public async Task LambdaSymbolInfoAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test16");
+            var projectManager = new ProjectManager(e => throw e);
+            await projectManager.LoadProjectsAsync(
+                new[] { projectFile }, CompilationContext.Editor.QsProjectLoader, enableLazyLoading: false);
+
+            var lambdaQs = new Uri(projectFile, "Lambda.qs");
+            await projectManager.ManagerTaskAsync(lambdaQs, TestAfterTypeChecking);
+
+            void Test()
+            {
+                AssertHover(
+                    "x1",
+                    "String",
+                    true,
+                    projectManager.HoverInformation(new TextDocumentPositionParams
+                    {
+                        Position = new Position(2, 12),
+                        TextDocument = new TextDocumentIdentifier { Uri = lambdaQs },
+                    }));
+            }
+
+            void TestAfterTypeChecking(CompilationUnitManager compilationUnitManager, bool projectFound)
+            {
+                Assert.IsTrue(projectFound);
+                compilationUnitManager.FlushAndExecute(() =>
+                {
+                    Test();
+                    return new object();
+                });
+            }
+
+            static void AssertHover(string expectedName, string expectedType, bool expectedDeclaration, Hover? actual)
+            {
+                var expected =
+                    (expectedDeclaration
+                        ? $"Declaration of an immutable variable {expectedName}"
+                        : $"Immutable variable {expectedName}")
+                    + $"    \nType: {expectedType}";
+
+                Assert.AreEqual(expected, actual!.Contents.Third.Value);
+            }
+        }
     }
 }
