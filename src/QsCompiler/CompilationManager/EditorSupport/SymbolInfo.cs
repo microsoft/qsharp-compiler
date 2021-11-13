@@ -124,58 +124,71 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static LocalDeclarations LocalsInScope(QsScope scope, Position position, bool inclusive)
         {
             var (parent, statementsBefore, _) = SplitStatementsByPosition(scope, position);
-            var declarationsBefore = parent.KnownSymbols.Variables
-                .Concat(statementsBefore.SkipLast(1).SelectMany(s => s.SymbolDeclarations.Variables));
             var currentStatement = statementsBefore.LastOrDefault();
+            var varsBefore = parent.KnownSymbols.Variables
+                .Concat(statementsBefore.SkipLast(1).SelectMany(s => s.SymbolDeclarations.Variables))
+                .ToImmutableArray();
 
             if (!inclusive || currentStatement is null)
             {
-                return new LocalDeclarations(declarationsBefore.ToImmutableArray());
+                return new LocalDeclarations(varsBefore);
             }
 
-            var expressionDeclarations = currentStatement.Statement switch
+            // This is null if the position does not occur in an expression of the current statement.
+            var expressionVars = (currentStatement.Statement switch
             {
-                QsStatementKind.QsExpressionStatement expression => ExpressionDeclarations(expression.Item),
-                QsStatementKind.QsReturnStatement @return => ExpressionDeclarations(@return.Item),
-                QsStatementKind.QsFailStatement fail => ExpressionDeclarations(fail.Item),
-                QsStatementKind.QsVariableDeclaration declaration => ExpressionDeclarations(declaration.Item.Rhs),
-                QsStatementKind.QsValueUpdate update => ExpressionDeclarations(update.Item.Rhs),
-                QsStatementKind.QsConditionalStatement cond => CondExpressionDeclarations(cond),
-                QsStatementKind.QsForStatement @for => ExpressionDeclarations(@for.Item.IterationValues),
-                QsStatementKind.QsWhileStatement @while => ExpressionDeclarations(@while.Item.Condition),
-                QsStatementKind.QsRepeatStatement repeat => ExpressionDeclarations(repeat.Item.SuccessCondition),
-                QsStatementKind.QsQubitScope qubit => QubitInitDeclarations(qubit.Item.Binding.Rhs),
-                _ => Enumerable.Empty<LocalVariableDeclaration<string>>(),
+                QsStatementKind.QsExpressionStatement e => ExpressionVars(e.Item),
+                QsStatementKind.QsReturnStatement r => ExpressionVars(r.Item),
+                QsStatementKind.QsFailStatement f => ExpressionVars(f.Item),
+                QsStatementKind.QsVariableDeclaration d => ExpressionVars(d.Item.Rhs),
+                QsStatementKind.QsValueUpdate u => ExpressionVars(u.Item.Rhs),
+                QsStatementKind.QsConditionalStatement c => CondExpressionVars(c),
+                QsStatementKind.QsForStatement f => ExpressionVars(f.Item.IterationValues),
+                QsStatementKind.QsWhileStatement w => ExpressionVars(w.Item.Condition),
+                QsStatementKind.QsRepeatStatement r => ExpressionVars(r.Item.SuccessCondition),
+                QsStatementKind.QsQubitScope q => QubitInitVars(q.Item.Binding.Rhs),
+                _ => null,
+            })?.Select(AddStatementOffset).Concat(varsBefore);
+
+            var statementVars = currentStatement.Statement switch
+            {
+                QsStatementKind.QsForStatement f => f.Item.Body.KnownSymbols.Variables,
+                QsStatementKind.QsQubitScope q => q.Item.Body.KnownSymbols.Variables,
+                _ => currentStatement.SymbolDeclarations.Variables.Concat(varsBefore),
             };
 
-            return new LocalDeclarations(
-                declarationsBefore
-                    .Concat(currentStatement.SymbolDeclarations.Variables)
-                    .Concat(expressionDeclarations.Select(AddStatementOffset))
-                    .ToImmutableArray());
+            return new LocalDeclarations((expressionVars ?? statementVars).ToImmutableArray());
 
-            IEnumerable<LocalVariableDeclaration<string>> ExpressionDeclarations(TypedExpression expr) =>
-                DeclarationsInExpression(expr, position - currentStatement.Location.Item.Offset);
-
-            IEnumerable<LocalVariableDeclaration<string>> CondExpressionDeclarations(
-                QsStatementKind.QsConditionalStatement cond) =>
-                LastConditionBlockBefore(cond, position) is ({ } lastCond, var lastBlock)
-                    ? DeclarationsInExpression(lastCond, position - lastBlock.Location.Item.Offset)
-                    : Enumerable.Empty<LocalVariableDeclaration<string>>();
-
-            IEnumerable<LocalVariableDeclaration<string>> QubitInitDeclarations(ResolvedInitializer init) =>
-                init.Resolution switch
-                {
-                    QsInitializerKind.QubitRegisterAllocation r => ExpressionDeclarations(r.Item),
-                    QsInitializerKind.QubitTupleAllocation t => t.Item.SelectMany(QubitInitDeclarations),
-                    _ => Enumerable.Empty<LocalVariableDeclaration<string>>(),
-                };
-
-            LocalVariableDeclaration<string> AddStatementOffset(LocalVariableDeclaration<string> decl)
+            IEnumerable<LocalVariableDeclaration<string>>? ExpressionVars(TypedExpression e)
             {
-                var specPosition = decl.Position.Map(p => currentStatement.Location.Item.Offset + p);
+                var p = position - currentStatement.Location.Item.Offset;
+                return e.Range.Any(r => r.Contains(p)) ? DeclarationsInExpression(e, p) : null;
+            }
+
+            IEnumerable<LocalVariableDeclaration<string>>? CondExpressionVars(QsStatementKind.QsConditionalStatement c)
+            {
+                if (LastConditionBlockBefore(c, position) is ({ } lastCond, var lastBlock))
+                {
+                    var p = position - lastBlock.Location.Item.Offset;
+                    return lastCond.Range.Any(r => r.Contains(p)) ? DeclarationsInExpression(lastCond, p) : null;
+                }
+
+                return null;
+            }
+
+            IEnumerable<LocalVariableDeclaration<string>>? QubitInitVars(ResolvedInitializer i) => i.Resolution switch
+            {
+                QsInitializerKind.QubitRegisterAllocation r => ExpressionVars(r.Item),
+                QsInitializerKind.QubitTupleAllocation t =>
+                    t.Item.Select(QubitInitVars).FirstOrDefault(vs => !(vs is null)),
+                _ => null,
+            };
+
+            LocalVariableDeclaration<string> AddStatementOffset(LocalVariableDeclaration<string> v)
+            {
+                var specPosition = v.Position.Map(p => currentStatement.Location.Item.Offset + p);
                 return new LocalVariableDeclaration<string>(
-                    decl.VariableName, decl.Type, decl.InferredInformation, specPosition, decl.Range);
+                    v.VariableName, v.Type, v.InferredInformation, specPosition, v.Range);
             }
         }
 
@@ -376,7 +389,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : ScopeStartsBefore(nextScope) ? SplitStatementsByPosition(nextScope, position)
                 : (scope, statementsBefore, nextScope.Statements.ToImmutableList());
 
-            bool IsBefore(QsNullable<QsLocation> location) => location.IsValue && location.Item.Offset < position;
+            bool IsBefore(QsNullable<QsLocation> location) => location.Any(l => l.Offset < position);
             bool ScopeStartsBefore(QsScope sc) => sc.Statements.FirstOrDefault() is { } st && IsBefore(st.Location);
 
             static QsScope NextRepeatScope(QsStatementKind.QsRepeatStatement repeat)
@@ -398,14 +411,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : condBlocks;
 
             return blocks
-                .TakeWhile(b => b.Item2.Location.IsValue && b.Item2.Location.Item.Offset < position)
+                .TakeWhile(b => b.Item2.Location.Any(l => l.Offset < position))
                 .LastOrDefault();
         }
 
         private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInExpression(
             TypedExpression expression, Position position)
         {
-            if (expression.Range.IsNull || !expression.Range.Item.Contains(position))
+            if (!expression.Range.Any(r => r.Contains(position)))
             {
                 return Enumerable.Empty<LocalVariableDeclaration<string>>();
             }
