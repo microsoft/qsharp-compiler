@@ -378,15 +378,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             void Test()
             {
-                AssertHover(
-                    "x1",
-                    "String",
-                    true,
-                    projectManager.HoverInformation(new TextDocumentPositionParams
-                    {
-                        Position = new Position(2, 12),
-                        TextDocument = new TextDocumentIdentifier { Uri = lambdaQs },
-                    }));
+                AssertHover("x1", "String", true, 2, 12);
             }
 
             void TestAfterTypeChecking(CompilationUnitManager compilationUnitManager, bool projectFound)
@@ -399,13 +391,20 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 });
             }
 
-            static void AssertHover(string expectedName, string expectedType, bool expectedDeclaration, Hover? actual)
+            void AssertHover(
+                string expectedName, string expectedType, bool expectedDeclaration, int line, int character)
             {
                 var expected =
                     (expectedDeclaration
                         ? $"Declaration of an immutable variable {expectedName}"
                         : $"Immutable variable {expectedName}")
                     + $"    \nType: {expectedType}";
+
+                var actual = projectManager!.HoverInformation(new TextDocumentPositionParams
+                {
+                    Position = new Position(line, character),
+                    TextDocument = new TextDocumentIdentifier { Uri = lambdaQs! },
+                });
 
                 Assert.AreEqual(expected, actual!.Contents.Third.Value);
             }
