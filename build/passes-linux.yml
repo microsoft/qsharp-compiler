@@ -10,6 +10,8 @@ steps:
       sudo apt-get install -y llvm-11 lldb-11 llvm-11-dev libllvm11 llvm-11-runtime opt 
       echo "Opt installed"
       which opt 
+      whereis opt
+      sudo ln -s /usr/lib/llvm-11/bin/opt /usr/bin/opt
       opt --help
       sudo apt install -y python3 python3-pip 
       sudo apt-get remove -y llvm-10
