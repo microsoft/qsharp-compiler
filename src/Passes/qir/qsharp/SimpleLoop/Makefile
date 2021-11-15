@@ -3,7 +3,9 @@ all: qat-qsharp
 qat-qsharp: QSharpVersion/qir/Example.ll
 	${QAT_BINARY} --apply -S --verify-module --profile base QSharpVersion/qir/Example.ll > combined.ll
 	opt -O3 -S combined.ll > optimised.ll
-	${QAT_BINARY} -O3 -S --apply --validate --save-validation-report validation.json --profile base optimised.ll
+	${QAT_BINARY} -O3 -S --apply --validate --save-validation-report validation.json --profile base optimised.ll > /dev/null
+	@echo "Validation for SimpleLoop finished"
+	
 	
 
 QSharpVersion/qir/Example.ll:
