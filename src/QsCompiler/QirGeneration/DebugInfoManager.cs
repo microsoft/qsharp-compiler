@@ -31,6 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     internal sealed class DebugInfoManager
     {
 // SECTION: Config values
+// TODO: remove SECTIONS before merging to main
 
         /// <summary>
         /// Whether or not to emit debug information during QIR generation
@@ -119,17 +120,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="owningModule">The <see cref="BitcodeModule"/> that this DebugInfoManager is related to</param>
         internal void AddTopLevelDebugInfo(BitcodeModule owningModule)
         {
-            if (this.DebugFlag)
+            if (!this.DebugFlag)
             {
-                // Add Module identity and Module Flags
-                owningModule.AddProducerIdentMetadata(GetQirProducerIdent());
-                owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, this.GetDwarfVersion());
-                owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DebugVersionValue, BitcodeModule.DebugMetadataVersion);
-                owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, this.GetCodeViewName(), this.GetCodeViewVersion()); // TODO: We seem to need this flag and not Dwarf in order to debug on Windows. Need to look into why LLDB is using CodeView on Windows
-
-                // TODO: could be useful to have target-specific module flags at some point
-                // Examples: AddModuleFlag(ModuleFlagBehavior.Error, "PIC Level", 2); (ModuleFlagBehavior.Error, "wchar_size", 4); (ModuleFlagBehavior.Error, "min_enum_size", 4)
+                return;
             }
+
+            // Add Module identity and Module Flags
+            owningModule.AddProducerIdentMetadata(GetQirProducerIdent());
+            owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, DwarfVersion);
+            owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DebugVersionValue, BitcodeModule.DebugMetadataVersion);
+            owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, CodeviewName, CodeviewVersion); // TODO: We seem to need this flag and not Dwarf in order to debug on Windows. Need to look into why LLDB is using CodeView on Windows
+
+            // TODO: could be useful to have target-specific module flags at some point
+            // Examples: AddModuleFlag(ModuleFlagBehavior.Error, "PIC Level", 2); (ModuleFlagBehavior.Error, "wchar_size", 4); (ModuleFlagBehavior.Error, "min_enum_size", 4)
         }
 
         /// <summary>
@@ -138,24 +141,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void FinalizeDebugInfo()
         {
-            if (this.DebugFlag)
+            if (!this.DebugFlag)
             {
-                string moduleID = "";
-                foreach (KeyValuePair<string, DebugInfoBuilder> entry in this.dIBuilders)
+                return;
+            }
+
+            string moduleID = "";
+            foreach (KeyValuePair<string, DebugInfoBuilder> entry in this.dIBuilders)
+            {
+                entry.Value.Finish(); // Must be called for every DIBuilder after all QIR generation
+
+                string sourcePath = entry.Key;
+                if (!string.IsNullOrEmpty(moduleID))
                 {
-                    entry.Value.Finish(); // must be called for every DIBuilder after all QIR generation
-
-                    string sourcePath = entry.Key;
-                    if (!string.IsNullOrEmpty(moduleID))
-                    {
-                        moduleID += ", ";
-                    }
-
-                    moduleID += Path.GetFileName(sourcePath);
+                    moduleID += ", ";
                 }
 
-                // TODO: set module ID. Decide how to actually create the moduleID (above way could be very long)
+                moduleID += Path.GetFileName(sourcePath);
             }
+
+            // TODO: set module ID. Decide how to actually create the moduleID (above way could be very long)
         }
 
         /// <summary>
@@ -167,16 +172,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// relative to the namespace and stack of parent <see cref="QsStatement"/>s.</param>
         internal void EmitLocationWithOffset(Position? relativePosition)
         {
-            if (this.DebugFlag)
+            if (!this.DebugFlag)
             {
-                DISubProgram? sp = this.sharedState.CurrentFunction?.DISubProgram;
-                QsLocation? namespaceLoc = this.sharedState.DIManager.CurrentNamespaceElementLocation;
+                return;
+            }
 
-                if (namespaceLoc != null && relativePosition != null && sp != null)
-                {
-                    Position absolutePosition = namespaceLoc.Offset + this.TotalOffsetFromStatements() + relativePosition;
-                    this.EmitLocation(absolutePosition, sp);
-                }
+            DISubProgram? subProgram = this.sharedState.CurrentFunction?.DISubProgram;
+            QsLocation? namespaceLocation = this.sharedState.DIManager.CurrentNamespaceElementLocation;
+
+            if (namespaceLocation != null && relativePosition != null && subProgram != null)
+            {
+                Position absolutePosition = namespaceLocation.Offset + this.TotalOffsetFromStatements() + relativePosition;
+                this.EmitLocation(absolutePosition, subProgram);
             }
         }
 
@@ -185,10 +192,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void EmitLocation()
         {
-            if (this.DebugFlag)
+            if (!this.DebugFlag)
             {
-                this.EmitLocationWithOffset(Position.Zero);
+                return;
             }
+
+            this.EmitLocationWithOffset(Position.Zero);
         }
 
         /// <summary>
@@ -198,56 +207,58 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="value">The value of the variable.</param>
         internal void CreateLocalVariable(string name, IValue value)
         {
-            if (this.DebugFlag)
+            if (!this.DebugFlag)
             {
-                // get the DebugInfoBuilder for this variable
-                DISubProgram? subProgram = this.sharedState.CurrentFunction?.DISubProgram;
-                string? sourcePath = subProgram?.File?.Path;
-                if (string.IsNullOrEmpty(sourcePath))
+                return;
+            }
+
+            // Get the DebugInfoBuilder for this variable
+            DISubProgram? subProgram = this.sharedState.CurrentFunction?.DISubProgram;
+            string? sourcePath = subProgram?.File?.Path;
+            if (string.IsNullOrEmpty(sourcePath))
+            {
+                return;
+            }
+
+            DebugInfoBuilder dIBuilder = this.GetOrCreateDIBuilder(sourcePath);
+
+            // Get the type information for the variable
+            ResolvedType? resType = value.QSharpType;
+            DIType? dIType = resType == null ? null : this.DebugTypeFromQsharpType(resType, dIBuilder)?.DIType;
+
+            // Get the location information for the variable declaration
+            QsLocation? namespaceLocation = this.sharedState.DIManager.CurrentNamespaceElementLocation;
+            Position namespaceOffset = namespaceLocation?.Offset ?? Position.Zero;
+            Position absolutePosition = namespaceOffset + this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions();
+
+            if (subProgram != null && dIType != null)
+            {
+                // LLVM Native API has a bug and will crash if we pass in a null dIType
+                // for either CreateLocalVariable or InsertDeclare (https://bugs.llvm.org/show_bug.cgi?id=52459)
+
+                // Create the debug info for the local variable
+                DILocalVariable dIVar = dIBuilder.CreateLocalVariable(
+                    subProgram,
+                    name,
+                    dIBuilder.CompileUnit?.File,
+                    ConvertToDebugPosition(absolutePosition),
+                    dIType,
+                    alwaysPreserve: true,
+                    DebugInfoFlags.None);
+
+                DILocation dILocation = new DILocation(
+                    this.Context,
+                    ConvertToDebugPosition(absolutePosition),
+                    subProgram);
+
+                if (this.sharedState.CurrentBlock != null)
                 {
-                    return;
-                }
-
-                DebugInfoBuilder diBuilder = this.GetOrCreateDIBuilder(sourcePath);
-
-                // get the type information for the variable
-                ResolvedType? resType = value.QSharpType;
-                DIType? dIType = resType == null ? null : this.DebugTypeFromQsharpType(resType, diBuilder)?.DIType;
-
-                // get the location information for the variable declaration
-                QsLocation? namespaceLoc = this.sharedState.DIManager.CurrentNamespaceElementLocation;
-                Position namespaceOffset = namespaceLoc?.Offset ?? Position.Zero;
-                Position absolutePosition = namespaceOffset + this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions();
-
-                if (subProgram != null && dIType != null)
-                {
-                    // LLVM Native API has a bug and will crash if we pass in a null dIType
-                    // for either CreateLocalVariable or InsertDeclare (https://bugs.llvm.org/show_bug.cgi?id=52459)
-
-                    // create the debug info for the local variable
-                    DILocalVariable dIVar = diBuilder.CreateLocalVariable(
-                        subProgram,
-                        name,
-                        diBuilder.CompileUnit?.File,
-                        ConvertToDebugPosition(absolutePosition),
-                        dIType,
-                        alwaysPreserve: true,
-                        DebugInfoFlags.None);
-
-                    DILocation dILoc = new DILocation(
-                        this.Context,
-                        ConvertToDebugPosition(absolutePosition),
-                        subProgram);
-
-                    if (this.sharedState.CurrentBlock != null)
-                    {
-                        // create the debug info for the local variable declaration
-                        diBuilder.InsertDeclare(
-                            storage: value.Value,
-                            varInfo: dIVar,
-                            location: dILoc,
-                            insertAtEnd: this.sharedState.CurrentBlock);
-                    }
+                    // Create the debug info for the local variable declaration
+                    dIBuilder.InsertDeclare(
+                        storage: value.Value,
+                        varInfo: dIVar,
+                        location: dILocation,
+                        insertAtEnd: this.sharedState.CurrentBlock);
                 }
             }
         }
@@ -263,14 +274,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The <see cref="IrFunction"/> corresponding to the given Q# type.</returns>
         internal IrFunction CreateGlobalFunction(QsSpecialization spec, string mangledName, IFunctionType signature, bool isDefinition)
         {
-            if (this.DebugFlag && spec.Kind == QsSpecializationKind.QsBody)
+            if (!this.DebugFlag)
             {
-                // set up the DIBuilder
+                return this.CreateFunctionNoDebug(mangledName, signature);
+            }
+
+            if (spec.Kind == QsSpecializationKind.QsBody)
+            {
+                // Set up the DIBuilder
                 string sourcePath = spec.Source.CodeFile;
                 DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
                 DIFile debugFile = curDIBuilder.CreateFile(sourcePath);
 
-                // set up debug info for the function
+                // Set up debug info for the function
                 IDebugType<ITypeRef, DIType>? retDebugType;
                 IDebugType<ITypeRef, DIType>?[] argDebugTypes;
                 retDebugType = this.DebugTypeFromQsharpType(spec.Signature.ReturnType, curDIBuilder);
@@ -278,18 +294,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     new IDebugType<ITypeRef, DIType>?[] { this.DebugTypeFromQsharpType(spec.Signature.ArgumentType, curDIBuilder) };
                 string shortName = spec.Parent.Name; // We want to show the user the short name in the debug info instead of the mangled name
 
-                // get the location info
-                QsNullable<QsLocation> debugLoc = spec.Location;
-                if (debugLoc.IsNull)
+                // Get the location info
+                QsNullable<QsLocation> debugLocation = spec.Location;
+                if (debugLocation.IsNull)
                 {
                     return this.CreateFunctionNoDebug(mangledName, signature);
                 }
 
-                Position absolutePosition = debugLoc.Item.Offset; // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
+                Position absolutePosition = debugLocation.Item.Offset; // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
 
                 if (retDebugType != null && !argDebugTypes.Contains(null))
                 {
-                    // create the function with debug info
+                    // Create the function with debug info
                     DebugFunctionType debugSignature = new DebugFunctionType(signature, curDIBuilder, DebugInfoFlags.None, retDebugType, argDebugTypes!);
                     IrFunction func = this.Module.CreateFunction(
                         scope: curDIBuilder.CompileUnit,
@@ -298,7 +314,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         file: debugFile,
                         linePosition: ConvertToDebugPosition(absolutePosition),
                         signature: debugSignature,
-                        isLocalToUnit: true, // we're using the compile unit from the source file this was declared in
+                        isLocalToUnit: true, // We're using the compile unit from the source file this was declared in
                         isDefinition: isDefinition,
                         scopeLinePosition: ConvertToDebugPosition(absolutePosition), // TODO: Could make more exact bc of formatting and white space (see lastParamLocation in Kaleidescope tutorial)
                         debugFlags: DebugInfoFlags.None,
@@ -328,50 +344,52 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="argNo">The index of the argument (expected to be 1-indexed).</param>
         internal void CreateFunctionArgument(QsSpecialization spec, string name, IValue value, int argNo)
         {
-            if (this.DebugFlag)
+            if (!this.DebugFlag)
             {
-                // get the DIBuilder
-                string sourcePath = spec.Source.CodeFile;
-                DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
-                DIFile debugFile = curDIBuilder.CreateFile(sourcePath);
+                return;
+            }
 
-                // get the debug location of the function
-                QsNullable<QsLocation> debugLoc = spec.Location;
-                if (debugLoc.IsNull)
-                {
-                    throw new ArgumentException("Expected a specialiazation with a non-null location");
-                }
+            // Get the DIBuilder
+            string sourcePath = spec.Source.CodeFile;
+            DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
+            DIFile debugFile = curDIBuilder.CreateFile(sourcePath);
 
-                // TODO: make this more exact by calculating absolute column position as well
-                DebugPosition debugPos = DebugPosition.FromZeroBasedLine(debugLoc.Item.Offset.Line); // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
+            // Get the debug location of the function
+            QsNullable<QsLocation> debugLocation = spec.Location;
+            if (debugLocation.IsNull)
+            {
+                throw new ArgumentException("Expected a specialiazation with a non-null location");
+            }
 
-                // get necessary debug information
-                DIType? dIType = this.DebugTypeFromQsharpType(value.QSharpType, curDIBuilder)?.DIType;
-                DISubProgram? sp = this.sharedState.CurrentFunction?.DISubProgram;
-                DILocalVariable dIVar = curDIBuilder.CreateArgument(
-                    sp,
-                    name,
-                    debugFile,
-                    debugPos,
-                    dIType,
-                    alwaysPreserve: true,
-                    DebugInfoFlags.None,
-                    (ushort)argNo); // arg numbers are 1-indexed
+            // TODO: make this more exact by calculating absolute column position as well
+            DebugPosition debugPosition = DebugPosition.FromZeroBasedLine(debugLocation.Item.Offset.Line); // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
 
-                if (this.sharedState.CurrentBlock != null && dIType != null && sp != null)
-                {
-                    DILocation dILoc = new DILocation(
-                        this.Context,
-                        debugPos,
-                        sp);
+            // Get necessary debug information
+            DIType? dIType = this.DebugTypeFromQsharpType(value.QSharpType, curDIBuilder)?.DIType;
+            DISubProgram? subProgram = this.sharedState.CurrentFunction?.DISubProgram;
+            DILocalVariable dIVariable = curDIBuilder.CreateArgument(
+                subProgram,
+                name,
+                debugFile,
+                debugPosition,
+                dIType,
+                alwaysPreserve: true,
+                DebugInfoFlags.None,
+                (ushort)argNo); // Arg numbers are 1-indexed
 
-                    // create the debug information for a variable declaration
-                    curDIBuilder.InsertDeclare(
-                        storage: value.Value,
-                        varInfo: dIVar,
-                        location: dILoc,
-                        insertAtEnd: this.sharedState.CurrentBlock);
-                }
+            if (this.sharedState.CurrentBlock != null && dIType != null && subProgram != null)
+            {
+                DILocation dILocation = new DILocation(
+                    this.Context,
+                    debugPosition,
+                    subProgram);
+
+                // Create the debug information for a variable declaration
+                curDIBuilder.InsertDeclare(
+                    storage: value.Value,
+                    varInfo: dIVariable,
+                    location: dILocation,
+                    insertAtEnd: this.sharedState.CurrentBlock);
             }
         }
 
@@ -414,13 +432,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The <see cref="DebugType"/> corresponding to the given Q# type. Returns null if the debug type is not implemented.</returns>
         private IDebugType<ITypeRef, DIType>? DebugTypeFromQsharpType(ResolvedType resolvedType, DebugInfoBuilder dIBuilder)
         {
-            if (this.DebugFlag)
+            if (!this.DebugFlag)
             {
-                // TODO: implement other variable types in TypeTransformation including callables
-                return this.sharedState.Types.Transform.DebugTypeFromQsharpType(resolvedType, dIBuilder);
+                return null;
             }
 
-            return null;
+            // TODO: implement other variable types in TypeTransformation including callables
+            return this.sharedState.Types.Transform.DebugTypeFromQsharpType(resolvedType, dIBuilder);
         }
 
         /// <summary>
@@ -443,7 +461,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// this will not emit a location.</param>
         private void EmitLocation(Position absolutePosition, DILocalScope? localScope)
         {
-            if (this.DebugFlag && localScope != null)
+            if (!this.DebugFlag)
+            {
+                return;
+            }
+
+            if (localScope != null)
             {
                 this.CurrentInstrBuilder.SetDebugLocation(ConvertToDebugPosition(absolutePosition), localScope);
             }
@@ -497,23 +520,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             return offset;
         }
-
-// SECTION: Private getters
-
-        /// <summary>
-        /// Gets the Dwarf version we are using for the debug info in the QIR generation
-        /// </summary>
-        private uint GetDwarfVersion() => DwarfVersion;
-
-        /// <summary>
-        /// Gets the CodeView version we are using for the debug info in the QIR generation
-        /// </summary>
-        private string GetCodeViewName() => CodeviewName;
-
-        /// <summary>
-        /// Gets the title for the CodeView module flag for debug info
-        /// </summary>
-        private uint GetCodeViewVersion() => CodeviewVersion;
 
 // SECTION: Private helpers to access content from the shared state
 
