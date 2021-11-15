@@ -168,7 +168,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
                                 command = new SetContextCommand();
                                 break;
                             default:
-                                if (TelemetryManager.DebugMode || TelemetryManager.TestMode)
+                                if (TelemetryManagerConstants.IsDebugBuild || TelemetryManager.TestMode)
                                 {
                                     TelemetryManager.LogToDebug($"Unexpected YAML commandType: {commandType}");
                                 }
@@ -205,7 +205,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
                 }
                 else
                 {
-                    if (TelemetryManager.DebugMode || TelemetryManager.TestMode)
+                    if (TelemetryManagerConstants.IsDebugBuild || TelemetryManager.TestMode)
                     {
                         TelemetryManager.LogToDebug($"Unexpected YAML string: {line}");
                     }
@@ -270,7 +270,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
 
                     break;
                 default:
-                    if (TelemetryManager.DebugMode || TelemetryManager.TestMode)
+                    if (TelemetryManagerConstants.IsDebugBuild || TelemetryManager.TestMode)
                     {
                         TelemetryManager.LogToDebug($"Unexpected YAML type: {type}");
                     }

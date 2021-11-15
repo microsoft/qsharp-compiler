@@ -235,7 +235,11 @@ namespace Microsoft.Quantum.Telemetry.Tests
             }
 
             // Try with OutOfProcessUpload=true, args=OUTOFPROCESSUPLOADARG
-            args = new string[] { TelemetryManager.OUTOFPROCESSUPLOADARG, TelemetryManager.TESTMODE };
+            args = new string[]
+            {
+                TelemetryManagerConstants.OUTOFPROCESSUPLOADARG,
+                TelemetryManagerConstants.TESTMODE,
+            };
             using (TelemetryManager.Initialize(outOfProcessConfig, args))
             {
             }
