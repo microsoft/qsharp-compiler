@@ -17,7 +17,7 @@ To build the library, first configure CMake from the build directory
 cmake ..
 ```
 
-and then make your target
+and then make your target:
 
 ```sh
 make qat
