@@ -290,7 +290,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 IDebugType<ITypeRef, DIType>? retDebugType;
                 IDebugType<ITypeRef, DIType>?[] argDebugTypes;
                 retDebugType = this.DebugTypeFromQsharpType(spec.Signature.ReturnType, curDIBuilder);
-                argDebugTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(t => this.DebugTypeFromQsharpType(t, curDIBuilder)).ToArray() :
+                argDebugTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ?
+                    ts.Item.Select(t => this.DebugTypeFromQsharpType(t, curDIBuilder)).ToArray() :
                     new IDebugType<ITypeRef, DIType>?[] { this.DebugTypeFromQsharpType(spec.Signature.ArgumentType, curDIBuilder) };
                 string shortName = spec.Parent.Name; // We want to show the user the short name in the debug info instead of the mangled name
 
