@@ -24,7 +24,7 @@ test-examples:
 	mkdir -p Debug
 	cd Debug && cmake .. && make qat
 	cd qir/stdlib && make
-	export QAT_BINARY=${PWD}/Debug/Source/Apps/qat && \
+	export QAT_BINARY=${PWD}/Debug/qir/qat/Apps/qat && \
 		export QIR_STLIB=${PWD}/qir/stdlib/lib/stdlib.ll && \
 		cd qir/qsharp && \
 		make
