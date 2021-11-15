@@ -26,19 +26,19 @@ namespace Microsoft.Quantum.Telemetry
 
         public static TelemetryManagerInstanceKind InstanceKind { get; set; } = TelemetryManagerInstanceKind.Application;
 
-        private static TelemetryManagerInstance? optionalInstance =>
-            (InstanceKind == TelemetryManagerInstanceKind.Application ? applicationInstance
-                             : threadInstance);
+        private static TelemetryManagerInstance? OptionalInstance =>
+            InstanceKind == TelemetryManagerInstanceKind.Application ? applicationInstance
+                            : threadInstance;
 
         public static TelemetryManagerInstance Instance =>
-            optionalInstance
+            OptionalInstance
             ?? throw new InvalidOperationException("TelemetryManager has not been initialized. Please call TelemetryManager.Initialize before attempting to log anything.");
 
         public static bool IsTestHostProcess { get; private set; }
 
-        public static DateTime? InitializationTime => optionalInstance?.InitializationTime;
+        public static DateTime? InitializationTime => OptionalInstance?.InitializationTime;
 
-        public static int TotalEventsCount => optionalInstance?.TotalEventsCount ?? 0;
+        public static int TotalEventsCount => OptionalInstance?.TotalEventsCount ?? 0;
 
         /// <summary>
         /// Handles general telemetry logic that is used accross Microsoft Quantum developer tools.
@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.Telemetry
         /// True if the TESTMODE argument was passed during initialization.
         /// This is used for some special cases of running unit tests.
         /// </summary>
-        public static bool TestMode => optionalInstance?.Configuration.TestMode ?? false;
+        public static bool TestMode => OptionalInstance?.Configuration.TestMode ?? false;
 
         /// <summary>
         /// Compiler directive ENABLE_QDK_TELEMETRY_EXCEPTIONS or DEBUG will set it to true
@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.Telemetry
         /// True if exceptions generated at the telemetry later should be thrown.
         /// False if they should be silenced and suppressed. They will still be logged at Trace.
         /// </summary>
-        public static bool EnableTelemetryExceptions => optionalInstance?.Configuration.EnableTelemetryExceptions ?? false;
+        public static bool EnableTelemetryExceptions => OptionalInstance?.Configuration.EnableTelemetryExceptions ?? false;
 
         /// <summary>
         /// The active configuration of the TelemetryManager.
@@ -137,7 +137,7 @@ namespace Microsoft.Quantum.Telemetry
         /// to upload the remaining events.
         /// </summary>
         public static void TearDown() =>
-            optionalInstance?.TearDown();
+            OptionalInstance?.TearDown();
 
         /// <summary>
         /// Logs all public properties of the object into an event, respecting the following rules:
@@ -224,7 +224,7 @@ namespace Microsoft.Quantum.Telemetry
             Instance.SetContext(name, value, isPii);
 
         public static void UploadNow() =>
-            optionalInstance?.UploadNow();
+            OptionalInstance?.UploadNow();
 
         internal static void LogToDebug(string message)
         {
@@ -233,7 +233,7 @@ namespace Microsoft.Quantum.Telemetry
             // If this is a OutOfProcess instance, we write it to
             // the standard console such that the main program will
             // receive it and print it to the Debug console
-            if (optionalInstance?.IsOutOfProcessInstance == true)
+            if (OptionalInstance?.IsOutOfProcessInstance == true)
             {
                 Console.WriteLine(message);
             }
