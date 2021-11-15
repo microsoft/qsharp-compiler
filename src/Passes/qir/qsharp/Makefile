@@ -1,5 +1,4 @@
 all:
-	cd BasicTuple && make all && make clean
 	cd ConstArray && make all && make clean
 	cd ConstQubitArray && make all && make clean
 	cd LoopRecursion && make all && make clean
@@ -11,7 +10,6 @@ stats:
 	python analysis.py
 
 clean:
-	cd BasicTuple  && make clean
 	cd ConstArray  && make clean
 	cd ConstQubitArray  && make clean
 	cd LoopRecursion  && make clean

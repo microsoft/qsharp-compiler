@@ -1,13 +1,6 @@
 lib/stdlib.ll:
 	clang -O0 -mllvm -disable-llvm-optzns -S -emit-llvm  -c src/stdlib.c -o lib/stdlib.ll
 
-yy:
-	clang -emit-llvm  -c src/stdlib.c -o lib/stdlib.ll
-
-xx:
-	clang++ -O3 -mllvm -disable-llvm-optzns -S -emit-llvm -c src/test-stdlib.cpp -o lib/stdlib.ll
-
-
 target/stdlib.bc: lib/stdlib.ll
 	llvm-as lib/stdlib.ll -o target/stdlib.bc
 
