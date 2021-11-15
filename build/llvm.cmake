@@ -44,6 +44,14 @@ message(STATUS CPACK_PACKAGE_FILE_NAME=${CPACK_PACKAGE_FILE_NAME})
 
 set(LLVM_ENABLE_LIBXML2 OFF CACHE BOOL "")
 
+if (APPLE)
+  # Fixing: Development code sign identity not found: 'lldb_codesign'
+  # This will cause failures in the test suite.
+  # Usd the system one instead. See 'Code Signing on macOS' in the documentation.
+  set(LLDB_USE_SYSTEM_DEBUGSERVER ON CACHE BOOL "")
+  set(LLDB_INCLUDE_TESTS OFF CACHE BOOL "")
+endif()
+
 set(CMAKE_BUILD_TYPE MinSizeRel CACHE STRING "")
 
 set(LLVM_TARGETS_TO_BUILD "X86" CACHE STRING "")
