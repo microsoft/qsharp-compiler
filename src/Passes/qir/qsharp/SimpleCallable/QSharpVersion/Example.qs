@@ -32,14 +32,7 @@ namespace Microsoft.Quantum.Samples {
             );
         let arr = [q0,q1,q2,q3,q4,q5,q6,q7,q8,q9];
 
-
         X(arr[3]);
-        //for i in 0..y-1
-        //{
-        //    X(arr[i]);
-        //}
-
-
 
         return y;
     }

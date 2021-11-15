@@ -146,8 +146,6 @@ int8_t *__quantum__rt__array_copy(int8_t *array, int8_t force)
   return array;
 }
 
-//    %Array *@__quantum__rt__array_slice_1d(% Array *, % Range, i1) local_unnamed_addr
-
 int64_t __quantum__rt__array_get_size_1d(int8_t *array)
 {
   int64_t *s = (int64_t *)(array + sizeof(int64_t));
