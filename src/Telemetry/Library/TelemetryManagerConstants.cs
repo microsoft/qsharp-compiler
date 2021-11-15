@@ -12,7 +12,7 @@ namespace Microsoft.Quantum.Telemetry
         #if DEBUG
         public const bool IsDebugBuild = true;
         #else
-        public const bool DebugMode = false;
+        public const bool IsDebugBuild = false;
         #endif
     }
 }
