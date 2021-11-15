@@ -36,10 +36,34 @@ type internal 'result Reducer =
     default NamespaceItem: item:NamespaceItem -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="OpenDirective"/> node.
+    /// </summary>
+    abstract OpenDirective: directive:OpenDirective -> 'result
+    default OpenDirective: directive:OpenDirective -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="TypeDeclaration"/> node.
+    /// </summary>
+    abstract TypeDeclaration: declaration:TypeDeclaration -> 'result
+    default TypeDeclaration: declaration:TypeDeclaration -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="Attribute"/> node.
     /// </summary>
     abstract Attribute: attribute:Attribute -> 'result
     default Attribute: attribute:Attribute -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="UnderlyingType"/> node.
+    /// </summary>
+    abstract UnderlyingType: underlying:UnderlyingType -> 'result
+    default UnderlyingType: underlying:UnderlyingType -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="TypeTupleItem"/> node.
+    /// </summary>
+    abstract TypeTupleItem: item:TypeTupleItem -> 'result
+    default TypeTupleItem: item:TypeTupleItem -> 'result
 
     /// <summary>
     /// Reduces a <see cref="CallableDeclaration"/> node.
