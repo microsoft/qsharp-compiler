@@ -2,8 +2,12 @@ FROM quay.io/pypa/manylinux_2_24_x86_64 as llvm-builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    apt-transport-https \
+    ca-certificates \
     ninja-build \
     sudo \
+    software-properties-common \
+    wget \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -17,6 +21,12 @@ RUN git clone --depth 1 https://github.com/ccache/ccache -b v4.4.2 && \
     ninja install && \
     rm -rf /tmp/build
 WORKDIR /tmp
+
+# Install clang and lld. Compiler on this image is too old
+# to build the runtimes.
+RUN wget https://apt.llvm.org/llvm.sh && \
+    chmod +x llvm.sh && \
+    ./llvm.sh 11
 
 ENV LLVM_CMAKEFILE ""
 ENV LLVM_DIR ""
