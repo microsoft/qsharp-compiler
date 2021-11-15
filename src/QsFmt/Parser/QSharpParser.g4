@@ -23,12 +23,12 @@ qualifiedName : Identifier ('.' Identifier)*;
 namespaceElement
     : openDirective # OpenElement
     | typeDeclaration # TypeElement
-    | callable=callableDeclaration # CallableElement
+    | callableDeclaration # CallableElement
     ;
 
 // Open Directive
 
-openDirective : 'open' qualifiedName ('as' qualifiedName)? ';';
+openDirective : open='open' openName=qualifiedName (as='as' asName=qualifiedName)? semicolon=';';
 
 // Declaration
 
@@ -40,18 +40,20 @@ declarationPrefix : attributes+=attribute* access?;
 
 // Type Declaration
 
-typeDeclaration : declarationPrefix 'newtype' Identifier '=' underlyingType ';';
-
-underlyingType
-    : typeDeclarationTuple
-    | type
+typeDeclaration
+    : prefix=declarationPrefix keyword='newtype' declared=Identifier equals='=' underlying=underlyingType semicolon=';'
     ;
 
-typeDeclarationTuple : '(' (typeTupleItem (',' typeTupleItem)*)? ')';
+underlyingType
+    : typeDeclarationTuple # TupleUnderlyingType
+    | type # UnnamedTypeItem
+    ;
+
+typeDeclarationTuple : openParen='(' (items+=typeTupleItem (commas+=',' items+=typeTupleItem)*)? closeParen=')';
 
 typeTupleItem
-    : namedItem
-    | underlyingType
+    : namedItem # NamedTypeItem
+    | underlyingType # UnderlyingTypeItem
     ;
 
 namedItem : name=Identifier colon=':' itemType=type;
