@@ -32,10 +32,34 @@ type internal 'context Rewriter =
     default NamespaceItem: context:'context * item:NamespaceItem -> NamespaceItem
 
     /// <summary>
+    /// Rewrites an <see cref="OpenDirective"/> node.
+    /// </summary>
+    abstract OpenDirective: context:'context * directive:OpenDirective -> OpenDirective
+    default OpenDirective: context:'context * directive:OpenDirective -> OpenDirective
+
+    /// <summary>
+    /// Rewrites a <see cref="TypeDeclaration"/> node.
+    /// </summary>
+    abstract TypeDeclaration: context:'context * declaration:TypeDeclaration -> TypeDeclaration
+    default TypeDeclaration: context:'context * declaration:TypeDeclaration -> TypeDeclaration
+
+    /// <summary>
     /// Rewrites an <see cref="Attribute"/> node.
     /// </summary>
     abstract Attribute: context:'context * attribute:Attribute -> Attribute
     default Attribute: context:'context * attribute:Attribute -> Attribute
+
+    /// <summary>
+    /// Rewrites an <see cref="UnderlyingType"/> node.
+    /// </summary>
+    abstract UnderlyingType: context:'context * underlying:UnderlyingType -> UnderlyingType
+    default UnderlyingType: context:'context * underlying:UnderlyingType -> UnderlyingType
+
+    /// <summary>
+    /// Rewrites a <see cref="TypeTupleItem"/> node.
+    /// </summary>
+    abstract TypeTupleItem: context:'context * item:TypeTupleItem -> TypeTupleItem
+    default TypeTupleItem: context:'context * item:TypeTupleItem -> TypeTupleItem
 
     /// <summary>
     /// Rewrites a <see cref="CallableDeclaration"/> node.
