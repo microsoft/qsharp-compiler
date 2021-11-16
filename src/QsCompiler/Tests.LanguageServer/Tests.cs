@@ -337,11 +337,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public async Task TestLambdaHoverInfoAsync()
         {
             var projectFile = ProjectLoaderTests.ProjectUri("test16");
+            var projectManager = await LoadProjectFileAsync(projectFile);
             var lambdaFile = new Uri(projectFile, "Lambda.qs");
-            var projectManager = new ProjectManager(e => throw e);
-
-            await projectManager.LoadProjectsAsync(
-                new[] { projectFile }, CompilationContext.Editor.QsProjectLoader, enableLazyLoading: false);
 
             await TestUtils.TestAfterTypeCheckingAsync(projectManager, lambdaFile, () =>
             {
@@ -410,11 +407,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public async Task TestLambdaReferencesAsync()
         {
             var projectFile = ProjectLoaderTests.ProjectUri("test16");
+            var projectManager = await LoadProjectFileAsync(projectFile);
             var lambdaFile = new Uri(projectFile, "Lambda.qs");
-            var projectManager = new ProjectManager(e => throw e);
-
-            await projectManager.LoadProjectsAsync(
-                new[] { projectFile }, CompilationContext.Editor.QsProjectLoader, enableLazyLoading: false);
 
             await TestUtils.TestAfterTypeCheckingAsync(projectManager, lambdaFile, () =>
             {
@@ -485,6 +479,14 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
 
             static string PositionToString(Position p) => $"Ln {p.Line}, Col {p.Character}";
+        }
+
+        private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)
+        {
+            var projectManager = new ProjectManager(e => throw e);
+            await projectManager.LoadProjectsAsync(
+                new[] { uri }, CompilationContext.Editor.QsProjectLoader, enableLazyLoading: false);
+            return projectManager;
         }
     }
 }
