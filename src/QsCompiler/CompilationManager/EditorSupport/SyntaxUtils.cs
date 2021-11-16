@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
@@ -36,20 +37,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
         {
             var (parent, statementsBefore, _) = SplitStatementsByPosition(scope, position);
             var currentStatement = statementsBefore.LastOrDefault();
-            var declarationsBefore = parent.KnownSymbols.Variables
-                .Concat(statementsBefore.SkipLast(1).SelectMany(s => s.SymbolDeclarations.Variables));
+            var varsBefore = parent.KnownSymbols.Variables
+                .Concat(statementsBefore.SkipLast(1).SelectMany(s => s.SymbolDeclarations.Variables))
+                .ToImmutableArray();
 
             if (!inclusive || currentStatement is null)
             {
-                return new LocalDeclarations(declarationsBefore.ToImmutableArray());
+                return new LocalDeclarations(varsBefore);
             }
 
-            return new LocalDeclarations(declarationsBefore
-                .Concat(currentStatement.SymbolDeclarations.Variables)
-                .Concat(ExpressionsInStatement(currentStatement).SelectMany(DeclarationsWithOffset))
-                .ToImmutableArray());
+            // This is null if the position does not occur in an expression of the current statement.
+            var currentExpression = ExpressionsInStatement(currentStatement).FirstOrDefault(IsSelectedExpression);
+            var expressionVars = currentExpression?.Apply(VarsWithOffset).Concat(varsBefore);
 
-            IEnumerable<LocalVariableDeclaration<string>> DeclarationsWithOffset(TypedExpression e)
+            var statementVars = currentStatement.Statement switch
+            {
+                QsStatementKind.QsForStatement f => f.Item.Body.KnownSymbols.Variables,
+                QsStatementKind.QsQubitScope q => q.Item.Body.KnownSymbols.Variables,
+                _ => currentStatement.SymbolDeclarations.Variables.Concat(varsBefore),
+            };
+
+            return new LocalDeclarations((expressionVars ?? statementVars).ToImmutableArray());
+
+            bool IsSelectedExpression(TypedExpression e) =>
+                e.Range.Any(r => r.Contains(position - currentStatement.Location.Item.Offset));
+
+            IEnumerable<LocalVariableDeclaration<string>> VarsWithOffset(TypedExpression e)
             {
                 if (currentStatement.Location.IsNull)
                 {
@@ -95,20 +108,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
                 : ScopeStartsBefore(nextScope) ? SplitStatementsByPosition(nextScope, position)
                 : (scope, statementsBefore, nextScope.Statements.ToImmutableList());
 
-            bool IsBefore(QsNullable<QsLocation> location) => location.IsValue && location.Item.Offset < position;
-            bool ScopeStartsBefore(QsScope sc) => sc.Statements.FirstOrDefault() is { } st && IsBefore(st.Location);
+            bool IsBefore(QsNullable<QsLocation> location) => location.Any(l => l.Offset < position);
+            bool ScopeStartsBefore(QsScope s) => s.Statements.FirstOrDefault()?.Location is { } l && IsBefore(l);
 
             QsPositionedBlock? LastCondBlockBefore(QsStatementKind.QsConditionalStatement cond)
             {
                 var condBlocks = cond.Item.ConditionalBlocks.Select(b => b.Item2);
                 var blocks = cond.Item.Default.IsValue ? condBlocks.Append(cond.Item.Default.Item) : condBlocks;
-                return blocks.TakeWhile(b => b.Location.IsValue && b.Location.Item.Offset < position).LastOrDefault();
+                return blocks.TakeWhile(b => b.Location.Any(l => l.Offset < position)).LastOrDefault();
             }
 
             static QsScope NextRepeatScope(QsStatementKind.QsRepeatStatement repeat)
             {
-                var statements = repeat.Item.RepeatBlock.Body.Statements.Concat(repeat.Item.FixupBlock.Body.Statements);
-                return new QsScope(statements.ToImmutableArray(), repeat.Item.RepeatBlock.Body.KnownSymbols);
+                var statements = repeat.Item.RepeatBlock.Body.Statements
+                    .Concat(repeat.Item.FixupBlock.Body.Statements)
+                    .ToImmutableArray();
+
+                return new QsScope(statements, repeat.Item.RepeatBlock.Body.KnownSymbols);
             }
         }
 
@@ -161,12 +177,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
         private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInExpressionByPosition(
             TypedExpression expression, Position position)
         {
-            return expression.Range.IsValue && expression.Range.Item.Contains(position)
-                ? expression.ExtractAll(Declarations)
-                : Enumerable.Empty<LocalVariableDeclaration<string>>();
+            return expression.ExtractAll(Declarations);
 
             IEnumerable<LocalVariableDeclaration<string>> Declarations(TypedExpression e)
             {
+                if (!e.Range.Any(r => r.Contains(position)))
+                {
+                    return Enumerable.Empty<LocalVariableDeclaration<string>>();
+                }
+
                 if (e.Expression is QsExpressionKind.Lambda lambda)
                 {
                     // Since lambda parameters are bound later to a value from any source, pessimistically assume it has
