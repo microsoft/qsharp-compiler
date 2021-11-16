@@ -13,7 +13,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
     public static class JitCompilation
     {
         [DllImport("Microsoft.Quantum.Qir.QSharp.Core", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
-        public static extern IntPtr CreateFullstateSimulator(long seed);
+        public static extern IntPtr CreateFullstateSimulatorC(long seed);
 
         [DllImport("Microsoft.Quantum.Qir.Runtime", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
         public static extern void InitializeQirContext(IntPtr driver, bool trackAllocatedObjects);
@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
             // To get this line to work, I had to change the CreateFullstateSimulator API to use raw pointers instead of shared pointers,
             // and I had to update both calls to be "extern 'C'" otherwise name mangling makes then impossible to call here.
             // This should be revised more broadly as we move the runtime to a C-style API for ABI compatibility across langauges.
-            InitializeQirContext(CreateFullstateSimulator(0), true);
+            InitializeQirContext(CreateFullstateSimulatorC(0), true);
 
             if (!File.Exists(pathToBitcode))
             {
