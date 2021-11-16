@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>sampleTelAppFs</AssemblyName>
+    <RootNamespace>Microsoft.Quantum.Telemetry.Samples.FSharp</RootNamespace>
+    <!--
+    The MsBuild imports cause a bunch of MSB3277 errors that seem benign.
+    I believe the root is the use of the CommandLineParser that seems to target netstandard2.0
+    See also these issues:
+    https://github.com/dotnet/msbuild/issues/4183
+    https://github.com/FluentValidation/FluentValidation/issues/638
+    https://github.com/commandlineparser/commandline/issues/786
+    -->
+    <NoWarn>MSB3277</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Library\Telemetry.csproj" />
+  </ItemGroup>
+
+</Project>

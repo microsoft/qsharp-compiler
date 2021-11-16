@@ -1,4 +1,4 @@
-define internal void @Microsoft__Quantum__Testing__QIR__TestBuiltInIntrinsics__body() {
+define internal i64 @Microsoft__Quantum__Testing__QIR__TestBuiltInIntrinsics__body() {
 entry:
   %0 = call { %Callable*, %Callable*, %Callable* }* @Microsoft__Quantum__Testing__QIR__DefaultOptions__body()
   %1 = bitcast { %Callable*, %Callable*, %Callable* }* %0 to %Tuple*
@@ -50,6 +50,7 @@ entry:
   store %String* %24, %String** %27, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %19, %Tuple* %25, %Tuple* null)
   call void @__quantum__rt__callable_invoke(%Callable* %14, %Tuple* null, %Tuple* null)
+  %28 = call i64 @llvm.readcyclecounter()
   call void @__quantum__rt__capture_update_alias_count(%Callable* %17, i32 -1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %17, i32 -1)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %19, i32 -1)
@@ -71,5 +72,5 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %21, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %24, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %25, i32 -1)
-  ret void
+  ret i64 %28
 }

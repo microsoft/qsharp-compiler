@@ -44,6 +44,74 @@ type internal Specialization =
         Generator: SpecializationGenerator
     }
 
+/// An open directive
+type internal OpenDirective =
+    {
+        /// <summary>
+        /// The <c>open</c> keyword.
+        /// </summary>
+        OpenKeyword: Terminal
+
+        /// The name of the opened namespace.
+        OpenName: Terminal
+
+        /// <summary>
+        /// The optional <c>as</c> keyword.
+        /// </summary>
+        AsKeyword: Terminal option
+
+        /// The alias name of the opened namespace.
+        AsName: Terminal option
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
+/// The underlying type of a newly defined type.
+type internal UnderlyingType =
+    /// A tuple of type items.
+    | TypeDeclarationTuple of TypeTupleItem Tuple
+
+    /// A simple type.
+    | Type of Type
+
+/// An item used in type declaration.
+and internal TypeTupleItem =
+    /// A named type item.
+    | TypeBinding of ParameterDeclaration
+
+    /// An anonymous type item.
+    | UnderlyingType of UnderlyingType
+
+/// A type declaration
+type internal TypeDeclaration =
+    {
+        /// The attributes attached to the type declaration.
+        Attributes: Attribute list
+
+        /// The access modifier for the callable.
+        Access: Terminal option
+
+        /// <summary>
+        /// The <c>newtype</c> keyword.
+        /// </summary>
+        NewtypeKeyword: Terminal
+
+        /// The name of the declared type.
+        DeclaredType: Terminal
+
+        /// <summary>
+        /// The <c>=</c> symbol.
+        /// </summary>
+        Equals: Terminal
+
+        /// The underlying type.
+        UnderlyingType: UnderlyingType
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
 /// The body of a callable declaration.
 type internal CallableBody =
     /// An implicit body specialization with statements.
@@ -88,6 +156,12 @@ type internal CallableDeclaration =
 
 /// An item in a namespace.
 type internal NamespaceItem =
+    /// An open directive
+    | OpenDirective of OpenDirective
+
+    /// A type declaration
+    | TypeDeclaration of TypeDeclaration
+
     /// A callable declaration
     | CallableDeclaration of CallableDeclaration
 
