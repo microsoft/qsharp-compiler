@@ -185,6 +185,12 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal void OnInternalError(Exception ex)
         {
+            var telemetryProps = new Dictionary<string, string?>();
+            telemetryProps["exceptionType"] = ex.GetType().ToString();
+            telemetryProps["message"] = ex.Message;
+            var telemetryMeas = new Dictionary<string, int>();
+            _ = this.SendTelemetryAsync("internal-error", telemetryProps, telemetryMeas);
+
             const string line = "\n=============================\n";
             const string logLocation = "the output window"; // TODO: Generate a proper error log in a file somewhere.
             const string message =
