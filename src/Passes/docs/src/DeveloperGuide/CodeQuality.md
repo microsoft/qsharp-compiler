@@ -87,7 +87,7 @@ The automatic style enforcement is configurable with the ability to easily add o
 SOURCE_PIPELINES = [
     {
         "name": "C++ Main",
-        "src": path.join(PROJECT_ROOT, "Source"),
+        "src": path.join(PROJECT_ROOT, "qir/qat"),
 
         "pipelines": {
             "hpp": [
