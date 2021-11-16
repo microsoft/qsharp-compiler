@@ -15,40 +15,6 @@ using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
 
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
-    internal static class Extensions
-    {
-        internal static void AssertCapability<TOptions>(this SumType<bool, TOptions>? capability, bool shouldHave = true, Func<TOptions, bool>? condition = null)
-        {
-            if (shouldHave)
-            {
-                Assert.IsTrue(capability.HasValue, "Expected capability to have value, but was null.");
-            }
-
-            if (capability.HasValue)
-            {
-                capability!.Value.Match(
-                    flag =>
-                    {
-                        Assert.AreEqual(flag, shouldHave);
-                        return true;
-                    },
-                    options =>
-                    {
-                        if (condition != null)
-                        {
-                            Assert.IsTrue(condition(options));
-                        }
-                        else
-                        {
-                            Assert.IsNotNull(options);
-                        }
-
-                        return true;
-                    });
-            }
-        }
-    }
-
     [TestClass]
     public partial class BasicFunctionality
     {
