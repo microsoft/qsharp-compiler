@@ -12,7 +12,7 @@ namespace Test16 {
 
         let f3 = foo -> foo + 1;
 
-        for i in (i -> [i])(1.0) {}
+        for i in (i -> [$"{i}"])(1.0) {}
 
         if (x -> x or true)(true) {
         } elif (y -> y or y or true)(true) {

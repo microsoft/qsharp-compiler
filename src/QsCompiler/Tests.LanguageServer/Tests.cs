@@ -337,6 +337,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var projectFile = ProjectLoaderTests.ProjectUri("test16");
             var lambdaFile = new Uri(projectFile, "Lambda.qs");
             var projectManager = new ProjectManager(e => throw e);
+
             await projectManager.LoadProjectsAsync(
                 new[] { projectFile }, CompilationContext.Editor.QsProjectLoader, enableLazyLoading: false);
 
@@ -345,6 +346,43 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 AssertHover(new Position(2, 12), "x1", "String", true);
                 AssertHover(new Position(2, 18), "x1", "Double", true);
                 AssertHover(new Position(2, 27), "x1", "Double", false);
+
+                AssertHover(new Position(4, 12), "q1", "Qubit[]", true);
+                AssertHover(new Position(4, 24), "x", "Int", true);
+                AssertHover(new Position(4, 29), "x", "Int", false);
+
+                AssertHover(new Position(6, 12), "q2", "(Qubit[], Qubit, Qubit[])", true);
+                AssertHover(new Position(6, 25), "x", "Int", true);
+                AssertHover(new Position(6, 30), "x", "Int", false);
+                AssertHover(new Position(6, 58), "x", "Double", true);
+                AssertHover(new Position(6, 63), "x", "Double", false);
+
+                AssertHover(new Position(8, 12), "f1", "(Int -> Int)", true);
+                AssertHover(new Position(8, 18), "foo", "Int", true);
+                AssertHover(new Position(8, 26), "foo", "Int", false);
+                AssertHover(new Position(8, 36), "foo", "Int", false);
+
+                AssertHover(new Position(10, 12), "f2", "((Int, Int) -> Int)", true);
+                AssertHover(new Position(10, 18), "foo", "Int", true);
+                AssertHover(new Position(10, 23), "bar", "Int", true);
+                AssertHover(new Position(10, 31), "foo", "Int", false);
+                AssertHover(new Position(10, 37), "bar", "Int", false);
+
+                AssertHover(new Position(12, 12), "f3", "(Int -> Int)", true);
+                AssertHover(new Position(12, 17), "foo", "Int", true);
+                AssertHover(new Position(12, 24), "foo", "Int", false);
+
+                AssertHover(new Position(14, 12), "i", "String", true);
+                AssertHover(new Position(14, 18), "i", "Double", true);
+                AssertHover(new Position(14, 27), "i", "Double", false);
+
+                AssertHover(new Position(16, 12), "x", "Bool", true);
+                AssertHover(new Position(16, 17), "x", "Bool", false);
+                AssertHover(new Position(17, 16), "y", "Bool", true);
+                AssertHover(new Position(17, 21), "y", "Bool", false);
+                AssertHover(new Position(17, 26), "y", "Bool", false);
+                AssertHover(new Position(18, 16), "y", "Int", true);
+                AssertHover(new Position(18, 21), "y", "Int", false);
             });
 
             void AssertHover(Position position, string expectedName, string expectedType, bool expectedDeclaration)
