@@ -64,7 +64,6 @@
 #include <iostream>
 #include <unordered_map>
 
-
 using namespace llvm;
 using namespace microsoft::quantum;
 void init();
