@@ -16,7 +16,7 @@ RUN apt-get install -y curl \
 RUN wget https://github.com/matusnovak/doxybook2/releases/download/v1.3.6/doxybook2-linux-amd64-v1.3.6.zip && \
     unzip doxybook2-linux-amd64-v1.3.6.zip
 
-ADD Source/ /build/Source/
+ADD qir/qat/ /build/qir/qat/
 ADD doxygen.cfg /build/
 
 ADD docs/ /build/docs/

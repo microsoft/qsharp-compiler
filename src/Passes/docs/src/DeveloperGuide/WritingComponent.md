@@ -98,8 +98,8 @@ This will generate a `HelloWorld` dynamic library with path `./ComponentExamples
 Executing `qat` and loading the `libHelloWorld` library, we see that our new settings are added to help page:
 
 ```sh
-% ./Source/Apps/qat --load ./ComponentExamples/libHelloWorld.dylib
-Usage: ./Source/Apps/qat [options] filename
+% ./qir/qat/Apps/qat --load ./ComponentExamples/libHelloWorld.dylib
+Usage: ./qir/qat/Apps/qat [options] filename
 
 ...
 
@@ -114,7 +114,7 @@ Hello world configuration - Demonstration configuration for building a component
 For the next part, we assume that you have a QIR located in `path/to/example.ll`. To test that the setup function is invoked upon setting the profile up, we run
 
 ```
- % ./Source/Apps/qat --load ./ComponentExamples/libHelloWorld.dylib path/to/example.ll
+ % ./qir/qat/Apps/qat --load ./ComponentExamples/libHelloWorld.dylib path/to/example.ll
 Message: Hello world
 ```
 
@@ -171,11 +171,11 @@ extern "C" void loadComponent(IProfileGenerator *generator)
 To run this pass,
 
 ```sh
-./Source/Apps/qat --load ./ComponentExamples/libInlinePassComponent.dylib ../QirExamples/LoopRecursion/QSharpVersion/qir/Example.ll --S --apply --no-always-inline --custom-inliner
+./qir/qat/Apps/qat --load ./ComponentExamples/libInlinePassComponent.dylib ../QirExamples/LoopRecursion/QSharpVersion/qir/Example.ll --S --apply --no-always-inline --custom-inliner
 ```
 
 Compare the output against
 
 ```sh
-./Source/Apps/qat --load ./ComponentExamples/libInlinePassComponent.dylib ../QirExamples/LoopRecursion/QSharpVersion/qir/Example.ll --S --apply --no-always-inline
+./qir/qat/Apps/qat --load ./ComponentExamples/libInlinePassComponent.dylib ../QirExamples/LoopRecursion/QSharpVersion/qir/Example.ll --S --apply --no-always-inline
 ```

@@ -19,7 +19,7 @@ This will generate a QIR that will have the path `./QirExamples/SimpleLoop/QShar
 By using an application called QAT you can transform the QIR that was generated into a QIR that is tailored to a specific profile. Performing a transformation of the QIR from the `./Debug` folder is done by typing the following commands:
 
 ```sh
-./Source/Apps/qat --apply --profile base -S ../QirExamples/SimpleLoop/QSharpVersion/qir/Example.ll
+./qir/qat/Apps/qat --apply --profile base -S ../QirExamples/SimpleLoop/QSharpVersion/qir/Example.ll
 ```
 
 Validation of QIR profiles is not supported by the tool at the moment. We're working on this feature, and will add the quickstart documentation here when it is available.
