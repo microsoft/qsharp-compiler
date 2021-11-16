@@ -332,46 +332,36 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public async Task LambdaSymbolInfoAsync()
+        public async Task TestLambdaHoverInfoAsync()
         {
             var projectFile = ProjectLoaderTests.ProjectUri("test16");
+            var lambdaFile = new Uri(projectFile, "Lambda.qs");
             var projectManager = new ProjectManager(e => throw e);
             await projectManager.LoadProjectsAsync(
                 new[] { projectFile }, CompilationContext.Editor.QsProjectLoader, enableLazyLoading: false);
 
-            var lambdaQs = new Uri(projectFile, "Lambda.qs");
-            await projectManager.ManagerTaskAsync(lambdaQs, TestAfterTypeChecking);
-
-            void Test()
+            await TestUtils.TestAfterTypeCheckingAsync(projectManager, lambdaFile, () =>
             {
-                AssertHover("x1", "String", true, 2, 12);
-            }
+                AssertHover(new Position(2, 12), "x1", "String", true);
+                AssertHover(new Position(2, 18), "x1", "Double", true);
+                AssertHover(new Position(2, 27), "x1", "Double", false);
+            });
 
-            void TestAfterTypeChecking(CompilationUnitManager compilationUnitManager, bool projectFound)
+            void AssertHover(Position position, string expectedName, string expectedType, bool expectedDeclaration)
             {
-                Assert.IsTrue(projectFound);
-                compilationUnitManager.FlushAndExecute(() =>
+                var documentPosition = new TextDocumentPositionParams
                 {
-                    Test();
-                    return new object();
-                });
-            }
+                    Position = position,
+                    TextDocument = new TextDocumentIdentifier { Uri = lambdaFile },
+                };
 
-            void AssertHover(
-                string expectedName, string expectedType, bool expectedDeclaration, int line, int character)
-            {
                 var expected =
                     (expectedDeclaration
                         ? $"Declaration of an immutable variable {expectedName}"
                         : $"Immutable variable {expectedName}")
                     + $"    \nType: {expectedType}";
 
-                var actual = projectManager!.HoverInformation(new TextDocumentPositionParams
-                {
-                    Position = new Position(line, character),
-                    TextDocument = new TextDocumentIdentifier { Uri = lambdaQs! },
-                });
-
+                var actual = projectManager.HoverInformation(documentPosition);
                 Assert.AreEqual(expected, actual!.Contents.Third.Value);
             }
         }
