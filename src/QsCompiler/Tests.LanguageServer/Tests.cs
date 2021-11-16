@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -12,6 +13,7 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
+using Range = Microsoft.VisualStudio.LanguageServer.Protocol.Range;
 
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
@@ -402,6 +404,87 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var actual = projectManager.HoverInformation(documentPosition);
                 Assert.AreEqual(expected, actual!.Contents.Third.Value);
             }
+        }
+
+        [TestMethod]
+        public async Task TestLambdaReferencesAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test16");
+            var lambdaFile = new Uri(projectFile, "Lambda.qs");
+            var projectManager = new ProjectManager(e => throw e);
+
+            await projectManager.LoadProjectsAsync(
+                new[] { projectFile }, CompilationContext.Editor.QsProjectLoader, enableLazyLoading: false);
+
+            await TestUtils.TestAfterTypeCheckingAsync(projectManager, lambdaFile, () =>
+            {
+                AssertReferences(2, new[] { new Position(2, 12) });
+                AssertReferences(2, new[] { new Position(2, 18), new Position(2, 27) });
+
+                AssertReferences(2, new[] { new Position(4, 12) });
+                AssertReferences(1, new[] { new Position(4, 24), new Position(4, 29) });
+
+                AssertReferences(2, new[] { new Position(6, 12) });
+                AssertReferences(1, new[] { new Position(6, 25), new Position(6, 30) });
+                AssertReferences(1, new[] { new Position(6, 58), new Position(6, 63) });
+
+                AssertReferences(2, new[] { new Position(8, 12) });
+                AssertReferences(3, new[] { new Position(8, 18), new Position(8, 26), new Position(8, 36) });
+
+                AssertReferences(2, new[] { new Position(10, 12) });
+                AssertReferences(3, new[] { new Position(10, 18), new Position(10, 31) });
+                AssertReferences(3, new[] { new Position(10, 23), new Position(10, 37) });
+
+                AssertReferences(2, new[] { new Position(12, 12) });
+                AssertReferences(3, new[] { new Position(12, 17), new Position(12, 24) });
+
+                AssertReferences(1, new[] { new Position(14, 12) });
+                AssertReferences(1, new[] { new Position(14, 18), new Position(14, 27) });
+
+                AssertReferences(1, new[] { new Position(16, 12), new Position(16, 17) });
+                AssertReferences(1, new[] { new Position(17, 16), new Position(17, 21), new Position(17, 26) });
+                AssertReferences(1, new[] { new Position(18, 16), new Position(18, 21) });
+            });
+
+            void AssertReferences(int symbolLength, IReadOnlyCollection<Position> positions)
+            {
+                foreach (var position in positions)
+                {
+                    var reference = new ReferenceParams
+                    {
+                        Position = position,
+                        TextDocument = new TextDocumentIdentifier { Uri = lambdaFile },
+                    };
+
+                    var expected = positions
+                        .Select(p => new Location
+                        {
+                            Uri = lambdaFile,
+                            Range = new Range { Start = p, End = new Position(p.Line, p.Character + symbolLength) },
+                        })
+                        .ToImmutableHashSet();
+
+                    if (projectManager.SymbolReferences(reference)?.ToImmutableHashSet() is { } actual)
+                    {
+                        var expectedStr = string.Join(", ", expected.Select(LocationToString));
+                        var actualStr = string.Join(", ", actual.Select(LocationToString));
+                        Assert.IsTrue(actual.SetEquals(expected), $"Expected: {expectedStr}. Actual: {actualStr}.");
+                    }
+                    else
+                    {
+                        Assert.Fail("Actual references are null.");
+                    }
+                }
+            }
+
+            static string LocationToString(Location location)
+            {
+                var start = PositionToString(location.Range.Start);
+                var end = PositionToString(location.Range.End);
+                return $"Range({start} to {end})";
+            }
+
+            static string PositionToString(Position p) => $"Ln {p.Line}, Col {p.Character}";
         }
     }
 }
