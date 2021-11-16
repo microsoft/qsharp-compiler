@@ -44,12 +44,12 @@
       <Output TaskParameter="ExitCode" PropertyName="QsFmtPublishExitCode"/>
     </Exec>
     <ItemGroup>
-      <QsFmtFiles Include="$(EnlistmentRoot)src\QsFmt\App\bin\**\publish\**\*" />
+      <QsFmtFiles Include="$(EnlistmentRoot)src\QsFmt\App\bin\$(Configuration)\netcoreapp3.1\publish\**\*" />
     </ItemGroup>
     <Error Condition ="'$(QsFmtPublishExitCode)' != '0'" Text="Publishing QsFmt failed." />
     <Error Condition ="'@(QsFmtFiles->Count())' == '0'" Text="Missing QsFmtFiles." />
     <MakeDir Directories="$(OutputPath)\qsfmt" />    
-    <Copy SourceFiles="@(QsFmtFiles)" DestinationFolder="$(OutputPath)\qsfmt" ContinueOnError="false" />
+    <Copy SourceFiles="@(QsFmtFiles)" DestinationFolder="$(OutputPath)\qsfmt\%(RecursiveDir)" ContinueOnError="false" />
   </Target>
 
 </Project>
