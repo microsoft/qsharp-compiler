@@ -115,7 +115,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If DebugFlag is set to true, creates and adds top level debug info to the module.
+        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, creates and adds top level debug info to the module.
         /// Note: because this is called from within the constructor of the GenerationContext,
         /// we cannot access this.Module or anything else that uses <see cref="sharedState"/>.
         /// </summary>
