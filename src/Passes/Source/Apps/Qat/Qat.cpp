@@ -226,6 +226,9 @@ int main(int argc, char** argv)
                     llvm::ModulePassManager pipeline3 =
                         pass_builder.buildModuleOptimizationPipeline(opt, ptr->isDebugMode());
                     mpm.addPass(std::move(pipeline3));
+
+                    llvm::ModuleInlinerWrapperPass pipeline4 = ModuleInlinerWrapperPass(getInlineParams(100000));
+                    mpm.addPass(std::move(pipeline4));
                 }
             });
 
