@@ -7,7 +7,9 @@ steps:
       sudo apt-get remove -y llvm-12
       sudo apt-get install -y curl pkg-config findutils  wget
       sudo apt install -y clang-11 cmake clang-format-11 clang-tidy-11 
-      sudo apt-get install -y llvm-11 lldb-11 llvm-11-dev libllvm11 llvm-11-runtime
+      sudo apt-get install -y llvm-11 lldb-11 llvm-11-dev libllvm11 llvm-11-runtime opt 
+      sudo ln -s /usr/lib/llvm-11/bin/opt /usr/bin/opt
+
       sudo apt install -y python3 python3-pip 
       sudo apt-get remove -y llvm-10
       sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 0
@@ -19,6 +21,6 @@ steps:
       export PYTHON_BIN_PATH=/usr/bin/python3
       export CC=clang-11
       export CXX=clang++-11
-      ./manage runci
+      make test-examples && ./manage runci
           
   displayName: Linux build and CI for passes      
