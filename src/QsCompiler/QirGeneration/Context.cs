@@ -181,7 +181,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
+        /// <param name="debugSymbolsEnabled">Whether the emission of debug symbols within the QIR is enabled.</param>
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, bool debugSymbolsEnabled)
         {
             this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
@@ -190,7 +191,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Context = new Context();
 
             this.Module = this.Context.CreateBitcodeModule("Temporary ModuleID"); // TODO: get rid of temporary module ID and set it in FinalizeDebugInfo()
-            this.DIManager = new DebugInfoManager(this);
+            this.DIManager = new DebugInfoManager(this, debugSymbolsEnabled);
             this.DIManager.AddTopLevelDebugInfo(this.Module);
 
             this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);

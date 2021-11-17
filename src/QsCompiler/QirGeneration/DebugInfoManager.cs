@@ -30,43 +30,45 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// </summary>
     internal sealed class DebugInfoManager
     {
-// SECTION: Config values
 // TODO: remove SECTIONS before merging to main
-
-        /// <summary>
-        /// Whether or not to emit debug information during QIR generation
-        /// </summary>
-        public bool DebugFlag { get; } = false;
-
-        /// <summary>
-        /// Dwarf version we are using for the debug info in the QIR generation
-        /// </summary>
-        private static readonly uint DwarfVersion = 4;
-
-        /// <summary>
-        /// Title of the CodeView module flag for debug info
-        /// </summary>
-        private static readonly string CodeviewName = "CodeView";
-
-        /// <summary>
-        /// CodeView version we are using for the debug info in the QIR generation
-        /// </summary>
-        private static readonly uint CodeviewVersion = 1;
-
-        /// <summary>
-        /// The source language information for Dwarf.
-        /// For now, we are using the C interface. Ideally this would be a user defined language for Q#.
-        /// </summary>
-        private static readonly SourceLanguage QSharpLanguage = SourceLanguage.C99;
-
-        /// <summary>
-        /// Returns a string representing the producer information for the QIR
-        /// </summary>
-        private static string GetQirProducerIdent()
+// SECTION: Config values
+        private static class Config
         {
-            AssemblyName compilationInfo = CompilationLoader.GetQSharpCompilerAssemblyName();
-            AssemblyName qirGenerationInfo = Assembly.GetExecutingAssembly().GetName();
-            return compilationInfo.Name + " with " + qirGenerationInfo.Name + " V " + qirGenerationInfo.Version;
+            /// <summary>
+            /// Whether or not to emit debug information during QIR generation
+            /// </summary>
+            public static bool DebugSymbolsEnabled { get; set; } = false;
+
+            /// <summary>
+            /// Dwarf version we are using for the debug info in the QIR generation
+            /// </summary>
+            public static uint DwarfVersion { get; } = 4;
+
+            /// <summary>
+            /// Title of the CodeView module flag for debug info
+            /// </summary>
+            public static string CodeviewName { get; } = "CodeView";
+
+            /// <summary>
+            /// CodeView version we are using for the debug info in the QIR generation
+            /// </summary>
+            public static uint CodeviewVersion { get; } = 1;
+
+            /// <summary>
+            /// The source language information for Dwarf.
+            /// For now, we are using the C interface. Ideally this would be a user defined language for Q#.
+            /// </summary>
+            public static SourceLanguage QSharpLanguage { get; } = SourceLanguage.C99;
+
+            /// <summary>
+            /// Returns a string representing the producer information for the QIR
+            /// </summary>
+            public static string GetQirProducerIdent()
+            {
+                AssemblyName compilationInfo = CompilationLoader.GetQSharpCompilerAssemblyName();
+                AssemblyName qirGenerationInfo = Assembly.GetExecutingAssembly().GetName();
+                return compilationInfo.Name + " with " + qirGenerationInfo.Name + " V " + qirGenerationInfo.Version;
+            }
         }
 
 // SECTION: Exposed member variables
@@ -104,32 +106,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Constructs a DebugInfoManater with access to the <see cref="GenerationContext"/> as the shared state.
         /// </summary>
-        internal DebugInfoManager(GenerationContext generationContext)
+        internal DebugInfoManager(GenerationContext generationContext, bool debugSymbolsEnabled)
         {
             this.sharedState = generationContext;
+            Config.DebugSymbolsEnabled = debugSymbolsEnabled;
             this.StatementLocationStack = new Stack<QsLocation?>();
             this.ExpressionRangeStack = new Stack<DataTypes.Range?>();
             this.dIBuilders = new Dictionary<string, DebugInfoBuilder>();
         }
 
         /// <summary>
-        /// If DebugFlag is set to true, creates and adds top level debug info to the module.
+        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, creates and adds top level debug info to the module.
         /// Note: because this is called from within the constructor of the GenerationContext,
         /// we cannot access this.Module or anything else that uses <see cref="sharedState"/>.
         /// </summary>
         /// <param name="owningModule">The <see cref="BitcodeModule"/> that this DebugInfoManager is related to</param>
         internal void AddTopLevelDebugInfo(BitcodeModule owningModule)
         {
-            if (!this.DebugFlag)
+            if (!Config.DebugSymbolsEnabled)
             {
                 return;
             }
 
             // Add Module identity and Module Flags
-            owningModule.AddProducerIdentMetadata(GetQirProducerIdent());
-            owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, DwarfVersion);
+            owningModule.AddProducerIdentMetadata(Config.GetQirProducerIdent());
+            owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, Config.DwarfVersion);
             owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DebugVersionValue, BitcodeModule.DebugMetadataVersion);
-            owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, CodeviewName, CodeviewVersion); // TODO: We seem to need this flag and not Dwarf in order to debug on Windows. Need to look into why LLDB is using CodeView on Windows
+            owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, Config.CodeviewName, Config.CodeviewVersion); // TODO: We seem to need this flag and not Dwarf in order to debug on Windows. Need to look into why LLDB is using CodeView on Windows
 
             // TODO: could be useful to have target-specific module flags at some point
             // Examples: AddModuleFlag(ModuleFlagBehavior.Error, "PIC Level", 2); (ModuleFlagBehavior.Error, "wchar_size", 4); (ModuleFlagBehavior.Error, "min_enum_size", 4)
@@ -141,7 +144,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void FinalizeDebugInfo()
         {
-            if (!this.DebugFlag)
+            if (!Config.DebugSymbolsEnabled)
             {
                 return;
             }
@@ -164,7 +167,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If <see cref="DebugFlag"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
+        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
         /// relative to the namespace and statement stack of parent <see cref="QsStatement"/>s,
         /// which is converted to a 1-based <see cref="DebugPosition"/>.
         /// </summary>
@@ -172,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// relative to the namespace and stack of parent <see cref="QsStatement"/>s.</param>
         internal void EmitLocationWithOffset(Position? relativePosition)
         {
-            if (!this.DebugFlag)
+            if (!Config.DebugSymbolsEnabled)
             {
                 return;
             }
@@ -188,11 +191,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If <see cref="DebugFlag"/> is set to true, emits the current location allowing for a breakpoint when debugging.
+        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, emits the current location allowing for a breakpoint when debugging.
         /// </summary>
         internal void EmitLocation()
         {
-            if (!this.DebugFlag)
+            if (!Config.DebugSymbolsEnabled)
             {
                 return;
             }
@@ -207,7 +210,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="value">The value of the variable.</param>
         internal void CreateLocalVariable(string name, IValue value)
         {
-            if (!this.DebugFlag)
+            if (!Config.DebugSymbolsEnabled)
             {
                 return;
             }
@@ -274,7 +277,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The <see cref="IrFunction"/> corresponding to the given Q# type.</returns>
         internal IrFunction CreateGlobalFunction(QsSpecialization spec, string mangledName, IFunctionType signature, bool isDefinition)
         {
-            if (!this.DebugFlag)
+            if (!Config.DebugSymbolsEnabled)
             {
                 return this.CreateFunctionNoDebug(mangledName, signature);
             }
@@ -345,7 +348,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="argNo">The index of the argument (expected to be 1-indexed).</param>
         internal void CreateFunctionArgument(QsSpecialization spec, string name, IValue value, int argNo)
         {
-            if (!this.DebugFlag)
+            if (!Config.DebugSymbolsEnabled)
             {
                 return;
             }
@@ -413,9 +416,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 di = this.Module.CreateDIBuilder();
                 di.CreateCompileUnit(
-                    QSharpLanguage,
+                    Config.QSharpLanguage,
                     sourcePath,
-                    GetQirProducerIdent(),
+                    Config.GetQirProducerIdent(),
                     null);
                 this.dIBuilders.Add(sourcePath, di);
                 return di;
@@ -423,7 +426,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If <see cref="DebugFlag"/> is set to true, creates a debug type for a particular Q# type.
+        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, creates a debug type for a particular Q# type.
         /// The debug type connects a debug info type with its corresponding LLVM Native type.
         /// Note: If the debug type is not implemented, ideally we would return a <see cref="DebugType"/> with a valid LLVM Native type
         /// and a null DIType. However, this causes an error in the QIR emission because of a bug in the native LLVM API, so we return null.
@@ -433,7 +436,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The <see cref="DebugType"/> corresponding to the given Q# type. Returns null if the debug type is not implemented.</returns>
         private IDebugType<ITypeRef, DIType>? DebugTypeFromQsharpType(ResolvedType resolvedType, DebugInfoBuilder dIBuilder)
         {
-            if (!this.DebugFlag)
+            if (!Config.DebugSymbolsEnabled)
             {
                 return null;
             }
@@ -454,7 +457,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 // SECTION: Private location-related helper functions
 
         /// <summary>
-        /// If <see cref="DebugFlag"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
+        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
         /// which is converted to a 1-based <see cref="DebugPosition"/>.
         /// </summary>
         /// <param name="absolutePosition">The 0-based <see cref="Position"/> at which to emit the location.</param>
@@ -462,7 +465,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// this will not emit a location.</param>
         private void EmitLocation(Position absolutePosition, DILocalScope? localScope)
         {
-            if (!this.DebugFlag)
+            if (!Config.DebugSymbolsEnabled)
             {
                 return;
             }

@@ -24,6 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Types qirTypes;
         private readonly Func<QsQualifiedName, QsCustomType?> getTypeDeclaration;
         private DebugInfoBuilder? currDIBuilder;
+
         private void ResetConversionVariables()
         {
             this.builtLLVMType = null;
