@@ -34,14 +34,14 @@ namespace quantum
             if (name == "generic")
             {
                 ret.allow_internal_calls_     = true;
-                ret.whitelist_external_calls_ = false;
-                ret.whitelist_opcodes_        = false;
+                ret.allowlist_external_calls_ = false;
+                ret.allowlist_opcodes_        = false;
             }
             else if (name == "base")
             {
                 ret.allow_internal_calls_     = false;
-                ret.whitelist_external_calls_ = true;
-                ret.whitelist_opcodes_        = true;
+                ret.allowlist_external_calls_ = true;
+                ret.allowlist_opcodes_        = true;
                 ret.opcodes_                  = Set{"br", "call", "unreachable", "ret", "phi", "select"};
                 ret.external_calls_           = Set{
                     "__quantum__qis__mz__body",     "__quantum__qis__read_result__body",
@@ -80,14 +80,14 @@ namespace quantum
             return allow_internal_calls_;
         }
 
-        bool whitelistOpcodes() const
+        bool allowlistOpcodes() const
         {
-            return whitelist_opcodes_;
+            return allowlist_opcodes_;
         }
 
-        bool whitelistExternalCalls() const
+        bool allowlistExternalCalls() const
         {
-            return whitelist_external_calls_;
+            return allowlist_external_calls_;
         }
 
         String const& saveReportTo() const
@@ -100,8 +100,8 @@ namespace quantum
         Set    external_calls_{};
         String save_report_to_{""};
 
-        bool whitelist_opcodes_{true};
-        bool whitelist_external_calls_{true};
+        bool allowlist_opcodes_{true};
+        bool allowlist_external_calls_{true};
         bool allow_internal_calls_{false};
     };
 
