@@ -59,7 +59,7 @@ let internal initializeTelemetry args =
             HostingEnvironmentVariableName = "QSFMT_HOSTING_ENV",
             TelemetryOptOutVariableName = "QSFMT_TELEMETRY_OPT_OUT",
             MaxTeardownUploadTime = TimeSpan.FromSeconds(2.0),
-            OutOfProcessUpload = false,
+            OutOfProcessUpload = true,
             ExceptionLoggingOptions =
                 ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
             SendTelemetryInitializedEvent = false,
