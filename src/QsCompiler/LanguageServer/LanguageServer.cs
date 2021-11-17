@@ -185,9 +185,10 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal void OnInternalError(Exception ex)
         {
-            var telemetryProps = new Dictionary<string, string?>();
-            telemetryProps["exceptionType"] = ex.GetType().ToString();
-            telemetryProps["message"] = ex.Message;
+            var telemetryProps = new Dictionary<string, string?>()
+            {
+                { "exceptionType" } = ex.GetType().FullName;
+            }
             var telemetryMeas = new Dictionary<string, int>();
             _ = this.SendTelemetryAsync("internal-error", telemetryProps, telemetryMeas);
 
