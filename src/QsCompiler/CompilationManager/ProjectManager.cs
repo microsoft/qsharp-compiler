@@ -17,6 +17,8 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
+    public delegate void SendTelemetryHandler(string eventName, Dictionary<string, string?> properties, Dictionary<string, int> measures);
+
     /// <summary>
     /// Represents project properties defined in the project file.
     /// </summary>
@@ -804,7 +806,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// May be null!
         /// </remarks>
-        private readonly Action<string, Dictionary<string, string?>, Dictionary<string, int>>? sendTelemetry;
+        private readonly SendTelemetryHandler? sendTelemetry;
 
         /// <remarks>
         /// If <paramref name="publishDiagnostics"/> is not null,
@@ -816,7 +818,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Exception>? exceptionLogger,
             Action<string, MessageType>? log = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            Action<string, Dictionary<string, string?>, Dictionary<string, int>>? sendTelemetry = null)
+            SendTelemetryHandler? sendTelemetry = null)
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
@@ -1176,9 +1178,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // send telemetry if telemetry is enabled
-            var telemetryProps = new Dictionary<string, string?>();
-            telemetryProps["quantumSdkVersion"] = manager?.BuildProperties.SdkVersion?.ToString();
-            var telemetryMeas = new Dictionary<string, int>()
+            var telemetryProps = new Dictionary<string, string?>
+            {
+                ["quantumSdkVersion"] = manager?.BuildProperties.SdkVersion?.ToString(),
+            };
+            var telemetryMeas = new Dictionary<string, int>
             {
                 { "totalEdits", edits?.Count() ?? 0 },
             };
@@ -1314,8 +1318,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         }
 
                         // send telemetry if telemetry is enabled
-                        var telemetryProps = new Dictionary<string, string?>();
-                        telemetryProps["quantumSdkVersion"] = c.BuildProperties.SdkVersion?.ToString();
+                        var telemetryProps = new Dictionary<string, string?>()
+                        {
+                            { "quantumSdkVersion", c.BuildProperties.SdkVersion?.ToString() },
+                        };
                         var telemetryMeas = new Dictionary<string, int>()
                         {
                             { "qsfmtUpdateEdits", formattingEdits?.Count() ?? 0 },

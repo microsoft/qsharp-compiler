@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         public void Dispose() => this.projects.Dispose();
 
         private readonly Action<PublishDiagnosticParams> publish;
-        private readonly Action<string, Dictionary<string, string?>, Dictionary<string, int>>? sendTelemetry;
+        private readonly SendTelemetryHandler? sendTelemetry;
 
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal EditorState(
             ProjectLoader projectLoader,
             Action<PublishDiagnosticParams>? publishDiagnostics,
-            Action<string, Dictionary<string, string?>, Dictionary<string, int>>? sendTelemetry,
+            SendTelemetryHandler? sendTelemetry,
             Action<string, MessageType>? log,
             Action<Exception>? onException)
         {
