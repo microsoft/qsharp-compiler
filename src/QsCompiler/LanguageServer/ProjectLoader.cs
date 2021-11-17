@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             new Regex(@"(netstandard[1-9]\.[0-9])|(netcoreapp[1-9]\.[0-9])|(net[1-9][0-9][0-9]?)");
 
         private readonly ImmutableArray<string> supportedQsFrameworks =
-            ImmutableArray.Create("netstandard2.", "netcoreapp2.", "netcoreapp3.");
+            ImmutableArray.Create("netstandard2.", "netcoreapp2.", "netcoreapp3.", "net6.");
 
         /// <summary>
         /// Returns true if the given framework is officially supported for Q# projects.
