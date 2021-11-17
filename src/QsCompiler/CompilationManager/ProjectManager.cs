@@ -1178,8 +1178,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // send telemetry if telemetry is enabled
             var telemetryProps = new Dictionary<string, string?>();
             telemetryProps["quantumSdkVersion"] = manager?.BuildProperties.SdkVersion?.ToString();
-            var telemetryMeas = new Dictionary<string, int>();
-            telemetryMeas["totalEdits"] = edits?.Count() ?? 0;
+            var telemetryMeas = new Dictionary<string, int>()
+            {
+                { "totalEdits", edits?.Count() ?? 0 },
+            };
             this.sendTelemetry?.Invoke("formatting", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
             return edits;
         }
