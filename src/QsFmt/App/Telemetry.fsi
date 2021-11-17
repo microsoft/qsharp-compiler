@@ -5,6 +5,8 @@ module Microsoft.Quantum.QsFmt.App.Telemetry
 
 open System
 open Microsoft.Quantum.QsFmt.App.Arguments
+open Microsoft.Quantum.QsFmt.Formatter
+open Microsoft.Quantum.Telemetry
 
 /// The ExecutionCompleted telemetry event record.
 /// ATTENTION: The Telemetry Library only logs public properties.
