@@ -19,6 +19,7 @@
     <ProjectReference Include="..\CompilationManager\CompilationManager.csproj">
       <Private>true</Private>
     </ProjectReference>
+    <ProjectReference Include="..\..\Telemetry\Library\Telemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>

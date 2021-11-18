@@ -3,50 +3,15 @@
 
 using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Net.NetworkInformation;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using Microsoft.Applications.Events;
-using Microsoft.Quantum.Telemetry.OutOfProcess;
 
 namespace Microsoft.Quantum.Telemetry
 {
-    public class TelemetryManagerHandle : IDisposable
+    public enum TelemetryManagerInstanceKind
     {
-        private bool disposedValue;
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!this.disposedValue)
-            {
-                if (disposing)
-                {
-                    TelemetryManager.TearDown();
-                }
-
-                this.disposedValue = true;
-            }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
-    }
-
-    internal class TelemetryTearDown
-    {
-        public TimeSpan? TotalRunningTime { get; set; }
-
-        public int TotalEventsCount { get; set; }
-
-        public TelemetryTearDown(TimeSpan? totalRunningTime, int totalEventsCount)
-        {
-            this.TotalEventsCount = totalEventsCount;
-            this.TotalRunningTime = totalRunningTime;
-        }
+        PerThread,
+        Application,
     }
 
     /// <summary>
@@ -54,33 +19,37 @@ namespace Microsoft.Quantum.Telemetry
     /// </summary>
     public static class TelemetryManager
     {
-        private const string TOKEN = "55aee962ee9445f3a86af864fc0fa766-48882422-3439-40de-8030-228042bd9089-7794";
-        public const string OUTOFPROCESSUPLOADARG = "--OUT_OF_PROCESS_TELEMETRY_UPLOAD";
-        public const string TESTMODE = "--TELEMETRY_TEST_MODE";
+        private static TelemetryManagerInstance? applicationInstance;
 
-        private static ILogger? telemetryLogger;
-        private static bool tearDownLogManager = false;
+        [ThreadStatic]
+        private static TelemetryManagerInstance? threadInstance;
 
-        public static DateTime? InitializationTime { get; private set; }
+        public static TelemetryManagerInstanceKind InstanceKind { get; set; } = TelemetryManagerInstanceKind.Application;
 
-        public static int TotalEventsCount { get; private set; } = 0;
+        private static TelemetryManagerInstance? OptionalInstance =>
+            InstanceKind == TelemetryManagerInstanceKind.Application ? applicationInstance
+                            : threadInstance;
+
+        public static TelemetryManagerInstance Instance =>
+            OptionalInstance
+            ?? throw new InvalidOperationException("TelemetryManager has not been initialized. Please call TelemetryManager.Initialize before attempting to log anything.");
+
+        public static bool IsTestHostProcess { get; private set; }
+
+        public static DateTime? InitializationTime => OptionalInstance?.InitializationTime;
+
+        public static int TotalEventsCount => OptionalInstance?.TotalEventsCount ?? 0;
 
         /// <summary>
         /// Handles general telemetry logic that is used accross Microsoft Quantum developer tools.
         /// </summary>
-        public static bool IsOutOfProcessInstance { get; private set; } = false;
+        public static bool IsOutOfProcessInstance => Instance.IsOutOfProcessInstance;
 
         /// <summary>
         /// True if the TESTMODE argument was passed during initialization.
         /// This is used for some special cases of running unit tests.
         /// </summary>
-        public static bool TestMode => Configuration.TestMode;
-
-        #if DEBUG
-        public static bool DebugMode => true;
-        #else
-        public static bool DebugMode => false;
-        #endif
+        public static bool TestMode => OptionalInstance?.Configuration.TestMode ?? false;
 
         /// <summary>
         /// Compiler directive ENABLE_QDK_TELEMETRY_EXCEPTIONS or DEBUG will set it to true
@@ -88,13 +57,13 @@ namespace Microsoft.Quantum.Telemetry
         /// True if exceptions generated at the telemetry later should be thrown.
         /// False if they should be silenced and suppressed. They will still be logged at Trace.
         /// </summary>
-        public static bool EnableTelemetryExceptions => Configuration.EnableTelemetryExceptions;
+        public static bool EnableTelemetryExceptions => OptionalInstance?.Configuration.EnableTelemetryExceptions ?? false;
 
         /// <summary>
         /// The active configuration of the TelemetryManager.
         /// Should be passed during TelemetryManager.Initialize and not be modified afterwards.
         /// </summary>
-        public static TelemetryManagerConfig Configuration { get; private set; }
+        public static TelemetryManagerConfig Configuration => Instance.Configuration;
 
         /// <summary>
         /// If this value is true, no data will be collected or sent.
@@ -104,14 +73,35 @@ namespace Microsoft.Quantum.Telemetry
         /// This property is automatically set to true during initialization if the environment variable
         /// named in Configuration.HostingEnvironmentVariableName has a value of "1".
         /// </summary>
-        public static bool TelemetryOptOut { get; private set; } = false;
+        public static bool TelemetryOptOut => Instance.TelemetryOptOut;
 
-        public static event EventHandler<EventProperties>? OnEventLogged;
+        public static event EventHandler<EventProperties>? OnEventLogged
+        {
+            add
+            {
+                lock (Instance)
+                {
+                    Instance.OnEventLogged += value;
+                }
+            }
+
+            remove
+            {
+                lock (Instance)
+                {
+                    Instance.OnEventLogged -= value;
+                }
+            }
+        }
 
         static TelemetryManager()
         {
-            Configuration = new TelemetryManagerConfig();
-            Configuration.EnableTelemetryExceptions = GetEnableTelemetryExceptions(false);
+            var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
+            IsTestHostProcess = string.Equals("testhost", entryAssemblyName, StringComparison.InvariantCultureIgnoreCase);
+
+            // Unit tests usually run in parallel threads so we default
+            // the instance kind to be a per thread
+            InstanceKind = IsTestHostProcess ? TelemetryManagerInstanceKind.PerThread : TelemetryManagerInstanceKind.Application;
         }
 
         /// <summary>
@@ -120,95 +110,25 @@ namespace Microsoft.Quantum.Telemetry
         /// </summary>
         public static IDisposable Initialize(TelemetryManagerConfig configuration, string[]? args = null)
         {
-            InitializationTime = DateTime.Now;
-
-            IsOutOfProcessInstance = args?.Contains(OUTOFPROCESSUPLOADARG) == true;
-
-            configuration.OutOfProcessUpload = configuration.OutOfProcessUpload
-                                               || IsOutOfProcessInstance;
-            configuration.TestMode = (args?.Contains(TESTMODE) == true)
-                                     || configuration.TestMode
-                                     || "1".Equals(Environment.GetEnvironmentVariable(Configuration.EnableTelemetryTestVariableName));
-            configuration.EnableTelemetryExceptions = GetEnableTelemetryExceptions(configuration.EnableTelemetryExceptions);
-
-            Configuration = configuration;
-
-            TelemetryOptOut = GetTelemetryOptOut(configuration);
-
-            CheckAndRunSafe(
-                () =>
-                {
-                    if (telemetryLogger != null)
-                    {
-                        throw new InvalidOperationException("The TelemetryManager was already initialized");
-                    }
-
-                    if (configuration.OutOfProcessUpload & args == null)
-                    {
-                        throw new ArgumentNullException(nameof(args), "The application start arguments array must be passed when using OutOfProcessUpload");
-                    }
-
-                    if (configuration.OutOfProcessUpload & !IsOutOfProcessInstance)
-                    {
-                        telemetryLogger = new OutOfProcessLogger(configuration);
-                    }
-                    else if (configuration.TestMode)
-                    {
-                        telemetryLogger = new DebugConsoleLogger();
-                    }
-                    else
-                    {
-                        InitializeLogManager();
-                        telemetryLogger = LogManager.GetLogger(TOKEN, out _);
-                    }
-
-                    if (IsOutOfProcessInstance)
-                    {
-                        // After completing the next line, the current process
-                        // will exit with exit code 0.
-                        new OutOfProcessServer(configuration, Console.In).RunAndExit();
-                    }
-                    else
-                    {
-                        SetStartupContext();
-
-                        if (Configuration.SendTelemetryInitializedEvent)
-                        {
-                            LogEvent("TelemetryInitialized");
-                        }
-                    }
-                },
-                initializingOrTearingDown: true);
-
-            return new TelemetryManagerHandle();
+            switch (InstanceKind)
+            {
+                case TelemetryManagerInstanceKind.PerThread:
+                    return InternalInitialize(configuration, args, ref threadInstance);
+                case TelemetryManagerInstanceKind.Application:
+                    return InternalInitialize(configuration, args, ref applicationInstance);
+                default:
+                    throw new NotImplementedException();
+            }
         }
 
-        private static void SetStartupContext()
+        private static IDisposable InternalInitialize(TelemetryManagerConfig configuration, string[]? args, ref TelemetryManagerInstance? telemetryManagerInstance)
         {
-            SetContext("AppId", Configuration.AppId);
-            SetContext("AppVersion", Assembly.GetEntryAssembly()!.GetName().Version!.ToString());
-            SetContext("DeviceId", GetDeviceId(), isPii: true);
-            SetContext("SessionId", Guid.NewGuid().ToString());
-            SetContext("HostingEnvironment", Environment.GetEnvironmentVariable(Configuration.HostingEnvironmentVariableName));
-            SetContext("OutOfProcessUpload", Configuration.OutOfProcessUpload);
-            SetContext("Timezone", TimeZoneInfo.Local.BaseUtcOffset.ToString(@"hh\:mm"));
-        }
-
-        private static void InitializeLogManager()
-        {
-            LogManager.Start(new LogConfiguration()
+            if (telemetryManagerInstance == null || telemetryManagerInstance.IsDisposed)
             {
-                MaxTeardownUploadTime = (int)(IsOutOfProcessInstance ? Configuration.OutOfProcessMaxTeardownUploadTime :
-                                              Configuration.MaxTeardownUploadTime).TotalMilliseconds,
-            });
-
-            if (TestMode || DebugMode)
-            {
-                SubscribeTelemetryEventsForDebugging();
+                telemetryManagerInstance = new TelemetryManagerInstance();
             }
 
-            LogManager.SetTransmitProfile("RealTime");
-            tearDownLogManager = true;
+            return Instance.Initialize(configuration, args);
         }
 
         /// <summary>
@@ -217,35 +137,7 @@ namespace Microsoft.Quantum.Telemetry
         /// to upload the remaining events.
         /// </summary>
         public static void TearDown() =>
-            CheckAndRunSafe(
-                () =>
-                {
-                    if (telemetryLogger != null
-                        && Configuration.SendTelemetryTearDownEvent
-                        && !IsOutOfProcessInstance)
-                    {
-                        LogObject(new TelemetryTearDown(DateTime.Now - InitializationTime, TotalEventsCount + 1));
-                    }
-
-                    if (telemetryLogger is OutOfProcessLogger outOfProcessLogger)
-                    {
-                        outOfProcessLogger.Quit();
-                        if (DebugMode)
-                        {
-                            outOfProcessLogger.AwaitForExternalProcessExit();
-                        }
-                    }
-
-                    telemetryLogger = null;
-                    TotalEventsCount = 0;
-                    InitializationTime = null;
-
-                    if (tearDownLogManager)
-                    {
-                        LogManager.Teardown();
-                    }
-                },
-                initializingOrTearingDown: true);
+            OptionalInstance?.TearDown();
 
         /// <summary>
         /// Logs all public properties of the object into an event, respecting the following rules:
@@ -268,7 +160,7 @@ namespace Microsoft.Quantum.Telemetry
         ///   - All other property types won't be logged.
         /// </summary>
         public static void LogObject(string eventName, object obj) =>
-            InternalLogObject(eventName, obj);
+            Instance.LogObject(eventName, obj);
 
         /// <summary>
         /// Logs all public properties of the object into an event, respecting the following rules:
@@ -291,187 +183,48 @@ namespace Microsoft.Quantum.Telemetry
         ///   - All other property types won't be logged.
         /// </summary>
         public static void LogObject(object obj) =>
-            InternalLogObject(null, obj);
-
-        private static void InternalLogObject(string? eventName, object obj) =>
-            CheckAndRunSafe(() =>
-            {
-                if (obj == null || obj is ValueType)
-                {
-                    return;
-                }
-
-                if (obj is EventProperties eventProp)
-                {
-                    LogEvent(eventProp);
-                    return;
-                }
-
-                EventProperties eventProperties = new EventProperties();
-
-                // We don't log exception fields as they can potentially contain customer data
-                if (eventName == null && obj is Exception exception)
-                {
-                    obj = exception.ToExceptionLogRecord(Configuration.ExceptionLoggingOptions);
-                    eventName = $"{Configuration.EventNamePrefix}_{Configuration.AppId}_Exception";
-                }
-
-                var type = obj.GetType();
-                eventProperties.Name = eventName ?? $"{Configuration.EventNamePrefix}_{Configuration.AppId}_{type.Name}";
-                var properties = ReflectionCache.GetProperties(type);
-                foreach (var property in properties)
-                {
-                    var isPii = property.GetCustomAttribute<PiiDataAttribute>() != null;
-                    var serializeJson = property.GetCustomAttribute<SerializeJsonAttribute>() != null;
-                    var value = property.GetValue(obj);
-                    eventProperties.SetProperty(property.Name, value, isPii, serializeJson);
-                }
-
-                LogEvent(eventProperties);
-            });
+            Instance.LogObject(obj);
 
         /// <summary>
         /// Logs the given Aria event.
         /// Adds an event name prefix if necessary.
         /// </summary>
         public static void LogEvent(EventProperties eventProperties) =>
-            CheckAndRunSafe(() =>
-            {
-                TotalEventsCount++;
-
-                var eventNamePrefix = $"{Configuration.EventNamePrefix}_{Configuration.AppId}_";
-                if (!eventProperties.Name.StartsWith(eventNamePrefix))
-                {
-                    eventProperties.Name = eventNamePrefix + eventProperties.Name;
-                }
-
-                if (!eventProperties.Properties.ContainsKey("TimestampUTC"))
-                {
-                    eventProperties.SetProperty("TimestampUTC", DateTime.UtcNow);
-                }
-
-                telemetryLogger!.LogEvent(eventProperties);
-
-                OnEventLogged?.Invoke(telemetryLogger, eventProperties);
-
-                if (DebugMode || TestMode)
-                {
-                    LogToDebug($"{telemetryLogger!.GetType().Name} logged event {eventProperties.Name}");
-                }
-            });
+            Instance.LogEvent(eventProperties);
 
         /// <summary>
         /// Logs an event with the given eventName, without any additional properties
         /// Adds an event name prefix if necessary.
         /// </summary>
         public static void LogEvent(string eventName) =>
-            CheckAndRunSafe(() => LogEvent(new EventProperties() { Name = ValidateEventName(eventName) }));
+            Instance.LogEvent(eventName);
 
         public static void SetContext(string name, object value, TelemetryPropertyType propertyType, bool isPii) =>
-            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, propertyType, isPii));
+            Instance.SetContext(name, value, propertyType, isPii);
 
         public static void SetContext(string name, string? value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
+            Instance.SetContext(name, value, isPii);
 
         public static void SetContext(string name, int value, bool isPii = false) =>
-            SetContext(name, (long)value, isPii);
+            Instance.SetContext(name, value, isPii);
 
         public static void SetContext(string name, long value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
+            Instance.SetContext(name, value, isPii);
 
         public static void SetContext(string name, Guid value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
+            Instance.SetContext(name, value, isPii);
 
         public static void SetContext(string name, bool value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
+            Instance.SetContext(name, value, isPii);
 
         public static void SetContext(string name, double value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
+            Instance.SetContext(name, value, isPii);
 
         public static void SetContext(string name, DateTime value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
+            Instance.SetContext(name, value, isPii);
 
         public static void UploadNow() =>
-            CheckAndRunSafe(() => LogManager.UploadNow());
-
-        private static void CheckAndRunSafe(Action action, bool initializingOrTearingDown = false)
-        {
-            if (TelemetryOptOut)
-            {
-                return;
-            }
-
-            try
-            {
-                if (telemetryLogger == null && !initializingOrTearingDown)
-                {
-                    throw new InvalidOperationException("TelemetryManager has not been initialized. Please call TelemetryManager.Initialize before attempting to log anything.");
-                }
-
-                action();
-            }
-            catch (Exception exception)
-            {
-                var message = $"QDK Telemetry error. Exception: {exception.ToString()}";
-
-                Trace.TraceError(message);
-                Console.Error.WriteLine(message);
-
-                if (DebugMode || TestMode)
-                {
-                    LogToDebug(message);
-                }
-
-                if (EnableTelemetryExceptions)
-                {
-                    throw;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Return an Id for this device, namely, the first non-empty MAC address it can find across all network interfaces (if any).
-        /// </summary>
-        private static string? GetDeviceId() =>
-            NetworkInterface.GetAllNetworkInterfaces()?
-                .Select(n => n?.GetPhysicalAddress()?.ToString())
-                .Where(address => address != null && !string.IsNullOrWhiteSpace(address) && !address.StartsWith("000000"))
-                .FirstOrDefault();
-
-        private static bool GetTelemetryOptOut(TelemetryManagerConfig configuration) =>
-            Environment.GetEnvironmentVariable(configuration.TelemetryOptOutVariableName) == "1";
-
-        private static bool GetEnableTelemetryExceptions(bool enableTelemetryExceptions)
-        {
-            #if ENABLE_QDK_TELEMETRY_EXCEPTIONS || DEBUG
-            enableTelemetryExceptions = true;
-            #endif
-
-            var envVarValue = Environment.GetEnvironmentVariable(Configuration.EnableTelemetryExceptionsVariableName);
-            switch (envVarValue)
-            {
-                case "0":
-                    enableTelemetryExceptions = false;
-                    break;
-                case "1":
-                    enableTelemetryExceptions = true;
-                    break;
-            }
-
-            return enableTelemetryExceptions;
-        }
-
-        private static readonly Regex EventNameValidationRegex = new Regex("^[a-zA-Z0-9]{3,30}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-        private static string ValidateEventName(string value)
-        {
-            if (!EventNameValidationRegex.IsMatch(value))
-            {
-                throw new ArgumentOutOfRangeException(nameof(value), "The value should only contains letters or numbers and have 3-30 characters");
-            }
-
-            return value;
-        }
+            OptionalInstance?.UploadNow();
 
         internal static void LogToDebug(string message)
         {
@@ -480,27 +233,12 @@ namespace Microsoft.Quantum.Telemetry
             // If this is a OutOfProcess instance, we write it to
             // the standard console such that the main program will
             // receive it and print it to the Debug console
-            if (IsOutOfProcessInstance)
+            if (OptionalInstance?.IsOutOfProcessInstance == true)
             {
                 Console.WriteLine(message);
             }
 
             Debug.WriteLine(message, category: "QDK Telemetry");
-        }
-
-        private static void SubscribeTelemetryEventsForDebugging()
-        {
-            var telemetryEvents = LogManager.GetTelemetryEvents(out _);
-            if (telemetryEvents != null)
-            {
-                telemetryEvents.EventsDropped += (sender, e) => LogToDebug($"{e.GetType().Name} {e.EventsCount} {e.DroppedReason} {e.DroppedDetails}");
-                telemetryEvents.EventsRejected += (sender, e) => LogToDebug($"{e.GetType().Name} {e.EventsCount} {e.RejectedReason} {e.RejectedDetails}");
-                telemetryEvents.EventsRetrying += (sender, e) => LogToDebug($"{e.GetType().Name} {e.EventsCount} {e.RetryReason} {e.RetryDetails}");
-                telemetryEvents.EventsSent += (sender, e) => LogToDebug($"{e.GetType().Name} {e.EventsCount}");
-                telemetryEvents.QueueOverThreshold += (sender, e) => LogToDebug($"{e.GetType().Name}");
-                telemetryEvents.QueueUnderThreshold += (sender, e) => LogToDebug($"{e.GetType().Name}");
-                telemetryEvents.TokenRejected += (sender, e) => LogToDebug($"{e.GetType().Name} {e.EventsCount} {e.RejectedReason} {e.TicketType}");
-            }
         }
     }
 }
