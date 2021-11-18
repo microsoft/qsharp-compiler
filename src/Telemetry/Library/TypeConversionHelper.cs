@@ -176,7 +176,8 @@ namespace Microsoft.Quantum.Telemetry
                 return conversionFunction(value);
             }
 
-            if (value is Enum)
+            if (value is Enum
+                || FSharpUnionHelper.IsFSharpUnionType(fromType))
             {
                 return AnyToString(value);
             }
