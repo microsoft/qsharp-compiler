@@ -15,14 +15,20 @@ doxygen:
 
 
 linux-docker:
-	docker build -f Docker/CI.Ubuntu20.dockerfile -t qir-passes-ubuntu:latest .
+	docker build --no-cache -f Docker/CI.Ubuntu20.dockerfile -t qir-passes-ubuntu:latest .
 
 linux-ci: linux-docker
 	docker run -it --rm -t qir-passes-ubuntu:latest ./manage runci
 
 test-examples:
-	# Run all examples and verify that the output is a valid IR
-	cd QirExamples && make all
+	mkdir -p Debug
+	cd Debug && cmake .. && make qat
+	cd qir/stdlib && make
+	export QAT_BINARY=${PWD}/Debug/qir/qat/Apps/qat && \
+		export QIR_STLIB=${PWD}/qir/stdlib/lib/stdlib.ll && \
+		cd qir/qsharp && \
+		make
+
 
 clean:
 	rm -rf Release/

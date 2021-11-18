@@ -31,6 +31,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         internal bool EnableVerification { get; private set; }
 
+        internal ProjectProperties BuildProperties => this.compilationUnit.BuildProperties;
+
         /// <summary>
         /// The keys are the file identifiers of the source files obtained by <see cref="GetFileId"/>
         /// for the file uri and the values are the content of each file.

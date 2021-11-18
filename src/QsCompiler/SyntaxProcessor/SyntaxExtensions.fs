@@ -18,169 +18,15 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
-
 // utils for providing information for editor commands based on syntax tokens
-
-let rec private collectWith collector (exs: 'a seq, ts: QsType seq) : QsSymbol list * QsType list * QsExpression list =
-    let (varFromExs, tsFromExs, bsFromExs) =
-        [
-            for item in exs do
-                yield collector item
-        ]
-        |> List.unzip3
-
-    let fromTs = ts |> Seq.collect TypeNameSymbols |> Seq.toList
-    varFromExs |> List.concat, (fromTs :: tsFromExs) |> List.concat, bsFromExs |> List.concat
-
-and private TypeNameSymbols (t: QsType) =
-    match t.Type with
-    | QsTypeKind.UnitType _ -> [ t ]
-    | QsTypeKind.Int _ -> [ t ]
-    | QsTypeKind.BigInt _ -> [ t ]
-    | QsTypeKind.Double _ -> [ t ]
-    | QsTypeKind.Bool _ -> [ t ]
-    | QsTypeKind.String _ -> [ t ]
-    | QsTypeKind.Qubit _ -> [ t ]
-    | QsTypeKind.Result _ -> [ t ]
-    | QsTypeKind.Pauli _ -> [ t ]
-    | QsTypeKind.Range _ -> [ t ]
-    | QsTypeKind.ArrayType b -> TypeNameSymbols b
-    | QsTypeKind.TupleType items -> ([], items) |> collectWith SymbolsFromExpr |> fun (_, r, _) -> r
-    | QsTypeKind.UserDefinedType _ -> [ t ]
-    | QsTypeKind.TypeParameter _ -> [ t ]
-    | QsTypeKind.Operation ((it, ot), _) -> ([], [ it; ot ]) |> collectWith SymbolsFromExpr |> fun (_, r, _) -> r
-    | QsTypeKind.Function (it, ot) -> ([], [ it; ot ]) |> collectWith SymbolsFromExpr |> fun (_, r, _) -> r
-    | QsTypeKind.MissingType _ -> []
-    | QsTypeKind.InvalidType _ -> []
-
-and private VariablesInInitializer item =
-    match item.Initializer with
-    | QsInitializerKind.SingleQubitAllocation -> [], [], []
-    | QsInitializerKind.QubitRegisterAllocation ex -> ex |> SymbolsFromExpr
-    | QsInitializerKind.QubitTupleAllocation items -> collectWith VariablesInInitializer (items, [])
-    | QsInitializerKind.InvalidInitializer -> [], [], []
-
-and private SymbolsFromExpr item : QsSymbol list * QsType list * QsExpression list =
-    match item.Expression with
-    | QsExpressionKind.UnitValue -> [], [], [ item ]
-    | QsExpressionKind.Identifier (id, typeArgs) ->
-        [ id ], typeArgs.ValueOr ImmutableArray.Empty |> Seq.collect TypeNameSymbols |> Seq.toList, []
-    | QsExpressionKind.CallLikeExpression (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.UnwrapApplication ex -> ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.AdjointApplication ex -> ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.ControlledApplication ex -> ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.ValueTuple values -> (values, []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.IntLiteral _ -> [], [], [ item ]
-    | QsExpressionKind.BigIntLiteral _ -> [], [], [ item ]
-    | QsExpressionKind.DoubleLiteral _ -> [], [], [ item ]
-    | QsExpressionKind.BoolLiteral _ -> [], [], [ item ]
-    | QsExpressionKind.StringLiteral (_, i) when i.Length = 0 -> [], [], [ item ] // todo: remove once overlapping items in SymbolInformation are handled
-    | QsExpressionKind.StringLiteral (_, inner) -> (inner, []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.ResultLiteral _ -> [], [], [ item ]
-    | QsExpressionKind.PauliLiteral _ -> [], [], [ item ]
-    | QsExpressionKind.RangeLiteral (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.NewArray (t, idx) -> ([ idx ], [ t ]) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.ValueArray values -> (values, []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.SizedArray (value, size) -> ([ value; size ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.ArrayItem (arr, ex) -> ([ arr; ex ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.NamedItem (ex, acc) -> ([ ex ], []) |> collectWith SymbolsFromExpr // TODO: process accessor
-    | QsExpressionKind.NEG ex -> ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.NOT ex -> ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.BNOT ex -> ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.ADD (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.SUB (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.MUL (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.DIV (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.MOD (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.POW (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.EQ (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.NEQ (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.LT (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.LTE (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.GT (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.GTE (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.AND (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.OR (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.BOR (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.BAND (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.BXOR (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.LSHIFT (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.RSHIFT (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.CopyAndUpdate (lhs, acc, rhs) -> ([ lhs; rhs; acc ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.CONDITIONAL (cond, case1, case2) -> ([ cond; case1; case2 ], []) |> collectWith SymbolsFromExpr
-    | QsExpressionKind.MissingExpr -> [], [], [ item ]
-    | QsExpressionKind.InvalidExpr -> [], [], [ item ]
 
 let private AttributeAsCallExpr (sym: QsSymbol, ex: QsExpression) =
     let combinedRange = QsNullable.Map2 Range.Span sym.Range ex.Range
     let id = { Expression = QsExpressionKind.Identifier(sym, Null); Range = sym.Range }
     { Expression = QsExpressionKind.CallLikeExpression(id, ex); Range = combinedRange }
 
-let rec private SymbolDeclarations (sym: QsSymbol) =
-    match sym.Symbol with
-    | SymbolTuple items ->
-        [
-            for item in items do
-                yield item
-        ]
-        |> List.collect SymbolDeclarations
-    | InvalidSymbol
-    | MissingSymbol -> []
-    | _ -> [ sym ]
-
-let private SymbolsInGenerator (gen: QsSpecializationGenerator) =
-    match gen.Generator with
-    | UserDefinedImplementation sym -> sym |> SymbolDeclarations
-    | _ -> []
-
-let private SymbolsInArgumentTuple (declName, argTuple) =
-    let recur extract items =
-        let extracted : (QsSymbol list * QsType list) list = items |> List.map extract
-
-        let getSeq select =
-            [
-                for seq in extracted do
-                    for item in select seq do
-                        yield item
-            ]
-
-        getSeq fst, getSeq snd
-
-    let rec extract =
-        function
-        | QsTuple items ->
-            [
-                for item in items do
-                    yield item
-            ]
-            |> recur extract
-        | QsTupleItem (sym, t) -> sym |> SymbolDeclarations, t |> TypeNameSymbols
-
-    let decl, types = argTuple |> extract
-
-    List.concat [ declName |> SymbolDeclarations
-                  decl ],
-    ([], types, [])
-
-let private SymbolsInCallableDeclaration (name: QsSymbol, signature: CallableSignature) =
-    let symDecl, (vars, types, exs) = SymbolsInArgumentTuple(name, signature.Argument)
-
-    let typeParams =
-        let build (sym: QsSymbol) =
-            { Type = QsTypeKind.TypeParameter sym; Range = sym.Range }
-
-        [
-            for param in signature.TypeParameters do
-                yield build param
-        ]
-
-    symDecl,
-    (vars,
-     List.concat [ typeParams
-                   types
-                   signature.ReturnType |> TypeNameSymbols ],
-     exs)
-
+// TODO: RELEASE 2022-05: Remove SymbolInformation.
+[<Obsolete "Replaced by SymbolOccurrence.">]
 type SymbolInformation =
     {
         DeclaredSymbols: ImmutableHashSet<QsSymbol>
@@ -188,52 +34,39 @@ type SymbolInformation =
         UsedTypes: ImmutableHashSet<QsType>
         UsedLiterals: ImmutableHashSet<QsExpression>
     }
-    static member internal New(decl: QsSymbol list, (vars: QsSymbol list, ts: QsType list, ex: QsExpression list)) =
-        {
-            DeclaredSymbols = decl.ToImmutableHashSet()
-            UsedVariables = vars.ToImmutableHashSet()
-            UsedTypes = ts.ToImmutableHashSet()
-            UsedLiterals = ex.ToImmutableHashSet()
-        }
 
+// TODO: RELEASE 2022-05: Remove SymbolInformation.
 [<Extension>]
+[<Obsolete "Replaced by SymbolOccurrence.InFragment.">]
 let public SymbolInformation fragmentKind =
-    let chooseValues = QsNullable<_>.Choose id >> Seq.toList
-    let addVariable var (syms, ts, exs) = var :: syms, ts, exs
+    let occurrences = SymbolOccurrence.inFragment fragmentKind
 
-    match fragmentKind with
-    | QsFragmentKind.ExpressionStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ReturnStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.FailStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.MutableBinding (sym, ex) -> sym |> SymbolDeclarations, ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ImmutableBinding (sym, ex) ->
-        sym |> SymbolDeclarations, ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ValueUpdate (lhs, rhs) -> [], ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.IfClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ElifClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ElseClause -> [], ([], [], [])
-    | QsFragmentKind.ForLoopIntro (sym, ex) -> sym |> SymbolDeclarations, ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.WhileLoopIntro ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.RepeatIntro -> [], ([], [], [])
-    | QsFragmentKind.UntilSuccess (ex, _) -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.WithinBlockIntro -> [], ([], [], [])
-    | QsFragmentKind.ApplyBlockIntro -> [], ([], [], [])
-    | QsFragmentKind.UsingBlockIntro (sym, init) -> sym |> SymbolDeclarations, init |> VariablesInInitializer
-    | QsFragmentKind.BorrowingBlockIntro (sym, init) -> sym |> SymbolDeclarations, init |> VariablesInInitializer
-    | QsFragmentKind.BodyDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | QsFragmentKind.AdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | QsFragmentKind.ControlledDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | QsFragmentKind.ControlledAdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | QsFragmentKind.OperationDeclaration callable ->
-        (callable.Name, callable.Signature) |> SymbolsInCallableDeclaration
-    | QsFragmentKind.FunctionDeclaration callable -> (callable.Name, callable.Signature) |> SymbolsInCallableDeclaration
-    | QsFragmentKind.TypeDefinition typeDef -> (typeDef.Name, typeDef.UnderlyingType) |> SymbolsInArgumentTuple
-    | QsFragmentKind.DeclarationAttribute (sym, ex) ->
-        [], ([ AttributeAsCallExpr(sym, ex) ], []) |> collectWith SymbolsFromExpr |> addVariable sym
-    | QsFragmentKind.NamespaceDeclaration sym -> sym |> SymbolDeclarations, ([], [], [])
-    | QsFragmentKind.OpenDirective (nsName, alias) -> [ alias ] |> chooseValues, ([ nsName ], [], [])
-    | QsFragmentKind.InvalidFragment _ -> [], ([], [], [])
-    |> SymbolInformation.New
+    let tryDeclaration =
+        function
+        | Declaration s -> Some s
+        | _ -> None
+
+    let tryVariable =
+        function
+        | UsedVariable s -> Some s
+        | _ -> None
+
+    let tryType =
+        function
+        | UsedType t -> Some t
+        | _ -> None
+
+    let tryLiteral =
+        function
+        | UsedLiteral e -> Some e
+        | _ -> None
+
+    {
+        DeclaredSymbols = Seq.choose tryDeclaration occurrences |> ImmutableHashSet.CreateRange
+        UsedVariables = Seq.choose tryVariable occurrences |> ImmutableHashSet.CreateRange
+        UsedTypes = Seq.choose tryType occurrences |> ImmutableHashSet.CreateRange
+        UsedLiterals = Seq.choose tryLiteral occurrences |> ImmutableHashSet.CreateRange
+    }
 
 let rec private ExpressionsInInitializer item =
     match item.Initializer with

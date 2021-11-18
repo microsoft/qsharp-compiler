@@ -860,6 +860,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 throw new InvalidOperationException("Q# declaration for global callable not found");
             }
+            else if (kind == QsSpecializationKind.QsBody // adjointable and controllable operations are not evaluated by the runtime
+                && this.SharedState.Functions.TryEvaluate(callableName, arg, out var evaluated))
+            {
+                // deal with recognized callables provided by the runtime
+                return evaluated;
+            }
             else if (NameGeneration.TryGetTargetInstructionName(callable, out var instructionName))
             {
                 // deal with functions that are part of the target specific instruction set
@@ -1480,14 +1486,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // deal with local values; i.e. callables e.g. from partial applications or stored in local variables
                 value = this.InvokeLocalCallable(method, arg);
             }
-            else if (this.SharedState.Functions.TryEvaluate(callableName, arg, out var evaluated))
-            {
-                // deal with recognized runtime functions
-                value = evaluated;
-            }
             else
             {
-                // deal with other global callables
+                // deal with global callables
                 value = this.InvokeGlobalCallable(callableName, QsSpecializationKind.QsBody, arg);
             }
 

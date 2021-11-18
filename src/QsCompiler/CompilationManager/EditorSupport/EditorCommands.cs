@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -48,26 +47,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public static Location? DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Position? position)
         {
-            var symbolInfo = file?.TryGetQsSymbolInfo(position, true, out CodeFragment _); // includes the end position
-            if (file is null || symbolInfo is null || compilation is null || position is null)
+            var fragment = file.TryGetFragmentAt(position, out _, true);
+            if (position is null || fragment is null)
+            {
+                return null;
+            }
+
+            var occurrence = SymbolInfo.SymbolOccurrence(fragment, position, true);
+            if (occurrence is null)
             {
                 return null;
             }
 
             var locals = compilation.TryGetLocalDeclarations(file, position, out var cName, includeDeclaredAtPosition: true);
-            if (cName == null)
+            if (cName is null)
             {
                 return null;
             }
 
-            var found =
-                symbolInfo.UsedVariables.Any()
-                ? compilation.GlobalSymbols.VariableDeclaration(locals, cName.Namespace, file.FileName, symbolInfo.UsedVariables.Single())
-                : symbolInfo.UsedTypes.Any()
-                ? compilation.GlobalSymbols.TypeDeclaration(cName.Namespace, file.FileName, symbolInfo.UsedTypes.Single())
-                : symbolInfo.DeclaredSymbols.Any()
-                ? compilation.GlobalSymbols.SymbolDeclaration(locals, cName.Namespace, file.FileName, symbolInfo.DeclaredSymbols.Single())
-                : QsNullable<Tuple<string, Position, Range>>.Null;
+            var found = occurrence.Match(
+                declaration: s => compilation.GlobalSymbols.SymbolDeclaration(locals, cName.Namespace, file.FileName, s),
+                usedType: t => compilation.GlobalSymbols.TypeDeclaration(cName.Namespace, file.FileName, t),
+                usedVariable: s => compilation.GlobalSymbols.VariableDeclaration(locals, cName.Namespace, file.FileName, s),
+                usedLiteral: e => QsNullable<Tuple<string, Position, Range>>.Null);
 
             return found.IsValue
                 ? SymbolInfo.AsLocation(found.Item.Item1, found.Item.Item2, found.Item.Item3)
@@ -221,44 +223,38 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static Hover? HoverInformation(
             this FileContentManager file,
             CompilationUnit compilation,
-            Position? position,
+            Position position,
             MarkupKind format = MarkupKind.PlainText)
         {
-            Hover? GetHover(string? info) => info == null ? null : new Hover
-            {
-                Contents = new MarkupContent { Kind = format, Value = info },
-                Range = new Lsp.Range { Start = position.ToLsp(), End = position.ToLsp() },
-            };
-
+            // TODO: Add hover for functor generators and functor applications.
+            // TODO: Add hover for new array expressions.
+            // TODO: Add nested types (requires SymbolInfo.SymbolOccurrence to return the closest match).
             var markdown = format == MarkupKind.Markdown;
-            var symbolInfo = file?.TryGetQsSymbolInfo(position, false, out var _);
-            if (file is null || symbolInfo == null || compilation == null || position is null)
-            {
-                return null;
-            }
+            var fragment = file.TryGetFragmentAt(position, out _);
+            var occurrence = fragment is null ? null : SymbolInfo.SymbolOccurrence(fragment, position, false);
+            var info = occurrence?.Match(
+                declaration: s => WithContext((locals, nsName) =>
+                    compilation.GlobalSymbols.DeclarationInfo(locals, nsName, file.FileName, s, markdown)),
+                usedType: t => WithContext((locals, nsName) =>
+                    compilation.GlobalSymbols.TypeInfo(nsName, file.FileName, t, markdown)),
+                usedVariable: s => WithContext((locals, nsName) =>
+                    compilation.GlobalSymbols.VariableInfo(locals, nsName, file.FileName, s, markdown)),
+                usedLiteral: e => e.LiteralInfo(markdown));
 
-            if (symbolInfo.UsedLiterals.Any())
-            {
-                return GetHover(symbolInfo.UsedLiterals.Single().LiteralInfo(markdown));
-            }
+            return info is null
+                ? null
+                : new Hover
+                {
+                    Contents = new MarkupContent { Kind = format, Value = info },
+                    Range = new Lsp.Range { Start = position.ToLsp(), End = position.ToLsp() },
+                };
 
-            var locals = compilation.TryGetLocalDeclarations(file, position, out var cName, includeDeclaredAtPosition: true);
-            var nsName = cName?.Namespace ?? file.TryGetNamespaceAt(position);
-            if (nsName == null)
+            string? WithContext(Func<LocalDeclarations, string, string?> f)
             {
-                return null;
+                var locals = compilation.TryGetLocalDeclarations(file, position, out var cName, includeDeclaredAtPosition: true);
+                var nsName = cName?.Namespace ?? file.TryGetNamespaceAt(position);
+                return nsName is null ? null : f(locals, nsName);
             }
-
-            // TODO: add hover for functor generators and functor applications
-            // TODO: add hover for new array expr ?
-            // TODO: add nested types - requires dropping the .Single and actually resolving to the closest match!
-            return GetHover(symbolInfo.UsedVariables.Any()
-                ? compilation.GlobalSymbols.VariableInfo(locals, nsName, file.FileName, symbolInfo.UsedVariables.Single(), markdown)
-                : symbolInfo.UsedTypes.Any()
-                ? compilation.GlobalSymbols.TypeInfo(nsName, file.FileName, symbolInfo.UsedTypes.Single(), markdown)
-                : symbolInfo.DeclaredSymbols.Any()
-                ? compilation.GlobalSymbols.DeclarationInfo(locals, nsName, file.FileName, symbolInfo.DeclaredSymbols.Single(), markdown)
-                : null);
         }
 
         /// <summary>
