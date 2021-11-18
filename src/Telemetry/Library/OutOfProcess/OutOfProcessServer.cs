@@ -69,6 +69,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             }
             catch (ThreadInterruptedException)
             {
+                return;
             }
 
             if (TelemetryManager.TestMode || TelemetryManagerConstants.IsDebugBuild)
