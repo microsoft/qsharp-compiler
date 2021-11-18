@@ -75,6 +75,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
             {
                 return EscapeLineBreaksRegex.Replace(text, LineBreak);
             }
+
             if (value is DateTime || value is DateTime?)
             {
                 return $"{value:O}";

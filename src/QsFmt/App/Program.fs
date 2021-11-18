@@ -111,8 +111,7 @@ let main args =
                     (fun (errors: IEnumerable<Error>) ->
                         if errors.IsHelp() then Result.Error ExitCode.Help
                         elif errors.IsVersion() then Result.Error ExitCode.Version
-                        else Result.Error ExitCode.BadArguments
-                    )
+                        else Result.Error ExitCode.BadArguments)
                 )
                 |> Ok
             | Result.Error ex -> ex |> Result.Error
