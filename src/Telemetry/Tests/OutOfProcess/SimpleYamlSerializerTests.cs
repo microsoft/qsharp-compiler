@@ -39,13 +39,13 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
     stringMultilineProp: !String line1_0__\r\n__line2__\r\n__line3
     longProp: !Long 123
     doubleProp: !Double 123.123
-    dateTimeProp: !DateTime 8/12/2021 8:09:10 AM
+    dateTimeProp: !DateTime 2021-08-12T08:09:10.0000000
     boolProp: !Boolean True
     guidProp: !Guid 00000000-007b-01c8-0102-030405060708
     stringPropPii: !String+Pii stringPropValue0
     longPropPii: !Long+Pii 123
     doublePropPii: !Double+Pii 123.123
-    dateTimePropPii: !DateTime+Pii 8/12/2021 8:09:10 AM
+    dateTimePropPii: !DateTime+Pii 2021-08-12T08:09:10.0000000
     boolPropPii: !Boolean+Pii True
     guidPropPii: !Guid+Pii 00000000-037a-01c8-0102-030405060708
 ";
@@ -81,7 +81,9 @@ another line to ignore
 - command: !LogEvent
     __name__: !String eventName1
   yet another line to ignore
-    stringProp: stringPropValue1
+    stringProp: string value with no type
+    emptyStringProp1: !String
+    emptyStringProp2:
 
 - command: !LogEvent
     __name__: !String consecutiveEvent1
@@ -99,7 +101,9 @@ another line to ignore
             Assert.AreEqual(2, logEventCommandResults[0].Args.Properties.Count);
 
             Assert.AreEqual("eventName1", logEventCommandResults[1].Args.Name);
-            Assert.AreEqual("stringPropValue1", logEventCommandResults[1].Args.Properties["stringProp"]);
+            Assert.AreEqual("string value with no type", logEventCommandResults[1].Args.Properties["stringProp"]);
+            Assert.AreEqual("", logEventCommandResults[1].Args.Properties["emptyStringProp1"]);
+            Assert.AreEqual("", logEventCommandResults[1].Args.Properties["emptyStringProp2"]);
 
             Assert.AreEqual("consecutiveEvent1", logEventCommandResults[2].Args.Name);
 

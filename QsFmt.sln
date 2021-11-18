@@ -13,6 +13,8 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Formatter.Tests", "src\QsFm
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "App.Tests", "src\QsFmt\App.Tests\App.Tests.fsproj", "{E00FA726-F852-4D14-90F8-1B0E3E08D822}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telemetry", "src\Telemetry\Library\Telemetry.csproj", "{4E45611F-8B05-4164-A1D0-1B7EE9B089E2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{E00FA726-F852-4D14-90F8-1B0E3E08D822}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E00FA726-F852-4D14-90F8-1B0E3E08D822}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E00FA726-F852-4D14-90F8-1B0E3E08D822}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E45611F-8B05-4164-A1D0-1B7EE9B089E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E45611F-8B05-4164-A1D0-1B7EE9B089E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E45611F-8B05-4164-A1D0-1B7EE9B089E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E45611F-8B05-4164-A1D0-1B7EE9B089E2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

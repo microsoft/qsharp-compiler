@@ -19,8 +19,8 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         private TelemetryManagerConfig configuration;
         private ICommandSerializer serializer;
         private TextReader inputTextReader;
-        private Thread? debugThread;
-        private bool disposedValue;
+        private Thread? quitIfIdleThread;
+        private bool isDisposed;
 
         public OutOfProcessServer(TelemetryManagerConfig configuration, TextReader inputTextReader)
         {
@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
 
         private IEnumerable<string> ReadInputLine()
         {
-            while (!this.disposedValue)
+            while (!this.isDisposed)
             {
                 var message = this.inputTextReader.ReadLine();
                 if (message != null)
@@ -59,13 +59,20 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
 
         private void QuitIfIdleLoop()
         {
-            while (!this.disposedValue
-                   && (this.idleStopwatch.Elapsed < this.configuration.OutOfProcessMaxIdleTime))
+            try
             {
-                Thread.Sleep(this.configuration.OutOfProcessPollWaitTime);
+                while (!this.isDisposed
+                    && (this.idleStopwatch.Elapsed < this.configuration.OutOfProcessMaxIdleTime))
+                {
+                    Thread.Sleep(this.configuration.OutOfProcessPollWaitTime);
+                }
+            }
+            catch (ThreadInterruptedException)
+            {
+                return;
             }
 
-            if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+            if (TelemetryManager.TestMode || TelemetryManagerConstants.IsDebugBuild)
             {
                 TelemetryManager.LogToDebug($"Quitting OutOfProcess server due to innactivity ({this.configuration.OutOfProcessMaxIdleTime}).");
             }
@@ -81,18 +88,18 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             {
                 this.idleStopwatch.Restart();
 
-                if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+                if (TelemetryManager.TestMode || TelemetryManagerConstants.IsDebugBuild)
                 {
-                    this.debugThread = new Thread(this.QuitIfIdleLoop);
-                    this.debugThread.Priority = ThreadPriority.Lowest;
-                    this.debugThread.Start();
+                    this.quitIfIdleThread = new Thread(this.QuitIfIdleLoop);
+                    this.quitIfIdleThread.Priority = ThreadPriority.Lowest;
+                    this.quitIfIdleThread.Start();
                 }
 
                 this.ReceiveAndProcessCommands();
             }
             catch (Exception exception)
             {
-                if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+                if (TelemetryManager.TestMode || TelemetryManagerConstants.IsDebugBuild)
                 {
                     TelemetryManager.LogToDebug(exception.ToString());
                 }
@@ -108,14 +115,14 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             try
             {
                 command.Process(this);
-                if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+                if (TelemetryManager.TestMode || TelemetryManagerConstants.IsDebugBuild)
                 {
                     TelemetryManager.LogToDebug($"OutOfProcess command processed: {command.CommandType}");
                 }
             }
             catch (Exception exception)
             {
-                if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+                if (TelemetryManager.TestMode || TelemetryManagerConstants.IsDebugBuild)
                 {
                     TelemetryManager.LogToDebug($"Error at processing out of process command: {command.CommandType}{Environment.NewLine}{exception.ToString()}");
 
@@ -135,8 +142,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             this.Dispose();
 
             // We don't want to exit from the process that is running the unit tests
-            var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
-            if (!string.Equals("testhost", entryAssemblyName, StringComparison.InvariantCultureIgnoreCase))
+            if (!TelemetryManager.IsTestHostProcess)
             {
                 Environment.Exit(0);
             }
@@ -157,13 +163,13 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!this.disposedValue)
+            if (!this.isDisposed)
             {
                 if (disposing)
                 {
                     TelemetryManager.UploadNow();
 
-                    if (TelemetryManager.TestMode || TelemetryManager.DebugMode)
+                    if (TelemetryManager.TestMode || TelemetryManagerConstants.IsDebugBuild)
                     {
                         var totalRunningTime = DateTime.Now - this.startTime;
                         TelemetryManager.LogToDebug($"Exited. Total running time: {totalRunningTime:G})");
@@ -172,9 +178,9 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                     TelemetryManager.TearDown();
                 }
 
-                this.disposedValue = true;
+                this.isDisposed = true;
 
-                this.debugThread?.Interrupt();
+                this.quitIfIdleThread?.Interrupt();
             }
         }
 
