@@ -77,8 +77,14 @@ namespace Microsoft.Quantum.Telemetry
 
             this.IsOutOfProcessInstance = args?.Contains(TelemetryManagerConstants.OUTOFPROCESSUPLOADARG) == true;
 
-            configuration.OutOfProcessUpload = configuration.OutOfProcessUpload
-                                               || this.IsOutOfProcessInstance;
+            // Do not enable OutOfProcessUpload mode if we are running inside a
+            // unit test hosting process and an out of process executable path
+            // is not given.
+            configuration.OutOfProcessUpload = (configuration.OutOfProcessUpload
+                                                || this.IsOutOfProcessInstance)
+                                               &&
+                                               (!TelemetryManager.IsTestHostProcess
+                                                || !string.IsNullOrEmpty(configuration.OutOfProcessExecutablePath));
             configuration.TestMode = (args?.Contains(TelemetryManagerConstants.TESTMODE) == true)
                                      || configuration.TestMode
                                      || "1".Equals(Environment.GetEnvironmentVariable(this.Configuration.EnableTelemetryTestVariableName));
