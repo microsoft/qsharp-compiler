@@ -42,5 +42,10 @@ namespace quantum
         current_location_.col  = col;
     }
 
+    LogCollection::Messages const& LogCollection::messages() const
+    {
+        return messages_;
+    }
+
 } // namespace quantum
 } // namespace microsoft

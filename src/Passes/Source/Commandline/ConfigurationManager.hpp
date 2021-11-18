@@ -5,7 +5,7 @@
 #include "Commandline/ConfigBind.hpp"
 #include "Commandline/IConfigBind.hpp"
 #include "Commandline/ParameterParser.hpp"
-#include "Types/Types.hpp"
+#include "QatTypes/QatTypes.hpp"
 
 #include "Llvm/Llvm.hpp"
 

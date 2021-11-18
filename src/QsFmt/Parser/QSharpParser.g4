@@ -23,12 +23,12 @@ qualifiedName : Identifier ('.' Identifier)*;
 namespaceElement
     : openDirective # OpenElement
     | typeDeclaration # TypeElement
-    | callable=callableDeclaration # CallableElement
+    | callableDeclaration # CallableElement
     ;
 
 // Open Directive
 
-openDirective : 'open' qualifiedName ('as' qualifiedName)? ';';
+openDirective : open='open' openName=qualifiedName (as='as' asName=qualifiedName)? semicolon=';';
 
 // Declaration
 
@@ -40,18 +40,20 @@ declarationPrefix : attributes+=attribute* access?;
 
 // Type Declaration
 
-typeDeclaration : declarationPrefix 'newtype' Identifier '=' underlyingType ';';
-
-underlyingType
-    : typeDeclarationTuple
-    | type
+typeDeclaration
+    : prefix=declarationPrefix keyword='newtype' declared=Identifier equals='=' underlying=underlyingType semicolon=';'
     ;
 
-typeDeclarationTuple : '(' (typeTupleItem (',' typeTupleItem)*)? ')';
+underlyingType
+    : typeDeclarationTuple # TupleUnderlyingType
+    | type # UnnamedTypeItem
+    ;
+
+typeDeclarationTuple : openParen='(' (items+=typeTupleItem (commas+=',' items+=typeTupleItem)*)? closeParen=')';
 
 typeTupleItem
-    : namedItem
-    | underlyingType
+    : namedItem # NamedTypeItem
+    | underlyingType # UnderlyingTypeItem
     ;
 
 namedItem : name=Identifier colon=':' itemType=type;
@@ -141,23 +143,23 @@ type
 // Statement
 
 statement
-    : expression ';' # ExpressionStatement
+    : value=expression semicolon=';' # ExpressionStatement
     | return='return' value=expression semicolon=';' # ReturnStatement
-    | 'fail' expression ';' # FailStatement
+    | fail='fail' value=expression semicolon=';' # FailStatement
     | let='let' binding=symbolBinding equals='=' value=expression semicolon=';' # LetStatement
-    | 'mutable' symbolBinding '=' expression ';' # MutableStatement
-    | 'set' symbolBinding '=' expression ';' # SetStatement
-    | 'set' Identifier updateOperator expression ';' # SetUpdateStatement
-    | 'set' Identifier 'w/=' expression '<-' expression ';' # SetWithStatement
+    | mutable='mutable' binding=symbolBinding equals='=' value=expression semicolon=';' # MutableStatement
+    | set='set' binding=symbolBinding equals='=' value=expression semicolon=';' # SetStatement
+    | set='set' name=Identifier operator=updateOperator value=expression semicolon=';' # UpdateStatement
+    | set='set' name=Identifier with='w/=' index=expression arrow='<-' value=expression semicolon=';' # UpdateWithStatement
     | if='if' condition=expression body=scope # IfStatement
-    | 'elif' expression scope # ElifStatement
+    | elif='elif' condition=expression body=scope # ElifStatement
     | else='else' body=scope # ElseStatement
     | for='for' (binding=forBinding | openParen='(' binding=forBinding closeParen=')') body=scope # ForStatement
-    | 'while' expression scope # WhileStatement
-    | 'repeat' scope # RepeatStatement
-    | 'until' expression (';' | 'fixup' scope) # UntilStatement
-    | 'within' scope # WithinStatement
-    | 'apply' scope # ApplyStatement
+    | while='while' condition=expression body=scope # WhileStatement
+    | repeat='repeat' body=scope # RepeatStatement
+    | until='until' condition=expression (semicolon=';' | fixup='fixup' body=scope) # UntilStatement
+    | within='within' body=scope # WithinStatement
+    | apply='apply' body=scope # ApplyStatement
     | keyword=('use' | 'using' | 'borrow' | 'borrowing') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') (body=scope | semicolon=';') # QubitDeclaration
     ;
 

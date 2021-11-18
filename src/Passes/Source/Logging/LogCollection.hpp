@@ -66,6 +66,9 @@ namespace quantum
         /// Function that allows to set the current location.
         void setLocation(String const& name, uint64_t row, uint64_t col) override;
 
+        /// Accessor to the messages
+        Messages const& messages() const;
+
       private:
         Location current_location_{}; ///< Holds current location.
         Messages messages_;           ///< All messages emitted.

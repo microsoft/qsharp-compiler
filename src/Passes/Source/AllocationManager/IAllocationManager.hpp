@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Types/Types.hpp"
+#include "QatTypes/QatTypes.hpp"
 
 #include <memory>
 #include <string>

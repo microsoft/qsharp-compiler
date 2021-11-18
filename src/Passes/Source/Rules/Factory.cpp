@@ -632,11 +632,25 @@ namespace quantum
 
     void RuleFactory::disableStringSupport()
     {
-        removeFunctionCall("__quantum__rt__string_create");
-        removeFunctionCall("__quantum__rt__string_update_reference_count");
-        removeFunctionCall("__quantum__rt__string_update_alias_count");
-        removeFunctionCall("__quantum__rt__message");
         removeFunctionCall("__quantum__rt__fail");
+        removeFunctionCall("__quantum__rt__message");
+        removeFunctionCall("__quantum__rt__string_update_alias_count");
+
+        removeFunctionCall("__quantum__rt__string_create");
+        removeFunctionCall("__quantum__rt__string_get_data");
+        removeFunctionCall("__quantum__rt__string_get_length");
+        removeFunctionCall("__quantum__rt__string_update_reference_count");
+        removeFunctionCall("__quantum__rt__string_concatenate");
+        removeFunctionCall("__quantum__rt__string_equal");
+
+        removeFunctionCall("__quantum__rt__int_to_string");
+        removeFunctionCall("__quantum__rt__double_to_string");
+        removeFunctionCall("__quantum__rt__bool_to_string");
+        removeFunctionCall("__quantum__rt__result_to_string");
+        removeFunctionCall("__quantum__rt__pauli_to_string");
+        removeFunctionCall("__quantum__rt__qubit_to_string");
+        removeFunctionCall("__quantum__rt__range_to_string");
+        removeFunctionCall("__quantum__rt__bigint_to_string");
     }
 
     ReplacementRulePtr RuleFactory::addRule(ReplacementRule&& rule)
