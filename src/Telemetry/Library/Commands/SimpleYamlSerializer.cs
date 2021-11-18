@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
     {
         private static readonly string LineBreak = @"__\r\n__";
         private static readonly string EventNamePropertyName = "__name__";
-        private static readonly Regex CommandRegex = new Regex(@"^((?<command>- command:\s+!(?<commandType>[^\s$]+).*$)|(?<property>\s{4}(?<key>[^\s:]+):\s*(!(?<type>[^\s:\+]+)(?<pii>\+Pii)?\s+)?(?<value>.+)))$", RegexOptions.Compiled);
+        private static readonly Regex CommandRegex = new Regex(@"^((?<command>- command:\s+!(?<commandType>[^\s$]+).*$)|(?<property>\s{4}(?<key>[^\s:]+):\s*(!(?<type>[^\s:\+]+)(?<pii>\+Pii)?)?\s*(?<value>.+)?))$", RegexOptions.Compiled);
         private static readonly Regex EscapeLineBreaksRegex = new Regex(@"(\r\n|\n\r|\n|\r)", RegexOptions.Multiline | RegexOptions.Compiled);
         private static readonly Regex ReplaceLineBreaksRegex = new Regex(LineBreak.Replace(@"\", @"\\"), RegexOptions.Compiled);
 
@@ -74,6 +74,10 @@ namespace Microsoft.Quantum.Telemetry.Commands
             if (value is string text)
             {
                 return EscapeLineBreaksRegex.Replace(text, LineBreak);
+            }
+            if (value is DateTime || value is DateTime?)
+            {
+                return $"{value:O}";
             }
 
             return $"{value}";
