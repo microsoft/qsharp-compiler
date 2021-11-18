@@ -150,7 +150,8 @@ namespace Microsoft.Quantum.Telemetry
             this.SetContext("SessionId", Guid.NewGuid().ToString());
             this.SetContext("HostingEnvironment", Environment.GetEnvironmentVariable(this.Configuration.HostingEnvironmentVariableName));
             this.SetContext("OutOfProcessUpload", this.Configuration.OutOfProcessUpload);
-            this.SetContext("Timezone", TimeZoneInfo.Local.BaseUtcOffset.ToString(@"hh\:mm"));
+            this.SetContext("Timezone", (TimeZoneInfo.Local.BaseUtcOffset < TimeSpan.Zero ? "-" : "")
+                                        + TimeZoneInfo.Local.BaseUtcOffset.ToString(@"hh\:mm"));
         }
 
         private void InitializeLogManager()
