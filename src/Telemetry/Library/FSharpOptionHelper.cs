@@ -15,7 +15,7 @@ namespace Microsoft.Quantum.Telemetry
     {
         internal class OptionValueGetter
         {
-            private MethodInfo? getValueMethod;
+            private readonly MethodInfo? getValueMethod;
 
             public OptionValueGetter(Type fSharpOptionType)
             {
@@ -26,18 +26,18 @@ namespace Microsoft.Quantum.Telemetry
                 this.getValueMethod?.Invoke(optionValue, null);
         }
 
-        private static Type? fSharpOptionType = AppDomain
-                                                    .CurrentDomain
-                                                    .GetAssemblies()
-                                                    .FirstOrDefault((a) => a.GetName().Name == "FSharp.Core")
-                                                    ?.GetType("Microsoft.FSharp.Core.FSharpOption`1");
+        private static readonly Type? FSharpOptionType = AppDomain
+                                                         .CurrentDomain
+                                                         .GetAssemblies()
+                                                         .FirstOrDefault((a) => a.GetName().Name == "FSharp.Core")
+                                                         ?.GetType("Microsoft.FSharp.Core.FSharpOption`1");
 
         public static bool IsFSharpOptionType(Type? type) =>
             type != null
-            && fSharpOptionType != null
-            && object.Equals(fSharpOptionType, ReflectionCache.GetGenericTypeDefinition(type));
+            && FSharpOptionType != null
+            && Equals(FSharpOptionType, ReflectionCache.GetGenericTypeDefinition(type));
 
-        private static ConcurrentDictionary<Type, OptionValueGetter?> optionValueGetterCache = new ConcurrentDictionary<Type, OptionValueGetter?>();
+        private static readonly ConcurrentDictionary<Type, OptionValueGetter?> OptionValueGetterCache = new ConcurrentDictionary<Type, OptionValueGetter?>();
 
         public static object? GetOptionValue(object? optionValue, Type? type)
         {
@@ -46,12 +46,39 @@ namespace Microsoft.Quantum.Telemetry
                 return null;
             }
 
-            return optionValueGetterCache
+            return OptionValueGetterCache
                         .GetOrAdd(type, (t) => IsFSharpOptionType(type) ? new OptionValueGetter(type) : null)
                         ?.GetValue(optionValue);
         }
 
         public static object? GetOptionValue(object? optionValue) =>
             GetOptionValue(optionValue, optionValue?.GetType());
+    }
+
+    /// <summary>
+    /// Helper class to interact with FSharp Union types
+    /// </summary>
+    public static class FSharpUnionHelper
+    {
+        private static readonly MethodInfo? FSharpIsUnionTypeMethod = AppDomain
+                                                                      .CurrentDomain
+                                                                      .GetAssemblies()
+                                                                      .FirstOrDefault((a) => a.GetName().Name == "FSharp.Core")
+                                                                      ?.GetType("Microsoft.FSharp.Reflection.FSharpType")
+                                                                      ?.GetMethod("IsUnion", BindingFlags.Static | BindingFlags.Public);
+
+        public static bool IsFSharpUnionType(Type type)
+        {
+            if (FSharpIsUnionTypeMethod == null)
+            {
+                return false;
+            }
+
+            return (bool)FSharpIsUnionTypeMethod.Invoke(null, new object?[]
+            {
+                type,
+                null,
+            })!;
+        }
     }
 }

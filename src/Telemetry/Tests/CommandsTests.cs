@@ -1,11 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System;
-using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.Applications.Events;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Microsoft.Quantum.Telemetry.Tests

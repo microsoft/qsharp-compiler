@@ -66,8 +66,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                                 "dotnet",
                                 StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var entryAssemblyName = Assembly.GetEntryAssembly()?.GetName().Name;
-                    if (string.Equals("testhost", entryAssemblyName, StringComparison.InvariantCultureIgnoreCase))
+                    if (TelemetryManager.IsTestHostProcess)
                     {
                         throw new InvalidOperationException($"'testhost' cannot be used as an external process. Please set the config option 'OutOfProcessExecutablePath'.");
                     }
@@ -87,11 +86,11 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                 outOfProcessExecutablePath = "dotnet";
             }
 
-            arguments.Add(TelemetryManager.OUTOFPROCESSUPLOADARG);
+            arguments.Add(TelemetryManagerConstants.OUTOFPROCESSUPLOADARG);
 
             if (this.configuration.TestMode)
             {
-                arguments.Add(TelemetryManager.TESTMODE);
+                arguments.Add(TelemetryManagerConstants.TESTMODE);
             }
 
             var process = new Process()
@@ -181,7 +180,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
             this.serializer = (ICommandSerializer)Activator.CreateInstance(configuration.OutOfProcessSerializerType)!;
             this.externalProcess = externalProcessConnector ?? new DefaultExternalProcessConnector(configuration);
 
-            if (TelemetryManager.DebugMode || configuration.TestMode)
+            if (TelemetryManagerConstants.IsDebugBuild || configuration.TestMode)
             {
                 this.debugThreads = new ConcurrentDictionary<Thread, object?>();
             }
@@ -200,7 +199,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                     {
                         this.externalProcess.Start();
 
-                        if (TelemetryManager.DebugMode || TelemetryManager.TestMode)
+                        if (TelemetryManagerConstants.IsDebugBuild || TelemetryManager.TestMode)
                         {
                             this.debugThreads!.TryAdd(this.StartDebugThread(), null);
                         }
@@ -314,7 +313,7 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
         private void DebugThreadMethod()
         {
             while (!this.disposedValue
-                   && this.externalProcess.OutputTextReader != null)
+                && this.externalProcess.OutputTextReader != null)
             {
                 try
                 {
@@ -332,6 +331,10 @@ namespace Microsoft.Quantum.Telemetry.OutOfProcess
                             break;
                         }
                     }
+                }
+                catch (ThreadInterruptedException)
+                {
+                    break;
                 }
                 catch (Exception exception)
                 {

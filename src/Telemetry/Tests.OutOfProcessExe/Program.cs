@@ -25,17 +25,18 @@ namespace Microsoft.Quantum.Telemetry.Tests.OutOfProcess
                     OutOfProcessUpload = true,
                     TestMode = true,
                 };
-                TelemetryManager.OnEventLogged += (sender, eventsProperty) =>
-                {
-                    if (eventsProperty.Name.EndsWith("_break"))
-                    {
-                        Console.WriteLine("OutOfProcess.exe: application will throw an unhandled exception now!");
-                        throw new OutOfProcessTestException("Exception thrown on purpose when received an event named 'break'.");
-                    }
-                };
 
                 using (TelemetryManager.Initialize(telemetryConfig, args))
                 {
+                    TelemetryManager.OnEventLogged += (sender, eventsProperty) =>
+                    {
+                        if (eventsProperty.Name.EndsWith("_break"))
+                        {
+                            Console.WriteLine("OutOfProcess.exe: application will throw an unhandled exception now!");
+                            throw new OutOfProcessTestException("Exception thrown on purpose when received an event named 'break'.");
+                        }
+                    };
+
                     TelemetryManager.LogEvent("Event1");
                     TelemetryManager.LogEvent("break");
                     TelemetryManager.LogEvent("Event2");
