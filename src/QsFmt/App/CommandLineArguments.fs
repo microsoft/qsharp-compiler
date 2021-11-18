@@ -20,6 +20,8 @@ type ExitCode =
     | FileAlreadyProcessed = 5
     | QdkOutOfDate = 6
     | UnhandledException = 7
+    | Version = 8
+    | Help = 9
 
 type internal RunResult =
     {

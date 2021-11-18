@@ -34,6 +34,12 @@ type ExitCode =
     /// An Unhandled Exception was encountered during the program.
     | UnhandledException = 7
 
+    /// We returned the version of the program
+    | Version = 8
+
+    /// We printed the program help
+    | Help = 9
+
 /// The results from running a command.
 type internal RunResult =
     {

@@ -108,7 +108,11 @@ let main args =
             | Ok parsedArgs ->
                 parsedArgs.MapResult(
                     (fun (options: IArguments) -> options |> CommandWithOptions.fromIArguments),
-                    (fun (_: IEnumerable<Error>) -> Result.Error ExitCode.BadArguments)
+                    (fun (errors: IEnumerable<Error>) ->
+                        if errors.IsHelp() then Result.Error ExitCode.Help
+                        elif errors.IsVersion() then Result.Error ExitCode.Version
+                        else Result.Error ExitCode.BadArguments
+                    )
                 )
                 |> Ok
             | Result.Error ex -> ex |> Result.Error
