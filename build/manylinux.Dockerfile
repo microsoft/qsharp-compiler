@@ -22,12 +22,6 @@ RUN git clone --depth 1 https://github.com/ccache/ccache -b v4.4.2 && \
     rm -rf /tmp/build
 WORKDIR /tmp
 
-# Install clang and lld. Compiler on this image is too old
-# to build the runtimes.
-RUN wget https://apt.llvm.org/llvm.sh && \
-    chmod +x llvm.sh && \
-    ./llvm.sh 11
-
 ENV LLVM_CMAKEFILE ""
 ENV LLVM_DIR ""
 ENV LLVM_INSTALL_DIR ""
