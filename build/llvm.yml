@@ -127,10 +127,10 @@ jobs:
       artifactName: $(Pkg.Name)
 
 
-- job: LLVMMacOS1014Build
+- job: LLVMMacOS1015Build
   timeoutInMinutes: 300
   dependsOn: GetLlvmSha
-  displayName: LLVM MacOS 10.14 Build
+  displayName: LLVM MacOS 10.15 Build
   variables:
   - name: Aq.Llvm.Package.Git.Version
     value: $[ dependencies.GetLlvmSha.outputs['Sha.AQ_LLVM_PACKAGE_GIT_VERSION'] ]
@@ -138,7 +138,7 @@ jobs:
     value: aq-llvm-x86_64-apple-darwin-$(Aq.Llvm.Package.Git.Version)
 
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
 
   steps:
   - checkout: self
@@ -181,7 +181,7 @@ jobs:
   - GetLlvmSha
   - LLVMLinuxBuild
   - LLVMWindowsBuild
-  - LLVMMacOS1014Build
+  - LLVMMacOS1015Build
   displayName: libLLVM Assembly
   variables:
   - name: Aq.Llvm.Package.Git.Version
