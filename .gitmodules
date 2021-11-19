@@ -1,4 +1,0 @@
-[submodule "src/Passes/vendors/googletest"]
-	path = src/Passes/vendors/googletest
-	url = https://github.com/google/googletest.git
-	shallow = true
