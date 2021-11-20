@@ -234,6 +234,13 @@ function Use-LlvmInstallation {
     )
     Write-Vso "LLVM installation set to: $path"
     $env:LLVM_SYS_110_PREFIX = $path
+    $binPath = Join-Path $path "bin"
+    if ($IsWindows) {
+        $env:PATH = "$($binPath);$($env:PATH)"
+    }
+    else {
+        $env:PATH = "$($binPath):$($env:PATH)"
+    }
 }
 
 # Gets the LLVM version git hash
