@@ -380,6 +380,41 @@
     <Content Include="TestCases\QirTests\TestWhile.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\DebugInfoTests\TestIntVariable.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestIntVariable1.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestIntVariable2.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestModuleInfo.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestModuleInfo.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnitFunction.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnitFunction1.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnitFunction2.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnitFunction3.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnitFunction4.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnitFunction5.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    
+
     <None Include="TestCases\CapabilityTests\Verification.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
