@@ -380,6 +380,66 @@ namespace Ubiquity.NET.Llvm
             return Value.FromHandle<IrFunction>(valueRef)!;
         }
 
+        /// <summary>Creates a Function definition with Debug information</summary>
+        /// <param name="scope">Containing scope for the function</param>
+        /// <param name="name">Name of the function in source language form</param>
+        /// <param name="mangledName">Mangled linker visible name of the function (may be same as <paramref name="name"/> if mangling not required by source language</param>
+        /// <param name="file">File containing the function definition</param>
+        /// <param name="linePosition">1-based <see cref="DebugPosition"/> with the line number of the function definition</param>
+        /// <param name="signature">LLVM Function type for the signature of the function</param>
+        /// <param name="isLocalToUnit">Flag to indicate if this function is local to the compilation unit</param>
+        /// <param name="isDefinition">Flag to indicate if this is a definition</param>
+        /// <param name="scopeLinePosition">1-based <see cref="DebugPosition"/> with the first line of the function's outermost scope, this may not be the same as the first line of the function definition due to source formatting</param>
+        /// <param name="debugFlags">Additional flags describing this function</param>
+        /// <param name="isOptimized">Flag to indicate if this function is optimized</param>
+        /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/>to use when creating debug info</param>
+        /// <returns>Function described by the arguments</returns>
+        public IrFunction CreateFunction(
+            DIScope? scope,
+            string name,
+            string? mangledName,
+            DIFile? file,
+            DebugPosition linePosition,
+            DebugFunctionType signature,
+            bool isLocalToUnit,
+            bool isDefinition,
+            DebugPosition scopeLinePosition,
+            DebugInfoFlags debugFlags,
+            bool isOptimized,
+            DebugInfoBuilder dIBuilder)
+        {
+            this.ThrowIfDisposed();
+
+            if (string.IsNullOrWhiteSpace(mangledName))
+            {
+                mangledName = name;
+            }
+
+            if (signature.DIType == null)
+            {
+                throw new ArgumentException("DIType is null");
+            }
+
+            var func = this.CreateFunction(mangledName, signature);
+            var diSignature = signature.DIType;
+            var diFunc = dIBuilder.CreateFunction(
+                scope: scope,
+                name: name,
+                mangledName: mangledName,
+                file: file,
+                linePosition: linePosition,
+                signatureType: diSignature,
+                isLocalToUnit: isLocalToUnit,
+                isDefinition: isDefinition,
+                scopeLinePosition: scopeLinePosition,
+                debugFlags: debugFlags,
+                isOptimized: isOptimized,
+                function: func);
+
+            func.DISubProgram = diFunc;
+            return func;
+        }
+
         /// <summary>Writes a bit-code module to a file.</summary>
         /// <param name="path">Path to write the bit-code into.</param>
         /// <remarks>
@@ -583,13 +643,7 @@ namespace Ubiquity.NET.Llvm
                 throw new ArgumentException();
             }
 
-            LLVMValueRef flagNode = LLVMValueRef.CreateMDNode(new[]
-            {
-                LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)behavior),
-                this.Context.ContextHandle.GetMDString(name),
-                LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, value),
-            });
-            this.ModuleHandle.AddNamedMetadataOperand("llvm.module.flags", flagNode);
+            this.moduleHandle.AddModuleFlag(name, (LLVMModuleFlagBehavior)behavior, value);
         }
 
         /// <summary>Adds an llvm.ident metadata string to the module</summary>

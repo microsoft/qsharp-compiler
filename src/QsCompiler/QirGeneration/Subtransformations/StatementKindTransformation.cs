@@ -483,6 +483,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     QirExpressionKindTransformation.AccessViaLocalId(ex, out var localId);
                     this.SharedState.ScopeMgr.RegisterVariable(varName, value, fromLocalId: localId);
+                    this.SharedState.DIManager.CreateLocalVariable(varName, value);
                 };
 
             this.BindSymbolTuple(stm.Lhs, stm.Rhs, (syms, boundEx) =>

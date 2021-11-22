@@ -579,22 +579,6 @@ namespace Ubiquity.NET.Llvm
             return this.moduleCache.CreateBitcodeModule(moduleId);
         }
 
-        /// <summary>
-        /// Didn't add documentation here because this call can get removed in the next PR
-        /// that's up due to changes in the structure of the LLVM Bindings
-        /// </summary>
-        public BitcodeModule CreateBitcodeModule(
-                string moduleId,
-                SourceLanguage language,
-                string srcFilePath,
-                string producer,
-                bool optimized = false,
-                string compilationFlags = "",
-                uint runtimeVersion = 0)
-        {
-            return this.moduleCache.CreateBitcodeModule(moduleId, language, srcFilePath, producer, optimized, compilationFlags, runtimeVersion);
-        }
-
         /// <summary>Gets non-zero Metadata kind ID for a given name.</summary>
         /// <param name="name">name of the metadata kind.</param>
         /// <returns>integral constant for the ID.</returns>

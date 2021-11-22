@@ -8,9 +8,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Interop;
 using Ubiquity.NET.Llvm.Types;
@@ -176,13 +178,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// 1.) the transformation needs to be set by calling <see cref="SetTransformation"/>,
         /// 2.) the runtime library needs to be initialized by calling <see cref="InitializeRuntimeLibrary"/>, and
         /// 3.) the quantum instructions set needs to be registered by calling <see cref="RegisterQuantumInstructionSet"/>.
-        /// TODO: entryPoints argument will be deprecated in an upcoming PR. For now it is used to assist in adding
-        /// top level information.
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        /// <param name="entryPoints">Array of all entry points for the current compilation.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, ImmutableArray<QsQualifiedName> entryPoints)
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
         {
             this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
@@ -192,7 +191,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.Module = this.Context.CreateBitcodeModule("Temporary ModuleID"); // TODO: get rid of temporary module ID and set it in FinalizeDebugInfo()
             this.DIManager = new DebugInfoManager(this);
-            this.DIManager.AddTopLevelDebugInfo(this.Module, entryPoints);
+            this.DIManager.AddTopLevelDebugInfo(this.Module);
 
             this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
             this.Constants = new Constants(this.Context, this.Module, this.Types);
@@ -606,7 +605,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// generated as declarations with no definition.
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function</param>
-        internal IrFunction RegisterFunction(QsSpecialization spec)
+        /// <param name="isDefinition">Whether this is a function definition or only a declaration</param>
+        /// <returns>The <see cref="IrFunction"/> that has been registered.</returns>
+        internal IrFunction RegisterFunction(QsSpecialization spec, bool isDefinition)
         {
             var name = NameGeneration.FunctionName(spec.Parent, spec.Kind);
             var returnTypeRef = spec.Signature.ReturnType.Resolution.IsUnitType
@@ -618,7 +619,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
-            return this.Module.CreateFunction(name, signature);
+            return this.DIManager.CreateGlobalFunction(spec, name, signature, isDefinition);
         }
 
         /// <summary>
@@ -626,10 +627,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Specifically, an entry block for the function is created, and the function's arguments are given names.
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function.</param>
+        /// <param name="isDefinition">Whether this is a function definition or only a declaration.</param>
         /// <param name="argTuple">The specialization's argument tuple.</param>
         /// <param name="deconstuctArgument">Whether or not to deconstruct the argument tuple.</param>
         /// <param name="shouldBeExtern">Whether the given specialization should be generated as extern.</param>
-        internal void GenerateFunctionHeader(QsSpecialization spec, ArgumentTuple argTuple, bool deconstuctArgument = true, bool shouldBeExtern = false)
+        internal void GenerateFunctionHeader(QsSpecialization spec, bool isDefinition, ArgumentTuple argTuple, bool deconstuctArgument = true, bool shouldBeExtern = false)
         {
             (string?, ResolvedType)[] ArgTupleToArgItems(ArgumentTuple arg, Queue<(string?, ArgumentTuple)> tupleQueue)
             {
@@ -657,7 +659,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : new[] { LocalVarName(arg) };
             }
 
-            this.CurrentFunction = this.RegisterFunction(spec);
+            this.CurrentFunction = this.RegisterFunction(spec, isDefinition);
             this.CurrentFunction.Linkage = shouldBeExtern ? Linkage.External : Linkage.Internal;
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
@@ -669,6 +671,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var innerTuples = new Queue<(string?, ArgumentTuple)>();
             var outerArgItems = ArgTupleToArgItems(argTuple, innerTuples);
             var innerTupleValues = new Queue<TupleValue>();
+            int argNo = 1; // arg numbers are 1-indexed
 
             // If we have a single named tuple-valued argument, then the items of the tuple
             // are the arguments to the function and we need to reconstruct the tuple.
@@ -707,6 +710,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.CurrentFunction.Parameters[i].Name = argName;
                         this.ScopeMgr.RegisterVariable(argName, argValue, fromLocalId: null);
+                        this.DIManager.CreateFunctionArgument(spec, argName, argValue, argNo);
+                        argNo++;
                     }
                     else
                     {
@@ -746,7 +751,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void GenerateConstructor(QsSpecialization spec, ArgumentTuple argTuple)
         {
-            this.GenerateFunctionHeader(spec, argTuple, deconstuctArgument: false);
+            this.GenerateFunctionHeader(spec, isDefinition: true, argTuple, deconstuctArgument: false);
 
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
@@ -816,7 +821,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (this.TryGetGlobalCallable(fullName, out QsCallable? callable))
             {
                 var spec = callable.Specializations.First(spec => spec.Kind == kind);
-                return this.RegisterFunction(spec);
+                return this.RegisterFunction(spec, isDefinition: false);
             }
 
             // If we can't find the function at all, it's a problem...
@@ -968,7 +973,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SetCurrentBlock(this.CurrentFunction.AppendBasicBlock("entry"));
-
             this.ScopeMgr.OpenScope();
             executeBody(this.CurrentFunction.Parameters);
             var isTerminated = this.CurrentBlock?.Terminator != null;
@@ -1346,6 +1350,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // Update the iteration value (phi node) and enter the next iteration
                 this.SetCurrentBlock(exitingBlock);
+
                 var nextValue = this.CurrentBuilder.Add(loopUpdate.LoopVariable, loopUpdate.Increment);
                 loopUpdate.LoopVariable.AddIncoming(nextValue, exitingBlock);
                 outputUpdate?.PhiNode.AddIncoming(outputUpdate.Value.NewValue, exitingBlock);

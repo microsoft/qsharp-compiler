@@ -13,6 +13,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
@@ -1495,6 +1496,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpressionKind.InvalidExpr;
         }
 
+        public override ResolvedExpressionKind OnCallLikeExpression(TypedExpression method, TypedExpression arg)
+        {
+            // create a debug location for the call
+            DataTypes.Range? relativeRange = method.Range.IsNull ? null : method.Range.Item;
+            Position? relativePosition = relativeRange?.Start;
+            this.SharedState.DIManager.EmitLocationWithOffset(relativePosition);
+            return base.OnCallLikeExpression(method, arg);
+        }
+
         public override ResolvedExpressionKind OnGreaterThan(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
@@ -1586,6 +1596,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
+            this.SharedState.DIManager.EmitLocation();
             return ResolvedExpressionKind.InvalidExpr;
         }
 

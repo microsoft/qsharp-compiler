@@ -10,6 +10,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Types;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
@@ -18,9 +19,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
     internal class QirTypeTransformation : TypeTransformation
     {
-        private ITypeRef? builtType;
+        private ITypeRef? builtLLVMType;
+        private IDebugType<ITypeRef, DIType>? builtDebugType;
         private readonly Types qirTypes;
         private readonly Func<QsQualifiedName, QsCustomType?> getTypeDeclaration;
+        private DebugInfoBuilder? currDIBuilder;
+
+        private void ResetConversionVariables()
+        {
+            this.builtLLVMType = null;
+            this.builtDebugType = null;
+            this.currDIBuilder = null;
+        }
 
         public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
         : base(TransformationOptions.NoRebuild)
@@ -37,10 +47,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The equivalent QIR type</returns>
         internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType)
         {
-            this.builtType = null;
+            this.ResetConversionVariables();
             this.OnType(resolvedType);
-            return this.builtType ?? throw new NotImplementedException(
+            return this.builtLLVMType ?? throw new NotImplementedException(
                 $"Llvm type for {SyntaxTreeToQsharp.Default.ToCode(resolvedType)} could not be constructed.");
+        }
+
+        /// <summary>
+        /// Gets the DebugInfoType equivalent for a Q# type.
+        /// </summary>
+        /// <param name="resolvedType">The Q# type</param>
+        /// <param name="dIBuilder">The <see cref="DebugInfoBuilder"/> to use to build the <see cref="DebugType"/>.</param>
+        /// <returns>The equivalent <see cref="DebugType"/></returns>
+        internal IDebugType<ITypeRef, DIType>? DebugTypeFromQsharpType(ResolvedType resolvedType, DebugInfoBuilder dIBuilder)
+        {
+            this.ResetConversionVariables();
+            this.currDIBuilder = dIBuilder;
+            this.OnType(resolvedType);
+            return this.builtDebugType;
         }
 
         /// <summary>
@@ -66,79 +90,88 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsResolvedTypeKind OnArrayType(ResolvedType b)
         {
-            this.builtType = this.qirTypes.Array;
+            this.builtLLVMType = this.qirTypes.Array;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnBigInt()
         {
-            this.builtType = this.qirTypes.BigInt;
+            this.builtLLVMType = this.qirTypes.BigInt;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnBool()
         {
-            this.builtType = this.qirTypes.Bool;
+            this.builtLLVMType = this.qirTypes.Bool;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnDouble()
         {
-            this.builtType = this.qirTypes.Double;
+            this.builtLLVMType = this.qirTypes.Double;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnFunction(ResolvedType it, ResolvedType ot)
         {
-            this.builtType = this.qirTypes.Callable;
+            this.builtLLVMType = this.qirTypes.Callable;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnInt()
         {
-            this.builtType = this.qirTypes.Int;
+            this.builtLLVMType = this.qirTypes.Int;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = new DebugBasicType(
+                    this.qirTypes.Int,
+                    this.currDIBuilder,
+                    TypeNames.Int,
+                    DiTypeKind.Signed);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnOperation(Tuple<ResolvedType, ResolvedType> _arg1, CallableInformation info)
         {
-            this.builtType = this.qirTypes.Callable;
+            this.builtLLVMType = this.qirTypes.Callable;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnPauli()
         {
-            this.builtType = this.qirTypes.Pauli;
+            this.builtLLVMType = this.qirTypes.Pauli;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnQubit()
         {
-            this.builtType = this.qirTypes.Qubit;
+            this.builtLLVMType = this.qirTypes.Qubit;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnRange()
         {
-            this.builtType = this.qirTypes.Range;
+            this.builtLLVMType = this.qirTypes.Range;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnResult()
         {
-            this.builtType = this.qirTypes.Result;
+            this.builtLLVMType = this.qirTypes.Result;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnString()
         {
-            this.builtType = this.qirTypes.String;
+            this.builtLLVMType = this.qirTypes.String;
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnTupleType(ImmutableArray<ResolvedType> ts)
         {
-            this.builtType = this.CreateConcreteTupleType(ts).CreatePointerType();
+            this.builtLLVMType = this.CreateConcreteTupleType(ts).CreatePointerType();
             return QsResolvedTypeKind.InvalidType;
         }
 
@@ -147,7 +180,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Unit is represented as a null tuple pointer (an empty tuple).
             // This is necessary because "void" in LLVM is not a proper type and can't be included
             // as an element in a struct.
-            this.builtType = this.qirTypes.Tuple;
+            this.builtLLVMType = this.qirTypes.Tuple;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = DebugType.Create<ITypeRef, DIType>(this.qirTypes.Tuple, null);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
@@ -157,7 +195,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var udtDefinition = this.getTypeDeclaration(udt.GetFullName());
             if (udtDefinition != null)
             {
-                this.builtType = this.LlvmStructTypeFromQsharpType(udtDefinition.Type).CreatePointerType();
+                this.builtLLVMType = this.LlvmStructTypeFromQsharpType(udtDefinition.Type).CreatePointerType();
             }
             else
             {
@@ -169,7 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
         {
-            this.builtType = this.qirTypes.BytePointer;
+            this.builtLLVMType = this.qirTypes.BytePointer;
             return QsResolvedTypeKind.InvalidType;
         }
     }
