@@ -301,7 +301,7 @@ let ``QIR Library generation`` () =
         [ "TestLibraryGeneration1"; "TestLibraryGeneration2"; "TestLibraryGeneration3" ]
 
 [<Fact>]
-let ``QIR Debug Info module`` () = debugInfoTest false "TestModuleInfo"
+let ``QIR Debug Info Module`` () = debugInfoTest false "TestModuleInfo"
 
 [<Fact>]
 let ``QIR Debug Info Int Variable`` () =
@@ -314,14 +314,34 @@ let ``QIR Debug Info Int Variable`` () =
         ]
 
 [<Fact>]
-let ``QIR Debug Info Unit Function`` () =
+let ``QIR Debug Info Function Returns Unit`` () =
     debugInfoMultiTest
         false
-        "TestUnitFunction"
+        "TestFunctionReturnsUnit"
         [
-            "TestUnitFunction1"
-            "TestUnitFunction2"
-            "TestUnitFunction3"
-            "TestUnitFunction4"
-            "TestUnitFunction5"
+            "TestFunctionReturnsUnit1"
+            "TestFunctionReturnsUnit2"
+            "TestFunctionReturnsUnit3"
+            "TestFunctionReturnsUnit4"
+            "TestFunctionReturnsUnit5"
+            "TestFunctionReturnsUnit6"
+            "TestFunctionReturnsUnit7"
+            "TestFunctionReturnsUnit8"
         ]
+
+[<Fact>]
+let ``QIR Debug Info Function Returns Int`` () =
+    debugInfoMultiTest
+        false
+        "TestFunctionReturnsInt"
+        [
+            "TestFunctionReturnsInt1"
+            "TestFunctionReturnsInt2"
+            "TestFunctionReturnsInt3"
+            "TestFunctionReturnsInt4"
+            "TestFunctionReturnsInt5"
+            "TestFunctionReturnsInt6"
+            "TestFunctionReturnsInt7"
+            "TestFunctionReturnsInt8"
+        ]
+
