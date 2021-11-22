@@ -335,7 +335,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             {
                 var projectFile = ProjectLoaderTests.ProjectUri(projectName);
                 var projDir = Path.GetDirectoryName(projectFile.LocalPath) ?? "";
-                var projectManager = new ProjectManager(ex => Assert.IsNull(ex), CheckForLoadingCompleted);
+                var telemetryEvents = new List<(string, int)>();
+                var projectManager = new ProjectManager(
+                    ex => Assert.IsNull(ex),
+                    CheckForLoadingCompleted,
+                    sendTelemetry: (eventName, _, measures) => telemetryEvents.Add((eventName, measures.TryGetValue("totalEdits", out var nrEdits) ? nrEdits : 0)));
                 await projectManager.LoadProjectsAsync(
                     new[] { projectFile },
                     CompilationContext.Editor.QsProjectLoader,
@@ -359,6 +363,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Assert.IsNotNull(edits);
                 Assert.AreEqual(1, edits!.Length);
                 Assert.AreEqual(expectedContent, edits[0].NewText);
+                Assert.AreEqual(1, telemetryEvents.Count());
+                Assert.AreEqual("formatting", telemetryEvents[0].Item1);
+                Assert.AreEqual(edits.Length, telemetryEvents[0].Item2);
             }
 
             await RunFormattingTestAsync("test12");

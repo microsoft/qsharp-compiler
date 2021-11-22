@@ -28,6 +28,7 @@ type BuiltIn =
     static member ClassicallyControlledNamespace = "Microsoft.Quantum.ClassicalControl"
     static member CoreNamespace = "Microsoft.Quantum.Core"
     static member DiagnosticsNamespace = "Microsoft.Quantum.Diagnostics"
+    static member LlvmNamespace = "Microsoft.Quantum.Llvm"
     static member IntrinsicNamespace = "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = "Microsoft.Quantum.Arrays"
     static member TargetingNamespace = "Microsoft.Quantum.Targeting"
@@ -88,6 +89,8 @@ type BuiltIn =
             BuiltIn.EnableTestingViaName
             BuiltIn.DumpMachine
             BuiltIn.DumpRegister
+            // in Microsoft.Quantum.Llvm
+            BuiltIn.ReadCycleCounter
             // in Microsoft.Quantum.Canon
             BuiltIn.NoOp
             // in Microsoft.Quantum.Convert
@@ -248,6 +251,14 @@ type BuiltIn =
         {
             FullName = { Name = "DumpRegister"; Namespace = BuiltIn.DiagnosticsNamespace }
             Kind = Function(TypeParameters = ImmutableArray.Create "T")
+        }
+
+    // dependencies in Microsoft.Quantum.Llvm
+
+    static member ReadCycleCounter =
+        {
+            FullName = { Name = "ReadCycleCounter"; Namespace = BuiltIn.LlvmNamespace }
+            Kind = Operation(TypeParameters = ImmutableArray.Empty, IsSelfAdjoint = false)
         }
 
     // dependencies in Microsoft.Quantum.Canon

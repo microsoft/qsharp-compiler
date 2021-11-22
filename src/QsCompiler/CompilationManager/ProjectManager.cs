@@ -17,6 +17,8 @@ using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
+    public delegate void SendTelemetryHandler(string eventName, Dictionary<string, string?> properties, Dictionary<string, int> measures);
+
     /// <summary>
     /// Represents project properties defined in the project file.
     /// </summary>
@@ -798,13 +800,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         private readonly Action<string, MessageType>? log;
 
+        /// <summary>
+        /// Used to send telemetry events during processing, if the project is compiled with TELEMETRY defined.
+        /// </summary>
+        /// <remarks>
+        /// May be null!
+        /// </remarks>
+        private readonly SendTelemetryHandler? sendTelemetry;
+
         /// <remarks>
         /// If <paramref name="publishDiagnostics"/> is not null,
         /// it is called whenever diagnostics for the project have changed and are ready for publishing.
         /// <para/>
         /// Any exceptions caught during processing are logged using <paramref name="exceptionLogger"/>.
         /// </remarks>
-        public ProjectManager(Action<Exception>? exceptionLogger, Action<string, MessageType>? log = null, Action<PublishDiagnosticParams>? publishDiagnostics = null)
+        public ProjectManager(
+            Action<Exception>? exceptionLogger,
+            Action<string, MessageType>? log = null,
+            Action<PublishDiagnosticParams>? publishDiagnostics = null,
+            SendTelemetryHandler? sendTelemetry = null)
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
@@ -812,6 +826,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.publishDiagnostics = publishDiagnostics;
             this.logException = exceptionLogger;
             this.log = log;
+            this.sendTelemetry = sendTelemetry;
         }
 
         /// <inheritdoc/>
@@ -1162,6 +1177,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.log?.Invoke("Failed to format document. Formatter may be unavailable.", MessageType.Info);
             }
 
+            // send telemetry if telemetry is enabled
+            var telemetryProps = new Dictionary<string, string?>
+            {
+                ["quantumSdkVersion"] = manager?.BuildProperties.SdkVersion?.ToString(),
+            };
+            var telemetryMeas = new Dictionary<string, int>
+            {
+                { "totalEdits", edits?.Count() ?? 0 },
+            };
+            this.sendTelemetry?.Invoke("formatting", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
             return edits;
         }
 
@@ -1208,7 +1233,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         public Hover? HoverInformation(TextDocumentPositionParams? param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.HoverInformation(c, param?.Position?.ToQSharp(), format), suppressExceptionLogging: true);
+                param?.TextDocument,
+                (f, c) => param?.Position?.ToQSharp() is { } p ? f.HoverInformation(c, p, format) : null,
+                suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns an array with all usages of the identifier at the given position (if any) as an array of <see cref="DocumentHighlight"/>.
@@ -1271,7 +1298,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 param?.TextDocument,
                 (file, c) =>
                 {
-                    var codeActionSuggestions = file.CodeActions(c, param?.Range?.ToQSharp(), param?.Context);
+                    var codeActionSuggestions = file.CodeActions(c, param?.Range?.ToQSharp(), param?.Context) ?? Enumerable.Empty<(string, WorkspaceEdit)>();
                     var diagnostics = param?.Context?.Diagnostics;
                     if (diagnostics != null && diagnostics.Any(DiagnosticTools.WarningType(
                         WarningCode.DeprecatedTupleBrackets,
@@ -1289,6 +1316,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             codeActionSuggestions = codeActionSuggestions.Append(
                                 ("Update deprecated syntax in file.", file.GetWorkspaceEdit(formattingEdits)));
                         }
+
+                        // send telemetry if telemetry is enabled
+                        var telemetryProps = new Dictionary<string, string?>()
+                        {
+                            { "quantumSdkVersion", c.BuildProperties.SdkVersion?.ToString() },
+                        };
+                        var telemetryMeas = new Dictionary<string, int>()
+                        {
+                            { "qsfmtUpdateEdits", formattingEdits?.Count() ?? 0 },
+                            { "totalEdits", codeActionSuggestions.Count() },
+                        };
+                        this.sendTelemetry?.Invoke("code-action", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
                     }
 
                     return codeActionSuggestions
