@@ -23,18 +23,18 @@
     <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.20.2110171573-alpha" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.20.2110171573" GeneratePathProperty="true" />
   </ItemGroup>
-    
+
   <PropertyGroup>
     <CSharpGeneration>false</CSharpGeneration>
     <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
     <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) QirOutputPath:"qir"</_QscCommandPredefinedAssemblyProperties>
   </PropertyGroup>
-    
+
   <ItemGroup>
     <UpToDateCheckInput Include="@(None)" />
     <None Include="$(QirOutputPath)**" />
   </ItemGroup>
-    
+
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\QsCompiler\CommandLineTool\CommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -68,7 +68,7 @@
   </Target>
 
   <Target Name="BeforeCSharpCompile">
-    <PropertyGroup>  
+    <PropertyGroup>
       <CsEntryPoint>
         namespace Microsoft.Quantum.Sdk.Tools {
           public static class DefaultEntryPoint {
@@ -88,7 +88,7 @@
       <Compile Include="$(GeneratedFilesOutputPath)Main.cs">
         <Visible>false</Visible>
       </Compile>
-      <_QirOutputFiles Include="$(QirOutputPath)**" />    
+      <_QirOutputFiles Include="$(QirOutputPath)**" />
     </ItemGroup>
     <Error Condition="!Exists($(QirOutputPath))" Text="QIR output folder was not created." />
     <Error Condition="@(_QirOutputFiles->Count()) &lt; 1" Text="QIR output files (.ll) were not created." />
@@ -130,8 +130,10 @@
       <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/linux-x64/native</QirRuntimeLibs>
       <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
       <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
-      <ClangCommand>clang++ -o $(ExecutablePath) $(QirOutputPath)$(PathCompatibleAssemblyName).ll $(BuildOutputPath)\Main.cpp -I$(BuildOutputPath) -L$(BuildOutputPath) -lMicrosoft.Quantum.Qir.Runtime -lMicrosoft.Quantum.Qir.QSharp.Core -lMicrosoft.Quantum.Qir.QSharp.Foundation</ClangCommand>
+      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native/libMicrosoft.Quantum.Simulator.Runtime.so</SimulatorRuntime>
+      <ClangName Condition="$([MSBuild]::IsOsPlatform('Windows')) Or $([MSBuild]::IsOsPlatform('OSX'))">clang++</ClangName>
+      <ClangName Condition="$([MSBuild]::IsOsPlatform('Linux'))">clang++-11</ClangName>
+      <ClangCommand>$(ClangName) -o $(ExecutablePath) $(QirOutputPath)$(PathCompatibleAssemblyName).ll $(BuildOutputPath)/Main.cpp -I$(BuildOutputPath) -L$(BuildOutputPath) -lMicrosoft.Quantum.Qir.Runtime -lMicrosoft.Quantum.Qir.QSharp.Core -lMicrosoft.Quantum.Qir.QSharp.Foundation</ClangCommand>
     </PropertyGroup>
     <ItemGroup>
       <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
