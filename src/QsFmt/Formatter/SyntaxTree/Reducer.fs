@@ -10,6 +10,43 @@ type internal 'result Reducer() as reducer =
     /// Reduces a list of results into a single result.
     let reduce = curry reducer.Combine |> List.reduce
 
+    /// The default behavior to reduce a SimpleStatement.
+    let defaultSimpleStatement (statement: SimpleStatement) =
+        [
+            reducer.Terminal statement.Keyword
+            reducer.Expression statement.Expression
+            reducer.Terminal statement.Semicolon
+        ]
+        |> reduce
+
+    /// The default behavior to reduce a BindingStatement.
+    let defaultBindingStatement (statement: BindingStatement) =
+        [
+            reducer.Terminal statement.Keyword
+            reducer.SymbolBinding statement.Binding
+            reducer.Terminal statement.Equals
+            reducer.Expression statement.Value
+            reducer.Terminal statement.Semicolon
+        ]
+        |> reduce
+
+    /// The default behavior to reduce a ConditionalBlockStatement.
+    let defaultConditionalBlockStatement (statement: ConditionalBlockStatement) =
+        [
+            reducer.Terminal statement.Keyword
+            reducer.Expression statement.Condition
+            reducer.Block(reducer.Statement, statement.Block)
+        ]
+        |> reduce
+
+    /// The default behavior to reduce a BlockStatement.
+    let defaultBlockStatement (statement: BlockStatement) =
+        [
+            reducer.Terminal statement.Keyword
+            reducer.Block(reducer.Statement, statement.Block)
+        ]
+        |> reduce
+
     abstract Combine : 'result * 'result -> 'result
 
     abstract Document : document: Document -> 'result
@@ -31,13 +68,52 @@ type internal 'result Reducer() as reducer =
 
     default _.NamespaceItem item =
         match item with
+        | OpenDirective directive -> reducer.OpenDirective directive
+        | TypeDeclaration delcaration -> reducer.TypeDeclaration delcaration
         | CallableDeclaration callable -> reducer.CallableDeclaration callable
         | Unknown terminal -> reducer.Terminal terminal
+
+    abstract OpenDirective : directive: OpenDirective -> 'result
+
+    default _.OpenDirective directive =
+        [ reducer.Terminal directive.OpenKeyword; reducer.Terminal directive.OpenName ]
+        @ (directive.AsKeyword |> Option.map reducer.Terminal |> Option.toList)
+          @ (directive.AsName |> Option.map reducer.Terminal |> Option.toList)
+            @ [ reducer.Terminal directive.Semicolon ]
+        |> reduce
+
+    abstract TypeDeclaration : declaration: TypeDeclaration -> 'result
+
+    default _.TypeDeclaration declaration =
+        (declaration.Attributes |> List.map reducer.Attribute)
+        @ (declaration.Access |> Option.map reducer.Terminal |> Option.toList)
+          @ [
+              reducer.Terminal declaration.NewtypeKeyword
+              reducer.Terminal declaration.DeclaredType
+              reducer.Terminal declaration.Equals
+              reducer.UnderlyingType declaration.UnderlyingType
+              reducer.Terminal declaration.Semicolon
+          ]
+        |> reduce
 
     abstract Attribute : attribute: Attribute -> 'result
 
     default _.Attribute attribute =
         [ reducer.Terminal attribute.At; reducer.Expression attribute.Expression ] |> reduce
+
+    abstract UnderlyingType : underlying: UnderlyingType -> 'result
+
+    default _.UnderlyingType underlying =
+        match underlying with
+        | TypeDeclarationTuple tuple -> reducer.Tuple(reducer.TypeTupleItem, tuple)
+        | Type _type -> reducer.Type _type
+
+    abstract TypeTupleItem : item: TypeTupleItem -> 'result
+
+    default _.TypeTupleItem item =
+        match item with
+        | TypeBinding binding -> reducer.ParameterDeclaration binding
+        | UnderlyingType underlying -> reducer.UnderlyingType underlying
 
     abstract CallableDeclaration : callable: CallableDeclaration -> 'result
 
@@ -160,79 +236,145 @@ type internal 'result Reducer() as reducer =
 
     default _.Statement statement =
         match statement with
-        | Let lets -> reducer.Let lets
-        | Return returns -> reducer.Return returns
-        | QubitDeclaration decl -> reducer.QubitDeclaration decl
-        | If ifs -> reducer.If ifs
-        | Else elses -> reducer.Else elses
-        | For loop -> reducer.For loop
+        | ExpressionStatement expr -> reducer.ExpressionStatement expr
+        | ReturnStatement returns -> reducer.ReturnStatement returns
+        | FailStatement fails -> reducer.FailStatement fails
+        | LetStatement lets -> reducer.LetStatement lets
+        | MutableStatement mutables -> reducer.MutableStatement mutables
+        | SetStatement sets -> reducer.SetStatement sets
+        | UpdateStatement updates -> reducer.UpdateStatement updates
+        | UpdateWithStatement withs -> reducer.UpdateWithStatement withs
+        | IfStatement ifs -> reducer.IfStatement ifs
+        | ElifStatement elifs -> reducer.ElifStatement elifs
+        | ElseStatement elses -> reducer.ElseStatement elses
+        | ForStatement loop -> reducer.ForStatement loop
+        | WhileStatement whiles -> reducer.WhileStatement whiles
+        | RepeatStatement repeats -> reducer.RepeatStatement repeats
+        | UntilStatement untils -> reducer.UntilStatement untils
+        | WithinStatement withins -> reducer.WithinStatement withins
+        | ApplyStatement apply -> reducer.ApplyStatement apply
+        | QubitDeclarationStatement decl -> reducer.QubitDeclarationStatement decl
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
-    abstract Let : lets: Let -> 'result
+    abstract ExpressionStatement : expr: ExpressionStatement -> 'result
 
-    default _.Let lets =
+    default _.ExpressionStatement expr =
+        [ reducer.Expression expr.Expression; reducer.Terminal expr.Semicolon ] |> reduce
+
+    abstract ReturnStatement : returns: SimpleStatement -> 'result
+
+    default _.ReturnStatement returns = defaultSimpleStatement returns
+
+    abstract FailStatement : fails: SimpleStatement -> 'result
+
+    default _.FailStatement fails = defaultSimpleStatement fails
+
+    abstract LetStatement : lets: BindingStatement -> 'result
+
+    default _.LetStatement lets = defaultBindingStatement lets
+
+    abstract MutableStatement : mutables: BindingStatement -> 'result
+
+    default _.MutableStatement mutables = defaultBindingStatement mutables
+
+    abstract SetStatement : sets: BindingStatement -> 'result
+
+    default _.SetStatement sets = defaultBindingStatement sets
+
+    abstract UpdateStatement : updates: UpdateStatement -> 'result
+
+    default _.UpdateStatement updates =
         [
-            reducer.Terminal lets.LetKeyword
-            reducer.SymbolBinding lets.Binding
-            reducer.Terminal lets.Equals
-            reducer.Expression lets.Value
-            reducer.Terminal lets.Semicolon
+            reducer.Terminal updates.SetKeyword
+            reducer.Terminal updates.Name
+            reducer.Terminal updates.Operator
+            reducer.Expression updates.Value
+            reducer.Terminal updates.Semicolon
         ]
         |> reduce
 
-    abstract Return : returns: Return -> 'result
+    abstract UpdateWithStatement : withs: UpdateWithStatement -> 'result
 
-    default _.Return returns =
+    default _.UpdateWithStatement withs =
         [
-            reducer.Terminal returns.ReturnKeyword
-            reducer.Expression returns.Expression
-            reducer.Terminal returns.Semicolon
+            reducer.Terminal withs.SetKeyword
+            reducer.Terminal withs.Name
+            reducer.Terminal withs.With
+            reducer.Expression withs.Item
+            reducer.Terminal withs.Arrow
+            reducer.Expression withs.Value
+            reducer.Terminal withs.Semicolon
         ]
         |> reduce
 
-    abstract QubitDeclaration : decl: QubitDeclaration -> 'result
+    abstract IfStatement : ifs: ConditionalBlockStatement -> 'result
 
-    default _.QubitDeclaration decl =
-        [
-            reducer.Terminal(decl.Keyword) |> Some
-            decl.OpenParen |> Option.map reducer.Terminal
-            reducer.QubitBinding(decl.Binding) |> Some
-            decl.CloseParen |> Option.map reducer.Terminal
-            match decl.Coda with
-            | Semicolon semicolon -> reducer.Terminal(semicolon) |> Some
-            | Block block -> reducer.Block(reducer.Statement, block) |> Some
-        ]
-        |> List.choose id
-        |> reduce
+    default _.IfStatement ifs = defaultConditionalBlockStatement ifs
 
-    abstract If : ifs: If -> 'result
+    abstract ElifStatement : elifs: ConditionalBlockStatement -> 'result
 
-    default _.If ifs =
-        [
-            reducer.Terminal ifs.IfKeyword
-            reducer.Expression ifs.Condition
-            reducer.Block(reducer.Statement, ifs.Block)
-        ]
-        |> reduce
+    default _.ElifStatement elifs = defaultConditionalBlockStatement elifs
 
-    abstract Else : elses: Else -> 'result
+    abstract ElseStatement : elses: BlockStatement -> 'result
 
-    default _.Else elses =
-        [
-            reducer.Terminal elses.ElseKeyword
-            reducer.Block(reducer.Statement, elses.Block)
-        ]
-        |> reduce
+    default _.ElseStatement elses = defaultBlockStatement elses
 
-    abstract For : loop: For -> 'result
+    abstract ForStatement : loop: ForStatement -> 'result
 
-    default _.For loop =
+    default _.ForStatement loop =
         [
             reducer.Terminal loop.ForKeyword |> Some
             loop.OpenParen |> Option.map reducer.Terminal
             reducer.ForBinding(loop.Binding) |> Some
             loop.CloseParen |> Option.map reducer.Terminal
             reducer.Block(reducer.Statement, loop.Block) |> Some
+        ]
+        |> List.choose id
+        |> reduce
+
+    abstract WhileStatement : whiles: ConditionalBlockStatement -> 'result
+
+    default _.WhileStatement whiles = defaultConditionalBlockStatement whiles
+
+    abstract RepeatStatement : repeats: BlockStatement -> 'result
+
+    default _.RepeatStatement repeats = defaultBlockStatement repeats
+
+    abstract UntilStatement : untils: UntilStatement -> 'result
+
+    default _.UntilStatement untils =
+        [
+            reducer.Terminal untils.UntilKeyword
+            reducer.Expression untils.Condition
+            match untils.Coda with
+            | UntilStatementCoda.Semicolon semicolon -> reducer.Terminal semicolon
+            | Fixup fixup -> reducer.Fixup fixup
+        ]
+        |> reduce
+
+    abstract Fixup : fixup: BlockStatement -> 'result
+
+    default _.Fixup fixup = defaultBlockStatement fixup
+
+    abstract WithinStatement : withins: BlockStatement -> 'result
+
+    default _.WithinStatement withins = defaultBlockStatement withins
+
+    abstract ApplyStatement : apply: BlockStatement -> 'result
+
+    default _.ApplyStatement apply = defaultBlockStatement apply
+
+    abstract QubitDeclarationStatement : decl: QubitDeclarationStatement -> 'result
+
+    default _.QubitDeclarationStatement decl =
+        [
+            reducer.Terminal decl.Keyword |> Some
+            decl.OpenParen |> Option.map reducer.Terminal
+            reducer.QubitBinding decl.Binding |> Some
+            decl.CloseParen |> Option.map reducer.Terminal
+            match decl.Coda with
+            | Semicolon semicolon -> reducer.Terminal semicolon |> Some
+            | Block block -> reducer.Block(reducer.Statement, block) |> Some
         ]
         |> List.choose id
         |> reduce

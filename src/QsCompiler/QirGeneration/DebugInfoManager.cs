@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -336,6 +335,66 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return this.CreateFunctionNoDebug(mangledName, signature);
             }
         }
+
+        /// <summary>
+        /// Creates the debug info for a function argument.
+        /// </summary>
+        /// <param name="spec">The function's <see cref="QsSpecialization"/></param>
+        /// <param name="name">The name of the function's argument.</param>
+        /// <param name="value">The value of the function's argument.</param>
+        /// <param name="argNo">The index of the argument (expected to be 1-indexed).</param>
+        internal void CreateFunctionArgument(QsSpecialization spec, string name, IValue value, int argNo)
+        {
+            if (!Config.DebugSymbolsEnabled)
+            {
+                return;
+            }
+
+            // Get the DIBuilder
+            string sourcePath = spec.Source.CodeFile;
+            DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
+            DIFile debugFile = curDIBuilder.CreateFile(sourcePath);
+
+            // Get the debug location of the function
+            QsNullable<QsLocation> debugLocation = spec.Location;
+            if (debugLocation.IsNull)
+            {
+                throw new ArgumentException("Expected a specialiazation with a non-null location");
+            }
+
+            // TODO: make this more exact by calculating absolute column position as well
+            DebugPosition debugPosition = DebugPosition.FromZeroBasedLine(debugLocation.Item.Offset.Line); // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
+
+            // Get necessary debug information
+            DIType? dIType = this.DebugTypeFromQsharpType(value.QSharpType, curDIBuilder)?.DIType;
+            DISubProgram? subProgram = this.sharedState.CurrentFunction?.DISubProgram;
+            DILocalVariable dIVariable = curDIBuilder.CreateArgument(
+                subProgram,
+                name,
+                debugFile,
+                debugPosition,
+                dIType,
+                alwaysPreserve: true,
+                DebugInfoFlags.None,
+                (ushort)argNo); // Arg numbers are 1-indexed
+
+            if (this.sharedState.CurrentBlock != null && dIType != null && subProgram != null)
+            {
+                DILocation dILocation = new DILocation(
+                    this.Context,
+                    debugPosition,
+                    subProgram);
+
+                // Create the debug information for a variable declaration
+                curDIBuilder.InsertDeclare(
+                    storage: value.Value,
+                    varInfo: dIVariable,
+                    location: dILocation,
+                    insertAtEnd: this.sharedState.CurrentBlock);
+            }
+        }
+
+// SECTION: Private helper functions
 
         /// <summary>
         /// Creates the debug info for a function argument.

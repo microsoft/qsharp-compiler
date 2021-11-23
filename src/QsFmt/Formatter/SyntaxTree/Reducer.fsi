@@ -36,10 +36,34 @@ type internal 'result Reducer =
     default NamespaceItem: item:NamespaceItem -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="OpenDirective"/> node.
+    /// </summary>
+    abstract OpenDirective: directive:OpenDirective -> 'result
+    default OpenDirective: directive:OpenDirective -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="TypeDeclaration"/> node.
+    /// </summary>
+    abstract TypeDeclaration: declaration:TypeDeclaration -> 'result
+    default TypeDeclaration: declaration:TypeDeclaration -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="Attribute"/> node.
     /// </summary>
     abstract Attribute: attribute:Attribute -> 'result
     default Attribute: attribute:Attribute -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="UnderlyingType"/> node.
+    /// </summary>
+    abstract UnderlyingType: underlying:UnderlyingType -> 'result
+    default UnderlyingType: underlying:UnderlyingType -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="TypeTupleItem"/> node.
+    /// </summary>
+    abstract TypeTupleItem: item:TypeTupleItem -> 'result
+    default TypeTupleItem: item:TypeTupleItem -> 'result
 
     /// <summary>
     /// Reduces a <see cref="CallableDeclaration"/> node.
@@ -120,40 +144,118 @@ type internal 'result Reducer =
     default Statement: statement:Statement -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Let"/> statement node.
+    /// Reduces an <see cref="ExpressionStatement"/> statement node.
     /// </summary>
-    abstract Let: lets:Let -> 'result
-    default Let: lets:Let -> 'result
+    abstract ExpressionStatement: expr:ExpressionStatement -> 'result
+    default ExpressionStatement: expr:ExpressionStatement -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Return"/> statement node.
+    /// Reduces a <see cref="ReturnStatement"/> statement node.
     /// </summary>
-    abstract Return: returns:Return -> 'result
-    default Return: returns:Return -> 'result
+    abstract ReturnStatement: returns:SimpleStatement -> 'result
+    default ReturnStatement: returns:SimpleStatement -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="QubitDeclaration"/> statement node.
+    /// Reduces a <see cref="FailStatement"/> statement node.
     /// </summary>
-    abstract QubitDeclaration : decl: QubitDeclaration -> 'result
-    default QubitDeclaration : decl: QubitDeclaration -> 'result
+    abstract FailStatement: fails:SimpleStatement -> 'result
+    default FailStatement: fails:SimpleStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="If"/> statement node.
+    /// Reduces a <see cref="LetStatement"/> statement node.
     /// </summary>
-    abstract If: ifs:If -> 'result
-    default If: ifs:If -> 'result
+    abstract LetStatement: lets:BindingStatement -> 'result
+    default LetStatement: lets:BindingStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="Else"/> statement node.
+    /// Reduces a <see cref="MutableStatement"/> declaration statement node.
     /// </summary>
-    abstract Else: elses:Else -> 'result
-    default Else: elses:Else -> 'result
+    abstract MutableStatement: mutables:BindingStatement -> 'result
+    default MutableStatement: mutables:BindingStatement -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="For"/> statement node.
+    /// Reduces a <see cref="SetStatement"/> statement node.
     /// </summary>
-    abstract For : loop: For -> 'result
-    default For : loop: For -> 'result
+    abstract SetStatement: sets:BindingStatement -> 'result
+    default SetStatement: sets:BindingStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="UpdateStatement"/> statement node.
+    /// </summary>
+    abstract UpdateStatement: updates:UpdateStatement -> 'result
+    default UpdateStatement: updates:UpdateStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="UpdateWithStatement"/> statement node.
+    /// </summary>
+    abstract UpdateWithStatement: withs:UpdateWithStatement -> 'result
+    default UpdateWithStatement: withs:UpdateWithStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="IfStatement"/> statement node.
+    /// </summary>
+    abstract IfStatement: ifs:ConditionalBlockStatement -> 'result
+    default IfStatement: ifs:ConditionalBlockStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="ElifStatement"/> statement node.
+    /// </summary>
+    abstract ElifStatement: elifs:ConditionalBlockStatement -> 'result
+    default ElifStatement: elifs:ConditionalBlockStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="ElseStatement"/> statement node.
+    /// </summary>
+    abstract ElseStatement: elses:BlockStatement -> 'result
+    default ElseStatement: elses:BlockStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="ForStatement"/> statement node.
+    /// </summary>
+    abstract ForStatement : loop: ForStatement -> 'result
+    default ForStatement : loop: ForStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="WhileStatement"/> statement node.
+    /// </summary>
+    abstract WhileStatement : whiles: ConditionalBlockStatement -> 'result
+    default WhileStatement : whiles: ConditionalBlockStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="RepeatStatement"/> statement node.
+    /// </summary>
+    abstract RepeatStatement : repeats: BlockStatement -> 'result
+    default RepeatStatement : repeats: BlockStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="UntilStatement"/> statement node.
+    /// </summary>
+    abstract UntilStatement : untils: UntilStatement -> 'result
+    default UntilStatement : untils: UntilStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="Fixup"/> node.
+    /// </summary>
+    abstract Fixup : fixup: BlockStatement -> 'result
+    default Fixup : fixup: BlockStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="WithinStatement"/> statement node.
+    /// </summary>
+    abstract WithinStatement : withins: BlockStatement -> 'result
+    default WithinStatement : withins: BlockStatement -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="ApplyStatement"/> statement node.
+    /// </summary>
+    abstract ApplyStatement : apply: BlockStatement -> 'result
+    default ApplyStatement : apply: BlockStatement -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="QubitDeclarationStatement"/> statement node.
+    /// </summary>
+    abstract QubitDeclarationStatement : decl: QubitDeclarationStatement -> 'result
+    default QubitDeclarationStatement : decl: QubitDeclarationStatement -> 'result
 
     /// <summary>
     /// Reduces a <see cref="ParameterBinding"/> node.

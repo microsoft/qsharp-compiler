@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
+using Microsoft.Quantum.Telemetry;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -185,6 +186,20 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal void OnInternalError(Exception ex)
         {
+            var exceptionLogRecord = ex.ToExceptionLogRecord(new ExceptionLoggingOptions()
+            {
+                CollectTargetSite = true,
+                CollectSanitizedStackTrace = true,
+            });
+            var telemetryProps = new Dictionary<string, string?>
+            {
+                { "exceptionType", exceptionLogRecord.FullName },
+                { "exceptionTargetSite", exceptionLogRecord.TargetSite },
+                { "exceptionStackTrace", exceptionLogRecord.StackTrace },
+            };
+            var telemetryMeas = new Dictionary<string, int>();
+            _ = this.SendTelemetryAsync("internal-error", telemetryProps, telemetryMeas);
+
             const string line = "\n=============================\n";
             const string logLocation = "the output window"; // TODO: Generate a proper error log in a file somewhere.
             const string message =
