@@ -621,7 +621,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
             return this.DIManager.CreateGlobalFunction(spec, name, signature);
         }
+
+        /// <summary>
+        /// Generates the start of the definition for a QIR function in the current module.
+        /// Specifically, an entry block for the function is created, and the function's arguments are given names.
+        /// </summary>
+        /// <param name="spec">The Q# specialization for which to register a function.</param>
+        /// <param name="argTuple">The specialization's argument tuple.</param>
+        /// <param name="deconstuctArgument">Whether or not to deconstruct the argument tuple.</param>
         /// <param name="shouldBeExtern">Whether the given specialization should be generated as extern.</param>
+        internal void GenerateFunctionHeader(QsSpecialization spec, ArgumentTuple argTuple, bool deconstuctArgument = true, bool shouldBeExtern = false)
+        {
+            (string?, ResolvedType)[] ArgTupleToArgItems(ArgumentTuple arg, Queue<(string?, ArgumentTuple)> tupleQueue)
             {
                 (string?, ResolvedType) LocalVarName(ArgumentTuple v)
                 {
@@ -647,7 +658,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : new[] { LocalVarName(arg) };
             }
 
-            this.CurrentFunction = this.RegisterFunction(spec, isDefinition);
+            this.CurrentFunction = this.RegisterFunction(spec);
             this.CurrentFunction.Linkage = shouldBeExtern ? Linkage.External : Linkage.Internal;
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
@@ -739,7 +750,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void GenerateConstructor(QsSpecialization spec, ArgumentTuple argTuple)
         {
-            this.GenerateFunctionHeader(spec, isDefinition: true, argTuple, deconstuctArgument: false);
+            this.GenerateFunctionHeader(spec, argTuple, deconstuctArgument: false);
 
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
@@ -809,7 +820,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (this.TryGetGlobalCallable(fullName, out QsCallable? callable))
             {
                 var spec = callable.Specializations.First(spec => spec.Kind == kind);
-                return this.RegisterFunction(spec, isDefinition: false);
+                return this.RegisterFunction(spec);
             }
 
             // If we can't find the function at all, it's a problem...
