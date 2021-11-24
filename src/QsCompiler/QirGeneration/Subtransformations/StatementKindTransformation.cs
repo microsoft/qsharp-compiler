@@ -380,7 +380,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var fixupBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("fixup"));
             var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("rend"));
 
-            this.SharedState.ExecuteLoop(contBlock, () =>
+            this.SharedState.ExecuteLoop(() =>
             {
                 this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.CurrentBuilder.Branch(repeatBlock);
@@ -401,6 +401,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // for variables and values in the repeat-block after the statement ends.
                 this.SharedState.SetCurrentBlock(contBlock);
                 this.SharedState.ScopeMgr.ExitScope();
+                contBlock = this.SharedState.CurrentBlock;
 
                 this.SharedState.SetCurrentBlock(fixupBlock);
                 this.Transformation.Statements.OnScope(stm.FixupBlock.Body);
@@ -412,6 +413,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             });
 
+            this.SharedState.SetCurrentBlock(contBlock);
             return QsStatementKind.EmptyStatement;
         }
 
@@ -504,7 +506,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var bodyBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("do"));
             var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("wend"));
 
-            this.SharedState.ExecuteLoop(contBlock, () =>
+            this.SharedState.ExecuteLoop(() =>
             {
                 this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.CurrentBuilder.Branch(testBlock);
@@ -516,6 +518,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.ProcessBlock(bodyBlock, stm.Body, testBlock);
             });
 
+            this.SharedState.SetCurrentBlock(contBlock);
             return QsStatementKind.EmptyStatement;
         }
     }
