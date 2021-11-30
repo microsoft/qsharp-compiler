@@ -487,7 +487,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         {
             this.Namespaces = new NamespaceTransformation(this);
             this.StatementKinds = new StatementKindTransformation(this);
-            this.Expressions = new ExpressionTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<T>(this, TransformationOptions.Disabled);
         }
@@ -587,6 +586,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
             {
                 // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
+                this.SharedState.ContainsParamRef = false;
                 var lhs = this.Expressions.OnTypedExpression(stm.Lhs);
 
                 if (this.SharedState.ContainsParamRef)
@@ -596,35 +596,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
                 var rhs = this.Expressions.OnTypedExpression(stm.Rhs);
                 return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
-            }
-
-            /// <inheritdoc/>
-            public override QsStatementKind OnStatementKind(QsStatementKind kind)
-            {
-                this.SharedState.ContainsParamRef = false; // Every statement kind starts off false
-                return base.OnStatementKind(kind);
-            }
-        }
-
-        protected class ExpressionTransformation : ExpressionTransformation<T>
-        {
-            public ExpressionTransformation(SyntaxTreeTransformation<T> parent)
-                : base(parent)
-            {
-            }
-
-            /// <inheritdoc/>
-            public override TypedExpression OnTypedExpression(TypedExpression ex)
-            {
-                var contextContainsParamRef = this.SharedState.ContainsParamRef;
-                this.SharedState.ContainsParamRef = false;
-                var rtrn = base.OnTypedExpression(ex);
-
-                // If the sub context contains a reference, then the super context contains a reference,
-                // otherwise return the super context to its original value
-                this.SharedState.ContainsParamRef |= contextContainsParamRef;
-
-                return rtrn;
             }
         }
 
