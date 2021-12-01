@@ -183,7 +183,8 @@ let ``QIR operation call`` () =
 let ``QIR while loop`` () = qirTest false "TestWhile"
 
 [<Fact>]
-let ``QIR repeat loop`` () = qirTest true "TestRepeat"
+let ``QIR repeat loop`` () =
+    qirMultiTest true "TestRepeat" [ "TestRepeat1"; "TestRepeat2" ]
 
 [<Fact>]
 let ``QIR integers`` () = qirTest false "TestIntegers"
