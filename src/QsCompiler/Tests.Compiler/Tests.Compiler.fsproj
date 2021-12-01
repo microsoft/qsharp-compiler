@@ -293,7 +293,10 @@
     <Content Include="TestCases\QirTests\TestReferenceCounts.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestRepeat.ll">
+    <Content Include="TestCases\QirTests\TestRepeat1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestRepeat2.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestRepeat.qs">
