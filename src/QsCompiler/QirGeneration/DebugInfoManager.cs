@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="name">The name of the local variable.</param>
         /// <param name="value">The value of the variable.</param>
-        internal void CreateLocalVariable(string name, IValue value)
+        internal void CreateLocalVariable(string name, IValue value, bool isMutableBinding)
         {
             if (!Config.DebugSymbolsEnabled)
             {
@@ -255,9 +255,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (this.sharedState.CurrentBlock != null)
                 {
+                    Value variable;
+
+                    // if (value is SimpleValue) // TODO: fix this
+                    // {
+                    //     return; // don't display debug info for variables that were optimized out
+                    // }
+                    // else
+                    // if (isMutableBinding)
+                    // {
+                    //     variable = ((PointerValue)value).pointer;
+                    // }
+                    // else
+                    // {
+                    //     variable = value.Value;
+                    // }
+
+                    variable = ((PointerValue)value).pointer;
+
                     // Create the debug info for the local variable declaration
                     dIBuilder.InsertDeclare(
-                        storage: value.Value,
+                        storage: variable,
                         varInfo: dIVar,
                         location: dILocation,
                         insertAtEnd: this.sharedState.CurrentBlock);
