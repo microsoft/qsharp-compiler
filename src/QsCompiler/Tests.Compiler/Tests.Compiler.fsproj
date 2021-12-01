@@ -422,9 +422,6 @@
     <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsUnit7.ll">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsUnit8.ll">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsInt.qs">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
