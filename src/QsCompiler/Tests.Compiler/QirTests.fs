@@ -327,7 +327,6 @@ let ``QIR Debug Info Function Returns Unit`` () =
             "TestFunctionReturnsUnit5"
             "TestFunctionReturnsUnit6"
             "TestFunctionReturnsUnit7"
-            "TestFunctionReturnsUnit8"
         ]
 
 [<Fact>]
