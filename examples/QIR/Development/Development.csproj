@@ -58,6 +58,7 @@
     <ItemGroup>
       <_QirFilesToClean Include="$(QirOutputPath)**" />
       <_QirFilesToClean Include="$(BuildOutputPath)\**" />
+      <_QirFilesToClean Include="DebugInfo\Development.exe" />
       <None Remove="@(_QirFilesToClean)" />
     </ItemGroup>
     <Delete Files="@(_QirFilesToClean)" />
