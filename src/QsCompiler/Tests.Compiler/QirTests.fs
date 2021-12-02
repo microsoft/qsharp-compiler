@@ -32,8 +32,15 @@ let private checkAltOutput name (actualText: string) debugTest =
 
     let debugTestsDirectoryFormatted = debugTestsDirectory.Replace(@"\", @"\\") // The backslashes in the file are escaped
 
+    let qirProducerVersion = ToString(Assembly.GetExecutingAssembly().GetName().Version)
+
     let actualTextFormatted =
-        (if debugTest then actualText.Replace(debugTestsDirectoryFormatted, "__DIRECTORY__") else actualText)
+        (if debugTest then
+             actualText
+                 .Replace(debugTestsDirectoryFormatted, "__DIRECTORY__")
+                 .Replace(qirProducerVersion, "__QIRPRODUCERVERSION__")
+         else
+             actualText)
 
     Assert.Contains(expectedText, GUID.Replace(actualTextFormatted, "__GUID__"))
 

@@ -2,7 +2,7 @@
 !llvm.module.flags = !{!1, !2, !3}
 !llvm.dbg.cu = !{!4}
 
-!0 = !{!"Microsoft.Quantum.QsCompiler with Microsoft.Quantum.QirGeneration V 1.0.0.0"}
+!0 = !{!"Microsoft.Quantum.QsCompiler with Microsoft.Quantum.QirGeneration V __QIRPRODUCERVERSION__"}
 !1 = !{i32 2, !"Dwarf Version", i32 4}
 !2 = !{i32 2, !"Debug Info Version", i32 3}
 !3 = !{i32 2, !"CodeView", i32 1}
