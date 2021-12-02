@@ -260,7 +260,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 [NotNullWhen(true)] out QsCallable? callable,
                 [NotNullWhen(true)] out QsStatement? callStatement)
             {
-                if (!this.IsValidScope || this.CurrentCallable is null)
+                if (this.CurrentCallable is null || !LiftValidationWalker.Apply(body))
                 {
                     callable = null;
                     callStatement = null;
@@ -462,6 +462,86 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         : base.OnTypeParameter(tp);
             }
         }
+
+        private class LiftValidationWalker : SyntaxTreeTransformation<LiftValidationWalker.TransformationState>
+        {
+            public static bool Apply(QsScope content)
+            {
+                var filter = new LiftValidationWalker(content);
+                filter.Statements.OnScope(content);
+                return filter.SharedState.IsValidScope;
+            }
+
+            public class TransformationState
+            {
+                public bool IsValidScope { get; set; } = true;
+
+                public bool InValueUpdate { get; set; } = false;
+
+                public ImmutableArray<LocalVariableDeclaration<string>> SuperContextSymbols { get; set; } =
+                    ImmutableArray<LocalVariableDeclaration<string>>.Empty;
+            }
+
+            private LiftValidationWalker(QsScope content)
+            : base(new TransformationState())
+            {
+                this.SharedState.SuperContextSymbols = content.KnownSymbols.Variables;
+
+                this.Namespaces = new NamespaceTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
+                this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
+                this.StatementKinds = new StatementKindTransformation(this);
+                this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
+                this.ExpressionKinds = new ExpressionKindTransformation(this);
+                this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+            }
+
+            private class StatementKindTransformation : StatementKindTransformation<TransformationState>
+            {
+                public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                : base(parent, TransformationOptions.NoRebuild)
+                {
+                }
+
+                /// <inheritdoc/>
+                public override QsStatementKind OnReturnStatement(TypedExpression ex)
+                {
+                    this.SharedState.IsValidScope = false;
+                    return base.OnReturnStatement(ex);
+                }
+
+                /// <inheritdoc/>
+                public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
+                {
+                    // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
+                    this.SharedState.InValueUpdate = true;
+                    var lhs = this.Expressions.OnTypedExpression(stm.Lhs);
+                    this.SharedState.InValueUpdate = false;
+                    var rhs = this.Expressions.OnTypedExpression(stm.Rhs);
+                    return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
+                }
+            }
+
+            private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
+            {
+                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
+                {
+                }
+
+                /// <inheritdoc/>
+                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+                {
+                    if (this.SharedState.InValueUpdate
+                        && sym is Identifier.LocalVariable local
+                        && this.SharedState.SuperContextSymbols.Any(param => param.VariableName.Equals(local.Item)))
+                    {
+                        this.SharedState.IsValidScope = false;
+                    }
+
+                    return base.OnIdentifier(sym, tArgs);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -487,7 +567,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         {
             this.Namespaces = new NamespaceTransformation(this);
             this.StatementKinds = new StatementKindTransformation(this);
-            this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<T>(this, TransformationOptions.Disabled);
         }
 
@@ -573,49 +652,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 var (_, inner) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
 
                 return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
-            }
-
-            /// <inheritdoc/>
-            public override QsStatementKind OnReturnStatement(TypedExpression ex)
-            {
-                this.SharedState.IsValidScope = false;
-                return base.OnReturnStatement(ex);
-            }
-
-            /// <inheritdoc/>
-            public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
-            {
-                // If lhs contains an identifier found in the scope's known variables (variables from the super-scope), the scope is not valid
-                this.SharedState.ContainsParamRef = false;
-                var lhs = this.Expressions.OnTypedExpression(stm.Lhs);
-
-                if (this.SharedState.ContainsParamRef)
-                {
-                    this.SharedState.IsValidScope = false;
-                }
-
-                var rhs = this.Expressions.OnTypedExpression(stm.Rhs);
-                return QsStatementKind.NewQsValueUpdate(new QsValueUpdate(lhs, rhs));
-            }
-        }
-
-        protected class ExpressionKindTransformation : ExpressionKindTransformation<T>
-        {
-            public ExpressionKindTransformation(SyntaxTreeTransformation<T> parent)
-                : base(parent)
-            {
-            }
-
-            /// <inheritdoc/>
-            public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
-            {
-                if (sym is Identifier.LocalVariable local &&
-                this.SharedState.GeneratedOpParams.Any(param => param.VariableName.Equals(local.Item)))
-                {
-                    this.SharedState.ContainsParamRef = true;
-                }
-
-                return base.OnIdentifier(sym, tArgs);
             }
         }
     }
