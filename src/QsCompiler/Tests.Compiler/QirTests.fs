@@ -19,12 +19,22 @@ let private testOne expected args =
 let private clearOutput name =
     File.WriteAllText(name, "Test did not run to completion")
 
-let private checkAltOutput name (actualText:string) debugTest =
-    let expectedPath = (if debugTest then ("TestCases", "DebugInfoTests", name) else ("TestCases", "QirTests", name)) |> Path.Combine
+let private checkAltOutput name (actualText: string) debugTest =
+    let expectedPath =
+        (if debugTest then ("TestCases", "DebugInfoTests", name) else ("TestCases", "QirTests", name))
+        |> Path.Combine
+
     let expectedText = expectedPath |> File.ReadAllText
-    let debugTestsDirectory = (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "TestCases", "DebugInfoTests") |> Path.Combine
+
+    let debugTestsDirectory =
+        (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "TestCases", "DebugInfoTests")
+        |> Path.Combine
+
     let debugTestsDirectoryFormatted = debugTestsDirectory.Replace(@"\", @"\\") // The backslashes in the file are escaped
-    let actualTextFormatted = (if debugTest then actualText.Replace(debugTestsDirectoryFormatted, "__DIRECTORY__") else actualText) 
+
+    let actualTextFormatted =
+        (if debugTest then actualText.Replace(debugTestsDirectoryFormatted, "__DIRECTORY__") else actualText)
+
     Assert.Contains(expectedText, GUID.Replace(actualTextFormatted, "__GUID__"))
 
 let private qirCompilerArgs target (name: string) =
@@ -306,13 +316,7 @@ let ``QIR Debug Info Module`` () = debugInfoTest false "TestModuleInfo"
 
 [<Fact>]
 let ``QIR Debug Info Int Variable`` () =
-    debugInfoMultiTest
-        false
-        "TestIntVariable"
-        [
-            "TestIntVariable1"
-            "TestIntVariable2"
-        ]
+    debugInfoMultiTest false "TestIntVariable" [ "TestIntVariable1"; "TestIntVariable2" ]
 
 [<Fact>]
 let ``QIR Debug Info Function Returns Unit`` () =
@@ -344,4 +348,3 @@ let ``QIR Debug Info Function Returns Int`` () =
             "TestFunctionReturnsInt7"
             "TestFunctionReturnsInt8"
         ]
-
