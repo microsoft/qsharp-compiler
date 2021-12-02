@@ -32,7 +32,7 @@ let private checkAltOutput name (actualText: string) debugTest =
 
     let debugTestsDirectoryFormatted = debugTestsDirectory.Replace(@"\", @"\\") // The backslashes in the file are escaped
 
-    let qirProducerVersion = ToString(Assembly.GetExecutingAssembly().GetName().Version)
+    let qirProducerVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
     let actualTextFormatted =
         (if debugTest then
