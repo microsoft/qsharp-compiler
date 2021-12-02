@@ -389,7 +389,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var documentPosition = new TextDocumentPositionParams
                 {
                     Position = position,
-                    TextDocument = new TextDocumentIdentifier { Uri = lambdaFile },
+                    TextDocument = new TextDocumentIdentifier { Uri = lambdaFile! },
                 };
 
                 var expected =
@@ -398,7 +398,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                         : $"Immutable variable {expectedName}")
                     + $"    \nType: {expectedType}";
 
-                var actual = projectManager.HoverInformation(documentPosition);
+                var actual = projectManager!.HoverInformation(documentPosition);
                 Assert.AreEqual(expected, actual!.Contents.Third.Value);
             }
         }
@@ -448,18 +448,18 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                     var reference = new ReferenceParams
                     {
                         Position = position,
-                        TextDocument = new TextDocumentIdentifier { Uri = lambdaFile },
+                        TextDocument = new TextDocumentIdentifier { Uri = lambdaFile! },
                     };
 
                     var expected = positions
                         .Select(p => new Location
                         {
-                            Uri = lambdaFile,
+                            Uri = lambdaFile!,
                             Range = new Range { Start = p, End = new Position(p.Line, p.Character + symbolLength) },
                         })
                         .ToImmutableHashSet();
 
-                    if (projectManager.SymbolReferences(reference)?.ToImmutableHashSet() is { } actual)
+                    if (projectManager!.SymbolReferences(reference)?.ToImmutableHashSet() is { } actual)
                     {
                         var expectedStr = string.Join(", ", expected.Select(LocationToString));
                         var actualStr = string.Join(", ", actual.Select(LocationToString));
