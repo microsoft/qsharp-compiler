@@ -97,18 +97,45 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsResolvedTypeKind OnBigInt()
         {
             this.builtLLVMType = this.qirTypes.BigInt;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = new DebugBasicType(
+                    this.qirTypes.BigInt,
+                    this.currDIBuilder,
+                    TypeNames.BigInt,
+                    DiTypeKind.Signed);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnBool()
         {
             this.builtLLVMType = this.qirTypes.Bool;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = new DebugBasicType(
+                    this.qirTypes.Bool,
+                    this.currDIBuilder,
+                    TypeNames.Bool,
+                    DiTypeKind.Boolean);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnDouble()
         {
             this.builtLLVMType = this.qirTypes.Double;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = new DebugBasicType(
+                    this.qirTypes.Double,
+                    this.currDIBuilder,
+                    TypeNames.Double,
+                    DiTypeKind.Float);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
