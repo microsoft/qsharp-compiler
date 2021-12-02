@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -20,7 +19,6 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
@@ -106,9 +104,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Constructs a DebugInfoManater with access to the <see cref="GenerationContext"/> as the shared state.
         /// </summary>
-        internal DebugInfoManager(GenerationContext generationContext)
+        internal DebugInfoManager(GenerationContext generationContext, bool debugSymbolsEnabled)
         {
             this.sharedState = generationContext;
+            Config.DebugSymbolsEnabled = debugSymbolsEnabled;
             this.StatementLocationStack = new Stack<QsLocation?>();
             this.ExpressionRangeStack = new Stack<DataTypes.Range?>();
             this.dIBuilders = new Dictionary<string, DebugInfoBuilder>();
@@ -272,9 +271,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="spec">The <see cref="QsSpecialization"/> for the function.</param>
         /// <param name="mangledName">The mangled name for the function.</param>
         /// <param name="signature">The signature for the function.</param>
-        /// <param name="isDefinition">Whether this is a function definition (rather than a declaration).</param>
         /// <returns>The <see cref="IrFunction"/> corresponding to the given Q# type.</returns>
-        internal IrFunction CreateGlobalFunction(QsSpecialization spec, string mangledName, IFunctionType signature, bool isDefinition)
+        internal IrFunction CreateGlobalFunction(QsSpecialization spec, string mangledName, IFunctionType signature)
         {
             if (!Config.DebugSymbolsEnabled)
             {
@@ -318,13 +316,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         linePosition: ConvertToDebugPosition(absolutePosition),
                         signature: debugSignature,
                         isLocalToUnit: true, // We're using the compile unit from the source file this was declared in
-                        isDefinition: isDefinition,
+                        isDefinition: true, // if this isn't set to true, it results in temporary metadata nodes that don't get resolved.
                         scopeLinePosition: ConvertToDebugPosition(absolutePosition), // TODO: Could make more exact bc of formatting and white space (see lastParamLocation in Kaleidescope tutorial)
                         debugFlags: DebugInfoFlags.None,
                         isOptimized: false,
                         curDIBuilder);
 
-                    this.EmitLocation(absolutePosition, func.DISubProgram);
                     return func;
                 }
                 else

@@ -269,6 +269,7 @@ module AssemblyConstants =
     let ResourcesEstimator = "ResourcesEstimator"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
     let QirOutputPath = "QirOutputPath"
+    let DebugSymbolsEnabled = "DebugSymbolsEnabled"
     let PerfDataOutputPath = "PerfDataOutputPath"
     let DocsOutputPath = "DocsOutputPath"
     let DocsPackageId = "DocsPackageId"

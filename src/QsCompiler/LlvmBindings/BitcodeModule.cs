@@ -394,6 +394,13 @@ namespace Ubiquity.NET.Llvm
         /// <param name="isOptimized">Flag to indicate if this function is optimized</param>
         /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/>to use when creating debug info</param>
         /// <returns>Function described by the arguments</returns>
+        /// <remarks>
+        /// If a matching function already exists it is returned, and therefore the returned
+        /// <see cref="IrFunction"/> may have a body and additional attributes. If a function of
+        /// the same name exists with a different signature an exception is thrown as LLVM does
+        /// not perform any function overloading. If the matching function already has a DISubProgram,
+        /// it is returned directly. If not, the given information is used to create a DISubProgram
+        /// </remarks>
         public IrFunction CreateFunction(
             DIScope? scope,
             string name,
@@ -421,22 +428,26 @@ namespace Ubiquity.NET.Llvm
             }
 
             var func = this.CreateFunction(mangledName, signature);
-            var diSignature = signature.DIType;
-            var diFunc = dIBuilder.CreateFunction(
-                scope: scope,
-                name: name,
-                mangledName: mangledName,
-                file: file,
-                linePosition: linePosition,
-                signatureType: diSignature,
-                isLocalToUnit: isLocalToUnit,
-                isDefinition: isDefinition,
-                scopeLinePosition: scopeLinePosition,
-                debugFlags: debugFlags,
-                isOptimized: isOptimized,
-                function: func);
+            if (func.DISubProgram == null)
+            { // if func had already been created it might already have a DISubProgram
+                var diSignature = signature.DIType;
+                var diFunc = dIBuilder.CreateFunction(
+                    scope: scope,
+                    name: name,
+                    mangledName: mangledName,
+                    file: file,
+                    linePosition: linePosition,
+                    signatureType: diSignature,
+                    isLocalToUnit: isLocalToUnit,
+                    isDefinition: isDefinition,
+                    scopeLinePosition: scopeLinePosition,
+                    debugFlags: debugFlags,
+                    isOptimized: isOptimized,
+                    function: func);
 
-            func.DISubProgram = diFunc;
+                func.DISubProgram = diFunc;
+            }
+
             return func;
         }
 

@@ -1,0 +1,10 @@
+!6 = !{}
+!7 = distinct !DISubprogram(name: "IntToInt", linkageName: "Microsoft__Quantum__Testing__QirDebugInfo__IntToInt__body", scope: null, file: !5, line: 10, type: !8, scopeLine: 10, spFlags: DISPFlagLocalToUnit | DISPFlagDefinition, unit: !4, retainedNodes: !11)
+!8 = !DISubroutineType(types: !9)
+!9 = !{!10, !10}
+!10 = !DIBasicType(name: "Int", size: 64, encoding: DW_ATE_signed)
+!11 = !{!12}
+!12 = !DILocalVariable(name: "var_x", arg: 1, scope: !7, file: !5, line: 10, type: !10)
+!13 = !DILocation(line: 10, column: 1, scope: !7)
+!14 = !DILocation(line: 11, column: 9, scope: !7)
+!15 = distinct !DISubprogram(name: "Main", linkageName: "Microsoft__Quantum__Testing__QirDebugInfo__Main__body", scope: null, file: !5, line: 4, type: !16, scopeLine: 4, spFlags: DISPFlagLocalToUnit | DISPFlagDefinition, unit: !4, retainedNodes: !18)

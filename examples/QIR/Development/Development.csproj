@@ -23,18 +23,20 @@
     <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.20.2110171573-alpha" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.20.2110171573" GeneratePathProperty="true" />
   </ItemGroup>
-    
+
   <PropertyGroup>
     <CSharpGeneration>false</CSharpGeneration>
     <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
     <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) QirOutputPath:"qir"</_QscCommandPredefinedAssemblyProperties>
+    <!-- The line below enables debug information within the generated QIR. Uncomment the line to emit debug information. -->
+    <!-- <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) DebugSymbolsEnabled:"true"</_QscCommandPredefinedAssemblyProperties> -->
   </PropertyGroup>
-    
+
   <ItemGroup>
     <UpToDateCheckInput Include="@(None)" />
     <None Include="$(QirOutputPath)**" />
   </ItemGroup>
-    
+
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\QsCompiler\CommandLineTool\CommandLineTool.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
@@ -68,7 +70,7 @@
   </Target>
 
   <Target Name="BeforeCSharpCompile">
-    <PropertyGroup>  
+    <PropertyGroup>
       <CsEntryPoint>
         namespace Microsoft.Quantum.Sdk.Tools {
           public static class DefaultEntryPoint {
@@ -88,7 +90,7 @@
       <Compile Include="$(GeneratedFilesOutputPath)Main.cs">
         <Visible>false</Visible>
       </Compile>
-      <_QirOutputFiles Include="$(QirOutputPath)**" />    
+      <_QirOutputFiles Include="$(QirOutputPath)**" />
     </ItemGroup>
     <Error Condition="!Exists($(QirOutputPath))" Text="QIR output folder was not created." />
     <Error Condition="@(_QirOutputFiles->Count()) &lt; 1" Text="QIR output files (.ll) were not created." />
