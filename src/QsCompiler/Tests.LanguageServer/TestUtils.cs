@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
@@ -157,5 +159,46 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                    IsValidPosition(range.End) &&
                    IsBeforeOrEqual(range.Start, range.End);
         }
+
+        internal static void AssertCapability<TOptions>(
+            this SumType<bool, TOptions>? capability, bool shouldHave = true, Func<TOptions, bool>? condition = null)
+        {
+            if (shouldHave)
+            {
+                Assert.IsTrue(capability.HasValue, "Expected capability to have value, but was null.");
+            }
+
+            capability?.Match(
+                flag =>
+                {
+                    Assert.AreEqual(flag, shouldHave);
+                    return true;
+                },
+                options =>
+                {
+                    if (condition is null)
+                    {
+                        Assert.IsNotNull(options);
+                    }
+                    else
+                    {
+                        Assert.IsTrue(condition(options));
+                    }
+
+                    return true;
+                });
+        }
+
+        internal static Task TestAfterTypeCheckingAsync(ProjectManager projectManager, Uri file, Action action) =>
+            projectManager.ManagerTaskAsync(file, (unitManager, foundProject) =>
+            {
+                Assert.IsTrue(foundProject);
+
+                unitManager.FlushAndExecute(() =>
+                {
+                    action();
+                    return new object();
+                });
+            });
     }
 }
