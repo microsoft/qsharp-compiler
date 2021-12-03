@@ -271,13 +271,13 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit" // The original operation
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit" // The generated operation
+             ClassicalControlNS, "_Foo", [||], "Unit" // The generated operation
          |])
         // Lift Loops
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Don't Lift Single Call
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
@@ -285,7 +285,7 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Don't Lift Return Statements
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
@@ -340,7 +340,7 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Don't Lift General Mutable
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
@@ -348,7 +348,7 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Adjoint Support
         (_DefaultTypes,
@@ -356,19 +356,19 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "Provided", [||], "Unit"
              ClassicalControlNS, "Self", [||], "Unit"
              ClassicalControlNS, "Invert", [||], "Unit"
-             ClassicalControlNS, "_Provided", [| "Result" |], "Unit"
-             ClassicalControlNS, "_Provided", [| "Result" |], "Unit"
-             ClassicalControlNS, "_Self", [| "Result" |], "Unit"
-             ClassicalControlNS, "_Invert", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Provided", [||], "Unit"
+             ClassicalControlNS, "_Provided", [||], "Unit"
+             ClassicalControlNS, "_Self", [||], "Unit"
+             ClassicalControlNS, "_Invert", [||], "Unit"
          |])
         // Controlled Support
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Provided", [||], "Unit"
              ClassicalControlNS, "Distribute", [||], "Unit"
-             ClassicalControlNS, "_Provided", [| "Result" |], "Unit"
-             ClassicalControlNS, "_Provided", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
-             ClassicalControlNS, "_Distribute", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Provided", [||], "Unit"
+             ClassicalControlNS, "_Provided", [||], "Unit"
+             ClassicalControlNS, "_Distribute", [||], "Unit"
          |])
         // Controlled Adjoint Support - Provided
         (_DefaultTypes,
@@ -378,21 +378,21 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "ProvidedControlled", [||], "Unit"
              ClassicalControlNS, "ProvidedAll", [||], "Unit"
 
-             ClassicalControlNS, "_ProvidedBody", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedBody", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_ProvidedBody", [||], "Unit"
+             ClassicalControlNS, "_ProvidedBody", [||], "Unit"
 
-             ClassicalControlNS, "_ProvidedAdjoint", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedAdjoint", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedAdjoint", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_ProvidedAdjoint", [||], "Unit"
+             ClassicalControlNS, "_ProvidedAdjoint", [||], "Unit"
+             ClassicalControlNS, "_ProvidedAdjoint", [||], "Unit"
 
-             ClassicalControlNS, "_ProvidedControlled", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
-             ClassicalControlNS, "_ProvidedControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_ProvidedControlled", [||], "Unit"
+             ClassicalControlNS, "_ProvidedControlled", [||], "Unit"
+             ClassicalControlNS, "_ProvidedControlled", [||], "Unit"
 
-             ClassicalControlNS, "_ProvidedAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
-             ClassicalControlNS, "_ProvidedAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_ProvidedAll", [||], "Unit"
+             ClassicalControlNS, "_ProvidedAll", [||], "Unit"
+             ClassicalControlNS, "_ProvidedAll", [||], "Unit"
+             ClassicalControlNS, "_ProvidedAll", [||], "Unit"
          |])
         // Controlled Adjoint Support - Distribute
         (_DefaultTypes,
@@ -402,17 +402,17 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "DistributeControlled", [||], "Unit"
              ClassicalControlNS, "DistributeAll", [||], "Unit"
 
-             ClassicalControlNS, "_DistributeBody", [| "Result" |], "Unit"
+             ClassicalControlNS, "_DistributeBody", [||], "Unit"
 
-             ClassicalControlNS, "_DistributeAdjoint", [| "Result" |], "Unit"
-             ClassicalControlNS, "_DistributeAdjoint", [| "Result" |], "Unit"
+             ClassicalControlNS, "_DistributeAdjoint", [||], "Unit"
+             ClassicalControlNS, "_DistributeAdjoint", [||], "Unit"
 
-             ClassicalControlNS, "_DistributeControlled", [| "Result" |], "Unit"
-             ClassicalControlNS, "_DistributeControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_DistributeControlled", [||], "Unit"
+             ClassicalControlNS, "_DistributeControlled", [||], "Unit"
 
-             ClassicalControlNS, "_DistributeAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_DistributeAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_DistributeAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_DistributeAll", [||], "Unit"
+             ClassicalControlNS, "_DistributeAll", [||], "Unit"
+             ClassicalControlNS, "_DistributeAll", [||], "Unit"
          |])
         // Controlled Adjoint Support - Invert
         (_DefaultTypes,
@@ -422,17 +422,17 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "InvertControlled", [||], "Unit"
              ClassicalControlNS, "InvertAll", [||], "Unit"
 
-             ClassicalControlNS, "_InvertBody", [| "Result" |], "Unit"
+             ClassicalControlNS, "_InvertBody", [||], "Unit"
 
-             ClassicalControlNS, "_InvertAdjoint", [| "Result" |], "Unit"
-             ClassicalControlNS, "_InvertAdjoint", [| "Result" |], "Unit"
+             ClassicalControlNS, "_InvertAdjoint", [||], "Unit"
+             ClassicalControlNS, "_InvertAdjoint", [||], "Unit"
 
-             ClassicalControlNS, "_InvertControlled", [| "Result" |], "Unit"
-             ClassicalControlNS, "_InvertControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_InvertControlled", [||], "Unit"
+             ClassicalControlNS, "_InvertControlled", [||], "Unit"
 
-             ClassicalControlNS, "_InvertAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_InvertAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_InvertAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_InvertAll", [||], "Unit"
+             ClassicalControlNS, "_InvertAll", [||], "Unit"
+             ClassicalControlNS, "_InvertAll", [||], "Unit"
          |])
         // Controlled Adjoint Support - Self
         (_DefaultTypes,
@@ -440,17 +440,17 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "SelfBody", [||], "Unit"
              ClassicalControlNS, "SelfControlled", [||], "Unit"
 
-             ClassicalControlNS, "_SelfBody", [| "Result" |], "Unit"
+             ClassicalControlNS, "_SelfBody", [||], "Unit"
 
-             ClassicalControlNS, "_SelfControlled", [| "Result" |], "Unit"
-             ClassicalControlNS, "_SelfControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_SelfControlled", [||], "Unit"
+             ClassicalControlNS, "_SelfControlled", [||], "Unit"
          |])
         // Within Block Support
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Arguments Partially Resolve Type Parameters
         (_TypeParameterTypes,
@@ -462,26 +462,26 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Lift Partial Application
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Bar", [| "Int"; "Double" |], "Unit"
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Lift Array Item Call
         (_DefaultWithOperation,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "SubOp1Type[]"; "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "SubOp1Type[]" |], "Unit"
          |])
         // Lift One Not Both
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Apply Conditionally
         (_DefaultTypes,
@@ -541,7 +541,7 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
              ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
          |])
         // Mutables with Nesting Lift Outer
@@ -556,25 +556,25 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Mutables with Classic Nesting Lift Outer
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
          |])
         // Mutables with Classic Nesting Lift Outer With More Classic
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
          |])
         // Mutables with Classic Nesting Lift Middle
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
          |])
         // Nested Invalid Lifting
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
@@ -583,16 +583,16 @@ let public ClassicalControlSignatures =
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
              ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
-             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
-             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
          |])
         // Mutables with Classic Nesting Elif Lift First
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
          |])
-        // NOT Condition Remembers Known Symbols
+        // NOT Condition Retains Used Variables
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"

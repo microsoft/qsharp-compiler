@@ -1741,5 +1741,5 @@ type ClassicalControlTests() =
 
     [<Fact>]
     [<Trait("Category", "If Structure Reshape")>]
-    member this.``NOT Condition Remembers Known Symbols``() =
+    member this.``NOT Condition Retains Used Variables``() =
         CompileClassicalControlTest 52 |> ignore

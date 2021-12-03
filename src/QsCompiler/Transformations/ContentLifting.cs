@@ -197,13 +197,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return (newSig, specializations);
             }
 
-            private (QsCallable, ResolvedType) GenerateOperation(CallableDetails callable, QsScope contents)
+            private (QsCallable, ResolvedType) GenerateOperation(CallableDetails callable, QsScope contents, ImmutableArray<LocalVariableDeclaration<string>> usedSymbols)
             {
                 var newName = NameDecorator.PrependGuid(callable.Callable.FullName);
 
-                var knownVariables = contents.KnownSymbols.Variables;
-
-                var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTuple(knownVariables
+                var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTuple(usedSymbols
                     .Select(var => QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
                         QsLocalSymbol.NewValidName(var.VariableName),
                         var.Type,
@@ -213,13 +211,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     .ToImmutableArray());
 
                 var paramTypes = ResolvedType.New(ResolvedTypeKind.UnitType);
-                if (knownVariables.Length == 1)
+                if (usedSymbols.Length == 1)
                 {
-                    paramTypes = knownVariables.First().Type;
+                    paramTypes = usedSymbols.First().Type;
                 }
-                else if (knownVariables.Length > 1)
+                else if (usedSymbols.Length > 1)
                 {
-                    paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(knownVariables
+                    paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(usedSymbols
                         .Select(var => var.Type)
                         .ToImmutableArray()));
                 }
@@ -240,7 +238,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     QsComments.Empty);
 
                 // Change the origin of all type parameter references to use the new name and make all variables immutable
-                generatedCallable = UpdateGeneratedOp.Apply(generatedCallable, knownVariables, callable.Callable.FullName, newName);
+                generatedCallable = UpdateGeneratedOp.Apply(generatedCallable, usedSymbols, callable.Callable.FullName, newName);
 
                 return (generatedCallable, signature.ArgumentType);
             }
@@ -260,14 +258,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 [NotNullWhen(true)] out QsCallable? callable,
                 [NotNullWhen(true)] out QsStatement? callStatement)
             {
-                if (this.CurrentCallable is null || !LiftValidationWalker.Apply(body))
+                if (this.CurrentCallable is null)
                 {
                     callable = null;
                     callStatement = null;
                     return false;
                 }
 
-                var (generatedOp, originalArgumentType) = this.GenerateOperation(this.CurrentCallable, body);
+                var (isValid, usedSymbols) = LiftValidationWalker.Apply(body);
+
+                if (!isValid)
+                {
+                    callable = null;
+                    callStatement = null;
+                    return false;
+                }
+
+                var (generatedOp, originalArgumentType) = this.GenerateOperation(this.CurrentCallable, body, usedSymbols);
                 var generatedOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
                     Tuple.Create(
                         originalArgumentType,
@@ -289,11 +296,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     new InferredExpressionInformation(false, false),
                     QsNullable<Range>.Null);
 
-                var knownSymbols = body.KnownSymbols.Variables;
                 TypedExpression? arguments = null;
-                if (knownSymbols.Any())
+                if (usedSymbols.Any())
                 {
-                    var argumentArray = knownSymbols
+                    var argumentArray = usedSymbols
                         .Select(var => new TypedExpression(
                             ExpressionKind.NewIdentifier(
                                 Identifier.NewLocalVariable(var.VariableName),
@@ -465,11 +471,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
         private class LiftValidationWalker : SyntaxTreeTransformation<LiftValidationWalker.TransformationState>
         {
-            public static bool Apply(QsScope content)
+            public static (bool IsValid, ImmutableArray<LocalVariableDeclaration<string>> UsedSymbols) Apply(QsScope content)
             {
                 var filter = new LiftValidationWalker(content);
                 filter.Statements.OnScope(content);
-                return filter.SharedState.IsValidScope;
+                if (filter.SharedState.IsValidScope)
+                {
+                    return (true, filter.SharedState.SuperContextSymbols.Where(symbol => symbol.Used).Select(symbol => symbol.Variable).ToImmutableArray());
+                }
+                else
+                {
+                    return (false, ImmutableArray<LocalVariableDeclaration<string>>.Empty);
+                }
             }
 
             public class TransformationState
@@ -478,14 +491,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
                 public bool InValueUpdate { get; set; } = false;
 
-                public ImmutableArray<LocalVariableDeclaration<string>> SuperContextSymbols { get; set; } =
-                    ImmutableArray<LocalVariableDeclaration<string>>.Empty;
+                public List<(LocalVariableDeclaration<string> Variable, bool Used)> SuperContextSymbols { get; set; } =
+                    new List<(LocalVariableDeclaration<string> Variable, bool Used)>();
             }
 
             private LiftValidationWalker(QsScope content)
             : base(new TransformationState())
             {
-                this.SharedState.SuperContextSymbols = content.KnownSymbols.Variables;
+                this.SharedState.SuperContextSymbols = content.KnownSymbols.Variables
+                    .Select(name => (Variable: name, Used: false))
+                    .ToList();
 
                 this.Namespaces = new NamespaceTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
@@ -531,11 +546,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 /// <inheritdoc/>
                 public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
                 {
-                    if (this.SharedState.InValueUpdate
-                        && sym is Identifier.LocalVariable local
-                        && this.SharedState.SuperContextSymbols.Any(param => param.VariableName.Equals(local.Item)))
+                    if (sym is Identifier.LocalVariable local)
                     {
-                        this.SharedState.IsValidScope = false;
+                        if (this.SharedState.InValueUpdate
+                            && this.SharedState.SuperContextSymbols.Any(symbol => symbol.Variable.VariableName.Equals(local.Item)))
+                        {
+                            this.SharedState.IsValidScope = false;
+                        }
+
+                        this.SharedState.SuperContextSymbols =
+                            this.SharedState.SuperContextSymbols
+                            .Select(symbol => (symbol.Variable, symbol.Used || symbol.Variable.VariableName.Equals(local.Item)))
+                            .ToList();
                     }
 
                     return base.OnIdentifier(sym, tArgs);
