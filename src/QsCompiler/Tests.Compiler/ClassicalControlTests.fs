@@ -173,7 +173,7 @@ type ClassicalControlTests() =
             callables
             |> Seq.tryFindIndex (fun callSig -> hasCall callSig call)
             |> (fun x ->
-                Assert.True(x <> None, sprintf "Did not find expected generated content")
+                Assert.True(x <> None, "Did not find expected generated content")
                 rtrn <- Seq.append rtrn [ Seq.item x.Value callables ]
                 callables <- removeAt x.Value callables)
 
@@ -529,7 +529,7 @@ type ClassicalControlTests() =
         )
 
         let (success, typeArgs, _) = IsApplyIfArgMatch args "r" generated.FullName
-        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
         AssertTypeArgsMatch originalTypeParams <| typeArgs.Replace("'", "").Replace(" ", "").Split(",")
 
@@ -1459,7 +1459,7 @@ type ClassicalControlTests() =
         )
 
         let (success, _, _) = IsApplyIfArgMatch args "r" outer.FullName
-        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
         // Make sure outer calls inner generated
         let lines = outer |> GetBodyFromCallable |> GetLinesFromSpecialization
@@ -1473,7 +1473,7 @@ type ClassicalControlTests() =
         )
 
         let (success, _, _) = IsApplyIfArgMatch args "r" inner.FullName
-        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
@@ -1499,7 +1499,7 @@ type ClassicalControlTests() =
         )
 
         let (success, _, _) = IsApplyIfArgMatch args "r" generated.Parent
-        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
     [<Fact(Skip = "Known Issue https://github.com/microsoft/qsharp-compiler/issues/1115")>]
     [<Trait("Category", "Content Lifting")>]
@@ -1530,10 +1530,10 @@ type ClassicalControlTests() =
         )
 
         let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" generated.Parent
-        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
         // Make sure the classical condition is present
-        Assert.True(lines.[3] = "    if x < 1 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[3] = "    if x < 1 {", "The classical condition is missing after transformation")
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
@@ -1559,11 +1559,11 @@ type ClassicalControlTests() =
         )
 
         let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" generated.Parent
-        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
         // Make sure the classical condition is present
         let lines = generated |> GetLinesFromSpecialization
-        Assert.True(lines.[1] = "if x < 1 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[1] = "if x < 1 {", "The classical condition is missing after transformation")
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
@@ -1589,12 +1589,12 @@ type ClassicalControlTests() =
         )
 
         let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" generated.Parent
-        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
         // Make sure the classical condition is present
         let lines = generated |> GetLinesFromSpecialization
-        Assert.True(lines.[1] = "if x < 1 {", "The classical condition is missing after transformation.")
-        Assert.True(lines.[2] = "    if x < 2 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[1] = "if x < 1 {", "The classical condition is missing after transformation")
+        Assert.True(lines.[2] = "    if x < 2 {", "The classical condition is missing after transformation")
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
@@ -1620,13 +1620,13 @@ type ClassicalControlTests() =
         )
 
         let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" generated.Parent
-        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
         // Make sure the classical condition is present
-        Assert.True(lines.[3] = "    if x < 1 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[3] = "    if x < 1 {", "The classical condition is missing after transformation")
         let lines = generated |> GetLinesFromSpecialization
-        Assert.True(lines.[1] = "if x < 2 {", "The classical condition is missing after transformation.")
-        Assert.True(lines.[2] = "    if x < 3 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[1] = "if x < 2 {", "The classical condition is missing after transformation")
+        Assert.True(lines.[2] = "    if x < 3 {", "The classical condition is missing after transformation")
 
     [<Fact(Skip = "Known Issue https://github.com/microsoft/qsharp-compiler/issues/1115")>]
     [<Trait("Category", "Content Lifting")>]
@@ -1661,7 +1661,7 @@ type ClassicalControlTests() =
         // Make sure original calls generated
         let lines = original |> GetLinesFromSpecialization
 
-        Assert.True(lines.[3] = "    if x < 1 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[3] = "    if x < 1 {", "The classical condition is missing after transformation")
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[4]
@@ -1672,8 +1672,8 @@ type ClassicalControlTests() =
         )
 
         let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" ifBlock.FullName
-        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
-        Assert.True(lines.[6] = "    else {", "The else condition is missing after transformation.")
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
+        Assert.True(lines.[6] = "    else {", "The else condition is missing after transformation")
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[7]
@@ -1686,7 +1686,7 @@ type ClassicalControlTests() =
         let (success, _, _, _, _) =
             IsApplyIfElseArgsMatch args "Microsoft.Quantum.Testing.General.M(q)" elifBlock.FullName elseBlock.FullName
 
-        Assert.True(success, sprintf "ApplyIfElseR did not have the correct arguments")
+        Assert.True(success, "ApplyIfElseR did not have the correct arguments")
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
@@ -1705,7 +1705,7 @@ type ClassicalControlTests() =
         // Make sure original calls generated
         let lines = original |> GetLinesFromSpecialization |> TrimWhitespaceFromLines
 
-        Assert.True(lines.[3] = "if x < 1 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[3] = "if x < 1 {", "The classical condition is missing after transformation")
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[4]
@@ -1716,30 +1716,64 @@ type ClassicalControlTests() =
         )
 
         let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" generated.Parent
-        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
-        Assert.True(lines.[6] = "else {", "The else condition is missing after transformation.")
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
+        Assert.True(lines.[6] = "else {", "The else condition is missing after transformation")
 
         Assert.True(
             lines.[7] = "if Microsoft.Quantum.Testing.General.M(q) == Zero {",
-            "The quantum condition is missing after transformation."
+            "The quantum condition is missing after transformation"
         )
 
-        Assert.True(lines.[8] = "if x < 4 {", "The classical condition is missing after transformation.")
-        Assert.True(lines.[9] = "if x < 5 {", "The classical condition is missing after transformation.")
-        Assert.True(lines.[14] = "else {", "The else condition is missing after transformation.")
+        Assert.True(lines.[8] = "if x < 4 {", "The classical condition is missing after transformation")
+        Assert.True(lines.[9] = "if x < 5 {", "The classical condition is missing after transformation")
+        Assert.True(lines.[14] = "else {", "The else condition is missing after transformation")
 
         Assert.True(
             lines.[16] = "if Microsoft.Quantum.Testing.General.M(q) == Zero {",
-            "The quantum condition is missing after transformation."
+            "The quantum condition is missing after transformation"
         )
 
-        Assert.True(lines.[17] = "if x < 6 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[17] = "if x < 6 {", "The classical condition is missing after transformation")
 
         let lines = generated |> GetLinesFromSpecialization |> TrimWhitespaceFromLines
-        Assert.True(lines.[1] = "if x < 2 {", "The classical condition is missing after transformation.")
-        Assert.True(lines.[2] = "if x < 3 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[1] = "if x < 2 {", "The classical condition is missing after transformation")
+        Assert.True(lines.[2] = "if x < 3 {", "The classical condition is missing after transformation")
 
     [<Fact>]
     [<Trait("Category", "If Structure Reshape")>]
     member this.``NOT Condition Retains Used Variables``() =
         CompileClassicalControlTest 52 |> ignore
+
+    [<Fact>]
+    [<Trait("Category", "Content Lifting")>]
+    member this.``Minimal Parameter Capture``() =
+        let result = CompileClassicalControlTest 53
+        let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
+        let generated =
+            GetCallablesWithSuffix result Signatures.ClassicalControlNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x)
+
+        let lines = original |> GetLinesFromSpecialization
+
+        let (success, _, args) =
+            CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[6]
+
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody
+        )
+
+        let (success, _, args) = IsApplyIfArgMatch args "r" generated.FullName
+        Assert.True(success, "ApplyIfZero did not have the correct arguments")
+
+        Assert.True((args = "myInt, myDouble, myString, myMutable"), "Generated operation did not have the correct arguments")
+
+        let parameters =
+            generated.ArgumentTuple.Items
+            |> Seq.choose (fun x -> match x.VariableName with | ValidName str -> Some str | InvalidName -> None)
+            |> (fun s -> String.Join(", ", s))
+
+        Assert.True((parameters = "myInt, myDouble, myString, myMutable"), "Generated operation did not have the correct parameters")
+

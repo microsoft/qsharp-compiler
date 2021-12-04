@@ -1362,11 +1362,35 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     operation Foo() : Unit {
         let r1 = Zero;
         let r2 = Zero;
-        if (not (r1 == Zero and r2 == Zero)) {
+        if not (r1 == Zero and r2 == Zero) {
             let t1 = r1;
             let t2 = r2;
             SubOp1();
             SubOp2();
+        }
+    }
+}
+
+// =================================
+
+// Minimal Parameter Capture
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let myInt = 1;
+        let myDouble = 2.0;
+        let unused = 3;
+        let myString = "four";
+        mutable myMutable = 5.0;
+
+        let r = Zero;
+        if r == Zero {
+            let innerDouble = myDouble;
+            let innerInt = myInt;
+            let innerString = myString;
+            let innerMutable = myMutable;
+            SubOp1();
         }
     }
 }
