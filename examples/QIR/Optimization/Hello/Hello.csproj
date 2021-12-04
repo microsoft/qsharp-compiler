@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2106148911-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2106148911" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.21.2112179769-beta" GeneratePathProperty="true" />
   </ItemGroup>
 
   <Target Name="GetDependencies" AfterTargets="Build">
