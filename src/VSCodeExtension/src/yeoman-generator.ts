@@ -7,6 +7,20 @@ import * as path from 'path';
 import yo = require("yeoman-generator");
 import yosay = require("yosay");
 
+function sanitizeNamespaceName(projectName: string): string {
+    // Replace non-alphanumeric characters, except for dots, with underscores. 
+    let namespaceName = projectName.replace(/[^A-Za-z0-9_.]/g, "_");
+
+    // Replace illegal character combinations in the namespace name.
+    namespaceName = namespaceName.replace(/\.+/g, ".");
+    namespaceName = namespaceName.replace(/_+/g, "_");
+    namespaceName = namespaceName.replace(/_\./g, ".");
+    if (namespaceName.endsWith("_")) {
+        namespaceName = namespaceName.substring(0, namespaceName.length - 1);
+    }
+    return namespaceName;
+}
+
 export class QSharpGenerator extends yo {
 
     constructor(args : any, opts : any) {
@@ -76,11 +90,14 @@ export class QSharpGenerator extends yo {
         let targetDir = this.options.outputUri.fsPath;
         fs.mkdir(targetDir);
 
-        // Namespace is the directory name itself.
+        // Project name is the directory name itself.
         let dirs = targetDir.split(path.sep);
 
         // In case there is a trailing separator.
-        let namespaceName = dirs.pop() || dirs.pop();
+        let projectName = dirs.pop() || dirs.pop();
+
+        // Namespace name must be alphanumeric, except for dots and underscores. 
+        let namespaceName = sanitizeNamespaceName(projectName);
 
         fs.readdir(sourceDir, (err, files) => {
             if (err){
@@ -91,7 +108,7 @@ export class QSharpGenerator extends yo {
                 let fileExtension = filename.split(".").pop();
 
                 if (fileExtension && fileExtension.toLowerCase() === "csproj") {
-                    destinationName = namespaceName + ".csproj";
+                    destinationName = projectName + ".csproj";
                 }
 
                 this.fs.copyTpl(
