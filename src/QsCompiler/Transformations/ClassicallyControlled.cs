@@ -847,6 +847,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             public LiftContent()
                 : base(new TransformationState())
             {
+                this.Namespaces = new NamespaceTransformation(this);
                 this.StatementKinds = new StatementKindTransformation(this);
             }
 
@@ -860,6 +861,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     || (condition.Expression is ExpressionKind.NEQ neq
                     && neq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
                     && neq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result);
+            }
+
+            private new class NamespaceTransformation : ContentLifting.LiftContent<TransformationState>.NamespaceTransformation
+            {
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
+                {
+                }
+
+                /// <inheritdoc/>
+                public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
             }
 
             private new class StatementKindTransformation : ContentLifting.LiftContent<TransformationState>.StatementKindTransformation
@@ -986,7 +998,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     if (this.SharedState.IsConditionLiftable)
                     {
-                        this.SharedState.GeneratedOperations?.AddRange(generatedOperations);
+                        this.SharedState.GeneratedCallables?.AddRange(generatedOperations);
                     }
 
                     var rtrn = this.SharedState.IsConditionLiftable

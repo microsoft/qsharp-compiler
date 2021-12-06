@@ -73,7 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
             protected internal bool InWithinBlock { get; set; } = false;
 
-            protected internal List<QsCallable>? GeneratedOperations { get; set; } = null;
+            protected internal List<QsCallable>? GeneratedCallables { get; set; } = null;
 
             private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
                 CallableDetails callable,
@@ -654,16 +654,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             }
 
             /// <inheritdoc/>
-            // ToDo: We will want to support lifting of functions in the future
-            public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
-
-            /// <inheritdoc/>
             public override QsNamespace OnNamespace(QsNamespace ns)
             {
-                // Generated operations list will be populated in the transform
-                this.SharedState.GeneratedOperations = new List<QsCallable>();
+                // Generated callables list will be populated in the transform
+                this.SharedState.GeneratedCallables = new List<QsCallable>();
                 return base.OnNamespace(ns)
-                    .WithElements(elems => elems.AddRange(this.SharedState.GeneratedOperations.Select(op => QsNamespaceElement.NewQsCallable(op))));
+                    .WithElements(elems => elems.AddRange(this.SharedState.GeneratedCallables.Select(callable => QsNamespaceElement.NewQsCallable(callable))));
             }
         }
 
