@@ -272,12 +272,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             public bool LiftBody(
                 QsScope body,
                 [NotNullWhen(true)] out QsCallable? callable,
-                [NotNullWhen(true)] out QsStatement? callStatement)
+                [NotNullWhen(true)] out TypedExpression? callExpression)
             {
                 if (this.CurrentCallable is null)
                 {
                     callable = null;
-                    callStatement = null;
+                    callExpression = null;
                     return false;
                 }
 
@@ -286,7 +286,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 if (!isValid)
                 {
                     callable = null;
-                    callStatement = null;
+                    callExpression = null;
                     return false;
                 }
 
@@ -338,7 +338,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         QsNullable<Range>.Null);
                 }
 
-                var call = new TypedExpression(
+                // set output parameters
+                callable = generatedCallable;
+                callExpression = new TypedExpression(
                     ExpressionKind.NewCallLikeExpression(generatedCallableId, arguments),
                     typeArguments.IsNull
                         ? TypeArgsResolution.Empty
@@ -348,14 +350,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     ResolvedType.New(ResolvedTypeKind.UnitType),
                     new InferredExpressionInformation(false, true),
                     QsNullable<Range>.Null);
-
-                // set output parameters
-                callable = generatedCallable;
-                callStatement = new QsStatement(
-                    QsStatementKind.NewQsExpressionStatement(call),
-                    LocalDeclarations.Empty,
-                    QsNullable<QsLocation>.Null,
-                    QsComments.Empty);
 
                 return true;
             }

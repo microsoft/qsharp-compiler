@@ -946,8 +946,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             // Lift the scope to its own operation
                             if (this.SharedState.LiftBody(block.Body, out var callable, out var call))
                             {
+                                var callStatement = new QsStatement(
+                                    QsStatementKind.NewQsExpressionStatement(call),
+                                    LocalDeclarations.Empty,
+                                    QsNullable<QsLocation>.Null,
+                                    QsComments.Empty);
                                 block = new QsPositionedBlock(
-                                    new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
+                                    new QsScope(ImmutableArray.Create(callStatement), block.Body.KnownSymbols),
                                     block.Location,
                                     block.Comments);
                                 newConditionBlocks.Add(Tuple.Create(expr.Item, block));
@@ -982,8 +987,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             // Lift the scope to its own operation
                             if (this.SharedState.LiftBody(block.Body, out var callable, out var call))
                             {
+                                var callStatement = new QsStatement(
+                                    QsStatementKind.NewQsExpressionStatement(call),
+                                    LocalDeclarations.Empty,
+                                    QsNullable<QsLocation>.Null,
+                                    QsComments.Empty);
                                 block = new QsPositionedBlock(
-                                    new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
+                                    new QsScope(ImmutableArray.Create(callStatement), block.Body.KnownSymbols),
                                     block.Location,
                                     block.Comments);
                                 newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
