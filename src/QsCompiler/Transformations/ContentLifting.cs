@@ -94,6 +94,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         ImmutableArray<string>.Empty,
                         QsComments.Empty);
 
+                // If we are making the body of a function, we can skip the rest of this function.
+                if (callable.Callable.Kind.IsFunction)
+                {
+                    var funcSig = new ResolvedSignature(
+                        callable.Callable.Signature.TypeParameters,
+                        paramsType,
+                        ResolvedType.New(ResolvedTypeKind.UnitType),
+                        new CallableInformation(ResolvedCharacteristics.Empty, new InferredCallableInformation(false, false)));
+
+                    var funcSpecializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, funcSig, bodyImplementation) };
+
+                    return (funcSig, funcSpecializations);
+                }
+
                 var adj = callable.Adjoint;
                 var ctl = callable.Controlled;
                 var ctlAdj = callable.ControlledAdjoint;
@@ -188,7 +202,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return (newSig, specializations);
             }
 
-            private (QsCallable, ResolvedType) GenerateOperation(CallableDetails callable, QsScope contents, ImmutableArray<LocalVariableDeclaration<string>> usedSymbols)
+            private (QsCallable, ResolvedType) GenerateCallable(CallableDetails callable, QsScope contents, ImmutableArray<LocalVariableDeclaration<string>> usedSymbols)
             {
                 var newName = NameDecorator.PrependGuid(callable.Callable.FullName);
 
@@ -216,7 +230,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 var (signature, specializations) = this.MakeSpecializations(callable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents));
 
                 var generatedCallable = new QsCallable(
-                    QsCallableKind.Operation,
+                    callable.Callable.Kind.IsFunction
+                        ? QsCallableKind.Function
+                        : QsCallableKind.Operation,
                     newName,
                     ImmutableArray<QsDeclarationAttribute>.Empty,
                     Access.Internal,
@@ -229,9 +245,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     QsComments.Empty);
 
                 // Change the origin of all type parameter references to use the new name and make all variables immutable
-                generatedCallable = UpdateGeneratedOp.Apply(generatedCallable, usedSymbols, callable.Callable.FullName, newName);
+                generatedCallable = UpdateGeneratedCallable.Apply(generatedCallable, usedSymbols, callable.Callable.FullName, newName);
 
-                return (generatedCallable, signature.ArgumentType);
+                var generatedCallableType = ResolvedType.New(callable.Callable.Kind.IsFunction
+                    ? ResolvedTypeKind.NewFunction(signature.ArgumentType, ResolvedType.New(ResolvedTypeKind.UnitType))
+                    : ResolvedTypeKind.NewOperation(
+                        Tuple.Create(
+                            signature.ArgumentType,
+                            ResolvedType.New(ResolvedTypeKind.UnitType)),
+                        generatedCallable.Signature.Information));
+
+                return (generatedCallable, generatedCallableType);
             }
 
             /// <summary>
@@ -266,25 +290,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     return false;
                 }
 
-                var (generatedOp, originalArgumentType) = this.GenerateOperation(this.CurrentCallable, body, usedSymbols);
-                var generatedOpType = ResolvedType.New(ResolvedTypeKind.NewOperation(
-                    Tuple.Create(
-                        originalArgumentType,
-                        ResolvedType.New(ResolvedTypeKind.UnitType)),
-                    generatedOp.Signature.Information));
+                var (generatedCallable, generatedCallableType) = this.GenerateCallable(this.CurrentCallable, body, usedSymbols);
 
-                // Forward the type parameters of the parent callable to the type arguments of the call to the generated operation.
+                // Forward the type parameters of the parent callable to the type arguments of the call to the generated callable.
                 var typeArguments = this.CurrentCallable.TypeParameters;
-                var generatedOpId = new TypedExpression(
+                var generatedCallableId = new TypedExpression(
                     ExpressionKind.NewIdentifier(
-                        Identifier.NewGlobalCallable(generatedOp.FullName),
+                        Identifier.NewGlobalCallable(generatedCallable.FullName),
                         typeArguments),
                     typeArguments.IsNull
                         ? TypeArgsResolution.Empty
                         : typeArguments.Item
-                            .Select(type => Tuple.Create(generatedOp.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
+                            .Select(type => Tuple.Create(generatedCallable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
                             .ToImmutableArray(),
-                    generatedOpType,
+                    generatedCallableType,
                     new InferredExpressionInformation(false, false),
                     QsNullable<Range>.Null);
 
@@ -320,7 +339,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 }
 
                 var call = new TypedExpression(
-                    ExpressionKind.NewCallLikeExpression(generatedOpId, arguments),
+                    ExpressionKind.NewCallLikeExpression(generatedCallableId, arguments),
                     typeArguments.IsNull
                         ? TypeArgsResolution.Empty
                         : typeArguments.Item
@@ -331,7 +350,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     QsNullable<Range>.Null);
 
                 // set output parameters
-                callable = generatedOp;
+                callable = generatedCallable;
                 callStatement = new QsStatement(
                     QsStatementKind.NewQsExpressionStatement(call),
                     LocalDeclarations.Empty,
@@ -343,15 +362,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         }
 
         /// <summary>
-        /// Transformation that updates the contents of newly generated operations by:
-        /// 1. Rerouting the origins of type parameter references to the new operation
+        /// Transformation that updates the contents of newly generated callables by:
+        /// 1. Rerouting the origins of type parameter references to the new callable
         /// 2. Changes the IsMutable and HasLocalQuantumDependency info on parameter references to be false
         /// </summary>
-        private class UpdateGeneratedOp : SyntaxTreeTransformation<UpdateGeneratedOp.TransformationState>
+        private class UpdateGeneratedCallable : SyntaxTreeTransformation<UpdateGeneratedCallable.TransformationState>
         {
             public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             {
-                var filter = new UpdateGeneratedOp(parameters, oldName, newName);
+                var filter = new UpdateGeneratedCallable(parameters, oldName, newName);
 
                 return filter.Namespaces.OnCallableDeclaration(qsCallable);
             }
@@ -374,7 +393,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 }
             }
 
-            private UpdateGeneratedOp(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            private UpdateGeneratedCallable(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             : base(new TransformationState(parameters, oldName, newName))
             {
                 this.Expressions = new ExpressionTransformation(this);
@@ -432,12 +451,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     var rtrn = base.OnIdentifier(sym, tArgs);
 
                     // Check if this is a recursive identifier
-                    // In this context, that is a call back to the original callable from the newly generated operation
+                    // In this context, that is a call back to the original callable from the newly generated callable
                     if (sym is Identifier.GlobalCallable callable && this.SharedState.OldName.Equals(callable.Item))
                     {
                         // Setting this flag will prevent the rerouting logic from processing the resolved type of the recursive identifier expression.
                         // This is necessary because we don't want any type parameters from the original callable from being rerouted to the new generated
-                        // operation's type parameters in the definition of the identifier.
+                        // callable's type parameters in the definition of the identifier.
                         this.SharedState.IsRecursiveIdentifier = true;
                     }
 
@@ -454,7 +473,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
                 public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp) =>
 
-                    // Reroute a type parameter's origin to the newly generated operation
+                    // Reroute a type parameter's origin to the newly generated callable
                     !this.SharedState.IsRecursiveIdentifier && this.SharedState.OldName.Equals(tp.Origin)
                         ? base.OnTypeParameter(tp.With(this.SharedState.NewName))
                         : base.OnTypeParameter(tp);
