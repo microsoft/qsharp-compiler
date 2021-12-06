@@ -255,7 +255,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (this.sharedState.CurrentBlock != null)
                 {
-                    Value variable;
+                    // Value variable;
 
                     // if (value is SimpleValue) // TODO: fix this
                     // {
@@ -271,14 +271,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     //     variable = value.Value;
                     // }
 
-                    variable = ((PointerValue)value).pointer;
+                    // variable = ((PointerValue)value).pointer; // TODO: try passing the address as the value
 
-                    // Create the debug info for the local variable declaration
-                    dIBuilder.InsertDeclare(
+                    if (isMutableBinding) // variable is represented as a pointer to the value
+                    {
+                        Value variable = ((PointerValue)value).pointer;
+                        dIBuilder.InsertDeclare( // RyanTODO: Ideally we have this as a llvm.dbg.addr instead of llvm.dbg.declare
                         storage: variable,
                         varInfo: dIVar,
                         location: dILocation,
                         insertAtEnd: this.sharedState.CurrentBlock);
+
+                    }
+                    else // variable is represented as the value itself
+                    {
+                        Value variable = value.Value;
+                        dIBuilder.InsertValue(
+                            value: variable,
+                            varInfo: dIVar,
+                            location: dILocation,
+                            insertAtEnd: this.sharedState.CurrentBlock);
+                    }
+
+                    // // Create the debug info for the local variable declaration
+                    // dIBuilder.InsertDeclare(
+                    //     storage: variable,
+                    //     varInfo: dIVar,
+                    //     location: dILocation,
+                    //     insertAtEnd: this.sharedState.CurrentBlock);
                 }
             }
         }
