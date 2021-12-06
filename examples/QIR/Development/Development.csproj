@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.Quantum.Sdk/0.20.2111176351-beta">
+<Project Sdk="Microsoft.Quantum.Sdk/0.21.2112179769-beta">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -21,7 +21,7 @@
                       Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0"
                       PrivateAssets="All" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.20.2110171573-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.20.2111176351-beta" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.21.2112179769-beta" GeneratePathProperty="true" />
   </ItemGroup>
 
   <PropertyGroup>
