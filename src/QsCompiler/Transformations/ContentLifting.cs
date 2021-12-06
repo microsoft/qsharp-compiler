@@ -61,15 +61,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
         public class TransformationState
         {
-            // ToDo: It should be possible to make these three properties private,
-            // if we absorb the corresponding logic into LiftBody.
-            public bool IsValidScope { get; set; } = true;
-
-            internal bool ContainsParamRef { get; set; } = false;
-
-            internal ImmutableArray<LocalVariableDeclaration<string>> GeneratedOpParams { get; set; } =
-                ImmutableArray<LocalVariableDeclaration<string>>.Empty;
-
             internal CallableDetails? CurrentCallable { get; set; } = null;
 
             protected internal bool InBody { get; set; } = false;
@@ -244,14 +235,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             }
 
             /// <summary>
-            /// Generates a new operation with the body's contents. All the known variables at the
-            /// start of the block will become parameters to the new operation, and the operation
-            /// will have all the valid type parameters of the calling context as type parameters.
-            /// The generated operation is returned, along with a call to the new operation is
-            /// also returned with all the type parameters and known variables being forwarded to
-            /// the new operation as arguments.
-            ///
-            /// The given body should be validated with the SharedState.IsValidScope before using this function.
+            /// Generates a new callable with the body's contents. All the known variables at the
+            /// start of the block that get used in the body will become parameters to the new
+            /// callable, and the callable will have all the valid type parameters of the calling
+            /// context as type parameters.
+            /// If the body is valid to be lifted, 'true' is returned, and the generated callable
+            /// is returned as an out-parameter. A call to the new callable is also returned as
+            /// an out-parameter with all the type parameters and used variables being forwarded
+            /// to the new callable as arguments.
+            /// If the body is not valid to be lifted, 'false' is returned and the out-parameters are null.
             /// </summary>
             public bool LiftBody(
                 QsScope body,

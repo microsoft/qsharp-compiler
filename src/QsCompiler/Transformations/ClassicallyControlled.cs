@@ -899,12 +899,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     var generatedOperations = new List<QsCallable>();
                     foreach (var conditionBlock in stm.ConditionalBlocks)
                     {
-                        var contextValidScope = this.SharedState.IsValidScope;
-                        var contextParams = this.SharedState.GeneratedOpParams;
-
-                        this.SharedState.IsValidScope = true;
-                        this.SharedState.GeneratedOpParams = conditionBlock.Item2.Body.KnownSymbols.Variables;
-
                         var (expr, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.NewValue(conditionBlock.Item1), conditionBlock.Item2);
 
                         if (block.Body.Statements.Length == 0)
@@ -953,9 +947,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             }
                         }
 
-                        this.SharedState.GeneratedOpParams = contextParams;
-                        this.SharedState.IsValidScope = contextValidScope;
-
                         if (!this.SharedState.IsConditionLiftable)
                         {
                             break;
@@ -965,12 +956,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     var newDefault = QsNullable<QsPositionedBlock>.Null;
                     if (this.SharedState.IsConditionLiftable && stm.Default.IsValue)
                     {
-                        var contextValidScope = this.SharedState.IsValidScope;
-                        var contextParams = this.SharedState.GeneratedOpParams;
-
-                        this.SharedState.IsValidScope = true;
-                        this.SharedState.GeneratedOpParams = stm.Default.Item.Body.KnownSymbols.Variables;
-
                         var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
 
                         if (this.IsScopeSingleCall(block.Body))
@@ -997,9 +982,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                 this.SharedState.IsConditionLiftable = false;
                             }
                         }
-
-                        this.SharedState.GeneratedOpParams = contextParams;
-                        this.SharedState.IsValidScope = contextValidScope;
                     }
 
                     if (this.SharedState.IsConditionLiftable)

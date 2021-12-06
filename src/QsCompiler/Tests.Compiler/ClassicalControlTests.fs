@@ -1501,7 +1501,7 @@ type ClassicalControlTests() =
         let (success, _, _) = IsApplyIfArgMatch args "r" generated.Parent
         Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
-    [<Fact(Skip = "Known Issue https://github.com/microsoft/qsharp-compiler/issues/1115")>]
+    [<Fact>]
     [<Trait("Category", "Content Lifting")>]
     member this.``Mutables with Nesting Lift Neither``() =
         CompileClassicalControlTest 44 |> ignore
@@ -1628,7 +1628,7 @@ type ClassicalControlTests() =
         Assert.True(lines.[1] = "if x < 2 {", "The classical condition is missing after transformation")
         Assert.True(lines.[2] = "    if x < 3 {", "The classical condition is missing after transformation")
 
-    [<Fact(Skip = "Known Issue https://github.com/microsoft/qsharp-compiler/issues/1115")>]
+    [<Fact>]
     [<Trait("Category", "Content Lifting")>]
     member this.``Nested Invalid Lifting``() =
         CompileClassicalControlTest 49 |> ignore
