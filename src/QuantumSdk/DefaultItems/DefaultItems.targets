@@ -43,8 +43,9 @@
       These architectures are currently under active development and not available for public use yet. 
       Targeting is disabled since the code will be targeted by the QIR compiler, and Q# diagnostics are not yet enabled for these architectures. 
     -->
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('honeywell.qir'))">HoneywellQirProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('qci.qir'))">QCIQirProcessor</ResolvedProcessorArchitecture>
+    <!-- TODO: This might be temporary while it is decided how QIR targets are going to be handled. -->
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('honeywell.hqs'))">HoneywellQirProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('qci.machine'))">QCIQirProcessor</ResolvedProcessorArchitecture>
   </PropertyGroup>
 
   <!-- Resolving the QuantumIntrinsics to either Type1, Type2, Type3, or Default.-->
@@ -53,7 +54,7 @@
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Type2</ResolvedQuantumIntrinsics>
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QCIQirProcessor'">Type3</ResolvedQuantumIntrinsics>
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">Default</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">Default</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="!$(ResolvedProcessorArchitecture.Contains('Honeywell')) And !$(ResolvedProcessorArchitecture.Contains('IonQ')) And !$(ResolvedProcessorArchitecture.Contains('QCI'))">Default</ResolvedQuantumIntrinsics>
   </PropertyGroup>
 
   <!-- Resolving the RuntimeCapabilites to either BasicQuantumFunctionality, BasicMeasurementFeedback, or FullComputation.-->
