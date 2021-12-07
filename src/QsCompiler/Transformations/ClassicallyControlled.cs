@@ -842,6 +842,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             internal class TransformationState : ContentLifting.LiftContent.TransformationState
             {
                 internal bool IsConditionLiftable { get; set; } = false;
+
+                internal List<QsCallable>? GeneratedCallables { get; set; } = null;
             }
 
             public LiftContent()
@@ -872,6 +874,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                 /// <inheritdoc/>
                 public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
+
+                /// <inheritdoc/>
+                public override QsNamespace OnNamespace(QsNamespace ns)
+                {
+                    // Generated callables list will be populated in the transform
+                    this.SharedState.GeneratedCallables = new List<QsCallable>();
+                    return base.OnNamespace(ns)
+                        .WithElements(elems => elems.AddRange(this.SharedState.GeneratedCallables.Select(callable => QsNamespaceElement.NewQsCallable(callable))));
+                }
             }
 
             private new class StatementKindTransformation : ContentLifting.LiftContent<TransformationState>.StatementKindTransformation
@@ -944,7 +955,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         else
                         {
                             // Lift the scope to its own operation
-                            if (this.SharedState.LiftBody(block.Body, out var callable, out var call))
+                            if (this.SharedState.LiftBody(block.Body, out var call, out var callable))
                             {
                                 var callStatement = new QsStatement(
                                     QsStatementKind.NewQsExpressionStatement(call),
@@ -985,7 +996,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         else
                         {
                             // Lift the scope to its own operation
-                            if (this.SharedState.LiftBody(block.Body, out var callable, out var call))
+                            if (this.SharedState.LiftBody(block.Body, out var call, out var callable))
                             {
                                 var callStatement = new QsStatement(
                                     QsStatementKind.NewQsExpressionStatement(call),

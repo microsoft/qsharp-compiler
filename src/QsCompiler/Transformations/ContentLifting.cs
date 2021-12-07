@@ -73,8 +73,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
             protected internal bool InWithinBlock { get; set; } = false;
 
-            protected internal List<QsCallable>? GeneratedCallables { get; set; } = null;
-
             private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
                 CallableDetails callable,
                 QsQualifiedName callableName,
@@ -263,16 +261,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             /// start of the block that get used in the body will become parameters to the new
             /// callable, and the callable will have all the valid type parameters of the calling
             /// context as type parameters.
-            /// If the body is valid to be lifted, 'true' is returned, and the generated callable
-            /// is returned as an out-parameter. A call to the new callable is also returned as
-            /// an out-parameter with all the type parameters and used variables being forwarded
-            /// to the new callable as arguments.
+            /// If the body is valid to be lifted, 'true' is returned, and a call expression to
+            /// the new callable is returned as an out-parameter with all the type parameters and
+            /// used variables being forwarded to the new callable as arguments. The generated
+            /// callable is also returned as an out-parameter.
             /// If the body is not valid to be lifted, 'false' is returned and the out-parameters are null.
             /// </summary>
             public bool LiftBody(
                 QsScope body,
-                [NotNullWhen(true)] out QsCallable? callable,
-                [NotNullWhen(true)] out TypedExpression? callExpression)
+                [NotNullWhen(true)] out TypedExpression? callExpression,
+                [NotNullWhen(true)] out QsCallable? callable)
             {
                 if (this.CurrentCallable is null)
                 {
@@ -474,6 +472,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             }
         }
 
+        /// <summary>
+        /// Walker that determines if the given scope is valid for lifting by checking if there are any
+        /// return statements or update statements on mutables defined prior to the scope. This will
+        /// also check all of the used variables in the scope to determine the minimum parameter set
+        /// for the generated callable. If the scope is not valid, the walker will not report any
+        /// used variables.
+        /// </summary>
         private class LiftValidationWalker : SyntaxTreeTransformation<LiftValidationWalker.TransformationState>
         {
             public static (bool IsValid, ImmutableArray<LocalVariableDeclaration<string>> UsedSymbols) Apply(QsScope content)
@@ -645,15 +650,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 var rtrn = base.OnControlledAdjointSpecialization(spec);
                 this.SharedState.InControlledAdjoint = false;
                 return rtrn;
-            }
-
-            /// <inheritdoc/>
-            public override QsNamespace OnNamespace(QsNamespace ns)
-            {
-                // Generated callables list will be populated in the transform
-                this.SharedState.GeneratedCallables = new List<QsCallable>();
-                return base.OnNamespace(ns)
-                    .WithElements(elems => elems.AddRange(this.SharedState.GeneratedCallables.Select(callable => QsNamespaceElement.NewQsCallable(callable))));
             }
         }
 
