@@ -77,7 +77,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 CallableDetails callable,
                 QsQualifiedName callableName,
                 ResolvedType paramsType,
-                SpecializationImplementation bodyImplementation)
+                SpecializationImplementation bodyImplementation,
+                ResolvedType returnType)
             {
                 QsSpecialization MakeSpec(QsSpecializationKind kind, ResolvedSignature signature, SpecializationImplementation impl) =>
                     new QsSpecialization(
@@ -98,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     var funcSig = new ResolvedSignature(
                         callable.Callable.Signature.TypeParameters,
                         paramsType,
-                        ResolvedType.New(ResolvedTypeKind.UnitType),
+                        returnType,
                         new CallableInformation(ResolvedCharacteristics.Empty, new InferredCallableInformation(false, false)));
 
                     var funcSpecializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, funcSig, bodyImplementation) };
@@ -160,7 +161,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 var newSig = new ResolvedSignature(
                     callable.Callable.Signature.TypeParameters,
                     paramsType,
-                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                    returnType,
                     new CallableInformation(ResolvedCharacteristics.FromProperties(props), new InferredCallableInformation(isSelfAdjoint, false)));
 
                 var controlledSig = new ResolvedSignature(
@@ -200,7 +201,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return (newSig, specializations);
             }
 
-            private (QsCallable, ResolvedType) GenerateCallable(CallableDetails callable, QsScope contents, ImmutableArray<LocalVariableDeclaration<string>> usedSymbols)
+            private (QsCallable, ResolvedType) GenerateCallable(
+                CallableDetails callable,
+                QsScope contents,
+                ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
+                ResolvedType returnType)
             {
                 var newName = NameDecorator.PrependGuid(callable.Callable.FullName);
 
@@ -225,7 +230,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         .ToImmutableArray()));
                 }
 
-                var (signature, specializations) = this.MakeSpecializations(callable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents));
+                var (signature, specializations) = this.MakeSpecializations(callable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents), returnType);
 
                 var generatedCallable = new QsCallable(
                     callable.Callable.Kind.IsFunction
@@ -245,15 +250,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 // Change the origin of all type parameter references to use the new name and make all variables immutable
                 generatedCallable = UpdateGeneratedCallable.Apply(generatedCallable, usedSymbols, callable.Callable.FullName, newName);
 
-                var generatedCallableType = ResolvedType.New(callable.Callable.Kind.IsFunction
-                    ? ResolvedTypeKind.NewFunction(signature.ArgumentType, ResolvedType.New(ResolvedTypeKind.UnitType))
+                // We want to use the non-updated signature here for the types so that they refer to
+                // the original callable's type parameters. We do this because that is what they will
+                // need to be for the call expression.
+                var generatedCallableCallType = ResolvedType.New(callable.Callable.Kind.IsFunction
+                    ? ResolvedTypeKind.NewFunction(signature.ArgumentType, signature.ReturnType)
                     : ResolvedTypeKind.NewOperation(
                         Tuple.Create(
                             signature.ArgumentType,
-                            ResolvedType.New(ResolvedTypeKind.UnitType)),
+                            signature.ReturnType),
                         generatedCallable.Signature.Information));
 
-                return (generatedCallable, generatedCallableType);
+                return (generatedCallable, generatedCallableCallType);
             }
 
             /// <summary>
@@ -272,23 +280,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 [NotNullWhen(true)] out TypedExpression? callExpression,
                 [NotNullWhen(true)] out QsCallable? callable)
             {
-                if (this.CurrentCallable is null)
+                if (this.CurrentCallable is null || !LiftValidationWalker.Apply(body, out var usedSymbols))
                 {
                     callable = null;
                     callExpression = null;
                     return false;
                 }
 
-                var (isValid, usedSymbols) = LiftValidationWalker.Apply(body);
-
-                if (!isValid)
-                {
-                    callable = null;
-                    callExpression = null;
-                    return false;
-                }
-
-                var (generatedCallable, generatedCallableType) = this.GenerateCallable(this.CurrentCallable, body, usedSymbols);
+                var returnType = ResolvedType.New(ResolvedTypeKind.UnitType);
+                var (generatedCallable, generatedCallableCallType) = this.GenerateCallable(this.CurrentCallable, body, usedSymbols, returnType);
 
                 // Forward the type parameters of the parent callable to the type arguments of the call to the generated callable.
                 var typeArguments = this.CurrentCallable.TypeParameters;
@@ -301,7 +301,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         : typeArguments.Item
                             .Select(type => Tuple.Create(generatedCallable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
                             .ToImmutableArray(),
-                    generatedCallableType,
+                    generatedCallableCallType,
                     new InferredExpressionInformation(false, false),
                     QsNullable<Range>.Null);
 
@@ -343,9 +343,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     typeArguments.IsNull
                         ? TypeArgsResolution.Empty
                         : typeArguments.Item
-                            .Select(type => Tuple.Create(this.CurrentCallable.Callable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
+                            .Select(type => Tuple.Create(generatedCallable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
                             .ToImmutableArray(),
-                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                    returnType,
                     new InferredExpressionInformation(false, true),
                     QsNullable<Range>.Null);
 
@@ -481,17 +481,29 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         /// </summary>
         private class LiftValidationWalker : SyntaxTreeTransformation<LiftValidationWalker.TransformationState>
         {
-            public static (bool IsValid, ImmutableArray<LocalVariableDeclaration<string>> UsedSymbols) Apply(QsScope content)
+
+            //[NotNullWhen(true)] out ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
+            //public static (bool IsValid, ImmutableArray<LocalVariableDeclaration<string>> UsedSymbols) Apply(QsScope content, bool isReturnAllowed = false)
+
+            public static bool Apply(
+                QsScope content,
+                [NotNullWhen(true)] out ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
+                bool isReturnAllowed = false)
             {
-                var filter = new LiftValidationWalker(content);
+                usedSymbols = ImmutableArray<LocalVariableDeclaration<string>>.Empty;
+                var filter = new LiftValidationWalker(content, isReturnAllowed);
                 filter.Statements.OnScope(content);
                 if (filter.SharedState.IsValidScope)
                 {
-                    return (true, filter.SharedState.SuperContextSymbols.Where(symbol => symbol.Used).Select(symbol => symbol.Variable).ToImmutableArray());
+                    usedSymbols = filter.SharedState.SuperContextSymbols
+                        .Where(symbol => symbol.Used)
+                        .Select(symbol => symbol.Variable)
+                        .ToImmutableArray();
+                    return true;
                 }
                 else
                 {
-                    return (false, ImmutableArray<LocalVariableDeclaration<string>>.Empty);
+                    return false;
                 }
             }
 
@@ -501,12 +513,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
                 public bool InValueUpdate { get; set; } = false;
 
+                public ResolvedTypeKind? ReturnTypeKind { get; set; } = null;
+
+                public bool IsReturnAllowed { get; private set; } = false;
+
                 public List<(LocalVariableDeclaration<string> Variable, bool Used)> SuperContextSymbols { get; set; } =
                     new List<(LocalVariableDeclaration<string> Variable, bool Used)>();
+
+                public TransformationState(bool isReturnAllowed)
+                {
+                    this.IsReturnAllowed = isReturnAllowed;
+                }
             }
 
-            private LiftValidationWalker(QsScope content)
-            : base(new TransformationState())
+            private LiftValidationWalker(QsScope content, bool isReturnAllowed)
+            : base(new TransformationState(isReturnAllowed))
             {
                 this.SharedState.SuperContextSymbols = content.KnownSymbols.Variables
                     .Select(name => (Variable: name, Used: false))
@@ -530,7 +551,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 /// <inheritdoc/>
                 public override QsStatementKind OnReturnStatement(TypedExpression ex)
                 {
-                    this.SharedState.IsValidScope = false;
+                    if (!this.SharedState.IsReturnAllowed)
+                    {
+                        this.SharedState.IsValidScope = false;
+                    }
+
                     return base.OnReturnStatement(ex);
                 }
 
