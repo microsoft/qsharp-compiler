@@ -277,17 +277,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             /// </summary>
             public bool LiftBody(
                 QsScope body,
+                bool isReturnAllowed,
                 [NotNullWhen(true)] out TypedExpression? callExpression,
                 [NotNullWhen(true)] out QsCallable? callable)
             {
-                if (this.CurrentCallable is null || !LiftValidationWalker.Apply(body, out var usedSymbols))
+                if (this.CurrentCallable is null || !LiftValidationWalker.Apply(body, isReturnAllowed, out var usedSymbols, out var returnType))
                 {
                     callable = null;
                     callExpression = null;
                     return false;
                 }
 
-                var returnType = ResolvedType.New(ResolvedTypeKind.UnitType);
                 var (generatedCallable, generatedCallableCallType) = this.GenerateCallable(this.CurrentCallable, body, usedSymbols, returnType);
 
                 // Forward the type parameters of the parent callable to the type arguments of the call to the generated callable.
@@ -477,34 +477,42 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         /// return statements or update statements on mutables defined prior to the scope. This will
         /// also check all of the used variables in the scope to determine the minimum parameter set
         /// for the generated callable. If the scope is not valid, the walker will not report any
-        /// used variables.
+        /// used variables. The return type reported is the unit type.
+        /// When isReturnsAllowed is set to true, then the scope is not valid if there are no return
+        /// statements or if the return statements do not agree on a return type, and the walker will
+        /// report a return type based on the return statements.
         /// </summary>
         private class LiftValidationWalker : SyntaxTreeTransformation<LiftValidationWalker.TransformationState>
         {
-
-            //[NotNullWhen(true)] out ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
-            //public static (bool IsValid, ImmutableArray<LocalVariableDeclaration<string>> UsedSymbols) Apply(QsScope content, bool isReturnAllowed = false)
-
             public static bool Apply(
                 QsScope content,
-                [NotNullWhen(true)] out ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
-                bool isReturnAllowed = false)
+                bool isReturnsAllowed,
+                out ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
+                out ResolvedType returnType)
             {
                 usedSymbols = ImmutableArray<LocalVariableDeclaration<string>>.Empty;
-                var filter = new LiftValidationWalker(content, isReturnAllowed);
+                returnType = ResolvedType.New(ResolvedTypeKind.UnitType);
+
+                var filter = new LiftValidationWalker(content, isReturnsAllowed);
                 filter.Statements.OnScope(content);
-                if (filter.SharedState.IsValidScope)
-                {
-                    usedSymbols = filter.SharedState.SuperContextSymbols
-                        .Where(symbol => symbol.Used)
-                        .Select(symbol => symbol.Variable)
-                        .ToImmutableArray();
-                    return true;
-                }
-                else
+
+                if (!filter.SharedState.IsValidScope
+                    || (isReturnsAllowed && filter.SharedState.ReturnType == null))
                 {
                     return false;
                 }
+
+                if (isReturnsAllowed && filter.SharedState.ReturnType != null)
+                {
+                    returnType = filter.SharedState.ReturnType;
+                }
+
+                usedSymbols = filter.SharedState.SuperContextSymbols
+                    .Where(symbol => symbol.Used)
+                    .Select(symbol => symbol.Variable)
+                    .ToImmutableArray();
+
+                return true;
             }
 
             public class TransformationState
@@ -513,7 +521,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
                 public bool InValueUpdate { get; set; } = false;
 
-                public ResolvedTypeKind? ReturnTypeKind { get; set; } = null;
+                public ResolvedType? ReturnType { get; set; } = null;
 
                 public bool IsReturnAllowed { get; private set; } = false;
 
@@ -548,12 +556,89 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 {
                 }
 
+                private ResolvedType ValidateAndCombineReturnTypes(ResolvedType type1, ResolvedType type2)
+                {
+                    var (typeKind1, typeKind2) = (type1.Resolution, type2.Resolution);
+
+                    if (typeKind1 is ResolvedTypeKind.ArrayType arrayType1)
+                    {
+                        if (typeKind2 is ResolvedTypeKind.ArrayType arrayType2)
+                        {
+                            return ResolvedType.New(ResolvedTypeKind.NewArrayType(
+                                this.ValidateAndCombineReturnTypes(arrayType1.Item, arrayType2.Item)));
+                        }
+
+                        this.SharedState.IsValidScope = false;
+                        return type1;
+                    }
+                    else if (typeKind1 is ResolvedTypeKind.TupleType tupleType1)
+                    {
+                        if (typeKind2 is ResolvedTypeKind.TupleType tupleType2 && tupleType1.Item.Length == tupleType2.Item.Length)
+                        {
+                            return ResolvedType.New(ResolvedTypeKind.NewTupleType(
+                                tupleType1.Item
+                                    .Zip(tupleType2.Item, (x, y) => this.ValidateAndCombineReturnTypes(x, y))
+                                    .ToImmutableArray()));
+                        }
+
+                        this.SharedState.IsValidScope = false;
+                        return type1;
+                    }
+                    else if (typeKind1 is ResolvedTypeKind.Operation opType1)
+                    {
+                        if (typeKind2 is ResolvedTypeKind.Operation opType2)
+                        {
+                            var subTypes = Tuple.Create(
+                                    this.ValidateAndCombineReturnTypes(opType1.Item1.Item1, opType2.Item1.Item1),
+                                    this.ValidateAndCombineReturnTypes(opType1.Item1.Item2, opType2.Item1.Item2));
+                            var commonInfo = CallableInformation.Common(new[] { opType1.Item2, opType2.Item2 });
+
+                            return ResolvedType.New(ResolvedTypeKind.NewOperation(subTypes, commonInfo));
+                        }
+
+                        this.SharedState.IsValidScope = false;
+                        return type1;
+                    }
+                    else if (typeKind1 is ResolvedTypeKind.Function funcType1)
+                    {
+                        if (typeKind2 is ResolvedTypeKind.Function funcType2)
+                        {
+                            return ResolvedType.New(ResolvedTypeKind.NewFunction(
+                                this.ValidateAndCombineReturnTypes(funcType1.Item1, funcType2.Item1),
+                                this.ValidateAndCombineReturnTypes(funcType1.Item2, funcType2.Item2)));
+                        }
+
+                        this.SharedState.IsValidScope = false;
+                        return type1;
+                    }
+                    else
+                    {
+                        if (!typeKind1.Equals(typeKind2))
+                        {
+                            this.SharedState.IsValidScope = false;
+                        }
+
+                        return type1;
+                    }
+                }
+
                 /// <inheritdoc/>
                 public override QsStatementKind OnReturnStatement(TypedExpression ex)
                 {
                     if (!this.SharedState.IsReturnAllowed)
                     {
                         this.SharedState.IsValidScope = false;
+                    }
+                    else
+                    {
+                        if (this.SharedState.ReturnType == null)
+                        {
+                            this.SharedState.ReturnType = ex.ResolvedType;
+                        }
+                        else
+                        {
+                            this.SharedState.ReturnType = this.ValidateAndCombineReturnTypes(this.SharedState.ReturnType, ex.ResolvedType);
+                        }
                     }
 
                     return base.OnReturnStatement(ex);

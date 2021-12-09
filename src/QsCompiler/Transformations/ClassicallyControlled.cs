@@ -955,7 +955,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         else
                         {
                             // Lift the scope to its own operation
-                            if (this.SharedState.LiftBody(block.Body, out var call, out var callable))
+                            if (this.SharedState.LiftBody(block.Body, false, out var call, out var callable))
                             {
                                 var callStatement = new QsStatement(
                                     QsStatementKind.NewQsExpressionStatement(call),
@@ -996,7 +996,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         else
                         {
                             // Lift the scope to its own operation
-                            if (this.SharedState.LiftBody(block.Body, out var call, out var callable))
+                            if (this.SharedState.LiftBody(block.Body, false, out var call, out var callable))
                             {
                                 var callStatement = new QsStatement(
                                     QsStatementKind.NewQsExpressionStatement(call),
