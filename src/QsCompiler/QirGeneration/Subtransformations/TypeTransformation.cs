@@ -25,7 +25,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Types qirTypes;
         private readonly Func<QsQualifiedName, QsCustomType?> getTypeDeclaration;
         private DebugInfoBuilder? currDIBuilder;
-        internal static string DebugTypeNotSupportedMessage = "This debug type is not yet supported";
 
         private void ResetConversionVariables()
         {
@@ -39,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (this.currDIBuilder != null)
             {
                 var dIType = this.currDIBuilder.CreateBasicType(
-                    DebugTypeNotSupportedMessage,
+                    DebugInfoManager.DebugTypeNotSupportedMessage,
                     0,
                     DiTypeKind.Invalid);
 

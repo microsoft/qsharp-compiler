@@ -69,6 +69,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
+        public static string DebugTypeNotSupportedMessage = "This debug type is not yet supported";
+
 // SECTION: Exposed member variables
 
         /// <summary>
@@ -236,7 +238,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // for either CreateLocalVariable or InsertDeclare (https://bugs.llvm.org/show_bug.cgi?id=52459)
             if (subProgram != null && dIType != null)
             {
-                if (dIType.Name.Equals(QirTypeTransformation.DebugTypeNotSupportedMessage))
+                if (dIType.Name.Equals(DebugTypeNotSupportedMessage))
                 {
                     name += " [value display for this type is not currently supported]";
                 }
