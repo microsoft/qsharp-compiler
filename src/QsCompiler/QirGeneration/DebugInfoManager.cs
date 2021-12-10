@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
-        public static string DebugTypeNotSupportedMessage = "This debug type is not yet supported";
+        public static string DebugTypeNotSupportedMessage { get; } = "This debug type is not yet supported";
 
 // SECTION: Exposed member variables
 

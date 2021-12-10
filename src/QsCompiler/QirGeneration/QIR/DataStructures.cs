@@ -140,7 +140,8 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class PointerValue : IValue
     {
         private readonly IValue.Cached<IValue> cachedValue;
-        internal readonly Value Pointer;
+
+        public Value Pointer { get; }
 
         public Value Value => this.LoadValue().Value;
 
