@@ -1,2 +1,2 @@
-!15 = !DISubroutineType(types: !16)
-!16 = !{null}
+!16 = !DISubroutineType(types: !17)
+!17 = !{!10, !10}
