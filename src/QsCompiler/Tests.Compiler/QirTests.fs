@@ -24,7 +24,7 @@ let private checkAltOutput name (actualText:string) debugTest =
     let expectedText = expectedPath |> File.ReadAllText
     let debugTestsDirectory = (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "TestCases", "DebugInfoTests") |> Path.Combine
     let debugTestsDirectoryFormatted = debugTestsDirectory.Replace(@"\", @"\\") // The backslashes in the file are escaped
-    let actualTextFormatted = (if debugTest then actualText.Replace(debugTestsDirectoryFormatted, "__DIRECTORY__") else actualText) 
+    let actualTextFormatted = (if debugTest then actualText.Replace(debugTestsDirectoryFormatted, "__DIRECTORY__") else actualText)
     Assert.Contains(expectedText, GUID.Replace(actualTextFormatted, "__GUID__"))
 
 let private qirCompilerArgs target (name: string) =
@@ -345,4 +345,3 @@ let ``QIR Debug Info Function Returns Int`` () =
             "TestFunctionReturnsInt7"
             "TestFunctionReturnsInt8"
         ]
-

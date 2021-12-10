@@ -140,7 +140,7 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class PointerValue : IValue
     {
         private readonly IValue.Cached<IValue> cachedValue;
-        public readonly Value pointer; // TODO: change this back
+        internal readonly Value Pointer;
 
         public Value Value => this.LoadValue().Value;
 
@@ -159,16 +159,16 @@ namespace Microsoft.Quantum.QIR.Emission
         internal PointerValue(Value? pointer, ResolvedType type, GenerationContext context)
         {
             void Store(IValue v) =>
-                context.CurrentBuilder.Store(v.Value, this.pointer);
+                context.CurrentBuilder.Store(v.Value, this.Pointer);
 
             IValue Reload() =>
                 context.Values.From(
-                    context.CurrentBuilder.Load(this.LlvmType, this.pointer),
+                    context.CurrentBuilder.Load(this.LlvmType, this.Pointer),
                     this.QSharpType);
 
             this.QSharpType = type;
             this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
-            this.pointer = pointer ?? context.CurrentBuilder.Alloca(this.LlvmType);
+            this.Pointer = pointer ?? context.CurrentBuilder.Alloca(this.LlvmType);
             this.cachedValue = new IValue.Cached<IValue>(context, Reload, Store);
         }
 
@@ -197,9 +197,9 @@ namespace Microsoft.Quantum.QIR.Emission
 
         void IValue.RegisterName(string name)
         {
-            if (string.IsNullOrEmpty(this.pointer.Name))
+            if (string.IsNullOrEmpty(this.Pointer.Name))
             {
-                this.pointer.RegisterName(name);
+                this.Pointer.RegisterName(name);
             }
         }
     }

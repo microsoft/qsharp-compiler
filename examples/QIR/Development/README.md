@@ -34,8 +34,6 @@ Each time you want to test the Q# debugging experience based on the local versio
 ```
 clang++-11 -g -O0 qir_driver_simple.cpp ../qir/Development.ll -I. -L. -l:libMicrosoft.Quantum.Qir.Runtime.so -l:libMicrosoft.Quantum.Qir.QSharp.Core.so -l:libMicrosoft.Quantum.Qir.QSharp.Foundation.so -o Development.exe
 ```
-This will compile a simple C++ driver and the emitted QIR representing `Program.qs` into the executable `Development.exe`.
+This will compile a simple C++ driver and the emitted QIR representing `Program.qs` into the executable `Development.exe`. Note that the library files have been manually put into this folder for ease of compilation. These files may need to be updated.
 * Set breakpoints in `Program.qs`.
 * Launch the "Debug Program.qs" configuration
-
-RyanTODO: explain how to update libraries or find a better way to connect them

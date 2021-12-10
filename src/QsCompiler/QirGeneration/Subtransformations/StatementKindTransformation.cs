@@ -464,7 +464,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         this.SharedState.ScopeMgr.AssignToMutable(value, fromLocalId: fromLocalId);
                         this.SharedState.ScopeMgr.UnassignFromMutable(pointer);
                         pointer.StoreValue(value);
-                        // TODO: Ryan need debug info here
                     };
 
                 this.BindSymbolTuple(symbols, stm.Rhs, (syms, boundEx) =>
@@ -479,12 +478,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Action<string, IValue> BindVariable(TypedExpression ex) =>
                 (string varName, IValue value) =>
                 {
-                    if (stm.Kind.IsMutableBinding)  // RyanNote: only mutables are pointers. If they all were it might be easier
+                    if (stm.Kind.IsMutableBinding)
                     {
                         value = this.SharedState.Values.CreatePointer(value);
                     }
-                    // value = this.SharedState.Values.CreatePointer(value);
-
 
                     QirExpressionKindTransformation.AccessViaLocalId(ex, out var localId);
                     this.SharedState.ScopeMgr.RegisterVariable(varName, value, fromLocalId: localId);

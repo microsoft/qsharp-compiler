@@ -19,7 +19,6 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
@@ -229,14 +228,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             DIType? dIType = resType == null ? null : this.DebugTypeFromQsharpType(resType, dIBuilder)?.DIType;
 
             // Get the location information for the variable declaration
-            QsLocation? namespaceLocation = this.sharedState.DIManager.CurrentNamespaceElementLocation;
+            QsLocation? namespaceLocation = this.CurrentNamespaceElementLocation;
             Position namespaceOffset = namespaceLocation?.Offset ?? Position.Zero;
             Position absolutePosition = namespaceOffset + this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions();
 
+            // LLVM Native API has a bug and will crash if we pass in a null dIType
+                // for either CreateLocalVariable or InsertDeclare (https://bugs.llvm.org/show_bug.cgi?id=52459)
             if (subProgram != null && dIType != null)
             {
-                // LLVM Native API has a bug and will crash if we pass in a null dIType
-                // for either CreateLocalVariable or InsertDeclare (https://bugs.llvm.org/show_bug.cgi?id=52459)
+                if (dIType.Name.Equals(QirTypeTransformation.DebugTypeNotSupportedMessage))
+                {
+                    name += " [value display for this type is not currently supported]";
+                }
 
                 // Create the debug info for the local variable
                 DILocalVariable dIVar = dIBuilder.CreateLocalVariable(
@@ -255,36 +258,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (this.sharedState.CurrentBlock != null)
                 {
-                    // Value variable;
-
-                    // if (value is SimpleValue) // TODO: fix this
-                    // {
-                    //     return; // don't display debug info for variables that were optimized out
-                    // }
-                    // else
-                    // if (isMutableBinding)
-                    // {
-                    //     variable = ((PointerValue)value).pointer;
-                    // }
-                    // else
-                    // {
-                    //     variable = value.Value;
-                    // }
-
-                    // variable = ((PointerValue)value).pointer; // TODO: try passing the address as the value
-
-                    if (isMutableBinding) // variable is represented as a pointer to the value
-                    {
-                        Value variable = ((PointerValue)value).pointer;
-                        dIBuilder.InsertDeclare( // RyanTODO: Ideally we have this as a llvm.dbg.addr instead of llvm.dbg.declare
+                    if (isMutableBinding)
+                    { // variable is represented as a pointer to the value
+                        Value variable = ((PointerValue)value).Pointer;
+                        dIBuilder.InsertDeclare(
                         storage: variable,
                         varInfo: dIVar,
                         location: dILocation,
                         insertAtEnd: this.sharedState.CurrentBlock);
-
                     }
-                    else // variable is represented as the value itself
-                    {
+                    else
+                    { // variable is represented as the value itself
                         Value variable = value.Value;
                         dIBuilder.InsertValue(
                             value: variable,
@@ -292,13 +276,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             location: dILocation,
                             insertAtEnd: this.sharedState.CurrentBlock);
                     }
-
-                    // // Create the debug info for the local variable declaration
-                    // dIBuilder.InsertDeclare(
-                    //     storage: variable,
-                    //     varInfo: dIVar,
-                    //     location: dILocation,
-                    //     insertAtEnd: this.sharedState.CurrentBlock);
                 }
             }
         }
@@ -332,7 +309,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 argDebugTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ?
                     ts.Item.Select(t => this.DebugTypeFromQsharpType(t, curDIBuilder)).ToArray() :
                     new IDebugType<ITypeRef, DIType>?[] { this.DebugTypeFromQsharpType(spec.Signature.ArgumentType, curDIBuilder) };
-                string shortName = spec.Parent.Name; // We want to show the user the short name in the debug info instead of the mangled name
+                string shortName = spec.Parent.Name;
 
                 // Get the location info
                 QsNullable<QsLocation> debugLocation = spec.Location;
@@ -341,8 +318,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return this.CreateFunctionNoDebug(mangledName, signature);
                 }
 
-                Position absolutePosition = debugLocation.Item.Offset; // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
+                Position absolutePosition = debugLocation.Item.Offset; // the position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
 
+                 // checking the debug types for null ensures we have valid debug info
                 if (retDebugType != null && !argDebugTypes.Contains(null))
                 {
                     // Create the function with debug info
@@ -423,9 +401,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     debugPosition,
                     subProgram);
 
-                // Create the debug information for a variable declaration
-                curDIBuilder.InsertDeclare(
-                    storage: value.Value,
+                // all arguments are passed by value
+                Value variable = value.Value;
+                curDIBuilder.InsertValue(
+                    value: variable,
                     varInfo: dIVariable,
                     location: dILocation,
                     insertAtEnd: this.sharedState.CurrentBlock);
@@ -476,7 +455,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return null;
             }
 
-            // TODO: implement other variable types in TypeTransformation including callables
             return this.sharedState.Types.Transform.DebugTypeFromQsharpType(resolvedType, dIBuilder);
         }
 
