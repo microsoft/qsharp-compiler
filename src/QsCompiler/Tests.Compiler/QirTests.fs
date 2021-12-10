@@ -323,13 +323,7 @@ let ``QIR Debug Info Module`` () = debugInfoTest false "TestModuleInfo"
 
 [<Fact>]
 let ``QIR Debug Info Statement Breakpoints`` () =
-    debugInfoMultiTest
-        false
-        "TestStatementBreakpoints"
-        [
-            "TestStatementBreakpoints1"
-            "TestStatementBreakpoints2"
-        ]
+    debugInfoMultiTest false "TestStatementBreakpoints" [ "TestStatementBreakpoints1"; "TestStatementBreakpoints2" ]
 
 [<Fact>]
 let ``QIR Debug Info Function Returns Unit`` () =
@@ -384,4 +378,3 @@ let ``QIR Debug Info Unsupported Debug Info Type Variable`` () =
             "TestUnsupportedDebugInfoType3"
             "TestUnsupportedDebugInfoType4"
         ]
-
