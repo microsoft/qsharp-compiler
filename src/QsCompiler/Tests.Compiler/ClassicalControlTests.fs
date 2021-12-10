@@ -1749,6 +1749,7 @@ type ClassicalControlTests() =
     member this.``Minimal Parameter Capture``() =
         let result = CompileClassicalControlTest 53
         let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
+
         let generated =
             GetCallablesWithSuffix result Signatures.ClassicalControlNS "_Foo"
             |> (fun x ->
@@ -1768,12 +1769,21 @@ type ClassicalControlTests() =
         let (success, _, args) = IsApplyIfArgMatch args "r" generated.FullName
         Assert.True(success, "ApplyIfZero did not have the correct arguments")
 
-        Assert.True((args = "myInt, myDouble, myString, myMutable"), "Generated operation did not have the correct arguments")
+        Assert.True(
+            (args = "myInt, myDouble, myString, myMutable"),
+            "Generated operation did not have the correct arguments"
+        )
 
         let parameters =
             generated.ArgumentTuple.Items
-            |> Seq.choose (fun x -> match x.VariableName with | ValidName str -> Some str | InvalidName -> None)
+            |> Seq.choose
+                (fun x ->
+                    match x.VariableName with
+                    | ValidName str -> Some str
+                    | InvalidName -> None)
             |> (fun s -> String.Join(", ", s))
 
-        Assert.True((parameters = "myInt, myDouble, myString, myMutable"), "Generated operation did not have the correct parameters")
-
+        Assert.True(
+            (parameters = "myInt, myDouble, myString, myMutable"),
+            "Generated operation did not have the correct parameters"
+        )

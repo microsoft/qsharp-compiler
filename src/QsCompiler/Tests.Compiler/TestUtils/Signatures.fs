@@ -600,7 +600,7 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
              ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
          |])
-         // Minimal Parameter Capture
+        // Minimal Parameter Capture
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
