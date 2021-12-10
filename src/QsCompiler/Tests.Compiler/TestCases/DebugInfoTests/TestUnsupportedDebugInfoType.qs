@@ -4,7 +4,7 @@ namespace Microsoft.Quantum.Testing.QirDebugInfo {
     open Microsoft.Quantum.Intrinsic;
 
     @EntryPoint()
-    operation RunExample() : Unit {
+    operation Main() : Unit {
         // making these mutable so they're not optimized out
         mutable array = [5, 6, 7];
         // mutable bigInt = 5L; // bigint doesn't seem to be supported in the version of the libraries we're using

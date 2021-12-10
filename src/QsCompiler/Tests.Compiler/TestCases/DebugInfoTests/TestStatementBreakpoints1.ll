@@ -1,4 +1,4 @@
-define internal i64 @Microsoft__Quantum__Testing__QirDebugInfo__RunExample__body() !dbg !7 {
+define internal i64 @Microsoft__Quantum__Testing__QirDebugInfo__Main__body() !dbg !7 {
 entry:
   %boolean = alloca i1, align 1, !dbg !15
   store i1 true, i1* %boolean, align 1, !dbg !15
