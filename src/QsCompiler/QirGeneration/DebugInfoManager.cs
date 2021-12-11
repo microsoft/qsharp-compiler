@@ -152,7 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             string moduleID = "";
             foreach (KeyValuePair<string, DebugInfoBuilder> entry in this.dIBuilders)
             {
-                entry.Value.Finish(); // Must be called for every DIBuilder after all QIR generation
+                entry.Value.Finish(); // must be called for every DIBuilder after all QIR generation
 
                 string sourcePath = entry.Key;
                 if (!string.IsNullOrEmpty(moduleID))
@@ -235,7 +235,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Position absolutePosition = namespaceOffset + this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions();
 
             // LLVM Native API has a bug and will crash if we pass in a null dIType
-                // for either CreateLocalVariable or InsertDeclare (https://bugs.llvm.org/show_bug.cgi?id=52459)
+            // for either CreateLocalVariable or InsertDeclare (https://bugs.llvm.org/show_bug.cgi?id=52459)
             if (subProgram != null && dIType != null)
             {
                 if (dIType.Name.Equals(DebugTypeNotSupportedMessage))
@@ -243,7 +243,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     name += " [value display for this type is not currently supported]";
                 }
 
-                // Create the debug info for the local variable
+                // create the debug info for the local variable
                 DILocalVariable dIVar = dIBuilder.CreateLocalVariable(
                     subProgram,
                     name,
@@ -261,7 +261,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (this.sharedState.CurrentBlock != null)
                 {
                     if (isMutableBinding)
-                    { // variable is represented as a pointer to the value
+                    {
+                        // variable is represented as a pointer to the value
                         Value variable = ((PointerValue)value).Pointer;
                         dIBuilder.InsertDeclare(
                         storage: variable,
@@ -270,7 +271,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         insertAtEnd: this.sharedState.CurrentBlock);
                     }
                     else
-                    { // variable is represented as the value itself
+                    {
+                        // variable is represented as the value itself
                         Value variable = value.Value;
                         dIBuilder.InsertValue(
                             value: variable,
@@ -299,12 +301,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (spec.Kind == QsSpecializationKind.QsBody)
             {
-                // Set up the DIBuilder
+                // set up the DIBuilder
                 string sourcePath = spec.Source.CodeFile;
                 DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
                 DIFile debugFile = curDIBuilder.CreateFile(sourcePath);
 
-                // Set up debug info for the function
+                // set up debug info for the function
                 IDebugType<ITypeRef, DIType>? retDebugType;
                 IDebugType<ITypeRef, DIType>?[] argDebugTypes;
                 retDebugType = this.DebugTypeFromQsharpType(spec.Signature.ReturnType, curDIBuilder);
@@ -325,7 +327,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                  // checking the debug types for null ensures we have valid debug info
                 if (retDebugType != null && !argDebugTypes.Contains(null))
                 {
-                    // Create the function with debug info
+                    // create the function with debug info
                     DebugFunctionType debugSignature = new DebugFunctionType(signature, curDIBuilder, DebugInfoFlags.None, retDebugType, argDebugTypes!);
                     IrFunction func = this.Module.CreateFunction(
                         scope: curDIBuilder.CompileUnit,
@@ -334,7 +336,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         file: debugFile,
                         linePosition: ConvertToDebugPosition(absolutePosition),
                         signature: debugSignature,
-                        isLocalToUnit: true, // We're using the compile unit from the source file this was declared in
+                        isLocalToUnit: true, // we're using the compile unit from the source file this was declared in
                         isDefinition: true, // if this isn't set to true, it results in temporary metadata nodes that don't get resolved.
                         scopeLinePosition: ConvertToDebugPosition(absolutePosition), // TODO: Could make more exact bc of formatting and white space (see lastParamLocation in Kaleidescope tutorial)
                         debugFlags: DebugInfoFlags.None,
@@ -368,12 +370,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return;
             }
 
-            // Get the DIBuilder
+            // get the DIBuilder
             string sourcePath = spec.Source.CodeFile;
             DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
             DIFile debugFile = curDIBuilder.CreateFile(sourcePath);
 
-            // Get the debug location of the function
+            // get the debug location of the function
             QsNullable<QsLocation> debugLocation = spec.Location;
             if (debugLocation.IsNull)
             {
@@ -383,7 +385,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: make this more exact by calculating absolute column position as well
             DebugPosition debugPosition = DebugPosition.FromZeroBasedLine(debugLocation.Item.Offset.Line); // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
 
-            // Get necessary debug information
+            // get necessary debug information
             DIType? dIType = this.DebugTypeFromQsharpType(value.QSharpType, curDIBuilder)?.DIType;
             DISubProgram? subProgram = this.sharedState.CurrentFunction?.DISubProgram;
             DILocalVariable dIVariable = curDIBuilder.CreateArgument(
@@ -394,7 +396,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 dIType,
                 alwaysPreserve: true,
                 DebugInfoFlags.None,
-                (ushort)argNo); // Arg numbers are 1-indexed
+                (ushort)argNo); // arg numbers are 1-indexed
 
             if (this.sharedState.CurrentBlock != null && dIType != null && subProgram != null)
             {

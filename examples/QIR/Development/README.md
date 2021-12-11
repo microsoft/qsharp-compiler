@@ -30,6 +30,7 @@ To test the Q# debugging experience, you can use `lldb` from the command line, b
             "args": [],
         }
 ```
+* Make sure that you have the following set in VSCode to allow breakpoints in Q# files: VSCode > Settings > Breakpoints > Allow Breakpoints in Any File
 
 Each time you want to test the Q# debugging experience based on the local version of the compiler, take the following steps:
 * From the Development directory, run `dotnet build`. This will emit the QIR.
