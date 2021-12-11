@@ -10,6 +10,9 @@ export LD_LIBRARY_PATH=/usr/lib/llvm-11/lib
 ```
 
 # Development of the QIR Debug Info Generation
+NOTE: This debug feature is currently incompatible with Windows due to some LLVM tool limitations. If you request debug symbols within Development.csproj while using the Windows platform, you will run into errors when you build the Development project. These errors come from compiling the emitted QIR (with debug information) into an executable, meaning that the QIR emission itself will still work on Windows, but you won't be able to actually test the Q# debugging experience.
+
+
 To emit debug information within the QIR, uncomment the following line in `Development.csproj`.
 ```
 <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) DebugSymbolsEnabled:"true"</_QscCommandPredefinedAssemblyProperties>
@@ -23,17 +26,12 @@ To test the Q# debugging experience, you can use `lldb` from the command line, b
             "name": "Debug Program.qs",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/examples/QIR/Development/DebugInfo/Development.exe",
+            "program": "${workspaceFolder}/examples/QIR/Development/build/Development",
             "args": [],
         }
 ```
 
 Each time you want to test the Q# debugging experience based on the local version of the compiler, take the following steps:
 * From the Development directory, run `dotnet build`. This will emit the QIR.
-* From the DebugInfo subdirectory, run
-```
-clang++-11 -g -O0 qir_driver_simple.cpp ../qir/Development.ll -I. -L. -l:libMicrosoft.Quantum.Qir.Runtime.so -l:libMicrosoft.Quantum.Qir.QSharp.Core.so -l:libMicrosoft.Quantum.Qir.QSharp.Foundation.so -o Development.exe
-```
-This will compile a simple C++ driver and the emitted QIR representing `Program.qs` into the executable `Development.exe`. Note that the library files have been manually put into this folder for ease of compilation. These files may need to be updated.
 * Set breakpoints in `Program.qs`.
-* Launch the "Debug Program.qs" configuration
+* Launch the "Debug Program.qs" configuration from the VS Code debugger
