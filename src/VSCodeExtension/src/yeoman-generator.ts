@@ -6,20 +6,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import yo = require("yeoman-generator");
 import yosay = require("yosay");
-
-function sanitizeNamespaceName(projectName: string): string {
-    // Replace non-alphanumeric characters, except for dots, with underscores. 
-    let namespaceName = projectName.replace(/[^A-Za-z0-9_.]/g, "_");
-
-    // Replace illegal character combinations in the namespace name.
-    namespaceName = namespaceName.replace(/\.+/g, ".");
-    namespaceName = namespaceName.replace(/_+/g, "_");
-    namespaceName = namespaceName.replace(/_\./g, ".");
-    if (namespaceName.endsWith("_")) {
-        namespaceName = namespaceName.substring(0, namespaceName.length - 1);
-    }
-    return namespaceName;
-}
+import { sanitizeNamespaceName } from './sanitize-namespace-name';
 
 export class QSharpGenerator extends yo {
 

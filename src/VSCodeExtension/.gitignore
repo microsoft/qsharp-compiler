@@ -1,6 +1,7 @@
 out
 bin
 node_modules
+test
 .vscode-test/
 *.vsix
 
