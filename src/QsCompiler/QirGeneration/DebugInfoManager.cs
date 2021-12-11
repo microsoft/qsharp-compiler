@@ -235,7 +235,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Position absolutePosition = namespaceOffset + this.TotalOffsetFromStatements() + this.TotalOffsetFromExpressions();
 
             // LLVM Native API has a bug and will crash if we pass in a null dIType
-                // for either CreateLocalVariable or InsertDeclare (https://bugs.llvm.org/show_bug.cgi?id=52459)
+            // for either CreateLocalVariable or InsertDeclare (https://bugs.llvm.org/show_bug.cgi?id=52459)
             if (subProgram != null && dIType != null)
             {
                 if (dIType.Name.Equals(DebugTypeNotSupportedMessage))
