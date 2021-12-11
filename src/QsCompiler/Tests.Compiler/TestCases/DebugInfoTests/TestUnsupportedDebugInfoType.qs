@@ -1,8 +1,5 @@
 namespace Microsoft.Quantum.Testing.QirDebugInfo {
 
-    open Microsoft.Quantum.Arrays;
-    open Microsoft.Quantum.Intrinsic;
-
     @EntryPoint()
     operation Main() : Unit {
         // making these mutable so they're not optimized out
@@ -12,8 +9,7 @@ namespace Microsoft.Quantum.Testing.QirDebugInfo {
         mutable op = Subtract(4, _);
         mutable pauli = PauliX;
         use qubit = Qubit();
-        mutable result = Measure([pauli], [qubit]);
-        mutable range =  IndexRange(array);
+        mutable range = 1..3;
         mutable str = "Hello";
 
         UnitToUnit(); // checking unit type as callable return value since we can't define a variable as a unit
