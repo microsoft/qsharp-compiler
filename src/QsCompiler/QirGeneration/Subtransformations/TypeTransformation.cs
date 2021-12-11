@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -30,6 +31,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.builtLLVMType = null;
             this.builtDebugType = null;
             this.currDIBuilder = null;
+        }
+
+        private IDebugType<ITypeRef, DIType>? GetNotYetSupportedDebugType(ITypeRef llvmType)
+        {
+            if (this.currDIBuilder != null)
+            {
+                var dIType = this.currDIBuilder.CreateBasicType(
+                    DebugInfoManager.DebugTypeNotSupportedMessage,
+                    0,
+                    DiTypeKind.Invalid);
+
+                return DebugType.Create(llvmType, dIType);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
@@ -58,7 +76,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="resolvedType">The Q# type</param>
         /// <param name="dIBuilder">The <see cref="DebugInfoBuilder"/> to use to build the <see cref="DebugType"/>.</param>
-        /// <returns>The equivalent <see cref="DebugType"/></returns>
         internal IDebugType<ITypeRef, DIType>? DebugTypeFromQsharpType(ResolvedType resolvedType, DebugInfoBuilder dIBuilder)
         {
             this.ResetConversionVariables();
@@ -91,30 +108,63 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsResolvedTypeKind OnArrayType(ResolvedType b)
         {
             this.builtLLVMType = this.qirTypes.Array;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnBigInt()
         {
             this.builtLLVMType = this.qirTypes.BigInt;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnBool()
         {
             this.builtLLVMType = this.qirTypes.Bool;
+            if (this.currDIBuilder != null)
+            {
+                var dIType = this.currDIBuilder.CreateBasicType(
+                    TypeNames.Bool,
+                    8,
+                    DiTypeKind.Boolean);
+                this.builtDebugType = DebugType.Create(this.qirTypes.Bool, dIType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnDouble()
         {
             this.builtLLVMType = this.qirTypes.Double;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = new DebugBasicType(
+                    this.qirTypes.Double,
+                    this.currDIBuilder,
+                    TypeNames.Double,
+                    DiTypeKind.Float);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnFunction(ResolvedType it, ResolvedType ot)
         {
             this.builtLLVMType = this.qirTypes.Callable;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
@@ -136,42 +186,77 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsResolvedTypeKind OnOperation(Tuple<ResolvedType, ResolvedType> _arg1, CallableInformation info)
         {
             this.builtLLVMType = this.qirTypes.Callable;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnPauli()
         {
             this.builtLLVMType = this.qirTypes.Pauli;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnQubit()
         {
             this.builtLLVMType = this.qirTypes.Qubit;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnRange()
         {
             this.builtLLVMType = this.qirTypes.Range;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnResult()
         {
             this.builtLLVMType = this.qirTypes.Result;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnString()
         {
             this.builtLLVMType = this.qirTypes.String;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
         public override QsResolvedTypeKind OnTupleType(ImmutableArray<ResolvedType> ts)
         {
             this.builtLLVMType = this.CreateConcreteTupleType(ts).CreatePointerType();
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
@@ -183,7 +268,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.builtLLVMType = this.qirTypes.Tuple;
             if (this.currDIBuilder != null)
             {
-                this.builtDebugType = DebugType.Create<ITypeRef, DIType>(this.qirTypes.Tuple, null);
+                // this type would only be displayed to the user in the context of the type of a function.
+                // since the function types are not supported yet, we haven't verified the correct debug type
+                // for the unit type.
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
             }
 
             return QsResolvedTypeKind.InvalidType;
@@ -196,6 +284,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (udtDefinition != null)
             {
                 this.builtLLVMType = this.LlvmStructTypeFromQsharpType(udtDefinition.Type).CreatePointerType();
+                if (this.currDIBuilder != null)
+                {
+                    this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+                }
             }
             else
             {
@@ -208,6 +300,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
         {
             this.builtLLVMType = this.qirTypes.BytePointer;
+            if (this.currDIBuilder != null)
+            {
+                this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
+            }
+
             return QsResolvedTypeKind.InvalidType;
         }
     }

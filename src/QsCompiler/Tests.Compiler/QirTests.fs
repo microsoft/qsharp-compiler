@@ -322,8 +322,8 @@ let ``QIR Library generation`` () =
 let ``QIR Debug Info Module`` () = debugInfoTest false "TestModuleInfo"
 
 [<Fact>]
-let ``QIR Debug Info Int Variable`` () =
-    debugInfoMultiTest false "TestIntVariable" [ "TestIntVariable1"; "TestIntVariable2" ]
+let ``QIR Debug Info Statement Breakpoints`` () =
+    debugInfoMultiTest false "TestStatementBreakpoints" [ "TestStatementBreakpoints1"; "TestStatementBreakpoints2" ]
 
 [<Fact>]
 let ``QIR Debug Info Function Returns Unit`` () =
@@ -341,17 +341,40 @@ let ``QIR Debug Info Function Returns Unit`` () =
         ]
 
 [<Fact>]
-let ``QIR Debug Info Function Returns Int`` () =
+let ``QIR Debug Info Function Returns Type`` () =
     debugInfoMultiTest
         false
-        "TestFunctionReturnsInt"
+        "TestFunctionReturnsType"
         [
-            "TestFunctionReturnsInt1"
-            "TestFunctionReturnsInt2"
-            "TestFunctionReturnsInt3"
-            "TestFunctionReturnsInt4"
-            "TestFunctionReturnsInt5"
-            "TestFunctionReturnsInt6"
-            "TestFunctionReturnsInt7"
-            "TestFunctionReturnsInt8"
+            "TestFunctionReturnsType1"
+            "TestFunctionReturnsType2"
+            "TestFunctionReturnsType3"
+            "TestFunctionReturnsType4"
+            "TestFunctionReturnsType5"
+            "TestFunctionReturnsType6"
+            "TestFunctionReturnsType7"
+        ]
+
+[<Fact>]
+let ``QIR Debug Info Int Variable`` () =
+    debugInfoMultiTest false "TestIntVariable" [ "TestIntVariable1"; "TestIntVariable2" ]
+
+[<Fact>]
+let ``QIR Debug Info Double Variable`` () =
+    debugInfoMultiTest false "TestDoubleVariable" [ "TestDoubleVariable1"; "TestDoubleVariable2" ]
+
+[<Fact>]
+let ``QIR Debug Info Boolean Variable`` () =
+    debugInfoMultiTest false "TestBooleanVariable" [ "TestBooleanVariable1"; "TestBooleanVariable2" ]
+
+[<Fact>]
+let ``QIR Debug Info Unsupported Debug Info Type Variable`` () =
+    debugInfoMultiTest
+        false
+        "TestUnsupportedDebugInfoType"
+        [
+            "TestUnsupportedDebugInfoType1"
+            "TestUnsupportedDebugInfoType2"
+            "TestUnsupportedDebugInfoType3"
+            "TestUnsupportedDebugInfoType4"
         ]

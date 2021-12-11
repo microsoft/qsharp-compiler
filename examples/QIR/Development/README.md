@@ -2,14 +2,37 @@
 
 This project is intended for trouble shooting the [QIR generation](../../../src/QsCompiler/QirGeneration). The Q# project in this folder is compiled using the source code version of the Q# compiler and the QIR generation; any changes to them will be reflected in the emitted QIR.
 
-To emit debug information within the QIR, uncomment the following line in `Development.csproj`.
-```
-<_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) DebugSymbolsEnabled:"true"</_QscCommandPredefinedAssemblyProperties>
-```
-
 This is *not* how the QIR generation is meant to be used if you don't intend to modify the source code for it. Please see the [Emission project](../Emission) for how to use a shipped version of the compiler and QIR generation.
 
 Note: If you are using the Development project on Linux, you may run into the following error: `System.DllNotFoundException: Unable to load shared library 'libLLVM' or one of its dependencies.` The solution to this is to set the LD_LIBRARY_PATH environment variable to point towards the libLLVM.so libary. This can be done using the following command in bash:
 ```
 export LD_LIBRARY_PATH=/usr/lib/llvm-11/lib
 ```
+
+# Development of the QIR Debug Info Generation
+NOTE: This debug feature is currently incompatible with Windows due to some LLVM tool limitations. If you request debug symbols within Development.csproj while using the Windows platform, you will run into errors when you build the Development project. These errors come from compiling the emitted QIR (with debug information) into an executable, meaning that the QIR emission itself will still work on Windows, but you won't be able to actually test the Q# debugging experience.
+
+
+To emit debug information within the QIR, uncomment the following line in `Development.csproj`.
+```
+<_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) DebugSymbolsEnabled:"true"</_QscCommandPredefinedAssemblyProperties>
+```
+
+To test the Q# debugging experience, you can use `lldb` from the command line, but we recommend using the built in VS Code debugging GUI for a better experience. Use the following steps to set this up:
+* Install the (CodeLLDB extension)[https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb].
+* Open or create a launch.json file within the subdirectory `.vscode` from the base of this repository. Add the following configuration.
+```
+        {
+            "name": "Debug Program.qs",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/examples/QIR/Development/build/Development",
+            "args": [],
+        }
+```
+* Make sure that you have the following set in VSCode to allow breakpoints in Q# files: VSCode > Settings > Breakpoints > Allow Breakpoints in Any File
+
+Each time you want to test the Q# debugging experience based on the local version of the compiler, take the following steps:
+* From the Development directory, run `dotnet build`. This will emit the QIR.
+* Set breakpoints in `Program.qs`.
+* Launch the "Debug Program.qs" configuration from the VS Code debugger
