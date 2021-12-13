@@ -3,7 +3,7 @@
 ## Content ##
 
 
-The NuGet package Microsoft.Quantum.Sdk serves a .NET Core Sdk for developing quantum applications, meaning it acts as [shared SDK Component](https://docs.microsoft.com/en-us/dotnet/core/project-sdk/overview).
+The NuGet package Microsoft.Quantum.Sdk serves a .NET Core Sdk for developing quantum applications, meaning it acts as [shared SDK Component](https://docs.microsoft.com/dotnet/core/project-sdk/overview).
 It contains the properties and targets that define the compilation process for Q# projects, tools used as part of the build, as well as some project system support for Q# files. It in particular also provides the support for executing a compilation step defined in a package or project reference as part of the compilation process. See [this section](#extending-the-q#-compiler) for more details.
 
 The Sdk includes all \*.qs files within the project directory as well as the Q# standard libraries by default. No additional reference to `Microsoft.Quantum.Standard` is needed. For more details see the [section on defined properties](#defined-project-properties) below.
