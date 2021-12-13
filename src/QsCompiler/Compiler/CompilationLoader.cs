@@ -214,6 +214,11 @@ namespace Microsoft.Quantum.QsCompiler
                 this.RuntimeCapability != null && this.RuntimeCapability == RuntimeCapability.BasicMeasurementFeedback;
 
             /// <summary>
+            /// Indicates whether the compiler will remove lambda expressions and replace them with calls to generated callables.
+            /// </summary>
+            internal bool LiftLambdaExpressions => true; // ToDo: replace this with the actual condition.
+
+            /// <summary>
             /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
             /// </summary>
             internal bool LoadTargetSpecificDecompositions =>
@@ -274,6 +279,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status PreEvaluation = Status.NotRun;
             internal Status ConjugationInlining = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
+            internal Status LiftLambdaExpressions = Status.NotRun;
             internal Status ConvertClassicalControl = Status.NotRun;
             internal Status Monomorphization = Status.NotRun;
             internal Status Documentation = Status.NotRun;
@@ -332,6 +338,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// that is executed before invoking further rewrite and/or generation steps.
         /// </summary>
         public Status Validation => this.compilationStatus.Validation;
+
+        /// <summary>
+        /// Indicates whether all lambda expressions were replaced successfully with
+        /// calls to generated callables.
+        /// </summary>
+        public Status LiftLambdaExpressions => this.compilationStatus.LiftLambdaExpressions;
 
         /// <summary>
         /// Indicates whether any target-specific compilation steps executed successfully.
@@ -594,6 +606,12 @@ namespace Microsoft.Quantum.QsCompiler
 #pragma warning restore CS0618 // Type or member is obsolete
                 var rewriteStep = new LoadedStep(trimming, typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
+            }
+
+            if (this.config.LiftLambdaExpressions)
+            {
+                var rewriteStep = new LoadedStep(new LiftLambdas(), typeof(IRewriteStep), thisDllUri);
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.LiftLambdaExpressions)));
             }
 
             if (this.config.ConvertClassicalControl)
