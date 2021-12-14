@@ -48,9 +48,10 @@ return x + 1;
 
 [<Example(ExampleKind.Format)>]
 let ``Adds newlines and indents`` =
-    """namespace Foo { function Bar() : Int { let x = 5; return x; } }""",
+    """namespace Foo { newtype InternalType = Unit; function Bar() : Int { let x = 5; return x; } }""",
 
     """namespace Foo {
+    newtype InternalType = Unit;
     function Bar() : Int {
         let x = 5;
         return x;
@@ -60,6 +61,8 @@ let ``Adds newlines and indents`` =
 [<Example(ExampleKind.Format)>]
 let ``Removes extraneous spaces`` =
     """namespace     Foo {
+    open qualified.name     as qn;
+    internal newtype Complex = (Real:     Double, Imaginary : Double);
     function Bar() : Int [     ] {
         let x= // Newlines are preserved.
             (7 *   1) // Comments too.
@@ -70,6 +73,8 @@ let ``Removes extraneous spaces`` =
 }""",
 
     """namespace Foo {
+    open qualified.name as qn;
+    internal newtype Complex = (Real: Double, Imaginary : Double);
     function Bar() : Int [ ] {
         let x = // Newlines are preserved.
             (7 * 1) // Comments too.

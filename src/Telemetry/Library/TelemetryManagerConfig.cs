@@ -4,7 +4,6 @@
 using System;
 using System.Text.RegularExpressions;
 using Microsoft.Quantum.Telemetry.Commands;
-using Microsoft.Quantum.Telemetry.OutOfProcess;
 
 namespace Microsoft.Quantum.Telemetry
 {

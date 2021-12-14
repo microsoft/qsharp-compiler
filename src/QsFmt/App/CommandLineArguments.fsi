@@ -3,107 +3,189 @@
 
 module Microsoft.Quantum.QsFmt.App.Arguments
 
-    open System
-    open CommandLine.Text
+open System
+open CommandLine.Text
+open Microsoft.Quantum.QsFmt.Formatter
 
-    /// Object for capturing the arguments used with the `format` command.
-    type FormatArguments =
-        {
-            /// Flag to indicate if the `--backup` option was specified.
-            Backup: bool
+/// An Enum for the various exit codes for the program.
+type ExitCode =
+    | Success = 0
 
-            /// Flag to indicate if the `--recurse` option was specified.
-            Recurse: bool
+    /// Syntax errors were encountered during the program.
+    | SyntaxErrors = 1
 
-            /// Optional argument for the `--qsharp-version` option.
-            QdkVersion: string
+    /// Invalid command-line arguments were given to the program.
+    | BadArguments = 2
 
-            /// The input files specified by the `--input` argument.
-            InputFiles: seq<string>
+    /// An Input/Output error was encountered during the program.
+    | IOError = 3
 
-            /// The project file specified by the `--project` argument.
-            ProjectFile: string
-        }
-        with
-            /// Provides example usage.
-            static member examples : seq<Example>
+    /// The program attempted to access a file or resource it didn't have authority to access.
+    | UnauthorizedAccess = 4
 
-    /// Object for capturing the arguments used with the `update` command.
-    type UpdateArguments =
-        {
-            /// Flag to indicate if the `--backup` option was specified.
-            Backup: bool
+    /// The same input file was given multiple times.
+    | FileAlreadyProcessed = 5
 
-            /// Flag to indicate if the `--recurse` option was specified.
-            Recurse: bool
+    /// A QDK version was used that is too far out of date for the program to process.
+    | QdkOutOfDate = 6
 
-            /// Optional argument for the `--qsharp-version` option.
-            QdkVersion: string
+    /// An Unhandled Exception was encountered during the program.
+    | UnhandledException = 7
 
-            /// The input files specified by the `--input` argument.
-            InputFiles: seq<string>
+    /// We returned the version of the program
+    | Version = 8
 
-            /// The project file specified by the `--project` argument.
-            ProjectFile: string
-        }
-        with
-            /// Provides example usage.
-            static member examples : seq<Example>
+    /// We printed the program help
+    | Help = 9
 
-    /// Object for capturing the arguments used with the `update-and-format` command.
-    type UpdateAndFormatArguments =
-        {
-            /// Flag to indicate if the `--backup` option was specified.
-            Backup: bool
+/// The results from running a command.
+type internal RunResult =
+    {
+      /// The number of input source files processed.
+      FilesProcessed: int
 
-            /// Flag to indicate if the `--recurse` option was specified.
-            Recurse: bool
+      /// The exit code.
+      ExitCode: ExitCode
 
-            /// Optional argument for the `--qsharp-version` option.
-            QdkVersion: string
+      /// The list of syntax errors encountered during the running of the command.
+      SyntaxErrors: Errors.SyntaxError list }
 
-            /// The input files specified by the `--input` argument.
-            InputFiles: seq<string>
+    /// Returns a RunResult record with default field values.
+    static member Default : RunResult
 
-            /// The project file specified by the `--project` argument.
-            ProjectFile: string
-        }
-        with
-            /// Provides example usage.
-            static member examples : seq<Example>
+/// The kind of command used.
+type CommandKind =
 
-    /// The kind of command used
-    type internal CommandKind =
+    /// Represents usage of the `update` command
+    | Update
 
-        /// Represents usage of the `update` command
-        | Update
+    /// Represents usage of the `format` command
+    | Format
 
-        /// Represents usage of the `format` command
-        | Format
+    /// Represents usage of the `update-and-format` command
+    | UpdateAndFormat
 
-        /// Represents usage of the `update-and-format` command
-        | UpdateAndFormat
+/// The kind of the input.
+type InputKind =
 
-    /// Represents the fully parsed arguments to the tool.
-    type internal Arguments =
-        {
-            /// Indicates the command specified.
-            CommandKind: CommandKind
+    /// Represents usage of the `input` command option
+    | Files
 
-            /// Flag to indicate if the `--recurse` option was specified.
-            RecurseFlag: bool
+    /// Represents usage of the `project` command option
+    | Project
 
-            /// Flag to indicate if the `--backup` option was specified.
-            BackupFlag: bool
+/// Common argument interface for all commands.
+type internal IArguments =
 
-            /// Optional Q# version specified.
-            QSharp_Version: Version option
+    /// Flag to indicate if the `--backup` option was specified.
+    abstract member Backup : bool
 
-            /// The paths to the files to process.
-            Input: string list
-        }
+    /// Flag to indicate if the `--recurse` option was specified.
+    abstract member Recurse : bool
 
-    module internal Arguments =
+    /// Optional argument for the `--qsharp-version` option.
+    abstract member QdkVersion : string
 
-        /// Creates an Arguments object from an UpdateArguments object
-        val fromUpdateArguments: UpdateArguments -> Result<Arguments,int>
+    /// The input files specified by the `--input` argument.
+    abstract member InputFiles : seq<string>
+
+    /// The project file specified by the `--project` argument.
+    abstract member ProjectFile : string
+
+    /// The kind of command used.
+    abstract member CommandKind : CommandKind
+
+/// Object for capturing the arguments used with the `format` command.
+type FormatArguments =
+    {
+      /// Flag to indicate if the `--backup` option was specified.
+      Backup: bool
+
+      /// Flag to indicate if the `--recurse` option was specified.
+      Recurse: bool
+
+      /// Optional argument for the `--qsharp-version` option.
+      QdkVersion: string
+
+      /// The input files specified by the `--input` argument.
+      InputFiles: seq<string>
+
+      /// The project file specified by the `--project` argument.
+      ProjectFile: string }
+    interface IArguments
+
+    /// Provides example usage.
+    static member examples : seq<Example>
+
+/// Object for capturing the arguments used with the `update` command.
+type UpdateArguments =
+    {
+      /// Flag to indicate if the `--backup` option was specified.
+      Backup: bool
+
+      /// Flag to indicate if the `--recurse` option was specified.
+      Recurse: bool
+
+      /// Optional argument for the `--qsharp-version` option.
+      QdkVersion: string
+
+      /// The input files specified by the `--input` argument.
+      InputFiles: seq<string>
+
+      /// The project file specified by the `--project` argument.
+      ProjectFile: string }
+    interface IArguments
+
+    /// Provides example usage.
+    static member examples : seq<Example>
+
+/// Object for capturing the arguments used with the `update-and-format` command.
+type UpdateAndFormatArguments =
+    {
+      /// Flag to indicate if the `--backup` option was specified.
+      Backup: bool
+
+      /// Flag to indicate if the `--recurse` option was specified.
+      Recurse: bool
+
+      /// Optional argument for the `--qsharp-version` option.
+      QdkVersion: string
+
+      /// The input files specified by the `--input` argument.
+      InputFiles: seq<string>
+
+      /// The project file specified by the `--project` argument.
+      ProjectFile: string }
+    interface IArguments
+
+    /// Provides example usage.
+    static member examples : seq<Example>
+
+/// Represents the fully parsed arguments to the tool.
+type internal CommandWithOptions =
+    {
+      /// Indicates the command specified.
+      CommandKind: CommandKind
+
+      /// The input kind
+      InputKind: InputKind
+
+      /// Flag to indicate if the `--recurse` option was specified.
+      RecurseFlag: bool
+
+      /// Flag to indicate if the `--backup` option was specified.
+      BackupFlag: bool
+
+      /// Optional Q# version specified.
+      QSharpVersion: Version option
+
+      /// The paths to the files to process.
+      Input: string list }
+
+    /// Returns a CommandWithOptions record with default field values.
+    static member Default : CommandWithOptions
+
+module internal CommandWithOptions =
+
+    /// Creates an CommandWithOptions object from an IArguments object
+    val fromIArguments : IArguments -> Result<CommandWithOptions, ExitCode>

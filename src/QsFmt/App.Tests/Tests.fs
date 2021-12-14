@@ -23,12 +23,22 @@ type private Result =
         Error: string
     }
 
+/// Represents a test file and all the expected versions of its contents.
 type private TestFile =
     {
+        /// The path to the test file.
         Path: string
+
+        /// The original content of the file.
         Original: string
+
+        /// The expected content after formatting.
         Formatted: string
+
+        /// The expected content after updating.
         Updated: string
+
+        /// The expected content after updating and formatting.
         UpdatedAndFormatted: String
     }
 
@@ -40,7 +50,7 @@ let private standardizeNewLines (s: string) =
 
 let private CleanResult =
     {
-        Code = 0
+        Code = ExitCode.Success |> int
         Out = ""
         Error = ""
     }
@@ -181,7 +191,7 @@ let ``Update and format file`` () =
 let ``Updates standard input`` () =
     Assert.Equal(
         {
-            Code = 0
+            Code = ExitCode.Success |> int
             Out = StandardInputTest.Updated
             Error = ""
         },
@@ -192,7 +202,7 @@ let ``Updates standard input`` () =
 let ``Shows syntax errors`` () =
     Assert.Equal(
         {
-            Code = 1
+            Code = ExitCode.SyntaxErrors |> int
             Out = ""
             Error =
                 standardizeNewLines
@@ -205,7 +215,7 @@ let ``Shows syntax errors`` () =
 [<Fact>]
 let ``Shows file not found error`` () =
     let result = run [| "update"; "-i"; "Examples\\NotFound.qs" |] ""
-    Assert.Equal(3, result.Code)
+    Assert.Equal(ExitCode.IOError |> int, result.Code)
     Assert.Empty result.Out
     Assert.NotEmpty result.Error
 
@@ -283,7 +293,7 @@ let ``Process correct files while erroring on incorrect`` () =
     try
         let result = run [| "update"; "-i"; Example1.Path; "Examples\\NotFound.qs"; Example2.Path |] ""
 
-        Assert.Equal(3, result.Code)
+        Assert.Equal(ExitCode.IOError |> int, result.Code)
         Assert.NotEmpty(result.Error)
 
         for file in files do
@@ -320,7 +330,7 @@ let ``Error when same input given multiple times`` () =
 
     let outputResult =
         {
-            Code = 5
+            Code = ExitCode.FileAlreadyProcessed |> int
             Out = ""
             Error =
                 "This input has already been processed: Examples\SubExamples1\SubExample1.qs
@@ -442,7 +452,7 @@ let ``Project file as input`` () =
 let ``Outdated version project file as input`` () =
     Assert.Equal(
         {
-            Code = 6
+            Code = ExitCode.QdkOutOfDate |> int
             Out = ""
             Error =
                 standardizeNewLines
@@ -455,12 +465,14 @@ let ``Outdated version project file as input`` () =
 [<Fact>]
 let ``Outdated system project file as input`` () =
     let project = "Examples\\TestProjects\\OldApplication\\OldApplication.csproj"
-    let act = Action(fun () -> run [| "update"; "-p"; project |] "" |> ignore)
-    let ex = Assert.Throws<Exception>(act)
+    let result = run [| "update"; "-p"; project |] ""
+    Assert.Equal(ExitCode.UnhandledException |> int, result.Code)
+    Assert.Equal("", result.Out)
 
-    Assert.Equal(
-        ex.Message,
-        sprintf
-            "The given project file, %s is not a Q# project file. Please ensure your project file uses the Microsoft.Quantum.Sdk."
-            project
+    Assert.True(
+        result.Error.StartsWith(
+            sprintf
+                "Unexpected Error: System.Exception: The given project file, %s is not a Q# project file. Please ensure your project file uses the Microsoft.Quantum.Sdk."
+                project
+        )
     )

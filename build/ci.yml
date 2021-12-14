@@ -36,17 +36,6 @@ jobs:
   pool:
     vmImage: windows-latest
 
-- job: LinuxBuild
-  steps:
-  - template: passes-linux.yml
-  pool:
-    vmImage: ubuntu-20.04
-
-- job: MacOSBuild
-  steps:
-  - template: passes-mac.yml
-  pool:
-    vmImage: macOS-latest
 
 - job: Style
   steps:

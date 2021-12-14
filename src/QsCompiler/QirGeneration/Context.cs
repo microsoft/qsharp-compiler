@@ -1345,7 +1345,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             Value? output = null;
-            this.ExecuteLoop(exitBlock, () =>
+            this.ExecuteLoop(() =>
             {
                 var (loopVariable, outputValue) = PopulateLoopHeader(startValue, evaluateCondition);
                 var newOutputValue = executeBody(loopVariable, outputValue);
@@ -1353,6 +1353,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 ContinueOrExitLoop((loopVariable, increment), outputUpdate);
                 output = outputUpdate?.Item1;
             });
+
+            this.SetCurrentBlock(exitBlock);
             return output;
         }
 
@@ -1382,14 +1384,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Executes the loop defined by the given action.
         /// Ensures that all pointers will be properly loaded during and after the loop.
         /// </summary>
-        /// <param name="continuation">The block to set as the current block after executing the loop</param>
         /// <param name="loop">The loop to execute</param>
-        internal void ExecuteLoop(BasicBlock continuation, Action loop)
+        internal void ExecuteLoop(Action loop)
         {
             this.StartLoop();
             loop();
             this.EndLoop();
-            this.SetCurrentBlock(continuation);
         }
 
         /// <summary>
