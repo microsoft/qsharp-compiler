@@ -1019,7 +1019,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                     if (this.SharedState.IsConditionLiftable)
                     {
-                        this.SharedState.GeneratedCallables?.AddRange(generatedOperations);
+                        this.SharedState.GeneratedCallables!.AddRange(generatedOperations);
                     }
 
                     var rtrn = this.SharedState.IsConditionLiftable
