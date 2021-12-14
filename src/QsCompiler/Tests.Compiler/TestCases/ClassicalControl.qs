@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
             SubOp2();
             SubOp3();
             let temp = 4;
-            using (q = Qubit()) {
+            use q = Qubit() {
                 let temp2 = q;
             }
         }
@@ -54,7 +54,7 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         let r = Zero;
 
         if (r == Zero) {
-            for (index in 0 .. 3) {
+            for index in 0 .. 3 {
                 let temp = index;
             }
 
@@ -1355,16 +1355,42 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
 // =================================
 
-// NOT Condition Remembers Known Symbols
+// NOT Condition Retains Used Variables
 namespace Microsoft.Quantum.Testing.ClassicalControl {
     open SubOps;
 
     operation Foo() : Unit {
         let r1 = Zero;
         let r2 = Zero;
-        if (not (r1 == Zero and r2 == Zero)) {
+        if not (r1 == Zero and r2 == Zero) {
+            let t1 = r1;
+            let t2 = r2;
             SubOp1();
             SubOp2();
+        }
+    }
+}
+
+// =================================
+
+// Minimal Parameter Capture
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let myInt = 1;
+        let myDouble = 2.0;
+        let unused = 3;
+        let myString = "four";
+        mutable myMutable = 5.0;
+
+        let r = Zero;
+        if r == Zero {
+            let innerDouble = myDouble;
+            let innerInt = myInt;
+            let innerString = myString;
+            let innerMutable = myMutable;
+            SubOp1();
         }
     }
 }
