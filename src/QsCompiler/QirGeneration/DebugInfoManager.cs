@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// </summary>
     internal sealed class DebugInfoManager
     {
-// TODO: remove SECTIONS before merging to main
+// RyanTODO: remove SECTIONS before merging to main
 // SECTION: Config values
         private static class Config
         {
@@ -132,10 +132,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             owningModule.AddProducerIdentMetadata(Config.GetQirProducerIdent());
             owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, Config.DwarfVersion);
             owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DebugVersionValue, BitcodeModule.DebugMetadataVersion);
-            owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, Config.CodeviewName, Config.CodeviewVersion); // TODO: We seem to need this flag and not Dwarf in order to debug on Windows. Need to look into why LLDB is using CodeView on Windows
-
-            // TODO: could be useful to have target-specific module flags at some point
-            // Examples: AddModuleFlag(ModuleFlagBehavior.Error, "PIC Level", 2); (ModuleFlagBehavior.Error, "wchar_size", 4); (ModuleFlagBehavior.Error, "min_enum_size", 4)
+            owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, Config.CodeviewName, Config.CodeviewVersion);
         }
 
         /// <summary>
@@ -163,7 +160,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 moduleID += Path.GetFileName(sourcePath);
             }
 
-            // TODO: set module ID. Decide how to actually create the moduleID (above way could be very long)
+            // RyanTODO: set module ID. Decide how to actually create the moduleID (above way could be very long)
         }
 
         /// <summary>
@@ -338,7 +335,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         signature: debugSignature,
                         isLocalToUnit: true, // we're using the compile unit from the source file this was declared in
                         isDefinition: true, // if this isn't set to true, it results in temporary metadata nodes that don't get resolved.
-                        scopeLinePosition: ConvertToDebugPosition(absolutePosition), // TODO: Could make more exact bc of formatting and white space (see lastParamLocation in Kaleidescope tutorial)
+                        scopeLinePosition: ConvertToDebugPosition(absolutePosition), // RyanTODO: (move this to an issue) Could make more exact bc of formatting and white space (see lastParamLocation in Kaleidescope tutorial)
                         debugFlags: DebugInfoFlags.None,
                         isOptimized: false,
                         curDIBuilder);
@@ -382,8 +379,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new ArgumentException("Expected a specialiazation with a non-null location");
             }
 
-            // TODO: make this more exact by calculating absolute column position as well
-            DebugPosition debugPosition = DebugPosition.FromZeroBasedLine(debugLocation.Item.Offset.Line); // The position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
+            // RyanTODO: (move this to an issue) make this more exact by calculating absolute column position as well
+            // the position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
+            DebugPosition debugPosition = DebugPosition.FromZeroBasedLine(debugLocation.Item.Offset.Line);
 
             // get necessary debug information
             DIType? dIType = this.DebugTypeFromQsharpType(value.QSharpType, curDIBuilder)?.DIType;

@@ -58,6 +58,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsNamespaceElement OnNamespaceElement(QsNamespaceElement nse)
         {
+            // keep track of the location of the current namespace so that we can calculate the offset of locations accurately
             QsNullable<QsLocation> locNullable = nse switch
             {
                 QsNamespaceElement.QsCallable callable => callable.Item.Location,

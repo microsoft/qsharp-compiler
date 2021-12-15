@@ -661,6 +661,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         protected InferredCallableInformation(string fullName, string name)
         {
+
         }
     }
 

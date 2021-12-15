@@ -18,10 +18,6 @@ namespace Microsoft.Quantum.QIR
     /// </summary>
     public class Types
     {
-        /// <summary>
-        /// Represents a Void type in QIR.
-        /// </summary>
-        public ITypeRef Void { get; }
 
         /// <summary>
         /// Represents the type of a 64-bit signed integer in QIR.
@@ -125,7 +121,6 @@ namespace Microsoft.Quantum.QIR
             this.context = context;
             this.Transform = new QirTypeTransformation(this, getTypeDecl);
 
-            this.Void = context.VoidType;
             this.Int = context.Int64Type;
             this.Double = context.DoubleType;
             this.Bool = context.BoolType;

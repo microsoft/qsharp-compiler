@@ -972,6 +972,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SetCurrentBlock(this.CurrentFunction.AppendBasicBlock("entry"));
+
             this.ScopeMgr.OpenScope();
             executeBody(this.CurrentFunction.Parameters);
             var isTerminated = this.CurrentBlock?.Terminator != null;

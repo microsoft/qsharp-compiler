@@ -55,7 +55,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
     /// <summary><see cref="DebugPosition"/> represents a line/col position in source code and is 1-based.</summary>
     /// <summary>If a column number is not provided, 1 is used.</summary>
-    /// TODO: This could be propogated through the rest of line/col debug information in the LLVMBindings
+    /// RyanTODO: This could be propogated through the rest of line/col debug information in the LLVMBindings
     public class DebugPosition
     {
         public uint Line { get; set; }
@@ -128,6 +128,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// </summary>
         public DICompileUnit? CompileUnit { get; private set; }
 
+        // RyanTODO: remove these changes to the parameters since they're public APIs; we can have additional function calls instead with
+        // these parameters instead
         /// <summary>Creates a new <see cref="DICompileUnit"/></summary>
         /// <param name="language"><see cref="SourceLanguage"/> for the compilation unit</param>
         /// <param name="sourceFilePath">Full path to the source file of this compilation unit</param>

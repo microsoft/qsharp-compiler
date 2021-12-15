@@ -17,7 +17,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="context">Context that owns this location</param>
         /// <param name="position">1-based line/col number for the location</param>
         /// <param name="scope">Containing scope for the location</param>
-        // TODO: before this goes to main, I should probably change the DebugPosition back to the line, column
+        // RyanTODO: before this goes to main, I should probably change the DebugPosition back to the line, column
         // format since this is a public API. I can move DebugPosition information to within
         // the QIR Generation only.
         public DILocation(Context context, DebugPosition position, DILocalScope scope)

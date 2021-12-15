@@ -68,6 +68,7 @@ namespace LLVMSharp.Interop
         }
 
         /// <summary>Convenience wrapper for <see cref="LLVM.AddModuleFlag"/>.
+        ///  RyanTODO: check on the status of this
         /// TODO: If this PR gets merged to LLVMSharp, we can remove this wrapper: https://github.com/microsoft/LLVMSharp/pull/181/files</summary>
         public static void AddModuleFlag(this LLVMModuleRef self, string key, LLVMModuleFlagBehavior behavior, uint val)
         {

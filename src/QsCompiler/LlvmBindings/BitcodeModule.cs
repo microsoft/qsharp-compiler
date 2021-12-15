@@ -118,6 +118,7 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
+        // RyanTODO: put back DebugInfoBuilder (and DICompileUnit) with get since it's public, and just look for default
         /// <summary>Creates and returns a new <see cref="DebugInfoBuilder"/> used to create debug information for this module</summary>
         public DebugInfoBuilder CreateDIBuilder()
         {
@@ -380,6 +381,7 @@ namespace Ubiquity.NET.Llvm
             return Value.FromHandle<IrFunction>(valueRef)!;
         }
 
+        // RyanTODO: remove changes like the DebugPosition change since it changes public APIs
         /// <summary>Creates a Function definition with Debug information</summary>
         /// <param name="scope">Containing scope for the function</param>
         /// <param name="name">Name of the function in source language form</param>

@@ -134,7 +134,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var dIType = this.currDIBuilder.CreateBasicType(
                     TypeNames.Bool,
-                    8,
+                    8, // RyanTODO: explain this
                     DiTypeKind.Boolean);
                 this.builtDebugType = DebugType.Create(this.qirTypes.Bool, dIType);
             }
@@ -268,9 +268,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.builtLLVMType = this.qirTypes.Tuple;
             if (this.currDIBuilder != null)
             {
-                // this type would only be displayed to the user in the context of the type of a function.
+                // this type would only be displayed to the user within debug info within the type of a function.
                 // since the function types are not supported yet, we haven't verified the correct debug type
-                // for the unit type.
+                // for the unit type, hence the "not supported" debug type.
                 this.builtDebugType = this.GetNotYetSupportedDebugType(this.builtLLVMType);
             }
 
