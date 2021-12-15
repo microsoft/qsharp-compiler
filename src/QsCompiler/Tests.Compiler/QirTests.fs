@@ -8,9 +8,16 @@ open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Xunit
 open System.Reflection
 open System.Text.RegularExpressions
+open System
 
 let private GUID =
     new Regex(@"[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?", RegexOptions.IgnoreCase)
+
+/// <summary>
+/// Ensures that the new line characters will conform to the standard of the environment's new line character.
+/// </summary>
+let private standardizeNewLines (s: string) =
+    s.Replace("\r", "").Replace("\n", Environment.NewLine)
 
 let private testOne expected args =
     let result = Program.Main args
@@ -42,7 +49,9 @@ let private checkAltOutput name (actualText: string) debugTest =
          else
              actualText)
 
-    Assert.Contains(expectedText, GUID.Replace(actualTextFormatted, "__GUID__"))
+    let replacedGUID = GUID.Replace(actualTextFormatted, "__GUID__")
+
+    Assert.Contains(standardizeNewLines expectedText, standardizeNewLines replacedGUID)
 
 let private qirCompilerArgs target (name: string) =
     seq {
