@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Microsoft.Quantum.Telemetry.Commands;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -98,10 +99,19 @@ namespace Microsoft.Quantum.Telemetry.Tests
             var binPath = Path.GetDirectoryName(Assembly.GetEntryAssembly()!.Location)!;
             var exePath = Path.Combine(binPath, "outofprocess.exe");
             var dllPath = Path.Combine(binPath, "outofprocess.dll");
+            var linuxPath = Path.Combine(binPath, "outofprocess");
 
-            if (File.Exists(exePath))
+            if (File.Exists(exePath) && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return exePath;
+            }
+
+            if (File.Exists(linuxPath)
+                && (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                    || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
+                    || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD)))
+            {
+                return linuxPath;
             }
 
             if (File.Exists(dllPath))

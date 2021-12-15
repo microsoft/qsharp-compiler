@@ -9,6 +9,7 @@ Write-Host "Setting up build environment variables"
 # This is useful to capture unexpected unhandled exceptions as we
 # test telemetry-related code
 $env:ENABLE_QDK_TELEMETRY_EXCEPTIONS = "1"
+$env:QSFMT_HOSTING_ENV = "build-agent"
 
 If ($Env:BUILD_CONFIGURATION -eq $null) { $Env:BUILD_CONFIGURATION ="Debug" }
 If ($Env:BUILD_VERBOSITY -eq $null) { $Env:BUILD_VERBOSITY ="m" }

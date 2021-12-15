@@ -10,7 +10,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
-using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -29,7 +28,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         public void Dispose() => this.projects.Dispose();
 
         private readonly Action<PublishDiagnosticParams> publish;
-        private readonly Action<string, Dictionary<string, string?>, Dictionary<string, int>> sendTelemetry;
+        private readonly SendTelemetryHandler? sendTelemetry;
 
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
@@ -59,12 +58,12 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal EditorState(
             ProjectLoader projectLoader,
             Action<PublishDiagnosticParams>? publishDiagnostics,
-            Action<string, Dictionary<string, string?>, Dictionary<string, int>>? sendTelemetry,
+            SendTelemetryHandler? sendTelemetry,
             Action<string, MessageType>? log,
             Action<Exception>? onException)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
-            this.sendTelemetry = sendTelemetry ?? ((eventName, properties, measurements) => { });
+            this.sendTelemetry = sendTelemetry;
             this.publish = param =>
             {
                 var onProjFile = param.Uri.AbsolutePath.EndsWith(".csproj", StringComparison.InvariantCultureIgnoreCase);
@@ -85,7 +84,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             };
 
             this.projectLoader = projectLoader;
-            this.projects = new ProjectManager(onException, log, this.publish);
+            this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry);
         }
 
         /// <summary>
@@ -131,7 +130,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             telemetryMeas["sources"] = sourceFiles.Count();
             telemetryMeas["csharpfiles"] = csharpFiles.Count();
             telemetryProps["defaultSimulator"] = defaultSimulator;
-            this.sendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
+            this.sendTelemetry?.Invoke("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
 
             // project properties
             void AddProperty(IDictionary<string, string?> props, string property) =>
