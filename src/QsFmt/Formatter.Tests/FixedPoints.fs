@@ -325,7 +325,7 @@ let ``Factor application`` =
 let ``Prefix operator`` =
     """namespace Foo {
     function Bar () : Int {
-        return -2;
+        return +2 + -2;
     }
 }"""
 

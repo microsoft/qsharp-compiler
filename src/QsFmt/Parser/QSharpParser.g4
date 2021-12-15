@@ -220,7 +220,7 @@ expression
     | <assoc=right> functor='Controlled' operation=expression # ControlledExpression
     | <assoc=right> functor='Adjoint' operation=expression # AdjointExpression
     | callable=expression openParen='(' (arguments+=expression (commas+=',' arguments+=expression)* commas+=','?)? closeParen=')' # CallExpression
-    | <assoc=right> operator=('!' | '-' | 'not' | '~~~') operand=expression # NegationExpression
+    | <assoc=right> operator=('!' | '+' | '-' | 'not' | '~~~') operand=expression # PrefixOpExpression
     | <assoc=right> left=expression operator='^' right=expression # ExponentExpression
     | left=expression operator=('*' | '/' | '%') right=expression # MultiplyExpression
     | left=expression operator=('+' | '-') right=expression # AddExpression
