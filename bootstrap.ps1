@@ -79,3 +79,5 @@ Pop-Location
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/QirGeneration')
 .\FindNuspecReferences.ps1;
 Pop-Location
+
+. src\QsCompiler\LlvmBindings\get-interoppackage.ps1

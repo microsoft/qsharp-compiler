@@ -12,7 +12,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace Ubiquity.NET.Llvm.Values
+namespace LlvmBindings.Values
 {
     /// <summary>re-usable implementation of IAttributeDictionary for containers that implement IAttributeAccessor.</summary>
     /// <remarks>

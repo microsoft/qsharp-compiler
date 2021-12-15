@@ -5,10 +5,16 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Microsoft.Quantum.LlvmBindings</AssemblyName>
     <NoWarn>$(NoWarn);CS1574</NoWarn> <!-- Wrong types in comments cref, should be removed in the follow-up -->
+    <NoWarn>$(NoWarn);SA1636</NoWarn> <!-- Wrong company name in copyright header, but folder contains code from multiple sources. -->
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="LLVMSharp" Version="11.0.0-beta" />
+    <None Include="drops\Microsoft.Quantum.LlvmBindings.Native.13.0.0-CI-20220112-065039\runtimes\**\*" PackagePath="runtimes">
+      <Link>runtimes\%(RecursiveDir)%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+      <Pack>true</Pack>
+    </None>
   </ItemGroup>
 
 </Project>

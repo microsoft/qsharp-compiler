@@ -50,7 +50,7 @@ foreach ($file in $llvmArchiveFiles) {
 }
 
 # Windows: bin/LLVM-C.dll
-# Linux: lib/libLLVM-11.so
+# Linux: lib/libLLVM-13.so
 # Darwin: lib/libLLVM.dylib
 
 $linuxPath = Resolve-Path (Join-Path  '.' "$($env:LINUX_PKG_NAME)" "lib" "libLLVM-[0-9][0-9].so")
@@ -95,7 +95,8 @@ ClangSharpPInvokeGenerator `
     "@$(Join-Path $PSScriptRoot GenerateLLVM.rsp)" `
     --output $generatedDir `
     --file-directory $includeDir `
-    --include-directory $includeDir
+    --include-directory $includeDir `
+    --headerFile (Join-Path $PSScriptRoot header.txt)
 
 New-Item -ItemType Directory -Force (Join-Path $PSScriptRoot drops) | Out-Null
 

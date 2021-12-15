@@ -7,9 +7,9 @@
 
 using System;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>Base class for Debug info types</summary>
     /// <seealso href="xref:llvm_langref#ditype">LLVM DIType</seealso>
