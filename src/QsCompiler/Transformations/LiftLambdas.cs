@@ -28,13 +28,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
             internal class TransformationState : ContentLifting.LiftContent.TransformationState
             {
                 internal List<QsCallable>? GeneratedCallables { get; set; } = null;
-            }
+
+                internal ImmutableArray<LocalVariableDeclaration<string>> KnownVariables { get; set; } = ImmutableArray<LocalVariableDeclaration<string>>.Empty;
+        }
 
             public LiftContent()
                 : base(new TransformationState())
             {
                 this.Namespaces = new NamespaceTransformation(this);
-                this.ExpressionKinds = new ExpressionKindTransformation(this);
+                this.Statements = new StatementTransformation(this);
+                this.Expressions = new ExpressionTransformation(this);
             }
 
             private new class NamespaceTransformation : ContentLifting.LiftContent<TransformationState>.NamespaceTransformation
@@ -54,19 +57,58 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                 }
             }
 
-            private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
+            private class StatementTransformation : StatementTransformation<TransformationState>
             {
-                public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
                     : base(parent)
                 {
                 }
 
-                /// <inheritdoc/>
-                public override ExpressionKind OnLambda(Lambda<TypedExpression> lambda)
+                public override QsScope OnScope(QsScope scope)
                 {
-                    // ToDo: process inner components of lambda
+                    var saved = this.SharedState.KnownVariables;
+                    this.SharedState.KnownVariables = this.SharedState.KnownVariables
+                        .Concat(scope.KnownSymbols.Variables)
+                        .ToImmutableArray();
+                    var returnValue = base.OnScope(scope);
+                    this.SharedState.KnownVariables = saved;
+                    return returnValue;
+                }
 
-                    var lambdaBody = lambda.Body;
+                public override QsStatement OnStatement(QsStatement stm)
+                {
+                    this.SharedState.KnownVariables = this.SharedState.KnownVariables
+                        .Concat(stm.SymbolDeclarations.Variables)
+                        .ToImmutableArray();
+                    return base.OnStatement(stm);
+                }
+            }
+
+            private class ExpressionTransformation : ExpressionTransformation<TransformationState>
+            {
+                public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
+                {
+                }
+
+                public override TypedExpression OnTypedExpression(TypedExpression ex)
+                {
+                    if (ex.Expression is ExpressionKind.Lambda lambda)
+                    {
+                        return this.HandleLambdas(ex, lambda.Item);
+                    }
+                    else
+                    {
+                        return base.OnTypedExpression(ex);
+                    }
+                }
+
+                private TypedExpression HandleLambdas(TypedExpression ex, Lambda<TypedExpression> lambda)
+                {
+                    var processedLambdaExpressionKind = this.ExpressionKinds.OnLambda(lambda);
+                    var processedLambda = (processedLambdaExpressionKind as ExpressionKind.Lambda)!.Item;
+
+                    var lambdaBody = processedLambda.Body;
                     var returnStatment = new QsStatement(
                         QsStatementKind.NewQsReturnStatement(lambdaBody),
                         LocalDeclarations.Empty,
@@ -74,14 +116,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         QsComments.Empty);
 
                     // ToDo: local declarations should include all local variables in scope as well as lambda parameters.
-                    var generatedContent = new QsScope(new[] { returnStatment }.ToImmutableArray(), LocalDeclarations.Empty);
+                    var lambdaParams = new List<LocalVariableDeclaration<string>>();
+                    var generatedParams = this.SharedState.KnownVariables.Concat(lambdaParams);
+
+                    var generatedContent = new QsScope(new[] { returnStatment }.ToImmutableArray(), new LocalDeclarations(generatedParams.ToImmutableArray()));
 
                     // The LiftBody determines which callable kind to generate based on the callable kind of the parent callable.
                     // We need to override that behavior with the lambda kind. So we just change the callable in the shared state
                     // to have the callable kind that we want.
                     var originalCallable = this.SharedState.CurrentCallable!.Callable;
                     var modifiedCallabe = new QsCallable(
-                        lambda.Kind.IsFunction ? QsCallableKind.Function : QsCallableKind.Operation,
+                        processedLambda.Kind.IsFunction ? QsCallableKind.Function : QsCallableKind.Operation,
                         originalCallable.FullName,
                         originalCallable.Attributes,
                         originalCallable.Access,
@@ -101,11 +146,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
 
                         this.SharedState.GeneratedCallables!.Add(callable);
 
-                        return call.Expression; // ToDo: this seems wrong, should just have to return the out from the LiftBody
+                        return new TypedExpression(
+                            call.Expression,
+                            call.TypeArguments,
+                            ex.ResolvedType,
+                            ex.InferredInformation,
+                            ex.Range);
                     }
                     else
                     {
-                        return base.OnLambda(lambda);
+                        return new TypedExpression(
+                            processedLambdaExpressionKind,
+                            ex.TypeArguments,
+                            ex.ResolvedType,
+                            ex.InferredInformation,
+                            ex.Range);
                     }
                 }
             }
