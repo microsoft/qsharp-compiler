@@ -31,9 +31,9 @@
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.21.2112181770-beta" />
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.21.2112181770-beta" />
     <!-- Target packages included for specific execution targets. -->
-    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type1' And $(ResolvedProcessorArchitecture.Contains('QirProcessor'))" Include="Microsoft.Quantum.Type1.Core" Version="0.21.2112179769-beta" IsTargetPackage='true' />
-    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type2' And $(ResolvedProcessorArchitecture.Contains('QirProcessor'))" Include="Microsoft.Quantum.Type2.Core" Version="0.21.2112179769-beta" IsTargetPackage='true' />
-    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type3' And $(ResolvedProcessorArchitecture.Contains('QirProcessor'))" Include="Microsoft.Quantum.Type3.Core" Version="0.21.2112179769-beta" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type1' And $(ResolvedProcessorArchitecture.Contains('QirProcessor'))" Include="Microsoft.Quantum.Type1.Core" Version="0.21.2112181770-beta" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type2' And $(ResolvedProcessorArchitecture.Contains('QirProcessor'))" Include="Microsoft.Quantum.Type2.Core" Version="0.21.2112181770-beta" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type3' And $(ResolvedProcessorArchitecture.Contains('QirProcessor'))" Include="Microsoft.Quantum.Type3.Core" Version="0.21.2112181770-beta" IsTargetPackage='true' />
     </ItemGroup>
 
   <!-- Include the qir generation and docs generation compiler extensions if needed. -->
