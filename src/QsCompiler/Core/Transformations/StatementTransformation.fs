@@ -54,13 +54,18 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     new() = new StatementKindTransformationBase(TransformationOptions.Default)
 
-
     // subconstructs used within statements
 
     // TODO: RELEASE 2022-07: Remove StatementKindTransformationBase.OnSymbolTuple.
-    [<Obsolete "Replaced by ExpressionTransformationBase.OnSymbolTuple">]
+    [<Obsolete "Use ExpressionTransformationBase.OnLocalSymbolName instead">]
     abstract OnSymbolTuple : SymbolTuple -> SymbolTuple
     default this.OnSymbolTuple syms = syms
+
+    member private this.onSymbolTuple (syms : SymbolTuple) = 
+        match syms with
+        | VariableNameTuple tuple -> tuple |> Seq.map this.onSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
+        | VariableName name -> this.Expressions.OnLocalSymbolName name |> VariableName
+        | _ -> syms
 
     abstract OnQubitInitializer : ResolvedInitializer -> ResolvedInitializer
 
@@ -98,7 +103,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     default this.OnVariableDeclaration stm =
         let rhs = this.Expressions.OnTypedExpression stm.Rhs
-        let lhs = this.Expressions.OnSymbolTuple stm.Lhs
+        let lhs = this.onSymbolTuple stm.Lhs
 
         QsVariableDeclaration << QsBinding<TypedExpression>.New stm.Kind
         |> Node.BuildOr EmptyStatement (lhs, rhs)
@@ -134,7 +139,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     default this.OnForStatement stm =
         let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
-        let loopVar = fst stm.LoopItem |> this.Expressions.OnSymbolTuple
+        let loopVar = fst stm.LoopItem |> this.onSymbolTuple
         let loopVarType = this.Expressions.Types.OnType(snd stm.LoopItem)
         let body = this.Statements.OnScope stm.Body
 
@@ -190,7 +195,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     member private this.OnQubitScopeKind(stm: QsQubitScope) =
         let kind = stm.Kind
         let rhs = this.OnQubitInitializer stm.Binding.Rhs
-        let lhs = this.Expressions.OnSymbolTuple stm.Binding.Lhs
+        let lhs = this.onSymbolTuple stm.Binding.Lhs
         let body = this.Statements.OnScope stm.Body
         QsQubitScope << QsQubitScope.New kind |> Node.BuildOr EmptyStatement ((lhs, rhs), body)
 
@@ -288,6 +293,8 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnLocation loc = loc
 
+    // TODO: RELEASE 2022-07: Remove StatementTransformationBase.OnVariableName.
+    [<Obsolete "Use ExpressionTransformationBase.OnLocalSymbolName instead">]
     abstract OnVariableName : string -> string
     default this.OnVariableName name = name
 
@@ -296,7 +303,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     default this.OnLocalDeclarations decl =
         let onLocalVariableDeclaration (local: LocalVariableDeclaration<string>) =
             let loc = local.Position, local.Range
-            let name = this.OnVariableName local.VariableName
+            let name = this.Expressions.OnLocalSymbolName local.VariableName
             let varType = this.Expressions.Types.OnType local.Type
             let info = this.Expressions.OnExpressionInformation local.InferredInformation
             LocalVariableDeclaration.New info.IsMutable (loc, name, varType, info.HasLocalQuantumDependency)

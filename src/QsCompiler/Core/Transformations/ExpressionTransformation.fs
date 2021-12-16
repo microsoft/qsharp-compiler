@@ -320,6 +320,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
             let symbol =
                 match s.Symbol with
                 | SymbolTuple ss -> Seq.map onSymbol ss |> ImmutableArray.CreateRange |> SymbolTuple
+                | Symbol name -> this.Expressions.OnLocalSymbolName name |> Symbol
                 | _ -> s.Symbol
 
             { Symbol = symbol; Range = this.Expressions.OnRangeInformation s.Range }
@@ -461,8 +462,8 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
 
     // supplementary expression information
 
-    abstract OnSymbolTuple : SymbolTuple -> SymbolTuple
-    default this.OnSymbolTuple syms = syms
+    abstract OnLocalSymbolName : string -> string
+    default this.OnLocalSymbolName syms = syms
 
     abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
     default this.OnRangeInformation range = range

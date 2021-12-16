@@ -3,8 +3,6 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
-#nowarn "44" // OnSourceFile is deprecated.
-
 open System
 open System.Collections.Immutable
 open System.Linq
@@ -51,20 +49,8 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
 
-    // TODO: RELEASE 2021-07: Remove NamespaceTransformationBase.OnSourceFile.
-    [<Obsolete "Replaced by OnSource.">]
-    abstract OnSourceFile : string -> string
-    default this.OnSourceFile file = file
-
     abstract OnSource : Source -> Source
-
-    default this.OnSource source =
-        let file = Source.assemblyOrCodeFile source |> this.OnSourceFile
-
-        if file.EndsWith ".qs" then
-            { source with CodeFile = file }
-        else
-            { source with AssemblyFile = Value file }
+    default this.OnSource source = source
 
     abstract OnAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att
@@ -92,10 +78,9 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
     abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
-
     default this.OnArgumentName arg =
         match arg with
-        | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.OnVariableName name)
+        | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.Expressions.OnLocalSymbolName name)
         | InvalidName -> arg
 
     abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
