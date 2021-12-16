@@ -77,6 +77,7 @@ type VariableRenaming private (_private_) =
             this.Namespaces <- new VariableRenamingNamespaces(this)
             this.Statements <- new VariableRenamingStatements(this)
             this.StatementKinds <- new VariableRenamingStatementKinds(this)
+            this.Expressions <- new VariableRenamingExpressions(this)
             this.ExpressionKinds <- new VariableRenamingExpressionKinds(this)
             this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
 
@@ -114,13 +115,6 @@ and private VariableRenamingStatements(parent: VariableRenaming) =
 and private VariableRenamingStatementKinds(parent: VariableRenaming) =
     inherit StatementKindTransformation(parent)
 
-    override this.OnSymbolTuple syms =
-        match syms with
-        | VariableName item -> VariableName(parent.GenerateUniqueName item)
-        | VariableNameTuple items -> Seq.map this.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
-        | InvalidItem
-        | DiscardedItem -> syms
-
     override this.OnRepeatStatement stm =
         parent.RenamingStack <- parent.EnterScope parent.RenamingStack
         parent.SkipScope <- true
@@ -128,6 +122,17 @@ and private VariableRenamingStatementKinds(parent: VariableRenaming) =
         let result = base.OnRepeatStatement stm
         parent.RenamingStack <- parent.ExitScope parent.RenamingStack
         result
+
+/// private helper class for VariableRenaming
+and private VariableRenamingExpressions(parent: VariableRenaming) =
+    inherit ExpressionTransformation(parent)
+
+    override this.OnSymbolTuple syms =
+        match syms with
+        | VariableName item -> VariableName(parent.GenerateUniqueName item)
+        | VariableNameTuple items -> Seq.map this.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
+        | InvalidItem
+        | DiscardedItem -> syms
 
 /// private helper class for VariableRenaming
 and private VariableRenamingExpressionKinds(parent: VariableRenaming) =

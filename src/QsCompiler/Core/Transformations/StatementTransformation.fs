@@ -57,6 +57,8 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     // subconstructs used within statements
 
+    // TODO: RELEASE 2022-07: Remove StatementKindTransformationBase.OnSymbolTuple.
+    [<Obsolete "Replaced by ExpressionTransformationBase.OnSymbolTuple">]
     abstract OnSymbolTuple : SymbolTuple -> SymbolTuple
     default this.OnSymbolTuple syms = syms
 
@@ -96,7 +98,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     default this.OnVariableDeclaration stm =
         let rhs = this.Expressions.OnTypedExpression stm.Rhs
-        let lhs = this.OnSymbolTuple stm.Lhs
+        let lhs = this.Expressions.OnSymbolTuple stm.Lhs
 
         QsVariableDeclaration << QsBinding<TypedExpression>.New stm.Kind
         |> Node.BuildOr EmptyStatement (lhs, rhs)
@@ -132,7 +134,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     default this.OnForStatement stm =
         let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
-        let loopVar = fst stm.LoopItem |> this.OnSymbolTuple
+        let loopVar = fst stm.LoopItem |> this.Expressions.OnSymbolTuple
         let loopVarType = this.Expressions.Types.OnType(snd stm.LoopItem)
         let body = this.Statements.OnScope stm.Body
 
@@ -188,7 +190,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     member private this.OnQubitScopeKind(stm: QsQubitScope) =
         let kind = stm.Kind
         let rhs = this.OnQubitInitializer stm.Binding.Rhs
-        let lhs = this.OnSymbolTuple stm.Binding.Lhs
+        let lhs = this.Expressions.OnSymbolTuple stm.Binding.Lhs
         let body = this.Statements.OnScope stm.Body
         QsQubitScope << QsQubitScope.New kind |> Node.BuildOr EmptyStatement ((lhs, rhs), body)
 
@@ -211,7 +213,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     abstract OnEmptyStatement : unit -> QsStatementKind
     default this.OnEmptyStatement() = EmptyStatement
 
-
+     
     // transformation root called on each statement
 
     abstract OnStatementKind : QsStatementKind -> QsStatementKind

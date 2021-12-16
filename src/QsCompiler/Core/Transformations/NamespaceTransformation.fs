@@ -54,7 +54,6 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     // TODO: RELEASE 2021-07: Remove NamespaceTransformationBase.OnSourceFile.
     [<Obsolete "Replaced by OnSource.">]
     abstract OnSourceFile : string -> string
-
     default this.OnSourceFile file = file
 
     abstract OnSource : Source -> Source

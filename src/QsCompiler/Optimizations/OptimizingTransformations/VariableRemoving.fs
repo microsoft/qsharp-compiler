@@ -20,8 +20,7 @@ type VariableRemoval(_private_) =
         new VariableRemoval("_private_")
         then
             this.Namespaces <- new VariableRemovalNamespaces(this)
-            this.StatementKinds <- new VariableRemovalStatementKinds(this)
-            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
+            this.Expressions <- new VariableRemovalExpressions(this, Core.TransformationOptions.Disabled) // we only need this for the symbol tuple override
             this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
 
 /// private helper class for VariableRemoval
@@ -35,8 +34,8 @@ and private VariableRemovalNamespaces(parent: VariableRemoval) =
         base.OnProvidedImplementation(argTuple, body)
 
 /// private helper class for VariableRemoval
-and private VariableRemovalStatementKinds(parent: VariableRemoval) =
-    inherit Core.StatementKindTransformation(parent)
+and private VariableRemovalExpressions(parent: VariableRemoval, options) =
+    inherit Core.ExpressionTransformation(parent, options)
 
     override stmtKind.OnSymbolTuple syms =
         match syms with

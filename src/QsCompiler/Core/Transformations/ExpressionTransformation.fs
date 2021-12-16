@@ -461,6 +461,9 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
 
     // supplementary expression information
 
+    abstract OnSymbolTuple : SymbolTuple -> SymbolTuple
+    default this.OnSymbolTuple syms = syms
+
     abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
     default this.OnRangeInformation range = range
 

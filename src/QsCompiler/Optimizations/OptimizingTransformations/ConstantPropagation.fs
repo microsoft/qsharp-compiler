@@ -105,7 +105,7 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
         expr.Fold folder
 
     override so.OnVariableDeclaration stm =
-        let lhs = so.OnSymbolTuple stm.Lhs
+        let lhs = so.Expressions.OnSymbolTuple stm.Lhs
         let rhs = so.Expressions.OnTypedExpression stm.Rhs
 
         if stm.Kind = ImmutableBinding then
@@ -147,7 +147,7 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
 
     override this.OnQubitScope(stm: QsQubitScope) =
         let kind = stm.Kind
-        let lhs = this.OnSymbolTuple stm.Binding.Lhs
+        let lhs = this.Expressions.OnSymbolTuple stm.Binding.Lhs
         let rhs = this.OnQubitInitializer stm.Binding.Rhs
 
         jointFlatten (lhs, rhs)

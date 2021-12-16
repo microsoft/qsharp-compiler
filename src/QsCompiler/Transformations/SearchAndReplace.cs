@@ -568,7 +568,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             : base(new TransformationState())
         {
             this.Statements = new StatementTransformation(this);
-            this.StatementKinds = new StatementKindTransformation(this);
+            this.Expressions = new ExpressionTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
@@ -592,9 +592,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 this.SharedState.TryGetUniqueName(name, out var unique) ? unique : name;
         }
 
-        private class StatementKindTransformation : StatementKindTransformation<TransformationState>
+        private class ExpressionTransformation : ExpressionTransformation<TransformationState>
         {
-            public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
+            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent)
                 : base(parent)
             {
             }

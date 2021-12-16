@@ -35,7 +35,7 @@ and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSiz
     inherit Core.StatementKindTransformation(parent)
 
     override this.OnForStatement stm =
-        let loopVar = fst stm.LoopItem |> this.OnSymbolTuple
+        let loopVar = fst stm.LoopItem |> this.Expressions.OnSymbolTuple
         let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
         let loopVarType = this.Expressions.Types.OnType(snd stm.LoopItem)
         let body = this.Statements.OnScope stm.Body
