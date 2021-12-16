@@ -75,4 +75,4 @@ and private VariableRemovalStatementKinds(parent: VariableRemoval) =
         let loopVar = fst stm.LoopItem |> this.onSymbolTuple
         let loopVarType = this.Expressions.Types.OnType(snd stm.LoopItem)
         let body = this.Statements.OnScope stm.Body
-        QsForStatement <| QsForStatement.New ((loopVar, loopVarType), iterVals, body)
+        QsForStatement <| QsForStatement.New((loopVar, loopVarType), iterVals, body)

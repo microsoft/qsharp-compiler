@@ -78,6 +78,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
     abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
+
     default this.OnArgumentName arg =
         match arg with
         | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.Expressions.OnLocalNameDeclaration name)

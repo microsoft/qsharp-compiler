@@ -59,11 +59,13 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     // TODO: RELEASE 2022-07: Remove StatementKindTransformationBase.OnSymbolTuple.
     [<Obsolete "Use ExpressionTransformationBase.OnLocalNameDeclaration instead">]
     abstract OnSymbolTuple : SymbolTuple -> SymbolTuple
+
     default this.OnSymbolTuple syms = syms
 
-    member private this.onSymbolTuple (syms : SymbolTuple) = 
+    member private this.onSymbolTuple(syms: SymbolTuple) =
         match syms with
-        | VariableNameTuple tuple -> tuple |> Seq.map this.onSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
+        | VariableNameTuple tuple ->
+            tuple |> Seq.map this.onSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
         | VariableName name -> this.Expressions.OnLocalNameDeclaration name |> VariableName
         | DiscardedItem
         | InvalidItem -> syms
@@ -219,7 +221,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     abstract OnEmptyStatement : unit -> QsStatementKind
     default this.OnEmptyStatement() = EmptyStatement
 
-     
+
     // transformation root called on each statement
 
     abstract OnStatementKind : QsStatementKind -> QsStatementKind
@@ -297,6 +299,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     // TODO: RELEASE 2022-07: Remove StatementTransformationBase.OnVariableName.
     [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
     abstract OnVariableName : string -> string
+
     default this.OnVariableName name = name
 
     abstract OnLocalDeclarations : LocalDeclarations -> LocalDeclarations

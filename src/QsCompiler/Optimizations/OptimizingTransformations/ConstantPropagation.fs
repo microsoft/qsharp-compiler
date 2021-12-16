@@ -104,9 +104,10 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
 
         expr.Fold folder
 
-    member private this.onSymbolTuple (syms : SymbolTuple) = 
+    member private this.onSymbolTuple(syms: SymbolTuple) =
         match syms with
-        | VariableNameTuple tuple -> tuple |> Seq.map this.onSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
+        | VariableNameTuple tuple ->
+            tuple |> Seq.map this.onSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
         | VariableName name -> this.Expressions.OnLocalNameDeclaration name |> VariableName
         | DiscardedItem
         | InvalidItem -> syms

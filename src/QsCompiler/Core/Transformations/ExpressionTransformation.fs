@@ -65,11 +65,13 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     default this.OnIdentifier(sym, tArgs) =
         let tArgs = tArgs |> QsNullable<_>.Map (fun ts -> ts |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
+
         let idName =
             match sym with
             | LocalVariable name -> this.Expressions.OnLocalName name |> LocalVariable
             | GlobalCallable _
             | InvalidIdentifier -> sym
+
         Identifier |> Node.BuildOr InvalidExpr (idName, tArgs)
 
     abstract OnOperationCall : TypedExpression * TypedExpression -> ExpressionKind
@@ -321,20 +323,21 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
     abstract OnLambda : lambda: TypedExpression Lambda -> ExpressionKind
 
     default this.OnLambda lambda =
-        let rec onSymbol (s : QsSymbol) =
+        let rec onSymbol (s: QsSymbol) =
             let range = s.Range
+
             let symbol =
                 match s.Symbol with
                 | SymbolTuple ss -> Seq.map onSymbol ss |> ImmutableArray.CreateRange |> SymbolTuple
                 | Symbol name -> this.Expressions.OnLocalNameDeclaration name |> Symbol
                 | _ -> s.Symbol
+
             { Symbol = symbol; Range = range }
 
         let syms = onSymbol lambda.Param
         let body = this.Expressions.OnTypedExpression lambda.Body
 
-        Lambda.create lambda.Kind syms >> Lambda
-        |> Node.BuildOr InvalidExpr body
+        Lambda.create lambda.Kind syms >> Lambda |> Node.BuildOr InvalidExpr body
 
     // leaf nodes
 
