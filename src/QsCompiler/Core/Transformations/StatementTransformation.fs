@@ -57,15 +57,16 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     // subconstructs used within statements
 
     // TODO: RELEASE 2022-07: Remove StatementKindTransformationBase.OnSymbolTuple.
-    [<Obsolete "Use ExpressionTransformationBase.OnLocalSymbolName instead">]
+    [<Obsolete "Use ExpressionTransformationBase.OnLocalNameDeclaration instead">]
     abstract OnSymbolTuple : SymbolTuple -> SymbolTuple
     default this.OnSymbolTuple syms = syms
 
     member private this.onSymbolTuple (syms : SymbolTuple) = 
         match syms with
         | VariableNameTuple tuple -> tuple |> Seq.map this.onSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
-        | VariableName name -> this.Expressions.OnLocalSymbolName name |> VariableName
-        | _ -> syms
+        | VariableName name -> this.Expressions.OnLocalNameDeclaration name |> VariableName
+        | DiscardedItem
+        | InvalidItem -> syms
 
     abstract OnQubitInitializer : ResolvedInitializer -> ResolvedInitializer
 
@@ -294,7 +295,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     default this.OnLocation loc = loc
 
     // TODO: RELEASE 2022-07: Remove StatementTransformationBase.OnVariableName.
-    [<Obsolete "Use ExpressionTransformationBase.OnLocalSymbolName instead">]
+    [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
     abstract OnVariableName : string -> string
     default this.OnVariableName name = name
 
@@ -303,7 +304,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     default this.OnLocalDeclarations decl =
         let onLocalVariableDeclaration (local: LocalVariableDeclaration<string>) =
             let loc = local.Position, local.Range
-            let name = this.Expressions.OnLocalSymbolName local.VariableName
+            let name = this.Expressions.OnLocalName local.VariableName
             let varType = this.Expressions.Types.OnType local.Type
             let info = this.Expressions.OnExpressionInformation local.InferredInformation
             LocalVariableDeclaration.New info.IsMutable (loc, name, varType, info.HasLocalQuantumDependency)

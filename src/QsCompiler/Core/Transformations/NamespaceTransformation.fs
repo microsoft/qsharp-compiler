@@ -80,7 +80,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
     default this.OnArgumentName arg =
         match arg with
-        | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.Expressions.OnLocalSymbolName name)
+        | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.Expressions.OnLocalNameDeclaration name)
         | InvalidName -> arg
 
     abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple

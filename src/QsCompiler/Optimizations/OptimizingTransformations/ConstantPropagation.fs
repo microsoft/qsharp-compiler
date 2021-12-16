@@ -104,8 +104,15 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
 
         expr.Fold folder
 
+    member private this.onSymbolTuple (syms : SymbolTuple) = 
+        match syms with
+        | VariableNameTuple tuple -> tuple |> Seq.map this.onSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
+        | VariableName name -> this.Expressions.OnLocalNameDeclaration name |> VariableName
+        | DiscardedItem
+        | InvalidItem -> syms
+
     override so.OnVariableDeclaration stm =
-        let lhs = so.Expressions.OnSymbolTuple stm.Lhs
+        let lhs = so.onSymbolTuple stm.Lhs
         let rhs = so.Expressions.OnTypedExpression stm.Rhs
 
         if stm.Kind = ImmutableBinding then
@@ -147,7 +154,7 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
 
     override this.OnQubitScope(stm: QsQubitScope) =
         let kind = stm.Kind
-        let lhs = this.Expressions.OnSymbolTuple stm.Binding.Lhs
+        let lhs = this.onSymbolTuple stm.Binding.Lhs
         let rhs = this.OnQubitInitializer stm.Binding.Rhs
 
         jointFlatten (lhs, rhs)

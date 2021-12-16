@@ -127,12 +127,7 @@ and private VariableRenamingStatementKinds(parent: VariableRenaming) =
 and private VariableRenamingExpressions(parent: VariableRenaming) =
     inherit ExpressionTransformation(parent)
 
-    override this.OnSymbolTuple syms =
-        match syms with
-        | VariableName item -> VariableName(parent.GenerateUniqueName item)
-        | VariableNameTuple items -> Seq.map this.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
-        | InvalidItem
-        | DiscardedItem -> syms
+    override this.OnLocalNameDeclaration name = parent.GenerateUniqueName name
 
 /// private helper class for VariableRenaming
 and private VariableRenamingExpressionKinds(parent: VariableRenaming) =

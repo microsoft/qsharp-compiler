@@ -567,7 +567,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public UniqueVariableNames()
             : base(new TransformationState())
         {
-            this.Statements = new StatementTransformation(this);
             this.Expressions = new ExpressionTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -581,17 +580,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         /* helper classes */
 
-        private class StatementTransformation : StatementTransformation<TransformationState>
-        {
-            public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            {
-            }
-
-            public override string OnVariableName(string name) =>
-                this.SharedState.TryGetUniqueName(name, out var unique) ? unique : name;
-        }
-
         private class ExpressionTransformation : ExpressionTransformation<TransformationState>
         {
             public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent)
@@ -599,12 +587,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             {
             }
 
-            public override SymbolTuple OnSymbolTuple(SymbolTuple syms) =>
-                syms is SymbolTuple.VariableNameTuple tuple
-                    ? SymbolTuple.NewVariableNameTuple(tuple.Item.Select(this.OnSymbolTuple).ToImmutableArray())
-                    : syms is SymbolTuple.VariableName varName
-                    ? SymbolTuple.NewVariableName(this.SharedState.GenerateUniqueName(varName.Item))
-                    : syms;
+            public override string OnLocalNameDeclaration(string name) =>
+                this.SharedState.GenerateUniqueName(name);
+
+            public override string OnLocalName(string name) =>
+                this.SharedState.TryGetUniqueName(name, out var unique) ? unique : name;
         }
 
         private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>

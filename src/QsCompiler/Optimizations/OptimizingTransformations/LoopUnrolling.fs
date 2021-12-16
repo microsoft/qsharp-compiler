@@ -8,6 +8,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
+open System.Collections.Immutable
 
 
 /// The SyntaxTreeTransformation used to unroll loops
@@ -34,8 +35,15 @@ and private LoopUnrollingNamespaces(parent: LoopUnrolling) =
 and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSize) =
     inherit Core.StatementKindTransformation(parent)
 
+    member private this.onSymbolTuple (syms : SymbolTuple) = 
+        match syms with
+        | VariableNameTuple tuple -> tuple |> Seq.map this.onSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
+        | VariableName name -> this.Expressions.OnLocalNameDeclaration name |> VariableName
+        | DiscardedItem
+        | InvalidItem -> syms
+
     override this.OnForStatement stm =
-        let loopVar = fst stm.LoopItem |> this.Expressions.OnSymbolTuple
+        let loopVar = fst stm.LoopItem |> this.onSymbolTuple
         let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
         let loopVarType = this.Expressions.Types.OnType(snd stm.LoopItem)
         let body = this.Statements.OnScope stm.Body
