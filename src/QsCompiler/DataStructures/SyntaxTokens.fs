@@ -130,12 +130,12 @@ type LambdaKind =
     | Operation
 
 /// A lambda expression.
-type Lambda<'Expr, 'Symbol> =
+type 'expr Lambda =
     private
         {
             kind: LambdaKind
-            param: 'Symbol
-            body: 'Expr
+            param: QsSymbol
+            body: 'expr
         }
 
     /// Represents whether a lambda is a function or operation.
@@ -209,7 +209,7 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | MissingExpr
     | InvalidExpr
     | SizedArray of value: 'Expr * size: 'Expr
-    | Lambda of Lambda<'Expr, 'Symbol>
+    | Lambda of 'Expr Lambda
 
 type QsExpression =
     {

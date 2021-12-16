@@ -313,16 +313,21 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let ex = this.Expressions.OnTypedExpression ex
         BNOT |> Node.BuildOr InvalidExpr ex
 
-    abstract OnLambda : Lambda<TypedExpression, Identifier> -> ExpressionKind
+    abstract OnLambda : lambda: TypedExpression Lambda -> ExpressionKind
 
     default this.OnLambda lambda =
-        let syms =
-            match lambda.Param with
-            | Declaration symbols -> this.Expressions.OnSymbolTuple symbols |> Declaration
-            | _ -> lambda.Param
-        let body = this.Expressions.OnTypedExpression lambda.Body
-        Lambda.create lambda.Kind syms >> Lambda
-        |> Node.BuildOr InvalidExpr body
+        let rec onSymbol s =
+            let symbol =
+                match s.Symbol with
+                | SymbolTuple ss -> Seq.map onSymbol ss |> ImmutableArray.CreateRange |> SymbolTuple
+                | _ -> s.Symbol
+
+            { Symbol = symbol; Range = this.Expressions.OnRangeInformation s.Range }
+
+        Node.BuildOr
+            InvalidExpr
+            (this.Expressions.OnTypedExpression lambda.Body)
+            (Lambda.create lambda.Kind (onSymbol lambda.Param) >> Lambda)
 
     // leaf nodes
 

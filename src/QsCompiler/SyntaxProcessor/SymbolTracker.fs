@@ -386,8 +386,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
         | Value decl ->
             match item with
             | InvalidIdentifier -> InvalidType |> ResolvedType.New
-            | GlobalCallable _
-            | Declaration _ ->
+            | GlobalCallable _ ->
                 addError (ErrorCode.ExpectingItemName, [])
                 InvalidType |> ResolvedType.New
             | LocalVariable name ->
