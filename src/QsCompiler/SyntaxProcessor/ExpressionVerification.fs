@@ -280,6 +280,10 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
     match resId.VariableName, resolvedTargs with
     | InvalidIdentifier, Null -> invalidWithoutTargs true, Seq.toList diagnostics
     | InvalidIdentifier, Value _ -> invalidWithoutTargs false, Seq.toList diagnostics
+    | Declaration _, _ ->
+        invalidWithoutTargs false,
+        QsCompilerDiagnostic.Error(ErrorCode.ExpectingItemName, []) symbol.RangeOrDefault
+        :: Seq.toList diagnostics
     | LocalVariable _, Null -> (identifier, resId.Type) |> exprWithoutTypeArgs symbol.Range info, Seq.toList diagnostics
     | LocalVariable _, Value _ ->
         invalidWithoutTargs false,
@@ -889,7 +893,7 @@ type QsExpression with
             let info = InferredExpressionInformation.New(isMutable = false, quantumDep = hasQuantumDependency)
             TypedExpression.New(callExpression, callable.TypeParameterResolutions, resultType, info, this.Range)
 
-        let buildLambda (lambda: _ Lambda) =
+        let buildLambda (lambda: Lambda<_,QsSymbol>) =
             symbols.BeginScope ImmutableHashSet.Empty
             let freeVars = Context.freeVariables this
 
@@ -908,13 +912,13 @@ type QsExpression with
                 None, diagnostics
 
             let inputType = inference.Fresh lambda.Param.RangeOrDefault
-            let _, _, diagnostics = verifyBinding inference addBinding (lambda.Param, inputType) false
+            let symbolTuple, _, diagnostics = verifyBinding inference addBinding (lambda.Param, inputType) false
             Array.iter diagnose diagnostics
 
             let lambda' =
                 verifyAndBuildWith
                     { context with IsInOperation = lambda.Kind = LambdaKind.Operation }
-                    (Lambda.create lambda.Kind lambda.Param >> Lambda)
+                    (Lambda.create lambda.Kind (Declaration symbolTuple) >> Lambda)
                     (fun body' -> inferLambda this.Range lambda.Kind inputType body', [])
                     lambda.Body
 

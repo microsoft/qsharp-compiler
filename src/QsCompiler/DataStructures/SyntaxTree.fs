@@ -104,6 +104,7 @@ type Identifier =
     | LocalVariable of string
     /// in identifier referring to a globally declared callable -> note that type names are *not* represented as identifiers
     | GlobalCallable of QsQualifiedName
+    | Declaration of SymbolTuple
     /// an identifier of unknown origin - i.e. the identifier could not be associated with any globally declared callable or local variable
     | InvalidIdentifier
 

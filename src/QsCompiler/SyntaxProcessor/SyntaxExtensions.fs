@@ -43,7 +43,7 @@ let public SymbolInformation fragmentKind =
 
     let tryDeclaration =
         function
-        | Declaration s -> Some s
+        | SymbolOccurrence.Declaration s -> Some s
         | _ -> None
 
     let tryVariable =
