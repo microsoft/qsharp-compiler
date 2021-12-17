@@ -20,7 +20,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
     {
         public static QsCompilation Apply(QsCompilation compilation)
         {
-            return compilation;
+            var filter = new LiftContent();
+            var transformed = filter.OnCompilation(compilation);
+            return transformed;
         }
 
         private class LiftContent : ContentLifting.LiftContent<LiftContent.TransformationState>
@@ -67,20 +69,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                 public override QsScope OnScope(QsScope scope)
                 {
                     var saved = this.SharedState.KnownVariables;
-                    this.SharedState.KnownVariables = this.SharedState.KnownVariables
-                        .Concat(scope.KnownSymbols.Variables)
-                        .ToImmutableArray();
-                    var returnValue = base.OnScope(scope);
+                    this.SharedState.KnownVariables = scope.KnownSymbols.Variables;
+                    var result = base.OnScope(scope);
                     this.SharedState.KnownVariables = saved;
-                    return returnValue;
+                    return result;
                 }
 
                 public override QsStatement OnStatement(QsStatement stm)
                 {
+                    var result = base.OnStatement(stm);
                     this.SharedState.KnownVariables = this.SharedState.KnownVariables
                         .Concat(stm.SymbolDeclarations.Variables)
                         .ToImmutableArray();
-                    return base.OnStatement(stm);
+                    return result;
                 }
             }
 
