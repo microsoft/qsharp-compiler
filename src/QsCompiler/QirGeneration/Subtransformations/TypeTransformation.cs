@@ -132,9 +132,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.builtLLVMType = this.qirTypes.Bool;
             if (this.currDIBuilder != null)
             {
+                // we have to use CreateBasicType and specify the bitsize as 8 rather than using
+                // DebugBasicType because the latter sets the bitsize to 1 (via info from the module's
+                // layout) even though the QIR stores a bool as i8.
                 var dIType = this.currDIBuilder.CreateBasicType(
                     TypeNames.Bool,
-                    8, // RyanTODO: explain this
+                    8,
                     DiTypeKind.Boolean);
                 this.builtDebugType = DebugType.Create(this.qirTypes.Bool, dIType);
             }

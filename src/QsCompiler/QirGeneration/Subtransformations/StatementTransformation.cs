@@ -34,6 +34,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsStatement OnStatement(QsStatement stm)
         {
             this.SharedState.DIManager.StatementLocationStack.Push(stm.Location.Item);
+
             // create a debug location for every statement
             this.SharedState.DIManager.EmitLocation();
             QsStatement result = base.OnStatement(stm);

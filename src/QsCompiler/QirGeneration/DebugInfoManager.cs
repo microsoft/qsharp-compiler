@@ -28,7 +28,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// </summary>
     internal sealed class DebugInfoManager
     {
-
         private static class Config
         {
             /// <summary>
@@ -176,7 +175,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Makes the necessary calls to finalize the <see cref="DebugInfoBuilder"/>s.
         /// </summary>
-        /// RyanTODO: make an issue about setting a sensible moduleID
         internal void FinalizeDebugInfo()
         {
             if (!Config.DebugSymbolsEnabled)
@@ -188,7 +186,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 entry.Value.Finish(); // must be called for every DIBuilder after all QIR generation
             }
-
         }
 
         /// <summary>
@@ -368,7 +365,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         signature: debugSignature,
                         isLocalToUnit: true, // we're using the compile unit from the source file this was declared in
                         isDefinition: true, // if this isn't set to true, it results in temporary metadata nodes that don't get resolved.
-                        scopeLine: debugPosition.Line, // RyanTODO: (move this to an issue) Could make more exact bc of formatting and white space (see lastParamLocation in Kaleidescope tutorial)
+                        scopeLine: debugPosition.Line,
                         debugFlags: DebugInfoFlags.None,
                         isOptimized: false,
                         curDIBuilder);
