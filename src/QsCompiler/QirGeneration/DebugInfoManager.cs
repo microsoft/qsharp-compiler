@@ -28,8 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// </summary>
     internal sealed class DebugInfoManager
     {
-// RyanTODO: remove SECTIONS before merging to main
-// SECTION: Config values
+
         private static class Config
         {
             /// <summary>
@@ -116,8 +115,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public static string DebugTypeNotSupportedMessage { get; } = "This debug type is not yet supported";
 
-// SECTION: Exposed member variables
-
         /// <summary>
         /// Contains the location information for the statement nodes we are currently parsing
         /// </summary>
@@ -133,8 +130,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal QsLocation? CurrentNamespaceElementLocation { get; set; }
 
-// SECTION: Private member variables
-
         /// <summary>
         /// The GenerationContext that owns this DebugInfoManager
         /// </summary>
@@ -145,8 +140,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The key is the source file path of the DebugInfoBuilder's compile unit
         /// </summary>
         private readonly Dictionary<string, DebugInfoBuilder> dIBuilders;
-
-// SECTION: Exposed functions
 
         /// <summary>
         /// Constructs a DebugInfoManater with access to the <see cref="GenerationContext"/> as the shared state.
@@ -181,9 +174,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Creates a moduleID which is a list of all of the source files with debug info
-        /// and makes the necessary calls to finalize the <see cref="DebugInfoBuilder"/>s.
+        /// Makes the necessary calls to finalize the <see cref="DebugInfoBuilder"/>s.
         /// </summary>
+        /// RyanTODO: make an issue about setting a sensible moduleID
         internal void FinalizeDebugInfo()
         {
             if (!Config.DebugSymbolsEnabled)
@@ -191,21 +184,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return;
             }
 
-            string moduleID = "";
             foreach (KeyValuePair<string, DebugInfoBuilder> entry in this.dIBuilders)
             {
                 entry.Value.Finish(); // must be called for every DIBuilder after all QIR generation
-
-                string sourcePath = entry.Key;
-                if (!string.IsNullOrEmpty(moduleID))
-                {
-                    moduleID += ", ";
-                }
-
-                moduleID += Path.GetFileName(sourcePath);
             }
 
-            // RyanTODO: set module ID. Decide how to actually create the moduleID (above way could be very long)
         }
 
         /// <summary>
@@ -463,8 +446,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
-// SECTION: Private helper functions
-
         /// <summary>
         /// Gets the DebugInfoBuilder with a CompileUnit associated with this source file if it has already been created,
         /// Creates a DebugInfoBuilder with a CompileUnit associated with this source file otherwise.
@@ -518,8 +499,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="signature">The signature for the function.</param>
         /// <returns>The created <see cref="IrFunction"/> with no debug info.</returns>
         private IrFunction CreateFunctionNoDebug(string mangledName, IFunctionType signature) => this.Module.CreateFunction(mangledName, signature);
-
-// SECTION: Private location-related helper functions
 
         /// <summary>
         /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
@@ -580,8 +559,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             return offset;
         }
-
-// SECTION: Private helpers to access content from the shared state
 
         /// <summary>
         /// Access to the GenerationContext's Context
