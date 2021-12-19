@@ -118,7 +118,6 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
-        // RyanTODO: put back DebugInfoBuilder (and DICompileUnit) with get since it's public, and just look for default
         /// <summary>Creates and returns a new <see cref="DebugInfoBuilder"/> used to create debug information for this module</summary>
         public DebugInfoBuilder CreateDIBuilder()
         {
@@ -131,6 +130,48 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Gets the list of <see cref="DebugInfoBuilder"/>s used to create debug information for this module</summary>
         /// <remarks>Each DebugInfoBuilder can own one paired compile unit.</remarks>
         public List<DebugInfoBuilder> DIBuilders { get; }
+
+        /// <summary>
+        /// If there is exactly one <see cref="DebugInfoBuilder"/> used to create debug info for this module,
+        /// we return it through a get. This field is retained for backward compatibility.
+        /// </summary>
+        /// <remarks> If there are 0 or 2+ <see cref="DebugInfoBuilder"/>s associated with this module, we throw an exception.</remarks>
+        public DebugInfoBuilder DIBuilder
+        {
+            get
+            {
+                this.ThrowIfDisposed();
+                if (this.DIBuilders.Count == 1)
+                {
+                    return this.DIBuilders.Single();
+                }
+                else
+                {
+                    throw new Exception("Reference to the DIBuilder is ambiguous because this module does not contain exactly one DebugInfoBuilder.");
+                }
+            }
+        }
+
+        /// <summary>
+        /// If there is exactly one <see cref="DebugInfoBuilder"/> used to create debug info for this module,
+        /// we return its <see cref="DICompileUnit"/> through a get. This field is retained for backward compatibility.
+        /// </summary>
+        /// <remarks> If there are 0 or 2+ <see cref="DebugInfoBuilder"/>s associated with this module, we throw an exception.</remarks>
+        public DICompileUnit? DICompileUnit
+        {
+            get
+            {
+                this.ThrowIfDisposed();
+                if (this.DIBuilders.Count == 1)
+                {
+                    return this.DIBuilders.Single().CompileUnit;
+                }
+                else
+                {
+                    throw new Exception("Reference to the DICompileUnit is ambiguous because this module does not contain exactly one DebugInfoBuilder.");
+                }
+            }
+        }
 
         /// <summary>Gets the Data layout string for this module</summary>
         /// <remarks>

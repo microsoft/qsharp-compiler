@@ -18,7 +18,6 @@ namespace Microsoft.Quantum.QIR
     /// </summary>
     public class Types
     {
-
         /// <summary>
         /// Represents the type of a 64-bit signed integer in QIR.
         /// </summary>
