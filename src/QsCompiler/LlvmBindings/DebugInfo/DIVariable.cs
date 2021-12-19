@@ -15,10 +15,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DIVariable
         : DINode
     {
-        // RyanTODO: Should remove this and move it internal to Qir Generation
-        /// <summary>Gets the <see cref="DebugPosition"/> for the variable. Only the line is populated.</summary>
-        public DebugPosition Position => DebugPosition.FromOneBasedLine(this.MetadataHandle.DIVariableGetLine());
-
         /// <summary>Gets the line for the variable</summary>
         public uint Line => this.MetadataHandle.DIVariableGetLine();
 

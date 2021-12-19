@@ -38,13 +38,14 @@ namespace Ubiquity.NET.Llvm.Instructions
         public Context Context { get; }
 
         /// <summary>Set the current debug location for this <see cref="InstructionBuilder"/></summary>
-        /// <param name="position">1-based source <see cref="DebugPosition"/> with line/column info</param>
+        /// <param name="line">1-based line number</param>
+        /// <param name="column">1-based column number</param>
         /// <param name="scope"><see cref="DIScope"/> for the location</param>
         /// <param name="inlinedAt"><see cref="DILocation"/>the location is inlined into</param>
         /// <returns>This builder for fluent API usage</returns>
-        public InstructionBuilder SetDebugLocation(DebugPosition position, DILocalScope scope, DILocation? inlinedAt = null)
+        public InstructionBuilder SetDebugLocation(uint line, uint column, DILocalScope scope, DILocation? inlinedAt = null)
         {
-            var loc = new DILocation(this.Context, position, scope, inlinedAt);
+            var loc = new DILocation(this.Context, line, column, scope, inlinedAt);
             return this.SetDebugLocation(loc);
         }
 

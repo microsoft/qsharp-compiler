@@ -15,25 +15,24 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     {
         /// <summary>Initializes a new instance of the <see cref="DILocation"/> class.</summary>
         /// <param name="context">Context that owns this location</param>
-        /// <param name="position">1-based line/col number for the location</param>
+        /// <param name="line">line number for the location (1-based)</param>
+        /// <param name="column">Column number for the location (1-based)</param>
         /// <param name="scope">Containing scope for the location</param>
-        // RyanTODO: before this goes to main, I should probably change the DebugPosition back to the line, column
-        // format since this is a public API. I can move DebugPosition information to within
-        // the QIR Generation only.
-        public DILocation(Context context, DebugPosition position, DILocalScope scope)
-            : this(context, position, scope, null)
+        public DILocation(Context context, uint line, uint column, DILocalScope scope)
+            : this(context, line, column, scope, null)
         {
         }
 
         /// <summary>Initializes a new instance of the <see cref="DILocation"/> class.</summary>
         /// <param name="context">Context that owns this location</param>
-        /// <param name="position">1-based line/col number for the location</param>
+        /// <param name="line">line number for the location (1-based)</param>
+        /// <param name="column">Column number for the location (1-based)</param>
         /// <param name="scope">Containing scope for the location</param>
         /// <param name="inlinedAt">Scope where this scope is inlined at/into</param>
-        public DILocation(Context context, DebugPosition position, DILocalScope scope, DILocation? inlinedAt)
+        public DILocation(Context context, uint line, uint column, DILocalScope scope, DILocation? inlinedAt)
             : base(context.ContextHandle.CreateDebugLocation(
-                position.Line,
-                position.Column,
+                line,
+                column,
                 scope.MetadataHandle,
                 inlinedAt?.MetadataHandle ?? default))
         {
@@ -42,8 +41,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Gets the scope for this location</summary>
         public DILocalScope Scope => FromHandle<DILocalScope>(this.Context, this.MetadataHandle.DILocationGetScope())!;
 
-        /// <summary>Gets the 1-based line/col position for this location</summary>
-        public DebugPosition Position => DebugPosition.FromOneBased(this.MetadataHandle.DILocationGetLine(), this.MetadataHandle.DILocationGetColumn());
+        /// <summary>Gets the line for this location (1-based)</summary>
+        public uint Line => this.MetadataHandle.DILocationGetLine();
+
+        /// <summary>Gets the column for this location (1-based)</summary>
+        public uint Column => this.MetadataHandle.DILocationGetColumn();
 
         /// <summary>Gets the location this location is inlined at</summary>
         public DILocation? InlinedAt => FromHandle<DILocation>(this.MetadataHandle.DILocationGetInlinedAt());
@@ -51,7 +53,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <inheritdoc/>
         public override string ToString()
         {
-            return $"{this.Scope.File}({this.Position.Line},{this.Position.Column})";
+            return $"{this.Scope.File}({this.Line},{this.Column})";
         }
 
         internal DILocation(LLVMMetadataRef handle)

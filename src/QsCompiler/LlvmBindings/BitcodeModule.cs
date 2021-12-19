@@ -422,17 +422,16 @@ namespace Ubiquity.NET.Llvm
             return Value.FromHandle<IrFunction>(valueRef)!;
         }
 
-        // RyanTODO: remove changes like the DebugPosition change since it changes public APIs
         /// <summary>Creates a Function definition with Debug information</summary>
         /// <param name="scope">Containing scope for the function</param>
         /// <param name="name">Name of the function in source language form</param>
         /// <param name="mangledName">Mangled linker visible name of the function (may be same as <paramref name="name"/> if mangling not required by source language</param>
         /// <param name="file">File containing the function definition</param>
-        /// <param name="linePosition">1-based <see cref="DebugPosition"/> with the line number of the function definition</param>
+        /// <param name="line">line number of the function definition (1-based)</param>
         /// <param name="signature">LLVM Function type for the signature of the function</param>
         /// <param name="isLocalToUnit">Flag to indicate if this function is local to the compilation unit</param>
         /// <param name="isDefinition">Flag to indicate if this is a definition</param>
-        /// <param name="scopeLinePosition">1-based <see cref="DebugPosition"/> with the first line of the function's outermost scope, this may not be the same as the first line of the function definition due to source formatting</param>
+        /// <param name="scopeLine">First line of the function's outermost scope, this may not be the same as the first line of the function definition due to source formatting (1-based)</param>
         /// <param name="debugFlags">Additional flags describing this function</param>
         /// <param name="isOptimized">Flag to indicate if this function is optimized</param>
         /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/>to use when creating debug info</param>
@@ -449,11 +448,11 @@ namespace Ubiquity.NET.Llvm
             string name,
             string? mangledName,
             DIFile? file,
-            DebugPosition linePosition,
+            uint line,
             DebugFunctionType signature,
             bool isLocalToUnit,
             bool isDefinition,
-            DebugPosition scopeLinePosition,
+            uint scopeLine,
             DebugInfoFlags debugFlags,
             bool isOptimized,
             DebugInfoBuilder dIBuilder)
@@ -479,11 +478,11 @@ namespace Ubiquity.NET.Llvm
                     name: name,
                     mangledName: mangledName,
                     file: file,
-                    linePosition: linePosition,
+                    line: line,
                     signatureType: diSignature,
                     isLocalToUnit: isLocalToUnit,
                     isDefinition: isDefinition,
-                    scopeLinePosition: scopeLinePosition,
+                    scopeLine: scopeLine,
                     debugFlags: debugFlags,
                     isOptimized: isOptimized,
                     function: func);

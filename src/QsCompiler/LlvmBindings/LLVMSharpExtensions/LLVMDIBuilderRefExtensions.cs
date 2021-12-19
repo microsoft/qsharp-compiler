@@ -29,11 +29,10 @@ namespace LLVMSharp.Interop
             return LLVM.DIBuilderCreateLexicalBlockFile(self, scope, file, discriminator);
         }
 
-        // RyanTODO: change this back
         /// <summary>Convenience wrapper for <see cref="LLVM.DIBuilderCreateAutoVariable"/>.</summary>
-        public static LLVMMetadataRef CreateAutoVariable(this LLVMDIBuilderRef self, LLVMMetadataRef scope, string name, LLVMMetadataRef file, DebugPosition linePosition, LLVMMetadataRef ty, bool alwaysPreserve, LLVMDIFlags diflags, uint alignInBits)
+        public static LLVMMetadataRef CreateAutoVariable(this LLVMDIBuilderRef self, LLVMMetadataRef scope, string name, LLVMMetadataRef file, uint line, LLVMMetadataRef ty, bool alwaysPreserve, LLVMDIFlags diflags, uint alignInBits)
         {
-            return LLVM.DIBuilderCreateAutoVariable(self, scope, name.AsMarshaledString(), (UIntPtr)name.Length, file, linePosition.Line, ty, alwaysPreserve ? 1 : 0, diflags, alignInBits);
+            return LLVM.DIBuilderCreateAutoVariable(self, scope, name.AsMarshaledString(), (UIntPtr)name.Length, file, line, ty, alwaysPreserve ? 1 : 0, diflags, alignInBits);
         }
 
         /// <summary>Convenience wrapper for <see cref="LLVM.DIBuilderCreateParameterVariable"/>.</summary>

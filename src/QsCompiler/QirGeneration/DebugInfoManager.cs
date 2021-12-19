@@ -69,6 +69,51 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
+        /// <summary><see cref="DebugPosition"/> represents a line/col position in source code and is 1-based.</summary>
+        /// <summary>If a column number is not provided, 1 is used.</summary>
+        private class DebugPosition
+        {
+            public uint Line { get; set; }
+
+            public uint Column { get; set; }
+
+            private DebugPosition(uint line, uint col)
+            {
+                this.Line = line;
+                this.Column = col;
+            }
+
+            public static DebugPosition FromZeroBased(uint line, uint col)
+            {
+                return new DebugPosition(line + 1, col + 1);
+            }
+
+            public static DebugPosition FromZeroBased(int line, int col)
+            {
+                return FromZeroBased((uint)line, (uint)col);
+            }
+
+            public static DebugPosition FromZeroBasedLine(uint line)
+            {
+                return new DebugPosition(line + 1, 1);
+            }
+
+            public static DebugPosition FromZeroBasedLine(int line)
+            {
+                return FromZeroBasedLine((uint)line);
+            }
+        }
+
+        /// <summary>
+        /// Converts from a 0-based <see cref="Position"/> to a 1-based <see cref="DebugPosition"/>.
+        /// </summary>
+        /// <param name="position">The 0-based <see cref="Position"/></param>
+        /// <return>The 1-based <see cref="DebugPosition"/></return>
+        private static DebugPosition ConvertToDebugPosition(Position position)
+        {
+            return DebugPosition.FromZeroBased(position.Line, position.Column);
+        }
+
         public static string DebugTypeNotSupportedMessage { get; } = "This debug type is not yet supported";
 
 // SECTION: Exposed member variables
@@ -240,19 +285,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     name += " [value display for this type is not currently supported]";
                 }
 
+                DebugPosition debugLocation = ConvertToDebugPosition(absolutePosition);
+
                 // create the debug info for the local variable
                 DILocalVariable dIVar = dIBuilder.CreateLocalVariable(
                     subProgram,
                     name,
                     dIBuilder.CompileUnit?.File,
-                    ConvertToDebugPosition(absolutePosition),
+                    debugLocation.Line,
                     dIType,
                     alwaysPreserve: true,
                     DebugInfoFlags.None);
 
                 DILocation dILocation = new DILocation(
                     this.Context,
-                    ConvertToDebugPosition(absolutePosition),
+                    debugLocation.Line,
+                    debugLocation.Column,
                     subProgram);
 
                 if (this.sharedState.CurrentBlock != null)
@@ -324,6 +372,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                  // checking the debug types for null ensures we have valid debug info
                 if (retDebugType != null && !argDebugTypes.Contains(null))
                 {
+                    DebugPosition debugPosition = ConvertToDebugPosition(absolutePosition);
+
                     // create the function with debug info
                     DebugFunctionType debugSignature = new DebugFunctionType(signature, curDIBuilder, DebugInfoFlags.None, retDebugType, argDebugTypes!);
                     IrFunction func = this.Module.CreateFunction(
@@ -331,11 +381,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         name: shortName,
                         mangledName: mangledName,
                         file: debugFile,
-                        linePosition: ConvertToDebugPosition(absolutePosition),
+                        line: debugPosition.Line,
                         signature: debugSignature,
                         isLocalToUnit: true, // we're using the compile unit from the source file this was declared in
                         isDefinition: true, // if this isn't set to true, it results in temporary metadata nodes that don't get resolved.
-                        scopeLinePosition: ConvertToDebugPosition(absolutePosition), // RyanTODO: (move this to an issue) Could make more exact bc of formatting and white space (see lastParamLocation in Kaleidescope tutorial)
+                        scopeLine: debugPosition.Line, // RyanTODO: (move this to an issue) Could make more exact bc of formatting and white space (see lastParamLocation in Kaleidescope tutorial)
                         debugFlags: DebugInfoFlags.None,
                         isOptimized: false,
                         curDIBuilder);
@@ -379,7 +429,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new ArgumentException("Expected a specialiazation with a non-null location");
             }
 
-            // RyanTODO: (move this to an issue) make this more exact by calculating absolute column position as well
             // the position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
             DebugPosition debugPosition = DebugPosition.FromZeroBasedLine(debugLocation.Item.Offset.Line);
 
@@ -390,7 +439,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 subProgram,
                 name,
                 debugFile,
-                debugPosition,
+                debugPosition.Line,
                 dIType,
                 alwaysPreserve: true,
                 DebugInfoFlags.None,
@@ -400,7 +449,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 DILocation dILocation = new DILocation(
                     this.Context,
-                    debugPosition,
+                    debugPosition.Line,
+                    debugPosition.Column,
                     subProgram);
 
                 // all arguments are passed by value
@@ -485,20 +535,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return;
             }
 
+            DebugPosition debugPosition = ConvertToDebugPosition(absolutePosition);
             if (localScope != null)
             {
-                this.CurrentInstrBuilder.SetDebugLocation(ConvertToDebugPosition(absolutePosition), localScope);
+                this.CurrentInstrBuilder.SetDebugLocation(debugPosition.Line, debugPosition.Column, localScope);
             }
-        }
-
-        /// <summary>
-        /// Converts from a 0-based <see cref="Position"/> to a 1-based <see cref="DebugPosition"/>.
-        /// </summary>
-        /// <param name="position">The 0-based <see cref="Position"/></param>
-        /// <return>The 1-based <see cref="DebugPosition"/></return>
-        private static DebugPosition ConvertToDebugPosition(Position position)
-        {
-            return DebugPosition.FromZeroBased(position.Line, position.Column);
         }
 
         /// <summary>

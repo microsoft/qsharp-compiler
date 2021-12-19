@@ -53,62 +53,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         */
     }
 
-    /// <summary><see cref="DebugPosition"/> represents a line/col position in source code and is 1-based.</summary>
-    /// <summary>If a column number is not provided, 1 is used.</summary>
-    /// RyanTODO: This could be propogated through the rest of line/col debug information in the LLVMBindings
-    public class DebugPosition
-    {
-        public uint Line { get; set; }
-
-        public uint Column { get; set; }
-
-        private DebugPosition(uint line, uint col)
-        {
-            this.Line = line;
-            this.Column = col;
-        }
-
-        public static DebugPosition FromOneBased(uint line, uint col)
-        {
-            return new DebugPosition(line, col);
-        }
-
-        public static DebugPosition FromOneBased(int line, int col)
-        {
-            return FromOneBased((uint)line, (uint)col);
-        }
-
-        public static DebugPosition FromOneBasedLine(uint line)
-        {
-            return new DebugPosition(line, 1);
-        }
-
-        public static DebugPosition FromOneBasedLine(int line)
-        {
-            return FromOneBasedLine((uint)line);
-        }
-
-        public static DebugPosition FromZeroBased(uint line, uint col)
-        {
-            return new DebugPosition(line + 1, col + 1);
-        }
-
-        public static DebugPosition FromZeroBased(int line, int col)
-        {
-            return FromZeroBased((uint)line, (uint)col);
-        }
-
-        public static DebugPosition FromZeroBasedLine(uint line)
-        {
-            return new DebugPosition(line + 1, 1);
-        }
-
-        public static DebugPosition FromZeroBasedLine(int line)
-        {
-            return FromZeroBasedLine((uint)line);
-        }
-    }
-
     /// <summary>DebugInfoBuilder is a factory class for creating DebugInformation for an LLVM <see cref="BitcodeModule"/></summary>
     /// <remarks>
     /// Many Debug information metadata nodes are created with unresolved references to additional
@@ -357,11 +301,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="name">Name of the function as it appears in the source language</param>
         /// <param name="mangledName">Linkage (mangled) name of the function</param>
         /// <param name="file"><see cref="DIFile"/> containing the function</param>
-        /// <param name="linePosition">1-based <see cref="DebugPosition"/> with the line number of the function definition</param>
+        /// <param name="line">starting line of the function definition (1-based)</param>
         /// <param name="signatureType"><see cref="DISubroutineType"/> for the function's signature type</param>
         /// <param name="isLocalToUnit">Flag to indicate if this function is local to the compilation unit or available externally</param>
         /// <param name="isDefinition">Flag to indicate if this is a definition or a declaration only</param>
-        /// <param name="scopeLinePosition">1-based <see cref="DebugPosition"/> with the starting line of the first scope of the function's body</param>
+        /// <param name="scopeLine">starting line of the first scope of the function's body (1-based)</param>
         /// <param name="debugFlags"><see cref="DebugInfoFlags"/> for this function</param>
         /// <param name="isOptimized">Flag to indicate if this function is optimized</param>
         /// <param name="function">Underlying LLVM <see cref="IrFunction"/> to attach debug info to</param>
@@ -372,11 +316,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             string name,
             string mangledName,
             DIFile? file,
-            DebugPosition linePosition,
+            uint line,
             DISubroutineType? signatureType,
             bool isLocalToUnit,
             bool isDefinition,
-            DebugPosition scopeLinePosition,
+            uint scopeLine,
             DebugInfoFlags debugFlags,
             bool isOptimized,
             IrFunction function)
@@ -397,11 +341,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 name,
                 mangledName,
                 file?.MetadataHandle ?? default,
-                linePosition.Line,
+                line,
                 signatureType?.MetadataHandle ?? default,
                 isLocalToUnit ? 1 : 0,
                 isDefinition ? 1 : 0,
-                scopeLinePosition.Line,
+                scopeLine,
                 (LLVMDIFlags)debugFlags,
                 isOptimized ? 1 : 0);
 
@@ -414,7 +358,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="scope">Scope the variable belongs to</param>
         /// <param name="name">Name of the variable</param>
         /// <param name="file">File where the variable is declared</param>
-        /// <param name="linePosition"><see cref="DebugPosition"/> containing the 1-based line where the variable is declared</param>
+        /// <param name="line">Line where the variable is declared (1-based)</param>
         /// <param name="type">Type of the variable</param>
         /// <param name="alwaysPreserve">Flag to indicate if this variable's debug information should always be preserved</param>
         /// <param name="debugFlags">Flags for the variable</param>
@@ -425,7 +369,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             DIScope? scope,
             string name,
             DIFile? file,
-            DebugPosition linePosition,
+            uint line,
             DIType? type,
             bool alwaysPreserve,
             DebugInfoFlags debugFlags,
@@ -435,7 +379,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 scope?.MetadataHandle ?? default,
                 name,
                 file?.MetadataHandle ?? default,
-                linePosition,
+                line,
                 type?.MetadataHandle ?? default,
                 alwaysPreserve,
                 (LLVMDIFlags)debugFlags,
@@ -448,7 +392,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="scope">Scope for the argument</param>
         /// <param name="name">Name of the argument</param>
         /// <param name="file"><see cref="DIFile"/> containing the function this argument is declared in</param>
-        /// <param name="linePosition">1-based <see cref="DebugPosition"/> with a line number for this argument</param>
+        /// <param name="line">Line number fort his argument (1-based)</param>
         /// <param name="type">Debug type for this argument</param>
         /// <param name="alwaysPreserve">Flag to indicate if this argument is always preserved for debug view even if optimization would remove it</param>
         /// <param name="debugFlags"><see cref="DebugInfoFlags"/> for this argument</param>
@@ -459,7 +403,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             DIScope? scope,
             string name,
             DIFile? file,
-            DebugPosition linePosition,
+            uint line,
             DIType? type,
             bool alwaysPreserve,
             DebugInfoFlags debugFlags,
@@ -470,7 +414,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 name,
                 argNo,
                 file?.MetadataHandle ?? default,
-                linePosition.Line,
+                line,
                 type?.MetadataHandle ?? default,
                 alwaysPreserve,
                 (LLVMDIFlags)debugFlags);
