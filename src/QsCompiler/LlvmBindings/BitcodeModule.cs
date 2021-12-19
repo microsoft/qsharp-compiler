@@ -875,8 +875,8 @@ namespace Ubiquity.NET.Llvm
                     language,
                     srcFilePath,
                     producer,
-                    compilationFlags,
                     optimized,
+                    compilationFlags,
                     runtimeVersion);
 
                 return retVal;

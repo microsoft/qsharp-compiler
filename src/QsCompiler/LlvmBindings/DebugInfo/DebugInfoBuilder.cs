@@ -128,31 +128,51 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// </summary>
         public DICompileUnit? CompileUnit { get; private set; }
 
-        // RyanTODO: remove these changes to the parameters since they're public APIs; we can have additional function calls instead with
-        // these parameters instead
-        /// <summary>Creates a new <see cref="DICompileUnit"/></summary>
+        /// <summary>Creates a new <see cref="DICompileUnit"/>. Assumes by default that the code in this compilation unit is not optimized and the runtime version is 0.</summary>
         /// <param name="language"><see cref="SourceLanguage"/> for the compilation unit</param>
         /// <param name="sourceFilePath">Full path to the source file of this compilation unit</param>
         /// <param name="producer">Name of the application processing the compilation unit</param>
         /// <param name="compilationFlags">Additional tool specific flags</param>
-        /// <param name="optimized">Flag to indicate if the code in this compilation unit is optimized. Default is false.</param>
-        /// <param name="runtimeVersion">Runtime version. Default is 0.</param>
         /// <returns><see cref="DICompileUnit"/></returns>
         public DICompileUnit CreateCompileUnit(
             SourceLanguage language,
             string sourceFilePath,
             string? producer,
-            string? compilationFlags,
-            bool optimized = false,
-            uint runtimeVersion = 0)
+            string? compilationFlags)
         {
             return this.CreateCompileUnit(
                 language,
                 Path.GetFileName(sourceFilePath),
                 Path.GetDirectoryName(sourceFilePath) ?? Environment.CurrentDirectory,
                 producer,
+                false,
                 compilationFlags,
+                0);
+        }
+
+        /// <summary>Creates a new <see cref="DICompileUnit"/></summary>
+        /// <param name="language"><see cref="SourceLanguage"/> for the compilation unit</param>
+        /// <param name="sourceFilePath">Full path to the source file of this compilation unit</param>
+        /// <param name="producer">Name of the application processing the compilation unit</param>
+        /// <param name="optimized">Flag to indicate if the code in this compilation unit is optimized</param>
+        /// <param name="compilationFlags">Additional tool specific flags</param>
+        /// <param name="runtimeVersion">Runtime version</param>
+        /// <returns><see cref="DICompileUnit"/></returns>
+        public DICompileUnit CreateCompileUnit(
+            SourceLanguage language,
+            string sourceFilePath,
+            string? producer,
+            bool optimized,
+            string? compilationFlags,
+            uint runtimeVersion)
+        {
+            return this.CreateCompileUnit(
+                language,
+                Path.GetFileName(sourceFilePath),
+                Path.GetDirectoryName(sourceFilePath) ?? Environment.CurrentDirectory,
+                producer,
                 optimized,
+                compilationFlags,
                 runtimeVersion);
         }
 
@@ -161,8 +181,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="fileName">Name of the source file of this compilation unit (without any path)</param>
         /// <param name="fileDirectory">Path of the directory containing the file</param>
         /// <param name="producer">Name of the application processing the compilation unit</param>
-        /// <param name="compilationFlags">Additional tool specific flags</param>
         /// <param name="optimized">Flag to indicate if the code in this compilation unit is optimized</param>
+        /// <param name="compilationFlags">Additional tool specific flags</param>
         /// <param name="runtimeVersion">Runtime version</param>
         /// <returns><see cref="DICompileUnit"/></returns>
         [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "DICompileUnit", Justification = "It is spelled correctly 8^)")]
@@ -171,8 +191,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             string fileName,
             string fileDirectory,
             string? producer,
-            string? compilationFlags,
             bool optimized,
+            string? compilationFlags,
             uint runtimeVersion)
         {
             if (producer == null)
