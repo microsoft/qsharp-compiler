@@ -255,6 +255,14 @@ let Literals =
         let int = 1;
         let big_int = 1234567890L;
         let double = 1.23;
+        let double_no_frac = 1.;
+        let double_no_whole = .1;
+        let exponent1 = 1e2;
+        let exponent2 = 1.2e3;
+        let exponent3 = 3.e4;
+        let exponent4 = .4e5;
+        let exponent5 = 5e-6;
+        let exponent6 = 5.6e+7;
         let string = "abc";
         let interp_string = $"abc";
         let bool = False;
@@ -317,7 +325,7 @@ let ``Factor application`` =
 let ``Prefix operator`` =
     """namespace Foo {
     function Bar () : Int {
-        return -2;
+        return +2 + -2;
     }
 }"""
 
