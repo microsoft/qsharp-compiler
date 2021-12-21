@@ -13,6 +13,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
@@ -104,6 +105,52 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     }
                 }
 
+                private ParameterTuple MakeLambdaParams(ResolvedType expressionType, QsSymbol paramNames)
+                {
+                    ParameterTuple MatchNameWithType(ResolvedType paramType, QsSymbol paramName)
+                    {
+                        if (paramName.Symbol is QsSymbolKind<QsSymbol>.Symbol sym)
+                        {
+                            var localVar = new LocalVariableDeclaration<QsLocalSymbol>(
+                                QsLocalSymbol.NewValidName(sym.Item),
+                                paramType,
+                                new InferredExpressionInformation(false, false),
+                                QsNullable<Position>.Null,
+                                paramName.Range.IsNull
+                                    ? DataTypes.Range.Zero
+                                    : paramName.Range.Item);
+                            return ParameterTuple.NewQsTupleItem(localVar);
+                        }
+                        else if (paramName.Symbol is QsSymbolKind<QsSymbol>.SymbolTuple tup && paramType.Resolution is ResolvedTypeKind.TupleType tupType)
+                        {
+                            var subSymbols = tup.Item;
+                            var subSybmolTypes = tupType.Item;
+
+                            if (subSymbols.Length != subSybmolTypes.Length)
+                            {
+                                throw new ArgumentException("Lambda parameter type length mismatch");
+                            }
+
+                            return ParameterTuple.NewQsTuple(subSymbols
+                                .Select((symbol, i) => MatchNameWithType(subSybmolTypes[i], symbol))
+                                .ToImmutableArray());
+                        }
+                        else
+                        {
+                            throw new ArgumentException("Lambda parameter type mismatch");
+                        }
+                    }
+
+                    var paramTypes =
+                        expressionType.Resolution is ResolvedTypeKind.Operation op
+                        ? op.Item1.Item1
+                        : expressionType.Resolution is ResolvedTypeKind.Function func
+                        ? func.Item1
+                        : throw new ArgumentException("Lambda with non-callable type");
+
+                    return MatchNameWithType(paramTypes, paramNames);
+                }
+
                 private TypedExpression HandleLambdas(TypedExpression ex, Lambda<TypedExpression> lambda)
                 {
                     var processedLambdaExpressionKind = this.ExpressionKinds.OnLambda(lambda);
@@ -116,11 +163,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         QsNullable<QsLocation>.Null,
                         QsComments.Empty);
 
-                    // ToDo: local declarations should include all local variables in scope as well as lambda parameters.
-                    var lambdaParams = new List<LocalVariableDeclaration<string>>();
-                    var generatedParams = this.SharedState.KnownVariables.Concat(lambdaParams);
-
-                    var generatedContent = new QsScope(new[] { returnStatment }.ToImmutableArray(), new LocalDeclarations(generatedParams.ToImmutableArray()));
+                    var generatedContent = new QsScope(new[] { returnStatment }.ToImmutableArray(), new LocalDeclarations(this.SharedState.KnownVariables));
 
                     // The LiftBody determines which callable kind to generate based on the callable kind of the parent callable.
                     // We need to override that behavior with the lambda kind. So we just change the callable in the shared state
@@ -142,8 +185,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     this.SharedState.CurrentCallable = new ContentLifting.LiftContent.CallableDetails(modifiedCallabe);
                     if (this.SharedState.LiftBody(generatedContent, true, out var call, out var callable))
                     {
+                        var lambdaParams = this.MakeLambdaParams(ex.ResolvedType, lambda.Param);
+                        callable = this.AddParamsToCallable(callable, lambdaParams);
+
                         // ToDo: ensure the lambda parameters are present and last in the parameter list for the generated callable,
-                        // and not present in the call expression.
+                        // and present and last in the call expression as missing arguments.
 
                         this.SharedState.GeneratedCallables!.Add(callable);
 
@@ -163,6 +209,137 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                             ex.InferredInformation,
                             ex.Range);
                     }
+                }
+
+                private ParameterTuple ConcatParams(ParameterTuple first, ParameterTuple second)
+                {
+                    var firstItems =
+                        first is ParameterTuple.QsTuple firstTup
+                        ? firstTup.Item
+                        : new[] { first }.ToImmutableArray();
+
+                    var secondItems =
+                        second is ParameterTuple.QsTuple secondTup
+                        ? secondTup.Item
+                        : new[] { second }.ToImmutableArray();
+
+                    return ParameterTuple.NewQsTuple(firstItems.Concat(secondItems).ToImmutableArray());
+                }
+
+                private QsCallable AddParamsToCallable(QsCallable callable, ParameterTuple newParams)
+                {
+                    var newArgTup = this.ConcatParams(callable.ArgumentTuple, newParams);
+                    var newSig = this.AddParamsToSig(callable.Signature, newParams);
+                    var newSpecs = callable.Specializations
+                        .Select(s => this.AddParamsToSpec(s, newSig, newParams))
+                        .ToImmutableArray();
+
+                    return new QsCallable(
+                        callable.Kind,
+                        callable.FullName,
+                        callable.Attributes,
+                        callable.Access,
+                        callable.Source,
+                        callable.Location,
+                        newSig,
+                        newArgTup,
+                        newSpecs,
+                        callable.Documentation,
+                        callable.Comments);
+                }
+
+                private QsSpecialization AddParamsToSpec(QsSpecialization specialization, ResolvedSignature updatedSignature, ParameterTuple updatedParams)
+                {
+                    var impl = specialization.Implementation is SpecializationImplementation.Provided prov
+                        ? SpecializationImplementation.NewProvided(updatedParams, prov.Item2)
+                        : specialization.Implementation;
+
+                    // If we are adding to a controlled spec, the signature needs to have the control register as the first argument.
+                    if (specialization.Kind == QsSpecializationKind.QsControlled || specialization.Kind == QsSpecializationKind.QsControlledAdjoint)
+                    {
+                        updatedSignature = new ResolvedSignature(
+                            updatedSignature.TypeParameters,
+                            ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
+                                ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
+                                updatedSignature.ArgumentType))),
+                            updatedSignature.ReturnType,
+                            updatedSignature.Information);
+                    }
+
+                    return new QsSpecialization(
+                        specialization.Kind,
+                        specialization.Parent,
+                        specialization.Attributes,
+                        specialization.Source,
+                        specialization.Location,
+                        specialization.TypeArguments,
+                        updatedSignature,
+                        impl,
+                        specialization.Documentation,
+                        specialization.Comments);
+                }
+
+                private ResolvedSignature AddParamsToSig(ResolvedSignature signature, ParameterTuple newParams)
+                {
+                    var newParamType = this.ConcatType(signature.ArgumentType, this.ExractParamType(newParams));
+
+                    return new ResolvedSignature(
+                        signature.TypeParameters,
+                        newParamType,
+                        signature.ReturnType,
+                        signature.Information);
+                }
+
+                private ResolvedType ConcatType(ResolvedType first, ResolvedType second)
+                {
+                    var firstKind = first.Resolution;
+                    var secondKind = second.Resolution;
+
+                    if (firstKind.IsUnitType)
+                    {
+                        return second;
+                    }
+                    else if (secondKind.IsUnitType)
+                    {
+                        return first;
+                    }
+
+                    var firstItems =
+                        firstKind is ResolvedTypeKind.TupleType firstTup
+                        ? firstTup.Item
+                        : new[] { first }.ToImmutableArray();
+
+                    var secondItems =
+                        secondKind is ResolvedTypeKind.TupleType secondTup
+                        ? secondTup.Item
+                        : new[] { second }.ToImmutableArray();
+
+                    return ResolvedType.New(ResolvedTypeKind.NewTupleType(firstItems.Concat(secondItems).ToImmutableArray()));
+                }
+
+                private ResolvedType ExractParamType(ParameterTuple parameters)
+                {
+                    if (parameters is ParameterTuple.QsTupleItem item)
+                    {
+                        return item.Item.Type;
+                    }
+                    else if (parameters is ParameterTuple.QsTuple tuple)
+                    {
+                        if (tuple.Item.Length == 0)
+                        {
+                            return ResolvedType.New(ResolvedTypeKind.UnitType);
+                        }
+                        else if (tuple.Item.Length == 1)
+                        {
+                            return this.ExractParamType(tuple.Item[0]);
+                        }
+                        else
+                        {
+                            return ResolvedType.New(ResolvedTypeKind.NewTupleType(tuple.Item.Select(this.ExractParamType).ToImmutableArray()));
+                        }
+                    }
+
+                    return ResolvedType.New(ResolvedTypeKind.UnitType);
                 }
             }
         }
