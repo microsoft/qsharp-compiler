@@ -121,6 +121,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                                     : paramName.Range.Item);
                             return ParameterTuple.NewQsTupleItem(localVar);
                         }
+                        else if (paramName.Symbol is QsSymbolKind<QsSymbol>.SymbolTuple emptyTup
+                            && emptyTup.Item.Length == 0
+                            && paramType.Resolution.IsUnitType)
+                        {
+                            // ToDo: I think we may need an artificial 'unit-param' here
+                            return ParameterTuple.NewQsTuple(ImmutableArray<ParameterTuple>.Empty);
+                        }
                         else if (paramName.Symbol is QsSymbolKind<QsSymbol>.SymbolTuple tup && paramType.Resolution is ResolvedTypeKind.TupleType tupType)
                         {
                             var subSymbols = tup.Item;
@@ -163,6 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         QsNullable<QsLocation>.Null,
                         QsComments.Empty);
 
+                    // ToDo: the local declarations needs to contain the lambda parameters
                     var generatedContent = new QsScope(new[] { returnStatment }.ToImmutableArray(), new LocalDeclarations(this.SharedState.KnownVariables));
 
                     // The LiftBody determines which callable kind to generate based on the callable kind of the parent callable.
@@ -185,7 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     this.SharedState.CurrentCallable = new ContentLifting.LiftContent.CallableDetails(modifiedCallabe);
                     if (this.SharedState.LiftBody(generatedContent, true, out var call, out var callable))
                     {
-                        var lambdaParams = this.MakeLambdaParams(ex.ResolvedType, lambda.Param);
+                        var lambdaParams = this.MakeLambdaParams(ex.ResolvedType, processedLambda.Param);
                         callable = this.AddParamsToCallable(callable, lambdaParams);
 
                         // ToDo: ensure the lambda parameters are present and last in the parameter list for the generated callable,
@@ -231,7 +239,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     var newArgTup = this.ConcatParams(callable.ArgumentTuple, newParams);
                     var newSig = this.AddParamsToSig(callable.Signature, newParams);
                     var newSpecs = callable.Specializations
-                        .Select(s => this.AddParamsToSpec(s, newSig, newParams))
+                        .Select(s => this.AddParamsToSpec(s, newSig, newArgTup))
                         .ToImmutableArray();
 
                     return new QsCallable(
@@ -321,7 +329,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                 {
                     if (parameters is ParameterTuple.QsTupleItem item)
                     {
-                        return item.Item.Type;
+                        return ResolvedType.New(item.Item.Type.Resolution);
                     }
                     else if (parameters is ParameterTuple.QsTuple tuple)
                     {

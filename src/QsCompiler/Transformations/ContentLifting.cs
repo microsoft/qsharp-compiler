@@ -618,7 +618,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             this.SharedState.IsValidScope = false;
                         }
 
-                        return type1;
+                        return ResolvedType.New(type1.Resolution);
                     }
                 }
 
@@ -631,11 +631,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     }
                     else
                     {
-                        // ToDo: Currently this is unused functionality as IsReturnAllowed is in-practice always false.
-                        // This functionality will be used in the implementation of lambda elimination.
                         if (this.SharedState.ReturnType == null)
                         {
-                            this.SharedState.ReturnType = ex.ResolvedType;
+                            this.SharedState.ReturnType = ResolvedType.New(ex.ResolvedType.Resolution);
                         }
                         else
                         {
