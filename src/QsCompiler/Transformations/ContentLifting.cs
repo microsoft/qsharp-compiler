@@ -16,6 +16,7 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
@@ -201,35 +202,39 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return (newSig, specializations);
             }
 
+            private static ResolvedType ExractParamType(ParameterTuple parameters)
+            {
+                if (parameters is ParameterTuple.QsTupleItem item)
+                {
+                    return ResolvedType.New(item.Item.Type.Resolution);
+                }
+                else if (parameters is ParameterTuple.QsTuple tuple)
+                {
+                    if (tuple.Item.Length == 0)
+                    {
+                        return ResolvedType.New(ResolvedTypeKind.UnitType);
+                    }
+                    else if (tuple.Item.Length == 1)
+                    {
+                        return ExractParamType(tuple.Item[0]);
+                    }
+                    else
+                    {
+                        return ResolvedType.New(ResolvedTypeKind.NewTupleType(tuple.Item.Select(ExractParamType).ToImmutableArray()));
+                    }
+                }
+
+                return ResolvedType.New(ResolvedTypeKind.UnitType);
+            }
+
             private (QsCallable, ResolvedType) GenerateCallable(
                 CallableDetails callable,
                 QsScope contents,
-                ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
+                ParameterTuple parameters,
                 ResolvedType returnType)
             {
                 var newName = NameDecorator.PrependGuid(callable.Callable.FullName);
-
-                var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTuple(usedSymbols
-                    .Select(var => QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
-                        QsLocalSymbol.NewValidName(var.VariableName),
-                        var.Type,
-                        new InferredExpressionInformation(false, false),
-                        var.Position,
-                        var.Range)))
-                    .ToImmutableArray());
-
-                var paramTypes = ResolvedType.New(ResolvedTypeKind.UnitType);
-                if (usedSymbols.Length == 1)
-                {
-                    paramTypes = usedSymbols.First().Type;
-                }
-                else if (usedSymbols.Length > 1)
-                {
-                    paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(usedSymbols
-                        .Select(var => var.Type)
-                        .ToImmutableArray()));
-                }
-
+                var paramTypes = ExractParamType(parameters);
                 var (signature, specializations) = this.MakeSpecializations(callable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents), returnType);
 
                 var generatedCallable = new QsCallable(
@@ -248,7 +253,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     QsComments.Empty);
 
                 // Change the origin of all type parameter references to use the new name and make all variables immutable
-                generatedCallable = UpdateGeneratedCallable.Apply(generatedCallable, usedSymbols, callable.Callable.FullName, newName);
+                generatedCallable = UpdateGeneratedCallable.Apply(generatedCallable, parameters, callable.Callable.FullName, newName);
 
                 // We want to use the non-updated signature here for the types so that they refer to
                 // the original callable's type parameters. We do this because that is what they will
@@ -264,6 +269,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return (generatedCallable, generatedCallableCallType);
             }
 
+            private static ParameterTuple ConcatParams(ParameterTuple first, ParameterTuple second)
+            {
+                var firstItems =
+                    first is ParameterTuple.QsTuple firstTup
+                    ? firstTup.Item
+                    : new[] { first }.ToImmutableArray();
+
+                var secondItems =
+                    second is ParameterTuple.QsTuple secondTup
+                    ? secondTup.Item
+                    : new[] { second }.ToImmutableArray();
+
+                return ParameterTuple.NewQsTuple(firstItems.Concat(secondItems).ToImmutableArray());
+            }
+
             /// <summary>
             /// Generates a new callable with the body's contents. All the known variables at the
             /// start of the block that get used in the body will become parameters to the new
@@ -277,6 +297,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             /// </summary>
             public bool LiftBody(
                 QsScope body,
+                ParameterTuple? additionalParameters,
                 bool isReturnAllowed,
                 [NotNullWhen(true)] out TypedExpression? callExpression,
                 [NotNullWhen(true)] out QsCallable? callable)
@@ -288,7 +309,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     return false;
                 }
 
-                var (generatedCallable, generatedCallableCallType) = this.GenerateCallable(this.CurrentCallable, body, usedSymbols, returnType);
+                var isAdditionalParams = true;
+                if (additionalParameters is null)
+                {
+                    additionalParameters = ParameterTuple.NewQsTuple(ImmutableArray<ParameterTuple>.Empty);
+                    isAdditionalParams = false;
+                }
+                else if (additionalParameters is ParameterTuple.QsTuple tuple && tuple.Item.Length == 0)
+                {
+                    isAdditionalParams = false;
+                }
+
+                var parameters = ParameterTuple.NewQsTuple(usedSymbols
+                    .Select(var => ParameterTuple.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
+                        QsLocalSymbol.NewValidName(var.VariableName),
+                        var.Type,
+                        new InferredExpressionInformation(false, false),
+                        var.Position,
+                        var.Range)))
+                    .ToImmutableArray());
+                if (isAdditionalParams)
+                {
+                    parameters = ConcatParams(parameters, additionalParameters);
+                }
+
+                var (generatedCallable, generatedCallableCallType) = this.GenerateCallable(this.CurrentCallable, body, parameters, returnType);
 
                 // Forward the type parameters of the parent callable to the type arguments of the call to the generated callable.
                 var typeArguments = this.CurrentCallable.TypeParameters;
@@ -360,32 +405,49 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         /// </summary>
         private class UpdateGeneratedCallable : SyntaxTreeTransformation<UpdateGeneratedCallable.TransformationState>
         {
-            public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            public static QsCallable Apply(QsCallable qsCallable, ParameterTuple parameters, QsQualifiedName oldName, QsQualifiedName newName)
             {
                 var filter = new UpdateGeneratedCallable(parameters, oldName, newName);
 
                 return filter.Namespaces.OnCallableDeclaration(qsCallable);
             }
 
+            private static IEnumerable<LocalVariableDeclaration<QsLocalSymbol>> FlattenParamTuple(ParameterTuple parameters)
+            {
+                if (parameters is ParameterTuple.QsTupleItem item)
+                {
+                    return new[] { item.Item };
+                }
+                else if (parameters is ParameterTuple.QsTuple tuple)
+                {
+                    return tuple.Item.SelectMany(FlattenParamTuple);
+                }
+
+                return ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>.Empty;
+            }
+
             public class TransformationState
             {
                 public bool IsRecursiveIdentifier { get; set; } = false;
 
-                public ImmutableArray<LocalVariableDeclaration<string>> Parameters { get; }
+                public ImmutableHashSet<string> ParameterNames { get; }
 
                 public QsQualifiedName OldName { get; }
 
                 public QsQualifiedName NewName { get; }
 
-                public TransformationState(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+                public TransformationState(ParameterTuple parameters, QsQualifiedName oldName, QsQualifiedName newName)
                 {
-                    this.Parameters = parameters;
+                    this.ParameterNames = FlattenParamTuple(parameters)
+                        .Where(x => x.VariableName.IsValidName)
+                        .Select(x => ((QsLocalSymbol.ValidName)x.VariableName).Item)
+                        .ToImmutableHashSet();
                     this.OldName = oldName;
                     this.NewName = newName;
                 }
             }
 
-            private UpdateGeneratedCallable(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            private UpdateGeneratedCallable(ParameterTuple parameters, QsQualifiedName oldName, QsQualifiedName newName)
             : base(new TransformationState(parameters, oldName, newName))
             {
                 this.Expressions = new ExpressionTransformation(this);
@@ -412,7 +474,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     if ((ex.InferredInformation.IsMutable || ex.InferredInformation.HasLocalQuantumDependency)
                         && ex.Expression is ExpressionKind.Identifier id
                         && id.Item1 is Identifier.LocalVariable variable
-                        && this.SharedState.Parameters.Any(x => x.VariableName.Equals(variable)))
+                        && this.SharedState.ParameterNames.Contains(variable.Item))
                     {
                         // Set the mutability to false
                         ex = new TypedExpression(

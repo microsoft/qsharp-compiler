@@ -177,6 +177,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         LocalDeclarations.Empty,
                         QsNullable<QsLocation>.Null,
                         QsComments.Empty);
+                    var lambdaParams = this.MakeLambdaParams(ex.ResolvedType, processedLambda.Param);
 
                     // ToDo: the local declarations needs to contain the lambda parameters
                     var generatedContent = new QsScope(new[] { returnStatment }.ToImmutableArray(), new LocalDeclarations(this.SharedState.KnownVariables));
@@ -199,10 +200,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         originalCallable.Comments);
 
                     this.SharedState.CurrentCallable = new ContentLifting.LiftContent.CallableDetails(modifiedCallabe);
-                    if (this.SharedState.LiftBody(generatedContent, true, out var call, out var callable))
+                    if (this.SharedState.LiftBody(generatedContent, lambdaParams, true, out var call, out var callable))
                     {
-                        var lambdaParams = this.MakeLambdaParams(ex.ResolvedType, processedLambda.Param);
-                        callable = this.AddParamsToCallable(callable, lambdaParams);
+                        //callable = this.AddParamsToCallable(callable, lambdaParams);
 
                         // ToDo: ensure the lambda parameters are present and last in the parameter list for the generated callable,
                         // and present and last in the call expression as missing arguments.
@@ -227,86 +227,86 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     }
                 }
 
-                private ParameterTuple ConcatParams(ParameterTuple first, ParameterTuple second)
-                {
-                    var firstItems =
-                        first is ParameterTuple.QsTuple firstTup
-                        ? firstTup.Item
-                        : new[] { first }.ToImmutableArray();
+                //private ParameterTuple ConcatParams(ParameterTuple first, ParameterTuple second)
+                //{
+                //    var firstItems =
+                //        first is ParameterTuple.QsTuple firstTup
+                //        ? firstTup.Item
+                //        : new[] { first }.ToImmutableArray();
+                //
+                //    var secondItems =
+                //        second is ParameterTuple.QsTuple secondTup
+                //        ? secondTup.Item
+                //        : new[] { second }.ToImmutableArray();
+                //
+                //    return ParameterTuple.NewQsTuple(firstItems.Concat(secondItems).ToImmutableArray());
+                //}
 
-                    var secondItems =
-                        second is ParameterTuple.QsTuple secondTup
-                        ? secondTup.Item
-                        : new[] { second }.ToImmutableArray();
+                //private QsCallable AddParamsToCallable(QsCallable callable, ParameterTuple newParams)
+                //{
+                //    var newArgTup = this.ConcatParams(callable.ArgumentTuple, newParams);
+                //    var newSig = this.UpdateSig(callable.Signature, newArgTup);
+                //    var newSpecs = callable.Specializations
+                //        .Select(s => this.AddParamsToSpec(s, newSig, newArgTup))
+                //        .ToImmutableArray();
+                //
+                //    return new QsCallable(
+                //        callable.Kind,
+                //        callable.FullName,
+                //        callable.Attributes,
+                //        callable.Access,
+                //        callable.Source,
+                //        callable.Location,
+                //        newSig,
+                //        newArgTup,
+                //        newSpecs,
+                //        callable.Documentation,
+                //        callable.Comments);
+                //}
 
-                    return ParameterTuple.NewQsTuple(firstItems.Concat(secondItems).ToImmutableArray());
-                }
+                //private QsSpecialization AddParamsToSpec(QsSpecialization specialization, ResolvedSignature updatedSignature, ParameterTuple updatedParams)
+                //{
+                //    // ToDo: The QsScope's know variables should be updated too
+                //    var impl = specialization.Implementation is SpecializationImplementation.Provided prov
+                //        ? SpecializationImplementation.NewProvided(updatedParams, prov.Item2)
+                //        : specialization.Implementation;
+                //
+                //    // If we are adding to a controlled spec, the signature needs to have the control register as the first argument.
+                //    if (specialization.Kind == QsSpecializationKind.QsControlled || specialization.Kind == QsSpecializationKind.QsControlledAdjoint)
+                //    {
+                //        updatedSignature = new ResolvedSignature(
+                //            updatedSignature.TypeParameters,
+                //            ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
+                //                ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
+                //                updatedSignature.ArgumentType))),
+                //            updatedSignature.ReturnType,
+                //            updatedSignature.Information);
+                //    }
+                //
+                //    return new QsSpecialization(
+                //        specialization.Kind,
+                //        specialization.Parent,
+                //        specialization.Attributes,
+                //        specialization.Source,
+                //        specialization.Location,
+                //        specialization.TypeArguments,
+                //        updatedSignature,
+                //        impl,
+                //        specialization.Documentation,
+                //        specialization.Comments);
+                //}
 
-                private QsCallable AddParamsToCallable(QsCallable callable, ParameterTuple newParams)
-                {
-                    var newArgTup = this.ConcatParams(callable.ArgumentTuple, newParams);
-                    var newSig = this.UpdateSig(callable.Signature, newArgTup);
-                    var newSpecs = callable.Specializations
-                        .Select(s => this.AddParamsToSpec(s, newSig, newArgTup))
-                        .ToImmutableArray();
-
-                    return new QsCallable(
-                        callable.Kind,
-                        callable.FullName,
-                        callable.Attributes,
-                        callable.Access,
-                        callable.Source,
-                        callable.Location,
-                        newSig,
-                        newArgTup,
-                        newSpecs,
-                        callable.Documentation,
-                        callable.Comments);
-                }
-
-                private QsSpecialization AddParamsToSpec(QsSpecialization specialization, ResolvedSignature updatedSignature, ParameterTuple updatedParams)
-                {
-                    // ToDo: The QsScope's know variables should be updated too
-                    var impl = specialization.Implementation is SpecializationImplementation.Provided prov
-                        ? SpecializationImplementation.NewProvided(updatedParams, prov.Item2)
-                        : specialization.Implementation;
-
-                    // If we are adding to a controlled spec, the signature needs to have the control register as the first argument.
-                    if (specialization.Kind == QsSpecializationKind.QsControlled || specialization.Kind == QsSpecializationKind.QsControlledAdjoint)
-                    {
-                        updatedSignature = new ResolvedSignature(
-                            updatedSignature.TypeParameters,
-                            ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
-                                ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
-                                updatedSignature.ArgumentType))),
-                            updatedSignature.ReturnType,
-                            updatedSignature.Information);
-                    }
-
-                    return new QsSpecialization(
-                        specialization.Kind,
-                        specialization.Parent,
-                        specialization.Attributes,
-                        specialization.Source,
-                        specialization.Location,
-                        specialization.TypeArguments,
-                        updatedSignature,
-                        impl,
-                        specialization.Documentation,
-                        specialization.Comments);
-                }
-
-                private ResolvedSignature UpdateSig(ResolvedSignature signature, ParameterTuple updatedParams)
-                {
-                    //var newParamType = this.ConcatType(signature.ArgumentType, this.ExractParamType(newParams));
-                    //var newParamType = this.ExractParamType(updatedParams);
-
-                    return new ResolvedSignature(
-                        signature.TypeParameters,
-                        this.ExractParamType(updatedParams),
-                        signature.ReturnType,
-                        signature.Information);
-                }
+                //private ResolvedSignature UpdateSig(ResolvedSignature signature, ParameterTuple updatedParams)
+                //{
+                //    //var newParamType = this.ConcatType(signature.ArgumentType, this.ExractParamType(newParams));
+                //    //var newParamType = this.ExractParamType(updatedParams);
+                //
+                //    return new ResolvedSignature(
+                //        signature.TypeParameters,
+                //        this.ExractParamType(updatedParams),
+                //        signature.ReturnType,
+                //        signature.Information);
+                //}
 
                 //private ResolvedType ConcatType(ResolvedType first, ResolvedType second)
                 //{
@@ -335,30 +335,30 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                 //    return ResolvedType.New(ResolvedTypeKind.NewTupleType(firstItems.Concat(secondItems).ToImmutableArray()));
                 //}
 
-                private ResolvedType ExractParamType(ParameterTuple parameters)
-                {
-                    if (parameters is ParameterTuple.QsTupleItem item)
-                    {
-                        return ResolvedType.New(item.Item.Type.Resolution);
-                    }
-                    else if (parameters is ParameterTuple.QsTuple tuple)
-                    {
-                        if (tuple.Item.Length == 0)
-                        {
-                            return ResolvedType.New(ResolvedTypeKind.UnitType);
-                        }
-                        else if (tuple.Item.Length == 1)
-                        {
-                            return this.ExractParamType(tuple.Item[0]);
-                        }
-                        else
-                        {
-                            return ResolvedType.New(ResolvedTypeKind.NewTupleType(tuple.Item.Select(this.ExractParamType).ToImmutableArray()));
-                        }
-                    }
-
-                    return ResolvedType.New(ResolvedTypeKind.UnitType);
-                }
+                //private ResolvedType ExractParamType(ParameterTuple parameters)
+                //{
+                //    if (parameters is ParameterTuple.QsTupleItem item)
+                //    {
+                //        return ResolvedType.New(item.Item.Type.Resolution);
+                //    }
+                //    else if (parameters is ParameterTuple.QsTuple tuple)
+                //    {
+                //        if (tuple.Item.Length == 0)
+                //        {
+                //            return ResolvedType.New(ResolvedTypeKind.UnitType);
+                //        }
+                //        else if (tuple.Item.Length == 1)
+                //        {
+                //            return this.ExractParamType(tuple.Item[0]);
+                //        }
+                //        else
+                //        {
+                //            return ResolvedType.New(ResolvedTypeKind.NewTupleType(tuple.Item.Select(this.ExractParamType).ToImmutableArray()));
+                //        }
+                //    }
+                //
+                //    return ResolvedType.New(ResolvedTypeKind.UnitType);
+                //}
             }
         }
     }
