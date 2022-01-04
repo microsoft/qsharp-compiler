@@ -54,9 +54,9 @@ let ``Array Syntax Qubit Types`` () =
 }"""
 
     let expectedWarnings =
-        """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 30.
-Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 32.
-Warning: Unable to updated deprecated new array syntax in input from line 6, character 18 to line 6, character 63.
+        """Warning: Unable to update deprecated new array syntax in input from line 4, character 18 to line 4, character 30.
+Warning: Unable to update deprecated new array syntax in input from line 5, character 18 to line 5, character 32.
+Warning: Unable to update deprecated new array syntax in input from line 6, character 18 to line 6, character 63.
 """
 
     run input expectedOutput expectedWarnings
@@ -88,9 +88,9 @@ let ``Array Syntax UDT Types`` () =
 }"""
 
     let expectedWarnings =
-        """Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 31.
-Warning: Unable to updated deprecated new array syntax in input from line 6, character 18 to line 6, character 33.
-Warning: Unable to updated deprecated new array syntax in input from line 7, character 18 to line 7, character 64.
+        """Warning: Unable to update deprecated new array syntax in input from line 5, character 18 to line 5, character 31.
+Warning: Unable to update deprecated new array syntax in input from line 6, character 18 to line 6, character 33.
+Warning: Unable to update deprecated new array syntax in input from line 7, character 18 to line 7, character 64.
 """
 
     run input expectedOutput expectedWarnings
@@ -120,9 +120,9 @@ let ``Array Syntax Type Parameter Types`` () =
 }"""
 
     let expectedWarnings =
-        """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 27.
-Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 29.
-Warning: Unable to updated deprecated new array syntax in input from line 6, character 18 to line 6, character 60.
+        """Warning: Unable to update deprecated new array syntax in input from line 4, character 18 to line 4, character 27.
+Warning: Unable to update deprecated new array syntax in input from line 5, character 18 to line 5, character 29.
+Warning: Unable to update deprecated new array syntax in input from line 6, character 18 to line 6, character 60.
 """
 
     run input expectedOutput expectedWarnings
@@ -152,9 +152,9 @@ let ``Array Syntax Function Types`` () =
 }"""
 
     let expectedWarnings =
-        """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 38.
-Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 40.
-Warning: Unable to updated deprecated new array syntax in input from line 6, character 18 to line 6, character 71.
+        """Warning: Unable to update deprecated new array syntax in input from line 4, character 18 to line 4, character 38.
+Warning: Unable to update deprecated new array syntax in input from line 5, character 18 to line 5, character 40.
+Warning: Unable to update deprecated new array syntax in input from line 6, character 18 to line 6, character 71.
 """
 
     run input expectedOutput expectedWarnings
@@ -184,9 +184,9 @@ let ``Array Syntax Operation Types`` () =
 }"""
 
     let expectedWarnings =
-        """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 38.
-Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 40.
-Warning: Unable to updated deprecated new array syntax in input from line 6, character 18 to line 6, character 71.
+        """Warning: Unable to update deprecated new array syntax in input from line 4, character 18 to line 4, character 38.
+Warning: Unable to update deprecated new array syntax in input from line 5, character 18 to line 5, character 40.
+Warning: Unable to update deprecated new array syntax in input from line 6, character 18 to line 6, character 71.
 """
 
     run input expectedOutput expectedWarnings
