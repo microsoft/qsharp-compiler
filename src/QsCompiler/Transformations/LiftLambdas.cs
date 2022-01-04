@@ -179,7 +179,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         QsComments.Empty);
                     var lambdaParams = this.MakeLambdaParams(ex.ResolvedType, processedLambda.Param);
 
-                    // ToDo: the local declarations needs to contain the lambda parameters
                     var generatedContent = new QsScope(new[] { returnStatment }.ToImmutableArray(), new LocalDeclarations(this.SharedState.KnownVariables));
 
                     // The LiftBody determines which callable kind to generate based on the callable kind of the parent callable.
@@ -204,8 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     {
                         //callable = this.AddParamsToCallable(callable, lambdaParams);
 
-                        // ToDo: ensure the lambda parameters are present and last in the parameter list for the generated callable,
-                        // and present and last in the call expression as missing arguments.
+                        // ToDo: ensure the lambda parameters are present and last in the argument list as missing arguments for the call expression
 
                         this.SharedState.GeneratedCallables!.Add(callable);
 

@@ -25,6 +25,60 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     /// </summary>
     public static class LiftContent
     {
+        private static IEnumerable<LocalVariableDeclaration<QsLocalSymbol>> FlattenParamTuple(ParameterTuple parameters)
+        {
+            if (parameters is ParameterTuple.QsTupleItem item)
+            {
+                return new[] { item.Item };
+            }
+            else if (parameters is ParameterTuple.QsTuple tuple)
+            {
+                return tuple.Item.SelectMany(FlattenParamTuple);
+            }
+
+            return ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>.Empty;
+        }
+
+        private static ResolvedType ExractParamType(ParameterTuple parameters)
+        {
+            if (parameters is ParameterTuple.QsTupleItem item)
+            {
+                return ResolvedType.New(item.Item.Type.Resolution);
+            }
+            else if (parameters is ParameterTuple.QsTuple tuple)
+            {
+                if (tuple.Item.Length == 0)
+                {
+                    return ResolvedType.New(ResolvedTypeKind.UnitType);
+                }
+                else if (tuple.Item.Length == 1)
+                {
+                    return ExractParamType(tuple.Item[0]);
+                }
+                else
+                {
+                    return ResolvedType.New(ResolvedTypeKind.NewTupleType(tuple.Item.Select(ExractParamType).ToImmutableArray()));
+                }
+            }
+
+            return ResolvedType.New(ResolvedTypeKind.UnitType);
+        }
+
+        private static ParameterTuple ConcatParams(ParameterTuple first, ParameterTuple second)
+        {
+            var firstItems =
+                first is ParameterTuple.QsTuple firstTup
+                ? firstTup.Item
+                : new[] { first }.ToImmutableArray();
+
+            var secondItems =
+                second is ParameterTuple.QsTuple secondTup
+                ? secondTup.Item
+                : new[] { second }.ToImmutableArray();
+
+            return ParameterTuple.NewQsTuple(firstItems.Concat(secondItems).ToImmutableArray());
+        }
+
         internal class CallableDetails
         {
             internal QsCallable Callable { get; }
@@ -202,31 +256,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return (newSig, specializations);
             }
 
-            private static ResolvedType ExractParamType(ParameterTuple parameters)
-            {
-                if (parameters is ParameterTuple.QsTupleItem item)
-                {
-                    return ResolvedType.New(item.Item.Type.Resolution);
-                }
-                else if (parameters is ParameterTuple.QsTuple tuple)
-                {
-                    if (tuple.Item.Length == 0)
-                    {
-                        return ResolvedType.New(ResolvedTypeKind.UnitType);
-                    }
-                    else if (tuple.Item.Length == 1)
-                    {
-                        return ExractParamType(tuple.Item[0]);
-                    }
-                    else
-                    {
-                        return ResolvedType.New(ResolvedTypeKind.NewTupleType(tuple.Item.Select(ExractParamType).ToImmutableArray()));
-                    }
-                }
-
-                return ResolvedType.New(ResolvedTypeKind.UnitType);
-            }
-
             private (QsCallable, ResolvedType) GenerateCallable(
                 CallableDetails callable,
                 QsScope contents,
@@ -235,7 +264,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             {
                 var newName = NameDecorator.PrependGuid(callable.Callable.FullName);
                 var paramTypes = ExractParamType(parameters);
-                var (signature, specializations) = this.MakeSpecializations(callable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents), returnType);
+
+                // Update the scope to have Known Symbols equal to its parameter list
+                var newContents = new QsScope(
+                    contents.Statements,
+                    new LocalDeclarations(FlattenParamTuple(parameters)
+                        .Select(decl => new LocalVariableDeclaration<string>(
+                            ((QsLocalSymbol.ValidName)decl.VariableName).Item,
+                            decl.Type,
+                            decl.InferredInformation,
+                            decl.Position,
+                            decl.Range))
+                        .ToImmutableArray()));
+
+                var (signature, specializations) = this.MakeSpecializations(callable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, newContents), returnType);
 
                 var generatedCallable = new QsCallable(
                     callable.Callable.Kind.IsFunction
@@ -267,21 +309,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         generatedCallable.Signature.Information));
 
                 return (generatedCallable, generatedCallableCallType);
-            }
-
-            private static ParameterTuple ConcatParams(ParameterTuple first, ParameterTuple second)
-            {
-                var firstItems =
-                    first is ParameterTuple.QsTuple firstTup
-                    ? firstTup.Item
-                    : new[] { first }.ToImmutableArray();
-
-                var secondItems =
-                    second is ParameterTuple.QsTuple secondTup
-                    ? secondTup.Item
-                    : new[] { second }.ToImmutableArray();
-
-                return ParameterTuple.NewQsTuple(firstItems.Concat(secondItems).ToImmutableArray());
             }
 
             /// <summary>
@@ -410,20 +437,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 var filter = new UpdateGeneratedCallable(parameters, oldName, newName);
 
                 return filter.Namespaces.OnCallableDeclaration(qsCallable);
-            }
-
-            private static IEnumerable<LocalVariableDeclaration<QsLocalSymbol>> FlattenParamTuple(ParameterTuple parameters)
-            {
-                if (parameters is ParameterTuple.QsTupleItem item)
-                {
-                    return new[] { item.Item };
-                }
-                else if (parameters is ParameterTuple.QsTuple tuple)
-                {
-                    return tuple.Item.SelectMany(FlattenParamTuple);
-                }
-
-                return ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>.Empty;
             }
 
             public class TransformationState
@@ -570,7 +583,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 }
 
                 usedSymbols = filter.SharedState.SuperContextSymbols
-                    .Where(symbol => symbol.Used)
+                    //.Where(symbol => symbol.Used) //ToDo: Undo this commenting-out
                     .Select(symbol => symbol.Variable)
                     .ToImmutableArray();
 
