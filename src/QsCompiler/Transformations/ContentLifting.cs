@@ -297,15 +297,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 // Change the origin of all type parameter references to use the new name and make all variables immutable
                 generatedCallable = UpdateGeneratedCallable.Apply(generatedCallable, parameters, callable.Callable.FullName, newName);
 
-                // We want to use the non-updated signature here for the types so that they refer to
+                // We want to use the non-updated param and return types here so that they refer to
                 // the original callable's type parameters. We do this because that is what they will
                 // need to be for the call expression.
                 var generatedCallableCallType = ResolvedType.New(callable.Callable.Kind.IsFunction
-                    ? ResolvedTypeKind.NewFunction(signature.ArgumentType, signature.ReturnType)
+                    ? ResolvedTypeKind.NewFunction(paramTypes, returnType)
                     : ResolvedTypeKind.NewOperation(
-                        Tuple.Create(
-                            signature.ArgumentType,
-                            signature.ReturnType),
+                        Tuple.Create(paramTypes, returnType),
                         generatedCallable.Signature.Information));
 
                 return (generatedCallable, generatedCallableCallType);
@@ -377,8 +375,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     new InferredExpressionInformation(false, false),
                     QsNullable<Range>.Null);
 
-                TypedExpression? arguments = null;
-                if (usedSymbols.Any())
+                TypedExpression arguments = new TypedExpression(
+                    ExpressionKind.UnitValue,
+                    TypeArgsResolution.Empty,
+                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                    new InferredExpressionInformation(false, false),
+                    QsNullable<Range>.Null);
+
+                if (usedSymbols.Any() || isAdditionalParams)
                 {
                     var argumentArray = usedSymbols
                         .Select(var => new TypedExpression(
@@ -391,6 +395,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             QsNullable<Range>.Null))
                         .ToImmutableArray();
 
+                    if (additionalParameters.IsQsTupleItem)
+                    {
+                        argumentArray = argumentArray.Add(new TypedExpression(
+                            ExpressionKind.MissingExpr,
+                            TypeArgsResolution.Empty,
+                            ResolvedType.New(ResolvedTypeKind.MissingType),
+                            new InferredExpressionInformation(false, false),
+                            QsNullable<Range>.Null));
+                    }
+                    else if (additionalParameters is ParameterTuple.QsTuple tup)
+                    {
+                        argumentArray = argumentArray
+                            .Concat(tup.Item
+                                .Select(_ => new TypedExpression(
+                                    ExpressionKind.MissingExpr,
+                                    TypeArgsResolution.Empty,
+                                    ResolvedType.New(ResolvedTypeKind.MissingType),
+                                    new InferredExpressionInformation(false, false),
+                                    QsNullable<Range>.Null)))
+                            .ToImmutableArray();
+                    }
+
                     arguments = new TypedExpression(
                         ExpressionKind.NewValueTuple(argumentArray),
                         TypeArgsResolution.Empty,
@@ -398,14 +424,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         new InferredExpressionInformation(false, argumentArray.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
                         QsNullable<Range>.Null);
                 }
-                else
+
+                // If there are additional parameters, the call expression will be a partial application with
+                // missing arguments for each of the top-level additional parameters ('top-level' meaning that
+                // sub-tuples in the parameters will not be broken into individual missing arguments for each of
+                // their elements, but will just get one missing argument for the whole sub-tuple). For this
+                // case the return type needs to be rewritten appropriately to a callable type for the partial
+                // application.
+                if (isAdditionalParams)
                 {
-                    arguments = new TypedExpression(
-                        ExpressionKind.UnitValue,
-                        TypeArgsResolution.Empty,
-                        ResolvedType.New(ResolvedTypeKind.UnitType),
-                        new InferredExpressionInformation(false, false),
-                        QsNullable<Range>.Null);
+                    var additionalParamsType = ExractParamType(additionalParameters);
+
+                    // The return type is a callable that takes the additional parameters and returns the original return type.
+                    returnType = ResolvedType.New(this.CurrentCallable.Callable.Kind.IsFunction
+                        ? ResolvedTypeKind.NewFunction(additionalParamsType, returnType)
+                        : ResolvedTypeKind.NewOperation(
+                            Tuple.Create(additionalParamsType, returnType),
+                            generatedCallable.Signature.Information));
                 }
 
                 // set output parameters
