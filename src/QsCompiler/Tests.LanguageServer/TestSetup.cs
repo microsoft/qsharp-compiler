@@ -91,7 +91,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestCleanup]
         public async Task TerminateServerConnectionAsync()
         {
-            await this.GetFileDiagnosticsAsync(); // forces a flush in the default compilation manager
+            if (this.rpc != null)
+            {
+                await this.GetFileDiagnosticsAsync(); // forces a flush in the default compilation manager
+            }
+
             this.receivedDiagnostics.Clear();
             this.Dispose();
         }
