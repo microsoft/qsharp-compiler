@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.LanguageServer.Client;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -18,7 +20,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     {
         /* basic setup */
 
-        private Connection? connection;
         private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
         private readonly RandomInput inputGenerator = new RandomInput();
         private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
@@ -46,7 +47,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public void Dispose()
         {
             this.rpc?.Dispose();
-            this.connection?.Dispose();
         }
 
         [TestInitialize]
@@ -59,19 +59,32 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 file.Delete(); // deletes the files from previous test runs but not subfolders
             }
 
-            var id = this.inputGenerator.GetRandom();
-            string serverReaderPipe = $"QsLanguageServerReaderPipe{id}";
-            string serverWriterPipe = $"QsLanguageServerWriterPipe{id}";
-            var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
-            var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                var id = this.inputGenerator.GetRandom();
+                string serverReaderPipe = $"QsLanguageServerReaderPipe{id}";
+                string serverWriterPipe = $"QsLanguageServerWriterPipe{id}";
+                var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
+                var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
-            var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
-            await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
-            await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
+                var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
+                await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
+                await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
 
-            this.connection = new Connection(readerPipe, writerPipe);
-            this.rpc = new JsonRpc(this.connection.Writer, this.connection.Reader, this)
-            { SynchronizationContext = new QsSynchronizationContext() };
+                var connection = new Connection(readerPipe, writerPipe);
+                this.rpc = new JsonRpc(connection.Writer, connection.Reader, this)
+                { SynchronizationContext = new QsSynchronizationContext() };
+            }
+            else
+            {
+                var (host, port) = ("localhost", 8008);
+                var server = Server.ConnectViaSocket(hostname: host, port: port);
+
+                var stream = new TcpClient(host, port).GetStream();
+                this.rpc = new JsonRpc(stream, stream, this)
+                { SynchronizationContext = new QsSynchronizationContext() };
+            }
+
             this.rpc.StartListening();
         }
 
