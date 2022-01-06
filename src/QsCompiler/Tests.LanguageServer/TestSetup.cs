@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.LanguageServer.Client;
@@ -20,6 +19,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     {
         /* basic setup */
 
+        private Connection? connection;
         private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
         private readonly RandomInput inputGenerator = new RandomInput();
         private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
@@ -47,6 +47,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public void Dispose()
         {
             this.rpc?.Dispose();
+            this.connection?.Dispose();
         }
 
         [TestInitialize]
@@ -70,32 +71,26 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
                 await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
-
-                var connection = new Connection(readerPipe, writerPipe);
-                this.rpc = new JsonRpc(connection.Writer, connection.Reader, this)
-                { SynchronizationContext = new QsSynchronizationContext() };
+                this.connection = new Connection(readerPipe, writerPipe);
             }
             else
             {
                 var readerPipe = new System.IO.Pipelines.Pipe();
                 var writerPipe = new System.IO.Pipelines.Pipe();
-                var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
 
-                this.rpc = new JsonRpc(readerPipe.Writer.AsStream(), writerPipe.Reader.AsStream(), this)
-                { SynchronizationContext = new QsSynchronizationContext() };
+                var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
+                this.connection = new Connection(readerPipe.Writer.AsStream(), writerPipe.Reader.AsStream());
             }
 
+            this.rpc = new JsonRpc(this.connection.Writer, this.connection.Reader, this)
+            { SynchronizationContext = new QsSynchronizationContext() };
             this.rpc.StartListening();
         }
 
         [TestCleanup]
         public async Task TerminateServerConnectionAsync()
         {
-            if (this.rpc != null)
-            {
-                await this.GetFileDiagnosticsAsync(); // forces a flush in the default compilation manager
-            }
-
+            await this.GetFileDiagnosticsAsync(); // forces a flush in the default compilation manager
             this.receivedDiagnostics.Clear();
             this.Dispose();
         }

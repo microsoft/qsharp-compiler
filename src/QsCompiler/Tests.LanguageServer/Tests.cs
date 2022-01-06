@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public void Connection()
         {
-            Assert.IsNotNull(this.rpc);
+            Assert.IsNotNull(this.connection);
         }
 
         [TestMethod]
