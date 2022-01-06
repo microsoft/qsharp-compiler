@@ -59,9 +59,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 file.Delete(); // deletes the files from previous test runs but not subfolders
             }
 
+            var id = this.inputGenerator.GetRandom();
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                var id = this.inputGenerator.GetRandom();
                 string serverReaderPipe = $"QsLanguageServerReaderPipe{id}";
                 string serverWriterPipe = $"QsLanguageServerWriterPipe{id}";
                 var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
@@ -77,11 +77,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
             else
             {
-                var (host, port) = ("localhost", 8008);
-                var server = Server.ConnectViaSocket(hostname: host, port: port);
+                var readerPipe = new System.IO.Pipelines.Pipe();
+                var writerPipe = new System.IO.Pipelines.Pipe();
+                var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
 
-                var stream = new TcpClient(host, port).GetStream();
-                this.rpc = new JsonRpc(stream, stream, this)
+                this.rpc = new JsonRpc(readerPipe.Writer.AsStream(), writerPipe.Reader.AsStream(), this)
                 { SynchronizationContext = new QsSynchronizationContext() };
             }
 
