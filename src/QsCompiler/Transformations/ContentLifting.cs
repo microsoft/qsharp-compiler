@@ -417,12 +417,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             .ToImmutableArray();
                     }
 
-                    arguments = new TypedExpression(
-                        ExpressionKind.NewValueTuple(argumentArray),
-                        TypeArgsResolution.Empty,
-                        ResolvedType.New(ResolvedTypeKind.NewTupleType(argumentArray.Select(expr => expr.ResolvedType).ToImmutableArray())),
-                        new InferredExpressionInformation(false, argumentArray.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
-                        QsNullable<Range>.Null);
+                    if (argumentArray.Length == 1)
+                    {
+                        arguments = argumentArray.First();
+                    }
+                    else
+                    {
+                        arguments = new TypedExpression(
+                            ExpressionKind.NewValueTuple(argumentArray),
+                            TypeArgsResolution.Empty,
+                            ResolvedType.New(ResolvedTypeKind.NewTupleType(argumentArray.Select(expr => expr.ResolvedType).ToImmutableArray())),
+                            new InferredExpressionInformation(false, usedSymbols.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
+                            QsNullable<Range>.Null);
+                    }
                 }
 
                 // If there are additional parameters, the call expression will be a partial application with
@@ -453,7 +460,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             .Select(type => Tuple.Create(generatedCallable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
                             .ToImmutableArray(),
                     returnType,
-                    new InferredExpressionInformation(false, true),
+                    new InferredExpressionInformation(false, usedSymbols.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
                     QsNullable<Range>.Null);
 
                 return true;

@@ -207,12 +207,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
 
                         this.SharedState.GeneratedCallables!.Add(callable);
 
-                        return new TypedExpression(
-                            call.Expression,
-                            call.TypeArguments,
-                            ex.ResolvedType,
-                            ex.InferredInformation,
-                            ex.Range);
+                        return call;
+                        //return new TypedExpression(
+                        //    call.Expression,
+                        //    call.TypeArguments,
+                        //    ex.ResolvedType,
+                        //    ex.InferredInformation,
+                        //    ex.Range);
                     }
                     else
                     {
