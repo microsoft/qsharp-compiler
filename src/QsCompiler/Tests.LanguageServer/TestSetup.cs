@@ -79,7 +79,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var writerPipe = new System.IO.Pipelines.Pipe();
 
                 var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
-                this.connection = new Connection(readerPipe.Writer.AsStream(), writerPipe.Reader.AsStream());
+                this.connection = new Connection(writerPipe.Reader.AsStream(), readerPipe.Writer.AsStream());
             }
 
             this.rpc = new JsonRpc(this.connection.Writer, this.connection.Reader, this)
