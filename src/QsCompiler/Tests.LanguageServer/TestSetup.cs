@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.LanguageServer.Client;
@@ -62,16 +63,27 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
 
             var id = this.inputGenerator.GetRandom();
-            string serverReaderPipe = $"QsLanguageServerReaderPipe{id}";
-            string serverWriterPipe = $"QsLanguageServerWriterPipe{id}";
-            var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
-            var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                string serverReaderPipe = $"QsLanguageServerReaderPipe{id}";
+                string serverWriterPipe = $"QsLanguageServerWriterPipe{id}";
+                var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
+                var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
-            var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
-            await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
-            await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
+                var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
+                await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
+                await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
+                this.connection = new Connection(readerPipe, writerPipe);
+            }
+            else
+            {
+                var readerPipe = new System.IO.Pipelines.Pipe();
+                var writerPipe = new System.IO.Pipelines.Pipe();
 
-            this.connection = new Connection(readerPipe, writerPipe);
+                var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
+                this.connection = new Connection(writerPipe.Reader.AsStream(), readerPipe.Writer.AsStream());
+            }
+
             this.rpc = new JsonRpc(this.connection.Writer, this.connection.Reader, this)
             { SynchronizationContext = new QsSynchronizationContext() };
             this.rpc.StartListening();

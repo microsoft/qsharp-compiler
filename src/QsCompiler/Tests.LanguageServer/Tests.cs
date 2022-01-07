@@ -12,7 +12,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
 
-
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
     [TestClass]
