@@ -955,7 +955,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         else
                         {
                             // Lift the scope to its own operation
-                            if (this.SharedState.LiftBody(block.Body, null, false, out var call, out var callable))
+                            if (this.SharedState.LiftBody(block.Body, null, null, false, out var call, out var callable))
                             {
                                 var callStatement = new QsStatement(
                                     QsStatementKind.NewQsExpressionStatement(call),
@@ -996,7 +996,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         else
                         {
                             // Lift the scope to its own operation
-                            if (this.SharedState.LiftBody(block.Body, null, false, out var call, out var callable))
+                            if (this.SharedState.LiftBody(block.Body, null, null, false, out var call, out var callable))
                             {
                                 // Make sure the inferred information for the callable has local quantum dependency
                                 call = new TypedExpression(

@@ -197,9 +197,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         originalCallable.Specializations,
                         originalCallable.Documentation,
                         originalCallable.Comments);
-
                     this.SharedState.CurrentCallable = new ContentLifting.LiftContent.CallableDetails(modifiedCallabe);
-                    if (this.SharedState.LiftBody(generatedContent, lambdaParams, true, out var call, out var callable))
+
+                    var callableInfo =
+                        ex.ResolvedType.Resolution is ResolvedTypeKind.Operation op
+                        ? op.Item2
+                        : ex.ResolvedType.Resolution is ResolvedTypeKind.Function
+                        ? new CallableInformation(ResolvedCharacteristics.Empty, InferredCallableInformation.NoInformation)
+                        : throw new ArgumentException("Lambda with non-callable type");
+
+                    if (this.SharedState.LiftBody(generatedContent, lambdaParams, callableInfo, true, out var call, out var callable))
                     {
                         //callable = this.AddParamsToCallable(callable, lambdaParams);
 

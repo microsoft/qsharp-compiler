@@ -128,40 +128,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
             protected internal bool InWithinBlock { get; set; } = false;
 
-            private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
-                CallableDetails callable,
-                QsQualifiedName callableName,
-                ResolvedType paramsType,
-                SpecializationImplementation bodyImplementation,
-                ResolvedType returnType)
+            private CallableInformation DetermineCallableInformation(CallableDetails callable)
             {
-                QsSpecialization MakeSpec(QsSpecializationKind kind, ResolvedSignature signature, SpecializationImplementation impl) =>
-                    new QsSpecialization(
-                        kind,
-                        callableName,
-                        ImmutableArray<QsDeclarationAttribute>.Empty,
-                        callable.Callable.Source,
-                        QsNullable<QsLocation>.Null,
-                        QsNullable<ImmutableArray<ResolvedType>>.Null,
-                        signature,
-                        impl,
-                        ImmutableArray<string>.Empty,
-                        QsComments.Empty);
-
-                // If we are making the body of a function, we can skip the rest of this function.
-                if (callable.Callable.Kind.IsFunction)
-                {
-                    var funcSig = new ResolvedSignature(
-                        callable.Callable.Signature.TypeParameters,
-                        paramsType,
-                        returnType,
-                        new CallableInformation(ResolvedCharacteristics.Empty, new InferredCallableInformation(false, false)));
-
-                    var funcSpecializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, funcSig, bodyImplementation) };
-
-                    return (funcSig, funcSpecializations);
-                }
-
                 var adj = callable.Adjoint;
                 var ctl = callable.Controlled;
                 var ctlAdj = callable.ControlledAdjoint;
@@ -213,11 +181,54 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     props.Add(OpProperty.Controllable);
                 }
 
+                return new CallableInformation(ResolvedCharacteristics.FromProperties(props), new InferredCallableInformation(isSelfAdjoint, false));
+            }
+
+            private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
+                CallableDetails callable,
+                QsQualifiedName callableName,
+                ResolvedType paramsType,
+                SpecializationImplementation bodyImplementation,
+                CallableInformation? callableInformation,
+                ResolvedType returnType)
+            {
+                QsSpecialization MakeSpec(QsSpecializationKind kind, ResolvedSignature signature, SpecializationImplementation impl) =>
+                    new QsSpecialization(
+                        kind,
+                        callableName,
+                        ImmutableArray<QsDeclarationAttribute>.Empty,
+                        callable.Callable.Source,
+                        QsNullable<QsLocation>.Null,
+                        QsNullable<ImmutableArray<ResolvedType>>.Null,
+                        signature,
+                        impl,
+                        ImmutableArray<string>.Empty,
+                        QsComments.Empty);
+
+                // If we are making the body of a function, we can skip the rest of this function.
+                if (callable.Callable.Kind.IsFunction)
+                {
+                    var funcSig = new ResolvedSignature(
+                        callable.Callable.Signature.TypeParameters,
+                        paramsType,
+                        returnType,
+                        new CallableInformation(ResolvedCharacteristics.Empty, InferredCallableInformation.NoInformation));
+
+                    var funcSpecializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, funcSig, bodyImplementation) };
+
+                    return (funcSig, funcSpecializations);
+                }
+
+                if (callableInformation is null)
+                {
+                    callableInformation = this.DetermineCallableInformation(callable);
+                }
+
                 var newSig = new ResolvedSignature(
                     callable.Callable.Signature.TypeParameters,
                     paramsType,
                     returnType,
-                    new CallableInformation(ResolvedCharacteristics.FromProperties(props), new InferredCallableInformation(isSelfAdjoint, false)));
+                    callableInformation);
 
                 var controlledSig = new ResolvedSignature(
                     newSig.TypeParameters,
@@ -228,6 +239,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     newSig.Information);
 
                 var specializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, newSig, bodyImplementation) };
+
+                var addAdjoint = false;
+                var addControlled = false;
+                if (callableInformation.Characteristics.SupportedFunctors.IsValue)
+                {
+                    addAdjoint = callableInformation.Characteristics.SupportedFunctors.Item.Contains(QsFunctor.Adjoint);
+                    addControlled = callableInformation.Characteristics.SupportedFunctors.Item.Contains(QsFunctor.Controlled);
+                }
 
                 if (addAdjoint)
                 {
@@ -260,6 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 CallableDetails callable,
                 QsScope contents,
                 ParameterTuple parameters,
+                CallableInformation? callableInformation,
                 ResolvedType returnType)
             {
                 var newName = NameDecorator.PrependGuid(callable.Callable.FullName);
@@ -277,7 +297,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             decl.Range))
                         .ToImmutableArray()));
 
-                var (signature, specializations) = this.MakeSpecializations(callable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, newContents), returnType);
+                var (signature, specializations) = this.MakeSpecializations(callable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, newContents), callableInformation, returnType);
 
                 var generatedCallable = new QsCallable(
                     callable.Callable.Kind.IsFunction
@@ -323,6 +343,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             public bool LiftBody(
                 QsScope body,
                 ParameterTuple? additionalParameters,
+                CallableInformation? callableInformation,
                 bool isReturnAllowed,
                 [NotNullWhen(true)] out TypedExpression? callExpression,
                 [NotNullWhen(true)] out QsCallable? callable)
@@ -358,7 +379,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     parameters = ConcatParams(parameters, additionalParameters);
                 }
 
-                var (generatedCallable, generatedCallableCallType) = this.GenerateCallable(this.CurrentCallable, body, parameters, returnType);
+                var (generatedCallable, generatedCallableCallType) = this.GenerateCallable(this.CurrentCallable, body, parameters, callableInformation, returnType);
 
                 // Forward the type parameters of the parent callable to the type arguments of the call to the generated callable.
                 var typeArguments = this.CurrentCallable.TypeParameters;
