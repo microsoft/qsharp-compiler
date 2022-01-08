@@ -1,4 +1,4 @@
-name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(BuildId)
+name: $(Build.Major).$(Build.Minor).$(BuildId)
 
 parameters:
 - name: validation_level
