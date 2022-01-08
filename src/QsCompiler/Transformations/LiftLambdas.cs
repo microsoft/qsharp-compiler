@@ -15,7 +15,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
     internal static class LiftLambdaExpressions
     {
@@ -26,14 +25,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
             return transformed;
         }
 
-        private class LiftContent : ContentLifting.LiftContent<LiftContent.TransformationState>
+        private class LiftContent : SyntaxTreeTransformation<LiftContent.TransformationState>
         {
-            internal class TransformationState : ContentLifting.LiftContent.TransformationState
+            internal class TransformationState
             {
                 internal List<QsCallable>? GeneratedCallables { get; set; } = null;
 
                 internal ImmutableArray<LocalVariableDeclaration<string>> KnownVariables { get; set; } = ImmutableArray<LocalVariableDeclaration<string>>.Empty;
-        }
+
+                internal QsCallable? CurrentCallable { get; set; } = null;
+            }
 
             public LiftContent()
                 : base(new TransformationState())
@@ -43,7 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                 this.Expressions = new ExpressionTransformation(this);
             }
 
-            private new class NamespaceTransformation : ContentLifting.LiftContent<TransformationState>.NamespaceTransformation
+            private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
                     : base(parent)
@@ -57,6 +58,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     this.SharedState.GeneratedCallables = new List<QsCallable>();
                     return base.OnNamespace(ns)
                         .WithElements(elems => elems.AddRange(this.SharedState.GeneratedCallables.Select(callable => QsNamespaceElement.NewQsCallable(callable))));
+                }
+
+                /// <inheritdoc/>
+                public override QsCallable OnCallableDeclaration(QsCallable c)
+                {
+                    this.SharedState.CurrentCallable = c;
+                    return base.OnCallableDeclaration(c);
                 }
             }
 
@@ -170,7 +178,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                 {
                     var processedLambdaExpressionKind = this.ExpressionKinds.OnLambda(lambda);
                     var processedLambda = (processedLambdaExpressionKind as ExpressionKind.Lambda)!.Item;
-
                     var lambdaBody = processedLambda.Body;
                     var returnStatment = new QsStatement(
                         QsStatementKind.NewQsReturnStatement(lambdaBody),
@@ -178,27 +185,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         QsNullable<QsLocation>.Null,
                         QsComments.Empty);
                     var lambdaParams = this.MakeLambdaParams(ex.ResolvedType, processedLambda.Param);
-
                     var generatedContent = new QsScope(new[] { returnStatment }.ToImmutableArray(), new LocalDeclarations(this.SharedState.KnownVariables));
-
-                    // The LiftBody determines which callable kind to generate based on the callable kind of the parent callable.
-                    // We need to override that behavior with the lambda kind. So we just change the callable in the shared state
-                    // to have the callable kind that we want.
-                    var originalCallable = this.SharedState.CurrentCallable!.Callable;
-                    var modifiedCallabe = new QsCallable(
-                        processedLambda.Kind.IsFunction ? QsCallableKind.Function : QsCallableKind.Operation,
-                        originalCallable.FullName,
-                        originalCallable.Attributes,
-                        originalCallable.Access,
-                        originalCallable.Source,
-                        originalCallable.Location,
-                        originalCallable.Signature,
-                        originalCallable.ArgumentTuple,
-                        originalCallable.Specializations,
-                        originalCallable.Documentation,
-                        originalCallable.Comments);
-                    this.SharedState.CurrentCallable = new ContentLifting.LiftContent.CallableDetails(modifiedCallabe);
-
                     var callableInfo =
                         ex.ResolvedType.Resolution is ResolvedTypeKind.Operation op
                         ? op.Item2
@@ -206,10 +193,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         ? new CallableInformation(ResolvedCharacteristics.Empty, InferredCallableInformation.NoInformation)
                         : throw new ArgumentException("Lambda with non-callable type");
 
-                    if (this.SharedState.LiftBody(generatedContent, lambdaParams, callableInfo, true, out var call, out var callable))
+                    var success = processedLambda.Kind.IsFunction
+                        ? ContentLifting.LiftContent.LiftFunctionBody(this.SharedState.CurrentCallable!, generatedContent, lambdaParams, true, out var call, out var callable)
+                        : ContentLifting.LiftContent.LiftOperationBody(this.SharedState.CurrentCallable!, generatedContent, lambdaParams, callableInfo, true, out call, out callable);
+
+                    if (success)
                     {
-                        this.SharedState.GeneratedCallables!.Add(callable);
-                        return call;
+                        this.SharedState.GeneratedCallables!.Add(callable!);
+                        return call!;
                     }
                     else
                     {
