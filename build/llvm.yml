@@ -189,6 +189,7 @@ jobs:
     workingDirectory: $(System.DefaultWorkingDirectory)
 
   - task: NuGetCommand@2
+    displayName: "Pack LLVM generated files and binaries"
     inputs:
       command: 'pack'
       packagesToPack: '$(System.DefaultWorkingDirectory)/llvm-build/Microsoft.Quantum.LlvmBindings.Native.nuspec'
@@ -202,6 +203,7 @@ jobs:
   - task: NuGetAuthenticate@0
 
   - task: NuGetCommand@2
+    displayName: "Push to qdk-alpha"
     inputs:
       command: 'push'
       packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'

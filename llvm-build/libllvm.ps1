@@ -108,6 +108,9 @@ Copy-Item -Path $(Join-Path $packageDir 'libLLVM.dll') -Destination (Join-Path $
 Write-Vso "Copy-Item -Path $(Join-Path $packageDir 'libLLVM.dylib') -Destination $(Join-Path $PSScriptRoot drops 'libLLVM.dylib')"
 Copy-Item -Path $(Join-Path $packageDir 'libLLVM.dylib') -Destination (Join-Path $PSScriptRoot drops "libLLVM.dylib")
 
+Write-Vso "Copy-Item -Recurse -Verbose -Path $generatedDir -Destination $(Join-Path $PSScriptRoot drops)"
+Copy-Item -Recurse -Verbose -Path $generatedDir -Destination $(Join-Path $PSScriptRoot drops)
+
 foreach ($file in $llvmArchiveFiles) {
     Move-Item -Path $file -Destination $artifactsDir
 }

@@ -13,5 +13,6 @@
     <file src=".\drops\libLLVM.dll" target="runtimes\win-x64\native\libLLVM.dll" />
     <file src=".\drops\libLLVM.dylib" target="runtimes\osx-x64\native\libLLVM.dylib" />
     <file src=".\drops\libLLVM.so" target="runtimes\linux-x64\native\libLLVM.so" />
+    <file src=".\drops\generated\**\*" target="generated" />
   </files>
 </package>
