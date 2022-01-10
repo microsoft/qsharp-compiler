@@ -109,7 +109,7 @@ jobs:
       artifactName: $(Pkg.Name)
 
 
-- job: LLVMMacOS1015Build
+- job: LLVMMacOSBuild
   timeoutInMinutes: 300
   dependsOn: GetLlvmTag
   displayName: LLVM MacOS Build
@@ -156,7 +156,7 @@ jobs:
   - GetLlvmTag
   - LLVMLinuxBuild
   - LLVMWindowsBuild
-  - LLVMMacOS1015Build
+  - LLVMMacOSBuild
   displayName: libLLVM Assembly
   variables:
   - name: Aq.Llvm.Package.Git.Version
@@ -198,6 +198,15 @@ jobs:
       minorVersion: '0'
       patchVersion: '0'
       basePath: '$(System.DefaultWorkingDirectory)/llvm-build/'
+
+  - task: NuGetAuthenticate@0
+
+  - task: NuGetCommand@2
+    inputs:
+      command: 'push'
+      packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+      nuGetFeedType: 'internal'
+      publishVstsFeed: '9af4e09e-a436-4aca-9559-2094cfe8d80c/78fe88a7-a820-4702-833c-443da7b8466b'
 
   - task: CopyFiles@2
     inputs:
