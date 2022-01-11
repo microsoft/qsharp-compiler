@@ -2,6 +2,17 @@
 # Licensed under the MIT License.
 
 trigger: none
+pr:
+  branches:
+    include:
+      - main
+      - feature/*
+      - features/*
+      - release/*
+  paths:
+    include:
+      - build/llvm.yml
+      - llvm-build/*
 
 variables:
   CCACHE_DIR: $(Pipeline.Workspace)/ccache
