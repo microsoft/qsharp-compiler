@@ -17,7 +17,7 @@ variables:
 jobs:
 - job: GetLlvmTag
   pool:
-    vmImage: 'ubuntu-20.04'
+    vmImage: 'ubuntu-latest'
   steps:
   - checkout: self
   - pwsh:  Write-Host "##vso[task.setvariable variable=AQ_LLVM_PACKAGE_GIT_VERSION;isoutput=true]$(Get-Content ./llvm.tag.txt)"
@@ -36,7 +36,7 @@ jobs:
     value: aq-llvm-x86_64-unknown-linux-gnu-$(Aq.Llvm.Package.Git.Version)
 
   pool:
-    vmImage: 'ubuntu-20.04'
+    vmImage: 'ubuntu-latest'
 
   steps:
   - checkout: self
@@ -78,7 +78,7 @@ jobs:
   - name: Pkg.Name
     value: aq-llvm-x86_64-pc-windows-msvc-static-$(Aq.Llvm.Package.Git.Version)
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
 
   steps:
   - checkout: self
@@ -172,7 +172,7 @@ jobs:
   - name: Blobs.Outdir
     value: $(Pipeline.Workspace)/artifacts
   pool:
-    vmImage: 'windows-2019'
+    vmImage: 'windows-latest'
   steps:
   - checkout: self
   - download: current
