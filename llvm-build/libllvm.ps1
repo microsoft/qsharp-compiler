@@ -19,17 +19,17 @@ $llvmArchiveFiles = @(
 
 for ($i = 0; $i -lt $llvmArchiveFiles.Count; $i++) {
     $file = $llvmArchiveFiles[$i]
-    Write-Vso "Raw: $file"
+    Write-AdoLog "Raw: $file"
     $path = Join-Path (Get-Location) '..' $file
-    Write-Vso "Joined: $path"
+    Write-AdoLog "Joined: $path"
     $resolvedPath = Resolve-Path $path
-    Write-Vso "Resolved: $resolvedPath"
+    Write-AdoLog "Resolved: $resolvedPath"
     $llvmArchiveFiles[$i] = $resolvedPath
 }
 
 $artifactsDir = $env:BLOBS_OUTDIR
 if (!(Test-Path $artifactsDir)) {
-    mkdir $artifactsDir | Out-Null
+    New-Item -ItemType Directory -Force $artifactsDir | Out-Null
 }
 $artifactsDir = Resolve-Path "$artifactsDir"
 
@@ -41,10 +41,10 @@ foreach ($file in $llvmArchiveFiles) {
     }
     elseif (".gz" -eq $extension) {
         $tarGz = $file
-        Write-Vso "Processing $tarGz"
+        Write-AdoLog "Processing $tarGz"
         exec { 7z x $tarGz }
         $tar = $tarGz.Name.TrimEnd($extension)
-        Write-Vso "Processing $tar"
+        Write-AdoLog "Processing $tar"
         exec { 7z x -aoa -ttar $tar }
     }
 }
@@ -54,27 +54,27 @@ foreach ($file in $llvmArchiveFiles) {
 # Darwin: lib/libLLVM.dylib
 
 $linuxPath = Resolve-Path (Join-Path  '.' "$($env:LINUX_PKG_NAME)" "lib" "libLLVM-[0-9][0-9].so")
-Write-Vso "Test Linux Path: $linuxPath"
+Write-AdoLog "Test Linux Path: $linuxPath"
 Test-Path $linuxPath
 
 $windowsPath = Resolve-Path (Join-Path  '.' "$($env:WINDOWS_PKG_NAME)" "bin" "LLVM-C.dll")
-Write-Vso "Test Windows Path: $windowsPath"
+Write-AdoLog "Test Windows Path: $windowsPath"
 Test-Path $windowsPath
 
 $darwinPath = Resolve-Path (Join-Path  '.' "$($env:DARWIN_PKG_NAME)" "lib" "libLLVM.dylib")
-Write-Vso "Test Darwin Path: $darwinPath"
+Write-AdoLog "Test Darwin Path: $darwinPath"
 Test-Path $darwinPath
 
-mkdir $env:PKG_NAME | Out-Null
+New-Item -ItemType Directory -Force $env:PKG_NAME | Out-Null
 $packageDir = Resolve-Path "$($env:PKG_NAME)"
 
-Write-Vso "Move-Item -Path $linuxPath -Destination $(Join-Path $packageDir 'libLLVM.so')"
+Write-AdoLog "Move-Item -Path $linuxPath -Destination $(Join-Path $packageDir 'libLLVM.so')"
 Move-Item -Path $linuxPath -Destination (Join-Path $packageDir "libLLVM.so")
 
-Write-Vso "Move-Item -Path $windowsPath -Destination $(Join-Path $packageDir 'libLLVM.dll')"
+Write-AdoLog "Move-Item -Path $windowsPath -Destination $(Join-Path $packageDir 'libLLVM.dll')"
 Move-Item -Path $windowsPath -Destination (Join-Path $packageDir "libLLVM.dll")
 
-Write-Vso "Move-Item -Path $darwinPath -Destination $(Join-Path $packageDir 'libLLVM.dylib')"
+Write-AdoLog "Move-Item -Path $darwinPath -Destination $(Join-Path $packageDir 'libLLVM.dylib')"
 Move-Item -Path $darwinPath -Destination (Join-Path $packageDir "libLLVM.dylib")
 
 $libLlvmPackage = Join-Path "$($env:BUILD_ARTIFACTSTAGINGDIRECTORY)" "$($env:PKG_NAME).zip"
@@ -86,10 +86,10 @@ $compress = @{
 Compress-Archive @compress
 
 # Create LlvmBindings.Interop wrappers
-Write-Vso "Creating Interop Bindings"
+Write-AdoLog "Creating Interop Bindings"
 $includeDir = Join-Path  '.' "$($env:LINUX_PKG_NAME)" "include"
 $generatedDir = Join-Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY generated
-mkdir $generatedDir | Out-Null
+New-Item -ItemType Directory -Force $generatedDir | Out-Null
 dotnet tool install --global ClangSharpPInvokeGenerator --version 13.0.0-beta1
 ClangSharpPInvokeGenerator `
     "@$(Join-Path $PSScriptRoot GenerateLLVM.rsp)" `
@@ -97,18 +97,18 @@ ClangSharpPInvokeGenerator `
     --file-directory $includeDir `
     --include-directory $includeDir
 
-mkdir (Join-Path $PSScriptRoot drops) | Out-Null
+New-Item -ItemType Directory -Force (Join-Path $PSScriptRoot drops) | Out-Null
 
-Write-Vso "Copy-Item -Path $(Join-Path $packageDir 'libLLVM.so') -Destination $(Join-Path $PSScriptRoot drops 'libLLVM.so')"
+Write-AdoLog "Copy-Item -Path $(Join-Path $packageDir 'libLLVM.so') -Destination $(Join-Path $PSScriptRoot drops 'libLLVM.so')"
 Copy-Item -Path $(Join-Path $packageDir 'libLLVM.so') -Destination (Join-Path $PSScriptRoot drops "libLLVM.so")
 
-Write-Vso "Copy-Item -Path $(Join-Path $packageDir 'libLLVM.dll') -Destination $(Join-Path $PSScriptRoot drops 'libLLVM.dll')"
+Write-AdoLog "Copy-Item -Path $(Join-Path $packageDir 'libLLVM.dll') -Destination $(Join-Path $PSScriptRoot drops 'libLLVM.dll')"
 Copy-Item -Path $(Join-Path $packageDir 'libLLVM.dll') -Destination (Join-Path $PSScriptRoot drops "libLLVM.dll")
 
-Write-Vso "Copy-Item -Path $(Join-Path $packageDir 'libLLVM.dylib') -Destination $(Join-Path $PSScriptRoot drops 'libLLVM.dylib')"
+Write-AdoLog "Copy-Item -Path $(Join-Path $packageDir 'libLLVM.dylib') -Destination $(Join-Path $PSScriptRoot drops 'libLLVM.dylib')"
 Copy-Item -Path $(Join-Path $packageDir 'libLLVM.dylib') -Destination (Join-Path $PSScriptRoot drops "libLLVM.dylib")
 
-Write-Vso "Copy-Item -Recurse -Verbose -Path $generatedDir -Destination $(Join-Path $PSScriptRoot drops)"
+Write-AdoLog "Copy-Item -Recurse -Verbose -Path $generatedDir -Destination $(Join-Path $PSScriptRoot drops)"
 Copy-Item -Recurse -Verbose -Path $generatedDir -Destination $(Join-Path $PSScriptRoot drops)
 
 foreach ($file in $llvmArchiveFiles) {
@@ -124,8 +124,8 @@ foreach ($artifact in $artifacts) {
     Set-Content -Path "$artifact.sha256" -Value $hash
 }
 
-Write-Vso "Artifacts for upload:"
+Write-AdoLog "Artifacts for upload:"
 $artifacts = Get-ChildItem -File $artifactsDir
 foreach ($artifact in $artifacts) {
-    Write-Vso $artifact
+    Write-AdoLog $artifact
 }
