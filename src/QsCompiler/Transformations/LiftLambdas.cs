@@ -179,13 +179,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     var processedLambdaExpressionKind = this.ExpressionKinds.OnLambda(lambda);
                     var processedLambda = (processedLambdaExpressionKind as ExpressionKind.Lambda)!.Item;
                     var lambdaBody = processedLambda.Body;
-                    var returnStatment = new QsStatement(
-                        QsStatementKind.NewQsReturnStatement(lambdaBody),
-                        LocalDeclarations.Empty,
-                        QsNullable<QsLocation>.Null,
-                        QsComments.Empty);
                     var lambdaParams = this.MakeLambdaParams(ex.ResolvedType, processedLambda.Param);
-                    var generatedContent = new QsScope(new[] { returnStatment }.ToImmutableArray(), new LocalDeclarations(this.SharedState.KnownVariables));
                     var callableInfo =
                         ex.ResolvedType.Resolution is ResolvedTypeKind.Operation op
                         ? op.Item2
@@ -193,9 +187,32 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         ? new CallableInformation(ResolvedCharacteristics.Empty, InferredCallableInformation.NoInformation)
                         : throw new ArgumentException("Lambda with non-callable type");
 
+                    // Returns are allowed only if we are not returning Unit from an operation.
+                    var isReturnStatement =
+                        !(ex.ResolvedType.Resolution is ResolvedTypeKind.Operation opType) || !opType.Item1.Item2.Resolution.IsUnitType;
+
+                    // Alternatively:
+                    // Returns are allowed only if we are not doing an adjoint specialization.
+                    //var isReturnStatement =
+                    //    callableInfo.Characteristics.SupportedFunctors.IsNull
+                    //    || !callableInfo.Characteristics.SupportedFunctors.Item.Contains(QsFunctor.Adjoint);
+
+                    var bodyStatment = new QsStatement(
+                        isReturnStatement
+                            ? QsStatementKind.NewQsReturnStatement(lambdaBody)
+                            : QsStatementKind.NewQsExpressionStatement(lambdaBody),
+                        LocalDeclarations.Empty,
+                        QsNullable<QsLocation>.Null,
+                        QsComments.Empty);
+                    var generatedContent = new QsScope(
+                        lambdaBody.Expression.IsUnitValue
+                            ? ImmutableArray<QsStatement>.Empty // if it is just a single unit literal, there should be an empty body
+                            : new[] { bodyStatment }.ToImmutableArray(),
+                        new LocalDeclarations(this.SharedState.KnownVariables));
+
                     var success = processedLambda.Kind.IsFunction
-                        ? ContentLifting.LiftContent.LiftFunctionBody(this.SharedState.CurrentCallable!, generatedContent, lambdaParams, true, out var call, out var callable)
-                        : ContentLifting.LiftContent.LiftOperationBody(this.SharedState.CurrentCallable!, generatedContent, lambdaParams, callableInfo, true, out call, out callable);
+                        ? ContentLifting.LiftContent.LiftFunctionBody(this.SharedState.CurrentCallable!, generatedContent, lambdaParams, isReturnStatement, out var call, out var callable)
+                        : ContentLifting.LiftContent.LiftOperationBody(this.SharedState.CurrentCallable!, generatedContent, lambdaParams, callableInfo, isReturnStatement, out call, out callable);
 
                     if (success)
                     {
