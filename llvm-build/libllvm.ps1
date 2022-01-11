@@ -115,7 +115,7 @@ foreach ($file in $llvmArchiveFiles) {
     Move-Item -Path $file -Destination $artifactsDir
 }
 
-# Add it the job's artifacts
+# Add the zipped binaries to the job's artifacts
 Copy-Item -Path $libLlvmPackage -Destination $artifactsDir
 
 $artifacts = Get-ChildItem -File $artifactsDir
