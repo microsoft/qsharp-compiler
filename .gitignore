@@ -373,3 +373,7 @@ src/Telemetry/.vscode/settings.json
 
 # MSBuild logs
 MSBuild_Logs/
+
+# LLVM source
+llvm-build/llvm-project/
+!llvm-build/GenerateLLVM.rsp
