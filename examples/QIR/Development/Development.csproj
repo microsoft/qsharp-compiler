@@ -135,6 +135,7 @@
       <ClangName Condition="$([MSBuild]::IsOsPlatform('Linux'))">clang++-11</ClangName>
       <ClangCommand>$(ClangName) -o $(ExecutablePath) $(QirOutputPath)$(PathCompatibleAssemblyName).ll $(BuildOutputPath)/Main.cpp -I$(BuildOutputPath) -L$(BuildOutputPath) -lMicrosoft.Quantum.Qir.Runtime -lMicrosoft.Quantum.Qir.QSharp.Core -lMicrosoft.Quantum.Qir.QSharp.Foundation</ClangCommand>
     </PropertyGroup>
+    <Message Text="Clang command: $(ClangCommand)" Importance="High" />
     <ItemGroup>
       <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
       <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.hpp" />
