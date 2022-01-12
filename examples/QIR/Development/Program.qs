@@ -24,6 +24,9 @@ namespace Microsoft.Quantum.Qir.Development {
 }
 
 namespace QPE.Demo {
+    open Microsoft.Quantum.Arithmetic;
+    open Microsoft.Quantum.Preparation;
+    open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Oracles;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Canon;
@@ -34,6 +37,115 @@ namespace QPE.Demo {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
 
+    internal function _PrepareSingleConfigurationalStateSingleSiteOccupation(qubitIndices : Int[]) : (Qubit[] => Unit is Adj + Ctl) {
+        return PrepareSingleConfigurationalStateSingleSiteOccupation(qubitIndices, _);
+    }
+
+    function Mapped<'T, 'U> (mapper : ('T -> 'U), array : 'T[]) : 'U[] {
+
+        Message("entering Mapped");
+        let arrLength = Length(array);
+        Message("creating new array");
+        mutable resultArray = new 'U[arrLength]; // FIXME: THIS IS FAILING... (ALSO FOR A FIX CONSTANT)
+        Message("getting index range");
+        let range = IndexRange(array);
+        Message("entering loop");
+
+
+        for idxElement in range {
+            Message("invoking mapper");
+            let newElement = mapper(array[idxElement]);
+            Message("done invoking mapper");
+            set resultArray w/= idxElement <- newElement;
+        }
+
+        return resultArray;
+    }
+
+    operation PrepareSparseMultiConfigurationalState(
+        initialStatePreparation : (Qubit[] => Unit),
+        excitations : JordanWignerInputState[],
+        qubits : Qubit[]
+    )
+    : Unit {
+        let nExcitations = Length(excitations);
+
+        //FIXME compile error let coefficientsSqrtAbs = Mapped(Compose(Compose(Sqrt, Fst),Fst), excitations);
+        mutable coefficientsSqrtAbs = new Double[nExcitations];
+        mutable coefficientsNewComplexPolar = new ComplexPolar[nExcitations];
+        mutable applyFlips = new Int[][nExcitations];
+
+        for idx in 0 .. nExcitations - 1 {
+            let (x, excitation) = excitations[idx]!;
+            set coefficientsSqrtAbs w/= idx <- Sqrt(AbsComplexPolar(ComplexAsComplexPolar(Complex(x))));
+            set coefficientsNewComplexPolar w/= idx <- ComplexPolar(coefficientsSqrtAbs[idx], ArgComplexPolar(ComplexAsComplexPolar(Complex(x))));
+            set applyFlips w/= idx <- excitation;
+        }
+
+        let nBitsIndices = Ceiling(Lg(IntAsDouble(nExcitations)));
+
+        repeat {
+            mutable success = false;
+            use auxillary = Qubit[nBitsIndices + 1];
+            use flag = Qubit();
+
+            Message("getting array");
+            let array = Mapped(_PrepareSingleConfigurationalStateSingleSiteOccupation, applyFlips);
+
+            Message("getting generator");
+            let generator = ElementAt(_, array);
+            Message("getting multiplexer");
+            let multiplexer = MultiplexOperationsBruteForceFromGenerator(
+                (nExcitations, generator),
+                _,
+                _);
+
+            Message("preparing state...");
+            PrepareArbitraryStateCP(coefficientsNewComplexPolar, LittleEndian(auxillary));
+            Message("invoke multiplexer...");
+            multiplexer(LittleEndian(auxillary), qubits);
+            Adjoint PrepareArbitraryStateD(coefficientsSqrtAbs, LittleEndian(auxillary));
+            ControlledOnInt(0, X)(auxillary, flag);
+        
+            // if measurement outcome one we prepared required state
+            let outcome = M(flag);
+            set success = outcome == One;
+            ResetAll(auxillary);
+            Reset(flag);
+        }
+        until success
+        fixup {
+          ResetAll(qubits);
+        }
+    }
+
+    operation PrepareTrialState (stateData : (Int, JordanWignerInputState[]), qubits : Qubit[]) : Unit {
+        let (stateType, terms) = stateData;
+        Message("entering PrepareTrialState...");
+
+        if stateType == 2 {
+            Message("stateType == 2");
+            if IsEmpty(terms) {
+            } elif Length(terms) == 1 {
+                let (coefficient, qubitIndices) = terms[0]!;
+                Message("starting PrepareSingleConfigurationalStateSingleSiteOccupation");
+                PrepareSingleConfigurationalStateSingleSiteOccupation(qubitIndices, qubits);
+                Message("done with PrepareSingleConfigurationalStateSingleSiteOccupation");
+            } else {
+                Message("starting PrepareSparseMultiConfigurationalState");
+                PrepareSparseMultiConfigurationalState(NoOp, terms, qubits);
+                Message("done with PrepareSparseMultiConfigurationalState");
+            }
+        } elif stateType == 3 {
+            Message("stateType == 3");
+            let nTerms = Length(terms);
+            let trotterStepSize = 1.0;
+
+            let referenceState = PrepareTrialState((2, [terms[nTerms - 1]]), _);
+
+            PrepareUnitaryCoupledClusterState(referenceState, terms[...nTerms - 2], trotterStepSize, qubits);
+        }
+    }
 
     operation AdiabaticStateEnergyUnitary(statePrepData: (Int, JordanWignerInputState[]), adiabaticUnitary : (Qubit[] => Unit), qpeUnitary : (Qubit[] => Unit is Adj + Ctl), phaseEstAlgorithm : ((DiscreteOracle, Qubit[]) => Double), qubits : Qubit[]) : Double {
         Message("invoking state prep");
