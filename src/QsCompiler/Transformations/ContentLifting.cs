@@ -599,7 +599,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 }
 
                 usedSymbols = filter.SharedState.SuperContextSymbols
-                    //.Where(symbol => symbol.Used) //ToDo: Undo this commenting-out
+                    .Where(symbol => symbol.Used)
                     .Select(symbol => symbol.Variable)
                     .ToImmutableArray();
 

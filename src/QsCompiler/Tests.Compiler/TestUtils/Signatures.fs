@@ -124,6 +124,7 @@ let public MonomorphizationNS = "Microsoft.Quantum.Testing.Monomorphization"
 let public GenericsNS = "Microsoft.Quantum.Testing.Generics"
 let public IntrinsicResolutionNS = "Microsoft.Quantum.Testing.IntrinsicResolution"
 let public ClassicalControlNS = "Microsoft.Quantum.Testing.ClassicalControl"
+let public LambdaLiftingNS = "Microsoft.Quantum.Testing.LambdaLifting"
 let public InternalRenamingNS = "Microsoft.Quantum.Testing.InternalRenaming"
 let public CycleDetectionNS = "Microsoft.Quantum.Testing.CycleDetection"
 let public PopulateCallGraphNS = "Microsoft.Quantum.Testing.PopulateCallGraph"
@@ -605,6 +606,17 @@ let public ClassicalControlSignatures =
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
              ClassicalControlNS, "_Foo", [| "Int"; "Double"; "String"; "Double" |], "Unit"
+         |])
+    |]
+    |> _MakeSignatures
+
+/// Expected callable signatures to be found when running Lambda Lifting tests
+let public LambdaLiftingSignatures =
+    [| // Basic Lift
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [|"Unit"|], "Unit" // The generated operation
          |])
     |]
     |> _MakeSignatures
