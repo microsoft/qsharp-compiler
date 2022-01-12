@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         private static readonly Regex TargetFrameworkMoniker =
-            new Regex(@"(netstandard[1-9]\.[0-9])|(netcoreapp[1-9]\.[0-9])|(net[1-9][0-9][0-9]?)");
+            new Regex(@"(netstandard[1-9]\.[0-9])|(netcoreapp[1-9]\.[0-9])|(net[1-9][0-9][0-9]?)|(net[1-9]\.[0-9])");
 
         private readonly ImmutableArray<string> supportedQsFrameworks =
             ImmutableArray.Create("netstandard2.", "netcoreapp2.", "netcoreapp3.", "net6.");

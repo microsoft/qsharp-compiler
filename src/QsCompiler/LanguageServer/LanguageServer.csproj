@@ -30,6 +30,7 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.9.0" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="16.9.1180" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="NuGet.ProjectModel" Version="6.0.0" />
     <PackageReference Include="StreamJsonRpc" Version="2.7.76" />
     <PackageReference Include="System.Reactive" Version="4.4.1" />
   </ItemGroup>

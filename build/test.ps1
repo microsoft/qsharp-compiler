@@ -7,9 +7,6 @@ $ErrorActionPreference = 'Stop'
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
 
-Write-Host "##vso[task.logissue type=warning;]Forcing all tests to be skipped."
-return
-
 if ($Env:ENABLE_TESTS -eq "false") {
     Write-Host "##vso[task.logissue type=warning;]Tests skipped due to ENABLE_TESTS variable."
     return
