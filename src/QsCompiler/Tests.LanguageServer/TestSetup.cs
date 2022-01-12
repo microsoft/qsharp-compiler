@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.LanguageServer.Client;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -23,6 +24,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
         private readonly RandomInput inputGenerator = new RandomInput();
         private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
+        private readonly ManualResetEvent projectLoaded = new ManualResetEvent(false);
 
         public Task<string[]> GetFileContentInMemoryAsync(string filename) =>
             this.rpc.InvokeWithParameterObjectAsync<string[]>(
@@ -104,6 +106,20 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             if (param != null)
             {
                 this.receivedDiagnostics.Push(param);
+            }
+        }
+
+        [JsonRpcMethod(Methods.WindowLogMessageName)]
+        public void LogToWindow(JToken arg)
+        {
+            var param = arg.ToObject<LogMessageParams>();
+            if (param != null)
+            {
+                Console.WriteLine($"[{param.MessageType}]: {param.Message}");
+                if (param.Message.StartsWith("Done loading project"))
+                {
+                    this.projectLoaded.Set();
+                }
             }
         }
     }
