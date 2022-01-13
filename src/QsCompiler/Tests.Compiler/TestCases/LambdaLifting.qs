@@ -82,13 +82,13 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 namespace Microsoft.Quantum.Testing.LambdaLifting {
     operation Foo() : Unit {
         let lambda1 = (a => ())(0);
-        //let lambda2 = ((a) => ())(0);
+        let lambda2 = ((a) => ())(0);
         let lambda3 = ((a, b) => ())(0, 0.0);
         let lambda4 = ((a, b, c) => ())(0, 0.0, "Zero");
         let lambda5 = ((a, (b, c)) => ())(0, (0.0, "Zero"));
-        //let lambda6 = (((a, (b), c)) => ())(0, 0.0, "Zero");
+        let lambda6 = (((a, (b), c)) => ())(0, 0.0, "Zero");
         let lambda7 = (((a, b), c) => ())((0, 0.0), "Zero");
-        //let lambda8 = (((a, b, c)) => ())(0, 0.0, "Zero");
+        let lambda8 = (((a, b, c)) => ())(0, 0.0, "Zero");
     }
 }
 
@@ -103,12 +103,12 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
         let z = Zero;
 
         let lambda1 = (a => (x, y, z))(0);
-        //let lambda2 = ((a) => (x, y, z))(0);
+        let lambda2 = ((a) => (x, y, z))(0);
         let lambda3 = ((a, b) => (x, y, z))(0, 0.0);
         let lambda4 = ((a, b, c) => (x, y, z))(0, 0.0, "Zero");
         let lambda5 = ((a, (b, c)) => (x, y, z))(0, (0.0, "Zero"));
-        //let lambda6 = (((a, (b), c)) => (x, y, z))(0, 0.0, "Zero");
+        let lambda6 = (((a, (b), c)) => (x, y, z))(0, 0.0, "Zero");
         let lambda7 = (((a, b), c) => (x, y, z))((0, 0.0), "Zero");
-        //let lambda8 = (((a, b, c)) => (x, y, z))(0, 0.0, "Zero");
+        let lambda8 = (((a, b, c)) => (x, y, z))(0, 0.0, "Zero");
     }
 }
