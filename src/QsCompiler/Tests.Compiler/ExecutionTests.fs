@@ -144,7 +144,7 @@ type ExecutionTests(output: ITestOutputHelper) =
 
 
     [<Fact>]
-    member this.``QIR default values`` () =
+    member this.``QIR default values``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestDefaultValues"
         let exitCode, out, err = QirExecutionTest functionName
