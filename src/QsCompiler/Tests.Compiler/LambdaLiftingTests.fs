@@ -278,8 +278,87 @@ type LambdaLiftingTests() =
         let lines = original |> GetLinesFromSpecialization
         Assert.True(
             1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
+        let expected = sprintf "let lambda = %O(_);" generated.Parent
+        Assert.True(lines.[0] = expected, "The generated call expression did not have the correct arguments.")
+
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Without Return Value``() =
+        let result = CompileLambdaLiftingTest 2
+
+        let original = GetCallableWithName result Signatures.LambdaLiftingNS "Foo" |> GetBodyFromCallable
+        let generated =
+            GetCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x |> GetBodyFromCallable)
+            
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(
+            0 = Seq.length lines,
             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
         )
 
+        let lines = original |> GetLinesFromSpecialization
+        Assert.True(
+            1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
         let expected = sprintf "let lambda = %O(_);" generated.Parent
-        Assert.True((expected = lines.[0]), "The generated call expression did not have the correct arguments.")
+        Assert.True(lines.[0] = expected, "The generated call expression did not have the correct arguments.")
+
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Call Valued Callable``() =
+        let result = CompileLambdaLiftingTest 3
+
+        let original = GetCallableWithName result Signatures.LambdaLiftingNS "Foo" |> GetBodyFromCallable
+        let generated =
+            GetCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x |> GetBodyFromCallable)
+            
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(
+            1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
+        )
+        Assert.True(lines.[0] = "return Microsoft.Quantum.Testing.LambdaLifting.Bar();", "The generated callable did not have the expected content.")
+
+        let lines = original |> GetLinesFromSpecialization
+        Assert.True(
+            1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
+        let expected = sprintf "let lambda = %O(_);" generated.Parent
+        Assert.True(lines.[0] = expected, "The generated call expression did not have the correct arguments.")
+
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Call Unit Callable``() =
+        let result = CompileLambdaLiftingTest 4
+
+        let original = GetCallableWithName result Signatures.LambdaLiftingNS "Foo" |> GetBodyFromCallable
+        let generated =
+            GetCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x |> GetBodyFromCallable)
+            
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(
+            1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
+        )
+        Assert.True(lines.[0] = "Microsoft.Quantum.Testing.LambdaLifting.Bar();", "The generated callable did not have the expected content.")
+
+        let lines = original |> GetLinesFromSpecialization
+        Assert.True(
+            1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
+        let expected = sprintf "let lambda = %O(_);" generated.Parent
+        Assert.True(lines.[0] = expected, "The generated call expression did not have the correct arguments.")

@@ -618,6 +618,26 @@ let public LambdaLiftingSignatures =
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
              LambdaLiftingNS, "_Foo", [|"Unit"|], "Int" // The generated operation
          |])
+        // Without Return Value
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [|"Unit"|], "Unit" // The generated operation
+         |])
+        // Call Valued Callable
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "Bar", [||], "Int"
+             LambdaLiftingNS, "_Foo", [|"Unit"|], "Int" // The generated operation
+         |])
+        // Call Unit Callable
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "Bar", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [|"Unit"|], "Unit" // The generated operation
+         |])
     |]
     |> _MakeSignatures
 
