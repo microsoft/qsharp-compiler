@@ -1,15 +1,19 @@
 ﻿namespace Microsoft.Quantum.Qir.Development {
-    
-    function NewArray<'U> () : 'U[] {
-        return new 'U[5];
-    }
+
+    open Microsoft.Quantum.Arrays;
+    open Microsoft.Quantum.Canon;
+    open Microsoft.Quantum.Diagnostics;
+    open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Math;
 
     @EntryPoint()
     operation RunExample() : String {
 
-        let res = NewArray<Qubit[] => Unit is Adj + Ctl>(); // fails
-        //let res = NewArray<Qubit>(); // works fine, even though Qubit also doesn't have a default value
+        // Add additional code here
+        // for experimenting with and debugging QIR generation.
 
         return "Executed successfully!";
     }
 }
+
+
