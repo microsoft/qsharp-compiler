@@ -1,35 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace SubOps {
-    operation SubOp1() : Unit { }
-    operation SubOp2() : Unit { }
-    operation SubOp3() : Unit { }
-
-    operation SubOpCA1() : Unit is Ctl + Adj { }
-    operation SubOpCA2() : Unit is Ctl + Adj { }
-    operation SubOpCA3() : Unit is Ctl + Adj { }
-}
-
-namespace Microsoft.Quantum.Testing.General {
-    operation Unitary (q : Qubit) : Unit {
-        body intrinsic;
-        adjoint auto;
-        controlled auto;
-        controlled adjoint auto;
-    }
-
-    operation M (q : Qubit) : Result {
-        body intrinsic;
-    }
-}
-
 // =================================
 
 // With Return Value
 namespace Microsoft.Quantum.Testing.LambdaLifting {
-    open SubOps;
-
     operation Foo() : Unit {
         let lambda = () => 0;
     }
@@ -39,8 +14,6 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // Without Return Value
 namespace Microsoft.Quantum.Testing.LambdaLifting {
-    open SubOps;
-
     operation Foo() : Unit {
         let lambda = () => ();
     }
@@ -50,8 +23,6 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // Call Valued Callable
 namespace Microsoft.Quantum.Testing.LambdaLifting {
-    open SubOps;
-
     operation Bar() : Int {
         return 0;
     }
@@ -65,8 +36,6 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // Call Unit Callable
 namespace Microsoft.Quantum.Testing.LambdaLifting {
-    open SubOps;
-
     operation Bar() : Unit { }
 
     operation Foo() : Unit {
@@ -78,8 +47,6 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // Call Valued Callable Recursive
 namespace Microsoft.Quantum.Testing.LambdaLifting {
-    open SubOps;
-
     operation Foo() : Int {
         let lambda = () => Foo();
         return 0;
@@ -90,8 +57,6 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // Call Unit Callable Recursive
 namespace Microsoft.Quantum.Testing.LambdaLifting {
-    open SubOps;
-
     operation Foo() : Unit {
         let lambda = () => Foo();
     }
@@ -101,8 +66,6 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // Use Closure
 namespace Microsoft.Quantum.Testing.LambdaLifting {
-    open SubOps;
-
     operation Foo() : Unit {
         let w = 0;
         let x = 0.0;
@@ -117,8 +80,6 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // Use Lots of Params
 namespace Microsoft.Quantum.Testing.LambdaLifting {
-    open SubOps;
-
     operation Foo() : Unit {
         let lambda1 = (a => ())(0);
         //let lambda2 = ((a) => ())(0);
@@ -135,8 +96,6 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // Use Closure With Params
 namespace Microsoft.Quantum.Testing.LambdaLifting {
-    open SubOps;
-
     operation Foo() : Unit {
         let w = 0;
         let x = 0.0;
