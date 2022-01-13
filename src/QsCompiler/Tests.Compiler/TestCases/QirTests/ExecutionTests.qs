@@ -1652,6 +1652,26 @@
 
 
     @EntryPoint()
+    operation TestDefaultValues() : Unit {
+        Message($"{new Int[3]}");
+        Message($"{new Double[3]}");
+        Message($"{new Bool[3]}");
+        Message($"{new Pauli[3]}");
+        Message($"{new String[3]}");
+        Message($"{new Range[3]}");
+        Message($"{new Qubit[3]}");
+        Message($"{new Result[3]}");
+        Message($"{new Unit[3]}");
+        // Todo: bigint is not yet supported in the runtime
+        Message($"{new (String, Qubit)[3]}");
+        Message($"{new String[][3]}");
+        Message($"{new MyUdt[3]}");
+        Message($"{new (Qubit[] -> Unit)[3]}");
+        Message($"{new (Qubit[] => Unit is Adj + Ctl)[3]}");
+    }
+
+
+    @EntryPoint()
     operation TestArraySlicing() : Range {
 
         mutable arr = [1,2,3,4];
