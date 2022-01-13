@@ -129,34 +129,43 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                                     : paramName.Range.Item);
                             return ParameterTuple.NewQsTupleItem(localVar);
                         }
-                        else if (paramName.Symbol is QsSymbolKind<QsSymbol>.SymbolTuple emptyTup
-                            && emptyTup.Item.Length == 0
-                            && paramType.Resolution.IsUnitType)
+                        else if (paramName.Symbol is QsSymbolKind<QsSymbol>.SymbolTuple tup)
                         {
-                            // Need an artificial Unit parameter here
-                            var localVar = new LocalVariableDeclaration<QsLocalSymbol>(
-                                QsLocalSymbol.NewValidName("__lambdaUnitParam__"),
-                                paramType,
-                                new InferredExpressionInformation(false, false),
-                                QsNullable<Position>.Null,
-                                paramName.Range.IsNull
-                                    ? DataTypes.Range.Zero
-                                    : paramName.Range.Item);
-                            return ParameterTuple.NewQsTupleItem(localVar);
-                        }
-                        else if (paramName.Symbol is QsSymbolKind<QsSymbol>.SymbolTuple tup && paramType.Resolution is ResolvedTypeKind.TupleType tupType)
-                        {
-                            var subSymbols = tup.Item;
-                            var subSybmolTypes = tupType.Item;
-
-                            if (subSymbols.Length != subSybmolTypes.Length)
+                            if (tup.Item.Length == 0 && paramType.Resolution.IsUnitType)
                             {
-                                throw new ArgumentException("Lambda parameter type length mismatch");
+                                // Need an artificial Unit parameter here
+                                var localVar = new LocalVariableDeclaration<QsLocalSymbol>(
+                                    QsLocalSymbol.NewValidName("__lambdaUnitParam__"),
+                                    paramType,
+                                    new InferredExpressionInformation(false, false),
+                                    QsNullable<Position>.Null,
+                                    paramName.Range.IsNull
+                                        ? DataTypes.Range.Zero
+                                        : paramName.Range.Item);
+                                return ParameterTuple.NewQsTupleItem(localVar);
                             }
+                            else if (tup.Item.Length == 1)
+                            {
+                                return MatchNameWithType(paramType, tup.Item.First());
+                            }
+                            else if (paramType.Resolution is ResolvedTypeKind.TupleType tupType)
+                            {
+                                var subSymbols = tup.Item;
+                                var subSybmolTypes = tupType.Item;
 
-                            return ParameterTuple.NewQsTuple(subSymbols
-                                .Select((symbol, i) => MatchNameWithType(subSybmolTypes[i], symbol))
-                                .ToImmutableArray());
+                                if (subSymbols.Length != subSybmolTypes.Length)
+                                {
+                                    throw new ArgumentException("Lambda parameter type length mismatch");
+                                }
+
+                                return ParameterTuple.NewQsTuple(subSymbols
+                                    .Select((symbol, i) => MatchNameWithType(subSybmolTypes[i], symbol))
+                                    .ToImmutableArray());
+                            }
+                            else
+                            {
+                                throw new ArgumentException("Lambda parameter type mismatch");
+                            }
                         }
                         else
                         {
