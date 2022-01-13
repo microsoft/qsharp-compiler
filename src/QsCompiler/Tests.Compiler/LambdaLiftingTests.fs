@@ -11,7 +11,7 @@ open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
+open Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 
@@ -54,7 +54,7 @@ type LambdaLiftingTests() =
         srcChunks.Length >= testNumber + 1 |> Assert.True
         let shared = srcChunks.[0]
         let compilationDataStructures = BuildContent <| shared + srcChunks.[testNumber]
-        let processedCompilation = ReplaceClassicalControl.Apply compilationDataStructures.BuiltCompilation
+        let processedCompilation = LiftLambdaExpressions.Apply compilationDataStructures.BuiltCompilation
         Assert.NotNull processedCompilation
 
         Signatures.SignatureCheck
@@ -261,7 +261,7 @@ type LambdaLiftingTests() =
     member this.``With Return Value``() =
         let result = CompileLambdaLiftingTest 1
 
-        let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
+        let original = GetCallableWithName result Signatures.LambdaLiftingNS "Foo" |> GetBodyFromCallable
         let generated =
             GetCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
             |> (fun x ->
@@ -281,6 +281,5 @@ type LambdaLiftingTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
         )
 
-        let regexPattern = sprintf @"^let lambda = %O(_);$" generated.Parent
-        let regexMatch = Regex.Match(lines.[0], regexPattern)
-        Assert.True(regexMatch.Success, "The generated call expression did not have the correct arguments.")
+        let expected = sprintf "let lambda = %O(_);" generated.Parent
+        Assert.True((expected = lines.[0]), "The generated call expression did not have the correct arguments.")

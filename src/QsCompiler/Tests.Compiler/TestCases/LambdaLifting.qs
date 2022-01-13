@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
     open SubOps;
 
     operation Foo() : Unit {
-        let lambda1 = () => 0;
+        let lambda = () => 0;
     }
 }
 

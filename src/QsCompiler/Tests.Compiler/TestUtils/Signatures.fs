@@ -616,7 +616,7 @@ let public LambdaLiftingSignatures =
         (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
-             LambdaLiftingNS, "_Foo", [|"Unit"|], "Unit" // The generated operation
+             LambdaLiftingNS, "_Foo", [|"Unit"|], "Int" // The generated operation
          |])
     |]
     |> _MakeSignatures
