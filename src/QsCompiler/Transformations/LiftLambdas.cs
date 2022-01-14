@@ -202,10 +202,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
 
                     // Alternatively:
                     // Returns are allowed only if we are not doing an adjoint specialization.
-                    //var isReturnStatement =
+                    // var isReturnStatement =
                     //    callableInfo.Characteristics.SupportedFunctors.IsNull
                     //    || !callableInfo.Characteristics.SupportedFunctors.Item.Contains(QsFunctor.Adjoint);
-
                     var bodyStatment = new QsStatement(
                         isReturnStatement
                             ? QsStatementKind.NewQsReturnStatement(lambdaBody)
