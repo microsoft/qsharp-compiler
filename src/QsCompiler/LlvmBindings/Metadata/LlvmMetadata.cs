@@ -7,10 +7,10 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.DebugInfo;
+using LlvmBindings.DebugInfo;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     /// <summary>Enumeration to define metadata type kind</summary>
     [SuppressMessage("Design", "CA1027:Mark enums with FlagsAttribute", Justification = "It's not a flags enum, get over it...")]

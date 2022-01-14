@@ -5,7 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     /// <summary>Interface for a <see cref="BitcodeModule"/> factory.</summary>
     /// <remarks>

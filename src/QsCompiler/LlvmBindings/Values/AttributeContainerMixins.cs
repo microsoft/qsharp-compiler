@@ -8,7 +8,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Ubiquity.NET.Llvm.Values
+namespace LlvmBindings.Values
 {
     /// <summary>Provides a layer of simplicity and backwards compatibility for manipulating attributes on Values.</summary>
     /// <remarks>At some point when Default interface methods are available (proposed for C#8) these methods can leverage that.</remarks>

@@ -5,7 +5,7 @@
 
 using System;
 
-namespace LLVMSharp.Interop
+namespace LlvmBindings.Interop
 {
     /// <summary>Extensions for <see cref="LLVMModuleRef"/>.</summary>
     public static unsafe class LLVMModuleRefExtensions
@@ -30,9 +30,6 @@ namespace LLVMSharp.Interop
 
             return new ReadOnlySpan<byte>(pStr, (int)len).AsString();
         }
-
-        /// <summary>Convenience wrapper for <see cref="LLVM.LinkModules2"/>.</summary>
-        public static bool Link(this LLVMModuleRef self, LLVMModuleRef other) => LLVM.LinkModules2(self, other) == 0;
 
         /// <summary>Convenience wrapper for <see cref="LLVM.AddGlobalIFunc"/>.</summary>
         public static LLVMValueRef AddGlobalIFunc(this LLVMModuleRef self, string name, LLVMTypeRef typeRef, uint addrSpace, LLVMValueRef resolver)

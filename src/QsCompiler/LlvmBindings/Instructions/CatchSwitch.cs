@@ -5,11 +5,11 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-using Ubiquity.NET.Llvm.Values;
+using LlvmBindings.Values;
 
-namespace Ubiquity.NET.Llvm.Instructions
+namespace LlvmBindings.Instructions
 {
     /// <summary>Describes the set of possible catch handlers that may be executed by an
     /// <see href="xref:llvm_langref#personalityfn">EH personality routine</see>.</summary>

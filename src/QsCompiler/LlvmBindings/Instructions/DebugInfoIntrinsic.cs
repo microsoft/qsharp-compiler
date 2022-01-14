@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.Instructions
+namespace LlvmBindings.Instructions
 {
     /// <summary>Base class for debug information intrinsic functions in LLVM IR.</summary>
     public class DebugInfoIntrinsic
