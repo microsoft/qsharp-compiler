@@ -64,6 +64,10 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
 
         public static unsafe void BuildAndRun(string pathToBitcode, params string[] functionNames)
         {
+            NativeLibrary.Load("Microsoft.Quantum.Simulator.Runtime", typeof(JitCompilation).Assembly, null);
+            NativeLibrary.Load("Microsoft.Quantum.Qir.Runtime", typeof(JitCompilation).Assembly, null);
+            NativeLibrary.Load("Microsoft.Quantum.Qir.QSharp.Foundation", typeof(JitCompilation).Assembly, null);
+
             // To get this line to work, I had to change the CreateFullstateSimulator API to use raw pointers instead of shared pointers,
             // and I had to update both calls to be "extern 'C'" otherwise name mangling makes then impossible to call here.
             // This should be revised more broadly as we move the runtime to a C-style API for ABI compatibility across langauges.

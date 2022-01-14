@@ -21,6 +21,8 @@ function Test-One {
 
     if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
         $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+    } elseif (-not $IsWindows) {
+        $args = @("--filter", "`"FullyQualifiedName!~Microsoft.Quantum.QsCompiler.Testing.ExecutionTests`"")
     } else {
         $args = @();
     }
@@ -41,7 +43,11 @@ function Test-One {
 
 Test-One '../QsCompiler.sln'
 Test-One '../src/Telemetry/Telemetry.sln'
-Test-One '../QsFmt.sln'
+if ($IsWindows) {
+    # These tests should be able to run cross-platform, see tracking issue:
+    # https://github.com/microsoft/qsharp-compiler/issues/1319
+    Test-One '../QsFmt.sln'
+}
 
 if (-not $all_ok) {
     throw "Running tests failed. Check the logs."

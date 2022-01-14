@@ -36,6 +36,7 @@ entry:
   %q1 = call %Qubit* @__quantum__rt__qubit_allocate()
   %q2 = call %Qubit* @__quantum__rt__qubit_allocate()
   %q3 = call %Qubit* @__quantum__rt__qubit_allocate()
+  %q4 = call %Qubit* @__quantum__rt__qubit_allocate()
   %5 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Qubit* }* getelementptr ({ %Qubit* }, { %Qubit* }* null, i32 1) to i64))
   %6 = bitcast %Tuple* %5 to { %Qubit* }*
   %7 = getelementptr inbounds { %Qubit* }, { %Qubit* }* %6, i32 0, i32 0
@@ -178,7 +179,6 @@ then0__6:                                         ; preds = %else__5
   br label %continue__6
 
 else__6:                                          ; preds = %else__5
-  %q4 = call %Qubit* @__quantum__rt__qubit_allocate()
   %73 = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 false)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %73, i32 1)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %73)
@@ -245,7 +245,6 @@ continue__7:                                      ; preds = %then0__7, %else__6
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %92, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %85, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %78, i32 -1)
-  call void @__quantum__rt__qubit_release(%Qubit* %q4)
   br label %continue__6
 
 continue__6:                                      ; preds = %continue__7, %then0__6
@@ -281,6 +280,7 @@ continue__1:                                      ; preds = %continue__2, %then0
   call void @__quantum__rt__qubit_release(%Qubit* %q1)
   call void @__quantum__rt__qubit_release(%Qubit* %q2)
   call void @__quantum__rt__qubit_release(%Qubit* %q3)
+  call void @__quantum__rt__qubit_release(%Qubit* %q4)
   %103 = load i64, i64* %error_code, align 4
   call void @__quantum__rt__capture_update_alias_count(%Callable* %qop, i32 -1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %qop, i32 -1)

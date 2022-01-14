@@ -16,14 +16,14 @@ steps:
     versionSpec: 5.8.1
 
 - task: UseDotNet@2
-  displayName: Use .NET SDK 5.0.102
+  displayName: Use .NET SDK 5.0.404
   inputs:
-    version: 5.0.102
+    version: 5.0.404
 
 - task: UseDotNet@2
-  displayName: Use .NET Core SDK 3.1.405
+  displayName: Use .NET Core SDK 3.1.416
   inputs:
-    version: 3.1.405
+    version: 3.1.416
 
 # Make sure that npm is up to date, as is required by our VS Code extension
 # build.
