@@ -181,8 +181,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        /// <param name="debugSymbolsEnabled">Whether the emission of debug symbols within the QIR is enabled.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, bool debugSymbolsEnabled)
+        /// <param name="enableDebugSymbols">Whether the emission of debug symbols within the QIR is enabled.</param>
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, bool enableDebugSymbols)
         {
             this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
@@ -191,7 +191,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Context = new Context();
 
             this.Module = this.Context.CreateBitcodeModule();
-            this.DIManager = new DebugInfoManager(this, debugSymbolsEnabled);
+            this.DIManager = new DebugInfoManager(this, enableDebugSymbols);
             this.DIManager.AddTopLevelDebugInfo(this.Module);
 
             this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
@@ -670,7 +670,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var innerTuples = new Queue<(string?, ArgumentTuple)>();
             var outerArgItems = ArgTupleToArgItems(argTuple, innerTuples);
             var innerTupleValues = new Queue<TupleValue>();
-            int argNo = 1; // arg numbers are 1-indexed
 
             // If we have a single named tuple-valued argument, then the items of the tuple
             // are the arguments to the function and we need to reconstruct the tuple.
@@ -701,6 +700,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
+                int argNo = 1; // arg numbers are 1-indexed
                 for (var i = 0; i < outerArgItems.Length; ++i)
                 {
                     var (argName, argType) = outerArgItems[i];

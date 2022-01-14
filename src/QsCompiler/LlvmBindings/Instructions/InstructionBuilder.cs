@@ -52,7 +52,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         /// <summary>Set the current debug location for this <see cref="InstructionBuilder"/></summary>
         /// <param name="location">Location to set</param>
         /// <returns>This builder for fluent API usage</returns>
-        public InstructionBuilder SetDebugLocation(DILocation? location)
+        private InstructionBuilder SetDebugLocation(DILocation? location)
         {
             LLVM.SetCurrentDebugLocation2(this.BuilderHandle, location?.MetadataHandle ?? default);
             return this;

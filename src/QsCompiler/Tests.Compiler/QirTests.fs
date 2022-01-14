@@ -105,7 +105,7 @@ let private debugInfoCompilerArgs target (name: string) =
         "Diagnostic"
         "--assembly-properties"
         "QirOutputPath:qir"
-        "DebugSymbolsEnabled:true"
+        "EnableDebugSymbols:true"
     }
 
 let private customTest name compilerArgs snippets debugTest =

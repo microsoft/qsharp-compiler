@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <summary>
             /// Whether or not to emit debug information during QIR generation
             /// </summary>
-            public static bool DebugSymbolsEnabled { get; set; } = false;
+            public static bool EnableDebugSymbols { get; set; } = false;
 
             /// <summary>
             /// Dwarf version we are using for the debug info in the QIR generation
@@ -143,24 +143,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Constructs a DebugInfoManater with access to the <see cref="GenerationContext"/> as the shared state.
         /// </summary>
-        internal DebugInfoManager(GenerationContext generationContext, bool debugSymbolsEnabled)
+        internal DebugInfoManager(GenerationContext generationContext, bool enableDebugSymbols)
         {
             this.sharedState = generationContext;
-            Config.DebugSymbolsEnabled = debugSymbolsEnabled;
+            Config.EnableDebugSymbols = enableDebugSymbols;
             this.StatementLocationStack = new Stack<QsLocation?>();
             this.ExpressionRangeStack = new Stack<DataTypes.Range?>();
             this.dIBuilders = new Dictionary<string, DebugInfoBuilder>();
         }
 
         /// <summary>
-        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, creates and adds top level debug info to the module.
+        /// If <see cref="Config.EnableDebugSymbols"/> is set to true, creates and adds top level debug info to the module.
         /// Note: because this is called from within the constructor of the GenerationContext,
         /// we cannot access this.Module or anything else that uses <see cref="sharedState"/>.
         /// </summary>
         /// <param name="owningModule">The <see cref="BitcodeModule"/> that this DebugInfoManager is related to</param>
         internal void AddTopLevelDebugInfo(BitcodeModule owningModule)
         {
-            if (!Config.DebugSymbolsEnabled)
+            if (!Config.EnableDebugSymbols)
             {
                 return;
             }
@@ -177,7 +177,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void FinalizeDebugInfo()
         {
-            if (!Config.DebugSymbolsEnabled)
+            if (!Config.EnableDebugSymbols)
             {
                 return;
             }
@@ -189,7 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
+        /// If <see cref="Config.EnableDebugSymbols"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
         /// relative to the namespace and statement stack of parent <see cref="QsStatement"/>s,
         /// which is converted to a 1-based <see cref="DebugPosition"/>.
         /// </summary>
@@ -197,7 +197,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// relative to the namespace and stack of parent <see cref="QsStatement"/>s.</param>
         internal void EmitLocationWithOffset(Position? relativePosition)
         {
-            if (!Config.DebugSymbolsEnabled)
+            if (!Config.EnableDebugSymbols)
             {
                 return;
             }
@@ -213,11 +213,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, emits the current location allowing for a breakpoint when debugging.
+        /// If <see cref="Config.EnableDebugSymbols"/> is set to true, emits the current location allowing for a breakpoint when debugging.
         /// </summary>
         internal void EmitLocation()
         {
-            if (!Config.DebugSymbolsEnabled)
+            if (!Config.EnableDebugSymbols)
             {
                 return;
             }
@@ -232,7 +232,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="value">The value of the variable.</param>
         internal void CreateLocalVariable(string name, IValue value, bool isMutableBinding)
         {
-            if (!Config.DebugSymbolsEnabled)
+            if (!Config.EnableDebugSymbols)
             {
                 return;
             }
@@ -310,8 +310,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Creates a global function. If the debug flag is set to true, includes debug information
-        /// with the global function.
+        /// Creates a global function. If debug symbols are enabled and we support the debug information
+        /// for the given specialization kind, we include debug information with the global function.
+        /// Currently, debug symbols are only enabled for body functions.
         /// </summary>
         /// <param name="spec">The <see cref="QsSpecialization"/> for the function.</param>
         /// <param name="mangledName">The mangled name for the function.</param>
@@ -319,63 +320,71 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The <see cref="IrFunction"/> corresponding to the given Q# type.</returns>
         internal IrFunction CreateGlobalFunction(QsSpecialization spec, string mangledName, IFunctionType signature)
         {
-            if (!Config.DebugSymbolsEnabled)
+            // check if we support debug info for this specialization kind and debug symbols were requested
+            if (spec.Kind == QsSpecializationKind.QsBody && Config.EnableDebugSymbols)
+            {
+                return this.CreateFunctionWithDebugInfo(spec, mangledName, signature);
+            }
+            else
+            {
+                return this.CreateFunctionNoDebug(mangledName, signature);
+            }
+        }
+
+        /// <summary>
+        /// Creates a global function. Includes debug information with the global function.
+        /// </summary>
+        /// <param name="spec">The <see cref="QsSpecialization"/> for the function.</param>
+        /// <param name="mangledName">The mangled name for the function.</param>
+        /// <param name="signature">The signature for the function.</param>
+        /// <returns>The <see cref="IrFunction"/> corresponding to the given Q# type.</returns>
+        private IrFunction CreateFunctionWithDebugInfo(QsSpecialization spec, string mangledName, IFunctionType signature)
+        {
+            // set up the DIBuilder
+            string sourcePath = spec.Source.CodeFile;
+            DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
+            DIFile debugFile = curDIBuilder.CreateFile(sourcePath);
+
+            // set up debug info for the function
+            IDebugType<ITypeRef, DIType>? retDebugType;
+            IDebugType<ITypeRef, DIType>?[] argDebugTypes;
+            retDebugType = this.DebugTypeFromQsharpType(spec.Signature.ReturnType, curDIBuilder);
+            argDebugTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ?
+                ts.Item.Select(t => this.DebugTypeFromQsharpType(t, curDIBuilder)).ToArray() :
+                new IDebugType<ITypeRef, DIType>?[] { this.DebugTypeFromQsharpType(spec.Signature.ArgumentType, curDIBuilder) };
+            string shortName = spec.Parent.Name;
+
+            // Get the location info
+            QsNullable<QsLocation> debugLocation = spec.Location;
+            if (debugLocation.IsNull)
             {
                 return this.CreateFunctionNoDebug(mangledName, signature);
             }
 
-            if (spec.Kind == QsSpecializationKind.QsBody)
+            Position absolutePosition = debugLocation.Item.Offset; // the position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
+
+                // checking the debug types for null ensures we have valid debug info
+            if (retDebugType != null && !argDebugTypes.Contains(null))
             {
-                // set up the DIBuilder
-                string sourcePath = spec.Source.CodeFile;
-                DebugInfoBuilder curDIBuilder = this.GetOrCreateDIBuilder(sourcePath);
-                DIFile debugFile = curDIBuilder.CreateFile(sourcePath);
+                DebugPosition debugPosition = ConvertToDebugPosition(absolutePosition);
 
-                // set up debug info for the function
-                IDebugType<ITypeRef, DIType>? retDebugType;
-                IDebugType<ITypeRef, DIType>?[] argDebugTypes;
-                retDebugType = this.DebugTypeFromQsharpType(spec.Signature.ReturnType, curDIBuilder);
-                argDebugTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ?
-                    ts.Item.Select(t => this.DebugTypeFromQsharpType(t, curDIBuilder)).ToArray() :
-                    new IDebugType<ITypeRef, DIType>?[] { this.DebugTypeFromQsharpType(spec.Signature.ArgumentType, curDIBuilder) };
-                string shortName = spec.Parent.Name;
+                // create the function with debug info
+                DebugFunctionType debugSignature = new DebugFunctionType(signature, curDIBuilder, DebugInfoFlags.None, retDebugType, argDebugTypes!);
+                IrFunction func = this.Module.CreateFunction(
+                    scope: curDIBuilder.CompileUnit,
+                    name: shortName,
+                    mangledName: mangledName,
+                    file: debugFile,
+                    line: debugPosition.Line,
+                    signature: debugSignature,
+                    isLocalToUnit: true, // we're using the compile unit from the source file this was declared in
+                    isDefinition: true, // if this isn't set to true, it results in temporary metadata nodes that don't get resolved.
+                    scopeLine: debugPosition.Line,
+                    debugFlags: DebugInfoFlags.None,
+                    isOptimized: false,
+                    curDIBuilder);
 
-                // Get the location info
-                QsNullable<QsLocation> debugLocation = spec.Location;
-                if (debugLocation.IsNull)
-                {
-                    return this.CreateFunctionNoDebug(mangledName, signature);
-                }
-
-                Position absolutePosition = debugLocation.Item.Offset; // the position stored in a QsSpecialization is absolute, not relative to the ancestor namespace and statements
-
-                 // checking the debug types for null ensures we have valid debug info
-                if (retDebugType != null && !argDebugTypes.Contains(null))
-                {
-                    DebugPosition debugPosition = ConvertToDebugPosition(absolutePosition);
-
-                    // create the function with debug info
-                    DebugFunctionType debugSignature = new DebugFunctionType(signature, curDIBuilder, DebugInfoFlags.None, retDebugType, argDebugTypes!);
-                    IrFunction func = this.Module.CreateFunction(
-                        scope: curDIBuilder.CompileUnit,
-                        name: shortName,
-                        mangledName: mangledName,
-                        file: debugFile,
-                        line: debugPosition.Line,
-                        signature: debugSignature,
-                        isLocalToUnit: true, // we're using the compile unit from the source file this was declared in
-                        isDefinition: true, // if this isn't set to true, it results in temporary metadata nodes that don't get resolved.
-                        scopeLine: debugPosition.Line,
-                        debugFlags: DebugInfoFlags.None,
-                        isOptimized: false,
-                        curDIBuilder);
-
-                    return func;
-                }
-                else
-                {
-                    return this.CreateFunctionNoDebug(mangledName, signature);
-                }
+                return func;
             }
             else
             {
@@ -392,7 +401,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="argNo">The index of the argument (expected to be 1-indexed).</param>
         internal void CreateFunctionArgument(QsSpecialization spec, string name, IValue value, int argNo)
         {
-            if (!Config.DebugSymbolsEnabled)
+            if (!Config.EnableDebugSymbols)
             {
                 return;
             }
@@ -470,7 +479,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, creates a debug type for a particular Q# type.
+        /// If <see cref="Config.EnableDebugSymbols"/> is set to true, creates a debug type for a particular Q# type.
         /// The debug type connects a debug info type with its corresponding LLVM Native type.
         /// Note: If the debug type is not implemented, ideally we would return a <see cref="DebugType"/> with a valid LLVM Native type
         /// and a null DIType. However, this causes an error in the QIR emission because of a bug in the native LLVM API, so we return null.
@@ -480,7 +489,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The <see cref="DebugType"/> corresponding to the given Q# type. Returns null if the debug type is not implemented.</returns>
         private IDebugType<ITypeRef, DIType>? DebugTypeFromQsharpType(ResolvedType resolvedType, DebugInfoBuilder dIBuilder)
         {
-            if (!Config.DebugSymbolsEnabled)
+            if (!Config.EnableDebugSymbols)
             {
                 return null;
             }
@@ -489,8 +498,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Creates a function without debug information. This should be used when the debug information
-        /// being created is invalid.
+        /// Creates a function without debug information. Whenver the debug information
+        /// being created is invalid, not requsted, or unsupported, this should be used.
         /// </summary>
         /// <param name="mangledName">The mangled name for the function.</param>
         /// <param name="signature">The signature for the function.</param>
@@ -498,7 +507,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private IrFunction CreateFunctionNoDebug(string mangledName, IFunctionType signature) => this.Module.CreateFunction(mangledName, signature);
 
         /// <summary>
-        /// If <see cref="Config.DebugSymbolsEnabled"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
+        /// If <see cref="Config.EnableDebugSymbols"/> is set to true, emits a location allowing for a breakpoint when debugging. Expects a 0-based <see cref="Position"/>
         /// which is converted to a 1-based <see cref="DebugPosition"/>.
         /// </summary>
         /// <param name="absolutePosition">The 0-based <see cref="Position"/> at which to emit the location.</param>
@@ -506,7 +515,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// this will not emit a location.</param>
         private void EmitLocation(Position absolutePosition, DILocalScope? localScope)
         {
-            if (!Config.DebugSymbolsEnabled)
+            if (!Config.EnableDebugSymbols)
             {
                 return;
             }

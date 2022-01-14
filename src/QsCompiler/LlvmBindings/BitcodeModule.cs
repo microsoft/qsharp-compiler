@@ -129,7 +129,7 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Gets the list of <see cref="DebugInfoBuilder"/>s used to create debug information for this module</summary>
         /// <remarks>Each DebugInfoBuilder can own one paired compile unit.</remarks>
-        public List<DebugInfoBuilder> DIBuilders { get; }
+        private List<DebugInfoBuilder> DIBuilders { get; }
 
         /// <summary>
         /// If there is exactly one <see cref="DebugInfoBuilder"/> used to create debug info for this module,

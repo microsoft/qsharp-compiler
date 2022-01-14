@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 QsNamespaceElement.QsCallable callable => callable.Item.Location,
                 QsNamespaceElement.QsCustomType type => type.Item.Location,
-                _ => throw new NotImplementedException("unknown namespace element"),
+                _ => throw new ArgumentException("unknown namespace element"),
             };
 
             QsLocation? loc = locNullable.IsNull ? null : locNullable.Item;

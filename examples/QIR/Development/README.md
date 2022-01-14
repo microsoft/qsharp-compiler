@@ -15,7 +15,7 @@ NOTE: This debug feature is currently incompatible with Windows due to some LLVM
 
 To emit debug information within the QIR, uncomment the following line in `Development.csproj`.
 ```
-<_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) DebugSymbolsEnabled:"true"</_QscCommandPredefinedAssemblyProperties>
+<_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) EnableDebugSymbols:"true"</_QscCommandPredefinedAssemblyProperties>
 ```
 
 To test the Q# debugging experience, you can use `lldb` from the command line, but we recommend using the built in VS Code debugging GUI for a better experience. Use the following steps to set this up:
