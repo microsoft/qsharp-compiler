@@ -868,9 +868,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     return false;
                 }
 
-                return this.CurrentCallable.Callable.Kind.IsFunction
-                    ? LiftContent.LiftFunctionBody(this.CurrentCallable.Callable, body, additionalParameters, isReturnAllowed, out callExpression, out callable)
-                    : LiftContent.LiftOperationBody(this.CurrentCallable.Callable, body, additionalParameters, this.DetermineCallableInformation(), isReturnAllowed, out callExpression, out callable);
+                if (this.CurrentCallable.Callable.Kind.IsFunction)
+                {
+                    return LiftContent.LiftFunctionBody(this.CurrentCallable.Callable, body, additionalParameters, isReturnAllowed, out callExpression, out callable);
+                }
+                else
+                {
+                    return LiftContent.LiftOperationBody(this.CurrentCallable.Callable, body, additionalParameters, this.DetermineCallableInformation(), isReturnAllowed, out callExpression, out callable);
+                }
             }
         }
 
