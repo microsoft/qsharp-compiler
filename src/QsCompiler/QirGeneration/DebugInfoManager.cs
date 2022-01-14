@@ -59,13 +59,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <summary>
             /// Returns a string representing the producer information for the QIR
             /// </summary>
-            public static string GetQirProducerIdent()
-            {
-                AssemblyName compilationInfo = CompilationLoader.GetQSharpCompilerAssemblyName();
-                AssemblyName qirGenerationInfo = Assembly.GetExecutingAssembly().GetName();
-                return compilationInfo.Name + " with " + qirGenerationInfo.Name + " V " + qirGenerationInfo.Version;
-            }
+            public static string QirProducerIdentifier =>
+                $"{CompilationLoader.QSharpCompilerAssemblyName.Name} with {DebugInfoProducerAssemblyName.Name} V {DebugInfoProducerAssemblyName.Version}";
         }
+
+        private static AssemblyName DebugInfoProducerAssemblyName => Assembly.GetExecutingAssembly().GetName();
 
         /// <summary><see cref="DebugPosition"/> represents a line/col position in source code and is 1-based.</summary>
         /// <summary>If a column number is not provided, 1 is used.</summary>
@@ -112,7 +110,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return DebugPosition.FromZeroBased(position.Line, position.Column);
         }
 
-        public static string DebugTypeNotSupportedMessage { get; } = "This debug type is not yet supported";
+        public static string DebugTypeNotSupportedMessage => "This debug type is not yet supported";
 
         /// <summary>
         /// Contains the location information for the statement nodes we are currently parsing
@@ -141,7 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Dictionary<string, DebugInfoBuilder> dIBuilders;
 
         /// <summary>
-        /// Constructs a DebugInfoManater with access to the <see cref="GenerationContext"/> as the shared state.
+        /// Constructs a DebugInfoManager with access to the <see cref="GenerationContext"/> as the shared state.
         /// </summary>
         internal DebugInfoManager(GenerationContext generationContext, bool debugSymbolsEnabled)
         {
@@ -166,7 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             // Add Module identity and Module Flags
-            owningModule.AddProducerIdentMetadata(Config.GetQirProducerIdent());
+            owningModule.AddProducerIdentMetadata(Config.QirProducerIdentifier);
             owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, Config.DwarfVersion);
             owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DebugVersionValue, BitcodeModule.DebugMetadataVersion);
             owningModule.AddModuleFlag(ModuleFlagBehavior.Warning, Config.CodeviewName, Config.CodeviewVersion);
@@ -285,26 +283,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (this.sharedState.CurrentBlock != null)
                 {
-                    if (isMutableBinding)
-                    {
-                        // variable is represented as a pointer to the value
-                        Value variable = ((PointerValue)value).Pointer;
-                        dIBuilder.InsertDeclare(
-                        storage: variable,
+                    // The variable is represented as a pointer if it's mutable, or its value if it's immutable.
+                    var variable = isMutableBinding ? ((PointerValue)value).Pointer : value.Value;
+                    dIBuilder.InsertValue(
+                        value: variable,
                         varInfo: dIVar,
                         location: dILocation,
                         insertAtEnd: this.sharedState.CurrentBlock);
-                    }
-                    else
-                    {
-                        // variable is represented as the value itself
-                        Value variable = value.Value;
-                        dIBuilder.InsertValue(
-                            value: variable,
-                            varInfo: dIVar,
-                            location: dILocation,
-                            insertAtEnd: this.sharedState.CurrentBlock);
-                    }
                 }
             }
         }
@@ -462,7 +447,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 di.CreateCompileUnit(
                     Config.QSharpLanguage,
                     sourcePath,
-                    Config.GetQirProducerIdent(),
+                    Config.QirProducerIdentifier,
                     null);
                 this.dIBuilders.Add(sourcePath, di);
                 return di;
