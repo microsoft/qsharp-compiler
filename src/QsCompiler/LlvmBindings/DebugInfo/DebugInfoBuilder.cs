@@ -224,6 +224,16 @@ namespace LlvmBindings.DebugInfo
         /// </returns>
         public DIFile CreateFile(string? fileName, string? directory)
         {
+            if (fileName == null)
+            {
+                throw new ArgumentNullException(nameof(fileName));
+            }
+
+            if (directory == null)
+            {
+                throw new ArgumentNullException(nameof(directory));
+            }
+
             var handle = this.BuilderHandle.CreateFile(fileName!, directory!);
             return MDNode.FromHandle<DIFile>(handle)!;
         }
