@@ -7,9 +7,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.Values
+namespace LlvmBindings.Values
 {
     /// <summary>An LLVM Global Variable.</summary>
     public class GlobalVariable

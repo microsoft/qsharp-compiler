@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>Debug information from an imported entity</summary>
     /// <seealso href="xref:llvm_langref#diimportedentity">LLVM DIImportedEntity</seealso>

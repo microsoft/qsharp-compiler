@@ -30,7 +30,7 @@ entry:
   %11 = bitcast { double, %Qubit* }* %8 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i32 -1)
   %12 = call %Result* @__quantum__qis__mz(%Qubit* %q)
-  %13 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (double* getelementptr (double, double* null, i32 1) to i64), i64 2))
+  %13 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, double }* getelementptr ({ double, double }, { double, double }* null, i32 1) to i64))
   %14 = bitcast %Tuple* %13 to { double, double }*
   %15 = getelementptr inbounds { double, double }, { double, double }* %14, i32 0, i32 0
   %16 = getelementptr inbounds { double, double }, { double, double }* %14, i32 0, i32 1
@@ -48,7 +48,7 @@ entry:
   %22 = bitcast { double, double }* %17 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %22, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %q)
-  %23 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (double* getelementptr (double, double* null, i32 1) to i64), i64 2))
+  %23 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, double }* getelementptr ({ double, double }, { double, double }* null, i32 1) to i64))
   %24 = bitcast %Tuple* %23 to { double, double }*
   %25 = getelementptr inbounds { double, double }, { double, double }* %24, i32 0, i32 0
   %26 = getelementptr inbounds { double, double }, { double, double }* %24, i32 0, i32 1

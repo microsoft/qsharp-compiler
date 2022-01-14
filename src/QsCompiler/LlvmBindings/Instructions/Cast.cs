@@ -5,11 +5,11 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Types;
-using Ubiquity.NET.Llvm.Values;
+using LlvmBindings.Interop;
+using LlvmBindings.Types;
+using LlvmBindings.Values;
 
-namespace Ubiquity.NET.Llvm.Instructions
+namespace LlvmBindings.Instructions
 {
     /// <summary>Base class for cast instructions.</summary>
     public class Cast

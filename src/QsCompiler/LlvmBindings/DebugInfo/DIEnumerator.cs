@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>Debug Information for a name value par of an enumerated type</summary>
     /// <seealso href="xref:llvm_langref#dienumerator">LLVM DIEnumerator</seealso>
