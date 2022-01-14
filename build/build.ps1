@@ -172,7 +172,7 @@ Build-One '../src/QuantumSdk/Tools/Tools.sln'
 Build-One '../src/Telemetry/Telemetry.sln'
 Build-One '../QsFmt.sln'
 
-if ($Env:ENABLE_VSIX -ne "false") {
+if ($Env:ENABLE_VSIX -ne "false" -and $IsWindows) {
     Build-VSCode
     Build-VS
 } else {
