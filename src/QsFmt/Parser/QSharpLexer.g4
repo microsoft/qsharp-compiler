@@ -146,12 +146,15 @@ IntegerLiteral
 
 BigIntegerLiteral : IntegerLiteral ('L' | 'l');
 
+fragment Exponent : ('e' | 'E') ('+' | '-')? Digit+;
+
 DoubleLiteral
-    : Digit+ '.' Digit+
-    | '.' Digit+
+    : Digit+ '.' Digit+ Exponent?
+    | '.' Digit+ Exponent?
+    | Digit+ '.' Exponent
     // "n.." should be interpreted as an integer range, not the double "n." followed by a dot.
     | Digit+ '.' { InputStream.LA(1) != '.' }?
-    | Digit+ ('e' | 'E') Digit+
+    | Digit+ Exponent
     ;
 
 Identifier : IdentifierStart IdentifierContinuation*;

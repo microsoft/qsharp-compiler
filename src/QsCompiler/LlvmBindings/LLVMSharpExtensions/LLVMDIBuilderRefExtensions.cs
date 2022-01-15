@@ -4,7 +4,6 @@
 // </copyright>
 
 using System;
-using Ubiquity.NET.Llvm.DebugInfo;
 
 namespace LLVMSharp.Interop
 {
