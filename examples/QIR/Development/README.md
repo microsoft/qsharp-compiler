@@ -10,14 +10,26 @@ export LD_LIBRARY_PATH=/usr/lib/llvm-11/lib
 ```
 
 # Development of the QIR Debug Info Generation
-NOTE: This debug feature is currently incompatible with Windows due to some LLVM tool limitations. If you request debug symbols within Development.csproj while using the Windows platform, you will run into errors when you build the Development project. These errors come from compiling the emitted QIR (with debug information) into an executable, meaning that the QIR emission itself will still work on Windows, but you won't be able to actually test the Q# debugging experience.
 
+## NOTE: Incompatible with Windows
+
+This debug feature is currently incompatible with Windows due to some LLVM tool limitations. The QIR emission itself still works on Windows, meaning you can request debug symbols within Development.csproj and they will appear in the emitted QIR when you build without errors. However, when you go to actually test the Q# debugging experience on Windows, you won't be able to set breakpoints. If you use the VS Code UI for debugging, the program simply won't stop at the lines you attempt to put breakpoints on. If you use LLDB from the command line, you will get this specific message when you attempt to set breakpoints:
+```
+WARNING:  Unable to resolve breakpoint to any actual locations.
+```
+
+This seems to be due to a bug in LLVM within either LLDB or Clang that prevents us from having debug information point back to a ".qs" file on Windows. This is not a problem on Linux or Mac.
+
+As a workaround, you can duplicate the Q# file into into a ".c" file and change the emitted QIR such that the source file references have extension ".c" instead of ".qs." Then, you would attach the debugger to the ".c" file.
+
+## Emitting debug information within the QIR
 
 To emit debug information within the QIR, uncomment the following line in `Development.csproj`.
 ```
 <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) EnableDebugSymbols:"true"</_QscCommandPredefinedAssemblyProperties>
 ```
 
+## Testing the Q# debugging experience
 To test the Q# debugging experience, you can use `lldb` from the command line, but we recommend using the built in VS Code debugging GUI for a better experience. Use the following steps to set this up:
 * Install the (CodeLLDB extension)[https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb].
 * Open or create a launch.json file within the subdirectory `.vscode` from the base of this repository. Add the following configuration.
