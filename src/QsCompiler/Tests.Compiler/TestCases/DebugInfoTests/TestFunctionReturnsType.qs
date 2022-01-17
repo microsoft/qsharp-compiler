@@ -2,14 +2,14 @@ namespace Microsoft.Quantum.Testing.QirDebugInfo {
 
     @EntryPoint()
     operation Main() : Int {
-        let var_x = 42;
-        mutable var_y = IntToInt(var_x);
-        set var_y = ToInt();
-        return var_y;
+        let varX = 42;
+        mutable varY = IntToInt(varX);
+        set varY = ToInt();
+        return varY;
     }
 
-    operation IntToInt(var_x: Int) : Int {
-        return var_x + 1;
+    operation IntToInt(varX: Int) : Int {
+        return varX + 1;
     }
 
     operation ToInt() : Int {

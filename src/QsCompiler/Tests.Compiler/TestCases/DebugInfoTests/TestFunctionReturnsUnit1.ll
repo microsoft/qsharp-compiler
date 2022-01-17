@@ -5,5 +5,5 @@
 !10 = !DIBasicType(name: "This debug type is not yet supported")
 !11 = !DIBasicType(name: "Int", size: 64, encoding: DW_ATE_signed)
 !12 = !{!13}
-!13 = !DILocalVariable(name: "var_x", arg: 1, scope: !7, file: !5, line: 10, type: !11)
+!13 = !DILocalVariable(name: "varX", arg: 1, scope: !7, file: !5, line: 10, type: !11)
 !14 = !DILocation(line: 10, column: 1, scope: !7)

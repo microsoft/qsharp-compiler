@@ -4,7 +4,7 @@
 !9 = !{!10, !10}
 !10 = !DIBasicType(name: "Int", size: 64, encoding: DW_ATE_signed)
 !11 = !{!12}
-!12 = !DILocalVariable(name: "var_x", arg: 1, scope: !7, file: !5, line: 11, type: !10)
+!12 = !DILocalVariable(name: "varX", arg: 1, scope: !7, file: !5, line: 11, type: !10)
 !13 = !DILocation(line: 11, column: 1, scope: !7)
 !14 = !DILocation(line: 12, column: 9, scope: !7)
 !15 = distinct !DISubprogram(name: "Main", linkageName: "Microsoft__Quantum__Testing__QirDebugInfo__Main__body", scope: null, file: !5, line: 4, type: !16, scopeLine: 4, spFlags: DISPFlagLocalToUnit | DISPFlagDefinition, unit: !4, retainedNodes: !19)

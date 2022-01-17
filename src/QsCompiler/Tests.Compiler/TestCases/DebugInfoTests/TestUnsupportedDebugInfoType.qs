@@ -11,8 +11,7 @@ namespace Microsoft.Quantum.Testing.QirDebugInfo {
         use qubit = Qubit();
         mutable range = 1..3;
         mutable str = "Hello";
-
-        UnitToUnit(); // checking unit type as callable return value since we can't define a variable as a unit
+        mutable unitVal = ();
     }
 
     function Add(x: Int, y: Int) : Int {
@@ -21,9 +20,5 @@ namespace Microsoft.Quantum.Testing.QirDebugInfo {
 
     operation Subtract(x: Int, y: Int) : Int {
         return y - x;
-    }
-
-    operation UnitToUnit() : Unit {
-
     }
 }
