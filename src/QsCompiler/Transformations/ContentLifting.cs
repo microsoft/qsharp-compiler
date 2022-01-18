@@ -21,7 +21,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
     /// <summary>
-    /// Static class to accumulate all type parameter independent subclasses used by <see cref="LiftContentUsingContext{T}"/>.
+    /// Static class to for holding the LiftOperationBody and the LiftFunctionBody static functions.
     /// </summary>
     internal static class LiftContent
     {
@@ -388,7 +388,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         /// of the parameter list and will have their tuple structuring preserved. Additional
         /// parameters will be part of the generated operation's parameters even if they are
         /// not used in the body's contents. If return values are allowed, the generated
-        /// operation will have a return type determined based on return statements found
+        /// operation will have a return type determined on return statements found
         /// in the body's contents. Otherwise the operation will return the unit type value
         /// and return statements will be considered invalid.
         /// If the body is valid to be lifted, 'true' is returned, and a call expression to
@@ -419,7 +419,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         /// of the parameter list and will have their tuple structuring preserved. Additional
         /// parameters will be part of the generated function's parameters even if they are
         /// not used in the body's contents. If return values are allowed, the generated
-        /// function will have a return type determined based on return statements found
+        /// function will have a return type determined on return statements found
         /// in the body's contents. Otherwise the function will return the unit type value
         /// and return statements will be considered invalid.
         /// If the body is valid to be lifted, 'true' is returned, and a call expression to
@@ -777,6 +777,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         }
     }
 
+    /// <summary>
+    /// Static class for containing the transformation state class for the <see cref="LiftContentUsingContext{T}"/>.
+    /// </summary>
     internal static class LiftContentUsingContext
     {
         public class TransformationState
@@ -854,6 +857,28 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return new CallableInformation(ResolvedCharacteristics.FromProperties(props), new InferredCallableInformation(isSelfAdjoint, false));
             }
 
+            /// <summary>
+            /// Generates a new callable with the body's contents using the context of the body's
+            /// original location. If the body was originally in a function, the generated
+            /// callable will be a function, otherwise it will be an operation with the functor
+            /// support determined based on the context. All the known variables at the start of
+            /// the block that get used in the body will become parameters to the new callable,
+            /// and the callable will have all the valid type parameters of the calling context
+            /// as type parameters. Any additional parameters specified will be at the end of
+            /// the parameter list and will have their tuple structuring preserved. Additional
+            /// parameters will be part of the generated callable's parameters even if they are
+            /// not used in the body's contents. If return values are allowed, the generated
+            /// callable will have a return type determined on return statements found in the
+            /// body's contents. Otherwise the callable will return the unit type value and
+            /// return statements will be considered invalid.
+            /// If the body is valid to be lifted, 'true' is returned, and
+            /// a call expression to the new callable is returned as an out-parameter with all
+            /// the type parameters and used variables being forwarded to the new callable as
+            /// arguments. Any additional parameters specified for the callable will be
+            /// represented in the argument list as missing parameters for the call expression.
+            /// The generated callable is also returned as an out-parameter.
+            /// If the body is not valid to be lifted, 'false' is returned and the out-parameters are null.
+            /// </summary>
             public bool LiftBody(
                 QsScope body,
                 ParameterTuple? additionalParameters,
@@ -915,17 +940,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     }
 
     /// <summary>
-    /// This transformation handles the task of lifting the contents of code blocks into generated operations.
-    /// The transformation provides validation to see if any given block can safely be lifted into its own operation.
-    /// Validation requirements are that there are no return statements and that there are no set statements
-    /// on mutables declared outside the block. Setting mutables declared inside the block is valid.
-    /// A block can be checked by setting the SharedState.IsValidScope to true before traversing the scope,
-    /// then checking the SharedState.IsValidScope after traversal. Blocks should be validated before calling
-    /// the SharedState.LiftBody function, which will generate a new operation with the block's contents.
-    /// All the known variables at the start of the block will become parameters to the new operation, and
-    /// the operation will have all the valid type parameters of the calling context as type parameters.
-    /// A call to the new operation is also returned with all the valid type parameters and known variables
-    /// being forwarded to the new operation as arguments.
+    /// This transformation provides the basis for lifters that use the context to generated
+    /// callables from code blocks. More specific lifter transformations can inherit from
+    /// the classes found here. It provides the logic for accumulating context information
+    /// that is used when calling
+    /// <see cref="LiftContentUsingContext.TransformationState.LiftBody"/>.
+    /// To properly inherit from this transformation, the derived transformation should inherit
+    /// this class, its transformation state class should inherit from
+    /// <see cref="LiftContentUsingContext.TransformationState"/>, and new namespace transformation
+    /// and new statement kind transformations are needed, they should inherit from
+    /// <see cref="LiftContentUsingContext{T}.NamespaceTransformation"/> and
+    /// <see cref="LiftContentUsingContext{T}.StatementKindTransformation"/> respectively.
     /// </summary>
     internal class LiftContentUsingContext<T> : SyntaxTreeTransformation<T>
         where T : LiftContentUsingContext.TransformationState
