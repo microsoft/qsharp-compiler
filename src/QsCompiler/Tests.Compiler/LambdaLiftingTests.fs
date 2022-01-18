@@ -14,7 +14,9 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
+open System.Collections.Immutable
 
+type ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
 type LambdaLiftingTests() =
 
@@ -67,15 +69,6 @@ type LambdaLiftingTests() =
     let GetBodyFromCallable call =
         call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
 
-    let GetAdjFromCallable call =
-        call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsAdjoint)
-
-    let GetCtlFromCallable call =
-        call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlled)
-
-    let GetCtlAdjFromCallable call =
-        call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlledAdjoint)
-
     let GetLinesFromSpecialization specialization =
         let writer = new SyntaxTreeToQsharp()
 
@@ -92,93 +85,6 @@ type LambdaLiftingTests() =
         |> Seq.filter (not << String.IsNullOrWhiteSpace)
         |> Seq.toArray
 
-    let CheckIfLineIsCall ``namespace`` name input =
-        let call = sprintf @"(%s\.)?%s" <| Regex.Escape ``namespace`` <| Regex.Escape name
-        let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
-        let args = @"\(\s*(.*[^\s])?\s*\)"
-        let regex = sprintf @"^\s*%s\s*%s\s*%s;$" call typeArgs args
-
-        let regexMatch = Regex.Match(input, regex)
-
-        if regexMatch.Success then
-            (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
-        else
-            (false, "", "")
-
-    let MakeApplicationRegex (opName: QsQualifiedName) =
-        let call = sprintf @"(%s\.)?%s" <| Regex.Escape opName.Namespace <| Regex.Escape opName.Name
-        let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
-        let args = @"\(?\s*([\w\s,\.]*)?\s*\)?"
-        sprintf @"\(%s\s*%s,\s*%s\)" <| call <| typeArgs <| args
-
-    let IsApplyIfArgMatch input resultVar (opName: QsQualifiedName) =
-        let regexMatch =
-            Regex.Match(input, sprintf @"^\s*%s,\s*%s$" <| Regex.Escape resultVar <| MakeApplicationRegex opName)
-
-        if regexMatch.Success then
-            (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
-        else
-            (false, "", "")
-
-    let IsApplyIfElseArgsMatch input resultVar (opName1: QsQualifiedName) (opName2: QsQualifiedName) =
-        let ApplyIfElseRegex =
-            sprintf @"^%s,\s*%s,\s*%s$"
-            <| Regex.Escape resultVar
-            <| MakeApplicationRegex opName1
-            <| MakeApplicationRegex opName2
-
-        let regexMatch = Regex.Match(input, ApplyIfElseRegex)
-
-        if regexMatch.Success then
-            (true,
-             regexMatch.Groups.[3].Value,
-             regexMatch.Groups.[4].Value,
-             regexMatch.Groups.[7].Value,
-             regexMatch.Groups.[8].Value)
-        else
-            (false, "", "", "", "")
-
-    let IsTypeArgsMatch input targs =
-        Regex.Match(input, sprintf @"^%s$" <| Regex.Escape targs).Success
-
-    let CheckIfSpecializationHasCalls specialization (calls: seq<int * string * string>) =
-        let lines = GetLinesFromSpecialization specialization
-        Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) calls
-
-    let AssertSpecializationHasCalls specialization calls =
-        Assert.True(
-            CheckIfSpecializationHasCalls specialization calls,
-            sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind
-        )
-
-    let ExpandBuiltInQualifiedSymbol (i, (builtin: BuiltIn)) =
-        (i, builtin.FullName.Namespace, builtin.FullName.Name)
-
-    let IdentifyGeneratedByCalls generatedCallables calls =
-        let mutable callables =
-            generatedCallables |> Seq.map (fun x -> x, x |> (GetBodyFromCallable >> GetLinesFromSpecialization))
-
-        let hasCall callable (call: seq<int * string * string>) =
-            let (_, lines: string []) = callable
-            Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) call
-
-        Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
-
-        let mutable rtrn = Seq.empty
-
-        let removeAt i lst =
-            Seq.append <| Seq.take i lst <| Seq.skip (i + 1) lst
-
-        for call in calls do
-            callables
-            |> Seq.tryFindIndex (fun callSig -> hasCall callSig call)
-            |> (fun x ->
-                Assert.True(x <> None, "Did not find expected generated content")
-                rtrn <- Seq.append rtrn [ Seq.item x.Value callables ]
-                callables <- removeAt x.Value callables)
-
-        rtrn |> Seq.map (fun (x, y) -> x)
-
     let GetCallablesWithSuffix compilation ns (suffix: string) =
         compilation.Namespaces
         |> Seq.filter (fun x -> x.Name = ns)
@@ -192,22 +98,6 @@ type LambdaLiftingTests() =
         |> GlobalCallableResolutions
         |> Seq.find (fun x -> x.Key.Name = name)
         |> (fun x -> x.Value)
-
-    let ApplyIfElseTest compilation =
-        let original = GetCallableWithName compilation Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
-        let lines = original |> GetLinesFromSpecialization
-
-        Assert.True(
-            2 = Seq.length lines,
-            sprintf "Callable %O(%A) did not have the expected number of statements." original.Parent original.Kind
-        )
-
-        let (success, targs, args) =
-            CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
-
-        Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
-
-        targs, args
 
     let DoesCallSupportFunctors expectedFunctors call =
         let hasAdjoint = expectedFunctors |> Seq.contains QsFunctor.Adjoint
@@ -501,3 +391,86 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Parameters")>]
     member this.``Use Closure With Params``() = CompileLambdaLiftingTest 9 |> ignore
+    
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Function Lambda``() =
+        let result = CompileLambdaLiftingTest 10
+
+        let generated =
+            GetCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x)
+
+        Assert.True(generated.Kind = QsCallableKind.Function, "The generated callable was expected to be a function.")
+    
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``With Type Parameters``() =
+        let testNumber = 11
+        let srcChunks = ReadAndChunkSourceFile "LambdaLifting.qs"
+        srcChunks.Length >= testNumber + 1 |> Assert.True
+        let shared = srcChunks.[0]
+        let compilationDataStructures = BuildContent <| shared + srcChunks.[testNumber]
+        let result = LiftLambdaExpressions.Apply compilationDataStructures.BuiltCompilation
+        Assert.NotNull result
+
+        let generated =
+            GetCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x)
+
+        let originalExpectedName = { Namespace = Signatures.LambdaLiftingNS; Name = "Foo" }
+        let ``Foo.A`` = QsTypeParameter.New(originalExpectedName, "A") |> TypeParameter |> ResolvedType.New
+        let ``Foo.B`` = QsTypeParameter.New(originalExpectedName, "B") |> TypeParameter |> ResolvedType.New
+        let ``Foo.C`` = QsTypeParameter.New(originalExpectedName, "C") |> TypeParameter |> ResolvedType.New
+
+        let originalExpectedArgType =
+            [| ``Foo.A``; ``Foo.B``; ``Foo.C`` |]
+            |> ImmutableArray.ToImmutableArray
+            |> QsTypeKind.TupleType
+            |> ResolvedType.New
+
+        let originalExpectedReturnType = ResolvedType.New(ResolvedTypeKind.UnitType)
+
+        let originalSigExpected =
+            originalExpectedName,
+            originalExpectedArgType,
+            originalExpectedReturnType
+
+        let generatedExpectedName = { Namespace = Signatures.LambdaLiftingNS; Name = generated.FullName.Name }
+        let ``_Foo.A`` = QsTypeParameter.New(generatedExpectedName, "A") |> TypeParameter |> ResolvedType.New
+        let ``_Foo.C`` = QsTypeParameter.New(generatedExpectedName, "C") |> TypeParameter |> ResolvedType.New
+
+        let generatedExpectedArgType =
+            [| ``_Foo.A``; ``_Foo.C``; ResolvedType.New(ResolvedTypeKind.UnitType) |]
+            |> ImmutableArray.ToImmutableArray
+            |> QsTypeKind.TupleType
+            |> ResolvedType.New
+
+        let generatedExpectedReturnType =
+            [| ``_Foo.C``; ``_Foo.A`` |]
+            |> ImmutableArray.ToImmutableArray
+            |> QsTypeKind.TupleType
+            |> ResolvedType.New
+
+        let generatedSigExpected =
+            generatedExpectedName,
+            generatedExpectedArgType,
+            generatedExpectedReturnType
+
+        Signatures.SignatureCheck
+            [ Signatures.LambdaLiftingNS ]
+            (seq { originalSigExpected; generatedSigExpected })
+            result
+    
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``With Nested Lambda Call``() = CompileLambdaLiftingTest 12
+    
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``With Nested Lambda``() = CompileLambdaLiftingTest 13
+

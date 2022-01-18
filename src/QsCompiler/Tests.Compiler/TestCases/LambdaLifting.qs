@@ -112,3 +112,39 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
         let lambda8 = (((a, b, c)) => (x, y, z))(0, 0.0, "Zero");
     }
 }
+
+// =================================
+
+// Function Lambda
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambda = () -> 0;
+    }
+}
+
+// =================================
+
+// With Type Parameters
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo<'A, 'B, 'C>(a : 'A, b : 'B, c : 'C) : Unit {
+        let lambda = () => (c, a);
+    }
+}
+
+// =================================
+
+// With Nested Lambda Call
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambda = () => (() => 0)();
+    }
+}
+
+// =================================
+
+// With Nested Lambda
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambda = () => () => 0;
+    }
+}

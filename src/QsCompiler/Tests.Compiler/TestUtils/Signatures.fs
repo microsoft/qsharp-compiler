@@ -36,6 +36,9 @@ let private _MakeTupleType tupleItems =
     |> String.concat ", "
     |> fun x -> "(" + x + ")", types |> List.map ResolvedType.New |> fun x -> x.ToImmutableArray() |> TupleType
 
+let private _MakeOperationType () =
+    "Unit => Int is Adj + Ctl"
+
 let private _MakeTypeMap extraTypes =
     Array.concat [ _BaseTypes; extraTypes ] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
 
@@ -630,6 +633,15 @@ let private _WithTupleTypes =
                     _MakeTupleType [ "Int", Int
                                      "Double", Double ] |]
 
+let private _WithLambdaOperation =
+    _MakeTypeMap [| "Unit => Int is Adj + Ctl",
+                    ((ResolvedType.New UnitType, ResolvedType.New Int),
+                     {
+                         Characteristics = ResolvedCharacteristics.FromProperties [OpProperty.Adjointable; OpProperty.Controllable]
+                         InferredInformation = InferredCallableInformation.NoInformation
+                     })
+                    |> QsTypeKind.Operation |]
+
 /// Expected callable signatures to be found when running Lambda Lifting tests
 let public LambdaLiftingSignatures =
     [| // Basic Lift
@@ -716,6 +728,32 @@ let public LambdaLiftingSignatures =
              "_Foo",
              [| "Double"; "String"; "Result"; "Int"; "Double"; "String" |],
              "(Double, String, Result)"
+         |])
+        // Function Lambda
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int" // The generated operation
+         |])
+        // With Type Parameters
+        (_DefaultTypes,
+         [|
+            // This check is done manually in the test, but we have an empty entry here to
+            // keep the index numbers of this list consistent with the test case numbers.
+         |])
+        // With Nested Lambda Call
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int"
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int"
+         |])
+        // With Nested Lambda
+        (_WithLambdaOperation,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Unit => Int is Adj + Ctl"
+             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int"
          |])
     |]
     |> _MakeSignatures
