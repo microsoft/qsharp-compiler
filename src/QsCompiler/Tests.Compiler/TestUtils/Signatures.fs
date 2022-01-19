@@ -36,9 +36,6 @@ let private _MakeTupleType tupleItems =
     |> String.concat ", "
     |> fun x -> "(" + x + ")", types |> List.map ResolvedType.New |> fun x -> x.ToImmutableArray() |> TupleType
 
-let private _MakeOperationType () =
-    "Unit => Int is Adj + Ctl"
-
 let private _MakeTypeMap extraTypes =
     Array.concat [ _BaseTypes; extraTypes ] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
 
@@ -637,7 +634,9 @@ let private _WithLambdaOperation =
     _MakeTypeMap [| "Unit => Int is Adj + Ctl",
                     ((ResolvedType.New UnitType, ResolvedType.New Int),
                      {
-                         Characteristics = ResolvedCharacteristics.FromProperties [OpProperty.Adjointable; OpProperty.Controllable]
+                         Characteristics =
+                             ResolvedCharacteristics.FromProperties [ OpProperty.Adjointable
+                                                                      OpProperty.Controllable ]
                          InferredInformation = InferredCallableInformation.NoInformation
                      })
                     |> QsTypeKind.Operation |]
@@ -738,8 +737,8 @@ let public LambdaLiftingSignatures =
         // With Type Parameters
         (_DefaultTypes,
          [|
-            // This check is done manually in the test, but we have an empty entry here to
-            // keep the index numbers of this list consistent with the test case numbers.
+         // This check is done manually in the test, but we have an empty entry here to
+         // keep the index numbers of this list consistent with the test case numbers.
          |])
         // With Nested Lambda Call
         (_DefaultTypes,
