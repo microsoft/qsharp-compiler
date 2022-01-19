@@ -148,3 +148,72 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
         let lambda = () => () => 0;
     }
 }
+
+// =================================
+
+// Functor Support Basic Return
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambda1 = () => 0;
+        let lambda2 = () => ();
+    }
+}
+
+// =================================
+
+// Functor Support Call
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation BarInt() : Int {
+        return 0;
+    }
+
+    operation Bar() : Unit { }
+    operation BarAdj() : Unit is Adj { }
+    operation BarCtl() : Unit is Ctl { }
+    operation BarAdjCtl() : Unit is Adj + Ctl { }
+
+    operation Foo() : Unit {
+        let lambda1 = () => BarInt();
+        let lambda2 = () => Bar();
+        let lambda3 = () => BarAdj();
+        let lambda4 = () => BarCtl();
+        let lambda5 = () => BarAdjCtl();
+    }
+}
+
+// =================================
+
+// Functor Support Lambda Call
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation BarAdj() : Unit is Adj { }
+    operation BarCtl() : Unit is Ctl { }
+    operation BarAdjCtl() : Unit is Adj + Ctl { }
+
+    operation Foo() : Unit {
+        let lambda1 = () => (() => 0)();
+        let lambda2 = () => (() => BarAdj())();
+        let lambda3 = () => (() => BarCtl())();
+        let lambda4 = () => (() => BarAdjCtl())();
+    }
+}
+
+// =================================
+
+// Functor Support Recursive
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        (() => Foo())();
+    }
+
+    operation FooAdj() : Unit is Adj {
+        (() => FooAdj())();
+    }
+
+    operation FooCtl() : Unit is Ctl {
+        (() => FooCtl())();
+    }
+
+    operation FooAdjCtl() : Unit is Adj + Ctl {
+        (() => FooAdjCtl())();
+    }
+}

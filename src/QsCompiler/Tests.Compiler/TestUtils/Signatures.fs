@@ -648,39 +648,39 @@ let public LambdaLiftingSignatures =
         (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int" // The generated operation
+             LambdaLiftingNS, "_Foo", [||], "Int" // The generated operation
          |])
         // Without Return Value
         (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Unit" // The generated operation
+             LambdaLiftingNS, "_Foo", [||], "Unit" // The generated operation
          |])
         // Call Valued Callable
         (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
              LambdaLiftingNS, "Bar", [||], "Int"
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int" // The generated operation
+             LambdaLiftingNS, "_Foo", [||], "Int" // The generated operation
          |])
         // Call Unit Callable
         (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
              LambdaLiftingNS, "Bar", [||], "Unit"
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Unit" // The generated operation
+             LambdaLiftingNS, "_Foo", [||], "Unit" // The generated operation
          |])
         // Call Valued Callable Recursive
         (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Int" // The original operation
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int" // The generated operation
+             LambdaLiftingNS, "_Foo", [||], "Int" // The generated operation
          |])
         // Call Unit Callable Recursive
         (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Unit" // The generated operation
+             LambdaLiftingNS, "_Foo", [||], "Unit" // The generated operation
          |])
         // Use Closure
         (_WithTupleTypes,
@@ -733,7 +733,7 @@ let public LambdaLiftingSignatures =
         (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int" // The generated operation
+             LambdaLiftingNS, "_Foo", [||], "Int" // The generated operation
          |])
         // With Type Parameters
         (_DefaultTypes,
@@ -745,15 +745,68 @@ let public LambdaLiftingSignatures =
         (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int"
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Int"
          |])
         // With Nested Lambda
         (_WithLambdaOperation,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Unit => Int is Adj + Ctl"
-             LambdaLiftingNS, "_Foo", [| "Unit" |], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Unit => Int is Adj + Ctl"
+             LambdaLiftingNS, "_Foo", [||], "Int"
+         |])
+        // Functor Support Basic Return
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+         |])
+        // Functor Support Call
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit"
+             LambdaLiftingNS, "BarInt", [||], "Int"
+             LambdaLiftingNS, "Bar", [||], "Unit"
+             LambdaLiftingNS, "BarAdj", [||], "Unit"
+             LambdaLiftingNS, "BarCtl", [||], "Unit"
+             LambdaLiftingNS, "BarAdjCtl", [||], "Unit"
+
+             LambdaLiftingNS, "_Foo", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+         |])
+        // Functor Support Lambda Call
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit"
+             LambdaLiftingNS, "BarAdj", [||], "Unit"
+             LambdaLiftingNS, "BarCtl", [||], "Unit"
+             LambdaLiftingNS, "BarAdjCtl", [||], "Unit"
+
+             LambdaLiftingNS, "_Foo", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+         |])
+        // Functor Support Recursive
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit"
+             LambdaLiftingNS, "FooAdj", [||], "Unit"
+             LambdaLiftingNS, "FooCtl", [||], "Unit"
+             LambdaLiftingNS, "FooAdjCtl", [||], "Unit"
+
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_FooAdj", [||], "Unit"
+             LambdaLiftingNS, "_FooCtl", [||], "Unit"
+             LambdaLiftingNS, "_FooAdjCtl", [||], "Unit"
          |])
     |]
     |> _MakeSignatures
