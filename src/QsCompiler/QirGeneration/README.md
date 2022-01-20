@@ -1,7 +1,7 @@
 # QIR Emission - Preview Feature
 
 This file contains directions for using the preview feature integrated into the Q# compiler to emit QIR.
-QIR is a convention for how to represent quantum programs in LLVM. Its specification can be found [here](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR#quantum-intermediate-representation-qir). 
+QIR is a convention for how to represent quantum programs in LLVM. Its specification can be found [here](https://github.com/qir-alliance/qir-spec#quantum-intermediate-representation-qir).
 We aim to ultimately move the Q# compiler to be fully LLVM-based. While the emission is supported starting with the March 2021 release, it is as of this time not yet connected to the runtime. The QIR runtime and instructions for how to execute the emitted QIR can be found [here](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime#the-native-qir-runtime). We are working on a full integration in the future.
 
 ## Using the Q# Compiler to Emit QIR
@@ -26,8 +26,8 @@ For more information about project properties and other Sdk capabilities, see [h
 
 ## Limitations
 
-Please be aware that as of this time, it is not possible to both QIR and C#. 
-Open issues related to QIR emission can be found [here](https://github.com/microsoft/qsharp-compiler/issues?q=is%3Aopen+is%3Aissue+label%3A%22area%3A+QIR%22). 
+Please be aware that as of this time, it is not possible to both QIR and C#.
+Open issues related to QIR emission can be found [here](https://github.com/microsoft/qsharp-compiler/issues?q=is%3Aopen+is%3Aissue+label%3A%22area%3A+QIR%22).
 The emitted QIR does currently not contain any debug information. We are planning to add better support in the future. If you are interested in contributing, please indicate your interest on [this issue](https://github.com/microsoft/qsharp-compiler/issues/637).
 
 ### Entry Points
@@ -60,5 +60,5 @@ to be executed from the command line.
 
 ## QIR Specification
 
-The QIR specification is on the [Q# language repository](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR).
+The QIR specification is on the [Q# language repository](https://github.com/qir-alliance/qir-spec).
 

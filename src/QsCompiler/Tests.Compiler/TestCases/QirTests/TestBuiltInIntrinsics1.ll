@@ -38,13 +38,13 @@ entry:
   call void @__quantum__rt__callable_update_alias_count(%Callable* %14, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %12, i32 1)
   %20 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
-  %21 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
+  %21 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %String* }* getelementptr ({ %String* }, { %String* }* null, i32 1) to i64))
   %22 = bitcast %Tuple* %21 to { %String* }*
   %23 = getelementptr inbounds { %String* }, { %String* }* %22, i32 0, i32 0
   store %String* %20, %String** %23, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %17, %Tuple* %21, %Tuple* null)
   %24 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([11 x i8], [11 x i8]* @1, i32 0, i32 0))
-  %25 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
+  %25 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %String* }* getelementptr ({ %String* }, { %String* }* null, i32 1) to i64))
   %26 = bitcast %Tuple* %25 to { %String* }*
   %27 = getelementptr inbounds { %String* }, { %String* }* %26, i32 0, i32 0
   store %String* %24, %String** %27, align 8

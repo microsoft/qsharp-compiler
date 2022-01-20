@@ -14,7 +14,7 @@ entry:
   %11 = getelementptr inbounds { %Qubit*, i64 }, { %Qubit*, i64 }* %9, i32 0, i32 1
   store %Qubit* %4, %Qubit** %10, align 8
   store i64 %7, i64* %11, align 4
-  %12 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %12 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Array*, { %Qubit*, i64 }* }* getelementptr ({ %Array*, { %Qubit*, i64 }* }, { %Array*, { %Qubit*, i64 }* }* null, i32 1) to i64))
   %13 = bitcast %Tuple* %12 to { %Array*, { %Qubit*, i64 }* }*
   %14 = getelementptr inbounds { %Array*, { %Qubit*, i64 }* }, { %Array*, { %Qubit*, i64 }* }* %13, i32 0, i32 0
   %15 = getelementptr inbounds { %Array*, { %Qubit*, i64 }* }, { %Array*, { %Qubit*, i64 }* }* %13, i32 0, i32 1

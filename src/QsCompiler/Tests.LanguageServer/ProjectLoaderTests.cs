@@ -36,9 +36,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         private static string ProjectFileName(string project) =>
             Path.Combine("TestProjects", project, $"{project}.csproj");
 
-        private static string SourceFileName(string project, string fileName) =>
-            Path.Combine("TestProjects", project, fileName);
-
         internal static Uri ProjectUri(string project) =>
             new Uri(Path.GetFullPath(ProjectFileName(project)));
 

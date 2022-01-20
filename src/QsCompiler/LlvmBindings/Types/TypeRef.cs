@@ -8,11 +8,11 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-using Ubiquity.NET.Llvm.Values;
+using LlvmBindings.Values;
 
-namespace Ubiquity.NET.Llvm.Types
+namespace LlvmBindings.Types
 {
     /// <summary>LLVM Type.</summary>
     internal class TypeRef
