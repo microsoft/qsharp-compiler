@@ -290,7 +290,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
             var programFile = Path.Combine(projDir, "Teleport.qs");
             var projectFileContent = XDocument.Load(projectFile.AbsolutePath);
-            var executionTarget = projectFileContent.Root.Elements()
+            var executionTarget = projectFileContent.Root!.Elements()
                 .Where(element => element.Name == "PropertyGroup")
                 .SelectMany(element => element.Elements().Where(child => child.Name == "ExecutionTarget"))
                 .Single();
