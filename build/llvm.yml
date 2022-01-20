@@ -1,0 +1,242 @@
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License.
+
+trigger: none
+pr:
+  branches:
+    include:
+      - main
+      - feature/*
+      - features/*
+      - release/*
+  paths:
+    include:
+      - build/llvm.yml
+      - llvm-build/*
+
+variables:
+  CCACHE_DIR: $(Pipeline.Workspace)/ccache
+  CMAKE_INSTALL_PREFIX: $(Pipeline.Workspace)/LLVM
+  INSTALL_LLVM_PACKAGE: true
+  SCCACHE_DIR: $(Pipeline.Workspace)\sccache
+  AQ_LLVM_PACKAGE_GIT_VERSION: ""
+  ENABLE_COMPILER: false
+  ENABLE_VSIX: false
+  ENABLE_LLVM_BUILDS: true
+  AQ_DOWNLOAD_LLVM: false
+
+jobs:
+- job: GetLlvmTag
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - checkout: self
+  - pwsh:  Write-Host "##vso[task.setvariable variable=AQ_LLVM_PACKAGE_GIT_VERSION;isoutput=true]$(Get-Content ./llvm.tag.txt)"
+    workingDirectory: $(System.DefaultWorkingDirectory)/llvm-build
+    displayName: "Get LLVM Tag"
+    name: Tag
+
+- job: LLVMLinuxBuild
+  timeoutInMinutes: 300
+  dependsOn: GetLlvmTag
+  displayName: LLVM Linux Build
+  variables:
+  - name: Aq.Llvm.Package.Git.Version
+    value: $[ dependencies.GetLlvmTag.outputs['Tag.AQ_LLVM_PACKAGE_GIT_VERSION'] ]
+  - name: Pkg.Name
+    value: aq-llvm-x86_64-unknown-linux-gnu-$(Aq.Llvm.Package.Git.Version)
+
+  pool:
+    vmImage: 'ubuntu-latest'
+
+  steps:
+  - checkout: self
+  - script: |
+      sudo apt-get install -y ccache ninja-build
+      echo "##vso[task.prependpath]/usr/lib/ccache"
+    displayName: Install build dependencies, ccache, and update PATH to use linked versions of gcc, cc, etc
+
+  - task: Cache@2
+    inputs:
+      key: 'version2 | ccache | "$(Agent.OS)"'
+      path: $(CCACHE_DIR)
+      restoreKeys: |
+        version2 | ccache | "$(Agent.OS)"
+    displayName: ccache
+
+  - pwsh: ./llvm-build/llvm.ps1
+    displayName: "LLVM"
+    workingDirectory: $(System.DefaultWorkingDirectory)
+
+  - task: CopyFiles@2
+    inputs:
+      contents: $(System.DefaultWorkingDirectory)/llvm-build/llvm-project/build/$(Pkg.Name).tar.gz
+      targetFolder: $(Build.ArtifactStagingDirectory)
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: $(Build.ArtifactStagingDirectory)
+      artifactName: $(Pkg.Name)
+
+
+- job: LLVMWindowsBuild
+  timeoutInMinutes: 300
+  dependsOn: GetLlvmTag
+  displayName: LLVM Windows Build
+  variables:
+  - name: Aq.Llvm.Package.Git.Version
+    value: $[ dependencies.GetLlvmTag.outputs['Tag.AQ_LLVM_PACKAGE_GIT_VERSION'] ]
+  - name: Pkg.Name
+    value: aq-llvm-x86_64-pc-windows-msvc-static-$(Aq.Llvm.Package.Git.Version)
+  pool:
+    vmImage: 'windows-latest'
+
+  steps:
+  - checkout: self
+  - script: |
+      choco install --accept-license -y sccache ninja
+    displayName: Install build dependencies, sccache, and update PATH to use linked versions of gcc, cc, etc
+
+  - task: Cache@2
+    inputs:
+      key: 'version7 | sccache | "$(Agent.OS)"'
+      path: $(SCCACHE_DIR)
+      restoreKeys: |
+        version7 | sccache | "$(Agent.OS)"
+    displayName: sccache
+
+  - pwsh: ./llvm-build/llvm.ps1
+    displayName: "LLVM"
+    workingDirectory: $(System.DefaultWorkingDirectory)
+
+  - task: CopyFiles@2
+    inputs:
+      contents: $(System.DefaultWorkingDirectory)\llvm-build\llvm-project\build\$(Pkg.Name).zip
+      targetFolder: $(Build.ArtifactStagingDirectory)
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: $(Build.ArtifactStagingDirectory)
+      artifactName: $(Pkg.Name)
+
+
+- job: LLVMMacOSBuild
+  timeoutInMinutes: 300
+  dependsOn: GetLlvmTag
+  displayName: LLVM MacOS Build
+  variables:
+  - name: Aq.Llvm.Package.Git.Version
+    value: $[ dependencies.GetLlvmTag.outputs['Tag.AQ_LLVM_PACKAGE_GIT_VERSION'] ]
+  - name: Pkg.Name
+    value: aq-llvm-x86_64-apple-darwin-$(Aq.Llvm.Package.Git.Version)
+
+  pool:
+    vmImage: 'macOS-latest'
+
+  steps:
+  - checkout: self
+  - script: |
+      brew install ccache ninja
+    displayName: Install build dependencies, ccache, and update PATH to use linked versions of gcc, cc, etc
+
+  - task: Cache@2
+    inputs:
+      key: 'ccache | "$(Agent.OS)"'
+      path: $(CCACHE_DIR)
+      restoreKeys: |
+        ccache | "$(Agent.OS)"
+    displayName: ccache
+
+  - pwsh: ./llvm-build/llvm.ps1
+    displayName: "LLVM"
+    workingDirectory: $(System.DefaultWorkingDirectory)
+
+  - task: CopyFiles@2
+    inputs:
+      contents: $(System.DefaultWorkingDirectory)/llvm-build/llvm-project/build/$(Pkg.Name).tar.gz
+      targetFolder: $(Build.ArtifactStagingDirectory)
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: $(Build.ArtifactStagingDirectory)
+      artifactName: $(Pkg.Name)
+
+- job: libLLVMAssembly
+  timeoutInMinutes: 15
+  dependsOn:
+  - GetLlvmTag
+  - LLVMLinuxBuild
+  - LLVMWindowsBuild
+  - LLVMMacOSBuild
+  displayName: libLLVM Assembly
+  variables:
+  - name: Aq.Llvm.Package.Git.Version
+    value: $[ dependencies.GetLlvmTag.outputs['Tag.AQ_LLVM_PACKAGE_GIT_VERSION'] ]
+  - name: Pkg.Name
+    value: aq-llvm-libLLVM-$(Aq.Llvm.Package.Git.Version)
+  - name: Linux.Pkg.Name
+    value: aq-llvm-x86_64-unknown-linux-gnu-$(Aq.Llvm.Package.Git.Version)
+  - name: Windows.Pkg.Name
+    value: aq-llvm-x86_64-pc-windows-msvc-static-$(Aq.Llvm.Package.Git.Version)
+  - name: Darwin.Pkg.Name
+    value: aq-llvm-x86_64-apple-darwin-$(Aq.Llvm.Package.Git.Version)
+  - name: Blobs.Outdir
+    value: $(Pipeline.Workspace)/artifacts
+  pool:
+    vmImage: 'windows-latest'
+  steps:
+  - checkout: self
+  - download: current
+
+  - task: UseDotNet@2
+    displayName: 'Use .NET Core sdk'
+    inputs:
+      packageType: sdk
+      version: 6.x
+      installationPath: $(Agent.ToolsDirectory)/dotnet
+
+  - pwsh: ./llvm-build/libllvm.ps1
+    displayName: "Package libLLVM and collect artifacts"
+    workingDirectory: $(System.DefaultWorkingDirectory)
+
+  - task: NuGetCommand@2
+    displayName: "Pack LLVM generated files and binaries"
+    inputs:
+      command: 'pack'
+      packagesToPack: '$(System.DefaultWorkingDirectory)/llvm-build/Microsoft.Quantum.LlvmBindings.Native.nuspec'
+      packDestination: '$(Build.ArtifactStagingDirectory)'
+      versioningScheme: 'byPrereleaseNumber'
+      majorVersion: '13'
+      minorVersion: '0'
+      patchVersion: '0'
+      basePath: '$(System.DefaultWorkingDirectory)/llvm-build/'
+
+  - task: NuGetAuthenticate@0
+
+  - task: NuGetCommand@2
+    displayName: "Push to qdk-alpha"
+    inputs:
+      command: 'push'
+      packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+      nuGetFeedType: 'internal'
+      publishVstsFeed: '9af4e09e-a436-4aca-9559-2094cfe8d80c/78fe88a7-a820-4702-833c-443da7b8466b'
+
+  - task: CopyFiles@2
+    inputs:
+      contents: $(System.DefaultWorkingDirectory)/$(Pkg.Name).zip
+      targetFolder: $(Build.ArtifactStagingDirectory)
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: $(Build.ArtifactStagingDirectory)
+      artifactName: $(Pkg.Name)
+
+  - task: AzureFileCopy@3
+    displayName: 'Push LLVM to Azure blob storage'
+    inputs:
+      SourcePath: '$(Blobs.Outdir)/'
+      azureSubscription: 'AzureRM / ms-quantum-public-storage'
+      Destination: 'AzureBlob'
+      storage: 'msquantumpublic'
+      ContainerName: 'llvm-builds'
+    continueOnError: false

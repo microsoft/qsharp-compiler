@@ -16,7 +16,7 @@ The Q# [command line compiler](./src/QsCompiler/CommandLineTool) is included as 
 - **[VSCodeExtension](./src/VSCodeExtension/)**: Visual Studio Code extension
 - **[VisualStudioExtension](./src/VisualStudioExtension/)**: Visual Studio extension
 
-Q# executables can be compiled into an LLVM-based [Quantum Intermediate Representation (QIR)](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR). More details on that capability and how to use it can be found in this [README](https://github.com/microsoft/qsharp-compiler/tree/main/src/QsCompiler/QirGeneration).
+Q# executables can be compiled into an LLVM-based [Quantum Intermediate Representation (QIR)](https://github.com/qir-alliance/qir-spec). More details on that capability and how to use it can be found in this [README](https://github.com/microsoft/qsharp-compiler/tree/main/src/QsCompiler/QirGeneration).
 
 ## New to Quantum? ##
 
