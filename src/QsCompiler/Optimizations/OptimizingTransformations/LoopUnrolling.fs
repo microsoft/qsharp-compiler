@@ -3,7 +3,6 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
-open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -35,31 +34,19 @@ and private LoopUnrollingNamespaces(parent: LoopUnrolling) =
 and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSize) =
     inherit Core.StatementKindTransformation(parent)
 
-    member private this.onSymbolTuple(syms: SymbolTuple) =
-        match syms with
-        | VariableNameTuple tuple ->
-            tuple |> Seq.map this.onSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
-        | VariableName name -> this.Expressions.OnLocalNameDeclaration name |> VariableName
-        | DiscardedItem
-        | InvalidItem -> syms
-
     override this.OnForStatement stm =
-        let loopVar = fst stm.LoopItem |> this.onSymbolTuple
+        let loopVar = fst stm.LoopItem |> this.OnSymbolTuple
         let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
         let loopVarType = this.Expressions.Types.OnType(snd stm.LoopItem)
         let body = this.Statements.OnScope stm.Body
 
         maybe {
             let! iterValsList =
-                iterVals.Expression
-                |> function
-                    | RangeLiteral _ when isLiteral callables iterVals ->
-                        rangeLiteralToSeq iterVals.Expression
-                        |> Seq.map (IntLiteral >> wrapExpr Int)
-                        |> List.ofSeq
-                        |> Some
-                    | ValueArray va -> va |> List.ofSeq |> Some
-                    | _ -> None
+                match iterVals.Expression with
+                | RangeLiteral _ when isLiteral callables iterVals ->
+                    rangeLiteralToSeq iterVals.Expression |> Seq.map (IntLiteral >> wrapExpr Int) |> List.ofSeq |> Some
+                | ValueArray va -> va |> List.ofSeq |> Some
+                | _ -> None
 
             do! check (iterValsList.Length <= maxSize)
 
