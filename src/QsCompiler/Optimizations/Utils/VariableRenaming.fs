@@ -4,9 +4,7 @@
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
 open System
-open System.Collections.Immutable
 open System.Text.RegularExpressions
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -78,7 +76,6 @@ type VariableRenaming private (_private_) =
             this.Statements <- new VariableRenamingStatements(this)
             this.StatementKinds <- new VariableRenamingStatementKinds(this)
             this.Expressions <- new VariableRenamingExpressions(this)
-            this.ExpressionKinds <- new VariableRenamingExpressionKinds(this)
             this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
 
 /// private helper class for VariableRenaming
@@ -91,6 +88,8 @@ and private VariableRenamingNamespaces(parent: VariableRenaming) =
         | QsTupleItem { VariableName = ValidName name } -> parent.GenerateUniqueName name |> ignore
         | QsTupleItem { VariableName = InvalidName } -> ()
         | QsTuple items -> Seq.iter processArgTuple items
+
+    override __.OnArgumentTuple argTuple = argTuple
 
     override __.OnProvidedImplementation(argTuple, body) =
         parent.Clear()
@@ -127,25 +126,15 @@ and private VariableRenamingStatementKinds(parent: VariableRenaming) =
 and private VariableRenamingExpressions(parent: VariableRenaming) =
     inherit ExpressionTransformation(parent)
 
-    override this.OnLocalNameDeclaration name = parent.GenerateUniqueName name
-
-/// private helper class for VariableRenaming
-and private VariableRenamingExpressionKinds(parent: VariableRenaming) =
-    inherit ExpressionKindTransformation(parent)
-
     /// Returns the value associated to the given key in the given variable stack.
     /// If the key is associated with multiple values, returns the one highest on the stack.
     /// Returns None if the key isn't associated with any values.
     let tryGet key = List.tryPick (Map.tryFind key)
 
-    override this.OnIdentifier(sym, tArgs) =
-        maybe {
-            let! name =
-                match sym with
-                | LocalVariable name -> Some name
-                | _ -> None
+    override this.OnLocalNameDeclaration name = parent.GenerateUniqueName name
 
-            let! newName = tryGet name parent.RenamingStack
-            return Identifier(LocalVariable newName, tArgs)
+    override this.OnLocalName name = 
+        maybe {
+            return! tryGet name parent.RenamingStack
         }
-        |? Identifier(sym, tArgs)
+        |? name
