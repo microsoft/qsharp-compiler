@@ -463,7 +463,7 @@ The driver consists of the following elements:
 * header files (to interface with the libraries):
 
   - `QirContext` : used to register the simulator with the QIR runtime
-  - `QirRuntime` : implements the types and functions defined in the [QIR specification](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR)
+  - `QirRuntime` : implements the types and functions defined in the [QIR specification](https://github.com/qir-alliance/qir-spec)
   - `SimFactory` : provides the Q# simulator
 
 * namespaces :
