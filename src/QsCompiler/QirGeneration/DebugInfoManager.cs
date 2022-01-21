@@ -38,23 +38,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <summary>
             /// Dwarf version we are using for the debug info in the QIR generation
             /// </summary>
-            public static uint DwarfVersion { get; } = 4;
+            public static uint DwarfVersion => 4;
 
             /// <summary>
             /// Title of the CodeView module flag for debug info
             /// </summary>
-            public static string CodeviewName { get; } = "CodeView";
+            public static string CodeviewName => "CodeView";
 
             /// <summary>
             /// CodeView version we are using for the debug info in the QIR generation
             /// </summary>
-            public static uint CodeviewVersion { get; } = 1;
+            public static uint CodeviewVersion => 1;
 
             /// <summary>
             /// The source language information for Dwarf.
             /// For now, we are using the C interface. Ideally this would be a user defined language for Q#.
             /// </summary>
-            public static SourceLanguage QSharpLanguage { get; } = SourceLanguage.C99;
+            public static SourceLanguage QSharpLanguage => SourceLanguage.C99;
 
             /// <summary>
             /// Returns a string representing the producer information for the QIR
@@ -305,7 +305,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The <see cref="IrFunction"/> corresponding to the given Q# type.</returns>
         internal IrFunction CreateGlobalFunction(QsSpecialization spec, string mangledName, IFunctionType signature)
         {
-            // check if we support debug info for this specialization kind and debug symbols were requested
             if (spec.Kind == QsSpecializationKind.QsBody && Config.EnableDebugSymbols)
             {
                 return this.CreateFunctionWithDebugInfo(spec, mangledName, signature);

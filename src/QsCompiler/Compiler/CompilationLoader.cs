@@ -1260,7 +1260,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Gets the executing assembly (the Qsharp Compiler) AssemblyName
         /// </summary>
-        public static AssemblyName QSharpCompilerAssemblyName =>
-            Assembly.GetExecutingAssembly().GetName();
+        public static AssemblyName QSharpCompilerAssemblyName => typeof(CompilationLoader).Assembly.GetName();
     }
 }
