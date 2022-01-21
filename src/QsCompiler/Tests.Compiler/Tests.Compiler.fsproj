@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <AssemblyName>Tests.Microsoft.Quantum.QsCompiler</AssemblyName>
     <OutputType>Library</OutputType>
@@ -593,9 +593,9 @@
 
   <Target Name="PrepareReferenceTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
     <PropertyGroup>
-      <ExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.1\Example.dll</ExecutionTarget>
-      <QirExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Target\bin\$(Configuration)\netcoreapp3.1\Simulation.dll</QirExecutionTarget>
-      <LibraryTarget>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\netcoreapp3.1\Library1.dll</LibraryTarget>
+      <ExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\net6.0\Example.dll</ExecutionTarget>
+      <QirExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Target\bin\$(Configuration)\net6.0\Simulation.dll</QirExecutionTarget>
+      <LibraryTarget>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\net6.0\Library1.dll</LibraryTarget>
     </PropertyGroup>
     <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt" Lines="$(ExecutionTarget); $(QirExecutionTarget); $(LibraryTarget)" Overwrite="true" />
     <PropertyGroup>

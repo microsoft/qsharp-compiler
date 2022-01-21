@@ -9,7 +9,6 @@ open System.IO
 open CommandLine
 open Microsoft.Quantum.QsFmt.App.Arguments
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
-open Microsoft.Quantum.QsFmt.App.Telemetry
 open Microsoft.Quantum.QsFmt.Formatter
 
 let makeFullPath input =

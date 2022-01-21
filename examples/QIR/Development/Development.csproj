@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.20.2110171573">
+<Project Sdk="Microsoft.Quantum.Sdk/0.22.186806-beta">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <BuildOutputPath>$(MSBuildThisFileDirectory)build</BuildOutputPath>
     <ExecutablePath>$(BuildOutputPath)\$(MSBuildProjectName)</ExecutablePath>
   </PropertyGroup>
@@ -21,12 +21,12 @@
                       Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0"
                       PrivateAssets="All" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.20.2110171573-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.20.2110171573" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.22.186806-beta" GeneratePathProperty="true" />
   </ItemGroup>
 
   <PropertyGroup>
     <CSharpGeneration>false</CSharpGeneration>
-    <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
+    <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/net6.0/qsc.dll</QscExe>
     <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) QirOutputPath:"qir"</_QscCommandPredefinedAssemblyProperties>
   </PropertyGroup>
 

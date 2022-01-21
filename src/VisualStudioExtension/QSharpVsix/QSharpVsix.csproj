@@ -16,7 +16,7 @@
     <RootNamespace>Microsoft.Quantum.VisualStudio</RootNamespace>
     <AssemblyName>Microsoft.Quantum.VisualStudio.Extension</AssemblyName>
     <TargetVsixContainerName>Microsoft.Quantum.Development.Kit-$(VSVSIX_VERSION).vsix</TargetVsixContainerName>
-    <LanguageServerPath>..\..\QsCompiler\LanguageServer\bin\$(Configuration)\netcoreapp3.1\publish\</LanguageServerPath>
+    <LanguageServerPath>..\..\QsCompiler\LanguageServer\bin\$(Configuration)\net6.0\publish\</LanguageServerPath>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <GeneratePkgDefFile>false</GeneratePkgDefFile>
     <UseCodebase>true</UseCodebase>
