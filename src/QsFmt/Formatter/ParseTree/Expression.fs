@@ -179,7 +179,7 @@ and ExpressionVisitor(tokens) =
         }
         |> Call
 
-    override visitor.VisitNegationExpression context =
+    override visitor.VisitPrefixOpExpression context =
         { PrefixOperator = context.operator |> Node.toTerminal tokens; Operand = visitor.Visit context.operand }
         |> PrefixOperator
 

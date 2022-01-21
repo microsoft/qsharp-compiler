@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -287,37 +287,66 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
+        public async Task UpdateProjectFileAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test14");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var programFile = Path.Combine(projDir, "Teleport.qs");
+            var projectFileContent = XDocument.Load(projectFile.AbsolutePath);
+            var executionTarget = projectFileContent.Root.Elements()
+                .Where(element => element.Name == "PropertyGroup")
+                .SelectMany(element => element.Elements().Where(child => child.Name == "ExecutionTarget"))
+                .Single();
+
+            var initParams = TestUtils.GetInitializeParams();
+            initParams.RootPath = projDir;
+            initParams.RootUri = new Uri(projDir);
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParams = TestUtils.GetOpenFileParams(programFile);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+            var diagnostics1 = await this.GetFileDiagnosticsAsync(programFile);
+
+            this.projectLoaded.Reset();
+            executionTarget.SetValue("honeywell.qpu");
+            File.WriteAllText(projectFile.AbsolutePath, projectFileContent.ToString());
+            this.projectLoaded.WaitOne();
+            var diagnostics2 = await this.GetFileDiagnosticsAsync(programFile);
+
+            this.projectLoaded.Reset();
+            executionTarget.SetValue("ionq.qpu");
+            File.WriteAllText(projectFile.AbsolutePath, projectFileContent.ToString());
+            this.projectLoaded.WaitOne();
+            var diagnostics3 = await this.GetFileDiagnosticsAsync(programFile);
+
+            Assert.IsNotNull(diagnostics1);
+            Assert.AreEqual(2, diagnostics1!.Length);
+            Assert.AreEqual("QS5023", diagnostics1[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics1[0].Severity);
+            Assert.AreEqual("QS5023", diagnostics1[1].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics1[1].Severity);
+
+            Assert.IsNotNull(diagnostics2);
+            Assert.AreEqual(0, diagnostics2!.Length);
+
+            Assert.IsNotNull(diagnostics3);
+            Assert.AreEqual(2, diagnostics3!.Length);
+            Assert.AreEqual("QS5023", diagnostics3[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics3[0].Severity);
+            Assert.AreEqual("QS5023", diagnostics3[1].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics3[1].Severity);
+        }
+
+        [TestMethod]
         public async Task UpdateAndFormatAsync()
         {
-            ManualResetEvent eventSignal = new ManualResetEvent(false);
-            async void CheckForLoadingCompleted(string msg, MessageType messageType)
-            {
-                await Console.Error.WriteLineAsync(msg);
-                if (msg.StartsWith("Done loading project"))
-                {
-                    eventSignal.Set();
-                }
-            }
-
             async Task RunFormattingTestAsync(string projectName)
             {
                 var projectFile = ProjectLoaderTests.ProjectUri(projectName);
                 var projDir = Path.GetDirectoryName(projectFile.LocalPath) ?? "";
                 var telemetryEvents = new List<(string, int)>();
-                var projectManager = new ProjectManager(
-                    ex => Assert.IsNull(ex),
-                    CheckForLoadingCompleted,
-                    sendTelemetry: (eventName, _, measures) => telemetryEvents.Add((eventName, measures.TryGetValue("totalEdits", out var nrEdits) ? nrEdits : 0)));
-                await projectManager.LoadProjectsAsync(
-                    new[] { projectFile },
-                    CompilationContext.Editor.QsProjectLoader,
-                    enableLazyLoading: false);
-
-                // Note that the formatting command will return null until the project has finished loading,
-                // and similarly when a project is reloaded because it has been modified.
-                // All in all, that seem like reasonable behavior.
-                eventSignal.WaitOne();
-                eventSignal.Reset();
+                var projectManager = await projectFile.LoadProjectAsync(
+                    (eventName, _, measures) => telemetryEvents.Add((eventName, measures.TryGetValue("totalEdits", out var nrEdits) ? nrEdits : 0)));
 
                 var fileToFormat = new Uri(Path.Combine(projDir, "format", "Unformatted.qs"));
                 var expectedContent = File.ReadAllText(Path.Combine(projDir, "format", "Formatted.qs"));
