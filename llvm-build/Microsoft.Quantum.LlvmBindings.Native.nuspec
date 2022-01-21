@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Microsoft.Quantum.LlvmBindings.Native</id>
+    <version>$version$</version>
+    <authors>Microsoft</authors>
+    <owners>QuantumEngineering, Microsoft</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>LLVM native support for LLVM Bindings.</description>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+  </metadata>
+  <files>
+    <file src=".\drops\libLLVM.dll" target="runtimes\win-x64\native\libLLVM.dll" />
+    <file src=".\drops\libLLVM.dylib" target="runtimes\osx-x64\native\libLLVM.dylib" />
+    <file src=".\drops\libLLVM.so" target="runtimes\linux-x64\native\libLLVM.so" />
+    <file src=".\drops\generated\**\*" target="generated" />
+  </files>
+</package>
