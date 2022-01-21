@@ -2,7 +2,7 @@ define internal i64 @Microsoft__Quantum__Testing__QirDebugInfo__Main__body() !db
 entry:
   %boolean = alloca i1, align 1, !dbg !15
   store i1 true, i1* %boolean, align 1, !dbg !15
-  tail call void @llvm.dbg.value(metadata i1* %boolean, metadata !13, metadata !DIExpression()), !dbg !15
+  call void @llvm.dbg.declare(metadata i1* %boolean, metadata !13, metadata !DIExpression()), !dbg !15
   br i1 false, label %then0__1, label %continue__1, !dbg !16
 
 then0__1:                                         ; preds = %entry
