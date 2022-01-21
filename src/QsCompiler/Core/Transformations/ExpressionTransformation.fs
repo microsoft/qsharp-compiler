@@ -316,6 +316,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
     abstract OnLambda : lambda: TypedExpression Lambda -> ExpressionKind
 
     default this.OnLambda lambda =
+        // TODO: Allow transformations to override the symbol handler for lambdas.
         let rec onSymbol s =
             let symbol =
                 match s.Symbol with
