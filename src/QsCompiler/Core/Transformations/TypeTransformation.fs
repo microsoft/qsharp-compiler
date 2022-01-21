@@ -28,7 +28,6 @@ type TypeTransformationBase(options: TransformationOptions) =
     // TODO: RELEASE 2021-10: Remove obsolete method.
     [<Obsolete "Use OnRangeInformation(TypeRange) instead.">]
     abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
-
     default this.OnRangeInformation range = range
 
     abstract OnTypeRange : TypeRange -> TypeRange
@@ -38,7 +37,6 @@ type TypeTransformationBase(options: TransformationOptions) =
     default this.OnCharacteristicsExpression fs = fs
 
     abstract OnCallableInformation : CallableInformation -> CallableInformation
-
     default this.OnCallableInformation opInfo =
         let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         let inferred = opInfo.InferredInformation

@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+#nowarn "44" // OnLocation is deprecated.
+
 open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -57,6 +59,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     // subconstructs used within statements
 
     abstract OnSymbolTuple : SymbolTuple -> SymbolTuple
+
     default this.OnSymbolTuple syms = 
         match syms with
         | VariableNameTuple tuple ->
@@ -288,17 +291,17 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
 
     // supplementary statement information
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use OnRelativeLocation instead">] // FIXME: MESSAGE
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
-    default this.OnLocation loc = loc
+    default this.OnLocation loc = this.OnRelativeLocation loc
 
-    // TODO: RELEASE 2022-07: Remove StatementTransformationBase.OnVariableName.
+    // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
     abstract OnVariableName : string -> string
-
-    default this.OnVariableName name = name
+    default this.OnVariableName name = this.Expressions.OnLocalName name
 
     abstract OnLocalDeclarations : LocalDeclarations -> LocalDeclarations
-
     default this.OnLocalDeclarations decl =
         let onLocalVariableDeclaration (local: LocalVariableDeclaration<string>) =
             let loc = local.Position, local.Range
@@ -343,3 +346,8 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
             else
                 statements |> Seq.iter ignore
                 scope
+
+    // TODO: move into syntax tree transformation
+
+    abstract OnRelativeLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
+    default this.OnRelativeLocation loc = loc

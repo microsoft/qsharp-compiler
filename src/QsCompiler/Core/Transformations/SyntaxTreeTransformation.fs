@@ -6,7 +6,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
 
 // setup for syntax tree transformations with internal state

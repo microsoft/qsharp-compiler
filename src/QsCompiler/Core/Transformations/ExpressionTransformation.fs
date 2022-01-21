@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+#nowarn "44" // OnArrayItem and OnNamedItem are deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -125,17 +127,29 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let values = vs |> Seq.map this.Expressions.OnTypedExpression |> ImmutableArray.CreateRange
         ValueTuple |> Node.BuildOr InvalidExpr values
 
+    [<Obsolete "Use OnArrayItemAccess instead">]
     abstract OnArrayItem : TypedExpression * TypedExpression -> ExpressionKind
-
     default this.OnArrayItem(arr, idx) =
         let arr, idx = this.Expressions.OnTypedExpression arr, this.Expressions.OnTypedExpression idx
         ArrayItem |> Node.BuildOr InvalidExpr (arr, idx)
 
-    abstract OnNamedItem : TypedExpression * Identifier -> ExpressionKind
+    abstract OnArrayItemAccess : TypedExpression * TypedExpression -> ExpressionKind
+    default this.OnArrayItemAccess(arr, idx) =
+        this.OnArrayItem (arr, idx) // replace with the implementation once the deprecated member is removed
 
+    [<Obsolete "Use OnNamedItemAccess instead">]
+    abstract OnNamedItem : TypedExpression * Identifier -> ExpressionKind
     default this.OnNamedItem(ex, acc) =
-        let ex = this.Expressions.OnTypedExpression ex
-        NamedItem |> Node.BuildOr InvalidExpr (ex, acc)
+        let lhs = this.Expressions.OnTypedExpression ex
+        let acc =
+            match ex.ResolvedType.Resolution, acc with
+            | UserDefinedType udt, LocalVariable itemName -> this.Expressions.OnItemName (udt, itemName) |> LocalVariable
+            | _ -> acc
+        NamedItem |> Node.BuildOr InvalidExpr (lhs, acc)
+
+    abstract OnNamedItemAccess : TypedExpression * Identifier -> ExpressionKind
+    default this.OnNamedItemAccess(ex, acc) =
+        this.OnNamedItem (ex, acc) // replace with the implementation once the deprecated member is removed
 
     abstract OnValueArray : ImmutableArray<TypedExpression> -> ExpressionKind
 
@@ -171,12 +185,18 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
     abstract OnCopyAndUpdateExpression : TypedExpression * TypedExpression * TypedExpression -> ExpressionKind
 
     default this.OnCopyAndUpdateExpression(lhs, accEx, rhs) =
-        let lhs, accEx, rhs =
-            this.Expressions.OnTypedExpression lhs,
-            this.Expressions.OnTypedExpression accEx,
-            this.Expressions.OnTypedExpression rhs
-
-        CopyAndUpdate |> Node.BuildOr InvalidExpr (lhs, accEx, rhs)
+        let updated = this.Expressions.OnTypedExpression lhs
+        let accEx =
+            match lhs.ResolvedType.Resolution, accEx.Expression with
+            | UserDefinedType udt, Identifier (LocalVariable itemName, Null) ->
+                let range = this.Expressions.OnExpressionRange(accEx.Range)
+                let itemName = this.Expressions.OnItemName (udt, itemName) |> LocalVariable
+                let itemType = this.Types.OnType accEx.ResolvedType
+                let info = this.Expressions.OnExpressionInformation accEx.InferredInformation
+                TypedExpression.New (Identifier (itemName, Null), ImmutableDictionary.Empty, itemType, info, range)
+            | _ -> this.Expressions.OnTypedExpression accEx
+        let rhs = this.Expressions.OnTypedExpression rhs
+        CopyAndUpdate |> Node.BuildOr InvalidExpr (updated, accEx, rhs)
 
     abstract OnConditionalExpression : TypedExpression * TypedExpression * TypedExpression -> ExpressionKind
 
@@ -471,14 +491,13 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
 
     // supplementary expression information
 
-    abstract OnLocalNameDeclaration : string -> string
-    default this.OnLocalNameDeclaration name = name
-
-    abstract OnLocalName : string -> string
-    default this.OnLocalName name = name
-
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use OnExpressionRange instead.">]
     abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
-    default this.OnRangeInformation range = range
+    default this.OnRangeInformation range = this.OnExpressionRange range
+
+    abstract OnExpressionRange : QsNullable<Range> -> QsNullable<Range>
+    default this.OnExpressionRange range = range
 
     abstract OnExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
     default this.OnExpressionInformation info = info
@@ -520,3 +539,14 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
             let exType = this.Types.OnType ex.ResolvedType
             let inferredInfo = this.OnExpressionInformation ex.InferredInformation
             TypedExpression.New |> Node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)
+
+    // TODO: move into syntax tree transformation
+
+    abstract OnLocalNameDeclaration : string -> string
+    default this.OnLocalNameDeclaration name = name
+
+    abstract OnLocalName : string -> string
+    default this.OnLocalName name = name
+
+    abstract OnItemName : UserDefinedType * string -> string
+    default this.OnItemName (parentType, itemName) = itemName

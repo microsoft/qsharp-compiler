@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+#nowarn "44" // OnArgumentName, OnItemName, and OnLocation are deprecated.
+
 open System
 open System.Collections.Immutable
 open System.Linq
@@ -43,8 +45,10 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // subconstructs used within declarations
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use OnAbsoluteLocation instead">] // FIXME: MESSAGE
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
-    default this.OnLocation l = l
+    default this.OnLocation l = this.OnAbsoluteLocation l
 
     abstract OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
@@ -55,8 +59,9 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att
 
+    [<Obsolete "Use OnItemNameDeclaration instead">] // FIXME: MESSAGE
     abstract OnItemName : string -> string
-    default this.OnItemName name = name
+    default this.OnItemName name = this.OnItemNameDeclaration name
 
     abstract OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
 
@@ -77,8 +82,8 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
+    [<Obsolete "Use OnLocalNameDeclaration or override OnArgumentTuple instead">] // FIXME: MESSAGE
     abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
-
     default this.OnArgumentName arg =
         match arg with
         | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.Expressions.OnLocalNameDeclaration name)
@@ -93,7 +98,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             QsTuple |> Node.BuildOr original transformed
         | QsTupleItem item as original ->
             let loc = item.Position, item.Range
-            let name = this.OnArgumentName item.VariableName
+            let name = this.OnArgumentName item.VariableName // replace with the implementation once the deprecated member is removed
             let t = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
 
@@ -301,3 +306,11 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             else
                 elements |> Seq.iter ignore
                 ns
+
+    // TODO: move into syntax tree transformation
+
+    abstract OnAbsoluteLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
+    default this.OnAbsoluteLocation l = l
+
+    abstract OnItemNameDeclaration : string -> string
+    default this.OnItemNameDeclaration name = name
