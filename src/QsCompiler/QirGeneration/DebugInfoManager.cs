@@ -287,6 +287,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         // variable is represented as a pointer to the value
                         Value variable = ((PointerValue)value).Pointer;
+
                         // InsertDeclare because we have a pointer to the value
                         dIBuilder.InsertDeclare(
                             storage: variable,
@@ -298,6 +299,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         // variable is represented as the value itself
                         Value variable = value.Value;
+
                         // InsertValue because we have the value itself
                         dIBuilder.InsertValue(
                             value: variable,
