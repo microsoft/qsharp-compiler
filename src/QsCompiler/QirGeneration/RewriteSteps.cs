@@ -77,10 +77,7 @@ namespace Microsoft.Quantum.QsCompiler
             bool enableDebugSymbols = false;
             if (this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.EnableDebugSymbols, out string? debugEnabledString))
             {
-                if (debugEnabledString != null && string.Equals(debugEnabledString.Trim(), "true", StringComparison.OrdinalIgnoreCase))
-                {
-                    enableDebugSymbols = true;
-                }
+                enableDebugSymbols = string.Equals(debugEnabledString?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
             }
 
             transformed = compilation;
