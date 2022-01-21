@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas;
+using Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas.Validation;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
@@ -25,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool ImplementsTransformation => true;
 
-        public bool ImplementsPostconditionVerification => false;
+        public bool ImplementsPostconditionVerification => true;
 
         public LiftLambdas()
         {
@@ -34,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool PreconditionVerification(QsCompilation compilation)
         {
-            throw new System.NotImplementedException();
+            throw new System.NotImplementedException(); 
         }
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
@@ -45,7 +46,16 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool PostconditionVerification(QsCompilation compilation)
         {
-            throw new System.NotImplementedException();
+            try
+            {
+                ValidateLambdaLifting.Apply(compilation);
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }
