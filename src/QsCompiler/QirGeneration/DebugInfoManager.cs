@@ -283,13 +283,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (this.sharedState.CurrentBlock != null)
                 {
-                    // The variable is represented as a pointer if it's mutable, or its value if it's immutable.
-                    var variable = isMutableBinding ? ((PointerValue)value).Pointer : value.Value;
-                    dIBuilder.InsertValue(
-                        value: variable,
-                        varInfo: dIVar,
-                        location: dILocation,
-                        insertAtEnd: this.sharedState.CurrentBlock);
+                    if (isMutableBinding)
+                    {
+                        // variable is represented as a pointer to the value
+                        Value variable = ((PointerValue)value).Pointer;
+                        // InsertDeclare because we have a pointer to the value
+                        dIBuilder.InsertDeclare(
+                            storage: variable,
+                            varInfo: dIVar,
+                            location: dILocation,
+                            insertAtEnd: this.sharedState.CurrentBlock);
+                    }
+                    else
+                    {
+                        // variable is represented as the value itself
+                        Value variable = value.Value;
+                        // InsertValue because we have the value itself
+                        dIBuilder.InsertValue(
+                            value: variable,
+                            varInfo: dIVar,
+                            location: dILocation,
+                            insertAtEnd: this.sharedState.CurrentBlock);
+                    }
                 }
             }
         }
