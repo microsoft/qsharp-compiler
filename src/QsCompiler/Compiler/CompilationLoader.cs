@@ -111,6 +111,11 @@ namespace Microsoft.Quantum.QsCompiler
             public bool SkipMonomorphization { get; set; }
 
             /// <summary>
+            /// Indicates whether the compiler will remove lambda expressions and replace them with calls to generated callables.
+            /// </summary>
+            public bool LiftLambdaExpressions { get; set; }
+
+            /// <summary>
             /// If the output folder is not null,
             /// documentation is generated in the specified folder based on doc comments in the source code.
             /// </summary>
@@ -212,11 +217,6 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal bool ConvertClassicalControl =>
                 this.RuntimeCapability != null && this.RuntimeCapability == RuntimeCapability.BasicMeasurementFeedback;
-
-            /// <summary>
-            /// Indicates whether the compiler will remove lambda expressions and replace them with calls to generated callables.
-            /// </summary>
-            internal bool LiftLambdaExpressions => true; // ToDo: replace this with the actual condition.
 
             /// <summary>
             /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
