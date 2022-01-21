@@ -304,8 +304,8 @@ let qsNEGop = QsOperator.New("-", 45, false)
 let qsSetUnion = QsOperator.New("+", 10, true)
 let qsSetIntersection = QsOperator.New("*", 20, true)
 
-let qsLambdaOp = QsOperator.New("=>", 0, false);
-let qsLambdaFunc = QsOperator.New("->", 0, false);
+let qsLambdaOp = QsOperator.New("=>", 0, false)
+let qsLambdaFunc = QsOperator.New("->", 0, false)
 
 // As far as the precedence rules of Q# go,
 // there are operators (the things above, processed by an operator precedence parser),
