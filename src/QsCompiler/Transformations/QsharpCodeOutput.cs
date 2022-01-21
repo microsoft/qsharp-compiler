@@ -528,6 +528,37 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 return InterpolationArg.Replace(text, ReplaceMatch);
             }
 
+            private static string QsSymbolToString(QsSymbol symbol)
+            {
+                if (symbol.Symbol is QsSymbolKind<QsSymbol>.Symbol sym)
+                {
+                    return sym.Item;
+                }
+                else if (symbol.Symbol is QsSymbolKind<QsSymbol>.QualifiedSymbol qSym)
+                {
+                    return $"{qSym.Item1}.{qSym.Item2}";
+                }
+                else if (symbol.Symbol is QsSymbolKind<QsSymbol>.SymbolTuple tup)
+                {
+                    if (tup.Item.Length == 0)
+                    {
+                        return "()";
+                    }
+                    else if (tup.Item.Length == 1)
+                    {
+                        return QsSymbolToString(tup.Item.First());
+                    }
+                    else
+                    {
+                        return $"({string.Join(", ", tup.Item.Select(QsSymbolToString))})";
+                    }
+                }
+                else
+                {
+                    return "";
+                }
+            }
+
             private string? Recur(int prec, TypedExpression ex)
             {
                 this.Transformation.Expressions.OnTypedExpression(ex);
@@ -739,6 +770,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             public override QsExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)
             {
                 return this.CallLike(method, arg);
+            }
+
+            /// <inheritdoc/>
+            public override QsExpressionKind OnLambda(Lambda<TypedExpression> lambda)
+            {
+                var op = lambda.Kind.IsFunction ? Keywords.qsLambdaFunc : Keywords.qsLambdaOp;
+                var paramStr = QsSymbolToString(lambda.Param);
+                this.Output = $"{paramStr} {op.op} {this.Recur(op.prec, lambda.Body)}";
+                this.currentPrecedence = op.prec;
+                return QsExpressionKind.NewLambda(lambda);
             }
 
             /// <inheritdoc/>
