@@ -11,7 +11,6 @@ open System.Collections.Immutable
 open System.Collections.ObjectModel
 open System.Linq
 
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
@@ -227,18 +226,6 @@ type QsCustomType with
             Type = underlyingType
             TypeItems = items
             Documentation = documentation
-            Comments = comments
-        }
-
-type QsDeclarationAttribute with
-    // TODO: RELEASE 2021-10: Remove member.
-    [<Obsolete "Use the overload of New with 5 parameters.">]
-    static member New(typeId, arg, pos, comments) =
-        {
-            TypeId = typeId
-            TypeIdRange = Null
-            Argument = arg
-            Offset = pos
             Comments = comments
         }
 

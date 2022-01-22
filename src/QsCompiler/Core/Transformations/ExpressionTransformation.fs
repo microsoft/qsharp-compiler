@@ -35,6 +35,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         new ExpressionKindTransformationBase(options, "_internal_")
         then this.ExpressionTransformationHandle <- expressionTransformation
 
+    // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete("Please use ExpressionKindTransformationBase(unit -> ExpressionTransformationBase, TransformationOptions) instead.")>]
     new(expressionTransformation: unit -> ExpressionTransformationBase,
         typeTransformation: unit -> TypeTransformationBase,
@@ -53,6 +54,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
     new(expressionTransformation: unit -> ExpressionTransformationBase) =
         new ExpressionKindTransformationBase(expressionTransformation, TransformationOptions.Default)
 
+    // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete("Please use ExpressionKindTransformationBase(unit -> ExpressionTransformationBase) instead.")>]
     new(expressionTransformation: unit -> ExpressionTransformationBase,
         typeTransformation: unit -> TypeTransformationBase) =
@@ -127,9 +129,12 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let values = vs |> Seq.map this.Expressions.OnTypedExpression |> ImmutableArray.CreateRange
         ValueTuple |> Node.BuildOr InvalidExpr values
 
+    // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use OnArrayItemAccess instead">]
     abstract OnArrayItem : TypedExpression * TypedExpression -> ExpressionKind
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use OnArrayItemAccess instead">]
     default this.OnArrayItem(arr, idx) =
         let arr, idx = this.Expressions.OnTypedExpression arr, this.Expressions.OnTypedExpression idx
         ArrayItem |> Node.BuildOr InvalidExpr (arr, idx)
@@ -137,9 +142,12 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
     abstract OnArrayItemAccess : TypedExpression * TypedExpression -> ExpressionKind
     default this.OnArrayItemAccess(arr, idx) = this.OnArrayItem(arr, idx) // replace with the implementation once the deprecated member is removed
 
+    // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use OnNamedItemAccess instead">]
     abstract OnNamedItem : TypedExpression * Identifier -> ExpressionKind
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use OnNamedItemAccess instead">]
     default this.OnNamedItem(ex, acc) =
         let lhs = this.Expressions.OnTypedExpression ex
 
@@ -513,6 +521,8 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
     [<Obsolete "Use OnExpressionRange instead.">]
     abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use OnExpressionRange instead.">]
     default this.OnRangeInformation range = this.OnExpressionRange range
 
     abstract OnExpressionRange : QsNullable<Range> -> QsNullable<Range>

@@ -31,6 +31,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         new StatementKindTransformationBase(options, "_internal_")
         then this.StatementTransformationHandle <- statementTransformation
 
+    // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete("Please use StatementKindTransformationBase(unit -> StatementTransformationBase, TransformationOptions) instead.")>]
     new(statementTransformation: unit -> StatementTransformationBase,
         expressionTransformation: unit -> ExpressionTransformationBase,
@@ -49,6 +50,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     new(statementTransformation: unit -> StatementTransformationBase) =
         new StatementKindTransformationBase(statementTransformation, TransformationOptions.Default)
 
+    // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete("Please use StatementKindTransformationBase(unit -> StatementTransformationBase) instead.")>]
     new(statementTransformation: unit -> StatementTransformationBase,
         expressionTransformation: unit -> ExpressionTransformationBase) =
@@ -293,12 +295,16 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     [<Obsolete "Use SyntaxTreeTransformation.OnRelativeLocation instead">]
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use SyntaxTreeTransformation.OnRelativeLocation instead">]
     default this.OnLocation loc = this.Common.OnRelativeLocation loc
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
     abstract OnVariableName : string -> string
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
     default this.OnVariableName name =
         this.Expressions.Common.OnLocalName name
 

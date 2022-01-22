@@ -51,6 +51,8 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     [<Obsolete "Use SyntaxTreeTransformation.OnAbsoluteLocation instead">]
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use SyntaxTreeTransformation.OnAbsoluteLocation instead">]
     default this.OnLocation l = this.Common.OnAbsoluteLocation l
 
     abstract OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
@@ -62,9 +64,12 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att
 
+    // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnItemNameDeclaration instead">]
     abstract OnItemName : string -> string
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use SyntaxTreeTransformation.OnItemNameDeclaration instead">]
     default this.OnItemName name = this.Common.OnItemNameDeclaration name
 
     abstract OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
@@ -86,9 +91,12 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
+    // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead">]
     abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead">]
     default this.OnArgumentName arg =
         match arg with
         | ValidName name ->

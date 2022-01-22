@@ -29,6 +29,8 @@ type TypeTransformationBase(options: TransformationOptions) =
     [<Obsolete "Use OnRangeInformation(TypeRange) instead.">]
     abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
 
+    // TODO: RELEASE 2021-10: Remove obsolete method.
+    [<Obsolete "Use OnRangeInformation(TypeRange) instead.">]
     default this.OnRangeInformation range = range
 
     abstract OnTypeRange : TypeRange -> TypeRange
