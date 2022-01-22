@@ -192,13 +192,13 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         internal static QsLanguageServer ConnectViaStdInOut(string? logFile = null)
         {
-            Log($"Connecting via stdin and stdout.", logFile);
+            Log($"Connecting via stdin and stdout.", logFile, stdout: true);
             return new QsLanguageServer(Console.OpenStandardOutput(), Console.OpenStandardInput());
         }
 
         internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string? logFile = null)
         {
-            Log($"Connecting via named pipe. {Environment.NewLine}ReaderPipe: \"{readerName}\" {Environment.NewLine}WriterPipe:\"{writerName}\"", logFile);
+            Log($"Connecting via named pipe. {Environment.NewLine}ReaderPipe: \"{readerName}\" {Environment.NewLine}WriterPipe: \"{writerName}\"", logFile, stdout: true);
             var writerPipe = new NamedPipeClientStream(writerName);
             var readerPipe = new NamedPipeClientStream(readerName);
 
@@ -219,7 +219,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         internal static QsLanguageServer ConnectViaSocket(string hostname = "localhost", int port = 8008, string? logFile = null)
         {
-            Log($"Connecting via socket. {Environment.NewLine}Port number: {port}", logFile);
+            Log($"Connecting via socket. {Environment.NewLine}Port number: {port}", logFile, stdout: true);
             Stream? stream = null;
             try
             {

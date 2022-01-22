@@ -962,6 +962,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 if (!projectLoader(projectFile, out var info))
                 {
+                    // the project file has been removed and we hence migrate all source files to the default manager if needed
                     existing?.LoadProjectAsync(
                         ImmutableDictionary<Uri, Uri?>.Empty,
                         null,
@@ -971,13 +972,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         ?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
                     if (existing != null)
                     {
+                        // we reload the project references for all projects since they may reference the now removed project
                         this.ProjectReferenceChangedOnDiskChangeAsync(projectFile);
                     }
 
                     return;
                 }
 
-                var updated = existing ?? new Project(projectFile, info, this.logException, this.publishDiagnostics, this.log);
+                // Since the project file also contains information about e.g. the targeted processor architecture,
+                // we need to make sure to validate the full project again.
+                // We could potentially update the existing project for the sake of saving some compilation,
+                // but the cleaner version is to just recompile it entirely. For now, we recompile it,
+                // given that this seems like a reasonable behavior after updates to the project itself.
+                var updated = new Project(projectFile, info, this.logException, this.publishDiagnostics, this.log);
                 this.projects.AddOrUpdate(projectFile, updated, (_, __) => updated);
 
                 // If any of the files that are currently open in the editor is part of the project,

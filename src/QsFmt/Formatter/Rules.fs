@@ -361,7 +361,7 @@ let checkArraySyntax fileName document =
 
                     let warning =
                         sprintf
-                            "Warning: Unable to updated deprecated new array syntax in %s from line %i, character %i to line %i, character %i."
+                            "Warning: Unable to update deprecated new array syntax in %s from line %i, character %i to line %i, character %i."
                             fileName
                             (lineBefore + prefixLines)
                             (charBefore + prefixChars)
