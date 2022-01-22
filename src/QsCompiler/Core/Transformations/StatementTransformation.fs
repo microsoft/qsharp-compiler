@@ -34,8 +34,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     [<Obsolete("Please use StatementKindTransformationBase(unit -> StatementTransformationBase, TransformationOptions) instead.")>]
     new(statementTransformation: unit -> StatementTransformationBase,
         expressionTransformation: unit -> ExpressionTransformationBase,
-        options: TransformationOptions) =
-        new StatementKindTransformationBase(statementTransformation, options)
+        options: TransformationOptions) = new StatementKindTransformationBase(statementTransformation, options)
 
     new(options: TransformationOptions) as this =
         new StatementKindTransformationBase(options, "_internal_")

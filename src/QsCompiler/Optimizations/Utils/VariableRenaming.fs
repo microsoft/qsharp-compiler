@@ -75,11 +75,8 @@ type VariableRenaming private (_private_) =
 
     override this.OnLocalNameDeclaration name = this.GenerateUniqueName name
 
-    override this.OnLocalName name = 
-        maybe {
-            return! tryGet name this.RenamingStack
-        }
-        |? name
+    override this.OnLocalName name =
+        maybe { return! tryGet name this.RenamingStack } |? name
 
     new() as this =
         new VariableRenaming("_private_")

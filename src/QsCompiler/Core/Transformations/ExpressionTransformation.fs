@@ -38,8 +38,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
     [<Obsolete("Please use ExpressionKindTransformationBase(unit -> ExpressionTransformationBase, TransformationOptions) instead.")>]
     new(expressionTransformation: unit -> ExpressionTransformationBase,
         typeTransformation: unit -> TypeTransformationBase,
-        options : TransformationOptions) =
-        new ExpressionKindTransformationBase(expressionTransformation, options)
+        options: TransformationOptions) = new ExpressionKindTransformationBase(expressionTransformation, options)
 
     new(options: TransformationOptions) as this =
         new ExpressionKindTransformationBase(options, "_internal_")
