@@ -364,7 +364,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
                 | Symbol name -> this.Common.OnLocalNameDeclaration name |> Symbol
                 | _ -> s.Symbol
 
-            { Symbol = symbol; Range = range }
+            { Symbol = symbol; Range = this.Expressions.OnExpressionRange range } // FIXME: THIS SHOULD NOT BE INVOKING OnExpressionRange, AND JUST BE range HERE TO BE CONSISTENT WITH SYMBOL DECLARATIONS
 
         let syms = onSymbol lambda.Param
         let body = this.Expressions.OnTypedExpression lambda.Body
