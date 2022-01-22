@@ -567,7 +567,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         public UniqueVariableNames()
             : base(new TransformationState())
         {
-            this.Expressions = new ExpressionTransformation(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
@@ -578,21 +577,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         public static string StripUniqueName(string uniqueName) => Decorator.Undecorate(uniqueName) ?? uniqueName;
 
+        /* overrides */
+
+        public override string OnLocalNameDeclaration(string name) =>
+            this.SharedState.GenerateUniqueName(name);
+
+        public override string OnLocalName(string name) =>
+            this.SharedState.TryGetUniqueName(name, out var unique) ? unique : name;
+
         /* helper classes */
-
-        private class ExpressionTransformation : ExpressionTransformation<TransformationState>
-        {
-            public ExpressionTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent)
-            {
-            }
-
-            public override string OnLocalNameDeclaration(string name) =>
-                this.SharedState.GenerateUniqueName(name);
-
-            public override string OnLocalName(string name) =>
-                this.SharedState.TryGetUniqueName(name, out var unique) ? unique : name;
-        }
 
         private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
         {

@@ -25,7 +25,9 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     let Node = if options.Rebuild then Fold else Walk
 
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
-    member this.Statements = this.StatementTransformationHandle()
+
+    member this.Statements : StatementTransformationBase = this.StatementTransformationHandle()
+    member this.Common : CommonTransformationItems = this.StatementTransformationHandle().Expressions.Common
 
     new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
         new NamespaceTransformationBase(options, "_internal_")
@@ -48,7 +50,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use OnAbsoluteLocation instead">] // FIXME: MESSAGE
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
-    default this.OnLocation l = this.OnAbsoluteLocation l
+    default this.OnLocation l = this.Common.OnAbsoluteLocation l
 
     abstract OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
@@ -61,7 +63,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     [<Obsolete "Use OnItemNameDeclaration instead">] // FIXME: MESSAGE
     abstract OnItemName : string -> string
-    default this.OnItemName name = this.OnItemNameDeclaration name
+    default this.OnItemName name = this.Common.OnItemNameDeclaration name
 
     abstract OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
 
@@ -86,7 +88,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
     default this.OnArgumentName arg =
         match arg with
-        | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.Expressions.OnLocalNameDeclaration name)
+        | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.Expressions.Common.OnLocalNameDeclaration name)
         | InvalidName -> arg
 
     abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
@@ -306,11 +308,3 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             else
                 elements |> Seq.iter ignore
                 ns
-
-    // TODO: move into syntax tree transformation
-
-    abstract OnAbsoluteLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
-    default this.OnAbsoluteLocation l = l
-
-    abstract OnItemNameDeclaration : string -> string
-    default this.OnItemNameDeclaration name = name

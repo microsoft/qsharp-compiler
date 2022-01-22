@@ -25,36 +25,27 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     let Node = if options.Rebuild then Fold else Walk
 
-    member val internal TypeTransformationHandle = missingTransformation "type" with get, set
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
 
-    member this.Types = this.TypeTransformationHandle()
-    member this.Expressions = this.ExpressionTransformationHandle()
+    member this.Expressions : ExpressionTransformationBase= this.ExpressionTransformationHandle()
+    member this.Types : TypeTransformationBase = this.ExpressionTransformationHandle().Types
+    member this.Common : CommonTransformationItems = this.ExpressionTransformationHandle().Common
 
     new(expressionTransformation: unit -> ExpressionTransformationBase,
-        typeTransformation: unit -> TypeTransformationBase,
-        options) as this =
+        options: TransformationOptions) as this =
         new ExpressionKindTransformationBase(options, "_internal_")
-        then
-            this.TypeTransformationHandle <- typeTransformation
-            this.ExpressionTransformationHandle <- expressionTransformation
+        then this.ExpressionTransformationHandle <- expressionTransformation
 
     new(options: TransformationOptions) as this =
         new ExpressionKindTransformationBase(options, "_internal_")
         then
             let typeTransformation = new TypeTransformationBase(options)
-
-            let expressionTransformation =
-                new ExpressionTransformationBase((fun _ -> this), (fun _ -> this.Types), options)
-
-            this.TypeTransformationHandle <- fun _ -> typeTransformation
+            let expressionTransformation = new ExpressionTransformationBase((fun _ -> this), (fun _ -> typeTransformation), options)
             this.ExpressionTransformationHandle <- fun _ -> expressionTransformation
 
-    new(expressionTransformation: unit -> ExpressionTransformationBase,
-        typeTransformation: unit -> TypeTransformationBase) =
+    new(expressionTransformation: unit -> ExpressionTransformationBase) =
         new ExpressionKindTransformationBase(
             expressionTransformation,
-            typeTransformation,
             TransformationOptions.Default
         )
 
@@ -70,7 +61,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
         let idName =
             match sym with
-            | LocalVariable name -> this.Expressions.OnLocalName name |> LocalVariable
+            | LocalVariable name -> this.Common.OnLocalName name |> LocalVariable
             | GlobalCallable _
             | InvalidIdentifier -> sym
 
@@ -143,7 +134,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let lhs = this.Expressions.OnTypedExpression ex
         let acc =
             match ex.ResolvedType.Resolution, acc with
-            | UserDefinedType udt, LocalVariable itemName -> this.Expressions.OnItemName (udt, itemName) |> LocalVariable
+            | UserDefinedType udt, LocalVariable itemName -> this.Common.OnItemName (udt, itemName) |> LocalVariable
             | _ -> acc
         NamedItem |> Node.BuildOr InvalidExpr (lhs, acc)
 
@@ -190,7 +181,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
             match lhs.ResolvedType.Resolution, accEx.Expression with
             | UserDefinedType udt, Identifier (LocalVariable itemName, Null) ->
                 let range = this.Expressions.OnExpressionRange(accEx.Range)
-                let itemName = this.Expressions.OnItemName (udt, itemName) |> LocalVariable
+                let itemName = this.Common.OnItemName (udt, itemName) |> LocalVariable
                 let itemType = this.Types.OnType accEx.ResolvedType
                 let info = this.Expressions.OnExpressionInformation accEx.InferredInformation
                 TypedExpression.New (Identifier (itemName, Null), ImmutableDictionary.Empty, itemType, info, range)
@@ -349,7 +340,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
             let symbol =
                 match s.Symbol with
                 | SymbolTuple ss -> Seq.map onSymbol ss |> ImmutableArray.CreateRange |> SymbolTuple
-                | Symbol name -> this.Expressions.OnLocalNameDeclaration name |> Symbol
+                | Symbol name -> this.Common.OnLocalNameDeclaration name |> Symbol
                 | _ -> s.Symbol
 
             { Symbol = symbol; Range = range }
@@ -457,28 +448,42 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
 
     let Node = if options.Rebuild then Fold else Walk
 
+    member val internal CommonTransformationItemsHandle = missingTransformation "common items" with get, set
     member val internal TypeTransformationHandle = missingTransformation "type" with get, set
     member val internal ExpressionKindTransformationHandle = missingTransformation "expression kind" with get, set
 
+    member this.Common = this.CommonTransformationItemsHandle()
     member this.Types = this.TypeTransformationHandle()
     member this.ExpressionKinds = this.ExpressionKindTransformationHandle()
 
-    new(exkindTransformation: unit -> ExpressionKindTransformationBase,
+    internal new(getCommonItems: unit -> CommonTransformationItems,
+        exkindTransformation: unit -> ExpressionKindTransformationBase,
         typeTransformation: unit -> TypeTransformationBase,
         options: TransformationOptions) as this =
         new ExpressionTransformationBase(options, "_internal_")
         then
+            this.CommonTransformationItemsHandle <- getCommonItems
             this.TypeTransformationHandle <- typeTransformation
             this.ExpressionKindTransformationHandle <- exkindTransformation
+
+    new(exkindTransformation: unit -> ExpressionKindTransformationBase,
+        typeTransformation: unit -> TypeTransformationBase,
+        options: TransformationOptions) =
+        new ExpressionTransformationBase(
+            (fun _ -> new CommonTransformationItems()),
+            exkindTransformation,
+            typeTransformation,
+            options
+        )
 
     new(options: TransformationOptions) as this =
         new ExpressionTransformationBase(options, "_internal_")
         then
+            let commonItems = new CommonTransformationItems()
             let typeTransformation = new TypeTransformationBase(options)
+            let exprKindTransformation = new ExpressionKindTransformationBase((fun _ -> this), options)
 
-            let exprKindTransformation =
-                new ExpressionKindTransformationBase((fun _ -> this), (fun _ -> this.Types), options)
-
+            this.CommonTransformationItemsHandle <- fun _ -> commonItems
             this.TypeTransformationHandle <- fun _ -> typeTransformation
             this.ExpressionKindTransformationHandle <- fun _ -> exprKindTransformation
 
@@ -540,13 +545,3 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
             let inferredInfo = this.OnExpressionInformation ex.InferredInformation
             TypedExpression.New |> Node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)
 
-    // TODO: move into syntax tree transformation
-
-    abstract OnLocalNameDeclaration : string -> string
-    default this.OnLocalNameDeclaration name = name
-
-    abstract OnLocalName : string -> string
-    default this.OnLocalName name = name
-
-    abstract OnItemName : UserDefinedType * string -> string
-    default this.OnItemName (parentType, itemName) = itemName

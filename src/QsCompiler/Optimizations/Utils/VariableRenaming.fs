@@ -35,6 +35,11 @@ type VariableRenaming private (_private_) =
         let m = varNameRegex.Match varName
         if m.Success then m.Groups.[1].Value else varName
 
+    /// Returns the value associated to the given key in the given variable stack.
+    /// If the key is associated with multiple values, returns the one highest on the stack.
+    /// Returns None if the key isn't associated with any values.
+    let tryGet key = List.tryPick (Map.tryFind key)
+
     /// The number of times a variable is referenced
     member val internal NewNamesSet = Set.empty with get, set
     /// The current dictionary of new names to substitute for variables
@@ -50,7 +55,6 @@ type VariableRenaming private (_private_) =
     /// </summary>
     /// <exception cref="ArgumentException">The given variable stack is empty.</exception>
     member internal this.ExitScope = List.tail
-
 
     /// Given a new variable name, generates a new unique name and updates the state accordingly
     member this.GenerateUniqueName varName =
@@ -69,13 +73,20 @@ type VariableRenaming private (_private_) =
         this.NewNamesSet <- Set.empty
         this.RenamingStack <- [ Map.empty ]
 
+    override this.OnLocalNameDeclaration name = this.GenerateUniqueName name
+
+    override this.OnLocalName name = 
+        maybe {
+            return! tryGet name this.RenamingStack
+        }
+        |? name
+
     new() as this =
         new VariableRenaming("_private_")
         then
             this.Namespaces <- new VariableRenamingNamespaces(this)
             this.Statements <- new VariableRenamingStatements(this)
             this.StatementKinds <- new VariableRenamingStatementKinds(this)
-            this.Expressions <- new VariableRenamingExpressions(this)
             this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
 
 /// private helper class for VariableRenaming
@@ -121,20 +132,3 @@ and private VariableRenamingStatementKinds(parent: VariableRenaming) =
         let result = base.OnRepeatStatement stm
         parent.RenamingStack <- parent.ExitScope parent.RenamingStack
         result
-
-/// private helper class for VariableRenaming
-and private VariableRenamingExpressions(parent: VariableRenaming) =
-    inherit ExpressionTransformation(parent)
-
-    /// Returns the value associated to the given key in the given variable stack.
-    /// If the key is associated with multiple values, returns the one highest on the stack.
-    /// Returns None if the key isn't associated with any values.
-    let tryGet key = List.tryPick (Map.tryFind key)
-
-    override this.OnLocalNameDeclaration name = parent.GenerateUniqueName name
-
-    override this.OnLocalName name = 
-        maybe {
-            return! tryGet name parent.RenamingStack
-        }
-        |? name
