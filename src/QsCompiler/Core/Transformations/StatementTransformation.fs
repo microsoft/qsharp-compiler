@@ -31,6 +31,12 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         new StatementKindTransformationBase(options, "_internal_")
         then this.StatementTransformationHandle <- statementTransformation
 
+    [<Obsolete("Please use StatementKindTransformationBase(unit -> StatementTransformationBase, TransformationOptions) instead.")>]
+    new(statementTransformation: unit -> StatementTransformationBase,
+        expressionTransformation: unit -> ExpressionTransformationBase,
+        options: TransformationOptions) =
+        new StatementKindTransformationBase(statementTransformation, options)
+
     new(options: TransformationOptions) as this =
         new StatementKindTransformationBase(options, "_internal_")
         then
@@ -42,6 +48,11 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
             this.StatementTransformationHandle <- fun _ -> statementTransformation
 
     new(statementTransformation: unit -> StatementTransformationBase) =
+        new StatementKindTransformationBase(statementTransformation, TransformationOptions.Default)
+
+    [<Obsolete("Please use StatementKindTransformationBase(unit -> StatementTransformationBase) instead.")>]
+    new(statementTransformation: unit -> StatementTransformationBase,
+        expressionTransformation: unit -> ExpressionTransformationBase) =
         new StatementKindTransformationBase(statementTransformation, TransformationOptions.Default)
 
     new() = new StatementKindTransformationBase(TransformationOptions.Default)

@@ -35,6 +35,12 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         new ExpressionKindTransformationBase(options, "_internal_")
         then this.ExpressionTransformationHandle <- expressionTransformation
 
+    [<Obsolete("Please use ExpressionKindTransformationBase(unit -> ExpressionTransformationBase, TransformationOptions) instead.")>]
+    new(expressionTransformation: unit -> ExpressionTransformationBase,
+        typeTransformation: unit -> TypeTransformationBase,
+        options : TransformationOptions) =
+        new ExpressionKindTransformationBase(expressionTransformation, options)
+
     new(options: TransformationOptions) as this =
         new ExpressionKindTransformationBase(options, "_internal_")
         then
@@ -46,6 +52,11 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
             this.ExpressionTransformationHandle <- fun _ -> expressionTransformation
 
     new(expressionTransformation: unit -> ExpressionTransformationBase) =
+        new ExpressionKindTransformationBase(expressionTransformation, TransformationOptions.Default)
+
+    [<Obsolete("Please use ExpressionKindTransformationBase(unit -> ExpressionTransformationBase) instead.")>]
+    new(expressionTransformation: unit -> ExpressionTransformationBase,
+        typeTransformation: unit -> TypeTransformationBase) =
         new ExpressionKindTransformationBase(expressionTransformation, TransformationOptions.Default)
 
     new() = new ExpressionKindTransformationBase(TransformationOptions.Default)
