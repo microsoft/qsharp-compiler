@@ -439,7 +439,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
         }
 
-        [Ignore("Finding references for lambda parameters is not yet implemented.")]
         [TestMethod]
         public async Task TestLambdaReferencesAsync()
         {
