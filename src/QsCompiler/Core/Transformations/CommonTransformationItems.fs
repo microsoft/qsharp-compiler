@@ -7,6 +7,10 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
+/// <summary>
+/// Contains virtual methods that are invoked
+/// by several different kinds of nodes in the syntax tree.
+/// </summary>
 type CommonTransformationItems internal () =
 
     abstract OnLocalNameDeclaration : string -> string
