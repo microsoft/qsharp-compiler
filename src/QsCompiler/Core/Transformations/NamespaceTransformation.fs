@@ -48,7 +48,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     // subconstructs used within declarations
 
     // TODO: RELEASE 2022-09: Remove member.
-    [<Obsolete "Use OnAbsoluteLocation instead">] // FIXME: MESSAGE
+    [<Obsolete "Use SyntaxTreeTransformation.OnAbsoluteLocation instead">]
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
 
     default this.OnLocation l = this.Common.OnAbsoluteLocation l
@@ -62,7 +62,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att
 
-    [<Obsolete "Use OnItemNameDeclaration instead">] // FIXME: MESSAGE
+    [<Obsolete "Use SyntaxTreeTransformation.OnItemNameDeclaration instead">]
     abstract OnItemName : string -> string
 
     default this.OnItemName name = this.Common.OnItemNameDeclaration name
@@ -86,7 +86,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
-    [<Obsolete "Use OnLocalNameDeclaration or override OnArgumentTuple instead">] // FIXME: MESSAGE
+    [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead">]
     abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
 
     default this.OnArgumentName arg =

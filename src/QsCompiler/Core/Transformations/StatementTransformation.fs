@@ -280,7 +280,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     // supplementary statement information
 
     // TODO: RELEASE 2022-09: Remove member.
-    [<Obsolete "Use OnRelativeLocation instead">] // FIXME: MESSAGE
+    [<Obsolete "Use SyntaxTreeTransformation.OnRelativeLocation instead">]
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
 
     default this.OnLocation loc = this.Common.OnRelativeLocation loc
