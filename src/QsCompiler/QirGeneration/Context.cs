@@ -823,7 +823,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Queues the generation of that function if necessary such that the current context is not modified
         /// beyond adding the corresponding constant and function declaration, if necessary.
         /// </summary>
-        private GlobalVariable CreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec)
+        internal GlobalVariable CreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec)
         {
             var funcs = new Constant[4];
             for (var index = 0; index < 4; index++)
@@ -844,10 +844,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var array = ConstantArray.From(this.Types.FunctionSignature.CreatePointerType(), funcs);
             return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
         }
-
-        /// <inheritdoc cref="CreateCallableTable"/>
-        internal GlobalVariable GetOrCreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec) =>
-            this.CreateCallableTable(name, getSpec);
 
         /// <summary>
         /// If a constant array with the IrFunctions for the given callable already exists,

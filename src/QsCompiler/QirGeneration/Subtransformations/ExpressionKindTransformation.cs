@@ -2002,8 +2002,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsFunction || type.Resolution.IsOperation)
                 {
-                    var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Callable);
-                    return this.SharedState.Values.FromCallable(value, type);
+                    // We can't simply set this to null, unless the reference and alias counting functions
+                    // in the runtime accept null values as arguments.
+                    var nullTableName = $"DefaultCallable__NullFunctionTable";
+                    var nullTable = this.SharedState.Module.GetNamedGlobal(nullTableName);
+                    if (nullTable == null)
+                    {
+                        var fctType = this.SharedState.Types.FunctionSignature.CreatePointerType();
+                        var funcs = Enumerable.Repeat(Constant.ConstPointerToNullFor(fctType), 4);
+                        var array = ConstantArray.From(fctType, funcs.ToArray());
+                        nullTable = this.SharedState.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, nullTableName);
+                    }
+
+                    var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
+                    var memoryManagementTable = this.SharedState.GetOrCreateCallableMemoryManagementTable(null);
+                    var value = this.SharedState.CurrentBuilder.Call(createCallable, nullTable, memoryManagementTable, this.SharedState.Constants.UnitValue);
+                    var built = this.SharedState.Values.FromCallable(value, type);
+                    this.SharedState.ScopeMgr.RegisterValue(built);
+                    return built;
                 }
                 else if (type.Resolution.IsString)
                 {
@@ -2246,7 +2262,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 SupportsNecessaryFunctors(kind)
                     ? BuildLiftedSpecialization(liftedName, kind, captureType, callableArgType, rebuild)
                     : null;
-            var table = this.SharedState.GetOrCreateCallableTable(liftedName, BuildSpec);
+            var table = this.SharedState.CreateCallableTable(liftedName, BuildSpec);
             var value = this.SharedState.Values.CreateCallable(exType, table, captured.ToImmutable());
 
             this.SharedState.ValueStack.Push(value);
