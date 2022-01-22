@@ -242,7 +242,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
 
             internal ExpressionOffsetTransformation(Position offset) => this.offset = offset;
 
-            public override QsNullable<Range> OnRangeInformation(QsNullable<Range> range) =>
+            public override QsNullable<Range> OnExpressionRange(QsNullable<Range> range) =>
                 range.Map(r => this.offset + r);
         }
     }

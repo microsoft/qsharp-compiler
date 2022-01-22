@@ -36,17 +36,17 @@ type private Pattern =
 let private locationOffset = QsNullable<_>.Map (fun (location: QsLocation) -> location.Offset)
 
 /// Tracks the most recently seen statement location.
-type private StatementLocationTracker(parent, options) =
-    inherit StatementTransformation(parent, options)
+type private StatementLocationTracker(options) =
+    inherit SyntaxTreeTransformation(options)
 
     let mutable offset = Null
 
     /// The offset of the most recently seen statement location.
     member this.Offset = offset
 
-    override this.OnLocation location =
+    override this.OnRelativeLocation location =
         offset <- locationOffset location
-        base.OnLocation location
+        location
 
 /// Returns the required runtime capability of the pattern, given whether it occurs in an operation.
 let private patternCapability inOperation =
@@ -185,9 +185,7 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
 /// Returns all patterns in the statement. Ranges are relative to the start of the specialization.
 let private statementPatterns statement =
     let patterns = ResizeArray()
-    let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
-    let location = StatementLocationTracker(transformation, TransformationOptions.NoRebuild)
-    transformation.Statements <- location
+    let transformation = StatementLocationTracker(TransformationOptions.NoRebuild)
 
     transformation.StatementKinds <-
         { new StatementKindTransformation(transformation, TransformationOptions.NoRebuild) with
@@ -205,7 +203,7 @@ let private statementPatterns statement =
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override this.OnTypedExpression expression =
-                expressionPatterns false expression |> Seq.map (addOffset location.Offset) |> patterns.AddRange
+                expressionPatterns false expression |> Seq.map (addOffset transformation.Offset) |> patterns.AddRange
                 expression
         }
 
@@ -220,16 +218,14 @@ let private scopePatterns scope =
 /// the start of the specialization.
 let private globalReferences scope =
     let mutable references = []
-    let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
-    let location = StatementLocationTracker(transformation, TransformationOptions.NoRebuild)
-    transformation.Statements <- location
+    let transformation = StatementLocationTracker(TransformationOptions.NoRebuild)
 
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override this.OnTypedExpression expression =
                 match expression.Expression with
                 | Identifier (GlobalCallable name, _) ->
-                    let range = QsNullable.Map2(+) location.Offset expression.Range
+                    let range = QsNullable.Map2(+) transformation.Offset expression.Range
                     references <- (name, range) :: references
                 | _ -> ()
 
