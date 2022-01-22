@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         public override QsStatementKind OnConjugation(QsConjugation stm)
         {
             var inner = stm.InnerTransformation;
-            var innerLoc = this.Transformation.Statements.OnLocation(inner.Location);
+            var innerLoc = this.Transformation.OnRelativeLocation(inner.Location);
             var transformedInner = new QsPositionedBlock(this.Transformation.Statements.OnScope(inner.Body), innerLoc, inner.Comments);
             return QsStatementKind.NewQsConjugation(new QsConjugation(stm.OuterTransformation, transformedInner));
         }

@@ -841,7 +841,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
             /// <inheritdoc/>
-            public override QsExpressionKind OnArrayItem(TypedExpression arr, TypedExpression idx)
+            public override QsExpressionKind OnArrayItemAccess(TypedExpression arr, TypedExpression idx)
             {
                 var prec = Keywords.qsArrayAccessCombinator.prec;
                 this.Output = $"{this.Recur(prec, arr)}[{this.Recur(int.MinValue, idx)}]"; // Todo: generate contextual open range expression when appropriate
@@ -850,7 +850,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
             /// <inheritdoc/>
-            public override QsExpressionKind OnNamedItem(TypedExpression ex, Identifier acc)
+            public override QsExpressionKind OnNamedItemAccess(TypedExpression ex, Identifier acc)
             {
                 this.OnIdentifier(acc, QsNullable<ImmutableArray<ResolvedType>>.Null);
                 var (op, itemName) = (Keywords.qsNamedItemCombinator, this.Output);

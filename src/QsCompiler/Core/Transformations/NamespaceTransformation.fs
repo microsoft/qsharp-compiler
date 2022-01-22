@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
-#nowarn "44" // OnArgumentName, OnItemName, and OnLocation are deprecated.
+#nowarn "44" // OnArgumentName is deprecated.
 
 open System
 open System.Collections.Immutable
@@ -53,7 +53,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnAbsoluteLocation instead">]
-    default this.OnLocation l = this.Common.OnAbsoluteLocation l
+    default this.OnLocation loc = loc
 
     abstract OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
@@ -70,7 +70,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnItemNameDeclaration instead">]
-    default this.OnItemName name = this.Common.OnItemNameDeclaration name
+    default this.OnItemName name = name
 
     abstract OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
 
@@ -84,7 +84,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             QsTupleItem << Anonymous |> Node.BuildOr original t
         | QsTupleItem (Named item) as original ->
             let loc = item.Position, item.Range
-            let name = this.OnItemName item.VariableName
+            let name = this.Common.OnItemNameDeclaration item.VariableName
             let t = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
 
@@ -193,7 +193,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     /// It is hence not intended and should never be needed for public use.
     member private this.OnSpecializationKind(spec: QsSpecialization) =
         let source = this.OnSource spec.Source
-        let loc = this.OnLocation spec.Location
+        let loc = this.Common.OnAbsoluteLocation spec.Location
         let attributes = spec.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
 
         let typeArgs =
@@ -237,7 +237,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     /// It is hence not intended and should never be needed for public use.
     member private this.OnCallableKind(c: QsCallable) =
         let source = this.OnSource c.Source
-        let loc = this.OnLocation c.Location
+        let loc = this.Common.OnAbsoluteLocation c.Location
         let attributes = c.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let signature = this.OnSignature c.Signature
         let argTuple = this.OnArgumentTuple c.ArgumentTuple
@@ -275,7 +275,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     default this.OnTypeDeclaration t =
         let source = this.OnSource t.Source
-        let loc = this.OnLocation t.Location
+        let loc = this.Common.OnAbsoluteLocation t.Location
         let attributes = t.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let underlyingType = this.Statements.Expressions.Types.OnType t.Type
         let typeItems = this.OnTypeItems t.TypeItems

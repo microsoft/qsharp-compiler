@@ -26,7 +26,7 @@ type CommonTransformationItems internal () =
     default this.OnItemName(parentType, itemName) = itemName
 
     abstract OnAbsoluteLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
-    default this.OnAbsoluteLocation l = l
+    default this.OnAbsoluteLocation loc = loc
 
     abstract OnRelativeLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnRelativeLocation loc = loc

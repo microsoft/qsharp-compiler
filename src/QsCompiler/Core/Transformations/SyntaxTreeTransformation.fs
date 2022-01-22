@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+#nowarn "44" // disable deprecation warnings due to the overrides pointing to deprecated methods
+
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -55,6 +57,14 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
             this.Namespaces <- new NamespaceTransformation<'T>(this, options)
 
     new(state: 'T) = new SyntaxTreeTransformation<'T>(state, TransformationOptions.Default)
+
+    // These overrides are only here to preserve the functionality of the now deprecated methods.
+    // They can be removed and the deprecation warning for this file can be reenabled once the deprecated methods are removed.
+
+    override this.OnLocalName name = this.Statements.OnVariableName name
+    override this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
+    override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
+    override this.OnRelativeLocation loc = this.Statements.OnLocation loc
 
 
 and TypeTransformation<'T> internal (options, _internal_) =
@@ -311,6 +321,14 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
             this.Namespaces <- new NamespaceTransformation(this, options)
 
     new() = new SyntaxTreeTransformation(TransformationOptions.Default)
+
+    // These overrides are only here to preserve the functionality of the now deprecated methods.
+    // They can be removed and the deprecation warning for this file can be reenabled once the deprecated methods are removed.
+
+    override this.OnLocalName name = this.Statements.OnVariableName name
+    override this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
+    override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
+    override this.OnRelativeLocation loc = this.Statements.OnLocation loc
 
 
 and TypeTransformation internal (options, _internal_) =

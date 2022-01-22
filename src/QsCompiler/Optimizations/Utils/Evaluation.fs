@@ -312,7 +312,7 @@ and private ExpressionKindEvaluator
             arg.Expression
         | _ -> UnwrapApplication ex
 
-    override this.OnArrayItem(arr, idx) =
+    override this.OnArrayItemAccess(arr, idx) =
         let arr, idx = this.simplify (arr, idx)
 
         match arr.Expression, idx.Expression with

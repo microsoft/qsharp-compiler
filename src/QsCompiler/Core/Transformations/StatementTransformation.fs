@@ -3,8 +3,6 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
-#nowarn "44" // OnLocation is deprecated.
-
 open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -89,7 +87,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         QsNullable<TypedExpression> * QsPositionedBlock -> QsNullable<TypedExpression> * QsPositionedBlock
 
     default this.OnPositionedBlock(intro: QsNullable<TypedExpression>, block: QsPositionedBlock) =
-        let location = this.Statements.OnLocation block.Location
+        let location = this.Common.OnRelativeLocation block.Location
         let comments = block.Comments
         let expr = intro |> QsNullable<_>.Map this.Expressions.OnTypedExpression
         let body = this.Statements.OnScope block.Body
@@ -297,7 +295,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnRelativeLocation instead">]
-    default this.OnLocation loc = this.Common.OnRelativeLocation loc
+    default this.OnLocation loc = loc
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
@@ -305,8 +303,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
-    default this.OnVariableName name =
-        this.Expressions.Common.OnLocalName name
+    default this.OnVariableName name = name
 
     abstract OnLocalDeclarations : LocalDeclarations -> LocalDeclarations
 
@@ -334,7 +331,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
         if not options.Enable then
             stm
         else
-            let location = this.OnLocation stm.Location
+            let location = this.Common.OnRelativeLocation stm.Location
             let comments = stm.Comments
             let kind = this.StatementKinds.OnStatementKind stm.Statement
             let varDecl = this.OnLocalDeclarations stm.SymbolDeclarations

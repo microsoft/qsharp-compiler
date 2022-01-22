@@ -180,7 +180,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             this.Types = new TypeTransformation(this);
             this.Expressions = new TypedExpressionWalker<TransformationState>(this.SharedState.LogIdentifierLocation, this);
-            this.Statements = new StatementTransformation(this);
             this.Namespaces = new NamespaceTransformation(this);
         }
 
@@ -259,6 +258,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return references.SharedState.Locations;
         }
 
+        /* overrides */
+
+        public override QsNullable<QsLocation> OnAbsoluteLocation(QsNullable<QsLocation> loc)
+        {
+            this.SharedState.DeclarationOffset = loc.IsValue ? loc.Item.Offset : null;
+            return loc;
+        }
+
+        public override QsNullable<QsLocation> OnRelativeLocation(QsNullable<QsLocation> loc)
+        {
+            this.SharedState.CurrentLocation = loc.IsValue ? loc.Item : null;
+            return loc;
+        }
+
         /* helper classes */
 
         private class TypeTransformation : TypeTransformation<TransformationState>
@@ -284,20 +297,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 }
 
                 return base.OnType(type);
-            }
-        }
-
-        private class StatementTransformation : StatementTransformation<TransformationState>
-        {
-            public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                : base(parent, TransformationOptions.NoRebuild)
-            {
-            }
-
-            public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
-            {
-                this.SharedState.CurrentLocation = loc.IsValue ? loc.Item : null;
-                return loc;
             }
         }
 
@@ -354,12 +353,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
                 this.SharedState.IsRelevant(spec.Source.AssemblyOrCodeFile) ? base.OnSpecializationDeclaration(spec) : spec;
-
-            public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
-            {
-                this.SharedState.DeclarationOffset = loc.IsValue ? loc.Item.Offset : null;
-                return loc;
-            }
 
             public override Source OnSource(Source source)
             {

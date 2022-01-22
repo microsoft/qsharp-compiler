@@ -420,8 +420,8 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
                 | MissingExpr -> this.OnMissingExpression()
                 | InvalidExpr -> this.OnInvalidExpression()
                 | ValueTuple vs -> this.OnValueTuple vs
-                | ArrayItem (arr, idx) -> this.OnArrayItem(arr, idx)
-                | NamedItem (ex, acc) -> this.OnNamedItem(ex, acc)
+                | ArrayItem (arr, idx) -> this.OnArrayItemAccess(arr, idx)
+                | NamedItem (ex, acc) -> this.OnNamedItemAccess(ex, acc)
                 | ValueArray vs -> this.OnValueArray vs
                 | NewArray (bt, idx) -> this.OnNewArray(bt, idx)
                 | SizedArray (value, size) -> this.OnSizedArray(value, size)
@@ -523,10 +523,10 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use OnExpressionRange instead.">]
-    default this.OnRangeInformation range = this.OnExpressionRange range
+    default this.OnRangeInformation range = range
 
     abstract OnExpressionRange : QsNullable<Range> -> QsNullable<Range>
-    default this.OnExpressionRange range = range
+    default this.OnExpressionRange range = this.OnRangeInformation range
 
     abstract OnExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
     default this.OnExpressionInformation info = info
@@ -562,7 +562,7 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
         if not options.Enable then
             ex
         else
-            let range = this.OnRangeInformation ex.Range
+            let range = this.OnExpressionRange ex.Range
             let typeParamResolutions = this.OnTypeParamResolutions ex.TypeParameterResolutions
             let kind = this.ExpressionKinds.OnExpressionKind ex.Expression
             let exType = this.Types.OnType ex.ResolvedType
