@@ -14,34 +14,24 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
     inherit CommonTransformationItems()
 
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
-    member val Types =
-        new TypeTransformation<'T>(TransformationOptions.Default, _internal_)
-        with get, set
+    member val Types = new TypeTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
     member val ExpressionKinds =
-        new ExpressionKindTransformation<'T>(TransformationOptions.Default, _internal_)
-        with get, set
+        new ExpressionKindTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all expressions encountered when traversing (parts of) the syntax tree.
-    member val Expressions =
-        new ExpressionTransformation<'T>(TransformationOptions.Default, _internal_)
-        with get, set
+    member val Expressions = new ExpressionTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all statement kinds encountered when traversing (parts of) the syntax tree.
     member val StatementKinds =
-        new StatementKindTransformation<'T>(TransformationOptions.Default, _internal_)
-        with get, set
+        new StatementKindTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all statements encountered when traversing (parts of) the syntax tree.
-    member val Statements =
-        new StatementTransformation<'T>(TransformationOptions.Default, _internal_)
-        with get, set
+    member val Statements = new StatementTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all namespaces encountered when traversing (parts of) the syntax tree.
-    member val Namespaces =
-        new NamespaceTransformation<'T>(TransformationOptions.Default, _internal_)
-        with get, set
+    member val Namespaces = new NamespaceTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Invokes the transformation for all namespaces in the given compilation.
     member this.OnCompilation compilation =
@@ -283,34 +273,23 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
     inherit CommonTransformationItems()
 
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
-    member val Types =
-        new TypeTransformation(TransformationOptions.Default, _internal_)
-        with get, set
+    member val Types = new TypeTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
     member val ExpressionKinds =
-        new ExpressionKindTransformation(TransformationOptions.Default, _internal_)
-        with get, set
+        new ExpressionKindTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all expressions encountered when traversing (parts of) the syntax tree.
-    member val Expressions =
-        new ExpressionTransformation(TransformationOptions.Default, _internal_)
-        with get, set
+    member val Expressions = new ExpressionTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all statement kinds encountered when traversing (parts of) the syntax tree.
-    member val StatementKinds =
-        new StatementKindTransformation(TransformationOptions.Default, _internal_)
-        with get, set
+    member val StatementKinds = new StatementKindTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all statements encountered when traversing (parts of) the syntax tree.
-    member val Statements =
-        new StatementTransformation(TransformationOptions.Default, _internal_)
-        with get, set
+    member val Statements = new StatementTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all namespaces encountered when traversing (parts of) the syntax tree.
-    member val Namespaces =
-        new NamespaceTransformation(TransformationOptions.Default, _internal_)
-        with get, set
+    member val Namespaces = new NamespaceTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Invokes the transformation for all namespaces in the given compilation.
     member this.OnCompilation compilation =

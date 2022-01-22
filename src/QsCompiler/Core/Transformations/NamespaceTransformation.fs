@@ -50,6 +50,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use OnAbsoluteLocation instead">] // FIXME: MESSAGE
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
+
     default this.OnLocation l = this.Common.OnAbsoluteLocation l
 
     abstract OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
@@ -63,6 +64,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     [<Obsolete "Use OnItemNameDeclaration instead">] // FIXME: MESSAGE
     abstract OnItemName : string -> string
+
     default this.OnItemName name = this.Common.OnItemNameDeclaration name
 
     abstract OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
@@ -86,9 +88,11 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     [<Obsolete "Use OnLocalNameDeclaration or override OnArgumentTuple instead">] // FIXME: MESSAGE
     abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
+
     default this.OnArgumentName arg =
         match arg with
-        | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.Expressions.Common.OnLocalNameDeclaration name)
+        | ValidName name ->
+            ValidName |> Node.BuildOr arg (this.Statements.Expressions.Common.OnLocalNameDeclaration name)
         | InvalidName -> arg
 
     abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple

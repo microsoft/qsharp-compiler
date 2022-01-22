@@ -27,12 +27,11 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
 
-    member this.Expressions : ExpressionTransformationBase= this.ExpressionTransformationHandle()
+    member this.Expressions : ExpressionTransformationBase = this.ExpressionTransformationHandle()
     member this.Types : TypeTransformationBase = this.ExpressionTransformationHandle().Types
     member this.Common : CommonTransformationItems = this.ExpressionTransformationHandle().Common
 
-    new(expressionTransformation: unit -> ExpressionTransformationBase,
-        options: TransformationOptions) as this =
+    new(expressionTransformation: unit -> ExpressionTransformationBase, options: TransformationOptions) as this =
         new ExpressionKindTransformationBase(options, "_internal_")
         then this.ExpressionTransformationHandle <- expressionTransformation
 
@@ -40,14 +39,14 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         new ExpressionKindTransformationBase(options, "_internal_")
         then
             let typeTransformation = new TypeTransformationBase(options)
-            let expressionTransformation = new ExpressionTransformationBase((fun _ -> this), (fun _ -> typeTransformation), options)
+
+            let expressionTransformation =
+                new ExpressionTransformationBase((fun _ -> this), (fun _ -> typeTransformation), options)
+
             this.ExpressionTransformationHandle <- fun _ -> expressionTransformation
 
     new(expressionTransformation: unit -> ExpressionTransformationBase) =
-        new ExpressionKindTransformationBase(
-            expressionTransformation,
-            TransformationOptions.Default
-        )
+        new ExpressionKindTransformationBase(expressionTransformation, TransformationOptions.Default)
 
     new() = new ExpressionKindTransformationBase(TransformationOptions.Default)
 
@@ -120,27 +119,29 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     [<Obsolete "Use OnArrayItemAccess instead">]
     abstract OnArrayItem : TypedExpression * TypedExpression -> ExpressionKind
+
     default this.OnArrayItem(arr, idx) =
         let arr, idx = this.Expressions.OnTypedExpression arr, this.Expressions.OnTypedExpression idx
         ArrayItem |> Node.BuildOr InvalidExpr (arr, idx)
 
     abstract OnArrayItemAccess : TypedExpression * TypedExpression -> ExpressionKind
-    default this.OnArrayItemAccess(arr, idx) =
-        this.OnArrayItem (arr, idx) // replace with the implementation once the deprecated member is removed
+    default this.OnArrayItemAccess(arr, idx) = this.OnArrayItem(arr, idx) // replace with the implementation once the deprecated member is removed
 
     [<Obsolete "Use OnNamedItemAccess instead">]
     abstract OnNamedItem : TypedExpression * Identifier -> ExpressionKind
+
     default this.OnNamedItem(ex, acc) =
         let lhs = this.Expressions.OnTypedExpression ex
+
         let acc =
             match ex.ResolvedType.Resolution, acc with
-            | UserDefinedType udt, LocalVariable itemName -> this.Common.OnItemName (udt, itemName) |> LocalVariable
+            | UserDefinedType udt, LocalVariable itemName -> this.Common.OnItemName(udt, itemName) |> LocalVariable
             | _ -> acc
+
         NamedItem |> Node.BuildOr InvalidExpr (lhs, acc)
 
     abstract OnNamedItemAccess : TypedExpression * Identifier -> ExpressionKind
-    default this.OnNamedItemAccess(ex, acc) =
-        this.OnNamedItem (ex, acc) // replace with the implementation once the deprecated member is removed
+    default this.OnNamedItemAccess(ex, acc) = this.OnNamedItem(ex, acc) // replace with the implementation once the deprecated member is removed
 
     abstract OnValueArray : ImmutableArray<TypedExpression> -> ExpressionKind
 
@@ -177,15 +178,17 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     default this.OnCopyAndUpdateExpression(lhs, accEx, rhs) =
         let updated = this.Expressions.OnTypedExpression lhs
+
         let accEx =
             match lhs.ResolvedType.Resolution, accEx.Expression with
             | UserDefinedType udt, Identifier (LocalVariable itemName, Null) ->
                 let range = this.Expressions.OnExpressionRange(accEx.Range)
-                let itemName = this.Common.OnItemName (udt, itemName) |> LocalVariable
+                let itemName = this.Common.OnItemName(udt, itemName) |> LocalVariable
                 let itemType = this.Types.OnType accEx.ResolvedType
                 let info = this.Expressions.OnExpressionInformation accEx.InferredInformation
-                TypedExpression.New (Identifier (itemName, Null), ImmutableDictionary.Empty, itemType, info, range)
+                TypedExpression.New(Identifier(itemName, Null), ImmutableDictionary.Empty, itemType, info, range)
             | _ -> this.Expressions.OnTypedExpression accEx
+
         let rhs = this.Expressions.OnTypedExpression rhs
         CopyAndUpdate |> Node.BuildOr InvalidExpr (updated, accEx, rhs)
 
@@ -457,9 +460,9 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
     member this.ExpressionKinds = this.ExpressionKindTransformationHandle()
 
     internal new(getCommonItems: unit -> CommonTransformationItems,
-        exkindTransformation: unit -> ExpressionKindTransformationBase,
-        typeTransformation: unit -> TypeTransformationBase,
-        options: TransformationOptions) as this =
+                 exkindTransformation: unit -> ExpressionKindTransformationBase,
+                 typeTransformation: unit -> TypeTransformationBase,
+                 options: TransformationOptions) as this =
         new ExpressionTransformationBase(options, "_internal_")
         then
             this.CommonTransformationItemsHandle <- getCommonItems
@@ -499,6 +502,7 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use OnExpressionRange instead.">]
     abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
+
     default this.OnRangeInformation range = this.OnExpressionRange range
 
     abstract OnExpressionRange : QsNullable<Range> -> QsNullable<Range>
@@ -544,4 +548,3 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
             let exType = this.Types.OnType ex.ResolvedType
             let inferredInfo = this.OnExpressionInformation ex.InferredInformation
             TypedExpression.New |> Node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)
-

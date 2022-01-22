@@ -27,8 +27,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     member this.Expressions : ExpressionTransformationBase = this.StatementTransformationHandle().Expressions
     member this.Common : CommonTransformationItems = this.StatementTransformationHandle().Expressions.Common
 
-    new(statementTransformation: unit -> StatementTransformationBase,
-        options: TransformationOptions) as this =
+    new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
         new StatementKindTransformationBase(options, "_internal_")
         then this.StatementTransformationHandle <- statementTransformation
 
@@ -36,14 +35,14 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         new StatementKindTransformationBase(options, "_internal_")
         then
             let expressionTransformation = new ExpressionTransformationBase(options)
-            let statementTransformation = new StatementTransformationBase((fun _ -> this), (fun _ -> expressionTransformation), options)
+
+            let statementTransformation =
+                new StatementTransformationBase((fun _ -> this), (fun _ -> expressionTransformation), options)
+
             this.StatementTransformationHandle <- fun _ -> statementTransformation
 
     new(statementTransformation: unit -> StatementTransformationBase) =
-        new StatementKindTransformationBase(
-            statementTransformation,
-            TransformationOptions.Default
-        )
+        new StatementKindTransformationBase(statementTransformation, TransformationOptions.Default)
 
     new() = new StatementKindTransformationBase(TransformationOptions.Default)
 
@@ -51,7 +50,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     abstract OnSymbolTuple : SymbolTuple -> SymbolTuple
 
-    default this.OnSymbolTuple syms = 
+    default this.OnSymbolTuple syms =
         match syms with
         | VariableNameTuple tuple ->
             tuple |> Seq.map this.OnSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
@@ -283,14 +282,18 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use OnRelativeLocation instead">] // FIXME: MESSAGE
     abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
+
     default this.OnLocation loc = this.Common.OnRelativeLocation loc
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
     abstract OnVariableName : string -> string
-    default this.OnVariableName name = this.Expressions.Common.OnLocalName name
+
+    default this.OnVariableName name =
+        this.Expressions.Common.OnLocalName name
 
     abstract OnLocalDeclarations : LocalDeclarations -> LocalDeclarations
+
     default this.OnLocalDeclarations decl =
         let onLocalVariableDeclaration (local: LocalVariableDeclaration<string>) =
             let loc = local.Position, local.Range
