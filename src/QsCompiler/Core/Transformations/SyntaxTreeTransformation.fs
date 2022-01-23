@@ -65,6 +65,8 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
     override this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
     override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
     override this.OnRelativeLocation loc = this.Statements.OnLocation loc
+    override this.OnTypeRange range = this.Types.OnTypeRange range
+    override this.OnExpressionRange range = this.Expressions.OnRangeInformation range
 
 
 and TypeTransformation<'T> internal (options, _internal_) =
@@ -76,7 +78,9 @@ and TypeTransformation<'T> internal (options, _internal_) =
     /// even if no parent transformation has been specified upon construction.
     member this.Transformation
         with get () = _Transformation.Value
-        and private set value = _Transformation <- Some value
+        and private set value =
+            _Transformation <- Some value
+            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationItems
 
     member this.SharedState = this.Transformation.SharedState
 
@@ -144,7 +148,6 @@ and ExpressionTransformation<'T> internal (options, _internal_) =
                 fun _ -> value.ExpressionKinds :> ExpressionKindTransformationBase
 
             this.TypeTransformationHandle <- fun _ -> value.Types :> TypeTransformationBase
-            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationItems
 
     member this.SharedState = this.Transformation.SharedState
 
@@ -329,6 +332,8 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
     override this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
     override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
     override this.OnRelativeLocation loc = this.Statements.OnLocation loc
+    override this.OnTypeRange range = this.Types.OnTypeRange range
+    override this.OnExpressionRange range = this.Expressions.OnRangeInformation range
 
 
 and TypeTransformation internal (options, _internal_) =
@@ -340,7 +345,9 @@ and TypeTransformation internal (options, _internal_) =
     /// even if no parent transformation has been specified upon construction.
     member this.Transformation
         with get () = _Transformation.Value
-        and private set value = _Transformation <- Some value
+        and private set value =
+            _Transformation <- Some value
+            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationItems
 
     new(parentTransformation: SyntaxTreeTransformation, options: TransformationOptions) as this =
         new TypeTransformation(options, "_internal_")
@@ -404,7 +411,6 @@ and ExpressionTransformation internal (options, _internal_) =
                 fun _ -> value.ExpressionKinds :> ExpressionKindTransformationBase
 
             this.TypeTransformationHandle <- fun _ -> value.Types :> TypeTransformationBase
-            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationItems
 
     new(parentTransformation: SyntaxTreeTransformation, options: TransformationOptions) as this =
         ExpressionTransformation(options, "_internal_")

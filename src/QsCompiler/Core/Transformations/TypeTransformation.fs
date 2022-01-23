@@ -17,23 +17,46 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
 
-type TypeTransformationBase(options: TransformationOptions) =
+type TypeTransformationBase internal (options: TransformationOptions, _internal_) =
+
+    let missingTransformation name _ =
+        new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise
+
     let Node = if options.Rebuild then Fold else Walk
 
-    new() = TypeTransformationBase TransformationOptions.Default
+    member val internal CommonTransformationItemsHandle = missingTransformation "common items" with get, set
 
+    member this.Common = this.CommonTransformationItemsHandle()
+
+    internal new(getCommonItems: unit -> CommonTransformationItems,
+                 options: TransformationOptions) as this =
+        new TypeTransformationBase(options, "_internal_")
+        then this.CommonTransformationItemsHandle <- getCommonItems
+
+    new(options: TransformationOptions) as this =
+        new TypeTransformationBase(options, "_internal_")
+        then
+            let commonItems = new CommonTransformationItems()
+            this.CommonTransformationItemsHandle <- fun _ -> commonItems
+
+    new() = TypeTransformationBase TransformationOptions.Default
 
     // supplementary type information
 
     // TODO: RELEASE 2021-10: Remove obsolete method.
-    [<Obsolete "Use OnRangeInformation(TypeRange) instead.">]
+    [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
     abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
 
     // TODO: RELEASE 2021-10: Remove obsolete method.
-    [<Obsolete "Use OnRangeInformation(TypeRange) instead.">]
+    [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
     default this.OnRangeInformation range = range
 
+    // TODO: RELEASE 2022-09: Remove obsolete method.
+    [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
     abstract OnTypeRange : TypeRange -> TypeRange
+
+    // TODO: RELEASE 2022-09: Remove obsolete method.
+    [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
     default this.OnTypeRange range = range
 
     abstract OnCharacteristicsExpression : ResolvedCharacteristics -> ResolvedCharacteristics
@@ -53,7 +76,7 @@ type TypeTransformationBase(options: TransformationOptions) =
 
     default this.OnUserDefinedType udt =
         let ns, name = udt.Namespace, udt.Name
-        let range = this.OnRangeInformation udt.Range
+        let range = this.OnRangeInformation udt.Range // udt.Range should be removed along with OnRangeInformation
         Node.BuildOr InvalidType (ns, name, range) (UserDefinedType.New >> UserDefinedType)
 
     abstract OnTypeParameter : QsTypeParameter -> ExpressionType
@@ -61,7 +84,7 @@ type TypeTransformationBase(options: TransformationOptions) =
     default this.OnTypeParameter tp =
         let origin = tp.Origin
         let name = tp.TypeName
-        let range = this.OnRangeInformation tp.Range
+        let range = this.OnRangeInformation tp.Range // tp.Range should be removed along with OnRangeInformation
         Node.BuildOr InvalidType (origin, name, range) (QsTypeParameter.New >> TypeParameter)
 
     abstract OnOperation : (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
@@ -135,7 +158,7 @@ type TypeTransformationBase(options: TransformationOptions) =
         if not options.Enable then
             t
         else
-            let range = this.OnTypeRange t.Range
+            let range = this.Common.OnTypeRange t.Range
 
             let transformed =
                 match t.Resolution with

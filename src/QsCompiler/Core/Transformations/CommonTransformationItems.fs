@@ -30,3 +30,9 @@ type CommonTransformationItems internal () =
 
     abstract OnRelativeLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnRelativeLocation loc = loc
+
+    abstract OnTypeRange : TypeRange -> TypeRange
+    default this.OnTypeRange range = range
+
+    abstract OnExpressionRange : QsNullable<Range> -> QsNullable<Range>
+    default this.OnExpressionRange range = range

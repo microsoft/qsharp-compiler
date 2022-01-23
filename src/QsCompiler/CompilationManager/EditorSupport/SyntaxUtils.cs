@@ -242,7 +242,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
 
             internal ExpressionOffsetTransformation(Position offset) => this.offset = offset;
 
-            public override QsNullable<Range> OnExpressionRange(QsNullable<Range> range) =>
+// TODO: revise this, along with revising how ranges for symbol tuples in lambdas are treated
+#pragma warning disable CS0672 // Member overrides obsolete member
+            public override QsNullable<Range> OnRangeInformation(QsNullable<Range> range) =>
+#pragma warning restore CS0672 // Member overrides obsolete member
                 range.Map(r => this.offset + r);
         }
     }

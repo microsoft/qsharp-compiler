@@ -200,7 +200,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let accEx =
             match lhs.ResolvedType.Resolution, accEx.Expression with
             | UserDefinedType udt, Identifier (LocalVariable itemName, Null) ->
-                let range = this.Expressions.OnExpressionRange(accEx.Range)
+                let range = this.Common.OnExpressionRange(accEx.Range)
                 let itemName = this.Common.OnItemName(udt, itemName) |> LocalVariable
                 let itemType = this.Types.OnType accEx.ResolvedType
                 let info = this.Expressions.OnExpressionInformation accEx.InferredInformation
@@ -364,8 +364,8 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
                 | Symbol name -> this.Common.OnLocalNameDeclaration name |> Symbol
                 | _ -> s.Symbol
 
-            { Symbol = symbol; Range = this.Expressions.OnExpressionRange range } // FIXME: THIS SHOULD NOT BE INVOKING OnExpressionRange, AND JUST BE range HERE TO BE CONSISTENT WITH SYMBOL DECLARATIONS
-
+            { Symbol = symbol; Range = this.Common.OnExpressionRange range }
+            
         let syms = onSymbol lambda.Param
         let body = this.Expressions.OnTypedExpression lambda.Body
 
@@ -469,42 +469,26 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
 
     let Node = if options.Rebuild then Fold else Walk
 
-    member val internal CommonTransformationItemsHandle = missingTransformation "common items" with get, set
     member val internal TypeTransformationHandle = missingTransformation "type" with get, set
     member val internal ExpressionKindTransformationHandle = missingTransformation "expression kind" with get, set
 
-    member this.Common = this.CommonTransformationItemsHandle()
-    member this.Types = this.TypeTransformationHandle()
-    member this.ExpressionKinds = this.ExpressionKindTransformationHandle()
-
-    internal new(getCommonItems: unit -> CommonTransformationItems,
-                 exkindTransformation: unit -> ExpressionKindTransformationBase,
-                 typeTransformation: unit -> TypeTransformationBase,
-                 options: TransformationOptions) as this =
-        new ExpressionTransformationBase(options, "_internal_")
-        then
-            this.CommonTransformationItemsHandle <- getCommonItems
-            this.TypeTransformationHandle <- typeTransformation
-            this.ExpressionKindTransformationHandle <- exkindTransformation
+    member this.ExpressionKinds : ExpressionKindTransformationBase = this.ExpressionKindTransformationHandle()
+    member this.Types : TypeTransformationBase = this.TypeTransformationHandle()
+    member this.Common : CommonTransformationItems = this.TypeTransformationHandle().Common
 
     new(exkindTransformation: unit -> ExpressionKindTransformationBase,
         typeTransformation: unit -> TypeTransformationBase,
-        options: TransformationOptions) =
-        new ExpressionTransformationBase(
-            (fun _ -> new CommonTransformationItems()),
-            exkindTransformation,
-            typeTransformation,
-            options
-        )
+        options: TransformationOptions) as this =
+        new ExpressionTransformationBase(options, "_internal_")
+        then
+            this.TypeTransformationHandle <- typeTransformation
+            this.ExpressionKindTransformationHandle <- exkindTransformation
 
     new(options: TransformationOptions) as this =
         new ExpressionTransformationBase(options, "_internal_")
         then
-            let commonItems = new CommonTransformationItems()
             let typeTransformation = new TypeTransformationBase(options)
             let exprKindTransformation = new ExpressionKindTransformationBase((fun _ -> this), options)
-
-            this.CommonTransformationItemsHandle <- fun _ -> commonItems
             this.TypeTransformationHandle <- fun _ -> typeTransformation
             this.ExpressionKindTransformationHandle <- fun _ -> exprKindTransformation
 
@@ -518,15 +502,12 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
     // supplementary expression information
 
     // TODO: RELEASE 2022-09: Remove member.
-    [<Obsolete "Use OnExpressionRange instead.">]
+    [<Obsolete "Use SyntaxTreeTransformation.OnExpressionRange instead.">]
     abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
 
     // TODO: RELEASE 2022-09: Remove member.
-    [<Obsolete "Use OnExpressionRange instead.">]
+    [<Obsolete "Use SyntaxTreeTransformation.OnExpressionRange instead.">]
     default this.OnRangeInformation range = range
-
-    abstract OnExpressionRange : QsNullable<Range> -> QsNullable<Range>
-    default this.OnExpressionRange range = this.OnRangeInformation range
 
     abstract OnExpressionInformation : InferredExpressionInformation -> InferredExpressionInformation
     default this.OnExpressionInformation info = info
@@ -562,7 +543,7 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
         if not options.Enable then
             ex
         else
-            let range = this.OnExpressionRange ex.Range
+            let range = this.Common.OnExpressionRange ex.Range
             let typeParamResolutions = this.OnTypeParamResolutions ex.TypeParameterResolutions
             let kind = this.ExpressionKinds.OnExpressionKind ex.Expression
             let exType = this.Types.OnType ex.ResolvedType
