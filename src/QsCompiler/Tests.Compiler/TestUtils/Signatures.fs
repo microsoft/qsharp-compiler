@@ -687,7 +687,7 @@ let public LambdaLiftingSignatures =
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
              LambdaLiftingNS, "_Foo", [| "Double"; "String"; "Result"; "Unit" |], "(Double, String, Result)" // The generated operation
          |])
-        // Use Lots of Params
+        // With Lots of Params
         (_WithTupleTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
@@ -732,7 +732,7 @@ let public LambdaLiftingSignatures =
         (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
-             LambdaLiftingNS, "_Foo", [||], "Int" // The generated operation
+             LambdaLiftingNS, "_Foo", [||], "Int"
          |])
         // With Type Parameters
         (_DefaultTypes,
@@ -807,7 +807,7 @@ let public LambdaLiftingSignatures =
              LambdaLiftingNS, "_FooCtl", [||], "Unit"
              LambdaLiftingNS, "_FooAdjCtl", [||], "Unit"
          |])
-        // Use Missing Params
+        // With Missing Params
         (_WithTupleTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
@@ -818,6 +818,30 @@ let public LambdaLiftingSignatures =
              LambdaLiftingNS, "_Foo", [| "Int"; "Double" |], "Unit"
              LambdaLiftingNS, "_Foo", [| "String"; "(Int, Double)" |], "Unit"
              LambdaLiftingNS, "_Foo", [| "String"; "Int"; "Double" |], "Unit"
+         |])
+        // Use Parameter Single
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Int" // The generated operation
+         |])
+        // Use Parameter Tuple
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Double"; "Int" |], "(Int, Double)" // The generated operation
+         |])
+        // Use Parameter and Closure
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double" |], "(Int, Double)" // The generated operation
+         |])
+        // Use Parameter with Missing Params
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Int"; "Result"; "String" |], "Int" // The generated operation
          |])
     |]
     |> _MakeSignatures

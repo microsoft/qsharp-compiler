@@ -78,7 +78,7 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // =================================
 
-// Use Lots of Params
+// With Lots of Params
 namespace Microsoft.Quantum.Testing.LambdaLifting {
     operation Foo() : Unit {
         let lambda1 = (a => ())(0);
@@ -220,7 +220,7 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // =================================
 
-// Use Missing Params
+// With Missing Params
 namespace Microsoft.Quantum.Testing.LambdaLifting {
     operation Foo() : Unit {
         let lambda1 = (_ => ())();
@@ -234,9 +234,41 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
 
 // =================================
 
-// Use Missing Params
+// Use Parameter Single
 namespace Microsoft.Quantum.Testing.LambdaLifting {
     operation Foo() : Unit {
-        let lambda = (_ => ())();
+        let lambda = x => x;
+        let result = lambda(0);
+    }
+}
+
+// =================================
+
+// Use Parameter Tuple
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambda = (x, y) => (y, x);
+        let result = lambda(0.0, 0);
+    }
+}
+
+// =================================
+
+// Use Parameter and Closure
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let a = 0;
+        let lambda = x => (a, x);
+        let result = lambda(0.0);
+    }
+}
+
+// =================================
+
+// Use Parameter with Missing Params
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambda = (x, _, _) => x;
+        let result = lambda(0, Zero, "Zero");
     }
 }

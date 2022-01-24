@@ -204,7 +204,7 @@ type LambdaLiftingTests() =
 
     [<Fact>]
     [<Trait("Category", "Parameters")>]
-    member this.``Use Lots of Params``() = CompileLambdaLiftingTest 8 |> ignore
+    member this.``With Lots of Params``() = CompileLambdaLiftingTest 8 |> ignore
 
     [<Fact>]
     [<Trait("Category", "Parameters")>]
@@ -385,4 +385,92 @@ type LambdaLiftingTests() =
 
     [<Fact>]
     [<Trait("Category", "Parameters")>]
-    member this.``Use Missing Params``() = CompileLambdaLiftingTest 18
+    member this.``With Missing Params``() = CompileLambdaLiftingTest 18
+
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Use Parameter Single``() =
+        let result = CompileLambdaLiftingTest 19
+
+        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+
+        let generated =
+            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> Seq.exactlyOne
+            |> TestUtils.getBodyFromCallable
+
+        let lines = generated |> TestUtils.getLinesFromSpecialization
+
+        let expectedContent = [| "return x;" |]
+        Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
+
+        let lines = original |> TestUtils.getLinesFromSpecialization
+        
+        let expectedContent = [| sprintf "let lambda = %O(_);" generated.Parent; "let result = lambda(0);" |]
+        Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
+
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Use Parameter Tuple``() =
+        let result = CompileLambdaLiftingTest 20
+
+        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+
+        let generated =
+            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> Seq.exactlyOne
+            |> TestUtils.getBodyFromCallable
+
+        let lines = generated |> TestUtils.getLinesFromSpecialization
+
+        let expectedContent = [| "return (y, x);" |]
+        Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
+
+        let lines = original |> TestUtils.getLinesFromSpecialization
+        
+        let expectedContent = [| sprintf "let lambda = %O(_, _);" generated.Parent; "let result = lambda(0.0, 0);" |]
+        Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
+
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Use Parameter and Closure``() =
+        let result = CompileLambdaLiftingTest 21
+        
+        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+
+        let generated =
+            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> Seq.exactlyOne
+            |> TestUtils.getBodyFromCallable
+
+        let lines = generated |> TestUtils.getLinesFromSpecialization
+
+        let expectedContent = [| "return (a, x);" |]
+        Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
+
+        let lines = original |> TestUtils.getLinesFromSpecialization
+        
+        let expectedContent = [| "let a = 0;"; sprintf "let lambda = %O(a, _);" generated.Parent; "let result = lambda(0.0);" |]
+        Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
+
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Use Parameter with Missing Params``() =
+        let result = CompileLambdaLiftingTest 22
+    
+        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+
+        let generated =
+            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> Seq.exactlyOne
+            |> TestUtils.getBodyFromCallable
+
+        let lines = generated |> TestUtils.getLinesFromSpecialization
+
+        let expectedContent = [| "return x;" |]
+        Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
+
+        let lines = original |> TestUtils.getLinesFromSpecialization
+        
+        let expectedContent = [| sprintf "let lambda = %O(_, _, _);" generated.Parent; "let result = lambda(0, Zero, \"Zero\");" |]
+        Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
