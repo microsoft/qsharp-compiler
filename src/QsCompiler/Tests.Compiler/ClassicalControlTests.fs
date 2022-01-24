@@ -4,50 +4,16 @@
 namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
-open System.IO
 open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Testing.TestUtils
 open Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
-open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 
 
 type ClassicalControlTests() =
-
-    let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
-
-    let getTempFile () =
-        new Uri(Path.GetFullPath(Path.GetRandomFileName()))
-
-    let getManager uri content =
-        CompilationUnitManager.InitializeFileManager(
-            uri,
-            content,
-            compilationManager.PublishDiagnostics,
-            compilationManager.LogException
-        )
-
-    let ReadAndChunkSourceFile fileName =
-        let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText
-        sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
-
-    let BuildContent content =
-
-        let fileId = getTempFile ()
-        let file = getManager fileId content
-
-        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-        let compilationDataStructures = compilationManager.Build()
-        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
-
-        compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
-        Assert.NotNull compilationDataStructures.BuiltCompilation
-
-        compilationDataStructures
 
     let CompileClassicalControlTest testNumber =
         let srcChunks = ReadAndChunkSourceFile "ClassicalControl.qs"
@@ -63,47 +29,6 @@ type ClassicalControlTests() =
             processedCompilation
 
         processedCompilation
-
-    let GetBodyFromCallable call =
-        call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
-
-    let GetAdjFromCallable call =
-        call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsAdjoint)
-
-    let GetCtlFromCallable call =
-        call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlled)
-
-    let GetCtlAdjFromCallable call =
-        call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlledAdjoint)
-
-    let GetLinesFromSpecialization specialization =
-        let writer = new SyntaxTreeToQsharp()
-
-        specialization
-        |> fun x ->
-            match x.Implementation with
-            | Provided (_, body) -> Some body
-            | _ -> None
-        |> Option.get
-        |> writer.Statements.OnScope
-        |> ignore
-
-        writer.SharedState.StatementOutputHandle
-        |> Seq.filter (not << String.IsNullOrWhiteSpace)
-        |> Seq.toArray
-
-    let CheckIfLineIsCall ``namespace`` name input =
-        let call = sprintf @"(%s\.)?%s" <| Regex.Escape ``namespace`` <| Regex.Escape name
-        let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
-        let args = @"\(\s*(.*[^\s])?\s*\)"
-        let regex = sprintf @"^\s*%s\s*%s\s*%s;$" call typeArgs args
-
-        let regexMatch = Regex.Match(input, regex)
-
-        if regexMatch.Success then
-            (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
-        else
-            (false, "", "")
 
     let MakeApplicationRegex (opName: QsQualifiedName) =
         let call = sprintf @"(%s\.)?%s" <| Regex.Escape opName.Namespace <| Regex.Escape opName.Name
@@ -141,57 +66,8 @@ type ClassicalControlTests() =
     let IsTypeArgsMatch input targs =
         Regex.Match(input, sprintf @"^%s$" <| Regex.Escape targs).Success
 
-    let CheckIfSpecializationHasCalls specialization (calls: seq<int * string * string>) =
-        let lines = GetLinesFromSpecialization specialization
-        Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) calls
-
-    let AssertSpecializationHasCalls specialization calls =
-        Assert.True(
-            CheckIfSpecializationHasCalls specialization calls,
-            sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind
-        )
-
     let ExpandBuiltInQualifiedSymbol (i, (builtin: BuiltIn)) =
         (i, builtin.FullName.Namespace, builtin.FullName.Name)
-
-    let IdentifyGeneratedByCalls generatedCallables calls =
-        let mutable callables =
-            generatedCallables |> Seq.map (fun x -> x, x |> (GetBodyFromCallable >> GetLinesFromSpecialization))
-
-        let hasCall callable (call: seq<int * string * string>) =
-            let (_, lines: string []) = callable
-            Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) call
-
-        Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
-
-        let mutable rtrn = Seq.empty
-
-        let removeAt i lst =
-            Seq.append <| Seq.take i lst <| Seq.skip (i + 1) lst
-
-        for call in calls do
-            callables
-            |> Seq.tryFindIndex (fun callSig -> hasCall callSig call)
-            |> (fun x ->
-                Assert.True(x <> None, "Did not find expected generated content")
-                rtrn <- Seq.append rtrn [ Seq.item x.Value callables ]
-                callables <- removeAt x.Value callables)
-
-        rtrn |> Seq.map (fun (x, y) -> x)
-
-    let GetCallablesWithSuffix compilation ns (suffix: string) =
-        compilation.Namespaces
-        |> Seq.filter (fun x -> x.Name = ns)
-        |> GlobalCallableResolutions
-        |> Seq.filter (fun x -> x.Key.Name.EndsWith suffix)
-        |> Seq.map (fun x -> x.Value)
-
-    let GetCallableWithName compilation ns name =
-        compilation.Namespaces
-        |> Seq.filter (fun x -> x.Name = ns)
-        |> GlobalCallableResolutions
-        |> Seq.find (fun x -> x.Key.Name = name)
-        |> (fun x -> x.Value)
 
     let ApplyIfElseTest compilation =
         let original = GetCallableWithName compilation Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
@@ -208,53 +84,6 @@ type ClassicalControlTests() =
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
         targs, args
-
-    let DoesCallSupportFunctors expectedFunctors call =
-        let hasAdjoint = expectedFunctors |> Seq.contains QsFunctor.Adjoint
-        let hasControlled = expectedFunctors |> Seq.contains QsFunctor.Controlled
-
-        // Checks the characteristics match
-        let charMatch =
-            lazy
-                (match call.Signature.Information.Characteristics.SupportedFunctors with
-                 | Value x -> x.SetEquals(expectedFunctors)
-                 | Null -> 0 = Seq.length expectedFunctors)
-
-        // Checks that the target specializations are present
-        let adjMatch =
-            lazy
-                (if hasAdjoint then
-                     match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsAdjoint) with
-                     | None -> false
-                     | Some x ->
-                         match x.Implementation with
-                         | SpecializationImplementation.Generated gen ->
-                             gen = QsGeneratorDirective.Invert || gen = QsGeneratorDirective.SelfInverse
-                         | SpecializationImplementation.Provided _ -> true
-                         | _ -> false
-                 else
-                     true)
-
-        let ctlMatch =
-            lazy
-                (if hasControlled then
-                     match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsControlled) with
-                     | None -> false
-                     | Some x ->
-                         match x.Implementation with
-                         | SpecializationImplementation.Generated gen -> gen = QsGeneratorDirective.Distribute
-                         | SpecializationImplementation.Provided _ -> true
-                         | _ -> false
-                 else
-                     true)
-
-        charMatch.Value && adjMatch.Value && ctlMatch.Value
-
-    let AssertCallSupportsFunctors expectedFunctors call =
-        Assert.True(
-            DoesCallSupportFunctors expectedFunctors call,
-            sprintf "Callable %O did not support the expected functors" call.FullName
-        )
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]

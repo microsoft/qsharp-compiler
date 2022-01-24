@@ -15,41 +15,11 @@ open Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler.Testing.TestUtils
 
 type ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
 type LambdaLiftingTests() =
-
-    let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
-
-    let getTempFile () =
-        new Uri(Path.GetFullPath(Path.GetRandomFileName()))
-
-    let getManager uri content =
-        CompilationUnitManager.InitializeFileManager(
-            uri,
-            content,
-            compilationManager.PublishDiagnostics,
-            compilationManager.LogException
-        )
-
-    let ReadAndChunkSourceFile fileName =
-        let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText
-        sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
-
-    let BuildContent content =
-
-        let fileId = getTempFile ()
-        let file = getManager fileId content
-
-        compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-        let compilationDataStructures = compilationManager.Build()
-        compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
-
-        compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
-        Assert.NotNull compilationDataStructures.BuiltCompilation
-
-        compilationDataStructures
 
     let CompileLambdaLiftingTest testNumber =
         let srcChunks = ReadAndChunkSourceFile "LambdaLifting.qs"
@@ -65,86 +35,6 @@ type LambdaLiftingTests() =
             processedCompilation
 
         processedCompilation
-
-    let GetBodyFromCallable call =
-        call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
-
-    let GetLinesFromSpecialization specialization =
-        let writer = new SyntaxTreeToQsharp()
-
-        specialization
-        |> fun x ->
-            match x.Implementation with
-            | Provided (_, body) -> Some body
-            | _ -> None
-        |> Option.get
-        |> writer.Statements.OnScope
-        |> ignore
-
-        writer.SharedState.StatementOutputHandle
-        |> Seq.filter (not << String.IsNullOrWhiteSpace)
-        |> Seq.toArray
-
-    let GetCallablesWithSuffix compilation ns (suffix: string) =
-        compilation.Namespaces
-        |> Seq.filter (fun x -> x.Name = ns)
-        |> GlobalCallableResolutions
-        |> Seq.filter (fun x -> x.Key.Name.EndsWith suffix)
-        |> Seq.map (fun x -> x.Value)
-
-    let GetCallableWithName compilation ns name =
-        compilation.Namespaces
-        |> Seq.filter (fun x -> x.Name = ns)
-        |> GlobalCallableResolutions
-        |> Seq.find (fun x -> x.Key.Name = name)
-        |> (fun x -> x.Value)
-
-    let DoesCallSupportFunctors expectedFunctors call =
-        let hasAdjoint = expectedFunctors |> Seq.contains QsFunctor.Adjoint
-        let hasControlled = expectedFunctors |> Seq.contains QsFunctor.Controlled
-
-        // Checks the characteristics match
-        let charMatch =
-            lazy
-                (match call.Signature.Information.Characteristics.SupportedFunctors with
-                 | Value x -> x.SetEquals(expectedFunctors)
-                 | Null -> 0 = Seq.length expectedFunctors)
-
-        // Checks that the target specializations are present
-        let adjMatch =
-            lazy
-                (if hasAdjoint then
-                     match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsAdjoint) with
-                     | None -> false
-                     | Some x ->
-                         match x.Implementation with
-                         | SpecializationImplementation.Generated gen ->
-                             gen = QsGeneratorDirective.Invert || gen = QsGeneratorDirective.SelfInverse
-                         | SpecializationImplementation.Provided _ -> true
-                         | _ -> false
-                 else
-                     true)
-
-        let ctlMatch =
-            lazy
-                (if hasControlled then
-                     match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsControlled) with
-                     | None -> false
-                     | Some x ->
-                         match x.Implementation with
-                         | SpecializationImplementation.Generated gen -> gen = QsGeneratorDirective.Distribute
-                         | SpecializationImplementation.Provided _ -> true
-                         | _ -> false
-                 else
-                     true)
-
-        charMatch.Value && adjMatch.Value && ctlMatch.Value
-
-    let AssertCallSupportsFunctors expectedFunctors call =
-        Assert.True(
-            DoesCallSupportFunctors expectedFunctors call,
-            sprintf "Callable %O did not support the expected functors" call.FullName
-        )
 
     let AssertLambdaFunctorsByLine result line parentName expectedFunctors =
         let regexMatch = Regex.Match(line, sprintf "_[a-z0-9]{32}_%s" parentName)

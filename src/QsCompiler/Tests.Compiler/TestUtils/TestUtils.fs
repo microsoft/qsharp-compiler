@@ -5,12 +5,16 @@ module Microsoft.Quantum.QsCompiler.Testing.TestUtils
 
 open System
 open System.Collections.Immutable
+open System.IO
 open System.Text.RegularExpressions
 open FParsec
 open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
+open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.TextProcessing
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 
 
@@ -275,4 +279,175 @@ let testExpr (str, succExp, resExp, diagsExp) =
             (if not succOk then sprintf "%s unexpectedly" (if succExp then "failed" else "passed")
              elif not resOk then sprintf "expected result %A but received %A" resExp res.Value
              else sprintf "expected errors %A but received %A" diagsExp diags)
+    )
+
+
+// utils for building test cases
+
+let ReadAndChunkSourceFile fileName =
+    let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText
+    sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
+
+let BuildContent content =
+    let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
+    let fileId = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+    let file =
+        CompilationUnitManager.InitializeFileManager(
+            fileId,
+            content,
+            compilationManager.PublishDiagnostics,
+            compilationManager.LogException)
+
+    compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
+    let compilationDataStructures = compilationManager.Build()
+    compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
+
+    compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
+    Assert.NotNull compilationDataStructures.BuiltCompilation
+
+    compilationDataStructures
+
+
+// utils for getting components from test materials
+
+let GetBodyFromCallable call =
+    call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
+
+let GetAdjFromCallable call =
+    call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsAdjoint)
+
+let GetCtlFromCallable call =
+    call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlled)
+
+let GetCtlAdjFromCallable call =
+    call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlledAdjoint)
+
+let GetLinesFromSpecialization specialization =
+    let writer = new SyntaxTreeToQsharp()
+
+    specialization
+    |> fun x ->
+        match x.Implementation with
+        | Provided (_, body) -> Some body
+        | _ -> None
+    |> Option.get
+    |> writer.Statements.OnScope
+    |> ignore
+
+    writer.SharedState.StatementOutputHandle
+    |> Seq.filter (not << String.IsNullOrWhiteSpace)
+    |> Seq.toArray
+
+let GetCallableWithName compilation ns name =
+    compilation.Namespaces
+    |> Seq.filter (fun x -> x.Name = ns)
+    |> GlobalCallableResolutions
+    |> Seq.find (fun x -> x.Key.Name = name)
+    |> (fun x -> x.Value)
+
+let GetCallablesWithSuffix compilation ns (suffix: string) =
+    compilation.Namespaces
+    |> Seq.filter (fun x -> x.Name = ns)
+    |> GlobalCallableResolutions
+    |> Seq.filter (fun x -> x.Key.Name.EndsWith suffix)
+    |> Seq.map (fun x -> x.Value)
+
+let private _checkIfLineIsCall ``namespace`` name input =
+    let call = sprintf @"(%s\.)?%s" <| Regex.Escape ``namespace`` <| Regex.Escape name
+    let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
+    let args = @"\(\s*(.*[^\s])?\s*\)"
+    let regex = sprintf @"^\s*%s\s*%s\s*%s;$" call typeArgs args
+
+    let regexMatch = Regex.Match(input, regex)
+
+    if regexMatch.Success then
+        (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
+    else
+        (false, "", "")
+
+let IdentifyGeneratedByCalls generatedCallables calls =
+    let mutable callables =
+        generatedCallables |> Seq.map (fun x -> x, x |> (GetBodyFromCallable >> GetLinesFromSpecialization))
+
+    let hasCall callable (call: seq<int * string * string>) =
+        let (_, lines: string []) = callable
+        Seq.forall (fun (i, ns, name) -> _checkIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) call
+
+    Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
+
+    let mutable rtrn = Seq.empty
+
+    let removeAt i lst =
+        Seq.append <| Seq.take i lst <| Seq.skip (i + 1) lst
+
+    for call in calls do
+        callables
+        |> Seq.tryFindIndex (fun callSig -> hasCall callSig call)
+        |> (fun x ->
+            Assert.True(x <> None, "Did not find expected generated content")
+            rtrn <- Seq.append rtrn [ Seq.item x.Value callables ]
+            callables <- removeAt x.Value callables)
+
+    rtrn |> Seq.map (fun (x, y) -> x)
+
+
+// utils for testing checks and assertions
+
+let CheckIfLineIsCall = _checkIfLineIsCall
+
+let CheckIfSpecializationHasCalls specialization (calls: seq<int * string * string>) =
+    let lines = GetLinesFromSpecialization specialization
+    Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) calls
+
+let AssertSpecializationHasCalls specialization calls =
+    Assert.True(
+        CheckIfSpecializationHasCalls specialization calls,
+        sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind
+    )
+
+let DoesCallSupportFunctors expectedFunctors call =
+    let hasAdjoint = expectedFunctors |> Seq.contains QsFunctor.Adjoint
+    let hasControlled = expectedFunctors |> Seq.contains QsFunctor.Controlled
+
+    // Checks the characteristics match
+    let charMatch =
+        lazy
+            (match call.Signature.Information.Characteristics.SupportedFunctors with
+             | Value x -> x.SetEquals(expectedFunctors)
+             | Null -> 0 = Seq.length expectedFunctors)
+
+    // Checks that the target specializations are present
+    let adjMatch =
+        lazy
+            (if hasAdjoint then
+                 match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsAdjoint) with
+                 | None -> false
+                 | Some x ->
+                     match x.Implementation with
+                     | SpecializationImplementation.Generated gen ->
+                         gen = QsGeneratorDirective.Invert || gen = QsGeneratorDirective.SelfInverse
+                     | SpecializationImplementation.Provided _ -> true
+                     | _ -> false
+             else
+                 true)
+
+    let ctlMatch =
+        lazy
+            (if hasControlled then
+                 match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsControlled) with
+                 | None -> false
+                 | Some x ->
+                     match x.Implementation with
+                     | SpecializationImplementation.Generated gen -> gen = QsGeneratorDirective.Distribute
+                     | SpecializationImplementation.Provided _ -> true
+                     | _ -> false
+             else
+                 true)
+
+    charMatch.Value && adjMatch.Value && ctlMatch.Value
+
+let AssertCallSupportsFunctors expectedFunctors call =
+    Assert.True(
+        DoesCallSupportFunctors expectedFunctors call,
+        sprintf "Callable %O did not support the expected functors" call.FullName
     )
