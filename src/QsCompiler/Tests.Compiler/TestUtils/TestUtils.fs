@@ -20,14 +20,14 @@ open Xunit
 
 // utils for regex testing
 
-let VerifyNoMatch input (m: Match) =
+let verifyNoMatch input (m: Match) =
     Assert.False(m.Success, sprintf "matched \"%s\" for input \"%s\"" m.Value input)
 
-let VerifyMatch expected (m: Match) =
+let verifyMatch expected (m: Match) =
     Assert.True(m.Success, sprintf "failed to match \"%s\"" expected)
     Assert.Equal(expected, m.Value)
 
-let VerifyMatches (expected: _ list) (m: MatchCollection) =
+let verifyMatches (expected: _ list) (m: MatchCollection) =
     Assert.Equal(expected.Length, m.Count)
 
     for i = 0 to m.Count - 1 do
@@ -284,11 +284,11 @@ let testExpr (str, succExp, resExp, diagsExp) =
 
 // utils for building test cases
 
-let ReadAndChunkSourceFile fileName =
+let readAndChunkSourceFile fileName =
     let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText
     sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
-let BuildContent content =
+let buildContent content =
     let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
     let fileId = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let file =
@@ -310,19 +310,19 @@ let BuildContent content =
 
 // utils for getting components from test materials
 
-let GetBodyFromCallable call =
+let getBodyFromCallable call =
     call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
 
-let GetAdjFromCallable call =
+let getAdjFromCallable call =
     call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsAdjoint)
 
-let GetCtlFromCallable call =
+let getCtlFromCallable call =
     call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlled)
 
-let GetCtlAdjFromCallable call =
+let getCtlAdjFromCallable call =
     call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlledAdjoint)
 
-let GetLinesFromSpecialization specialization =
+let getLinesFromSpecialization specialization =
     let writer = new SyntaxTreeToQsharp()
 
     specialization
@@ -338,14 +338,14 @@ let GetLinesFromSpecialization specialization =
     |> Seq.filter (not << String.IsNullOrWhiteSpace)
     |> Seq.toArray
 
-let GetCallableWithName compilation ns name =
+let getCallableWithName compilation ns name =
     compilation.Namespaces
     |> Seq.filter (fun x -> x.Name = ns)
     |> GlobalCallableResolutions
     |> Seq.find (fun x -> x.Key.Name = name)
     |> (fun x -> x.Value)
 
-let GetCallablesWithSuffix compilation ns (suffix: string) =
+let getCallablesWithSuffix compilation ns (suffix: string) =
     compilation.Namespaces
     |> Seq.filter (fun x -> x.Name = ns)
     |> GlobalCallableResolutions
@@ -365,9 +365,9 @@ let private _checkIfLineIsCall ``namespace`` name input =
     else
         (false, "", "")
 
-let IdentifyGeneratedByCalls generatedCallables calls =
+let identifyGeneratedByCalls generatedCallables calls =
     let mutable callables =
-        generatedCallables |> Seq.map (fun x -> x, x |> (GetBodyFromCallable >> GetLinesFromSpecialization))
+        generatedCallables |> Seq.map (fun x -> x, x |> (getBodyFromCallable >> getLinesFromSpecialization))
 
     let hasCall callable (call: seq<int * string * string>) =
         let (_, lines: string []) = callable
@@ -393,19 +393,19 @@ let IdentifyGeneratedByCalls generatedCallables calls =
 
 // utils for testing checks and assertions
 
-let CheckIfLineIsCall = _checkIfLineIsCall
+let checkIfLineIsCall = _checkIfLineIsCall
 
-let CheckIfSpecializationHasCalls specialization (calls: seq<int * string * string>) =
-    let lines = GetLinesFromSpecialization specialization
-    Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) calls
+let checkIfSpecializationHasCalls specialization (calls: seq<int * string * string>) =
+    let lines = getLinesFromSpecialization specialization
+    Seq.forall (fun (i, ns, name) -> checkIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) calls
 
-let AssertSpecializationHasCalls specialization calls =
+let assertSpecializationHasCalls specialization calls =
     Assert.True(
-        CheckIfSpecializationHasCalls specialization calls,
+        checkIfSpecializationHasCalls specialization calls,
         sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind
     )
 
-let DoesCallSupportFunctors expectedFunctors call =
+let doesCallSupportFunctors expectedFunctors call =
     let hasAdjoint = expectedFunctors |> Seq.contains QsFunctor.Adjoint
     let hasControlled = expectedFunctors |> Seq.contains QsFunctor.Controlled
 
@@ -446,8 +446,8 @@ let DoesCallSupportFunctors expectedFunctors call =
 
     charMatch.Value && adjMatch.Value && ctlMatch.Value
 
-let AssertCallSupportsFunctors expectedFunctors call =
+let assertCallSupportsFunctors expectedFunctors call =
     Assert.True(
-        DoesCallSupportFunctors expectedFunctors call,
+        doesCallSupportFunctors expectedFunctors call,
         sprintf "Callable %O did not support the expected functors" call.FullName
     )
