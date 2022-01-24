@@ -382,3 +382,7 @@ type LambdaLiftingTests() =
         )
 
         AssertLambdaFunctorsByLine result lines.[0] "FooAdjCtl" [ QsFunctor.Adjoint; QsFunctor.Controlled ]
+
+    [<Fact>]
+    [<Trait("Category", "Parameters")>]
+    member this.``Use Missing Params``() = CompileLambdaLiftingTest 18

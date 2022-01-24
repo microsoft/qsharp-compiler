@@ -807,6 +807,18 @@ let public LambdaLiftingSignatures =
              LambdaLiftingNS, "_FooCtl", [||], "Unit"
              LambdaLiftingNS, "_FooAdjCtl", [||], "Unit"
          |])
+        // Use Missing Params
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "(Int, Double)" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "String"; "(Int, Double)" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "String"; "Int"; "Double" |], "Unit"
+         |])
     |]
     |> _MakeSignatures
 

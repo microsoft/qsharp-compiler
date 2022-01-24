@@ -75,6 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                 {
                 }
 
+                /// <inheritdoc/>
                 public override QsScope OnScope(QsScope scope)
                 {
                     var saved = this.SharedState.KnownVariables;
@@ -84,6 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     return result;
                 }
 
+                /// <inheritdoc/>
                 public override QsStatement OnStatement(QsStatement stm)
                 {
                     var result = base.OnStatement(stm);
@@ -101,6 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                 {
                 }
 
+                /// <inheritdoc/>
                 public override TypedExpression OnTypedExpression(TypedExpression ex)
                 {
                     if (ex.Expression is ExpressionKind.Lambda lambda)
@@ -115,9 +118,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
 
                 private ParameterTuple MakeLambdaParams(ResolvedType expressionType, QsSymbol paramNames)
                 {
+                    var missingSymbolCount = 0;
+
                     ParameterTuple MatchNameWithType(ResolvedType paramType, QsSymbol paramName)
                     {
-                        if (paramName.Symbol is QsSymbolKind<QsSymbol>.Symbol sym)
+                        if (paramName.Symbol.IsMissingSymbol)
+                        {
+                            var localVar = new LocalVariableDeclaration<QsLocalSymbol>(
+                                QsLocalSymbol.NewValidName($"__missingLambdaParam_{missingSymbolCount}__"),
+                                paramType,
+                                new InferredExpressionInformation(false, false),
+                                QsNullable<Position>.Null,
+                                paramName.Range.IsNull
+                                    ? DataTypes.Range.Zero
+                                    : paramName.Range.Item);
+                            missingSymbolCount++;
+                            return ParameterTuple.NewQsTupleItem(localVar);
+                        }
+                        else if (paramName.Symbol is QsSymbolKind<QsSymbol>.Symbol sym)
                         {
                             var localVar = new LocalVariableDeclaration<QsLocalSymbol>(
                                 QsLocalSymbol.NewValidName(sym.Item),

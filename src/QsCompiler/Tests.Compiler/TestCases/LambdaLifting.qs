@@ -217,3 +217,26 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
         (() => FooAdjCtl())();
     }
 }
+
+// =================================
+
+// Use Missing Params
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambda1 = (_ => ())();
+        let lambda2 = (_ => ())(0);
+        let lambda3 = (_ => ())(0, 0.0);
+        let lambda4 = ((_, _) => ())(0, 0.0);
+        let lambda5 = ((x, _) => ())("Zero", (0, 0.0));
+        let lambda6 = ((x, _, _) => ())("Zero", 0, 0.0);
+    }
+}
+
+// =================================
+
+// Use Missing Params
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambda = (_ => ())();
+    }
+}
