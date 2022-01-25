@@ -553,6 +553,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                         return $"({string.Join(", ", tup.Item.Select(QsSymbolToString))})";
                     }
                 }
+                else if (symbol.Symbol.IsOmittedSymbols)
+                {
+                    return "__omittedSymbol__";
+                }
+                else if (symbol.Symbol.IsMissingSymbol)
+                {
+                    return "_";
+                }
+                else if (symbol.Symbol.IsInvalidSymbol)
+                {
+                    return "__invalidSymbol__";
+                }
                 else
                 {
                     return "";
