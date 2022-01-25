@@ -4,7 +4,6 @@
 module Microsoft.Quantum.QsCompiler.Testing.Signatures
 
 open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
@@ -838,10 +837,17 @@ let public LambdaLiftingSignatures =
              LambdaLiftingNS, "_Foo", [| "Int"; "Double" |], "(Int, Double)" // The generated operation
          |])
         // Use Parameter with Missing Params
-        (_WithTupleTypes,
+        (_DefaultTypes,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
              LambdaLiftingNS, "_Foo", [| "Int"; "Result"; "String" |], "Int" // The generated operation
+         |])
+        // Multiple Lambdas in One Expression
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Int"
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Int"
          |])
     |]
     |> _MakeSignatures

@@ -14,7 +14,7 @@ type ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParamete
 
 type LambdaLiftingTests() =
 
-    let CompileLambdaLiftingTest testNumber =
+    let compileLambdaLiftingTest testNumber =
         let srcChunks = TestUtils.readAndChunkSourceFile "LambdaLifting.qs"
         srcChunks.Length >= testNumber + 1 |> Assert.True
         let shared = srcChunks.[0]
@@ -29,7 +29,7 @@ type LambdaLiftingTests() =
 
         processedCompilation
 
-    let AssertLambdaFunctorsByLine result line parentName expectedFunctors =
+    let assertLambdaFunctorsByLine result line parentName expectedFunctors =
         let regexMatch = Regex.Match(line, sprintf "_[a-z0-9]{32}_%s" parentName)
         Assert.True(regexMatch.Success, "The original callable did not have the expected content.")
 
@@ -39,7 +39,7 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``With Return Value``() =
-        let result = CompileLambdaLiftingTest 1
+        let result = compileLambdaLiftingTest 1
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -61,7 +61,7 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Without Return Value``() =
-        let result = CompileLambdaLiftingTest 2
+        let result = compileLambdaLiftingTest 2
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -85,7 +85,7 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Call Valued Callable``() =
-        let result = CompileLambdaLiftingTest 3
+        let result = compileLambdaLiftingTest 3
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -107,7 +107,7 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Call Unit Callable``() =
-        let result = CompileLambdaLiftingTest 4
+        let result = compileLambdaLiftingTest 4
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -129,7 +129,7 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Call Valued Callable Recursive``() =
-        let result = CompileLambdaLiftingTest 5
+        let result = compileLambdaLiftingTest 5
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -156,7 +156,7 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Call Unit Callable Recursive``() =
-        let result = CompileLambdaLiftingTest 6
+        let result = compileLambdaLiftingTest 6
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -178,7 +178,7 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Parameters")>]
     member this.``Use Closure``() =
-        let result = CompileLambdaLiftingTest 7
+        let result = compileLambdaLiftingTest 7
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -204,16 +204,16 @@ type LambdaLiftingTests() =
 
     [<Fact>]
     [<Trait("Category", "Parameters")>]
-    member this.``With Lots of Params``() = CompileLambdaLiftingTest 8 |> ignore
+    member this.``With Lots of Params``() = compileLambdaLiftingTest 8 |> ignore
 
     [<Fact>]
     [<Trait("Category", "Parameters")>]
-    member this.``Use Closure With Params``() = CompileLambdaLiftingTest 9 |> ignore
+    member this.``Use Closure With Params``() = compileLambdaLiftingTest 9 |> ignore
 
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Function Lambda``() =
-        let result = CompileLambdaLiftingTest 10
+        let result = compileLambdaLiftingTest 10
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -279,16 +279,16 @@ type LambdaLiftingTests() =
 
     [<Fact>]
     [<Trait("Category", "Return Values")>]
-    member this.``With Nested Lambda Call``() = CompileLambdaLiftingTest 12
+    member this.``With Nested Lambda Call``() = compileLambdaLiftingTest 12
 
     [<Fact>]
     [<Trait("Category", "Return Values")>]
-    member this.``With Nested Lambda``() = CompileLambdaLiftingTest 13
+    member this.``With Nested Lambda``() = compileLambdaLiftingTest 13
 
     [<Fact(Skip = "Known Bug: https://github.com/microsoft/qsharp-compiler/issues/1113")>]
     [<Trait("Category", "Functor Support")>]
     member this.``Functor Support Basic Return``() =
-        let result = CompileLambdaLiftingTest 14
+        let result = compileLambdaLiftingTest 14
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
         let lines = original |> TestUtils.getLinesFromSpecialization
@@ -298,13 +298,13 @@ type LambdaLiftingTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements." original.Parent original.Kind
         )
 
-        AssertLambdaFunctorsByLine result lines.[0] "Foo" []
-        AssertLambdaFunctorsByLine result lines.[1] "Foo" [ QsFunctor.Adjoint; QsFunctor.Controlled ]
+        assertLambdaFunctorsByLine result lines.[0] "Foo" []
+        assertLambdaFunctorsByLine result lines.[1] "Foo" [ QsFunctor.Adjoint; QsFunctor.Controlled ]
 
     [<Fact>]
     [<Trait("Category", "Functor Support")>]
     member this.``Functor Support Call``() =
-        let result = CompileLambdaLiftingTest 15
+        let result = compileLambdaLiftingTest 15
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
         let lines = original |> TestUtils.getLinesFromSpecialization
@@ -314,16 +314,16 @@ type LambdaLiftingTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements." original.Parent original.Kind
         )
 
-        AssertLambdaFunctorsByLine result lines.[0] "Foo" []
-        AssertLambdaFunctorsByLine result lines.[1] "Foo" []
-        AssertLambdaFunctorsByLine result lines.[2] "Foo" [ QsFunctor.Adjoint ]
-        AssertLambdaFunctorsByLine result lines.[3] "Foo" [ QsFunctor.Controlled ]
-        AssertLambdaFunctorsByLine result lines.[4] "Foo" [ QsFunctor.Adjoint; QsFunctor.Controlled ]
+        assertLambdaFunctorsByLine result lines.[0] "Foo" []
+        assertLambdaFunctorsByLine result lines.[1] "Foo" []
+        assertLambdaFunctorsByLine result lines.[2] "Foo" [ QsFunctor.Adjoint ]
+        assertLambdaFunctorsByLine result lines.[3] "Foo" [ QsFunctor.Controlled ]
+        assertLambdaFunctorsByLine result lines.[4] "Foo" [ QsFunctor.Adjoint; QsFunctor.Controlled ]
 
     [<Fact(Skip = "Known Bug: https://github.com/microsoft/qsharp-compiler/issues/1113")>]
     [<Trait("Category", "Functor Support")>]
     member this.``Functor Support Lambda Call``() =
-        let result = CompileLambdaLiftingTest 16
+        let result = compileLambdaLiftingTest 16
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
         let lines = original |> TestUtils.getLinesFromSpecialization
@@ -333,15 +333,15 @@ type LambdaLiftingTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements." original.Parent original.Kind
         )
 
-        AssertLambdaFunctorsByLine result lines.[0] "Foo" [] // This line fails due to known bug. See skip reason.
-        AssertLambdaFunctorsByLine result lines.[1] "Foo" [ QsFunctor.Adjoint ]
-        AssertLambdaFunctorsByLine result lines.[2] "Foo" [ QsFunctor.Controlled ]
-        AssertLambdaFunctorsByLine result lines.[3] "Foo" [ QsFunctor.Adjoint; QsFunctor.Controlled ]
+        assertLambdaFunctorsByLine result lines.[0] "Foo" [] // This line fails due to known bug. See skip reason.
+        assertLambdaFunctorsByLine result lines.[1] "Foo" [ QsFunctor.Adjoint ]
+        assertLambdaFunctorsByLine result lines.[2] "Foo" [ QsFunctor.Controlled ]
+        assertLambdaFunctorsByLine result lines.[3] "Foo" [ QsFunctor.Adjoint; QsFunctor.Controlled ]
 
     [<Fact>]
     [<Trait("Category", "Functor Support")>]
     member this.``Functor Support Recursive``() =
-        let result = CompileLambdaLiftingTest 17
+        let result = compileLambdaLiftingTest 17
 
         let Foo = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
         let lines = Foo |> TestUtils.getLinesFromSpecialization
@@ -351,7 +351,7 @@ type LambdaLiftingTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements." Foo.Parent Foo.Kind
         )
 
-        AssertLambdaFunctorsByLine result lines.[0] "Foo" []
+        assertLambdaFunctorsByLine result lines.[0] "Foo" []
 
         let FooAdj = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "FooAdj" |> TestUtils.getBodyFromCallable
         let lines = FooAdj |> TestUtils.getLinesFromSpecialization
@@ -361,7 +361,7 @@ type LambdaLiftingTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements." FooAdj.Parent FooAdj.Kind
         )
 
-        AssertLambdaFunctorsByLine result lines.[0] "FooAdj" [ QsFunctor.Adjoint ]
+        assertLambdaFunctorsByLine result lines.[0] "FooAdj" [ QsFunctor.Adjoint ]
 
         let FooCtl = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "FooCtl" |> TestUtils.getBodyFromCallable
         let lines = FooCtl |> TestUtils.getLinesFromSpecialization
@@ -371,7 +371,7 @@ type LambdaLiftingTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements." FooCtl.Parent FooCtl.Kind
         )
 
-        AssertLambdaFunctorsByLine result lines.[0] "FooCtl" [ QsFunctor.Controlled ]
+        assertLambdaFunctorsByLine result lines.[0] "FooCtl" [ QsFunctor.Controlled ]
 
         let FooAdjCtl = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "FooAdjCtl" |> TestUtils.getBodyFromCallable
         let lines = FooAdjCtl |> TestUtils.getLinesFromSpecialization
@@ -381,16 +381,16 @@ type LambdaLiftingTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements." FooAdjCtl.Parent FooAdjCtl.Kind
         )
 
-        AssertLambdaFunctorsByLine result lines.[0] "FooAdjCtl" [ QsFunctor.Adjoint; QsFunctor.Controlled ]
+        assertLambdaFunctorsByLine result lines.[0] "FooAdjCtl" [ QsFunctor.Adjoint; QsFunctor.Controlled ]
 
     [<Fact>]
     [<Trait("Category", "Parameters")>]
-    member this.``With Missing Params``() = CompileLambdaLiftingTest 18
+    member this.``With Missing Params``() = compileLambdaLiftingTest 18
 
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Use Parameter Single``() =
-        let result = CompileLambdaLiftingTest 19
+        let result = compileLambdaLiftingTest 19
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -412,7 +412,7 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Use Parameter Tuple``() =
-        let result = CompileLambdaLiftingTest 20
+        let result = compileLambdaLiftingTest 20
 
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -434,7 +434,7 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Use Parameter and Closure``() =
-        let result = CompileLambdaLiftingTest 21
+        let result = compileLambdaLiftingTest 21
         
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -456,7 +456,7 @@ type LambdaLiftingTests() =
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Use Parameter with Missing Params``() =
-        let result = CompileLambdaLiftingTest 22
+        let result = compileLambdaLiftingTest 22
     
         let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
 
@@ -473,4 +473,41 @@ type LambdaLiftingTests() =
         let lines = original |> TestUtils.getLinesFromSpecialization
         
         let expectedContent = [| sprintf "let lambda = %O(_, _, _);" generated.Parent; "let result = lambda(0, Zero, \"Zero\");" |]
+        Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
+
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Multiple Lambdas in One Expression``() =
+        let result = compileLambdaLiftingTest 23
+    
+        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+
+        let generated =
+            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> (fun x ->
+                Assert.True(2 = Seq.length x)
+                x |> Seq.map TestUtils.getBodyFromCallable)
+
+        let hasFirstContent spec =
+            let lines = spec |> TestUtils.getLinesFromSpecialization
+            lines = [| "return x + 1;" |]
+        let hasSecondContent spec =
+            let lines = spec |> TestUtils.getLinesFromSpecialization
+            lines = [| "return x + 2;" |]
+
+        let first, second =
+            let temp1 = Seq.item 0 generated
+            let temp2 = Seq.item 1 generated
+            
+            if (hasFirstContent temp1) then
+                Assert.True(hasSecondContent temp2, sprintf "Callable %O(%A) did not have expected content" temp2.Parent QsSpecializationKind.QsBody)
+                temp1, temp2
+            else
+                Assert.True(hasFirstContent temp2, sprintf "Callable %O(%A) did not have expected content" temp2.Parent QsSpecializationKind.QsBody)
+                Assert.True(hasSecondContent temp1, sprintf "Callable %O(%A) did not have expected content" temp1.Parent QsSpecializationKind.QsBody)
+                temp2, temp1
+
+        let lines = original |> TestUtils.getLinesFromSpecialization
+        
+        let expectedContent = [| sprintf "let lambdaTuple = (%O(_), %O(_));" first.Parent second.Parent |]
         Assert.True((lines = expectedContent), "The original callable did not have the expected content.")

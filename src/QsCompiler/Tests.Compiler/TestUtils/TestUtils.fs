@@ -352,8 +352,8 @@ let getCallablesWithSuffix compilation ns (suffix: string) =
     |> Seq.filter (fun x -> x.Key.Name.EndsWith suffix)
     |> Seq.map (fun x -> x.Value)
 
-let private _checkIfLineIsCall ``namespace`` name input =
-    let call = sprintf @"(%s\.)?%s" <| Regex.Escape ``namespace`` <| Regex.Escape name
+let private _checkIfStringIsCall (name: QsQualifiedName) input =
+    let call = sprintf @"(%s\.)?%s" <| Regex.Escape name.Namespace <| Regex.Escape name.Name
     let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
     let args = @"\(\s*(.*[^\s])?\s*\)"
     let regex = sprintf @"^\s*%s\s*%s\s*%s;$" call typeArgs args
@@ -369,9 +369,9 @@ let identifyGeneratedByCalls generatedCallables calls =
     let mutable callables =
         generatedCallables |> Seq.map (fun x -> x, x |> (getBodyFromCallable >> getLinesFromSpecialization))
 
-    let hasCall callable (call: seq<int * string * string>) =
+    let hasCall callable (call: seq<int * QsQualifiedName>) =
         let (_, lines: string []) = callable
-        Seq.forall (fun (i, ns, name) -> _checkIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) call
+        Seq.forall (fun (i, name) -> _checkIfStringIsCall name lines.[i] |> (fun (x, _, _) -> x)) call
 
     Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
 
@@ -388,16 +388,16 @@ let identifyGeneratedByCalls generatedCallables calls =
             rtrn <- Seq.append rtrn [ Seq.item x.Value callables ]
             callables <- removeAt x.Value callables)
 
-    rtrn |> Seq.map (fun (x, y) -> x)
+    rtrn |> Seq.map (fun (x, _) -> x)
 
 
 // utils for testing checks and assertions
 
-let checkIfLineIsCall = _checkIfLineIsCall
+let checkIfStringIsCall = _checkIfStringIsCall
 
-let checkIfSpecializationHasCalls specialization (calls: seq<int * string * string>) =
+let checkIfSpecializationHasCalls specialization (calls: seq<int * QsQualifiedName>) =
     let lines = getLinesFromSpecialization specialization
-    Seq.forall (fun (i, ns, name) -> checkIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) calls
+    Seq.forall (fun (i, name) -> checkIfStringIsCall name lines.[i] |> (fun (x, _, _) -> x)) calls
 
 let assertSpecializationHasCalls specialization calls =
     Assert.True(

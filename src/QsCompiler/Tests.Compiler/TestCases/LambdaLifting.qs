@@ -272,3 +272,12 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
         let result = lambda(0, Zero, "Zero");
     }
 }
+
+// =================================
+
+// Multiple Lambdas in One Expression
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambdaTuple = ((x -> x + 1), (x -> x + 2));
+    }
+}
