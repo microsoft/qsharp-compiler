@@ -83,7 +83,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             let t = this.Statements.Expressions.Types.OnType itemType
             QsTupleItem << Anonymous |> Node.BuildOr original t
         | QsTupleItem (Named item) as original ->
-            let loc = item.Position, item.Range
+            let loc = item.Position, item.Range // TODO: SYMBOL RANGE FROM LOCALVARDECL
             let name = this.Common.OnItemNameDeclaration item.VariableName
             let t = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
@@ -111,7 +111,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             let transformed = items |> Seq.map this.OnArgumentTuple |> ImmutableArray.CreateRange
             QsTuple |> Node.BuildOr original transformed
         | QsTupleItem item as original ->
-            let loc = item.Position, item.Range
+            let loc = item.Position, item.Range // TODO: SYMBOL RANGE FROM LOCALVARDECL
             let name = this.OnArgumentName item.VariableName // replace with the implementation once the deprecated member is removed
             let t = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
@@ -122,7 +122,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnSignature : ResolvedSignature -> ResolvedSignature
 
     default this.OnSignature(s: ResolvedSignature) =
-        let typeParams = s.TypeParameters
+        let typeParams = s.TypeParameters // FIXME: TYPE NAME DOESN'T HAVE A RANGE...
         let argType = this.Statements.Expressions.Types.OnType s.ArgumentType
         let returnType = this.Statements.Expressions.Types.OnType s.ReturnType
         let info = this.Statements.Expressions.Types.OnCallableInformation s.Information

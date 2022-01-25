@@ -356,7 +356,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     default this.OnLambda lambda =
         let rec onSymbol (s: QsSymbol) =
-            let range = s.Range
+            let range = s.Range // TODO: SYMBOL RANGE - ATTACH LOCAL VARIABLE DECLARATION TO LAMBDA?
 
             let symbol =
                 match s.Symbol with
@@ -364,7 +364,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
                 | Symbol name -> this.Common.OnLocalNameDeclaration name |> Symbol
                 | _ -> s.Symbol
 
-            { Symbol = symbol; Range = this.Common.OnExpressionRange range }
+            { Symbol = symbol; Range = range }
             
         let syms = onSymbol lambda.Param
         let body = this.Expressions.OnTypedExpression lambda.Body

@@ -309,7 +309,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
 
     default this.OnLocalDeclarations decl =
         let onLocalVariableDeclaration (local: LocalVariableDeclaration<string>) =
-            let loc = local.Position, local.Range
+            let loc = local.Position, local.Range // TODO: SYMBOL RANGE FROM LOCALVARDECL
             let name = this.Expressions.Common.OnLocalName local.VariableName
             let varType = this.Expressions.Types.OnType local.Type
             let info = this.Expressions.OnExpressionInformation local.InferredInformation
