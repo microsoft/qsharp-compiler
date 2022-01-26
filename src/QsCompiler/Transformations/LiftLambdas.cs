@@ -173,7 +173,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
 
                                 if (subSymbols.Length != subSybmolTypes.Length)
                                 {
-                                    throw new ArgumentException("Lambda parameter type length mismatch");
+                                    throw new ArgumentException("Lambda parameter tuple type length mismatch.");
                                 }
 
                                 return ParameterTuple.NewQsTuple(subSymbols
@@ -182,12 +182,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                             }
                             else
                             {
-                                throw new ArgumentException("Lambda parameter type mismatch");
+                                throw new ArgumentException("Lambda tuple parameter matched non-tuple type.");
                             }
                         }
                         else
                         {
-                            throw new ArgumentException("Lambda parameter type mismatch");
+                            throw new ArgumentException("Lambda parameter unsupported symbol kind. Only `Symbol`, `SymbolTuple`, and `MissingSymbol` are supported.");
                         }
                     }
 
