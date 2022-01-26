@@ -34,7 +34,7 @@ type LambdaLiftingTests() =
         Assert.True(regexMatch.Success, "The original callable did not have the expected content.")
 
         TestUtils.getCallableWithName result Signatures.LambdaLiftingNS regexMatch.Value
-        |> TestUtils.assertCallSupportsFunctors expectedFunctors
+        |> TestUtils.assertCallSupportsFunctors expectedFunctors    
 
     [<Fact>]
     [<Trait("Category", "Return Values")>]
@@ -204,11 +204,87 @@ type LambdaLiftingTests() =
 
     [<Fact>]
     [<Trait("Category", "Parameters")>]
-    member this.``With Lots of Params``() = compileLambdaLiftingTest 8 |> ignore
+    member this.``With Lots of Params``() =
+        let result = compileLambdaLiftingTest 8
+
+        let generated =
+            [
+                ( "(a1 : Int)", "Unit" )
+                ( "(a2 : Int)", "Unit" )
+                ( "(a3 : Int, b3 : Double)", "Unit" )
+                ( "(a4 : Int, b4 : Double, c4 : String)", "Unit" )
+                ( "(a5 : Int, (b5 : Double, c5 : String))", "Unit" )
+                ( "(a6 : Int, b6 : Double, c6 : String)", "Unit" )
+                ( "((a7 : Int, b7 : Double), c7 : String)", "Unit" )
+                ( "(a8 : Int, b8 : Double, c8 : String)", "Unit" )
+            ]
+            |> TestUtils.identifyCallablesBySignature (TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo")
+
+        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        Assert.True(
+            8 = (original |> TestUtils.getLinesFromSpecialization |> Seq.length),
+            sprintf "Callable %O(%A) did not have the expected number of statements." original.Parent original.Kind
+        )
+
+        let success =
+            [
+                (0, sprintf "let lambda1 = (%O(_))(0);" (Seq.item 0 generated).FullName)
+                (1, sprintf "let lambda2 = (%O(_))(0);" (Seq.item 1 generated).FullName)
+                (2, sprintf "let lambda3 = (%O(_, _))(0, 0.0);" (Seq.item 2 generated).FullName)
+                (3, sprintf "let lambda4 = (%O(_, _, _))(0, 0.0, \"Zero\");" (Seq.item 3 generated).FullName)
+                (4, sprintf "let lambda5 = (%O(_, _))(0, (0.0, \"Zero\"));" (Seq.item 4 generated).FullName)
+                (5, sprintf "let lambda6 = (%O(_, _, _))(0, 0.0, \"Zero\");" (Seq.item 5 generated).FullName)
+                (6, sprintf "let lambda7 = (%O(_, _))((0, 0.0), \"Zero\");" (Seq.item 6 generated).FullName)
+                (7, sprintf "let lambda8 = (%O(_, _, _))(0, 0.0, \"Zero\");" (Seq.item 7 generated).FullName)
+            ]
+            |> TestUtils.checkIfSpecializationHasContent original
+
+        Assert.True(success, "The original callable did not have the expected content.")
 
     [<Fact>]
     [<Trait("Category", "Parameters")>]
-    member this.``Use Closure With Params``() = compileLambdaLiftingTest 9 |> ignore
+    member this.``Use Closure With Params``() =
+        let result = compileLambdaLiftingTest 9
+
+        let returnType = "(Double, String, Result)"
+        let closureParams = "x : Double, y : String, z : Result"
+
+        let generated =
+            [
+                "a1 : Int"
+                "a2 : Int"
+                "a3 : Int, b3 : Double"
+                "a4 : Int, b4 : Double, c4 : String"
+                "a5 : Int, (b5 : Double, c5 : String)"
+                "a6 : Int, b6 : Double, c6 : String"
+                "(a7 : Int, b7 : Double), c7 : String"
+                "a8 : Int, b8 : Double, c8 : String"
+            ]
+            |> Seq.map (fun s -> sprintf "(%s, %s)" closureParams s, returnType)
+            |> TestUtils.identifyCallablesBySignature (TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo")
+
+        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        Assert.True(
+            12 = (original |> TestUtils.getLinesFromSpecialization |> Seq.length),
+            sprintf "Callable %O(%A) did not have the expected number of statements." original.Parent original.Kind
+        )
+
+        let closureArgs = "x, y, z"
+
+        let success =
+            [
+                (4, sprintf "let lambda1 = (%O(%s, _))(0);" (Seq.item 0 generated).FullName closureArgs)
+                (5, sprintf "let lambda2 = (%O(%s, _))(0);" (Seq.item 1 generated).FullName closureArgs)
+                (6, sprintf "let lambda3 = (%O(%s, _, _))(0, 0.0);" (Seq.item 2 generated).FullName closureArgs)
+                (7, sprintf "let lambda4 = (%O(%s, _, _, _))(0, 0.0, \"Zero\");" (Seq.item 3 generated).FullName closureArgs)
+                (8, sprintf "let lambda5 = (%O(%s, _, _))(0, (0.0, \"Zero\"));" (Seq.item 4 generated).FullName closureArgs)
+                (9, sprintf "let lambda6 = (%O(%s, _, _, _))(0, 0.0, \"Zero\");" (Seq.item 5 generated).FullName closureArgs)
+                (10, sprintf "let lambda7 = (%O(%s, _, _))((0, 0.0), \"Zero\");" (Seq.item 6 generated).FullName closureArgs)
+                (11, sprintf "let lambda8 = (%O(%s, _, _, _))(0, 0.0, \"Zero\");" (Seq.item 7 generated).FullName closureArgs)
+            ]
+            |> TestUtils.checkIfSpecializationHasContent original
+
+        Assert.True(success, "The original callable did not have the expected content.")
 
     [<Fact>]
     [<Trait("Category", "Return Values")>]

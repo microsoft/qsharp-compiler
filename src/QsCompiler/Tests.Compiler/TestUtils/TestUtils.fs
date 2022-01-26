@@ -369,9 +369,9 @@ let identifyGeneratedByCalls generatedCallables calls =
     let mutable callables =
         generatedCallables |> Seq.map (fun x -> x, x |> (getBodyFromCallable >> getLinesFromSpecialization))
 
-    let hasCall callable (call: seq<int * QsQualifiedName>) =
+    let hasCall callable call =
         let (_, lines: string []) = callable
-        Seq.forall (fun (i, name) -> _checkIfStringIsCall name lines.[i] |> (fun (x, _, _) -> x)) call
+        call |> Seq.forall (fun (i, name) -> _checkIfStringIsCall name lines.[i] |> (fun (x, _, _) -> x))
 
     Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
 
@@ -390,10 +390,40 @@ let identifyGeneratedByCalls generatedCallables calls =
 
     rtrn |> Seq.map (fun (x, _) -> x)
 
+let identifyCallablesBySignature generatedCallables signatures =
+    let mutable callables =
+        generatedCallables
+        |> Seq.map (fun x ->
+            x,
+            (
+                SyntaxTreeToQsharp.ArgumentTuple(x.ArgumentTuple, (fun x -> SyntaxTreeToQsharp.Default.ToCode(x))),
+                SyntaxTreeToQsharp.Default.ToCode(x.Signature.ReturnType)))
+
+    Assert.True(Seq.length callables = Seq.length signatures) // This should be true if this method is called correctly
+
+    let mutable rtrn = Seq.empty
+
+    let removeAt i lst =
+        Seq.append <| Seq.take i lst <| Seq.skip (i + 1) lst
+
+    for signature in signatures do
+        callables
+        |> Seq.tryFindIndex (fun callSig -> signature = (snd callSig))
+        |> (fun x ->
+            Assert.True(x <> None, "Did not find expected generated content")
+            rtrn <- Seq.append rtrn [ Seq.item x.Value callables |> fst ]
+            callables <- removeAt x.Value callables)
+
+    rtrn
+
 
 // utils for testing checks and assertions
 
 let checkIfStringIsCall = _checkIfStringIsCall
+
+let checkIfSpecializationHasContent specialization content =
+    let lines = specialization |> getLinesFromSpecialization
+    content |> Seq.forall (fun (i, expected) -> expected = lines.[i])
 
 let checkIfSpecializationHasCalls specialization (calls: seq<int * QsQualifiedName>) =
     let lines = getLinesFromSpecialization specialization
