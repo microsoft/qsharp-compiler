@@ -144,6 +144,36 @@ type ExecutionTests(output: ITestOutputHelper) =
 
 
     [<Fact>]
+    member this.``QIR default values``() =
+
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestDefaultValues"
+        let exitCode, out, err = QirExecutionTest functionName
+        Assert.Equal(0, exitCode)
+        AssertEqual String.Empty err
+
+        let expected =
+            """
+            [0, 0, 0]
+            [0.0, 0.0, 0.0]
+            [false, false, false]
+            [PauliI, PauliI, PauliI]
+            ["", "", ""]
+            [0..-1, 0..-1, 0..-1]
+            [0, 0, 0]
+            [Zero, Zero, Zero]
+            [(), (), ()]
+            [("", 0), ("", 0), ("", 0)]
+            [[], [], []]
+            [Microsoft.Quantum.Testing.ExecutionTests.MyUdt(("", ("", Microsoft.Quantum.Testing.ExecutionTests.Tuple("", ""))), ""), Microsoft.Quantum.Testing.ExecutionTests.MyUdt(("", ("", Microsoft.Quantum.Testing.ExecutionTests.Tuple("", ""))), ""), Microsoft.Quantum.Testing.ExecutionTests.MyUdt(("", ("", Microsoft.Quantum.Testing.ExecutionTests.Tuple("", ""))), "")]
+            [<function>, <function>, <function>]
+            [<operation>, <operation>, <operation>]
+            ()
+            """
+
+        AssertEqual expected out
+
+
+    [<Fact>]
     member this.``QIR array slicing``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestArraySlicing"
