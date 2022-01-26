@@ -291,12 +291,14 @@ let readAndChunkSourceFile fileName =
 let buildContent content =
     let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
     let fileId = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+
     let file =
         CompilationUnitManager.InitializeFileManager(
             fileId,
             content,
             compilationManager.PublishDiagnostics,
-            compilationManager.LogException)
+            compilationManager.LogException
+        )
 
     compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
     let compilationDataStructures = compilationManager.Build()
@@ -393,11 +395,11 @@ let identifyGeneratedByCalls generatedCallables calls =
 let identifyCallablesBySignature generatedCallables signatures =
     let mutable callables =
         generatedCallables
-        |> Seq.map (fun x ->
-            x,
-            (
-                SyntaxTreeToQsharp.ArgumentTuple(x.ArgumentTuple, (fun x -> SyntaxTreeToQsharp.Default.ToCode(x))),
-                SyntaxTreeToQsharp.Default.ToCode(x.Signature.ReturnType)))
+        |> Seq.map
+            (fun x ->
+                x,
+                (SyntaxTreeToQsharp.ArgumentTuple(x.ArgumentTuple, (fun x -> SyntaxTreeToQsharp.Default.ToCode(x))),
+                 SyntaxTreeToQsharp.Default.ToCode(x.Signature.ReturnType)))
 
     Assert.True(Seq.length callables = Seq.length signatures) // This should be true if this method is called correctly
 

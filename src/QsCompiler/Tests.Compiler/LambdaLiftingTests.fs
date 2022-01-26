@@ -34,14 +34,16 @@ type LambdaLiftingTests() =
         Assert.True(regexMatch.Success, "The original callable did not have the expected content.")
 
         TestUtils.getCallableWithName result Signatures.LambdaLiftingNS regexMatch.Value
-        |> TestUtils.assertCallSupportsFunctors expectedFunctors    
+        |> TestUtils.assertCallSupportsFunctors expectedFunctors
 
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``With Return Value``() =
         let result = compileLambdaLiftingTest 1
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -54,7 +56,7 @@ type LambdaLiftingTests() =
         Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
 
         let lines = original |> TestUtils.getLinesFromSpecialization
-        
+
         let expectedContent = [| sprintf "let lambda = %O(_);" generated.Parent |]
         Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
 
@@ -63,7 +65,9 @@ type LambdaLiftingTests() =
     member this.``Without Return Value``() =
         let result = compileLambdaLiftingTest 2
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -87,7 +91,9 @@ type LambdaLiftingTests() =
     member this.``Call Valued Callable``() =
         let result = compileLambdaLiftingTest 3
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -109,7 +115,9 @@ type LambdaLiftingTests() =
     member this.``Call Unit Callable``() =
         let result = compileLambdaLiftingTest 4
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -131,7 +139,9 @@ type LambdaLiftingTests() =
     member this.``Call Valued Callable Recursive``() =
         let result = compileLambdaLiftingTest 5
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -158,7 +168,9 @@ type LambdaLiftingTests() =
     member this.``Call Unit Callable Recursive``() =
         let result = compileLambdaLiftingTest 6
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -180,7 +192,9 @@ type LambdaLiftingTests() =
     member this.``Use Closure``() =
         let result = compileLambdaLiftingTest 7
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -209,18 +223,23 @@ type LambdaLiftingTests() =
 
         let generated =
             [
-                ( "(a1 : Int)", "Unit" )
-                ( "(a2 : Int)", "Unit" )
-                ( "(a3 : Int, b3 : Double)", "Unit" )
-                ( "(a4 : Int, b4 : Double, c4 : String)", "Unit" )
-                ( "(a5 : Int, (b5 : Double, c5 : String))", "Unit" )
-                ( "(a6 : Int, b6 : Double, c6 : String)", "Unit" )
-                ( "((a7 : Int, b7 : Double), c7 : String)", "Unit" )
-                ( "(a8 : Int, b8 : Double, c8 : String)", "Unit" )
+                ("(a1 : Int)", "Unit")
+                ("(a2 : Int)", "Unit")
+                ("(a3 : Int, b3 : Double)", "Unit")
+                ("(a4 : Int, b4 : Double, c4 : String)", "Unit")
+                ("(a5 : Int, (b5 : Double, c5 : String))", "Unit")
+                ("(a6 : Int, b6 : Double, c6 : String)", "Unit")
+                ("((a7 : Int, b7 : Double), c7 : String)", "Unit")
+                ("(a8 : Int, b8 : Double, c8 : String)", "Unit")
             ]
-            |> TestUtils.identifyCallablesBySignature (TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo")
+            |> TestUtils.identifyCallablesBySignature (
+                TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            )
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
+
         Assert.True(
             8 = (original |> TestUtils.getLinesFromSpecialization |> Seq.length),
             sprintf "Callable %O(%A) did not have the expected number of statements." original.Parent original.Kind
@@ -261,9 +280,14 @@ type LambdaLiftingTests() =
                 "a8 : Int, b8 : Double, c8 : String"
             ]
             |> Seq.map (fun s -> sprintf "(%s, %s)" closureParams s, returnType)
-            |> TestUtils.identifyCallablesBySignature (TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo")
+            |> TestUtils.identifyCallablesBySignature (
+                TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            )
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
+
         Assert.True(
             12 = (original |> TestUtils.getLinesFromSpecialization |> Seq.length),
             sprintf "Callable %O(%A) did not have the expected number of statements." original.Parent original.Kind
@@ -276,11 +300,25 @@ type LambdaLiftingTests() =
                 (4, sprintf "let lambda1 = (%O(%s, _))(0);" (Seq.item 0 generated).FullName closureArgs)
                 (5, sprintf "let lambda2 = (%O(%s, _))(0);" (Seq.item 1 generated).FullName closureArgs)
                 (6, sprintf "let lambda3 = (%O(%s, _, _))(0, 0.0);" (Seq.item 2 generated).FullName closureArgs)
-                (7, sprintf "let lambda4 = (%O(%s, _, _, _))(0, 0.0, \"Zero\");" (Seq.item 3 generated).FullName closureArgs)
-                (8, sprintf "let lambda5 = (%O(%s, _, _))(0, (0.0, \"Zero\"));" (Seq.item 4 generated).FullName closureArgs)
-                (9, sprintf "let lambda6 = (%O(%s, _, _, _))(0, 0.0, \"Zero\");" (Seq.item 5 generated).FullName closureArgs)
-                (10, sprintf "let lambda7 = (%O(%s, _, _))((0, 0.0), \"Zero\");" (Seq.item 6 generated).FullName closureArgs)
-                (11, sprintf "let lambda8 = (%O(%s, _, _, _))(0, 0.0, \"Zero\");" (Seq.item 7 generated).FullName closureArgs)
+                (7,
+                 sprintf
+                     "let lambda4 = (%O(%s, _, _, _))(0, 0.0, \"Zero\");"
+                     (Seq.item 3 generated).FullName
+                     closureArgs)
+                (8,
+                 sprintf "let lambda5 = (%O(%s, _, _))(0, (0.0, \"Zero\"));" (Seq.item 4 generated).FullName closureArgs)
+                (9,
+                 sprintf
+                     "let lambda6 = (%O(%s, _, _, _))(0, 0.0, \"Zero\");"
+                     (Seq.item 5 generated).FullName
+                     closureArgs)
+                (10,
+                 sprintf "let lambda7 = (%O(%s, _, _))((0, 0.0), \"Zero\");" (Seq.item 6 generated).FullName closureArgs)
+                (11,
+                 sprintf
+                     "let lambda8 = (%O(%s, _, _, _))(0, 0.0, \"Zero\");"
+                     (Seq.item 7 generated).FullName
+                     closureArgs)
             ]
             |> TestUtils.checkIfSpecializationHasContent original
 
@@ -291,9 +329,7 @@ type LambdaLiftingTests() =
     member this.``Function Lambda``() =
         let result = compileLambdaLiftingTest 10
 
-        let generated =
-            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
-            |> Seq.exactlyOne
+        let generated = TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo" |> Seq.exactlyOne
 
         Assert.True(generated.Kind = QsCallableKind.Function, "The generated callable was expected to be a function.")
 
@@ -308,9 +344,7 @@ type LambdaLiftingTests() =
         let result = LiftLambdaExpressions.Apply compilationDataStructures.BuiltCompilation
         Assert.NotNull result
 
-        let generated =
-            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
-            |> Seq.exactlyOne
+        let generated = TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo" |> Seq.exactlyOne
 
         let originalExpectedName = { Namespace = Signatures.LambdaLiftingNS; Name = "Foo" }
         let ``Foo.A`` = QsTypeParameter.New(originalExpectedName, "A") |> TypeParameter |> ResolvedType.New
@@ -366,7 +400,10 @@ type LambdaLiftingTests() =
     member this.``Functor Support Basic Return``() =
         let result = compileLambdaLiftingTest 14
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
+
         let lines = original |> TestUtils.getLinesFromSpecialization
 
         Assert.True(
@@ -382,7 +419,10 @@ type LambdaLiftingTests() =
     member this.``Functor Support Call``() =
         let result = compileLambdaLiftingTest 15
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
+
         let lines = original |> TestUtils.getLinesFromSpecialization
 
         Assert.True(
@@ -401,7 +441,10 @@ type LambdaLiftingTests() =
     member this.``Functor Support Lambda Call``() =
         let result = compileLambdaLiftingTest 16
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
+
         let lines = original |> TestUtils.getLinesFromSpecialization
 
         Assert.True(
@@ -419,7 +462,10 @@ type LambdaLiftingTests() =
     member this.``Functor Support Recursive``() =
         let result = compileLambdaLiftingTest 17
 
-        let Foo = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let Foo =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
+
         let lines = Foo |> TestUtils.getLinesFromSpecialization
 
         Assert.True(
@@ -429,7 +475,10 @@ type LambdaLiftingTests() =
 
         assertLambdaFunctorsByLine result lines.[0] "Foo" []
 
-        let FooAdj = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "FooAdj" |> TestUtils.getBodyFromCallable
+        let FooAdj =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "FooAdj"
+            |> TestUtils.getBodyFromCallable
+
         let lines = FooAdj |> TestUtils.getLinesFromSpecialization
 
         Assert.True(
@@ -439,7 +488,10 @@ type LambdaLiftingTests() =
 
         assertLambdaFunctorsByLine result lines.[0] "FooAdj" [ QsFunctor.Adjoint ]
 
-        let FooCtl = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "FooCtl" |> TestUtils.getBodyFromCallable
+        let FooCtl =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "FooCtl"
+            |> TestUtils.getBodyFromCallable
+
         let lines = FooCtl |> TestUtils.getLinesFromSpecialization
 
         Assert.True(
@@ -449,7 +501,10 @@ type LambdaLiftingTests() =
 
         assertLambdaFunctorsByLine result lines.[0] "FooCtl" [ QsFunctor.Controlled ]
 
-        let FooAdjCtl = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "FooAdjCtl" |> TestUtils.getBodyFromCallable
+        let FooAdjCtl =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "FooAdjCtl"
+            |> TestUtils.getBodyFromCallable
+
         let lines = FooAdjCtl |> TestUtils.getLinesFromSpecialization
 
         Assert.True(
@@ -468,7 +523,9 @@ type LambdaLiftingTests() =
     member this.``Use Parameter Single``() =
         let result = compileLambdaLiftingTest 19
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -481,7 +538,7 @@ type LambdaLiftingTests() =
         Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
 
         let lines = original |> TestUtils.getLinesFromSpecialization
-        
+
         let expectedContent = [| sprintf "let lambda = %O(_);" generated.Parent; "let result = lambda(0);" |]
         Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
 
@@ -490,7 +547,9 @@ type LambdaLiftingTests() =
     member this.``Use Parameter Tuple``() =
         let result = compileLambdaLiftingTest 20
 
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -503,16 +562,23 @@ type LambdaLiftingTests() =
         Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
 
         let lines = original |> TestUtils.getLinesFromSpecialization
-        
-        let expectedContent = [| sprintf "let lambda = %O(_, _);" generated.Parent; "let result = lambda(0.0, 0);" |]
+
+        let expectedContent =
+            [|
+                sprintf "let lambda = %O(_, _);" generated.Parent
+                "let result = lambda(0.0, 0);"
+            |]
+
         Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
 
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Use Parameter and Closure``() =
         let result = compileLambdaLiftingTest 21
-        
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -525,16 +591,24 @@ type LambdaLiftingTests() =
         Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
 
         let lines = original |> TestUtils.getLinesFromSpecialization
-        
-        let expectedContent = [| "let a = 0;"; sprintf "let lambda = %O(a, _);" generated.Parent; "let result = lambda(0.0);" |]
+
+        let expectedContent =
+            [|
+                "let a = 0;"
+                sprintf "let lambda = %O(a, _);" generated.Parent
+                "let result = lambda(0.0);"
+            |]
+
         Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
 
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Use Parameter with Missing Params``() =
         let result = compileLambdaLiftingTest 22
-    
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -547,16 +621,23 @@ type LambdaLiftingTests() =
         Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
 
         let lines = original |> TestUtils.getLinesFromSpecialization
-        
-        let expectedContent = [| sprintf "let lambda = %O(_, _, _);" generated.Parent; "let result = lambda(0, Zero, \"Zero\");" |]
+
+        let expectedContent =
+            [|
+                sprintf "let lambda = %O(_, _, _);" generated.Parent
+                "let result = lambda(0, Zero, \"Zero\");"
+            |]
+
         Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
 
     [<Fact>]
     [<Trait("Category", "Return Values")>]
     member this.``Multiple Lambdas in One Expression``() =
         let result = compileLambdaLiftingTest 23
-    
-        let original = TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo" |> TestUtils.getBodyFromCallable
+
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
 
         let generated =
             TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
@@ -567,6 +648,7 @@ type LambdaLiftingTests() =
         let hasFirstContent spec =
             let lines = spec |> TestUtils.getLinesFromSpecialization
             lines = [| "return x + 1;" |]
+
         let hasSecondContent spec =
             let lines = spec |> TestUtils.getLinesFromSpecialization
             lines = [| "return x + 2;" |]
@@ -574,16 +656,28 @@ type LambdaLiftingTests() =
         let first, second =
             let temp1 = Seq.item 0 generated
             let temp2 = Seq.item 1 generated
-            
+
             if (hasFirstContent temp1) then
-                Assert.True(hasSecondContent temp2, sprintf "Callable %O(%A) did not have expected content" temp2.Parent QsSpecializationKind.QsBody)
+                Assert.True(
+                    hasSecondContent temp2,
+                    sprintf "Callable %O(%A) did not have expected content" temp2.Parent QsSpecializationKind.QsBody
+                )
+
                 temp1, temp2
             else
-                Assert.True(hasFirstContent temp2, sprintf "Callable %O(%A) did not have expected content" temp2.Parent QsSpecializationKind.QsBody)
-                Assert.True(hasSecondContent temp1, sprintf "Callable %O(%A) did not have expected content" temp1.Parent QsSpecializationKind.QsBody)
+                Assert.True(
+                    hasFirstContent temp2,
+                    sprintf "Callable %O(%A) did not have expected content" temp2.Parent QsSpecializationKind.QsBody
+                )
+
+                Assert.True(
+                    hasSecondContent temp1,
+                    sprintf "Callable %O(%A) did not have expected content" temp1.Parent QsSpecializationKind.QsBody
+                )
+
                 temp2, temp1
 
         let lines = original |> TestUtils.getLinesFromSpecialization
-        
+
         let expectedContent = [| sprintf "let lambdaTuple = (%O(_), %O(_));" first.Parent second.Parent |]
         Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
