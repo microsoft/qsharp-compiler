@@ -848,7 +848,7 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function Lambda16() : Unit {
-        let f = () => (Unitary(), 2);
+        let f = () => (GenericUnitary(), 2);
     }
 
     function Lambda17() : Unit {
