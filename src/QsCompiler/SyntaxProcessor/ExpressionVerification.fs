@@ -396,11 +396,15 @@ let private characteristicsSet info =
         | Controlled -> Controllable)
     |> Set.ofSeq
 
-let private lambdaCharacteristics (body: TypedExpression) =
-    let mutable characteristics = Set.ofList [ Adjointable; Controllable ]
+let private lambdaCharacteristics (inference: InferenceContext) (body: TypedExpression) =
+    let mutable characteristics =
+        if inference.Resolve(body.ResolvedType).Resolution = UnitType then
+            Set.ofList [ Adjointable; Controllable ]
+        else
+            Set.empty
 
-    let onCall =
-        function
+    let onCall callableType =
+        match inference.Resolve(callableType).Resolution with
         | QsTypeKind.Operation (_, info) -> characteristics <- characteristicsSet info |> Set.intersect characteristics
         | TypeParameter _ -> characteristics <- Set.empty
         | _ -> ()
@@ -408,7 +412,7 @@ let private lambdaCharacteristics (body: TypedExpression) =
     let transformation =
         { new ExpressionKindTransformation() with
             override _.OnCallLikeExpression(callable, arg) =
-                onCall callable.ResolvedType.Resolution
+                onCall callable.ResolvedType
                 base.OnCallLikeExpression(callable, arg)
 
             override _.OnLambda lambda = Lambda lambda
@@ -417,14 +421,14 @@ let private lambdaCharacteristics (body: TypedExpression) =
     transformation.OnExpressionKind body.Expression |> ignore
     characteristics
 
-let private inferLambda range kind inputType body =
+let private inferLambda inference range kind inputType body =
     let inOutTypes = inputType, body.ResolvedType
 
     let typeKind =
         match kind with
         | LambdaKind.Function -> QsTypeKind.Function inOutTypes
         | LambdaKind.Operation ->
-            let characteristics = lambdaCharacteristics body |> ResolvedCharacteristics.FromProperties
+            let characteristics = lambdaCharacteristics inference body |> ResolvedCharacteristics.FromProperties
             let info = CallableInformation.New(characteristics, InferredCallableInformation.NoInformation)
             QsTypeKind.Operation(inOutTypes, info)
 
@@ -915,7 +919,7 @@ type QsExpression with
                 verifyAndBuildWith
                     { context with IsInOperation = lambda.Kind = LambdaKind.Operation }
                     (Lambda.create lambda.Kind lambda.Param >> Lambda)
-                    (fun body' -> inferLambda this.Range lambda.Kind inputType body', [])
+                    (fun body' -> inferLambda inference this.Range lambda.Kind inputType body', [])
                     lambda.Body
 
             symbols.EndScope()
