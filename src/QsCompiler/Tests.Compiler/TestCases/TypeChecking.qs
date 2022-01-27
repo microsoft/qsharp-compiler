@@ -843,6 +843,14 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return () -> 0;
     }
 
+    function Lambda15<'a>() : 'a -> String {
+        return x -> "foo";
+    }
+
+    function Lambda16<'a>() : 'a -> 'a[] {
+        return x -> [];
+    }
+
     function LambdaInvalid1() : Qubit => Unit is Adj {
         return q => Operation(q);
     }
