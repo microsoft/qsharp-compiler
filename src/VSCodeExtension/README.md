@@ -1,10 +1,12 @@
 # Microsoft Quantum Development Kit Preview for .NET 6
 
-This is a **preview version** of the Microsoft Quantum Development Kit extension for Visual Studio based on .NET6.0 components.
+This is a **preview version** of the Microsoft Quantum Development Kit extension for Visual Studio based on .NET 6.0 components.
 
 The Microsoft Quantum Development Kit extension supporting .NET 6.0 is under active development and should be considered experimental.
 
 To use the currently supported extension, see [Microsoft Quantum Development Kit for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=quantum.quantum-devkit-vscode).
+
+**NOTE: It is not supported to have both versions of the extension installed side by side.**
 
 ## Getting Started
 
