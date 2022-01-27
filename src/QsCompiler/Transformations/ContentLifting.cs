@@ -265,7 +265,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             var (generatedCallable, generatedCallableCallType) = GenerateCallable(callingCallable, body, parameters, callableInformation, isFunction, returnType);
 
             // Forward the type parameters of the parent callable to the type arguments of the call to the generated callable.
-            // ToDo: this may need to be per-specialization
+            // Future: this may need to be per-specialization when type-specific specializations are implemented
             var typeArguments = callingCallable.Signature.TypeParameters.Any(param => param.IsValidName)
             ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callingCallable.Signature.TypeParameters
                 .Where(param => param.IsValidName)
@@ -920,12 +920,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             {
                 this.Callable = callable;
 
-                // ToDo: this may need to be adapted once we support type specializations
+                // Future: this may need to be adapted once we support type specializations
                 this.Adjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
                 this.Controlled = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
                 this.ControlledAdjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
 
-                // ToDo: this may need to be per-specialization
+                // Future: this may need to be per-specialization when type-specific specializations are implemented
                 this.TypeParameters = callable.Signature.TypeParameters.Any(param => param.IsValidName)
                 ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
                     .Where(param => param.IsValidName)
