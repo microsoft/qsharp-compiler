@@ -118,13 +118,13 @@ module TypeCheckingTests =
 
         match f.Type.Resolution with
         | QsTypeKind.Operation ((input, output), info) ->
+            let outputs =
+                match output.Resolution with
+                | TupleType ts -> ts |> Seq.map (fun t -> t.Resolution)
+                | _ -> failwith "Not a tuple type."
+
             Assert.Equal(UnitType, input.Resolution)
-
-            match output.Resolution with
-            | TupleType ts ->
-                Assert.Equal<QsTypeKind<_, _, _, _>>([ UnitType; Int ], ts |> Seq.map (fun t -> t.Resolution))
-            | _ -> failwith "Not a tuple type."
-
+            Assert.Equal([ UnitType; Int ], outputs)
             Assert.Empty(info.Characteristics.GetProperties())
         | _ -> failwith "Not an operation type."
 
