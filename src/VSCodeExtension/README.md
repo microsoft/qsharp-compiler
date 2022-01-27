@@ -1,4 +1,4 @@
-# Microsoft Quantum Development Kit Preview for .NET6
+# Microsoft Quantum Development Kit Preview for .NET 6
 
 This is a **preview version** of the Microsoft Quantum Development Kit extension for Visual Studio based on .NET6.0 components.
 
