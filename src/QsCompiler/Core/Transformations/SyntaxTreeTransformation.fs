@@ -66,7 +66,9 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
     override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
     override this.OnRelativeLocation loc = this.Statements.OnLocation loc
     override this.OnTypeRange range = this.Types.OnTypeRange range
-    override this.OnExpressionRange range = this.Expressions.OnRangeInformation range
+
+    override this.OnExpressionRange range =
+        this.Expressions.OnRangeInformation range
 
 
 and TypeTransformation<'T> internal (options, _internal_) =
@@ -333,7 +335,9 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
     override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
     override this.OnRelativeLocation loc = this.Statements.OnLocation loc
     override this.OnTypeRange range = this.Types.OnTypeRange range
-    override this.OnExpressionRange range = this.Expressions.OnRangeInformation range
+
+    override this.OnExpressionRange range =
+        this.Expressions.OnRangeInformation range
 
 
 and TypeTransformation internal (options, _internal_) =

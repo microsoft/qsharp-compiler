@@ -28,8 +28,7 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
 
     member this.Common = this.CommonTransformationItemsHandle()
 
-    internal new(getCommonItems: unit -> CommonTransformationItems,
-                 options: TransformationOptions) as this =
+    internal new(getCommonItems: unit -> CommonTransformationItems, options: TransformationOptions) as this =
         new TypeTransformationBase(options, "_internal_")
         then this.CommonTransformationItemsHandle <- getCommonItems
 
