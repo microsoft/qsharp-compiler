@@ -128,6 +128,18 @@ module TypeCheckingTests =
             Assert.Empty(info.Characteristics.GetProperties())
         | _ -> failwith "Not an operation type."
 
+    [<Fact>]
+    let ``Operation lambda with non-unit return (3)`` () =
+        let scope = findSpecScope "Lambda17" QsBody
+        let f = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+
+        match f.Type.Resolution with
+        | QsTypeKind.Operation ((input, output), info) ->
+            Assert.Equal(Int, input.Resolution)
+            Assert.Equal(Int, output.Resolution)
+            Assert.Empty(info.Characteristics.GetProperties())
+        | _ -> failwith "Not an operation type."
+
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =
         TypeCheckingTests.expect name diagnostics

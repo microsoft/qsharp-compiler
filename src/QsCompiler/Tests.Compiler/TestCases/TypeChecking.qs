@@ -851,6 +851,10 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         let f = () => (Unitary(), 2);
     }
 
+    function Lambda17() : Unit {
+        let f = x => x + 1;
+    }
+
     function LambdaInvalid1() : Qubit => Unit is Adj {
         return q => Operation(q);
     }
