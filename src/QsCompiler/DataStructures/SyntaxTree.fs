@@ -75,18 +75,6 @@ type QsQualifiedName =
         sprintf "%s.%s" this.Namespace this.Name
 
 
-type SymbolTuple =
-    /// indicates in invalid variable name
-    | InvalidItem
-    /// indicates a valid Q# variable name
-    | VariableName of string
-    /// indicates a tuple of Q# variable names or (nested) tuples of variable names
-    | VariableNameTuple of ImmutableArray<SymbolTuple>
-    /// indicates a place holder for a Q# variable that won't be used after the symbol tuple is bound to a value
-    | DiscardedItem
-    interface ITuple
-
-
 /// use to represent all forms of Q# bindings
 type QsBinding<'T> =
     {
@@ -581,17 +569,6 @@ type ResolvedType with
             t |> ResolvedType.withKind (QsTypeKind.Operation((inner it, inner ot), fList))
         | _ -> t
 
-/// used to represent information on typed expressions generated and/or tracked during compilation
-type InferredExpressionInformation =
-    {
-        /// whether or not the value of this expression can be modified (true if it can)
-        IsMutable: bool
-        /// indicates whether the annotated expression directly or indirectly depends on an operation call within the surrounding implementation block
-        /// -> it will be set to false for variables declared within the argument tuple
-        /// -> using and borrowing are *not* considered to implicitly invoke a call to an operation, and are thus *not* considered to have a quantum dependency.
-        HasLocalQuantumDependency: bool
-    }
-
 
 /// Fully resolved Q# expression
 /// containing the content (kind) of the expression as well as its (fully resolved) type before and after application of type arguments.
@@ -687,22 +664,7 @@ type ResolvedInitializer with
     static member New kind =
         ResolvedInitializer.create Generated kind
 
-type LocalVariableDeclaration<'Name> =
-    {
-        /// the name of the declared variable
-        VariableName: 'Name
-        /// the fully resolved type of the declared variable
-        Type: ResolvedType
-        /// contains information generated and/or tracked by the compiler
-        /// -> in particular, contains the information about whether or not the symbol may be re-bound
-        InferredInformation: InferredExpressionInformation
-        /// Denotes the position where the variable is declared
-        /// relative to the position of the specialization declaration within which the variable is declared.
-        /// If the Position is Null, then the variable is not declared within a specialization (but belongs to a callable or type declaration).
-        Position: QsNullable<Position>
-        /// Denotes the range of the variable name relative to the position of the variable declaration.
-        Range: Range
-    }
+type LocalVariableDeclaration<'Name> = LocalVariableDeclaration<'Name, ResolvedType>
 
 
 /// used to attach information about which symbols are declared to each scope and statement
@@ -1054,7 +1016,7 @@ type QsCallable =
         /// the argument tuple containing the names of the argument tuple items
         /// represented either as valid name containing a non-nullable string or as an invalid name token
         /// as well as their type
-        ArgumentTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
+        ArgumentTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>> // TODO: align with lamdas...
         /// all specializations declared for this callable -
         /// each call to the callable is dispatched to a suitable specialization
         /// depending on the type of the argument it is called with

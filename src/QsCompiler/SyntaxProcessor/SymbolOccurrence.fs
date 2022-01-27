@@ -57,7 +57,12 @@ module SymbolOccurrence =
         | Identifier (s, ts) ->
             let ts' = QsNullable.defaultValue ImmutableArray.Empty ts |> Seq.collect inType |> Seq.toList
             UsedVariable s :: ts'
-        | Lambda lambda -> symbolDeclarations lambda.Param @ inExpression lambda.Body
+        | Lambda lambda ->
+            let declarations =
+                lambda.ArgumentDeclarations
+                |> Seq.map (fun decl -> Declaration { Symbol = Symbol decl.VariableName; Range = Value decl.Range } )
+                |> Seq.toList
+            declarations @ inExpression lambda.Body
         // TODO: Handle named item accessor.
         | NamedItem (e, _)
         | NEG e

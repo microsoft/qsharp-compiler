@@ -62,11 +62,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
             bool IsSelectedExpression(TypedExpression e) =>
                 e.Range.Any(r => r.Contains(position - currentStatement.Location.Item.Offset));
 
-            IEnumerable<LocalVariableDeclaration<string>> VarsWithOffset(TypedExpression e)
+            IEnumerable<LocalVariableDeclaration<string, ResolvedType>> VarsWithOffset(TypedExpression e)
             {
                 if (currentStatement.Location.IsNull)
                 {
-                    return Enumerable.Empty<LocalVariableDeclaration<string>>();
+                    return Enumerable.Empty<LocalVariableDeclaration<string, ResolvedType>>();
                 }
 
                 e = new ExpressionOffsetTransformation(currentStatement.Location.Item.Offset).OnTypedExpression(e);
@@ -174,65 +174,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
             };
         }
 
-        private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInExpressionByPosition(
+        private static IEnumerable<LocalVariableDeclaration<string, ResolvedType>> DeclarationsInExpressionByPosition(
             TypedExpression expression, Position position)
         {
             return expression.ExtractAll(Declarations);
 
-            IEnumerable<LocalVariableDeclaration<string>> Declarations(TypedExpression e)
+            IEnumerable<LocalVariableDeclaration<string, ResolvedType>> Declarations(TypedExpression e)
             {
                 if (!e.Range.Any(r => r.Contains(position)))
                 {
-                    return Enumerable.Empty<LocalVariableDeclaration<string>>();
+                    return Enumerable.Empty<LocalVariableDeclaration<string, ResolvedType>>();
                 }
 
                 if (e.Expression is QsExpressionKind.Lambda lambda)
                 {
-                    // Since lambda parameters are bound later to a value from any source, pessimistically assume it has
-                    // a local quantum dependency.
-                    var inferred = new InferredExpressionInformation(false, true);
-
-                    return DeclarationsInTypedSymbol(lambda.Item.Param, CallableInputType(e.ResolvedType), inferred)
+                    return lambda.Item.ArgumentDeclarations
                         .Concat(DeclarationsInExpressionByPosition(lambda.Item.Body, position));
                 }
 
-                return Enumerable.Empty<LocalVariableDeclaration<string>>();
-            }
-
-            static ResolvedType CallableInputType(ResolvedType type) => type.Resolution switch
-            {
-                QsTypeKind.Function function => function.Item1,
-                QsTypeKind.Operation operation => operation.Item1.Item1,
-                _ => throw new Exception("Type is not a callable type."),
-            };
-        }
-
-        private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInTypedSymbol(
-            QsSymbol symbol, ResolvedType type, InferredExpressionInformation inferred)
-        {
-            switch (symbol.Symbol, type.Resolution)
-            {
-                case (QsSymbolKind.Symbol name, _):
-                    var range = symbol.Range.IsValue
-                        ? symbol.Range.Item
-                        : throw new ArgumentException("Range is null.", nameof(symbol));
-
-                    var position = QsNullable<Position>.NewValue(range.Start);
-                    return new[]
-                    {
-                        new LocalVariableDeclaration<string>(name.Item, type, inferred, position, range - range.Start),
-                    };
-                case (QsSymbolKind.SymbolTuple symbols, QsTypeKind.TupleType types):
-                    return
-                        from typedSymbol in symbols.Item.Zip(types.Item, ValueTuple.Create)
-                        from declaration in DeclarationsInTypedSymbol(typedSymbol.Item1, typedSymbol.Item2, inferred)
-                        select declaration;
-                case (QsSymbolKind.SymbolTuple symbols, _):
-                    return symbols.Item.SingleOrDefault() is { } single
-                        ? DeclarationsInTypedSymbol(single, type, inferred)
-                        : Enumerable.Empty<LocalVariableDeclaration<string>>();
-                default:
-                    return Enumerable.Empty<LocalVariableDeclaration<string>>();
+                return Enumerable.Empty<LocalVariableDeclaration<string, ResolvedType>>();
             }
         }
 

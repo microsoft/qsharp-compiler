@@ -22,6 +22,9 @@ type InferenceContext =
     /// Updates the position of the statement in which types are currently being inferred.
     member UseStatementPosition: position:Position -> unit
 
+    /// Gets the position of the statement in which types are currently being inferred.
+    member GetStatementPosition: unit -> Position
+
     /// <summary>
     /// Creates a fresh type parameter originating from the given <paramref name="source"/> range.
     /// </summary>

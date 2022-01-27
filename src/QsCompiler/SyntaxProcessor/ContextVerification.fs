@@ -306,15 +306,6 @@ let private mergeMaps onDuplicateKey =
         | None -> Map.add key value map
     |> Map.fold
 
-let rec private unqualifiedSymbols s =
-    match s.Symbol with
-    | QualifiedSymbol _
-    | OmittedSymbols
-    | MissingSymbol
-    | InvalidSymbol -> Set.empty
-    | Symbol name -> Set.singleton name
-    | SymbolTuple ss -> ss |> Seq.map unqualifiedSymbols |> Set.unionMany
-
 let rec internal freeVariables e =
     let merge = mergeMaps (@)
 
@@ -367,5 +358,5 @@ let rec internal freeVariables e =
     | StringLiteral (_, es)
     | ValueArray es -> es |> Seq.map freeVariables |> Seq.reduce merge
     | Lambda lambda ->
-        let bindings = unqualifiedSymbols lambda.Param
+        let bindings = lambda.ArgumentDeclarations |> Seq.map (fun decl -> decl.VariableName) |> Set
         freeVariables lambda.Body |> Map.filter (fun name _ -> Set.contains name bindings |> not)

@@ -53,8 +53,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         private static readonly TypedExpression ControlQubits =
             SyntaxGenerator.ImmutableQubitArrayWithName(ControlQubitsName);
 
-        private static readonly LocalVariableDeclaration<string> ControlQubitsDeclaration =
-            new LocalVariableDeclaration<string>(
+        private static readonly LocalVariableDeclaration<string, ResolvedType> ControlQubitsDeclaration =
+            new LocalVariableDeclaration<string, ResolvedType>(
                 ControlQubitsName,
                 ControlQubits.ResolvedType,
                 ControlQubits.InferredInformation,
@@ -115,9 +115,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     public class AddVariableDeclarations<T>
     : StatementTransformation<T>
     {
-        private readonly IEnumerable<LocalVariableDeclaration<string>> addedVariableDeclarations;
+        private readonly IEnumerable<LocalVariableDeclaration<string, ResolvedType>> addedVariableDeclarations;
 
-        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string>[] addedVars)
+        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string, ResolvedType>[] addedVars)
         : base(parent) =>
             this.addedVariableDeclarations = addedVars;
 

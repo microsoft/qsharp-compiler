@@ -1,6 +1,66 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+namespace Microsoft.Quantum.QsCompiler.SyntaxTree
+
+open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler.DataTypes
+
+// marker interface used for types on which tuple matching can be done
+type ITuple =
+    interface
+    end
+
+type SymbolTuple =
+    /// indicates in invalid variable name
+    | InvalidItem
+    /// indicates a valid Q# variable name
+    | VariableName of string
+    /// indicates a tuple of Q# variable names or (nested) tuples of variable names
+    | VariableNameTuple of ImmutableArray<SymbolTuple>
+    /// indicates a place holder for a Q# variable that won't be used after the symbol tuple is bound to a value
+    | DiscardedItem
+    interface ITuple
+
+/// used to represent information on typed expressions generated and/or tracked during compilation
+type InferredExpressionInformation =
+    {
+        /// whether or not the value of this expression can be modified (true if it can)
+        IsMutable: bool
+        /// indicates whether the annotated expression directly or indirectly depends on an operation call within the surrounding implementation block
+        /// -> it will be set to false for variables declared within the argument tuple
+        /// -> using and borrowing are *not* considered to implicitly invoke a call to an operation, and are thus *not* considered to have a quantum dependency.
+        HasLocalQuantumDependency: bool
+    }
+            
+type LocalVariableDeclaration<'Name, 'Type> =
+    {
+        /// the name of the declared variable
+        VariableName: 'Name
+        /// the fully resolved type of the declared variable
+        Type: 'Type
+        /// contains information generated and/or tracked by the compiler
+        /// -> in particular, contains the information about whether or not the symbol may be re-bound
+        InferredInformation: InferredExpressionInformation
+        /// Denotes the position where the variable is declared
+        /// relative to the position of the specialization declaration within which the variable is declared.
+        /// If the Position is Null, then the variable is not declared within a specialization (but belongs to a callable or type declaration).
+        Position: QsNullable<Position>
+        /// Denotes the range of the variable name relative to the position of the variable declaration.
+        Range: Range
+    }
+
+module LocalVariableDeclaration =
+    let New isMutable ((pos, range), vName: 'Name, t, hasLocalQuantumDependency) =
+        {
+            VariableName = vName
+            Type = t
+            InferredInformation = {IsMutable = isMutable; HasLocalQuantumDependency = hasLocalQuantumDependency}
+            Position = pos
+            Range = range
+        }
+    
+
 namespace Microsoft.Quantum.QsCompiler.SyntaxTokens
 
 #nowarn "44" // AccessModifier is deprecated.
@@ -10,11 +70,7 @@ open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.DataTypes
-
-// marker interface used for types on which tuple matching can be done
-type ITuple =
-    interface
-    end
+open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
 // Q# literals
@@ -37,8 +93,9 @@ type QsPauli =
 // Q# symbols
 
 type QsSymbolKind<'Symbol> =
-    /// Let's make the distinction for things that *have* to be an unqualified symbol.
+    /// For symbols that *have* to be an unqualified.
     | Symbol of string
+    /// For qualified symbols.
     | QualifiedSymbol of string * string
     /// For bindings.
     | SymbolTuple of ImmutableArray<'Symbol>
@@ -75,6 +132,7 @@ type QsSymbol =
             match symbol2 with
             | :? QsSymbol as symbol2 -> compare symbol1.Symbol symbol2.Symbol
             | _ -> ArgumentException "Types are different." |> raise
+
 
 // Q# types
 
@@ -130,32 +188,57 @@ type LambdaKind =
     | Operation
 
 /// A lambda expression.
-type 'expr Lambda =
+type Lambda<'Expr, 'Type> =
     private
         {
             kind: LambdaKind
-            param: QsSymbol
-            body: 'expr
+            param: SymbolTuple // FIXME: ArgumentTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
+            body: 'Expr
+            variableDeclarations: ImmutableArray<LocalVariableDeclaration<string, 'Type>>
         }
 
     /// Represents whether a lambda is a function or operation.
     member lambda.Kind = lambda.kind
 
-    /// The symbol bindings for the lambda's parameter.
-    member lambda.Param = lambda.param
+    /// The symbol tuple for the lambda's parameter.
+    member lambda.Param = lambda.param // FIXME: CHANGE TO ARGTUPLE
 
     /// The body of the lambda.
     member lambda.Body = lambda.body
 
+    member lambda.ArgumentDeclarations = lambda.variableDeclarations
+
 module Lambda =
     /// Creates a lambda expression.
     [<CompiledName "Create">]
-    let create kind param body =
+    let create kind param body varDecl =
         {
             kind = kind
             param = param
             body = body
+            variableDeclarations = varDecl
         }
+
+    let createUnchecked kind (argTuple : QsSymbol) body =
+        let varDecl = ImmutableArray.CreateBuilder()
+        let rec mapSymbol (sym : QsSymbol) =
+            match sym.Symbol with
+            | Symbol name ->
+                varDecl.Add {
+                    VariableName = name;
+                    Type = { Type = MissingType; Range = Null };
+                    InferredInformation = { IsMutable = false; HasLocalQuantumDependency = false }; // fixme was true before
+                    Position = Null;
+                    Range = sym.Range.ValueOrApply (fun _ -> failwith "should never occur") // fixme: handling
+                }
+                VariableName name
+            | SymbolTuple syms -> syms |> Seq.map mapSymbol |> ImmutableArray.CreateRange |> VariableNameTuple // TODO: CHECK IF EMPTY TUPLES ARE FINE
+            | QualifiedSymbol _ // FIXME: RELIES ON THERE HAVING BEEN A PROPER ERROR ALREADY...
+            | OmittedSymbols
+            | MissingSymbol // TODO: this could be considered valid
+            | InvalidSymbol -> InvalidItem
+        let param = mapSymbol argTuple
+        varDecl.ToImmutable() |> create kind param body
 
 type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | UnitValue
@@ -209,7 +292,7 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | MissingExpr
     | InvalidExpr
     | SizedArray of value: 'Expr * size: 'Expr
-    | Lambda of 'Expr Lambda
+    | Lambda of Lambda<'Expr, 'Type>
 
 type QsExpression =
     {

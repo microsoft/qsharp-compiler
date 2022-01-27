@@ -204,13 +204,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             private (QsCallable, ResolvedType) GenerateCallable(
                 CallableDetails callable,
                 QsScope contents,
-                ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
+                ImmutableArray<LocalVariableDeclaration<string, ResolvedType>> usedSymbols,
                 ResolvedType returnType)
             {
                 var newName = NameDecorator.PrependGuid(callable.Callable.FullName);
 
-                var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTuple(usedSymbols
-                    .Select(var => QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
+                var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>.NewQsTuple(usedSymbols
+                    .Select(var => QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol, ResolvedType>(
                         QsLocalSymbol.NewValidName(var.VariableName),
                         var.Type,
                         new InferredExpressionInformation(false, false),
@@ -360,7 +360,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         /// </summary>
         private class UpdateGeneratedCallable : SyntaxTreeTransformation<UpdateGeneratedCallable.TransformationState>
         {
-            public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<string, ResolvedType>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             {
                 var filter = new UpdateGeneratedCallable(parameters, oldName, newName);
 
@@ -371,13 +371,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             {
                 public bool IsRecursiveIdentifier { get; set; } = false;
 
-                public ImmutableArray<LocalVariableDeclaration<string>> Parameters { get; }
+                public ImmutableArray<LocalVariableDeclaration<string, ResolvedType>> Parameters { get; }
 
                 public QsQualifiedName OldName { get; }
 
                 public QsQualifiedName NewName { get; }
 
-                public TransformationState(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+                public TransformationState(ImmutableArray<LocalVariableDeclaration<string, ResolvedType>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
                 {
                     this.Parameters = parameters;
                     this.OldName = oldName;
@@ -385,7 +385,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 }
             }
 
-            private UpdateGeneratedCallable(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            private UpdateGeneratedCallable(ImmutableArray<LocalVariableDeclaration<string, ResolvedType>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
             : base(new TransformationState(parameters, oldName, newName))
             {
                 this.Expressions = new ExpressionTransformation(this);
@@ -487,10 +487,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             public static bool Apply(
                 QsScope content,
                 bool isReturnsAllowed,
-                out ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
+                out ImmutableArray<LocalVariableDeclaration<string, ResolvedType>> usedSymbols,
                 out ResolvedType returnType)
             {
-                usedSymbols = ImmutableArray<LocalVariableDeclaration<string>>.Empty;
+                usedSymbols = ImmutableArray<LocalVariableDeclaration<string, ResolvedType>>.Empty;
                 returnType = ResolvedType.New(ResolvedTypeKind.UnitType);
 
                 var filter = new LiftValidationWalker(content, isReturnsAllowed);
@@ -525,8 +525,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
                 public bool IsReturnAllowed { get; private set; } = false;
 
-                public List<(LocalVariableDeclaration<string> Variable, bool Used)> SuperContextSymbols { get; set; } =
-                    new List<(LocalVariableDeclaration<string> Variable, bool Used)>();
+                public List<(LocalVariableDeclaration<string, ResolvedType> Variable, bool Used)> SuperContextSymbols { get; set; } =
+                    new List<(LocalVariableDeclaration<string, ResolvedType> Variable, bool Used)>();
 
                 public TransformationState(bool isReturnAllowed)
                 {

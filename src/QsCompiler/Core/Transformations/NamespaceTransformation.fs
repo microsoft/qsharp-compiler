@@ -88,7 +88,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             let t = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
 
-            QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable
+            QsTupleItem << Named << LocalVariableDeclaration.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
     // TODO: RELEASE 2022-09: Remove member.
@@ -116,7 +116,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             let t = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
 
-            QsTupleItem << LocalVariableDeclaration<_>.New info.IsMutable
+            QsTupleItem << LocalVariableDeclaration.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
     abstract OnSignature : ResolvedSignature -> ResolvedSignature

@@ -1474,7 +1474,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static SpecializationImplementation BuildUserDefinedImplementation(
             FragmentTree.TreeNode root,
             string sourceFile,
-            QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
+            QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> argTuple,
             ImmutableHashSet<QsFunctor> requiredFunctorSupport,
             ScopeContext context,
             List<Diagnostic> diagnostics)
@@ -1607,7 +1607,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static ImmutableArray<QsSpecialization> BuildSpecializations(
             FragmentTree specsRoot,
             ResolvedSignature parentSignature,
-            QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
+            QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> argTuple,
             CompilationUnit compilation,
             List<Diagnostic> diagnostics,
             CancellationToken cancellationToken)
@@ -1644,7 +1644,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ResolvedSignature signature,
                 QsSpecializationGeneratorKind<QsSymbol> gen,
                 FragmentTree.TreeNode root,
-                Func<QsSymbol, Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsCompilerDiagnostic[]>> buildArg,
+                Func<QsSymbol, Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsCompilerDiagnostic[]>> buildArg,
                 QsComments? comments = null)
             {
                 if (!definedSpecs.TryGetValue(kind, out var defined))

@@ -324,6 +324,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         |> Seq.toList
 
     member context.UseStatementPosition position = statementPosition <- position
+    member context.GetStatementPosition () = statementPosition
 
     member internal context.Fresh source =
         let name = letters |> Seq.item variables.Count

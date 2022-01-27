@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             TypeTransformation.CharacteristicsExpression(characteristics);
 
         public static string ArgumentTuple(
-                QsTuple<LocalVariableDeclaration<QsLocalSymbol>> arg,
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> arg,
                 Func<ResolvedType, string?> typeTransformation,
                 Action? onInvalidName = null,
                 bool symbolsOnly = false) =>
@@ -1437,8 +1437,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             // overrides
 
             /// <inheritdoc/>
-            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> OnProvidedImplementation(
-                QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
+            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope> OnProvidedImplementation(
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> argTuple, QsScope body)
             {
                 var functorArg = "(...)";
                 if (this.currentSpecialization == Keywords.ctrlDeclHeader.id || this.currentSpecialization == Keywords.ctrlAdjDeclHeader.id)
@@ -1477,7 +1477,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     this.AddComments(comments.ClosingComments);
                 }
 
-                return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
+                return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope>(argTuple, body);
             }
 
             /// <inheritdoc/>

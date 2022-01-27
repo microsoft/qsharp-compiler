@@ -44,16 +44,6 @@ type InferredExpressionInformation with
     static member New(isMutable, quantumDep) =
         { IsMutable = isMutable; HasLocalQuantumDependency = quantumDep }
 
-type LocalVariableDeclaration<'Name> with
-    static member New isMutable ((pos, range), vName: 'Name, t, hasLocalQuantumDependency) =
-        {
-            VariableName = vName
-            Type = t
-            InferredInformation = InferredExpressionInformation.New(isMutable, hasLocalQuantumDependency)
-            Position = pos
-            Range = range
-        }
-
 type LocalDeclarations with
     static member New(variables: IEnumerable<_>) =
         { Variables = variables.ToImmutableArray() }

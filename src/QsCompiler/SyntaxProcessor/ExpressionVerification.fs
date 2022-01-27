@@ -889,7 +889,7 @@ type QsExpression with
             let info = InferredExpressionInformation.New(isMutable = false, quantumDep = hasQuantumDependency)
             TypedExpression.New(callExpression, callable.TypeParameterResolutions, resultType, info, this.Range)
 
-        let buildLambda (lambda: _ Lambda) =
+        let buildLambda (lambda: Lambda<QsExpression, QsType>) =
             symbols.BeginScope ImmutableHashSet.Empty
             let freeVars = Context.freeVariables this
 
@@ -902,19 +902,43 @@ type QsExpression with
                 if var.InferredInformation.IsMutable then
                     Map.tryFind var.VariableName freeVars |> Option.iter (diagnoseMutable var.VariableName |> Seq.iter)
 
-            let addBinding (name: string, range) type_ =
-                let var = LocalVariableDeclaration.New false ((Null, range), name, type_, true)
-                let _, diagnostics = symbols.TryAddVariableDeclartion var
-                None, diagnostics
+            //let addBinding (name: string, range) type_ =
+            //    let var = LocalVariableDeclaration.New false ((Null, range), name, type_, true)
+            //    let _, diagnostics = symbols.TryAddVariableDeclartion var
+            //    None, diagnostics
 
-            let inputType = inference.Fresh lambda.Param.RangeOrDefault
-            let _, _, diagnostics = verifyBinding inference addBinding (lambda.Param, inputType) false
-            Array.iter diagnose diagnostics
+            // FIXME: THIS NEEDS TO BE REPLACED WITH CUSTOM LOGIC
+            //let inputType = inference.Fresh lambda.Param.RangeOrDefault
+            //let _, _, diagnostics = verifyBinding inference addBinding (lambda.Param, inputType) false
+            //Array.iter diagnose diagnostics
+
+            let argTypes = lambda.ArgumentDeclarations |> Seq.fold (fun (map : Map<_,_>) decl -> map.Add (decl.VariableName, inference.Fresh decl.Range)) Map.empty
+            let rec createInputType (argTuple : SymbolTuple) =
+                match argTuple with
+                | VariableName name -> argTypes.[name]
+                | VariableNameTuple tuple ->
+                    tuple
+                    |> Seq.map createInputType
+                    |> ImmutableArray.CreateRange
+                    |> TupleType
+                    |> ResolvedType.New // TODO WE COULD INFER THE RANGE INFORMATION HERE
+                | DiscardedItem // FIXME: REALLY? HOW WOULD WE PROPERLY HANDLE THIS?
+                | InvalidItem -> InvalidType |> ResolvedType.New
+            let inputType = createInputType lambda.Param
+
+            let addVariableDeclaration (decl : LocalVariableDeclaration<_,_>) =
+                LocalVariableDeclaration.New false ((inference.GetStatementPosition() |> Value, decl.Range), decl.VariableName, argTypes.[decl.VariableName], false)
+                // FIXME: ADD VAR DECLARATIONS TO SYMBOL TRACKER
+
+            let argDecl : ImmutableArray<LocalVariableDeclaration<string, ResolvedType>> =
+                lambda.ArgumentDeclarations
+                |> Seq.map addVariableDeclaration
+                |> ImmutableArray.CreateRange
 
             let lambda' =
                 verifyAndBuildWith
                     { context with IsInOperation = lambda.Kind = LambdaKind.Operation }
-                    (Lambda.create lambda.Kind lambda.Param >> Lambda)
+                    (fun body' -> Lambda.create lambda.Kind lambda.Param body' argDecl |> Lambda)
                     (fun body' -> inferLambda this.Range lambda.Kind inputType body', [])
                     lambda.Body
 

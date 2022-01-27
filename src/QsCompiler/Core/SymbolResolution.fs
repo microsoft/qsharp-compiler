@@ -488,7 +488,7 @@ module SymbolResolution =
             resolveType (validTpNames.ToImmutableArray())
 
         let argTuple, inErr = signature.Argument |> ResolveArgumentTuple(resolveArg, resolveType)
-        let argType = argTuple.ResolveWith(fun x -> x.Type.WithoutRangeInfo)
+        let argType = argTuple.ResolveWith(fun x -> (x.Type: ResolvedType).WithoutRangeInfo)
         let returnType, outErr = signature.ReturnType |> resolveType
         let resolvedParams = typeParams |> Seq.map fst |> ImmutableArray.CreateRange
         let resErrs = unusedTypeParamDiagnostics argType returnType typeParams

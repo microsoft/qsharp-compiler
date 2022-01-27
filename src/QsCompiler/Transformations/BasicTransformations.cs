@@ -379,9 +379,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     internal class AddVariableDeclarations<T>
     : StatementTransformation<T>
     {
-        private readonly IEnumerable<LocalVariableDeclaration<string>> addedVariableDeclarations;
+        private readonly IEnumerable<LocalVariableDeclaration<string, ResolvedType>> addedVariableDeclarations;
 
-        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string>[] addedVars)
+        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string, ResolvedType>[] addedVars)
         : base(parent) =>
             this.addedVariableDeclarations = addedVars;
 
