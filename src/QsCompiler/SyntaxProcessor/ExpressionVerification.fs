@@ -409,9 +409,9 @@ let private lambdaCharacteristics (inference: InferenceContext) (body: TypedExpr
         match inference.Resolve(callableType).Resolution with
         | QsTypeKind.Operation (_, info) -> characteristics <- characteristicsSet info |> Set.intersect characteristics
         | TypeParameter _ ->
-            // When a callable type can't be resolved to an operation type based on the current knowledge of the
-            // inference context, pessimistically assume that it is an operation that supports no characteristics. This
-            // limitation exists by design to make characteristics inference easier.
+            // When a callable type can't be resolved based on the current knowledge of the inference context,
+            // pessimistically assume that it is an operation that supports no characteristics. This limitation exists
+            // by design to make characteristics inference easier.
             characteristics <- Set.empty
         | _ -> ()
 
