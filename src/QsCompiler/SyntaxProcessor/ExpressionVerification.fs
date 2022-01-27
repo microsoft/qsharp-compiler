@@ -397,16 +397,22 @@ let private characteristicsSet info =
     |> Set.ofSeq
 
 let private lambdaCharacteristics (inference: InferenceContext) (body: TypedExpression) =
+    // Start with the universe of characteristics if the operation returns unit, or the empty set otherwise.
     let mutable characteristics =
         if inference.Resolve(body.ResolvedType).Resolution = UnitType then
             Set.ofList [ Adjointable; Controllable ]
         else
             Set.empty
 
+    // The lambda's characteristics are the intersection of the characteristics of every operation called by the lambda.
     let onCall callableType =
         match inference.Resolve(callableType).Resolution with
         | QsTypeKind.Operation (_, info) -> characteristics <- characteristicsSet info |> Set.intersect characteristics
-        | TypeParameter _ -> characteristics <- Set.empty
+        | TypeParameter _ ->
+            // When a callable type can't be resolved to an operation type based on the current knowledge of the
+            // inference context, pessimistically assume that it is an operation that supports no characteristics. This
+            // limitation exists by design to make characteristics inference easier.
+            characteristics <- Set.empty
         | _ -> ()
 
     let transformation =
@@ -415,6 +421,7 @@ let private lambdaCharacteristics (inference: InferenceContext) (body: TypedExpr
                 onCall callable.ResolvedType
                 base.OnCallLikeExpression(callable, arg)
 
+            // Call expressions in nested lambdas don't affect our characteristics, so don't visit nested lambda bodies.
             override _.OnLambda lambda = Lambda lambda
         }
 
