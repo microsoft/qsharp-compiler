@@ -4,7 +4,7 @@ This is a **preview version** of the Microsoft Quantum Development Kit extension
 
 The Microsoft Quantum Development Kit extension supporting .NET 6.0 is under active development and should be considered experimental.
 
-You can find here our currently supported extension [Microsoft Quantum Development Kit for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=quantum.quantum-devkit-vscode).
+To use the currently supported extension, see [Microsoft Quantum Development Kit for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=quantum.quantum-devkit-vscode).
 
 ## Getting Started
 
