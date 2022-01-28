@@ -196,19 +196,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         /* static methods for convenience */
 
+        // TODO: RELEASE 2022-05: Remove IdentifierReferences.Find(..., QsScope, ...).
+        [Obsolete("Use IdentifierReferences.FindInScope.")]
         public static ImmutableHashSet<Location> Find(
-            string idName,
-            QsScope scope,
-            string sourceFile,
-            Position rootLoc)
-        {
-            var finder = new IdentifierReferences(idName, null, ImmutableHashSet.Create(sourceFile));
-            finder.SharedState.Source = sourceFile;
-            finder.SharedState.DeclarationOffset = rootLoc;
-            finder.Statements.OnScope(scope);
-            return finder.SharedState.Locations;
-        }
+            string idName, QsScope scope, string sourceFile, Position rootLoc) =>
+            FindInScope(sourceFile, rootLoc, scope, idName);
 
+        // TODO: RELEASE 2022-05: Remove IdentifierReferences.Find(..., QsNamespace, ...).
+        [Obsolete]
         public static ImmutableHashSet<Location> Find(
             QsQualifiedName idName,
             QsNamespace ns,
@@ -220,6 +215,48 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             finder.Namespaces.OnNamespace(ns);
             declarationLocation = finder.SharedState.DeclarationLocation;
             return finder.SharedState.Locations;
+        }
+
+        /// <summary>
+        /// Finds references to an identifier in a scope.
+        /// </summary>
+        /// <param name="file">The source file name.</param>
+        /// <param name="specPosition">The position of the specialization that contains the scope.</param>
+        /// <param name="scope">The scope.</param>
+        /// <param name="ident">The identifier name.</param>
+        /// <returns>The locations of the references.</returns>
+        public static ImmutableHashSet<Location> FindInScope(
+            string file, Position specPosition, QsScope scope, string ident)
+        {
+            var references = new IdentifierReferences(ident, null, ImmutableHashSet.Create(file));
+            references.SharedState.Source = file;
+            references.SharedState.DeclarationOffset = specPosition;
+            references.Statements.OnScope(scope);
+            return references.SharedState.Locations;
+        }
+
+        /// <summary>
+        /// Finds references to an identifier in an expression.
+        /// </summary>
+        /// <param name="file">The source file name.</param>
+        /// <param name="specPosition">The position of the specialization that contains the expression.</param>
+        /// <param name="statementLocation">The location of the statement that contains the expression.</param>
+        /// <param name="expression">The expression.</param>
+        /// <param name="ident">The identifier name.</param>
+        /// <returns>The locations of the references.</returns>
+        public static ImmutableHashSet<Location> FindInExpression(
+            string file,
+            Position specPosition,
+            QsLocation? statementLocation,
+            TypedExpression expression,
+            string ident)
+        {
+            var references = new IdentifierReferences(ident, null, ImmutableHashSet.Create(file));
+            references.SharedState.Source = file;
+            references.SharedState.DeclarationOffset = specPosition;
+            references.SharedState.CurrentLocation = statementLocation;
+            references.Expressions.OnTypedExpression(expression);
+            return references.SharedState.Locations;
         }
 
         /* helper classes */
