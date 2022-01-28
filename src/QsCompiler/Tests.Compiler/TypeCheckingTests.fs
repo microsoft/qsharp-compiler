@@ -96,7 +96,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Supports lambda expressions`` () =
-        allValid "Lambda" 20
+        allValid "Lambda" 22
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
@@ -107,7 +107,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Operation lambda with non-unit return (1)`` () =
-        let scope = findSpecScope "Lambda15" QsBody
+        let scope = findSpecScope "Lambda17" QsBody
         let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
         let (_, output), info = getOperationType lambda.Type
         Assert.Equal(Int, output.Resolution)
@@ -115,7 +115,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Operation lambda with non-unit return (2)`` () =
-        let scope = findSpecScope "Lambda16" QsBody
+        let scope = findSpecScope "Lambda18" QsBody
         let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
         let (_, output), info = getOperationType lambda.Type
 
@@ -129,7 +129,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Operation lambda with non-unit return (3)`` () =
-        let scope = findSpecScope "Lambda17" QsBody
+        let scope = findSpecScope "Lambda19" QsBody
         let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
         let (_, output), info = getOperationType lambda.Type
         Assert.Equal(Int, output.Resolution)
@@ -137,7 +137,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Operation lambda characteristics intersection (1)`` () =
-        let scope = findSpecScope "Lambda18" QsBody
+        let scope = findSpecScope "Lambda20" QsBody
         let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
         let _, info = getOperationType lambda.Type
         let properties = info.Characteristics.GetProperties()
@@ -145,7 +145,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Operation lambda characteristics intersection (2)`` () =
-        let scope = findSpecScope "Lambda19" QsBody
+        let scope = findSpecScope "Lambda21" QsBody
         let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
         let _, info = getOperationType lambda.Type
         let properties = info.Characteristics.GetProperties()
@@ -153,7 +153,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Operation lambda characteristics intersection (3)`` () =
-        let scope = findSpecScope "Lambda20" QsBody
+        let scope = findSpecScope "Lambda22" QsBody
         let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
         let _, info = getOperationType lambda.Type
         Assert.Empty(info.Characteristics.GetProperties())
