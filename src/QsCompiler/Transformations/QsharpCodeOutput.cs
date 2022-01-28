@@ -555,7 +555,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 }
                 else if (symbol.Symbol.IsOmittedSymbols)
                 {
-                    return "__omittedSymbol__";
+                    return "...";
                 }
                 else if (symbol.Symbol.IsMissingSymbol)
                 {
@@ -787,7 +787,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             /// <inheritdoc/>
             public override QsExpressionKind OnLambda(Lambda<TypedExpression> lambda)
             {
-                var op = lambda.Kind.IsFunction ? Keywords.qsLambdaFunc : Keywords.qsLambdaOp;
+                // ToDo: Use lambda operators defined in QsKeywords.fs (https://github.com/microsoft/qsharp-compiler/issues/1113)
+                var qsLambdaOp = Keywords.QsOperator.New("=>", 0, false);
+                var qsLambdaFunc = Keywords.QsOperator.New("->", 0, false);
+
+                var op = lambda.Kind.IsFunction ? qsLambdaFunc : qsLambdaOp;
                 var paramStr = QsSymbolToString(lambda.Param);
                 this.Output = $"{paramStr} {op.op} {this.Recur(op.prec, lambda.Body)}";
                 this.currentPrecedence = op.prec;
