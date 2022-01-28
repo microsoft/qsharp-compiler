@@ -18,6 +18,7 @@ llvm-c/DataTypes.h
 llvm-c/DebugInfo.h
 llvm-c/Error.h
 llvm-c/ErrorHandling.h
+llvm-c/ExecutionEngine.h
 llvm-c/ExternC.h
 llvm-c/Initialization.h
 llvm-c/Object.h
