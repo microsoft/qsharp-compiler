@@ -847,6 +847,18 @@ let public LambdaLiftingSignatures =
              LambdaLiftingNS, "_Foo", [| "Int" |], "Int"
              LambdaLiftingNS, "_Foo", [| "Int" |], "Int"
          |])
+        // Function Without Return Value
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Unit" // The generated operation
+         |])
+        // Return Unit-Typed Expression
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Unit" // The generated operation
+         |])
     |]
     |> _MakeSignatures
 

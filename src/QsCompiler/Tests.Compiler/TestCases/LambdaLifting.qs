@@ -281,3 +281,23 @@ namespace Microsoft.Quantum.Testing.LambdaLifting {
         let lambdaTuple = ((x -> x + 1), (x -> x + 2));
     }
 }
+
+// =================================
+
+// Function Without Return Value
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambda = () -> ();
+    }
+}
+
+// =================================
+
+// Return Unit-Typed Expression
+namespace Microsoft.Quantum.Testing.LambdaLifting {
+    operation Foo() : Unit {
+        let lambda = (x => x)();
+    }
+}
+
+

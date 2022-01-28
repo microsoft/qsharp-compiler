@@ -126,7 +126,7 @@ type LambdaLiftingTests() =
 
         let lines = generated |> TestUtils.getLinesFromSpecialization
 
-        let expectedContent = [| "Microsoft.Quantum.Testing.LambdaLifting.Bar();" |]
+        let expectedContent = [| "return Microsoft.Quantum.Testing.LambdaLifting.Bar();" |]
         Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
 
         let lines = original |> TestUtils.getLinesFromSpecialization
@@ -179,7 +179,7 @@ type LambdaLiftingTests() =
 
         let lines = generated |> TestUtils.getLinesFromSpecialization
 
-        let expectedContent = [| "Microsoft.Quantum.Testing.LambdaLifting.Foo();" |]
+        let expectedContent = [| "return Microsoft.Quantum.Testing.LambdaLifting.Foo();" |]
         Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
 
         let lines = original |> TestUtils.getLinesFromSpecialization
@@ -680,4 +680,54 @@ type LambdaLiftingTests() =
         let lines = original |> TestUtils.getLinesFromSpecialization
 
         let expectedContent = [| sprintf "let lambdaTuple = (%O(_), %O(_));" first.Parent second.Parent |]
+        Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
+
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Function Without Return Value``() =
+        let result = compileLambdaLiftingTest 24
+
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
+
+        let generated =
+            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> Seq.exactlyOne
+            |> TestUtils.getBodyFromCallable
+
+        let lines = generated |> TestUtils.getLinesFromSpecialization
+
+        Assert.True(
+            0 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements." generated.Parent generated.Kind
+        )
+
+        let lines = original |> TestUtils.getLinesFromSpecialization
+
+        let expectedContent = [| sprintf "let lambda = %O(_);" generated.Parent |]
+        Assert.True((lines = expectedContent), "The original callable did not have the expected content.")
+
+    [<Fact>]
+    [<Trait("Category", "Return Values")>]
+    member this.``Return Unit-Typed Expression``() =
+        let result = compileLambdaLiftingTest 25
+
+        let original =
+            TestUtils.getCallableWithName result Signatures.LambdaLiftingNS "Foo"
+            |> TestUtils.getBodyFromCallable
+
+        let generated =
+            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo"
+            |> Seq.exactlyOne
+            |> TestUtils.getBodyFromCallable
+
+        let lines = generated |> TestUtils.getLinesFromSpecialization
+
+        let expectedContent = [| "return x;" |]
+        Assert.True((lines = expectedContent), "The generated callable did not have the expected content.")
+
+        let lines = original |> TestUtils.getLinesFromSpecialization
+
+        let expectedContent = [| sprintf "let lambda = (%O(_))();" generated.Parent |]
         Assert.True((lines = expectedContent), "The original callable did not have the expected content.")

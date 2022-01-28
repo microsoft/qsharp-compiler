@@ -215,14 +215,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         : throw new ArgumentException("Lambda with non-callable type");
 
                     // Returns are allowed only if we are not returning Unit from an operation.
-                    var isReturnStatement =
-                        !(ex.ResolvedType.Resolution is ResolvedTypeKind.Operation opType) || !opType.Item1.Item2.Resolution.IsUnitType;
+                    // var isReturnStatement =
+                    //     !lambdaBody.Expression.IsUnitValue // There will be no statements in this case.
+                    //     && (!(ex.ResolvedType.Resolution is ResolvedTypeKind.Operation opType)
+                    //     || !opType.Item1.Item2.Resolution.IsUnitType);
 
                     // Alternatively:
                     // Returns are allowed only if we are not doing an adjoint specialization.
-                    // var isReturnStatement =
-                    //    callableInfo.Characteristics.SupportedFunctors.IsNull
-                    //    || !callableInfo.Characteristics.SupportedFunctors.Item.Contains(QsFunctor.Adjoint);
+                    var isReturnStatement =
+                       !lambdaBody.Expression.IsUnitValue // There will be no statements in this case.
+                       && (callableInfo.Characteristics.SupportedFunctors.IsNull
+                       || !callableInfo.Characteristics.SupportedFunctors.Item.Contains(QsFunctor.Adjoint));
                     var bodyStatment = new QsStatement(
                         isReturnStatement
                             ? QsStatementKind.NewQsReturnStatement(lambdaBody)
