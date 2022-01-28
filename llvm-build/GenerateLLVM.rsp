@@ -10,6 +10,7 @@ LLVMAttributeReturnIndex
 LLVMInitializeCore
 --file
 llvm-c/Analysis.h
+llvm-c/BitReader.h
 llvm-c/BitWriter.h
 llvm-c/Comdat.h
 llvm-c/Core.h
