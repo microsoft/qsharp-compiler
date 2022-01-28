@@ -53,7 +53,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnAbsoluteLocation instead">]
-    default this.OnLocation loc = loc
+    override this.OnLocation loc = loc
 
     abstract OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
@@ -70,7 +70,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnItemNameDeclaration instead">]
-    default this.OnItemName name = name
+    override this.OnItemName name = name
 
     abstract OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
 
@@ -97,7 +97,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead">]
-    default this.OnArgumentName arg =
+    override this.OnArgumentName arg =
         match arg with
         | ValidName name ->
             ValidName |> Node.BuildOr arg (this.Statements.Expressions.Common.OnLocalNameDeclaration name)
