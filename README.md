@@ -1,5 +1,5 @@
 # Microsoft Quantum Development Kit: <br>Q# Compiler and Language Server #
-
+<!-- change from feature B -->
 Welcome to the Microsoft Quantum Development Kit!
 
 This repository contains the Q# compiler included in the [Quantum Development Kit](https://docs.microsoft.com/azure/quantum/),
