@@ -1364,12 +1364,12 @@ let ``Operator precendence tests`` () =
 [<Fact>]
 let ``Lambda tests`` () =
     seq {
-        "x -> x", true, Lambda.create Function (toSymbol "x") (toIdentifier "x") |> Lambda |> toExpr, []
-        "x => x", true, Lambda.create Operation (toSymbol "x") (toIdentifier "x") |> Lambda |> toExpr, []
+        "x -> x", true, Lambda.createUnchecked Function (toSymbol "x") (toIdentifier "x") |> Lambda |> toExpr, []
+        "x => x", true, Lambda.createUnchecked Operation (toSymbol "x") (toIdentifier "x") |> Lambda |> toExpr, []
 
         "f -> f()",
         true,
-        Lambda.create Function (toSymbol "f") (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+        Lambda.createUnchecked Function (toSymbol "f") (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
         |> Lambda
         |> toExpr,
         []
@@ -1377,7 +1377,7 @@ let ``Lambda tests`` () =
         "(f -> f())",
         true,
         [
-            Lambda.create Function (toSymbol "f") (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+            Lambda.createUnchecked Function (toSymbol "f") (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
             |> Lambda
             |> toExpr
         ]
@@ -1387,7 +1387,7 @@ let ``Lambda tests`` () =
         "(f -> f)()",
         true,
         CallLikeExpression(
-            toTuple [ Lambda.create Function (toSymbol "f") (toIdentifier "f") |> Lambda |> toExpr ],
+            toTuple [ Lambda.createUnchecked Function (toSymbol "f") (toIdentifier "f") |> Lambda |> toExpr ],
             toExpr UnitValue
         )
         |> toExpr,
@@ -1395,7 +1395,7 @@ let ``Lambda tests`` () =
 
         "(x, y) -> x + y",
         true,
-        Lambda.create
+        Lambda.createUnchecked
             Function
             { Symbol = ImmutableArray.Create(toSymbol "x", toSymbol "y") |> SymbolTuple; Range = Null }
             (ADD(toIdentifier "x", toIdentifier "y") |> toExpr)
@@ -1408,7 +1408,7 @@ let ``Lambda tests`` () =
         CallLikeExpression(
             toIdentifier "U",
             [
-                Lambda.create
+                Lambda.createUnchecked
                     Operation
                     (toSymbol "q")
                     (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
@@ -1425,7 +1425,7 @@ let ``Lambda tests`` () =
         CallLikeExpression(
             toIdentifier "U",
             [
-                Lambda.create
+                Lambda.createUnchecked
                     Operation
                     (toSymbol "q")
                     (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
@@ -1446,7 +1446,7 @@ let ``Lambda tests`` () =
             [
                 toIdentifier "x"
 
-                Lambda.create
+                Lambda.createUnchecked
                     Operation
                     (toSymbol "q")
                     (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
@@ -1463,7 +1463,7 @@ let ``Lambda tests`` () =
         CallLikeExpression(
             toIdentifier "U",
             [
-                Lambda.create
+                Lambda.createUnchecked
                     Operation
                     { Symbol = ImmutableArray.Create(toSymbol "x", toSymbol "q") |> SymbolTuple; Range = Null }
                     (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
@@ -1480,7 +1480,7 @@ let ``Lambda tests`` () =
         CallLikeExpression(
             toIdentifier "F",
             [
-                Lambda.create Function { Symbol = MissingSymbol; Range = Null } (toInt 0) |> Lambda |> toExpr
+                Lambda.createUnchecked Function { Symbol = MissingSymbol; Range = Null } (toInt 0) |> Lambda |> toExpr
                 toIdentifier "xs"
             ]
             |> toTuple
