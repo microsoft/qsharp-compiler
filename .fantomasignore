@@ -1,2 +1,5 @@
 ﻿# Ignore signature files because of formatting bugs.
 *.fsi
+
+# Disabling the check for the transformations due to formatting bugs.
+src/QsCompiler/Core/Transformations/*
