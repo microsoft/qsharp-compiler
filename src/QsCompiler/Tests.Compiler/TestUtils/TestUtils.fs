@@ -354,44 +354,6 @@ let getCallablesWithSuffix compilation ns (suffix: string) =
     |> Seq.filter (fun x -> x.Key.Name.EndsWith suffix)
     |> Seq.map (fun x -> x.Value)
 
-let private _checkIfStringIsCall (name: QsQualifiedName) input =
-    let call = sprintf @"(%s\.)?%s" <| Regex.Escape name.Namespace <| Regex.Escape name.Name
-    let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
-    let args = @"\(\s*(.*[^\s])?\s*\)"
-    let regex = sprintf @"^\s*%s\s*%s\s*%s;$" call typeArgs args
-
-    let regexMatch = Regex.Match(input, regex)
-
-    if regexMatch.Success then
-        (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
-    else
-        (false, "", "")
-
-let identifyGeneratedByCalls generatedCallables calls =
-    let mutable callables =
-        generatedCallables |> Seq.map (fun x -> x, x |> (getBodyFromCallable >> getLinesFromSpecialization))
-
-    let hasCall callable call =
-        let (_, lines: string []) = callable
-        call |> Seq.forall (fun (i, name) -> _checkIfStringIsCall name lines.[i] |> (fun (x, _, _) -> x))
-
-    Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
-
-    let mutable rtrn = Seq.empty
-
-    let removeAt i lst =
-        Seq.append <| Seq.take i lst <| Seq.skip (i + 1) lst
-
-    for call in calls do
-        callables
-        |> Seq.tryFindIndex (fun callSig -> hasCall callSig call)
-        |> (fun x ->
-            Assert.True(x <> None, "Did not find expected generated content")
-            rtrn <- Seq.append rtrn [ Seq.item x.Value callables ]
-            callables <- removeAt x.Value callables)
-
-    rtrn |> Seq.map (fun (x, _) -> x)
-
 let identifyCallablesBySignature generatedCallables signatures =
     let mutable callables =
         generatedCallables
@@ -421,21 +383,9 @@ let identifyCallablesBySignature generatedCallables signatures =
 
 // utils for testing checks and assertions
 
-let checkIfStringIsCall = _checkIfStringIsCall
-
 let checkIfSpecializationHasContent specialization content =
     let lines = specialization |> getLinesFromSpecialization
     content |> Seq.forall (fun (i, expected) -> expected = lines.[i])
-
-let checkIfSpecializationHasCalls specialization (calls: seq<int * QsQualifiedName>) =
-    let lines = getLinesFromSpecialization specialization
-    Seq.forall (fun (i, name) -> checkIfStringIsCall name lines.[i] |> (fun (x, _, _) -> x)) calls
-
-let assertSpecializationHasCalls specialization calls =
-    Assert.True(
-        checkIfSpecializationHasCalls specialization calls,
-        sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind
-    )
 
 let doesCallSupportFunctors expectedFunctors call =
     let hasAdjoint = expectedFunctors |> Seq.contains QsFunctor.Adjoint

@@ -35,6 +35,54 @@ type ClassicalControlTests() =
         let args = @"\(?\s*([\w\s,\.]*)?\s*\)?"
         sprintf @"\(%s\s*%s,\s*%s\)" <| call <| typeArgs <| args
 
+    let checkIfStringIsCall (name: QsQualifiedName) input =
+        let call = sprintf @"(%s\.)?%s" <| Regex.Escape name.Namespace <| Regex.Escape name.Name
+        let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
+        let args = @"\(\s*(.*[^\s])?\s*\)"
+        let regex = sprintf @"^\s*%s\s*%s\s*%s;$" call typeArgs args
+    
+        let regexMatch = Regex.Match(input, regex)
+    
+        if regexMatch.Success then
+            (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
+        else
+            (false, "", "")
+    
+    let identifyGeneratedByCalls generatedCallables calls =
+        let mutable callables =
+            generatedCallables |> Seq.map (fun x -> x, x |> (TestUtils.getBodyFromCallable >> TestUtils.getLinesFromSpecialization))
+    
+        let hasCall callable call =
+            let (_, lines: string []) = callable
+            call |> Seq.forall (fun (i, name) -> checkIfStringIsCall name lines.[i] |> (fun (x, _, _) -> x))
+    
+        Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
+    
+        let mutable rtrn = Seq.empty
+    
+        let removeAt i lst =
+            Seq.append <| Seq.take i lst <| Seq.skip (i + 1) lst
+    
+        for call in calls do
+            callables
+            |> Seq.tryFindIndex (fun callSig -> hasCall callSig call)
+            |> (fun x ->
+                Assert.True(x <> None, "Did not find expected generated content")
+                rtrn <- Seq.append rtrn [ Seq.item x.Value callables ]
+                callables <- removeAt x.Value callables)
+    
+        rtrn |> Seq.map (fun (x, _) -> x)
+
+    let checkIfSpecializationHasCalls specialization (calls: seq<int * QsQualifiedName>) =
+        let lines = TestUtils.getLinesFromSpecialization specialization
+        Seq.forall (fun (i, name) -> checkIfStringIsCall name lines.[i] |> (fun (x, _, _) -> x)) calls
+    
+    let assertSpecializationHasCalls specialization calls =
+        Assert.True(
+            checkIfSpecializationHasCalls specialization calls,
+            sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind
+        )
+
     let isApplyIfArgMatch input resultVar (opName: QsQualifiedName) =
         let regexMatch =
             Regex.Match(input, sprintf @"^\s*%s,\s*%s$" <| Regex.Escape resultVar <| makeApplicationRegex opName)
@@ -77,7 +125,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
         )
 
-        let (success, targs, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
+        let (success, targs, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
@@ -103,7 +151,7 @@ type ClassicalControlTests() =
             |> Seq.exactlyOne
             |> TestUtils.getBodyFromCallable
 
-        [ (0, SubOp1); (1, SubOp2); (2, SubOp3) ] |> TestUtils.assertSpecializationHasCalls generated
+        [ (0, SubOp1); (1, SubOp2); (2, SubOp3) ] |> assertSpecializationHasCalls generated
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
@@ -139,7 +187,7 @@ type ClassicalControlTests() =
             |> TestUtils.getBodyFromCallable
 
         [ (1, BuiltIn.ApplyIfZero.FullName); (3, BuiltIn.ApplyIfOne.FullName) ]
-        |> TestUtils.assertSpecializationHasCalls originalOp
+        |> assertSpecializationHasCalls originalOp
 
     [<Fact>]
     [<Trait("Category", "Condition API Conversion")>]
@@ -190,7 +238,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
         )
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
@@ -206,7 +254,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
         )
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[0]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[0]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
 
@@ -236,7 +284,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
         )
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
@@ -252,7 +300,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
         )
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[0]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[0]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
 
@@ -282,7 +330,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
         )
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
@@ -298,7 +346,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
         )
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[0]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[0]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
 
@@ -355,7 +403,7 @@ type ClassicalControlTests() =
         // Assert that the original operation calls the generated operation with the appropriate type arguments
         let lines = TestUtils.getBodyFromCallable original |> TestUtils.getLinesFromSpecialization
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[1]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[1]
 
         Assert.True(
             success,
@@ -382,13 +430,13 @@ type ClassicalControlTests() =
         let providedOp = callables |> Seq.find (fun x -> x.Key.Name = "Provided") |> fun x -> x.Value
 
         [ (1, BuiltIn.ApplyIfZero.FullName) ]
-        |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable selfOp)
+        |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable selfOp)
 
         [ (1, BuiltIn.ApplyIfZeroA.FullName) ]
-        |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable invertOp)
+        |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable invertOp)
 
         [ (1, BuiltIn.ApplyIfZero.FullName) ]
-        |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable providedOp)
+        |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable providedOp)
 
         let _selfOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Self") |> fun x -> x.Value
         let _invertOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Invert") |> fun x -> x.Value
@@ -400,7 +448,7 @@ type ClassicalControlTests() =
 
         let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
         let adjointContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
-        let orderedGens = TestUtils.identifyGeneratedByCalls _providedOps [ bodyContent; adjointContent ]
+        let orderedGens = identifyGeneratedByCalls _providedOps [ bodyContent; adjointContent ]
         let bodyGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
         TestUtils.assertCallSupportsFunctors [] _selfOp
         TestUtils.assertCallSupportsFunctors [ QsFunctor.Adjoint ] _invertOp
@@ -421,10 +469,10 @@ type ClassicalControlTests() =
         let providedOp = callables |> Seq.find (fun x -> x.Key.Name = "Provided") |> fun x -> x.Value
 
         [ (1, BuiltIn.ApplyIfZeroC.FullName) ]
-        |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable distributeOp)
+        |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable distributeOp)
 
         [ (1, BuiltIn.ApplyIfZero.FullName) ]
-        |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable providedOp)
+        |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable providedOp)
 
         let _distributeOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Distribute") |> fun x -> x.Value
 
@@ -435,7 +483,7 @@ type ClassicalControlTests() =
 
         let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
         let controlledContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
-        let orderedGens = TestUtils.identifyGeneratedByCalls _providedOps [ bodyContent; controlledContent ]
+        let orderedGens = identifyGeneratedByCalls _providedOps [ bodyContent; controlledContent ]
         let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
         TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled ] _distributeOp
         TestUtils.assertCallSupportsFunctors [] bodyGen
@@ -457,10 +505,10 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedBody") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroCA.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlAdjFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlAdjFromCallable original)
 
             let generated =
                 callables |> Seq.filter (fun x -> x.Key.Name.EndsWith "_ProvidedBody") |> Seq.map (fun x -> x.Value)
@@ -469,7 +517,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let ctlAdjContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
-            let orderedGens = TestUtils.identifyGeneratedByCalls generated [ bodyContent; ctlAdjContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlAdjContent ]
             let bodyGen, ctlAdjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
@@ -483,13 +531,13 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedControlled") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroA.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlAdjFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlAdjFromCallable original)
 
             let generated =
                 callables
@@ -501,7 +549,7 @@ type ClassicalControlTests() =
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let ctlContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
             let ctlAdjContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
-            let orderedGens = TestUtils.identifyGeneratedByCalls generated [ bodyContent; ctlContent; ctlAdjContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlContent; ctlAdjContent ]
 
             let bodyGen, ctlGen, ctlAdjGen =
                 (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
@@ -519,13 +567,13 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedAdjoint") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroC.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlAdjFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlAdjFromCallable original)
 
             let generated =
                 callables
@@ -537,7 +585,7 @@ type ClassicalControlTests() =
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let adjContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
             let ctlAdjContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
-            let orderedGens = TestUtils.identifyGeneratedByCalls generated [ bodyContent; adjContent; ctlAdjContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; adjContent; ctlAdjContent ]
 
             let bodyGen, adjGen, ctlAdjGen =
                 (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
@@ -555,16 +603,16 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedAll") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZero.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlAdjFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlAdjFromCallable original)
 
             let generated =
                 callables |> Seq.filter (fun x -> x.Key.Name.EndsWith "_ProvidedAll") |> Seq.map (fun x -> x.Value)
@@ -577,7 +625,7 @@ type ClassicalControlTests() =
             let ctlAdjContent = [ (2, SubOpCA3) ]
 
             let orderedGens =
-                TestUtils.identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent; ctlAdjContent ]
+                identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent; ctlAdjContent ]
 
             let bodyGen, ctlGen, adjGen, ctlAdjGen =
                 (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens), (Seq.item 3 orderedGens)
@@ -606,7 +654,7 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeBody") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroCA.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             let generated =
                 callables
@@ -617,7 +665,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let bodyGen = (Seq.item 0 generated)
-            TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable bodyGen) bodyContent
+            assertSpecializationHasCalls (TestUtils.getBodyFromCallable bodyGen) bodyContent
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
 
@@ -629,10 +677,10 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeControlled") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroCA.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
 
             let generated =
                 callables
@@ -643,7 +691,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let ctlContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
-            let orderedGens = TestUtils.identifyGeneratedByCalls generated [ bodyContent; ctlContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlContent ]
             let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
@@ -657,10 +705,10 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeAdjoint") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroC.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOneC.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
 
             let generated =
                 callables
@@ -671,7 +719,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let adjContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
-            let orderedGens = TestUtils.identifyGeneratedByCalls generated [ bodyContent; adjContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; adjContent ]
             let bodyGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled ] bodyGen
@@ -685,13 +733,13 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeAll") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZero.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOneC.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
 
             let generated =
                 callables
@@ -703,7 +751,7 @@ type ClassicalControlTests() =
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let ctlContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
             let adjContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
-            let orderedGens = TestUtils.identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent ]
             let bodyGen, ctlGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [] bodyGen
@@ -728,7 +776,7 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertBody") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroCA.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             let generated =
                 callables |> Seq.filter (fun x -> x.Key.Name.EndsWith "_InvertBody") |> Seq.map (fun x -> x.Value)
@@ -737,7 +785,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let bodyGen = (Seq.item 0 generated)
-            TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable bodyGen) bodyContent
+            assertSpecializationHasCalls (TestUtils.getBodyFromCallable bodyGen) bodyContent
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
 
@@ -749,10 +797,10 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertControlled") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroA.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOneA.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
 
             let generated =
                 callables
@@ -763,7 +811,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let ctlContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
-            let orderedGens = TestUtils.identifyGeneratedByCalls generated [ bodyContent; ctlContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlContent ]
             let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Adjoint ] bodyGen
@@ -777,10 +825,10 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertAdjoint") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroCA.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
 
             let generated =
                 callables
@@ -791,7 +839,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let adjContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
-            let orderedGens = TestUtils.identifyGeneratedByCalls generated [ bodyContent; adjContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; adjContent ]
             let bodyGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
@@ -805,13 +853,13 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertAll") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZero.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOneA.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getAdjFromCallable original)
 
             let generated =
                 callables |> Seq.filter (fun x -> x.Key.Name.EndsWith "_InvertAll") |> Seq.map (fun x -> x.Value)
@@ -821,7 +869,7 @@ type ClassicalControlTests() =
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let ctlContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
             let adjContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
-            let orderedGens = TestUtils.identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent ]
             let bodyGen, ctlGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [] bodyGen
@@ -846,7 +894,7 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "SelfBody") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZeroC.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             let generated =
                 callables |> Seq.filter (fun x -> x.Key.Name.EndsWith "_SelfBody") |> Seq.map (fun x -> x.Value)
@@ -855,7 +903,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let bodyGen = (Seq.item 0 generated)
-            TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable bodyGen) bodyContent
+            assertSpecializationHasCalls (TestUtils.getBodyFromCallable bodyGen) bodyContent
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled ] bodyGen
 
@@ -867,10 +915,10 @@ type ClassicalControlTests() =
             let original = callables |> Seq.find (fun x -> x.Key.Name = "SelfControlled") |> fun x -> x.Value
 
             [ (1, BuiltIn.ApplyIfZero.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
 
             [ (1, BuiltIn.ApplyIfOne.FullName) ]
-            |> TestUtils.assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
+            |> assertSpecializationHasCalls (TestUtils.getCtlFromCallable original)
 
             let generated =
                 callables
@@ -881,7 +929,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
             let ctlContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
-            let orderedGens = TestUtils.identifyGeneratedByCalls generated [ bodyContent; ctlContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlContent ]
             let bodyGen, ctlGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens)
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [] bodyGen
@@ -907,16 +955,16 @@ type ClassicalControlTests() =
         let outerContent = [ (0, SubOpCA1); (1, SubOpCA2) ]
         let innerContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
 
-        TestUtils.assertSpecializationHasCalls original originalContent
+        assertSpecializationHasCalls original originalContent
 
-        let orderedGens = TestUtils.identifyGeneratedByCalls generated [ outerContent; innerContent ]
+        let orderedGens = identifyGeneratedByCalls generated [ outerContent; innerContent ]
         let outerOp = (Seq.item 0 orderedGens)
 
         TestUtils.assertCallSupportsFunctors [ QsFunctor.Adjoint ] outerOp
 
         let lines = TestUtils.getLinesFromSpecialization original
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZeroA.FullName lines.[2]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZeroA.FullName lines.[2]
 
         Assert.True(
             success,
@@ -937,7 +985,7 @@ type ClassicalControlTests() =
 
         let lines = TestUtils.getLinesFromSpecialization original
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[1]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[1]
 
         Assert.True(
             success,
@@ -990,7 +1038,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
         )
 
-        let (success, targs, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyConditionally.FullName lines.[2]
+        let (success, targs, args) = checkIfStringIsCall BuiltIn.ApplyConditionally.FullName lines.[2]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
@@ -1015,7 +1063,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
         )
 
-        let (success, targs, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyConditionally.FullName lines.[2]
+        let (success, targs, args) = checkIfStringIsCall BuiltIn.ApplyConditionally.FullName lines.[2]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
@@ -1040,7 +1088,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
         )
 
-        let (success, targs, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyConditionally.FullName lines.[2]
+        let (success, targs, args) = checkIfStringIsCall BuiltIn.ApplyConditionally.FullName lines.[2]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
@@ -1078,7 +1126,7 @@ type ClassicalControlTests() =
             TestUtils.getCallableWithName result Signatures.ClassicalControlNS "Foo"
             |> TestUtils.getBodyFromCallable
 
-        [ (1, BuiltIn.ApplyIfOne.FullName) ] |> TestUtils.assertSpecializationHasCalls originalOp
+        [ (1, BuiltIn.ApplyIfOne.FullName) ] |> assertSpecializationHasCalls originalOp
 
     [<Fact>]
     [<Trait("Category", "Inequality Condition")>]
@@ -1089,7 +1137,7 @@ type ClassicalControlTests() =
             TestUtils.getCallableWithName result Signatures.ClassicalControlNS "Foo"
             |> TestUtils.getBodyFromCallable
 
-        [ (1, BuiltIn.ApplyIfZero.FullName) ] |> TestUtils.assertSpecializationHasCalls originalOp
+        [ (1, BuiltIn.ApplyIfZero.FullName) ] |> assertSpecializationHasCalls originalOp
 
     [<Fact>]
     [<Trait("Category", "Condition API Conversion")>]
@@ -1100,7 +1148,7 @@ type ClassicalControlTests() =
             TestUtils.getCallableWithName result Signatures.ClassicalControlNS "Foo"
             |> TestUtils.getBodyFromCallable
 
-        [ (1, BuiltIn.ApplyIfZero.FullName) ] |> TestUtils.assertSpecializationHasCalls originalOp
+        [ (1, BuiltIn.ApplyIfZero.FullName) ] |> assertSpecializationHasCalls originalOp
 
     [<Fact>]
     [<Trait("Category", "Condition API Conversion")>]
@@ -1133,7 +1181,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
         )
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
@@ -1149,7 +1197,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
         )
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[0]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[0]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
 
@@ -1178,7 +1226,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
         )
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[1]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" original.Parent original.Kind)
 
@@ -1194,7 +1242,7 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
         )
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[0]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[0]
 
         Assert.True(success, sprintf "Callable %O(%A) did not have expected content" generated.Parent generated.Kind)
 
@@ -1240,7 +1288,7 @@ type ClassicalControlTests() =
         // Make sure original calls outer generated
         let lines = original |> TestUtils.getLinesFromSpecialization
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[1]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[1]
 
         Assert.True(
             success,
@@ -1253,7 +1301,7 @@ type ClassicalControlTests() =
         // Make sure outer calls inner generated
         let lines = outer |> TestUtils.getBodyFromCallable |> TestUtils.getLinesFromSpecialization
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfOne.FullName lines.[0]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfOne.FullName lines.[0]
 
         Assert.True(
             success,
@@ -1280,7 +1328,7 @@ type ClassicalControlTests() =
         // Make sure original calls generated
         let lines = original |> TestUtils.getLinesFromSpecialization
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[1]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[1]
 
         Assert.True(
             success,
@@ -1312,7 +1360,7 @@ type ClassicalControlTests() =
         // Make sure original calls generated
         let lines = original |> TestUtils.getLinesFromSpecialization
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[4]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[4]
 
         Assert.True(
             success,
@@ -1342,7 +1390,7 @@ type ClassicalControlTests() =
         // Make sure original calls generated
         let lines = original |> TestUtils.getLinesFromSpecialization
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[3]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[3]
 
         Assert.True(
             success,
@@ -1373,7 +1421,7 @@ type ClassicalControlTests() =
         // Make sure original calls generated
         let lines = original |> TestUtils.getLinesFromSpecialization
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[3]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[3]
 
         Assert.True(
             success,
@@ -1405,7 +1453,7 @@ type ClassicalControlTests() =
         // Make sure original calls generated
         let lines = original |> TestUtils.getLinesFromSpecialization
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[4]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[4]
 
         Assert.True(
             success,
@@ -1460,7 +1508,7 @@ type ClassicalControlTests() =
 
         Assert.True(lines.[3] = "    if x < 1 {", "The classical condition is missing after transformation")
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[4]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[4]
 
         Assert.True(
             success,
@@ -1471,7 +1519,7 @@ type ClassicalControlTests() =
         Assert.True(success, "ApplyIfZero did not have the correct arguments")
         Assert.True(lines.[6] = "    else {", "The else condition is missing after transformation")
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[7]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfElseR.FullName lines.[7]
 
         Assert.True(
             success,
@@ -1504,7 +1552,7 @@ type ClassicalControlTests() =
 
         Assert.True(lines.[3] = "if x < 1 {", "The classical condition is missing after transformation")
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[4]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[4]
 
         Assert.True(
             success,
@@ -1553,7 +1601,7 @@ type ClassicalControlTests() =
 
         let lines = original |> TestUtils.getLinesFromSpecialization
 
-        let (success, _, args) = TestUtils.checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[6]
+        let (success, _, args) = checkIfStringIsCall BuiltIn.ApplyIfZero.FullName lines.[6]
 
         Assert.True(
             success,
