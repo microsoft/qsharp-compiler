@@ -275,13 +275,8 @@ type TypedExpression with
     /// Recursively applies the given function inner to the given item and
     /// applies the given extraction function to each contained subitem of the returned expression kind.
     /// Returns an enumerable of all extracted items.
-    static member private ExtractAll
-        (inner: 'E -> QsExpressionKind<'E, _, _>, extract: _ -> seq<_>)
-        (this: 'E)
-        : seq<_> =
-        let fold ex sub =
-            Seq.concat sub |> Seq.append (extract ex)
-
+    static member private ExtractAll(inner, extract: _ -> _ seq, this) =
+        let fold ex = Seq.concat >> Seq.append (extract ex)
         this |> TypedExpression.MapAndFold(inner, fold)
 
     /// Walks the given expression,
@@ -289,7 +284,7 @@ type TypedExpression with
     /// Returns an enumerable of all extracted expressions.
     member public this.ExtractAll(extract: _ -> IEnumerable<_>) =
         let inner (ex: TypedExpression) = ex.Expression
-        TypedExpression.ExtractAll(inner, extract) this
+        TypedExpression.ExtractAll(inner, extract, this)
 
     /// Applies the given function to the expression kind,
     /// and then recurs into each subexpression of the returned expression kind.
@@ -323,7 +318,7 @@ type QsExpression with
     /// Returns an enumerable of all extracted expressions.
     member public this.ExtractAll(extract: _ -> IEnumerable<_>) =
         let inner (ex: QsExpression) = ex.Expression
-        TypedExpression.ExtractAll(inner, extract) this
+        TypedExpression.ExtractAll(inner, extract, this)
 
 
 type QsStatement with
@@ -430,8 +425,23 @@ let (|Missing|_|) arg =
 
 // extensions for typed expressions and resolved types
 
+/// Recursively traverses an expression by first recurring on all sub-expressions and then calling the given folder with
+/// the original expression as well as the returned results.
+[<CompiledName "Fold">]
+[<Extension>]
+let fold (expression: TypedExpression) (folder: Func<_, _, _>) =
+    expression.Fold(fun e xs -> folder.Invoke(e, xs))
+
 [<Extension>]
 let Exists (this: TypedExpression) (condition: Func<TypedExpression, bool>) = this.Exists condition.Invoke
+
+/// <summary>
+/// Walks the given expression, and applies the given extraction function to each contained expression.
+/// </summary>
+/// <returns>An enumerable of all extracted expressions.</returns>
+[<CompiledName "ExtractAll">]
+[<Extension>]
+let extractAll (expression: TypedExpression) (extractor: Func<_, _>) = expression.ExtractAll extractor.Invoke
 
 [<Extension>]
 let TryGetArgumentType (this: ResolvedType) =

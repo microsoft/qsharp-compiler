@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
@@ -1032,8 +1033,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName? parentCallable, bool includeDeclaredAtPosition = false)
         {
             var implementation = this.TryGetSpecializationAt(file, pos, out parentCallable, out var callablePos, out var specPos);
-            var declarations = implementation is null ? null
-                : SymbolInfo.LocalsInScope(implementation, pos - specPos, includeDeclaredAtPosition);
+            var declarations = implementation is null
+                ? null
+                : SyntaxUtils.LocalsInScope(implementation, pos - specPos, includeDeclaredAtPosition);
+
             return this.PositionedDeclarations(parentCallable, callablePos, specPos, declarations);
         }
 
