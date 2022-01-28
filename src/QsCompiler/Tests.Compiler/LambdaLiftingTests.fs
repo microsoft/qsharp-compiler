@@ -395,7 +395,7 @@ type LambdaLiftingTests() =
     [<Trait("Category", "Return Values")>]
     member this.``With Nested Lambda``() = compileLambdaLiftingTest 13
 
-    [<Fact(Skip = "Known Bug: https://github.com/microsoft/qsharp-compiler/issues/1113")>]
+    [<Fact>]
     [<Trait("Category", "Functor Support")>]
     member this.``Functor Support Basic Return``() =
         let result = compileLambdaLiftingTest 14
@@ -436,7 +436,7 @@ type LambdaLiftingTests() =
         assertLambdaFunctorsByLine result lines.[3] "Foo" [ QsFunctor.Controlled ]
         assertLambdaFunctorsByLine result lines.[4] "Foo" [ QsFunctor.Adjoint; QsFunctor.Controlled ]
 
-    [<Fact(Skip = "Known Bug: https://github.com/microsoft/qsharp-compiler/issues/1113")>]
+    [<Fact>]
     [<Trait("Category", "Functor Support")>]
     member this.``Functor Support Lambda Call``() =
         let result = compileLambdaLiftingTest 16
@@ -452,7 +452,7 @@ type LambdaLiftingTests() =
             sprintf "Callable %O(%A) did not have the expected number of statements." original.Parent original.Kind
         )
 
-        assertLambdaFunctorsByLine result lines.[0] "Foo" [] // This line fails due to known bug. See skip reason.
+        assertLambdaFunctorsByLine result lines.[0] "Foo" []
         assertLambdaFunctorsByLine result lines.[1] "Foo" [ QsFunctor.Adjoint ]
         assertLambdaFunctorsByLine result lines.[2] "Foo" [ QsFunctor.Controlled ]
         assertLambdaFunctorsByLine result lines.[3] "Foo" [ QsFunctor.Adjoint; QsFunctor.Controlled ]

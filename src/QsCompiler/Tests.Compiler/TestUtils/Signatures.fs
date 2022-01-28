@@ -630,12 +630,10 @@ let private _WithTupleTypes =
                                      "Double", Double ] |]
 
 let private _WithLambdaOperation =
-    _MakeTypeMap [| "Unit => Int is Adj + Ctl",
+    _MakeTypeMap [| "Unit => Int",
                     ((ResolvedType.New UnitType, ResolvedType.New Int),
                      {
-                         Characteristics =
-                             ResolvedCharacteristics.FromProperties [ OpProperty.Adjointable
-                                                                      OpProperty.Controllable ]
+                         Characteristics = ResolvedCharacteristics.Empty
                          InferredInformation = InferredCallableInformation.NoInformation
                      })
                     |> QsTypeKind.Operation |]
@@ -750,7 +748,7 @@ let public LambdaLiftingSignatures =
         (_WithLambdaOperation,
          [|
              LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
-             LambdaLiftingNS, "_Foo", [||], "Unit => Int is Adj + Ctl"
+             LambdaLiftingNS, "_Foo", [||], "Unit => Int"
              LambdaLiftingNS, "_Foo", [||], "Int"
          |])
         // Functor Support Basic Return
