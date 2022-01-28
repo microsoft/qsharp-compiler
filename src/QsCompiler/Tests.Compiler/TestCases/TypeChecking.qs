@@ -844,15 +844,27 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function Lambda15() : Unit {
-        let f = () => 1;
+        let op = () => 1;
     }
 
     function Lambda16() : Unit {
-        let f = () => (GenericUnitary(), 2);
+        let op = () => (GenericUnitary(), 2);
     }
 
     function Lambda17() : Unit {
-        let f = x => x + 1;
+        let op = x => x + 1;
+    }
+
+    function Lambda18() : Unit {
+        let op = q => GenericFunction(Unitary(q), Adjointable(q));
+    }
+
+    function Lambda19() : Unit {
+        let op = q => GenericFunction(Unitary(q), Controllable(q));
+    }
+
+    function Lambda20() : Unit {
+        let op = q => GenericFunction(Adjointable(q), Controllable(q));
     }
 
     function LambdaInvalid1() : Qubit => Unit is Adj {

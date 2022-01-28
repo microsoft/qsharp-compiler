@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -36,6 +37,11 @@ module TypeCheckingTests =
         match spec.Implementation with
         | Provided (_, scope) -> scope
         | _ -> failwith "Missing specialization implementation."
+
+    let private getOperationType (type_: ResolvedType) =
+        match type_.Resolution with
+        | QsTypeKind.Operation (io, info) -> io, info
+        | _ -> failwith "Not an operation type."
 
     [<Fact>]
     let ``Supports integral operators`` () =
@@ -90,7 +96,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Supports lambda expressions`` () =
-        allValid "Lambda" 17
+        allValid "Lambda" 20
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
@@ -102,43 +108,55 @@ module TypeCheckingTests =
     [<Fact>]
     let ``Operation lambda with non-unit return (1)`` () =
         let scope = findSpecScope "Lambda15" QsBody
-        let f = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
-
-        match f.Type.Resolution with
-        | QsTypeKind.Operation ((input, output), info) ->
-            Assert.Equal(UnitType, input.Resolution)
-            Assert.Equal(Int, output.Resolution)
-            Assert.Empty(info.Characteristics.GetProperties())
-        | _ -> failwith "Not an operation type."
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let (_, output), info = getOperationType lambda.Type
+        Assert.Equal(Int, output.Resolution)
+        Assert.Empty(info.Characteristics.GetProperties())
 
     [<Fact>]
     let ``Operation lambda with non-unit return (2)`` () =
         let scope = findSpecScope "Lambda16" QsBody
-        let f = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let (_, output), info = getOperationType lambda.Type
 
-        match f.Type.Resolution with
-        | QsTypeKind.Operation ((input, output), info) ->
-            let outputs =
-                match output.Resolution with
-                | TupleType ts -> ts |> Seq.map (fun t -> t.Resolution)
-                | _ -> failwith "Not a tuple type."
+        let outputs =
+            match output.Resolution with
+            | TupleType ts -> ts |> Seq.map (fun t -> t.Resolution)
+            | _ -> failwith "Not a tuple type."
 
-            Assert.Equal(UnitType, input.Resolution)
-            Assert.Equal([ UnitType; Int ], outputs)
-            Assert.Empty(info.Characteristics.GetProperties())
-        | _ -> failwith "Not an operation type."
+        Assert.Equal([ UnitType; Int ], outputs)
+        Assert.Empty(info.Characteristics.GetProperties())
 
     [<Fact>]
     let ``Operation lambda with non-unit return (3)`` () =
         let scope = findSpecScope "Lambda17" QsBody
-        let f = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let (_, output), info = getOperationType lambda.Type
+        Assert.Equal(Int, output.Resolution)
+        Assert.Empty(info.Characteristics.GetProperties())
 
-        match f.Type.Resolution with
-        | QsTypeKind.Operation ((input, output), info) ->
-            Assert.Equal(Int, input.Resolution)
-            Assert.Equal(Int, output.Resolution)
-            Assert.Empty(info.Characteristics.GetProperties())
-        | _ -> failwith "Not an operation type."
+    [<Fact>]
+    let ``Operation lambda characteristics intersection (1)`` () =
+        let scope = findSpecScope "Lambda18" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let _, info = getOperationType lambda.Type
+        let properties = info.Characteristics.GetProperties()
+        Assert.True(properties.SetEquals(ImmutableHashSet.Create Adjointable), "Set not equal to Adj.")
+
+    [<Fact>]
+    let ``Operation lambda characteristics intersection (2)`` () =
+        let scope = findSpecScope "Lambda19" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let _, info = getOperationType lambda.Type
+        let properties = info.Characteristics.GetProperties()
+        Assert.True(properties.SetEquals(ImmutableHashSet.Create Controllable), "Set not equal to Ctl.")
+
+    [<Fact>]
+    let ``Operation lambda characteristics intersection (3)`` () =
+        let scope = findSpecScope "Lambda20" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let _, info = getOperationType lambda.Type
+        Assert.Empty(info.Characteristics.GetProperties())
 
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =
