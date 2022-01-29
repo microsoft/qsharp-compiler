@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="13.0.0-CI-20220112-065039" PrivateAssets="All" GeneratePathProperty="true"/>
+    <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="13.0.0-CI-20220129-005156" PrivateAssets="All" GeneratePathProperty="true"/>
     <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.20.2110171573-alpha" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.20.2110171573" GeneratePathProperty="true" />
   </ItemGroup>
@@ -121,9 +121,8 @@
       <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/libMicrosoft.Quantum.Simulator.Runtime.dylib</SimulatorRuntime>
       <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
       <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native/libMicrosoft.Quantum.Simulator.Runtime.so</SimulatorRuntime>
-      <ClangName Condition="$([MSBuild]::IsOsPlatform('Windows')) Or $([MSBuild]::IsOsPlatform('OSX'))">clang++</ClangName>
-      <ClangName Condition="$([MSBuild]::IsOsPlatform('Linux'))">clang++-13</ClangName>
-      <ClangCommand>$(ClangName) -std=c++17 -Wno-override-module -o $(ExecutablePath) $(QirOutputPath)$(PathCompatibleAssemblyName).ll $(BuildOutputPath)/Main.cpp -I$(BuildOutputPath) -L$(BuildOutputPath) -lMicrosoft.Quantum.Qir.Runtime -lMicrosoft.Quantum.Qir.QSharp.Core -lMicrosoft.Quantum.Qir.QSharp.Foundation</ClangCommand>
+      <ClangOptions Condition="$([MSBuild]::IsOsPlatform('Linux')) Or $([MSBuild]::IsOsPlatform('OSX'))">-fseh-exceptions -lstdc++</ClangOptions>
+      <ClangCommand>clang -std=c++17 -Wno-override-module $(ClangOptions) -o $(ExecutablePath) $(QirOutputPath)$(PathCompatibleAssemblyName).ll $(BuildOutputPath)/Main.cpp -I$(BuildOutputPath) -L$(BuildOutputPath) -lMicrosoft.Quantum.Qir.Runtime -lMicrosoft.Quantum.Qir.QSharp.Core -lMicrosoft.Quantum.Qir.QSharp.Foundation</ClangCommand>
     </PropertyGroup>
     <ItemGroup>
       <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
@@ -133,7 +132,11 @@
     <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_QirRuntimeHeaderFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Exec Command="$(ClangCommand)" IgnoreExitCode="false" />
+    <Exec Command="clang --version" IgnoreExitCode="true" ContinueOnError="ErrorAndContinue">
+      <Output TaskParameter="ExitCode" PropertyName="ClangVersionCheckExitCode"/>
+    </Exec>
+    <Warning Text="Clang not found, skipping native build." Condition="'$(ClangVersionCheckExitCode)' != '0'" />
+    <Exec Command="$(ClangCommand)" Condition="'$(ClangVersionCheckExitCode)' == '0'" IgnoreExitCode="false" />
   </Target>
 
 </Project>

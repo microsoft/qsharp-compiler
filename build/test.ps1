@@ -21,8 +21,6 @@ function Test-One {
 
     if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
         $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
-    } elseif (-not $IsWindows) {
-        $args = @("--filter", "`"FullyQualifiedName!~Microsoft.Quantum.QsCompiler.Testing.ExecutionTests`"")
     } else {
         $args = @();
     }
