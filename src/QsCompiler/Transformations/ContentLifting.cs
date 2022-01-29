@@ -238,15 +238,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return false;
             }
 
-            var isAdditionalParams = true;
+            var hasAdditionalParams = true;
             if (additionalParameters is null)
             {
                 additionalParameters = ParameterTuple.NewQsTuple(ImmutableArray<ParameterTuple>.Empty);
-                isAdditionalParams = false;
+                hasAdditionalParams = false;
             }
             else if (additionalParameters is ParameterTuple.QsTuple tuple && tuple.Item.Length == 0)
             {
-                isAdditionalParams = false;
+                hasAdditionalParams = false;
             }
 
             var parameters = ParameterTuple.NewQsTuple(usedSymbols
@@ -257,7 +257,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     var.Position,
                     var.Range)))
                 .ToImmutableArray());
-            if (isAdditionalParams)
+            if (hasAdditionalParams)
             {
                 parameters = ConcatParams(parameters, additionalParameters);
             }
@@ -296,7 +296,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 new InferredExpressionInformation(false, false),
                 QsNullable<Range>.Null);
 
-            if (usedSymbols.Any() || isAdditionalParams)
+            if (usedSymbols.Any() || hasAdditionalParams)
             {
                 var argumentArray = usedSymbols
                     .Select(var => new TypedExpression(
@@ -352,7 +352,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             // their elements, but will just get one missing argument for the whole sub-tuple). For this
             // case the return type needs to be rewritten appropriately to a callable type for the partial
             // application.
-            if (isAdditionalParams)
+            if (hasAdditionalParams)
             {
                 var additionalParamsType = ExtractParamType(additionalParameters);
 
