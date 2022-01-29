@@ -236,20 +236,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         ? ContentLifting.LiftContent.LiftFunctionBody(this.SharedState.CurrentCallable!, generatedContent, lambdaParams, isReturnStatement, out var call, out var callable)
                         : ContentLifting.LiftContent.LiftOperationBody(this.SharedState.CurrentCallable!, generatedContent, lambdaParams, callableInfo, isReturnStatement, out call, out callable);
 
-                    if (success)
+                    if (!success)
                     {
-                        this.SharedState.GeneratedCallables!.Add(callable!);
-                        return call!;
+                        throw new ArgumentException("Lambda failed to be lifted.");
                     }
-                    else
-                    {
-                        return new TypedExpression(
-                            processedLambdaExpressionKind,
-                            ex.TypeArguments,
-                            ex.ResolvedType,
-                            ex.InferredInformation,
-                            ex.Range);
-                    }
+
+                    this.SharedState.GeneratedCallables!.Add(callable!);
+                    return call!;
                 }
             }
         }
