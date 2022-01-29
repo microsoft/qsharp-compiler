@@ -902,23 +902,12 @@ type QsExpression with
                 if var.InferredInformation.IsMutable then
                     Map.tryFind var.VariableName freeVars |> Option.iter (diagnoseMutable var.VariableName |> Seq.iter)
 
-            //let addBinding (name: string, range) type_ =
-            //    let var = LocalVariableDeclaration.New false ((Null, range), name, type_, true)
-            //    let _, diagnostics = symbols.TryAddVariableDeclartion var
-            //    None, diagnostics
-
-            // FIXME: THIS NEEDS TO BE REPLACED WITH CUSTOM LOGIC
-            //let inputType = inference.Fresh lambda.Param.RangeOrDefault
-            //let _, _, diagnostics = verifyBinding inference addBinding (lambda.Param, inputType) false
-            //Array.iter diagnose diagnostics
-
             let rec mapArgumentTuple = function
                 | QsTupleItem (decl : LocalVariableDeclaration<_, _>) ->
                     let var : LocalVariableDeclaration<QsLocalSymbol, ResolvedType> =
                         let resDecl = decl.WithPosition (inference.GetStatementPosition() |> Value)
                         resDecl.WithType (inference.Fresh decl.Range)
-                    let _, diagnostics = symbols.TryAddVariableDeclartion var
-                    Array.iter diagnose diagnostics
+                    symbols.TryAddVariableDeclartion var |> snd |> Array.iter diagnose
                     QsTupleItem var
                 | QsTuple tuple ->
                     tuple

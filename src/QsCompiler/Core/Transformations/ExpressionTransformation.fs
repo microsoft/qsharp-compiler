@@ -364,7 +364,8 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
                     match decl.VariableName with
                     | ValidName name -> this.Common.OnLocalNameDeclaration name |> ValidName
                     | InvalidName -> InvalidName
-                ((decl.WithName name).WithPosition Null).WithRange (range.ValueOr Range.Zero) |> QsTupleItem // fixme
+                let t = decl.Type |> this.Types.OnType
+                (((decl.WithType t).WithName name).WithPosition Null).WithRange (range.ValueOr Range.Zero) |> QsTupleItem // fixme
             
         let syms = onSymbol lambda.ArgumentTuple // TODO: SYMBOL RANGE FROM VAR DECL
         let body = this.Expressions.OnTypedExpression lambda.Body
