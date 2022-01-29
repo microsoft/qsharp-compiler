@@ -40,29 +40,30 @@ type ClassicalControlTests() =
         let typeArgs = @"(<\s*([^<]*[^<\s])\s*>)?" // Does not support nested type args
         let args = @"\(\s*(.*[^\s])?\s*\)"
         let regex = sprintf @"^\s*%s\s*%s\s*%s;$" call typeArgs args
-    
+
         let regexMatch = Regex.Match(input, regex)
-    
+
         if regexMatch.Success then
             (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
         else
             (false, "", "")
-    
+
     let identifyGeneratedByCalls generatedCallables calls =
         let mutable callables =
-            generatedCallables |> Seq.map (fun x -> x, x |> (TestUtils.getBodyFromCallable >> TestUtils.getLinesFromSpecialization))
-    
+            generatedCallables
+            |> Seq.map (fun x -> x, x |> (TestUtils.getBodyFromCallable >> TestUtils.getLinesFromSpecialization))
+
         let hasCall callable call =
             let (_, lines: string []) = callable
             call |> Seq.forall (fun (i, name) -> checkIfStringIsCall name lines.[i] |> (fun (x, _, _) -> x))
-    
+
         Assert.True(Seq.length callables = Seq.length calls) // This should be true if this method is called correctly
-    
+
         let mutable rtrn = Seq.empty
-    
+
         let removeAt i lst =
             Seq.append <| Seq.take i lst <| Seq.skip (i + 1) lst
-    
+
         for call in calls do
             callables
             |> Seq.tryFindIndex (fun callSig -> hasCall callSig call)
@@ -70,13 +71,13 @@ type ClassicalControlTests() =
                 Assert.True(x <> None, "Did not find expected generated content")
                 rtrn <- Seq.append rtrn [ Seq.item x.Value callables ]
                 callables <- removeAt x.Value callables)
-    
+
         rtrn |> Seq.map (fun (x, _) -> x)
 
     let checkIfSpecializationHasCalls specialization (calls: seq<int * QsQualifiedName>) =
         let lines = TestUtils.getLinesFromSpecialization specialization
         Seq.forall (fun (i, name) -> checkIfStringIsCall name lines.[i] |> (fun (x, _, _) -> x)) calls
-    
+
     let assertSpecializationHasCalls specialization calls =
         Assert.True(
             checkIfSpecializationHasCalls specialization calls,
@@ -624,8 +625,7 @@ type ClassicalControlTests() =
             let adjContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
             let ctlAdjContent = [ (2, SubOpCA3) ]
 
-            let orderedGens =
-                identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent; ctlAdjContent ]
+            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent; ctlAdjContent ]
 
             let bodyGen, ctlGen, adjGen, ctlAdjGen =
                 (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens), (Seq.item 3 orderedGens)
