@@ -39,7 +39,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             return ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>.Empty;
         }
 
-        private static ResolvedType ExractParamType(ParameterTuple parameters)
+        private static ResolvedType ExtractParamType(ParameterTuple parameters)
         {
             if (parameters is ParameterTuple.QsTupleItem item)
             {
@@ -53,11 +53,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 }
                 else if (tuple.Item.Length == 1)
                 {
-                    return ExractParamType(tuple.Item[0]);
+                    return ExtractParamType(tuple.Item[0]);
                 }
                 else
                 {
-                    return ResolvedType.New(ResolvedTypeKind.NewTupleType(tuple.Item.Select(ExractParamType).ToImmutableArray()));
+                    return ResolvedType.New(ResolvedTypeKind.NewTupleType(tuple.Item.Select(ExtractParamType).ToImmutableArray()));
                 }
             }
 
@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             ResolvedType returnType)
         {
             var newName = NameDecorator.PrependGuid(callingCallable.FullName);
-            var paramTypes = ExractParamType(parameters);
+            var paramTypes = ExtractParamType(parameters);
 
             // Update the scope to have Known Symbols equal to its parameter list
             var newContents = new QsScope(
@@ -354,7 +354,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             // application.
             if (isAdditionalParams)
             {
-                var additionalParamsType = ExractParamType(additionalParameters);
+                var additionalParamsType = ExtractParamType(additionalParameters);
 
                 // The return type is a callable that takes the additional parameters and returns the original return type.
                 returnType = ResolvedType.New(isFunction
