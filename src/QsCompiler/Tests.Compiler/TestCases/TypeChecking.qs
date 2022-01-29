@@ -851,6 +851,30 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return x -> [];
     }
 
+    function Lambda17() : Unit {
+        let op = () => 1;
+    }
+
+    function Lambda18() : Unit {
+        let op = () => (GenericUnitary(), 2);
+    }
+
+    function Lambda19() : Unit {
+        let op = x => x + 1;
+    }
+
+    function Lambda20() : Unit {
+        let op = q => GenericFunction(Unitary(q), Adjointable(q));
+    }
+
+    function Lambda21() : Unit {
+        let op = q => GenericFunction(Unitary(q), Controllable(q));
+    }
+
+    function Lambda22() : Unit {
+        let op = q => GenericFunction(Adjointable(q), Controllable(q));
+    }
+
     function LambdaInvalid1() : Qubit => Unit is Adj {
         return q => Operation(q);
     }
