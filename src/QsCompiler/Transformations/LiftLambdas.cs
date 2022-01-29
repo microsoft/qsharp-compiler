@@ -169,15 +169,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                             else if (paramType.Resolution is ResolvedTypeKind.TupleType tupType)
                             {
                                 var subSymbols = tup.Item;
-                                var subSybmolTypes = tupType.Item;
+                                var subSymbolTypes = tupType.Item;
 
-                                if (subSymbols.Length != subSybmolTypes.Length)
+                                if (subSymbols.Length != subSymbolTypes.Length)
                                 {
                                     throw new ArgumentException("Lambda parameter tuple type length mismatch.");
                                 }
 
                                 return ParameterTuple.NewQsTuple(subSymbols
-                                    .Select((symbol, i) => MatchNameWithType(subSybmolTypes[i], symbol))
+                                    .Select((symbol, i) => MatchNameWithType(subSymbolTypes[i], symbol))
                                     .ToImmutableArray());
                             }
                             else
