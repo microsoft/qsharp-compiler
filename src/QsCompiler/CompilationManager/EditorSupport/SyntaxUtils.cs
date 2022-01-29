@@ -188,7 +188,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
 
                 if (e.Expression is QsExpressionKind.Lambda lambda)
                 {
-                    return lambda.Item.ArgumentDeclarations
+                    var argumentDeclarations = SyntaxGenerator.ExtractItems(lambda.Item.ArgumentTuple);
+                    return argumentDeclarations
+                        .Select(decl => decl.VariableName is QsLocalSymbol.ValidName name
+                            ? decl.WithName(name.Item)
+                            : null)
+                        .Where(decl => decl != null)
+                        .Select(decl => decl!)
                         .Concat(DeclarationsInExpressionByPosition(lambda.Item.Body, position));
                 }
 

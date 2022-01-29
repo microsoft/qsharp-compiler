@@ -912,33 +912,26 @@ type QsExpression with
             //let _, _, diagnostics = verifyBinding inference addBinding (lambda.Param, inputType) false
             //Array.iter diagnose diagnostics
 
-            let argTypes = lambda.ArgumentDeclarations |> Seq.fold (fun (map : Map<_,_>) decl -> map.Add (decl.VariableName, inference.Fresh decl.Range)) Map.empty
-            let rec createInputType (argTuple : SymbolTuple) =
-                match argTuple with
-                | VariableName name -> argTypes.[name]
-                | VariableNameTuple tuple ->
+            let rec mapArgumentTuple = function
+                | QsTupleItem (decl : LocalVariableDeclaration<_, _>) ->
+                    let var : LocalVariableDeclaration<QsLocalSymbol, ResolvedType> =
+                        let resDecl = decl.WithPosition (inference.GetStatementPosition() |> Value)
+                        resDecl.WithType (inference.Fresh decl.Range)
+                    let _, diagnostics = symbols.TryAddVariableDeclartion var
+                    Array.iter diagnose diagnostics
+                    QsTupleItem var
+                | QsTuple tuple ->
                     tuple
-                    |> Seq.map createInputType
+                    |> Seq.map mapArgumentTuple
                     |> ImmutableArray.CreateRange
-                    |> TupleType
-                    |> ResolvedType.New // TODO WE COULD INFER THE RANGE INFORMATION HERE
-                | DiscardedItem // FIXME: REALLY? HOW WOULD WE PROPERLY HANDLE THIS?
-                | InvalidItem -> InvalidType |> ResolvedType.New
-            let inputType = createInputType lambda.Param
-
-            let addVariableDeclaration (decl : LocalVariableDeclaration<_,_>) =
-                LocalVariableDeclaration.New false ((inference.GetStatementPosition() |> Value, decl.Range), decl.VariableName, argTypes.[decl.VariableName], false)
-                // FIXME: ADD VAR DECLARATIONS TO SYMBOL TRACKER
-
-            let argDecl : ImmutableArray<LocalVariableDeclaration<string, ResolvedType>> =
-                lambda.ArgumentDeclarations
-                |> Seq.map addVariableDeclaration
-                |> ImmutableArray.CreateRange
+                    |> QsTuple
+            let argTuple = mapArgumentTuple lambda.ArgumentTuple
+            let inputType = (ArgumentTupleAsExpression argTuple).ResolvedType // TODO: this could be nicer...
 
             let lambda' =
                 verifyAndBuildWith
                     { context with IsInOperation = lambda.Kind = LambdaKind.Operation }
-                    (fun body' -> Lambda.create lambda.Kind lambda.Param body' argDecl |> Lambda)
+                    (fun body' -> Lambda.create lambda.Kind argTuple body' |> Lambda)
                     (fun body' -> inferLambda this.Range lambda.Kind inputType body', [])
                     lambda.Body
 

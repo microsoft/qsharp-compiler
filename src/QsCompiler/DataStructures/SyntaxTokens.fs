@@ -6,10 +6,16 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxTree
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 
+
 // marker interface used for types on which tuple matching can be done
 type ITuple =
     interface
     end
+
+/// used to represent the names of declared type parameters or the name of the declared argument items of a callable
+type QsLocalSymbol =
+    | ValidName of string
+    | InvalidName
 
 type SymbolTuple =
     /// indicates in invalid variable name
@@ -50,6 +56,42 @@ type LocalVariableDeclaration<'Name, 'Type> =
         Range: Range
     }
 
+    member this.WithName name =
+        {
+            VariableName = name
+            Type = this.Type
+            InferredInformation = this.InferredInformation
+            Position = this.Position
+            Range = this.Range
+        }
+
+    member this.WithType t =
+        {
+            VariableName = this.VariableName
+            Type = t
+            InferredInformation = this.InferredInformation
+            Position = this.Position
+            Range = this.Range
+        }
+
+    member this.WithPosition position =
+        {
+            VariableName = this.VariableName
+            Type = this.Type
+            InferredInformation = this.InferredInformation
+            Position = position
+            Range = this.Range
+        }
+
+    member this.WithRange range =
+        {
+            VariableName = this.VariableName
+            Type = this.Type
+            InferredInformation = this.InferredInformation
+            Position = this.Position
+            Range = range
+        }
+
 module LocalVariableDeclaration =
     let New isMutable ((pos, range), vName: 'Name, t, hasLocalQuantumDependency) =
         {
@@ -59,7 +101,7 @@ module LocalVariableDeclaration =
             Position = pos
             Range = range
         }
-    
+
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxTokens
 
@@ -180,6 +222,10 @@ type QsType =
 
 // Q# expressions
 
+type QsTuple<'Item> =
+    | QsTupleItem of 'Item
+    | QsTuple of ImmutableArray<QsTuple<'Item>>
+
 /// Represents whether a lambda is a function or operation.
 type LambdaKind =
     /// The lambda is a function.
@@ -192,53 +238,58 @@ type Lambda<'Expr, 'Type> =
     private
         {
             kind: LambdaKind
-            param: SymbolTuple // FIXME: ArgumentTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
+            argTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>>
             body: 'Expr
-            variableDeclarations: ImmutableArray<LocalVariableDeclaration<string, 'Type>>
         }
 
     /// Represents whether a lambda is a function or operation.
     member lambda.Kind = lambda.kind
 
     /// The symbol tuple for the lambda's parameter.
-    member lambda.Param = lambda.param // FIXME: CHANGE TO ARGTUPLE
+    member lambda.ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>>= lambda.argTuple
 
     /// The body of the lambda.
     member lambda.Body = lambda.body
 
-    member lambda.ArgumentDeclarations = lambda.variableDeclarations
-
 module Lambda =
     /// Creates a lambda expression.
     [<CompiledName "Create">]
-    let create kind param body varDecl =
+    let create kind argTuple body =
         {
             kind = kind
-            param = param
+            argTuple = argTuple
             body = body
-            variableDeclarations = varDecl
         }
 
     let createUnchecked kind (argTuple : QsSymbol) body =
-        let varDecl = ImmutableArray.CreateBuilder()
         let rec mapSymbol (sym : QsSymbol) =
             match sym.Symbol with
             | Symbol name ->
-                varDecl.Add {
-                    VariableName = name;
+                QsTupleItem {
+                    VariableName = ValidName name;
                     Type = { Type = MissingType; Range = Null };
                     InferredInformation = { IsMutable = false; HasLocalQuantumDependency = false }; // fixme was true before
                     Position = Null;
-                    Range = sym.Range.ValueOrApply (fun _ -> failwith "should never occur") // fixme: handling
+                    // FIXME: check what range is used for argument tuples when the argument is invalid??
+                    Range = sym.Range.ValueOr Range.Zero // (fun _ -> failwith "should never occur") // fixme: handling
                 }
-                VariableName name
-            | SymbolTuple syms -> syms |> Seq.map mapSymbol |> ImmutableArray.CreateRange |> VariableNameTuple // TODO: CHECK IF EMPTY TUPLES ARE FINE
+            | SymbolTuple syms -> syms |> Seq.map mapSymbol |> ImmutableArray.CreateRange |> QsTuple
             | QualifiedSymbol _ // FIXME: RELIES ON THERE HAVING BEEN A PROPER ERROR ALREADY...
             | OmittedSymbols
             | MissingSymbol // TODO: this could be considered valid
-            | InvalidSymbol -> InvalidItem
-        let param = mapSymbol argTuple
-        varDecl.ToImmutable() |> create kind param body
+            | InvalidSymbol ->
+                QsTupleItem {
+                    VariableName = InvalidName;
+                    Type = { Type = MissingType; Range = Null };
+                    InferredInformation = { IsMutable = false; HasLocalQuantumDependency = false }; // fixme was true before
+                    Position = Null;
+                    Range = sym.Range.ValueOr Range.Zero // (fun _ -> failwith "should never occur") // fixme: handling
+                }
+        let argTuple = // FIXME: PARSER... argument tuples by convention always are passes as QsTuple even if they contain no items or a single item
+            match mapSymbol argTuple with
+            | QsTuple _ as tuple -> tuple 
+            | QsTupleItem _ as item -> ImmutableArray.Create(item) |> QsTuple
+        create kind argTuple body
 
 type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | UnitValue
@@ -341,10 +392,6 @@ type QsSpecializationGenerator =
 
 
 // Q# fragments
-
-type QsTuple<'Item> =
-    | QsTupleItem of 'Item
-    | QsTuple of ImmutableArray<QsTuple<'Item>>
 
 type CallableSignature =
     {

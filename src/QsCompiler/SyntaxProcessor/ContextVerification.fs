@@ -4,6 +4,7 @@
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.Context
 
 open System
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
@@ -358,5 +359,9 @@ let rec internal freeVariables e =
     | StringLiteral (_, es)
     | ValueArray es -> es |> Seq.map freeVariables |> Seq.reduce merge
     | Lambda lambda ->
-        let bindings = lambda.ArgumentDeclarations |> Seq.map (fun decl -> decl.VariableName) |> Set
+        let validVariable (decl: SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol, _>) =
+            match decl.VariableName with
+            | SyntaxTree.QsLocalSymbol.ValidName name -> Some name
+            | SyntaxTree.QsLocalSymbol.InvalidName -> None
+        let bindings = lambda.ArgumentTuple.Items |> Seq.choose validVariable |> Set
         freeVariables lambda.Body |> Map.filter (fun name _ -> Set.contains name bindings |> not)

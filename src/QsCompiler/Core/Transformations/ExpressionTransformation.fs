@@ -355,23 +355,22 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
     abstract OnLambda : lambda: Lambda<TypedExpression, ResolvedType> -> ExpressionKind
 
     default this.OnLambda lambda =
-        let rec onSymbol (s: SymbolTuple) : SymbolTuple = s // FIXME: REPLACE WITH ONSYMBOLTUPLE
-            //let range = s.Range
-            //
-            //let symbol =
-            //    match s.Symbol with
-            //    | SymbolTuple ss -> Seq.map onSymbol ss |> ImmutableArray.CreateRange |> SymbolTuple
-            //    | Symbol name -> this.Common.OnLocalNameDeclaration name |> Symbol
-            //    | _ -> s.Symbol
-            //
-            //{ Symbol = symbol; Range = range }
+        let rec onSymbol (s : QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>) = // FIXME: REPLACE WITH onArgumenttuple
+            match s with
+            | QsTuple tuple -> tuple |> Seq.map onSymbol |> ImmutableArray.CreateRange |> QsTuple
+            | QsTupleItem decl ->
+                let range = Value decl.Range |> this.Common.OnExpressionRange // fixme
+                let name =
+                    match decl.VariableName with
+                    | ValidName name -> this.Common.OnLocalNameDeclaration name |> ValidName
+                    | InvalidName -> InvalidName
+                ((decl.WithName name).WithPosition Null).WithRange (range.ValueOr Range.Zero) |> QsTupleItem // fixme
             
-        let syms = onSymbol lambda.Param
+        let syms = onSymbol lambda.ArgumentTuple // TODO: SYMBOL RANGE FROM VAR DECL
         let body = this.Expressions.OnTypedExpression lambda.Body
-        let varDecl = lambda.ArgumentDeclarations // TODO: SYMBOL RANGE FROM VAR DECL
 
-        Lambda.create lambda.Kind syms body >> Lambda
-        |> Node.BuildOr InvalidExpr varDecl
+        Lambda.create lambda.Kind syms >> Lambda
+        |> Node.BuildOr InvalidExpr body
 
     // leaf nodes
 

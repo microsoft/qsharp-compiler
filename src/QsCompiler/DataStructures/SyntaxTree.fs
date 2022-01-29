@@ -877,12 +877,6 @@ type Source with
         }
 
 
-/// used to represent the names of declared type parameters or the name of the declared argument items of a callable
-type QsLocalSymbol =
-    | ValidName of string
-    | InvalidName
-
-
 /// used to represent an attribute attached to a type, callable, or specialization declaration.
 type QsDeclarationAttribute =
     {
