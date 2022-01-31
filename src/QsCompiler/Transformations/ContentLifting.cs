@@ -16,341 +16,429 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
     /// <summary>
-    /// Static class to accumulate all type parameter independent subclasses used by <see cref="LiftContent{T}"/>.
+    /// Static class to for holding the LiftOperationBody and the LiftFunctionBody static functions.
     /// </summary>
-    public static class LiftContent
+    internal static class LiftContent
     {
-        internal class CallableDetails
+        private static IEnumerable<LocalVariableDeclaration<QsLocalSymbol>> FlattenParamTuple(ParameterTuple parameters)
         {
-            internal QsCallable Callable { get; }
-
-            internal QsSpecialization? Adjoint { get; }
-
-            internal QsSpecialization? Controlled { get; }
-
-            internal QsSpecialization? ControlledAdjoint { get; }
-
-            internal QsNullable<ImmutableArray<ResolvedType>> TypeParameters { get; }
-
-            internal CallableDetails(QsCallable callable)
+            if (parameters is ParameterTuple.QsTupleItem item)
             {
-                this.Callable = callable;
-
-                // ToDo: this may need to be adapted once we support type specializations
-                this.Adjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
-                this.Controlled = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
-                this.ControlledAdjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
-
-                // ToDo: this may need to be per-specialization
-                this.TypeParameters = callable.Signature.TypeParameters.Any(param => param.IsValidName)
-                ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
-                    .Where(param => param.IsValidName)
-                    .Select(param =>
-                        ResolvedType.New(ResolvedTypeKind.NewTypeParameter(new QsTypeParameter(
-                            callable.FullName,
-                            ((QsLocalSymbol.ValidName)param).Item,
-                            QsNullable<Range>.Null))))
-                    .ToImmutableArray())
-                : QsNullable<ImmutableArray<ResolvedType>>.Null;
+                return new[] { item.Item };
             }
+            else if (parameters is ParameterTuple.QsTuple tuple)
+            {
+                return tuple.Item.SelectMany(FlattenParamTuple);
+            }
+
+            return ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>.Empty;
         }
 
-        public class TransformationState
+        private static ResolvedType ExtractParamType(ParameterTuple parameters)
         {
-            internal CallableDetails? CurrentCallable { get; set; } = null;
+            if (parameters is ParameterTuple.QsTupleItem item)
+            {
+                return ResolvedType.New(item.Item.Type.Resolution);
+            }
+            else if (parameters is ParameterTuple.QsTuple tuple)
+            {
+                if (tuple.Item.Length == 0)
+                {
+                    return ResolvedType.New(ResolvedTypeKind.UnitType);
+                }
+                else if (tuple.Item.Length == 1)
+                {
+                    return ExtractParamType(tuple.Item[0]);
+                }
+                else
+                {
+                    return ResolvedType.New(ResolvedTypeKind.NewTupleType(tuple.Item.Select(ExtractParamType).ToImmutableArray()));
+                }
+            }
 
-            protected internal bool InBody { get; set; } = false;
+            return ResolvedType.New(ResolvedTypeKind.UnitType);
+        }
 
-            protected internal bool InAdjoint { get; set; } = false;
+        private static ParameterTuple ConcatParams(ParameterTuple first, ParameterTuple second)
+        {
+            var firstItems =
+                first is ParameterTuple.QsTuple firstTup
+                ? firstTup.Item
+                : new[] { first }.ToImmutableArray();
 
-            protected internal bool InControlled { get; set; } = false;
+            var secondItems =
+                second is ParameterTuple.QsTuple secondTup
+                ? secondTup.Item
+                : new[] { second }.ToImmutableArray();
 
-            protected internal bool InControlledAdjoint { get; set; } = false;
+            return ParameterTuple.NewQsTuple(firstItems.Concat(secondItems).ToImmutableArray());
+        }
 
-            protected internal bool InWithinBlock { get; set; } = false;
-
-            private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
-                CallableDetails callable,
+        private static (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
+                QsCallable callingCallable,
                 QsQualifiedName callableName,
                 ResolvedType paramsType,
                 SpecializationImplementation bodyImplementation,
+                CallableInformation callableInformation,
+                bool isFunction,
                 ResolvedType returnType)
-            {
-                QsSpecialization MakeSpec(QsSpecializationKind kind, ResolvedSignature signature, SpecializationImplementation impl) =>
-                    new QsSpecialization(
-                        kind,
-                        callableName,
-                        ImmutableArray<QsDeclarationAttribute>.Empty,
-                        callable.Callable.Source,
-                        QsNullable<QsLocation>.Null,
-                        QsNullable<ImmutableArray<ResolvedType>>.Null,
-                        signature,
-                        impl,
-                        ImmutableArray<string>.Empty,
-                        QsComments.Empty);
-
-                // If we are making the body of a function, we can skip the rest of this function.
-                if (callable.Callable.Kind.IsFunction)
-                {
-                    var funcSig = new ResolvedSignature(
-                        callable.Callable.Signature.TypeParameters,
-                        paramsType,
-                        returnType,
-                        new CallableInformation(ResolvedCharacteristics.Empty, new InferredCallableInformation(false, false)));
-
-                    var funcSpecializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, funcSig, bodyImplementation) };
-
-                    return (funcSig, funcSpecializations);
-                }
-
-                var adj = callable.Adjoint;
-                var ctl = callable.Controlled;
-                var ctlAdj = callable.ControlledAdjoint;
-
-                bool addAdjoint = false;
-                bool addControlled = false;
-                bool isSelfAdjoint = false;
-
-                if (this.InWithinBlock)
-                {
-                    addAdjoint = true;
-                    addControlled = false;
-                }
-                else if (this.InBody)
-                {
-                    if (adj != null && adj.Implementation is SpecializationImplementation.Generated adjGen)
-                    {
-                        addAdjoint = adjGen.Item.IsInvert;
-                        isSelfAdjoint = adjGen.Item.IsSelfInverse;
-                    }
-
-                    if (ctl != null && ctl.Implementation is SpecializationImplementation.Generated ctlGen)
-                    {
-                        addControlled = ctlGen.Item.IsDistribute;
-                    }
-
-                    if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated ctlAdjGen)
-                    {
-                        addAdjoint = addAdjoint || (ctlAdjGen.Item.IsInvert && (ctl?.Implementation.IsGenerated ?? true));
-                        addControlled = addControlled || (ctlAdjGen.Item.IsDistribute && (adj?.Implementation.IsGenerated ?? true));
-                        isSelfAdjoint = isSelfAdjoint || ctlAdjGen.Item.IsSelfInverse;
-                    }
-                }
-                else if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated gen)
-                {
-                    addControlled = this.InAdjoint && gen.Item.IsDistribute;
-                    addAdjoint = this.InControlled && gen.Item.IsInvert;
-                    isSelfAdjoint = gen.Item.IsSelfInverse;
-                }
-
-                var props = new List<OpProperty>();
-                if (addAdjoint)
-                {
-                    props.Add(OpProperty.Adjointable);
-                }
-
-                if (addControlled)
-                {
-                    props.Add(OpProperty.Controllable);
-                }
-
-                var newSig = new ResolvedSignature(
-                    callable.Callable.Signature.TypeParameters,
-                    paramsType,
-                    returnType,
-                    new CallableInformation(ResolvedCharacteristics.FromProperties(props), new InferredCallableInformation(isSelfAdjoint, false)));
-
-                var controlledSig = new ResolvedSignature(
-                    newSig.TypeParameters,
-                    ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
-                        ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
-                        newSig.ArgumentType))),
-                    newSig.ReturnType,
-                    newSig.Information);
-
-                var specializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, newSig, bodyImplementation) };
-
-                if (addAdjoint)
-                {
-                    specializations.Add(MakeSpec(
-                        QsSpecializationKind.QsAdjoint,
-                        newSig,
-                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Invert)));
-                }
-
-                if (addControlled)
-                {
-                    specializations.Add(MakeSpec(
-                        QsSpecializationKind.QsControlled,
-                        controlledSig,
-                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
-                }
-
-                if (addAdjoint && addControlled)
-                {
-                    specializations.Add(MakeSpec(
-                        QsSpecializationKind.QsControlledAdjoint,
-                        controlledSig,
-                        SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
-                }
-
-                return (newSig, specializations);
-            }
-
-            private (QsCallable, ResolvedType) GenerateCallable(
-                CallableDetails callable,
-                QsScope contents,
-                ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
-                ResolvedType returnType)
-            {
-                var newName = NameDecorator.PrependGuid(callable.Callable.FullName);
-
-                var parameters = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTuple(usedSymbols
-                    .Select(var => QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
-                        QsLocalSymbol.NewValidName(var.VariableName),
-                        var.Type,
-                        new InferredExpressionInformation(false, false),
-                        var.Position,
-                        var.Range)))
-                    .ToImmutableArray());
-
-                var paramTypes = ResolvedType.New(ResolvedTypeKind.UnitType);
-                if (usedSymbols.Length == 1)
-                {
-                    paramTypes = usedSymbols.First().Type;
-                }
-                else if (usedSymbols.Length > 1)
-                {
-                    paramTypes = ResolvedType.New(ResolvedTypeKind.NewTupleType(usedSymbols
-                        .Select(var => var.Type)
-                        .ToImmutableArray()));
-                }
-
-                var (signature, specializations) = this.MakeSpecializations(callable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, contents), returnType);
-
-                var generatedCallable = new QsCallable(
-                    callable.Callable.Kind.IsFunction
-                        ? QsCallableKind.Function
-                        : QsCallableKind.Operation,
-                    newName,
+        {
+            QsSpecialization MakeSpec(QsSpecializationKind kind, ResolvedSignature signature, SpecializationImplementation impl) =>
+                new QsSpecialization(
+                    kind,
+                    callableName,
                     ImmutableArray<QsDeclarationAttribute>.Empty,
-                    Access.Internal,
-                    callable.Callable.Source,
+                    callingCallable.Source,
                     QsNullable<QsLocation>.Null,
+                    QsNullable<ImmutableArray<ResolvedType>>.Null,
                     signature,
-                    parameters,
-                    specializations.ToImmutableArray(),
+                    impl,
                     ImmutableArray<string>.Empty,
                     QsComments.Empty);
 
-                // Change the origin of all type parameter references to use the new name and make all variables immutable
-                generatedCallable = UpdateGeneratedCallable.Apply(generatedCallable, usedSymbols, callable.Callable.FullName, newName);
+            // If we are making the body of a function, we can skip the rest of this function.
+            if (isFunction)
+            {
+                var funcSig = new ResolvedSignature(
+                    callingCallable.Signature.TypeParameters,
+                    paramsType,
+                    returnType,
+                    CallableInformation.NoInformation);
 
-                // We want to use the non-updated signature here for the types so that they refer to
-                // the original callable's type parameters. We do this because that is what they will
-                // need to be for the call expression.
-                var generatedCallableCallType = ResolvedType.New(callable.Callable.Kind.IsFunction
-                    ? ResolvedTypeKind.NewFunction(signature.ArgumentType, signature.ReturnType)
-                    : ResolvedTypeKind.NewOperation(
-                        Tuple.Create(
-                            signature.ArgumentType,
-                            signature.ReturnType),
-                        generatedCallable.Signature.Information));
+                var funcSpecializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, funcSig, bodyImplementation) };
 
-                return (generatedCallable, generatedCallableCallType);
+                return (funcSig, funcSpecializations);
             }
 
-            /// <summary>
-            /// Generates a new callable with the body's contents. All the known variables at the
-            /// start of the block that get used in the body will become parameters to the new
-            /// callable, and the callable will have all the valid type parameters of the calling
-            /// context as type parameters.
-            /// If the body is valid to be lifted, 'true' is returned, and a call expression to
-            /// the new callable is returned as an out-parameter with all the type parameters and
-            /// used variables being forwarded to the new callable as arguments. The generated
-            /// callable is also returned as an out-parameter.
-            /// If the body is not valid to be lifted, 'false' is returned and the out-parameters are null.
-            /// </summary>
-            public bool LiftBody(
+            var newSig = new ResolvedSignature(
+                callingCallable.Signature.TypeParameters,
+                paramsType,
+                returnType,
+                callableInformation);
+
+            var controlledSig = new ResolvedSignature(
+                newSig.TypeParameters,
+                ResolvedType.New(ResolvedTypeKind.NewTupleType(ImmutableArray.Create(
+                    ResolvedType.New(ResolvedTypeKind.NewArrayType(ResolvedType.New(ResolvedTypeKind.Qubit))),
+                    newSig.ArgumentType))),
+                newSig.ReturnType,
+                newSig.Information);
+
+            var specializations = new List<QsSpecialization>() { MakeSpec(QsSpecializationKind.QsBody, newSig, bodyImplementation) };
+
+            var addAdjoint = false;
+            var addControlled = false;
+            if (callableInformation.Characteristics.SupportedFunctors.IsValue)
+            {
+                addAdjoint = callableInformation.Characteristics.SupportedFunctors.Item.Contains(QsFunctor.Adjoint);
+                addControlled = callableInformation.Characteristics.SupportedFunctors.Item.Contains(QsFunctor.Controlled);
+            }
+
+            if (addAdjoint)
+            {
+                specializations.Add(MakeSpec(
+                    QsSpecializationKind.QsAdjoint,
+                    newSig,
+                    SpecializationImplementation.NewGenerated(QsGeneratorDirective.Invert)));
+            }
+
+            if (addControlled)
+            {
+                specializations.Add(MakeSpec(
+                    QsSpecializationKind.QsControlled,
+                    controlledSig,
+                    SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
+            }
+
+            if (addAdjoint && addControlled)
+            {
+                specializations.Add(MakeSpec(
+                    QsSpecializationKind.QsControlledAdjoint,
+                    controlledSig,
+                    SpecializationImplementation.NewGenerated(QsGeneratorDirective.Distribute)));
+            }
+
+            return (newSig, specializations);
+        }
+
+        private static (QsCallable, ResolvedType) GenerateCallable(
+            QsCallable callingCallable,
+            QsScope contents,
+            ParameterTuple parameters,
+            CallableInformation callableInformation,
+            bool isFunction,
+            ResolvedType returnType)
+        {
+            var newName = NameDecorator.PrependGuid(callingCallable.FullName);
+            var paramTypes = ExtractParamType(parameters);
+
+            // Update the scope to have Known Symbols equal to its parameter list
+            var newContents = new QsScope(
+                contents.Statements,
+                new LocalDeclarations(FlattenParamTuple(parameters)
+                    .Select(decl => new LocalVariableDeclaration<string>(
+                        ((QsLocalSymbol.ValidName)decl.VariableName).Item,
+                        decl.Type,
+                        decl.InferredInformation,
+                        decl.Position,
+                        decl.Range))
+                    .ToImmutableArray()));
+
+            var (signature, specializations) = MakeSpecializations(callingCallable, newName, paramTypes, SpecializationImplementation.NewProvided(parameters, newContents), callableInformation, isFunction, returnType);
+
+            var generatedCallable = new QsCallable(
+                isFunction
+                    ? QsCallableKind.Function
+                    : QsCallableKind.Operation,
+                newName,
+                ImmutableArray<QsDeclarationAttribute>.Empty,
+                Access.Internal,
+                callingCallable.Source,
+                QsNullable<QsLocation>.Null,
+                signature,
+                parameters,
+                specializations.ToImmutableArray(),
+                ImmutableArray<string>.Empty,
+                QsComments.Empty);
+
+            // Change the origin of all type parameter references to use the new name and make all variables immutable
+            generatedCallable = UpdateGeneratedCallable.Apply(generatedCallable, parameters, callingCallable.FullName, newName);
+
+            // We want to use the non-updated param and return types here so that they refer to
+            // the original callable's type parameters. We do this because that is what they will
+            // need to be for the call expression.
+            var generatedCallableCallType = ResolvedType.New(isFunction
+                ? ResolvedTypeKind.NewFunction(paramTypes, returnType)
+                : ResolvedTypeKind.NewOperation(
+                    Tuple.Create(paramTypes, returnType),
+                    generatedCallable.Signature.Information));
+
+            return (generatedCallable, generatedCallableCallType);
+        }
+
+        private static bool LiftBody(
+                QsCallable callingCallable,
                 QsScope body,
+                ParameterTuple? additionalParameters,
+                CallableInformation callableInformation,
+                bool isFunction,
                 bool isReturnAllowed,
                 [NotNullWhen(true)] out TypedExpression? callExpression,
                 [NotNullWhen(true)] out QsCallable? callable)
+        {
+            if (!LiftValidationWalker.Apply(body, isReturnAllowed, out var usedSymbols, out var returnType))
             {
-                if (this.CurrentCallable is null || !LiftValidationWalker.Apply(body, isReturnAllowed, out var usedSymbols, out var returnType))
+                callable = null;
+                callExpression = null;
+                return false;
+            }
+
+            var hasAdditionalParams = true;
+            if (additionalParameters is null)
+            {
+                additionalParameters = ParameterTuple.NewQsTuple(ImmutableArray<ParameterTuple>.Empty);
+                hasAdditionalParams = false;
+            }
+            else if (additionalParameters is ParameterTuple.QsTuple tuple && tuple.Item.Length == 0)
+            {
+                hasAdditionalParams = false;
+            }
+
+            var parameters = ParameterTuple.NewQsTuple(usedSymbols
+                .Select(var => ParameterTuple.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
+                    QsLocalSymbol.NewValidName(var.VariableName),
+                    var.Type,
+                    new InferredExpressionInformation(false, false),
+                    var.Position,
+                    var.Range)))
+                .ToImmutableArray());
+            if (hasAdditionalParams)
+            {
+                parameters = ConcatParams(parameters, additionalParameters);
+            }
+
+            var (generatedCallable, generatedCallableCallType) = GenerateCallable(callingCallable, body, parameters, callableInformation, isFunction, returnType);
+
+            // Forward the type parameters of the parent callable to the type arguments of the call to the generated callable.
+            // Future: this may need to be per-specialization when type-specific specializations are implemented
+            var typeArguments = callingCallable.Signature.TypeParameters.Any(param => param.IsValidName)
+            ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callingCallable.Signature.TypeParameters
+                .Where(param => param.IsValidName)
+                .Select(param =>
+                    ResolvedType.New(ResolvedTypeKind.NewTypeParameter(QsTypeParameter.New(
+                        callingCallable.FullName,
+                        ((QsLocalSymbol.ValidName)param).Item))))
+                .ToImmutableArray())
+            : QsNullable<ImmutableArray<ResolvedType>>.Null;
+
+            var generatedCallableId = new TypedExpression(
+                ExpressionKind.NewIdentifier(
+                    Identifier.NewGlobalCallable(generatedCallable.FullName),
+                    typeArguments),
+                typeArguments.IsNull
+                    ? TypeArgsResolution.Empty
+                    : typeArguments.Item
+                        .Select(type => Tuple.Create(generatedCallable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
+                        .ToImmutableArray(),
+                generatedCallableCallType,
+                new InferredExpressionInformation(false, false),
+                QsNullable<Range>.Null);
+
+            TypedExpression arguments = new TypedExpression(
+                ExpressionKind.UnitValue,
+                TypeArgsResolution.Empty,
+                ResolvedType.New(ResolvedTypeKind.UnitType),
+                new InferredExpressionInformation(false, false),
+                QsNullable<Range>.Null);
+
+            if (usedSymbols.Any() || hasAdditionalParams)
+            {
+                var argumentArray = usedSymbols
+                    .Select(var => new TypedExpression(
+                        ExpressionKind.NewIdentifier(
+                            Identifier.NewLocalVariable(var.VariableName),
+                            QsNullable<ImmutableArray<ResolvedType>>.Null),
+                        TypeArgsResolution.Empty,
+                        var.Type,
+                        var.InferredInformation,
+                        QsNullable<Range>.Null))
+                    .ToImmutableArray();
+
+                if (additionalParameters.IsQsTupleItem)
                 {
-                    callable = null;
-                    callExpression = null;
-                    return false;
+                    argumentArray = argumentArray.Add(new TypedExpression(
+                        ExpressionKind.MissingExpr,
+                        TypeArgsResolution.Empty,
+                        ResolvedType.New(ResolvedTypeKind.MissingType),
+                        new InferredExpressionInformation(false, false),
+                        QsNullable<Range>.Null));
+                }
+                else if (additionalParameters is ParameterTuple.QsTuple tup)
+                {
+                    argumentArray = argumentArray
+                        .Concat(tup.Item
+                            .Select(_ => new TypedExpression(
+                                ExpressionKind.MissingExpr,
+                                TypeArgsResolution.Empty,
+                                ResolvedType.New(ResolvedTypeKind.MissingType),
+                                new InferredExpressionInformation(false, false),
+                                QsNullable<Range>.Null)))
+                        .ToImmutableArray();
                 }
 
-                var (generatedCallable, generatedCallableCallType) = this.GenerateCallable(this.CurrentCallable, body, usedSymbols, returnType);
-
-                // Forward the type parameters of the parent callable to the type arguments of the call to the generated callable.
-                var typeArguments = this.CurrentCallable.TypeParameters;
-                var generatedCallableId = new TypedExpression(
-                    ExpressionKind.NewIdentifier(
-                        Identifier.NewGlobalCallable(generatedCallable.FullName),
-                        typeArguments),
-                    typeArguments.IsNull
-                        ? TypeArgsResolution.Empty
-                        : typeArguments.Item
-                            .Select(type => Tuple.Create(generatedCallable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
-                            .ToImmutableArray(),
-                    generatedCallableCallType,
-                    new InferredExpressionInformation(false, false),
-                    QsNullable<Range>.Null);
-
-                TypedExpression? arguments = null;
-                if (usedSymbols.Any())
+                if (argumentArray.Length == 1)
                 {
-                    var argumentArray = usedSymbols
-                        .Select(var => new TypedExpression(
-                            ExpressionKind.NewIdentifier(
-                                Identifier.NewLocalVariable(var.VariableName),
-                                QsNullable<ImmutableArray<ResolvedType>>.Null),
-                            TypeArgsResolution.Empty,
-                            var.Type,
-                            var.InferredInformation,
-                            QsNullable<Range>.Null))
-                        .ToImmutableArray();
-
-                    arguments = new TypedExpression(
-                        ExpressionKind.NewValueTuple(argumentArray),
-                        TypeArgsResolution.Empty,
-                        ResolvedType.New(ResolvedTypeKind.NewTupleType(argumentArray.Select(expr => expr.ResolvedType).ToImmutableArray())),
-                        new InferredExpressionInformation(false, argumentArray.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
-                        QsNullable<Range>.Null);
+                    arguments = argumentArray.First();
                 }
                 else
                 {
                     arguments = new TypedExpression(
-                        ExpressionKind.UnitValue,
+                        ExpressionKind.NewValueTuple(argumentArray),
                         TypeArgsResolution.Empty,
-                        ResolvedType.New(ResolvedTypeKind.UnitType),
-                        new InferredExpressionInformation(false, false),
+                        ResolvedType.New(ResolvedTypeKind.NewTupleType(argumentArray.Select(expr => expr.ResolvedType).ToImmutableArray())),
+                        new InferredExpressionInformation(false, usedSymbols.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
                         QsNullable<Range>.Null);
                 }
-
-                // set output parameters
-                callable = generatedCallable;
-                callExpression = new TypedExpression(
-                    ExpressionKind.NewCallLikeExpression(generatedCallableId, arguments),
-                    typeArguments.IsNull
-                        ? TypeArgsResolution.Empty
-                        : typeArguments.Item
-                            .Select(type => Tuple.Create(generatedCallable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
-                            .ToImmutableArray(),
-                    returnType,
-                    new InferredExpressionInformation(false, true),
-                    QsNullable<Range>.Null);
-
-                return true;
             }
+
+            // If there are additional parameters, the call expression will be a partial application with
+            // missing arguments for each of the top-level additional parameters ('top-level' meaning that
+            // sub-tuples in the parameters will not be broken into individual missing arguments for each of
+            // their elements, but will just get one missing argument for the whole sub-tuple). For this
+            // case the return type needs to be rewritten appropriately to a callable type for the partial
+            // application.
+            if (hasAdditionalParams)
+            {
+                var additionalParamsType = ExtractParamType(additionalParameters);
+
+                // The return type is a callable that takes the additional parameters and returns the original return type.
+                returnType = ResolvedType.New(isFunction
+                    ? ResolvedTypeKind.NewFunction(additionalParamsType, returnType)
+                    : ResolvedTypeKind.NewOperation(
+                        Tuple.Create(additionalParamsType, returnType),
+                        generatedCallable.Signature.Information));
+            }
+
+            // set output parameters
+            callable = generatedCallable;
+            callExpression = new TypedExpression(
+                ExpressionKind.NewCallLikeExpression(generatedCallableId, arguments),
+                typeArguments.IsNull
+                    ? TypeArgsResolution.Empty
+                    : typeArguments.Item
+                        .Select(type => Tuple.Create(generatedCallable.FullName, ((ResolvedTypeKind.TypeParameter)type.Resolution).Item.TypeName, type))
+                        .ToImmutableArray(),
+                returnType,
+                new InferredExpressionInformation(false, usedSymbols.Any(exp => exp.InferredInformation.HasLocalQuantumDependency)),
+                QsNullable<Range>.Null);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Generates a new operation with the body's contents. All the known variables at the
+        /// start of the block that get used in the body will become parameters to the new
+        /// operation, and the operation will have all the valid type parameters of the calling
+        /// context as type parameters. Any additional parameters specified will be at the end
+        /// of the parameter list and will have their tuple structuring preserved. Additional
+        /// parameters will be part of the generated operation's parameters even if they are
+        /// not used in the body's contents. If return values are allowed, the generated
+        /// operation will have a return type determined on return statements found
+        /// in the body's contents. Otherwise the operation will return the unit type value
+        /// and return statements will be considered invalid.
+        /// If the body is valid to be lifted, 'true' is returned, and a call expression to
+        /// the new operation is returned as an out-parameter with all the type parameters and
+        /// used variables being forwarded to the new operation as arguments. Any additional
+        /// parameters specified for the operation will be represented in the argument list
+        /// as missing parameters for the call expression. The generated operation is also
+        /// returned as an out-parameter.
+        /// If the body is not valid to be lifted, 'false' is returned and the out-parameters are null.
+        /// </summary>
+        public static bool LiftOperationBody(
+                QsCallable callingCallable,
+                QsScope body,
+                ParameterTuple? additionalParameters,
+                CallableInformation callableInformation,
+                bool isReturnAllowed,
+                [NotNullWhen(true)] out TypedExpression? callExpression,
+                [NotNullWhen(true)] out QsCallable? callable)
+        {
+            return LiftBody(callingCallable, body, additionalParameters, callableInformation, false, isReturnAllowed, out callExpression, out callable);
+        }
+
+        /// <summary>
+        /// Generates a new function with the body's contents. All the known variables at the
+        /// start of the block that get used in the body will become parameters to the new
+        /// function, and the function will have all the valid type parameters of the calling
+        /// context as type parameters. Any additional parameters specified will be at the end
+        /// of the parameter list and will have their tuple structuring preserved. Additional
+        /// parameters will be part of the generated function's parameters even if they are
+        /// not used in the body's contents. If return values are allowed, the generated
+        /// function will have a return type determined on return statements found
+        /// in the body's contents. Otherwise the function will return the unit type value
+        /// and return statements will be considered invalid.
+        /// If the body is valid to be lifted, 'true' is returned, and a call expression to
+        /// the new function is returned as an out-parameter with all the type parameters and
+        /// used variables being forwarded to the new function as arguments. Any additional
+        /// parameters specified for the function will be represented in the argument list
+        /// as missing parameters for the call expression. The generated function is also
+        /// returned as an out-parameter.
+        /// If the body is not valid to be lifted, 'false' is returned and the out-parameters are null.
+        /// </summary>
+        public static bool LiftFunctionBody(
+                QsCallable callingCallable,
+                QsScope body,
+                ParameterTuple? additionalParameters,
+                bool isReturnAllowed,
+                [NotNullWhen(true)] out TypedExpression? callExpression,
+                [NotNullWhen(true)] out QsCallable? callable)
+        {
+            return LiftBody(callingCallable, body, additionalParameters, CallableInformation.NoInformation, true, isReturnAllowed, out callExpression, out callable);
         }
 
         /// <summary>
@@ -360,7 +448,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         /// </summary>
         private class UpdateGeneratedCallable : SyntaxTreeTransformation<UpdateGeneratedCallable.TransformationState>
         {
-            public static QsCallable Apply(QsCallable qsCallable, ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            public static QsCallable Apply(QsCallable qsCallable, ParameterTuple parameters, QsQualifiedName oldName, QsQualifiedName newName)
             {
                 var filter = new UpdateGeneratedCallable(parameters, oldName, newName);
 
@@ -371,21 +459,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             {
                 public bool IsRecursiveIdentifier { get; set; } = false;
 
-                public ImmutableArray<LocalVariableDeclaration<string>> Parameters { get; }
+                public ImmutableHashSet<string> ParameterNames { get; }
 
                 public QsQualifiedName OldName { get; }
 
                 public QsQualifiedName NewName { get; }
 
-                public TransformationState(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+                public TransformationState(ParameterTuple parameters, QsQualifiedName oldName, QsQualifiedName newName)
                 {
-                    this.Parameters = parameters;
+                    this.ParameterNames = FlattenParamTuple(parameters)
+                        .Where(x => x.VariableName.IsValidName)
+                        .Select(x => ((QsLocalSymbol.ValidName)x.VariableName).Item)
+                        .ToImmutableHashSet();
                     this.OldName = oldName;
                     this.NewName = newName;
                 }
             }
 
-            private UpdateGeneratedCallable(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
+            private UpdateGeneratedCallable(ParameterTuple parameters, QsQualifiedName oldName, QsQualifiedName newName)
             : base(new TransformationState(parameters, oldName, newName))
             {
                 this.Expressions = new ExpressionTransformation(this);
@@ -412,7 +503,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     if ((ex.InferredInformation.IsMutable || ex.InferredInformation.HasLocalQuantumDependency)
                         && ex.Expression is ExpressionKind.Identifier id
                         && id.Item1 is Identifier.LocalVariable variable
-                        && this.SharedState.Parameters.Any(x => x.VariableName.Equals(variable)))
+                        && this.SharedState.ParameterNames.Contains(variable.Item))
                     {
                         // Set the mutability to false
                         ex = new TypedExpression(
@@ -618,7 +709,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                             this.SharedState.IsValidScope = false;
                         }
 
-                        return type1;
+                        return ResolvedType.New(type1.Resolution);
                     }
                 }
 
@@ -631,11 +722,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     }
                     else
                     {
-                        // ToDo: Currently this is unused functionality as IsReturnAllowed is in-practice always false.
-                        // This functionality will be used in the implementation of lambda elimination.
                         if (this.SharedState.ReturnType == null)
                         {
-                            this.SharedState.ReturnType = ex.ResolvedType;
+                            this.SharedState.ReturnType = ResolvedType.New(ex.ResolvedType.Resolution);
                         }
                         else
                         {
@@ -689,22 +778,184 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     }
 
     /// <summary>
-    /// This transformation handles the task of lifting the contents of code blocks into generated operations.
-    /// The transformation provides validation to see if any given block can safely be lifted into its own operation.
-    /// Validation requirements are that there are no return statements and that there are no set statements
-    /// on mutables declared outside the block. Setting mutables declared inside the block is valid.
-    /// A block can be checked by setting the SharedState.IsValidScope to true before traversing the scope,
-    /// then checking the SharedState.IsValidScope after traversal. Blocks should be validated before calling
-    /// the SharedState.LiftBody function, which will generate a new operation with the block's contents.
-    /// All the known variables at the start of the block will become parameters to the new operation, and
-    /// the operation will have all the valid type parameters of the calling context as type parameters.
-    /// A call to the new operation is also returned with all the valid type parameters and known variables
-    /// being forwarded to the new operation as arguments.
+    /// Static class for containing the transformation state class for the <see cref="LiftContentUsingContext{T}"/>.
     /// </summary>
-    public class LiftContent<T> : SyntaxTreeTransformation<T>
-        where T : LiftContent.TransformationState
+    internal static class LiftContentUsingContext
     {
-        protected LiftContent(T state)
+        public class TransformationState
+        {
+            internal CallableDetails? CurrentCallable { get; set; } = null;
+
+            protected internal bool InBody { get; set; } = false;
+
+            protected internal bool InAdjoint { get; set; } = false;
+
+            protected internal bool InControlled { get; set; } = false;
+
+            protected internal bool InControlledAdjoint { get; set; } = false;
+
+            protected internal bool InWithinBlock { get; set; } = false;
+
+            private CallableInformation DetermineCallableInformation()
+            {
+                if (this.CurrentCallable is null)
+                {
+                    return CallableInformation.NoInformation;
+                }
+
+                var adj = this.CurrentCallable.Adjoint;
+                var ctl = this.CurrentCallable.Controlled;
+                var ctlAdj = this.CurrentCallable.ControlledAdjoint;
+
+                bool addAdjoint = false;
+                bool addControlled = false;
+                bool isSelfAdjoint = false;
+
+                if (this.InWithinBlock)
+                {
+                    addAdjoint = true;
+                    addControlled = false;
+                }
+                else if (this.InBody)
+                {
+                    if (adj != null && adj.Implementation is SpecializationImplementation.Generated adjGen)
+                    {
+                        addAdjoint = adjGen.Item.IsInvert;
+                        isSelfAdjoint = adjGen.Item.IsSelfInverse;
+                    }
+
+                    if (ctl != null && ctl.Implementation is SpecializationImplementation.Generated ctlGen)
+                    {
+                        addControlled = ctlGen.Item.IsDistribute;
+                    }
+
+                    if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated ctlAdjGen)
+                    {
+                        addAdjoint = addAdjoint || (ctlAdjGen.Item.IsInvert && (ctl?.Implementation.IsGenerated ?? true));
+                        addControlled = addControlled || (ctlAdjGen.Item.IsDistribute && (adj?.Implementation.IsGenerated ?? true));
+                        isSelfAdjoint = isSelfAdjoint || ctlAdjGen.Item.IsSelfInverse;
+                    }
+                }
+                else if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated gen)
+                {
+                    addControlled = this.InAdjoint && gen.Item.IsDistribute;
+                    addAdjoint = this.InControlled && gen.Item.IsInvert;
+                    isSelfAdjoint = gen.Item.IsSelfInverse;
+                }
+
+                var props = new List<OpProperty>();
+                if (addAdjoint)
+                {
+                    props.Add(OpProperty.Adjointable);
+                }
+
+                if (addControlled)
+                {
+                    props.Add(OpProperty.Controllable);
+                }
+
+                return new CallableInformation(ResolvedCharacteristics.FromProperties(props), new InferredCallableInformation(isSelfAdjoint, false));
+            }
+
+            /// <summary>
+            /// Generates a new callable with the body's contents using the context of the body's
+            /// original location. If the body was originally in a function, the generated
+            /// callable will be a function, otherwise it will be an operation with the functor
+            /// support determined based on the context. All the known variables at the start of
+            /// the block that get used in the body will become parameters to the new callable,
+            /// and the callable will have all the valid type parameters of the calling context
+            /// as type parameters. Any additional parameters specified will be at the end of
+            /// the parameter list and will have their tuple structuring preserved. Additional
+            /// parameters will be part of the generated callable's parameters even if they are
+            /// not used in the body's contents. If return values are allowed, the generated
+            /// callable will have a return type determined on return statements found in the
+            /// body's contents. Otherwise the callable will return the unit type value and
+            /// return statements will be considered invalid.
+            /// If the body is valid to be lifted, 'true' is returned, and
+            /// a call expression to the new callable is returned as an out-parameter with all
+            /// the type parameters and used variables being forwarded to the new callable as
+            /// arguments. Any additional parameters specified for the callable will be
+            /// represented in the argument list as missing parameters for the call expression.
+            /// The generated callable is also returned as an out-parameter.
+            /// If the body is not valid to be lifted, 'false' is returned and the out-parameters are null.
+            /// </summary>
+            public bool LiftBody(
+                QsScope body,
+                ParameterTuple? additionalParameters,
+                bool isReturnAllowed,
+                [NotNullWhen(true)] out TypedExpression? callExpression,
+                [NotNullWhen(true)] out QsCallable? callable)
+            {
+                if (this.CurrentCallable is null)
+                {
+                    callExpression = null;
+                    callable = null;
+                    return false;
+                }
+
+                if (this.CurrentCallable.Callable.Kind.IsFunction)
+                {
+                    return LiftContent.LiftFunctionBody(this.CurrentCallable.Callable, body, additionalParameters, isReturnAllowed, out callExpression, out callable);
+                }
+                else
+                {
+                    return LiftContent.LiftOperationBody(this.CurrentCallable.Callable, body, additionalParameters, this.DetermineCallableInformation(), isReturnAllowed, out callExpression, out callable);
+                }
+            }
+        }
+
+        internal class CallableDetails
+        {
+            internal QsCallable Callable { get; }
+
+            internal QsSpecialization? Adjoint { get; }
+
+            internal QsSpecialization? Controlled { get; }
+
+            internal QsSpecialization? ControlledAdjoint { get; }
+
+            internal QsNullable<ImmutableArray<ResolvedType>> TypeParameters { get; }
+
+            internal CallableDetails(QsCallable callable)
+            {
+                this.Callable = callable;
+
+                // Future: this may need to be adapted once we support type specializations
+                this.Adjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
+                this.Controlled = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
+                this.ControlledAdjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
+
+                // Future: this may need to be per-specialization when type-specific specializations are implemented
+                this.TypeParameters = callable.Signature.TypeParameters.Any(param => param.IsValidName)
+                ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
+                    .Where(param => param.IsValidName)
+                    .Select(param =>
+                        ResolvedType.New(ResolvedTypeKind.NewTypeParameter(QsTypeParameter.New(
+                            callable.FullName,
+                            ((QsLocalSymbol.ValidName)param).Item))))
+                    .ToImmutableArray())
+                : QsNullable<ImmutableArray<ResolvedType>>.Null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// This transformation provides the basis for lifters that use the context to generated
+    /// callables from code blocks. More specific lifter transformations can inherit from
+    /// the classes found here. It provides the logic for accumulating context information
+    /// that is used when calling
+    /// <see cref="LiftContentUsingContext.TransformationState.LiftBody"/>.
+    /// To properly inherit from this transformation, the derived transformation should inherit
+    /// this class, its transformation state class should inherit from
+    /// <see cref="LiftContentUsingContext.TransformationState"/>, and new namespace transformation
+    /// and new statement kind transformations are needed, they should inherit from
+    /// <see cref="LiftContentUsingContext{T}.NamespaceTransformation"/> and
+    /// <see cref="LiftContentUsingContext{T}.StatementKindTransformation"/> respectively.
+    /// </summary>
+    internal class LiftContentUsingContext<T> : SyntaxTreeTransformation<T>
+        where T : LiftContentUsingContext.TransformationState
+    {
+        protected LiftContentUsingContext(T state)
             : base(state)
         {
             this.Namespaces = new NamespaceTransformation(this);
@@ -722,7 +973,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             /// <inheritdoc/>
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
-                this.SharedState.CurrentCallable = new LiftContent.CallableDetails(c);
+                this.SharedState.CurrentCallable = new LiftContentUsingContext.CallableDetails(c);
                 return base.OnCallableDeclaration(c);
             }
 
