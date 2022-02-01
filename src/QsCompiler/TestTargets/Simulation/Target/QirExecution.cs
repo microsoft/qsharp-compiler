@@ -74,9 +74,13 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
+                // On non-Windows platforms, explicitly load OpenMP library to ensure the bundled
+                // version from the simulator package is found first.
                 NativeLibrary.Load("omp", typeof(JitCompilation).Assembly, null);
             }
 
+            // Explicitly load dependent libraries so that they are already present in memory when pinvoke
+            // triggers for the Microsoft.Quantum.Qir.QSharp.Core call below.
             NativeLibrary.Load("Microsoft.Quantum.Simulator.Runtime", typeof(JitCompilation).Assembly, null);
             NativeLibrary.Load("Microsoft.Quantum.Qir.Runtime", typeof(JitCompilation).Assembly, null);
             NativeLibrary.Load("Microsoft.Quantum.Qir.QSharp.Foundation", typeof(JitCompilation).Assembly, null);
@@ -105,7 +109,8 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 // Linux requires an additional explicit load of the libraries into MCJIT.
-                // Full paths are not needed since .NET already loaded these into program memory above.
+                // Full paths are not needed since .NET already loaded these into program memory above,
+                // but without this explict load the JIT logic won't find them.
                 ExplicitLibraryLoad("libMicrosoft.Quantum.Qir.Runtime.so");
                 ExplicitLibraryLoad("libMicrosoft.Quantum.Qir.QSharp.Foundation.so");
                 ExplicitLibraryLoad("libMicrosoft.Quantum.Qir.QSharp.Core.so");
