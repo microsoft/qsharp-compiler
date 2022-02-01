@@ -905,7 +905,7 @@ type QsExpression with
             let rec mapArgumentTuple = function
                 | QsTupleItem (decl : LocalVariableDeclaration<_, _>) ->
                     let var : LocalVariableDeclaration<QsLocalSymbol, ResolvedType> =
-                        let resDecl = decl.WithPosition (inference.GetStatementPosition() |> Value)
+                        let resDecl = decl.WithPosition (inference.GetRelativeStatementPosition() |> Value)
                         resDecl.WithType (inference.Fresh decl.Range)
                     symbols.TryAddVariableDeclartion var |> snd |> Array.iter diagnose
                     QsTupleItem var

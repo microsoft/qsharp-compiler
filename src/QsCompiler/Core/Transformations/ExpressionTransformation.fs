@@ -359,13 +359,12 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
             match s with
             | QsTuple tuple -> tuple |> Seq.map onSymbol |> ImmutableArray.CreateRange |> QsTuple
             | QsTupleItem decl ->
-                let range = Value decl.Range |> this.Common.OnExpressionRange // fixme
                 let name =
                     match decl.VariableName with
                     | ValidName name -> this.Common.OnLocalNameDeclaration name |> ValidName
                     | InvalidName -> InvalidName
                 let t = decl.Type |> this.Types.OnType
-                (((decl.WithType t).WithName name).WithPosition Null).WithRange (range.ValueOr Range.Zero) |> QsTupleItem // fixme
+                (decl.WithType t).WithName name |> QsTupleItem
             
         let syms = onSymbol lambda.ArgumentTuple // TODO: SYMBOL RANGE FROM VAR DECL
         let body = this.Expressions.OnTypedExpression lambda.Body

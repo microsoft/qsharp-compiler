@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
@@ -17,8 +18,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
 {
     using QsExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using QsInitializerKind = QsInitializerKind<ResolvedInitializer, TypedExpression>;
-    using QsSymbolKind = QsSymbolKind<QsSymbol>;
-    using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     internal static class SyntaxUtils
     {
@@ -188,13 +187,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
 
                 if (e.Expression is QsExpressionKind.Lambda lambda)
                 {
-                    var argumentDeclarations = SyntaxGenerator.ExtractItems(lambda.Item.ArgumentTuple);
-                    return argumentDeclarations
-                        .Select(decl => decl.VariableName is QsLocalSymbol.ValidName name
-                            ? decl.WithName(name.Item)
-                            : null)
-                        .Where(decl => decl != null)
-                        .Select(decl => decl!)
+                    return SyntaxGenerator.ExtractItems(lambda.Item.ArgumentTuple).ValidDeclarations()
                         .Concat(DeclarationsInExpressionByPosition(lambda.Item.Body, position));
                 }
 
@@ -210,10 +203,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
 
             public override QsNullable<Range> OnRangeInformation(QsNullable<Range> range) =>
                 range.Map(r => this.offset + r);
-
-            // FIXME: HERE IS WHERE WE NEED TO ALSO MAP SYMBOLS IN LAMBDA DECL
-            // FIXME: WHY ARE TYPE RANGES OK / NOT RELEVANT HERE?
-            // -> double check find all references for new array expressions...
         }
     }
 }

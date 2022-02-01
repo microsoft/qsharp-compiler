@@ -661,13 +661,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ScopeContext context,
             List<Diagnostic> diagnostics)
         {
-            var statementPosition = node.Fragment.Range.Start;
-            context.Inference.UseStatementPosition(statementPosition);
-
+            context.Inference.UseSyntaxTreeNodeLocation(node.RootPosition, node.RelativePosition);
             var location = new QsLocation(node.RelativePosition, node.Fragment.HeaderRange);
             var (statement, buildDiagnostics) = build(location, context);
             diagnostics.AddRange(buildDiagnostics
-                .Select(diagnostic => Diagnostics.Generate(context.Symbols.SourceFile, diagnostic, statementPosition)));
+                .Select(diagnostic => Diagnostics.Generate(context.Symbols.SourceFile, diagnostic, node.RootPosition + node.RelativePosition)));
 
             return statement;
         }
