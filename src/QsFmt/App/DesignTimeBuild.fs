@@ -70,7 +70,7 @@ let getSourceFiles (projectFile: string) =
 let assemblyLoadContextSetup () =
     // We need to set the current directory to the same directory of
     // the LanguageServer executable so that it will pick the global.json file
-    // and force the MSBuildLocator to use .NET Core SDK 3.1
+    // and force the MSBuildLocator to use .NET Core SDK 6.0
     let cwd = Directory.GetCurrentDirectory()
     Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory)
     // In the case where we actually instantiate a server, we need to "configure" the design time build.
