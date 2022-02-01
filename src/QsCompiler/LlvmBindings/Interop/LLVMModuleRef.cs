@@ -306,7 +306,7 @@ namespace LlvmBindings.Interop
                     sbyte* pError = null;
                     var result = LLVM.CreateMCJITCompilerForModule((LLVMOpaqueExecutionEngine**)pOutJIT, this, pOptions, (UIntPtr)Marshal.SizeOf<LLVMMCJITCompilerOptions>(), &pError);
 
-                    if (pError == null)
+                    if (pError is null)
                     {
                         outError = string.Empty;
                     }

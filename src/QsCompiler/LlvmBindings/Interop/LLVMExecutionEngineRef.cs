@@ -145,7 +145,7 @@ namespace LlvmBindings.Interop
                 sbyte* pError = null;
                 var result = LLVM.RemoveModule(this, m, (LLVMOpaqueModule**)pOutMod, &pError);
 
-                if (pError == null)
+                if (pError is null)
                 {
                     outError = string.Empty;
                 }

@@ -31,11 +31,12 @@ namespace LlvmBindings.Interop
 
         public void Dispose()
         {
-            if (this.Values != null)
+            var values = this.Values;
+            if (values is object)
             {
-                for (int i = 0; i < this.Values.Length; i++)
+                for (int i = 0; i < values.Length; i++)
                 {
-                    this.Values[i].Dispose();
+                    values[i].Dispose();
                 }
 
                 this.Values = null;
@@ -45,7 +46,7 @@ namespace LlvmBindings.Interop
 
         public void Fill(sbyte** pDestination)
         {
-            if (this.Values != null)
+            if (this.Values is object)
             {
                 for (int i = 0; i < this.Count; i++)
                 {
