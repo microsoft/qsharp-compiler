@@ -915,7 +915,12 @@ type QsExpression with
                     |> ImmutableArray.CreateRange
                     |> QsTuple
             let argTuple = mapArgumentTuple lambda.ArgumentTuple
-            let inputType = (ArgumentTupleAsExpression argTuple).ResolvedType // TODO: this could be nicer...
+
+            let rec getArgumentTupleType = function
+                | QsTupleItem (decl : LocalVariableDeclaration<_, _>) -> decl.Type
+                | QsTuple tuple when tuple.Length = 0 -> UnitType |> ResolvedType.New // too permissive?
+                | QsTuple tuple -> tuple |> Seq.map getArgumentTupleType |> ImmutableArray.CreateRange |> TupleType |> ResolvedType.New
+            let inputType = getArgumentTupleType argTuple
 
             let lambda' =
                 verifyAndBuildWith
