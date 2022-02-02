@@ -159,6 +159,26 @@ namespace LlvmBindings.Interop
             return new LLVMDIBuilderRef((IntPtr)LLVM.CreateDIBuilder(this));
         }
 
+        public LLVMExecutionEngineRef CreateMCJITCompiler()
+        {
+            if (!this.TryCreateMCJITCompiler(out LLVMExecutionEngineRef jit, out string error))
+            {
+                throw new ExternalException(error);
+            }
+
+            return jit;
+        }
+
+        public LLVMExecutionEngineRef CreateMCJITCompiler(ref LLVMMCJITCompilerOptions options)
+        {
+            if (!this.TryCreateMCJITCompiler(out LLVMExecutionEngineRef jit, ref options, out string error))
+            {
+                throw new ExternalException(error);
+            }
+
+            return jit;
+        }
+
         public LLVMModuleRef Clone() => LLVM.CloneModule(this);
 
         public LLVMModuleProviderRef CreateModuleProvider() => LLVM.CreateModuleProviderForExistingModule(this);
@@ -270,6 +290,36 @@ namespace LlvmBindings.Interop
         }
 
         public override string ToString() => (this.Handle != IntPtr.Zero) ? this.PrintToString() : string.Empty;
+
+        public bool TryCreateMCJITCompiler(out LLVMExecutionEngineRef outJIT, out string outError)
+        {
+            var options = LLVMMCJITCompilerOptions.Create();
+            return this.TryCreateMCJITCompiler(out outJIT, ref options, out outError);
+        }
+
+        public bool TryCreateMCJITCompiler(out LLVMExecutionEngineRef outJIT, ref LLVMMCJITCompilerOptions options, out string outError)
+        {
+            fixed (LLVMExecutionEngineRef* pOutJIT = &outJIT)
+            {
+                fixed (LLVMMCJITCompilerOptions* pOptions = &options)
+                {
+                    sbyte* pError = null;
+                    var result = LLVM.CreateMCJITCompilerForModule((LLVMOpaqueExecutionEngine**)pOutJIT, this, pOptions, (UIntPtr)Marshal.SizeOf<LLVMMCJITCompilerOptions>(), &pError);
+
+                    if (pError is null)
+                    {
+                        outError = string.Empty;
+                    }
+                    else
+                    {
+                        var span = new ReadOnlySpan<byte>(pError, int.MaxValue);
+                        outError = span.Slice(0, span.IndexOf((byte)'\0')).AsString();
+                    }
+
+                    return result == 0;
+                }
+            }
+        }
 
         public bool TryPrintToFile(string filename, out string errorMessage) => this.TryPrintToFile(filename.AsSpan(), out errorMessage);
 

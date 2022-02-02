@@ -271,3 +271,6 @@ let ``QIR Library generation`` () =
         "TestLibraryGeneration"
         compilerArgs
         [ "TestLibraryGeneration1"; "TestLibraryGeneration2"; "TestLibraryGeneration3" ]
+
+[<Fact(Skip = "Produces 'stack overflow' on Mac, see https://github.com/microsoft/qsharp-compiler/issues/1318")>]
+let ``QIR deep nesting`` () = qirTest false "TestDeepNesting"

@@ -46,7 +46,7 @@ function Add-NuGetDependencyFromCsprojToNuspec($PathToCsproj)
     }
 }
 
-# Find all package dependencies on QirGeneration.csproj, 
+# Find all package dependencies on QirGeneration.csproj,
 # and add the compiler as a package dependency instead.
 # The llvm bindings need to be published before including them in the package,
 # and are hence already included by the template.
@@ -58,4 +58,4 @@ $dependency.SetAttribute('version', '$version$')
 
 # Save into .nuspec file:
 $nuspec.package.metadata.AppendChild($dep)
-$nuspec.Save("$PSScriptRoot\QirGeneration.nuspec")
+$nuspec.Save((Join-Path $PSScriptRoot QirGeneration.nuspec))

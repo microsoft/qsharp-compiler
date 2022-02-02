@@ -72,4 +72,7 @@ else()
   set(LLVM_BUILD_LLVM_DYLIB ON CACHE BOOL "")
   set(CPACK_BINARY_TGZ ON CACHE BOOL "")
 endif()
-set(LLVM_DYLIB_COMPONENTS "core;debuginfodwarf;linker;support;target;bitwriter;analysis" CACHE STRING "")
+
+# See https://github.com/llvm/llvm-project/blob/llvmorg-13.0.0/llvm/utils/gn/build/write_library_dependencies.py for a list
+# of these dependencies and what they bring into the linked binary.
+set(LLVM_DYLIB_COMPONENTS "core;debuginfodwarf;linker;support;target;bitwriter;analysis;executionengine;runtimedyld;mcjit;bitstreamreader;bitreader;native" CACHE STRING "")
