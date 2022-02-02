@@ -20,6 +20,10 @@ type InferredExpressionInformation =
         /// -> using and borrowing are *not* considered to implicitly invoke a call to an operation, and are thus *not* considered to have a quantum dependency.
         HasLocalQuantumDependency: bool
     }
+
+    /// Returns the inferred expression information used for declared parameters to callables.
+    /// Note that this information is used within the declaration but not for the argument(s) in any given call-like expressions.
+    static member ParameterDeclaration = { IsMutable = false; HasLocalQuantumDependency = false }
             
 type LocalVariableDeclaration<'Name, 'Type> =
     {

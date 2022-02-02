@@ -165,30 +165,26 @@ module Lambda =
         }
 
     let createUnchecked kind (argTuple : QsSymbol) body =
+        let variableDeclaration = {
+                VariableName = InvalidName;
+                Type = { Type = MissingType; Range = Null };
+                InferredInformation = InferredExpressionInformation.ParameterDeclaration
+                Position = Null;
+                Range = Range.Zero
+            }
+
         let rec mapSymbol (sym : QsSymbol) =
             match sym.Symbol with
             | Symbol name ->
-                QsTupleItem {
-                    VariableName = ValidName name;
-                    Type = { Type = MissingType; Range = Null };
-                    InferredInformation = { IsMutable = false; HasLocalQuantumDependency = false }; // fixme was true before
-                    Position = Null;
-                    // FIXME: check what range is used for argument tuples when the argument is invalid??
-                    Range = sym.Range.ValueOr Range.Zero // (fun _ -> failwith "should never occur") // fixme: handling
-                }
+                let range = sym.Range.ValueOrApply (fun _ -> failwith "missing range information for valid symbol")
+                QsTupleItem {variableDeclaration with VariableName = ValidName name; Range = range}
             | SymbolTuple syms -> syms |> Seq.map mapSymbol |> ImmutableArray.CreateRange |> QsTuple
-            | QualifiedSymbol _ // FIXME: RELIES ON THERE HAVING BEEN A PROPER ERROR ALREADY...
-            | OmittedSymbols
+            | QualifiedSymbol _ -> failwith "qualified symbol in argument tuple"
+            | OmittedSymbols -> failwith "omitted symbols in argument tuple"
             | MissingSymbol
-            | InvalidSymbol ->
-                QsTupleItem {
-                    VariableName = InvalidName;
-                    Type = { Type = MissingType; Range = Null };
-                    InferredInformation = { IsMutable = false; HasLocalQuantumDependency = false }; // fixme was true before
-                    Position = Null;
-                    Range = sym.Range.ValueOr Range.Zero // (fun _ -> failwith "should never occur") // fixme: handling
-                }
-        let argTuple = // FIXME: PARSER... argument tuples by convention always are passed as QsTuple even if they contain no items or a single item
+            | InvalidSymbol -> QsTupleItem {variableDeclaration with Range = sym.Range.ValueOr Range.Zero}
+
+        let argTuple = // argument tuples are always passed as QsTuple even if they contain no items or a single item
             match mapSymbol argTuple with
             | QsTuple _ as tuple -> tuple 
             | QsTupleItem _ as item -> ImmutableArray.Create(item) |> QsTuple

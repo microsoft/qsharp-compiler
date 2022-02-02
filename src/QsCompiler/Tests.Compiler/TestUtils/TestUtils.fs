@@ -79,7 +79,7 @@ let toInt n = IntLiteral(int64 n) |> toExpr
 let toBigInt b =
     BigIntLiteral(System.Numerics.BigInteger.Parse b) |> toExpr
 
-let toSymbol s = { Symbol = Symbol s; Range = Null }
+let toSymbol s = { Symbol = Symbol s; Range = Value Range.Zero }
 
 let toIdentifier s =
     (Identifier(toSymbol s, Null)) |> toExpr

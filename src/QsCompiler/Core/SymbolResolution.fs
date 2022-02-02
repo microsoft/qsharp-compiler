@@ -421,12 +421,10 @@ module SymbolResolution =
     /// Correspondingly, the item is immutable, has no quantum dependencies,
     /// the position information is set to null, and the range is set to the given one.
     let private DeclarationArgument range (name, t) =
-        let info = { IsMutable = false; HasLocalQuantumDependency = false }
-
         {
             VariableName = name
             Type = t
-            InferredInformation = info
+            InferredInformation = InferredExpressionInformation.ParameterDeclaration
             Position = Null
             Range = range
         }
