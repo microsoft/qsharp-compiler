@@ -362,7 +362,7 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
     | Symbol name ->
         match tryBuildDeclaration (name, symbol.RangeOrDefault) rhsType with
         | Some declaration, diagnostics -> VariableName name, [| declaration |], diagnostics
-        | None, diagnostics -> VariableName name, [||], diagnostics
+        | None, diagnostics -> InvalidItem, [||], diagnostics
     | SymbolTuple symbols ->
         let types = symbols |> Seq.map (fun symbol -> inference.Fresh symbol.RangeOrDefault) |> Seq.toList
 
@@ -907,8 +907,10 @@ type QsExpression with
                     let var : LocalVariableDeclaration<QsLocalSymbol, ResolvedType> =
                         let resDecl = decl.WithPosition (inference.GetRelativeStatementPosition() |> Value)
                         resDecl.WithType (inference.Fresh decl.Range)
-                    symbols.TryAddVariableDeclartion var |> snd |> Array.iter diagnose
-                    QsTupleItem var
+                    let added, diagnostics = symbols.TryAddVariableDeclartion var
+                    Array.iter diagnose diagnostics
+                    if added then QsTupleItem var
+                    else QsTupleItem (var.WithName InvalidName)
                 | QsTuple tuple ->
                     tuple
                     |> Seq.map mapArgumentTuple

@@ -224,11 +224,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
 
         match decl.VariableName with
         | InvalidName -> false, [||]
-        | ValidName name ->
-            let mut, qDep = decl.InferredInformation.IsMutable, decl.InferredInformation.HasLocalQuantumDependency
-
-            LocalVariableDeclaration.New mut ((decl.Position, decl.Range), name, decl.Type, qDep)
-            |> this.TryAddVariableDeclartion
+        | ValidName name -> decl.WithName name |> this.TryAddVariableDeclartion
 
     /// <summary>
     /// Updates the quantum dependency of the local variable with the given name.

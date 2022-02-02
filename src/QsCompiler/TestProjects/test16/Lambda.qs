@@ -17,9 +17,9 @@ namespace Test16 {
         if (x -> x or true)(true) {
         } elif (y -> y or y or true)(true) {
         } elif (y -> y == 1)(1) {
-        // fixme: elif with x declared in condition...
+        } elif (x -> x + 1)(1) == 2 {
         }
 
-        // FIXME: DOUBLE CHECK WHETHER HANDLING IS CORRECT WHEN AN ARGUMENT IS REDECLARED
+        let f4 = (foo, foo) -> foo + foo;
     }
 }
