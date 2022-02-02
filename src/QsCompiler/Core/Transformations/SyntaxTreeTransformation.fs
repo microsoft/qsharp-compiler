@@ -13,7 +13,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 // setup for syntax tree transformations with internal state
 
 type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOptions, _internal_: string) =
-    inherit CommonTransformationItems()
+    inherit CommonTransformationNodes()
 
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
     member val Types = new TypeTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
@@ -82,7 +82,7 @@ and TypeTransformation<'T> internal (options, _internal_) =
         with get () = _Transformation.Value
         and private set value =
             _Transformation <- Some value
-            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationItems
+            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationNodes
 
     member this.SharedState = this.Transformation.SharedState
 
@@ -285,7 +285,7 @@ and NamespaceTransformation<'T> internal (options, _internal_: string) =
 // setup for syntax tree transformations without internal state
 
 type SyntaxTreeTransformation private (options: TransformationOptions, _internal_: string) =
-    inherit CommonTransformationItems()
+    inherit CommonTransformationNodes()
 
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
     member val Types = new TypeTransformation(TransformationOptions.Default, _internal_) with get, set
@@ -351,7 +351,7 @@ and TypeTransformation internal (options, _internal_) =
         with get () = _Transformation.Value
         and private set value =
             _Transformation <- Some value
-            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationItems
+            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationNodes
 
     new(parentTransformation: SyntaxTreeTransformation, options: TransformationOptions) as this =
         new TypeTransformation(options, "_internal_")

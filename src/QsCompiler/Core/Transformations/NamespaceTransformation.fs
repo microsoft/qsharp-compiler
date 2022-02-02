@@ -27,7 +27,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
 
     member this.Statements : StatementTransformationBase = this.StatementTransformationHandle()
-    member this.Common : CommonTransformationItems = this.StatementTransformationHandle().Expressions.Types.Common
+    member this.Common : CommonTransformationNodes = this.StatementTransformationHandle().Expressions.Types.Common
 
     new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
         new NamespaceTransformationBase(options, "_internal_")

@@ -11,7 +11,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 /// Contains virtual methods that are invoked
 /// by several different kinds of nodes in the syntax tree.
 /// </summary>
-type CommonTransformationItems internal () =
+type CommonTransformationNodes internal () =
 
     abstract OnLocalNameDeclaration : string -> string
     default this.OnLocalNameDeclaration name = name
