@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
                     return Enumerable.Empty<LocalVariableDeclaration<string, ResolvedType>>();
                 }
 
-                e = new ExpressionOffsetTransformation(currentStatement.Location.Item.Offset).OnTypedExpression(e);
+                e = new ExpressionOffsetTransformation(currentStatement.Location.Item.Offset).Expressions.OnTypedExpression(e);
                 return DeclarationsInExpressionByPosition(e, position);
             }
         }
@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
                 }
 
                 var offset = b.Item2.Location.Item.Offset - statement.Location.Item.Offset;
-                return new ExpressionOffsetTransformation(offset).OnTypedExpression(b.Item1);
+                return new ExpressionOffsetTransformation(offset).Expressions.OnTypedExpression(b.Item1);
             }
 
             static IEnumerable<TypedExpression> InitializerExpressions(ResolvedInitializer i) => i.Resolution switch
@@ -195,13 +195,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
             }
         }
 
-        private class ExpressionOffsetTransformation : ExpressionTransformation
+        private class ExpressionOffsetTransformation : SyntaxTreeTransformation
         {
             private readonly Position offset;
 
             internal ExpressionOffsetTransformation(Position offset) => this.offset = offset;
 
-            public override QsNullable<Range> OnRangeInformation(QsNullable<Range> range) =>
+            public override QsNullable<Range> OnExpressionRange(QsNullable<Range> range) =>
                 range.Map(r => this.offset + r);
         }
     }

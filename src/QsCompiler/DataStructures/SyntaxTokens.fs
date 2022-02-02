@@ -179,7 +179,7 @@ module Lambda =
             | SymbolTuple syms -> syms |> Seq.map mapSymbol |> ImmutableArray.CreateRange |> QsTuple
             | QualifiedSymbol _ // FIXME: RELIES ON THERE HAVING BEEN A PROPER ERROR ALREADY...
             | OmittedSymbols
-            | MissingSymbol // TODO: this could be considered valid
+            | MissingSymbol
             | InvalidSymbol ->
                 QsTupleItem {
                     VariableName = InvalidName;
@@ -188,7 +188,7 @@ module Lambda =
                     Position = Null;
                     Range = sym.Range.ValueOr Range.Zero // (fun _ -> failwith "should never occur") // fixme: handling
                 }
-        let argTuple = // FIXME: PARSER... argument tuples by convention always are passes as QsTuple even if they contain no items or a single item
+        let argTuple = // FIXME: PARSER... argument tuples by convention always are passed as QsTuple even if they contain no items or a single item
             match mapSymbol argTuple with
             | QsTuple _ as tuple -> tuple 
             | QsTupleItem _ as item -> ImmutableArray.Create(item) |> QsTuple

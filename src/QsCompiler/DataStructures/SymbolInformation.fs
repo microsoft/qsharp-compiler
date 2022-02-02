@@ -56,23 +56,11 @@ type LocalVariableDeclaration<'Name, 'Type> =
             Range = this.Range
         }
 
-    member this.WithPosition position =
-        {
-            VariableName = this.VariableName
-            Type = this.Type
-            InferredInformation = this.InferredInformation
-            Position = position
-            Range = this.Range
-        }
+    member this.WithPosition position = {this with Position = position}
 
-    member this.WithRange range =
-        {
-            VariableName = this.VariableName
-            Type = this.Type
-            InferredInformation = this.InferredInformation
-            Position = this.Position
-            Range = range
-        }
+    member this.WithRange range = {this with Range = range}
+
+    member this.WithInferredInformation info = {this with InferredInformation = info}
 
 module LocalVariableDeclaration =
     let New isMutable ((pos, range), vName: 'Name, t, hasLocalQuantumDependency) =
