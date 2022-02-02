@@ -474,7 +474,7 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
 
     member this.ExpressionKinds : ExpressionKindTransformationBase = this.ExpressionKindTransformationHandle()
     member this.Types : TypeTransformationBase = this.TypeTransformationHandle()
-    member this.Common : CommonTransformationItems = this.TypeTransformationHandle().Common
+    member this.Common : CommonTransformationNodes = this.TypeTransformationHandle().Common
 
     new(exkindTransformation: unit -> ExpressionKindTransformationBase,
         typeTransformation: unit -> TypeTransformationBase,
