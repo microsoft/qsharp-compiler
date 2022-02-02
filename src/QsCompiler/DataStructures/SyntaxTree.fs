@@ -75,6 +75,18 @@ type QsQualifiedName =
         sprintf "%s.%s" this.Namespace this.Name
 
 
+type SymbolTuple =
+    /// indicates in invalid variable name
+    | InvalidItem
+    /// indicates a valid Q# variable name
+    | VariableName of string
+    /// indicates a tuple of Q# variable names or (nested) tuples of variable names
+    | VariableNameTuple of ImmutableArray<SymbolTuple>
+    /// indicates a place holder for a Q# variable that won't be used after the symbol tuple is bound to a value
+    | DiscardedItem
+    interface ITuple
+
+
 /// use to represent all forms of Q# bindings
 type QsBinding<'T> =
     {
@@ -982,10 +994,6 @@ type QsSpecialization =
 
     member this.WithSource source = { this with Source = source }
 
-    // TODO: RELEASE 2021-07: Remove QsSpecialization.SourceFile.
-    [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCodeFile this.Source
-
 
 /// describes a Q# function, operation, or type constructor
 type QsCallable =
@@ -1010,7 +1018,7 @@ type QsCallable =
         /// the argument tuple containing the names of the argument tuple items
         /// represented either as valid name containing a non-nullable string or as an invalid name token
         /// as well as their type
-        ArgumentTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>> // TODO: align with lamdas...
+        ArgumentTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
         /// all specializations declared for this callable -
         /// each call to the callable is dispatched to a suitable specialization
         /// depending on the type of the argument it is called with
@@ -1021,14 +1029,6 @@ type QsCallable =
         /// contains comments in the code associated with this declarations
         Comments: QsComments
     }
-
-    // TODO: RELEASE 2021-08: Remove QsCallable.Modifiers.
-    [<Obsolete "Replaced by Access.">]
-    member this.Modifiers = { Access = AccessModifier.ofAccess this.Access }
-
-    // TODO: RELEASE 2021-07: Remove QsCallable.SourceFile.
-    [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
     member this.AddAttribute att =
         { this with Attributes = this.Attributes.Add att }
@@ -1086,14 +1086,6 @@ type QsCustomType =
         /// contains comments in the code associated with this declarations
         Comments: QsComments
     }
-
-    // TODO: RELEASE 2021-08: Remove QsCallable.Modifiers.
-    [<Obsolete "Replaced by Access.">]
-    member this.Modifiers = { Access = AccessModifier.ofAccess this.Access }
-
-    // TODO: RELEASE 2021-07: Remove QsCustomType.SourceFile.
-    [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
     member this.AddAttribute att =
         { this with Attributes = this.Attributes.Add att }

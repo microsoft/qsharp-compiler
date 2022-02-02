@@ -1,108 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.SyntaxTree
-
-open System.Collections.Immutable
-open Microsoft.Quantum.QsCompiler.DataTypes
-
-
-// marker interface used for types on which tuple matching can be done
-type ITuple =
-    interface
-    end
-
-/// used to represent the names of declared type parameters or the name of the declared argument items of a callable
-type QsLocalSymbol =
-    | ValidName of string
-    | InvalidName
-
-type SymbolTuple =
-    /// indicates in invalid variable name
-    | InvalidItem
-    /// indicates a valid Q# variable name
-    | VariableName of string
-    /// indicates a tuple of Q# variable names or (nested) tuples of variable names
-    | VariableNameTuple of ImmutableArray<SymbolTuple>
-    /// indicates a place holder for a Q# variable that won't be used after the symbol tuple is bound to a value
-    | DiscardedItem
-    interface ITuple
-
-/// used to represent information on typed expressions generated and/or tracked during compilation
-type InferredExpressionInformation =
-    {
-        /// whether or not the value of this expression can be modified (true if it can)
-        IsMutable: bool
-        /// indicates whether the annotated expression directly or indirectly depends on an operation call within the surrounding implementation block
-        /// -> it will be set to false for variables declared within the argument tuple
-        /// -> using and borrowing are *not* considered to implicitly invoke a call to an operation, and are thus *not* considered to have a quantum dependency.
-        HasLocalQuantumDependency: bool
-    }
-            
-type LocalVariableDeclaration<'Name, 'Type> =
-    {
-        /// the name of the declared variable
-        VariableName: 'Name
-        /// the fully resolved type of the declared variable
-        Type: 'Type
-        /// contains information generated and/or tracked by the compiler
-        /// -> in particular, contains the information about whether or not the symbol may be re-bound
-        InferredInformation: InferredExpressionInformation
-        /// Denotes the position where the variable is declared
-        /// relative to the position of the specialization declaration within which the variable is declared.
-        /// If the Position is Null, then the variable is not declared within a specialization (but belongs to a callable or type declaration).
-        Position: QsNullable<Position>
-        /// Denotes the range of the variable name relative to the position of the variable declaration.
-        Range: Range
-    }
-
-    member this.WithName name =
-        {
-            VariableName = name
-            Type = this.Type
-            InferredInformation = this.InferredInformation
-            Position = this.Position
-            Range = this.Range
-        }
-
-    member this.WithType t =
-        {
-            VariableName = this.VariableName
-            Type = t
-            InferredInformation = this.InferredInformation
-            Position = this.Position
-            Range = this.Range
-        }
-
-    member this.WithPosition position =
-        {
-            VariableName = this.VariableName
-            Type = this.Type
-            InferredInformation = this.InferredInformation
-            Position = position
-            Range = this.Range
-        }
-
-    member this.WithRange range =
-        {
-            VariableName = this.VariableName
-            Type = this.Type
-            InferredInformation = this.InferredInformation
-            Position = this.Position
-            Range = range
-        }
-
-module LocalVariableDeclaration =
-    let New isMutable ((pos, range), vName: 'Name, t, hasLocalQuantumDependency) =
-        {
-            VariableName = vName
-            Type = t
-            InferredInformation = {IsMutable = isMutable; HasLocalQuantumDependency = hasLocalQuantumDependency}
-            Position = pos
-            Range = range
-        }
-
-
 namespace Microsoft.Quantum.QsCompiler.SyntaxTokens
 
 #nowarn "44" // AccessModifier is deprecated.
@@ -113,6 +11,11 @@ open System.Numerics
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+
+// marker interface used for types on which tuple matching can be done
+type ITuple =
+    interface
+    end
 
 
 // Q# literals
