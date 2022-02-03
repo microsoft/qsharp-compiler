@@ -141,7 +141,7 @@ type Lambda<'Expr, 'Type> =
     private
         {
             kind: LambdaKind
-            argTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>>
+            paramTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>>
             body: 'Expr
         }
 
@@ -149,7 +149,7 @@ type Lambda<'Expr, 'Type> =
     member lambda.Kind = lambda.kind
 
     /// The symbol tuple for the lambda's parameter.
-    member lambda.ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>> = lambda.argTuple
+    member lambda.ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>> = lambda.paramTuple
 
     /// The body of the lambda.
     member lambda.Body = lambda.body
@@ -157,14 +157,14 @@ type Lambda<'Expr, 'Type> =
 module Lambda =
     /// Creates a lambda expression.
     [<CompiledName "Create">]
-    let create kind argTuple body =
+    let create kind paramTuple body =
         {
             kind = kind
-            argTuple = argTuple
+            paramTuple = paramTuple
             body = body
         }
 
-    let createUnchecked kind (argTuple: QsSymbol) body =
+    let createUnchecked kind (paramTuple: QsSymbol) body =
         let variableDeclaration =
             {
                 VariableName = InvalidName
@@ -186,7 +186,7 @@ module Lambda =
             | InvalidSymbol -> QsTupleItem { variableDeclaration with Range = sym.Range.ValueOr Range.Zero }
 
         let argTuple = // argument tuples are always passed as QsTuple even if they contain no items or a single item
-            match mapSymbol argTuple with
+            match mapSymbol paramTuple with
             | QsTuple _ as tuple -> tuple
             | QsTupleItem _ as item -> ImmutableArray.Create(item) |> QsTuple
 

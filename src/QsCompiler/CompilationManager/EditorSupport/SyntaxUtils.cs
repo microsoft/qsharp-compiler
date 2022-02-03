@@ -174,11 +174,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
         }
 
         private static IEnumerable<LocalVariableDeclaration<string, ResolvedType>> DeclarationsInExpressionByPosition(
-            TypedExpression expression, Position position)
-        {
-            return expression.ExtractAll(Declarations);
-
-            IEnumerable<LocalVariableDeclaration<string, ResolvedType>> Declarations(TypedExpression e)
+            TypedExpression expression, Position position) =>
+            expression.ExtractAll(e =>
             {
                 if (!e.Range.Any(r => r.Contains(position)))
                 {
@@ -192,8 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
                 }
 
                 return Enumerable.Empty<LocalVariableDeclaration<string, ResolvedType>>();
-            }
-        }
+            });
 
         private class ExpressionOffsetTransformation : SyntaxTreeTransformation
         {
