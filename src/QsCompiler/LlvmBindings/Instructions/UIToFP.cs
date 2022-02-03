@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.Instructions
+namespace LlvmBindings.Instructions
 {
     /// <summary>Instruction to cast an unsigned integer to a float.</summary>
     public class UIToFP

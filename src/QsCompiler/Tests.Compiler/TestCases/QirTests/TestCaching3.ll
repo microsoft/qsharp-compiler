@@ -9,7 +9,7 @@ entry:
   br i1 %4, label %condTrue__1, label %condFalse__1
 
 condTrue__1:                                      ; preds = %entry
-  %5 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (double* getelementptr (double, double* null, i32 1) to i64), i64 2))
+  %5 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, double }* getelementptr ({ double, double }, { double, double }* null, i32 1) to i64))
   %6 = bitcast %Tuple* %5 to { double, double }*
   %7 = getelementptr inbounds { double, double }, { double, double }* %6, i32 0, i32 0
   %8 = getelementptr inbounds { double, double }, { double, double }* %6, i32 0, i32 1
@@ -19,7 +19,7 @@ condTrue__1:                                      ; preds = %entry
   br label %condContinue__1
 
 condFalse__1:                                     ; preds = %entry
-  %10 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (double* getelementptr (double, double* null, i32 1) to i64), i64 2))
+  %10 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, double }* getelementptr ({ double, double }, { double, double }* null, i32 1) to i64))
   %11 = bitcast %Tuple* %10 to { double, double }*
   %12 = getelementptr inbounds { double, double }, { double, double }* %11, i32 0, i32 0
   %13 = getelementptr inbounds { double, double }, { double, double }* %11, i32 0, i32 1

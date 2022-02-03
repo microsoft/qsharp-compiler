@@ -10,9 +10,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     /// <summary>Wraps an LLVM NamedMDNode</summary>
     /// <remarks>Despite its name a NamedMDNode is not itself an MDNode. It is owned directly by a

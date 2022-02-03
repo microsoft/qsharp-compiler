@@ -5,10 +5,10 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Values;
+using LlvmBindings.Interop;
+using LlvmBindings.Values;
 
-namespace Ubiquity.NET.Llvm.Instructions
+namespace LlvmBindings.Instructions
 {
     /// <summary>Instruction to perform an indirect branch to a block within the current function.</summary>
     /// <remarks>The address of the branch must come from a <see cref="BlockAddress"/> constant.</remarks>

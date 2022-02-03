@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>Objective-C Property</summary>
     public class DIObjCProperty

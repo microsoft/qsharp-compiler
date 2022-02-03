@@ -9,11 +9,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-using Ubiquity.NET.Llvm.Types;
+using LlvmBindings.Types;
 
-namespace Ubiquity.NET.Llvm.Values
+namespace LlvmBindings.Values
 {
     /// <summary>LLVM Constant Array.</summary>
     /// <remarks>

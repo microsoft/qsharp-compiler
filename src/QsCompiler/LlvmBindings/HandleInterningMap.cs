@@ -10,7 +10,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     internal abstract class HandleInterningMap<THandle, TMappedType>
         : IHandleInterning<THandle, TMappedType>

@@ -5,7 +5,7 @@
 
 using System;
 
-namespace LLVMSharp.Interop
+namespace LlvmBindings.Interop
 {
     /// <summary>Extensions for <see cref="LLVMModuleFlagEntry"/>.</summary>
     public static unsafe class LLVMModuleFlagEntryExtensions

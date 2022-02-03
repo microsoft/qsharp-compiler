@@ -5,7 +5,7 @@ entry:
   %2 = load %Callable*, %Callable** %1, align 8
   %3 = getelementptr inbounds { %Callable*, %Callable*, %Qubit* }, { %Callable*, %Callable*, %Qubit* }* %0, i32 0, i32 2
   %4 = load %Qubit*, %Qubit** %3, align 8
-  %5 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 3))
+  %5 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, %Qubit*, %Tuple* }* getelementptr ({ %Callable*, %Qubit*, %Tuple* }, { %Callable*, %Qubit*, %Tuple* }* null, i32 1) to i64))
   %6 = bitcast %Tuple* %5 to { %Callable*, %Qubit*, %Tuple* }*
   %7 = getelementptr inbounds { %Callable*, %Qubit*, %Tuple* }, { %Callable*, %Qubit*, %Tuple* }* %6, i32 0, i32 0
   %8 = getelementptr inbounds { %Callable*, %Qubit*, %Tuple* }, { %Callable*, %Qubit*, %Tuple* }* %6, i32 0, i32 1
