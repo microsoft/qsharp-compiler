@@ -1,6 +1,6 @@
 define internal { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestUdtConstructor__body() {
 entry:
-  %0 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (double* getelementptr (double, double* null, i32 1) to i64), i64 2))
+  %0 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, double }* getelementptr ({ double, double }, { double, double }* null, i32 1) to i64))
   %args = bitcast %Tuple* %0 to { double, double }*
   %1 = getelementptr inbounds { double, double }, { double, double }* %args, i32 0, i32 0
   %2 = getelementptr inbounds { double, double }, { double, double }* %args, i32 0, i32 1

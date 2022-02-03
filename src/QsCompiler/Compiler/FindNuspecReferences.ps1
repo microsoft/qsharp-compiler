@@ -57,4 +57,4 @@ Add-NuGetDependencyFromCsprojToNuspec "Compiler.csproj" $dep
 
 # Save into .nuspec file:
 $nuspec.package.metadata.AppendChild($dep)
-$nuspec.Save("$PSScriptRoot\Compiler.nuspec")
+$nuspec.Save((Join-Path $PSScriptRoot Compiler.nuspec))

@@ -5,7 +5,7 @@
 
 using System;
 
-namespace LLVMSharp.Interop
+namespace LlvmBindings.Interop
 {
     /// <summary>Extensions for <see cref="LLVMNamedMDNodeRef"/>.</summary>
     public static unsafe class LLVMNamedMDNodeRefExtensions

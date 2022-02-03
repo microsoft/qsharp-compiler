@@ -9,10 +9,10 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Values;
+using LlvmBindings.Interop;
+using LlvmBindings.Values;
 
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     /// <summary>Metadata node for LLVM IR Bitcode modules</summary>
     /// <remarks>

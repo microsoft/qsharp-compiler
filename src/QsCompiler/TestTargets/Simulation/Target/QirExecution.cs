@@ -4,21 +4,20 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm;
-using Ubiquity.NET.Llvm.Values;
+using LlvmBindings;
+using LlvmBindings.Interop;
 
 namespace Microsoft.Quantum.QsCompiler.Testing.Qir
 {
     public static class JitCompilation
     {
-        [DllImport("Microsoft.Quantum.Qir.QSharp.Core", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+        [DllImport("Microsoft.Quantum.Qir.QSharp.Core", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr CreateFullstateSimulatorC(long seed);
 
-        [DllImport("Microsoft.Quantum.Qir.Runtime", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+        [DllImport("Microsoft.Quantum.Qir.Runtime", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
         public static extern void InitializeQirContext(IntPtr driver, bool trackAllocatedObjects);
 
-        [UnmanagedFunctionPointer(System.Runtime.InteropServices.CallingConvention.Cdecl)]
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void SimpleFunction();
 
         // For testing purposes I needed to make this an executable such that we can properly detect when the invoked
@@ -28,11 +27,64 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
         private static void Main(string[] args) =>
             BuildAndRun(args[0], args[1..]);
 
-        public static void BuildAndRun(string pathToBitcode, params string[] functionNames)
+        private static unsafe bool TryParseBitcode(string path, out LLVMModuleRef outModule, out string outMessage)
         {
-            // To get this line to work, I had to change the CreateFullstateSimulator API to use raw pointers instead of shared pointers,
-            // and I had to update both calls to be "extern 'C'" otherwise name mangling makes then impossible to call here.
-            // This should be revised more broadly as we move the runtime to a C-style API for ABI compatibility across langauges.
+            LLVMMemoryBufferRef handle;
+            sbyte* msg;
+            if (LLVM.CreateMemoryBufferWithContentsOfFile(path.AsMarshaledString(), (LLVMOpaqueMemoryBuffer**)&handle, &msg) != 0)
+            {
+                var span = new ReadOnlySpan<byte>(msg, int.MaxValue);
+                var errTxt = span.Slice(0, span.IndexOf((byte)'\0')).AsString();
+                LLVM.DisposeMessage(msg);
+                throw new InternalCodeGeneratorException(errTxt);
+            }
+
+            fixed (LLVMModuleRef* pOutModule = &outModule)
+            {
+                sbyte* pMessage = null;
+                var result = LLVM.ParseBitcodeInContext(
+                    LLVM.ContextCreate(),
+                    handle,
+                    (LLVMOpaqueModule**)pOutModule,
+                    &pMessage);
+
+                if (pMessage == null)
+                {
+                    outMessage = string.Empty;
+                }
+                else
+                {
+                    var span = new ReadOnlySpan<byte>(pMessage, int.MaxValue);
+                    outMessage = span.Slice(0, span.IndexOf((byte)'\0')).AsString();
+                }
+
+                return result == 0;
+            }
+        }
+
+        private static unsafe void ExplicitLibraryLoad(string libraryName)
+        {
+            if (LLVM.LoadLibraryPermanently(libraryName.AsMarshaledString()) != 0)
+            {
+                throw new ExternalException($"Failed explicit load of library '{libraryName}'");
+            }
+        }
+
+        public static unsafe void BuildAndRun(string pathToBitcode, params string[] functionNames)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // On non-Windows platforms, explicitly load OpenMP library to ensure the bundled
+                // version from the simulator package is found first.
+                NativeLibrary.Load("omp", typeof(JitCompilation).Assembly, null);
+            }
+
+            // Explicitly load dependent libraries so that they are already present in memory when pinvoke
+            // triggers for the Microsoft.Quantum.Qir.QSharp.Core call below.
+            NativeLibrary.Load("Microsoft.Quantum.Simulator.Runtime", typeof(JitCompilation).Assembly, null);
+            NativeLibrary.Load("Microsoft.Quantum.Qir.Runtime", typeof(JitCompilation).Assembly, null);
+            NativeLibrary.Load("Microsoft.Quantum.Qir.QSharp.Foundation", typeof(JitCompilation).Assembly, null);
+
             InitializeQirContext(CreateFullstateSimulatorC(0), true);
 
             if (!File.Exists(pathToBitcode))
@@ -40,9 +92,12 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
                 throw new FileNotFoundException($"Could not find file {pathToBitcode}");
             }
 
-            var context = new Context();
-            var module = BitcodeModule.LoadFrom(pathToBitcode, context);
-            if (!module.Verify(out string verifyMessage))
+            if (!TryParseBitcode(pathToBitcode, out LLVMModuleRef modRef, out string message))
+            {
+                throw new InternalCodeGeneratorException(message);
+            }
+
+            if (!modRef.TryVerify(LLVMVerifierFailureAction.LLVMReturnStatusAction, out string verifyMessage))
             {
                 throw new ExternalException($"Failed to verify module: {verifyMessage}");
             }
@@ -51,15 +106,26 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
             LLVM.InitializeNativeAsmParser();
             LLVM.InitializeNativeAsmPrinter();
 
-            var engine = module.ModuleHandle.CreateMCJITCompiler();
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                // Linux requires an additional explicit load of the libraries into MCJIT.
+                // Full paths are not needed since .NET already loaded these into program memory above,
+                // but without this explict load the JIT logic won't find them.
+                ExplicitLibraryLoad("libMicrosoft.Quantum.Qir.Runtime.so");
+                ExplicitLibraryLoad("libMicrosoft.Quantum.Qir.QSharp.Foundation.so");
+                ExplicitLibraryLoad("libMicrosoft.Quantum.Qir.QSharp.Core.so");
+            }
+
+            var engine = modRef.CreateMCJITCompiler();
             foreach (var functionName in functionNames)
             {
-                if (!module.TryGetFunction(functionName, out IrFunction? funcDef))
+                var funcDef = modRef.GetNamedFunction(functionName);
+                if (funcDef == default)
                 {
                     throw new ExternalException($"Failed to find function '{functionName}'");
                 }
 
-                var function = engine.GetPointerToGlobal<SimpleFunction>(funcDef.ValueHandle);
+                var function = engine.GetPointerToGlobal<SimpleFunction>(funcDef);
                 function();
             }
         }

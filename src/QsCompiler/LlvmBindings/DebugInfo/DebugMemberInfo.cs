@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using Ubiquity.NET.Llvm.Types;
+using LlvmBindings.Types;
 
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>Describes a member/field of a type for creating debug information</summary>
     /// <remarks>
@@ -64,7 +64,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public IDebugType<ITypeRef, DIType> DebugType { get; }
 
         /// <summary>Gets the explicit layout information for this member</summary>
-        /// <remarks>If this is <see langword="null"/> then <see href="xref:Ubiquity.NET.Llvm.DebugInfo.DebugStructType.SetBody*">DebugStructType.SetBody</see>
+        /// <remarks>If this is <see langword="null"/> then <see href="xref:LlvmBindings.DebugInfo.DebugStructType.SetBody*">DebugStructType.SetBody</see>
         /// will default to using <see cref="BitcodeModule.Layout"/> to determine the size using the module's target specific layout.
         /// <note type="Important">
         /// If this property is provided (e.g. is not <see langword="null"/>) for any member of a type, then

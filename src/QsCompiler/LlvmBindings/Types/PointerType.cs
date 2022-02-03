@@ -6,12 +6,12 @@
 // -----------------------------------------------------------------------
 
 using System;
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
 // Interface+internal type matches file name
 #pragma warning disable SA1649
 
-namespace Ubiquity.NET.Llvm.Types
+namespace LlvmBindings.Types
 {
     /// <summary>Interface for a pointer type in LLVM.</summary>
     public interface IPointerType

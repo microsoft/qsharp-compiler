@@ -8,9 +8,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Ubiquity.NET.Llvm.Values;
+using LlvmBindings.Values;
 
-namespace Ubiquity.NET.Llvm.Instructions
+namespace LlvmBindings.Instructions
 {
     /// <summary>Support class to provide read/update semantics for the successor blocks of an instruction.</summary>
     /// <remarks>

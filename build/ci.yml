@@ -33,8 +33,16 @@ jobs:
   - template: init.yml
   - template: steps.yml
   - template: wrap-up.yml
-  pool:
-    vmImage: windows-latest
+  strategy:
+    matrix:
+      linux:
+        imageName: 'ubuntu-latest'
+      mac:
+        imageName: 'macOS-latest'
+      windows:
+        imageName: 'windows-latest'
+  pool: 
+    vmImage: $(imageName)
 
 
 - job: Style

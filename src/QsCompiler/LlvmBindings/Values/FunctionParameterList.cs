@@ -9,9 +9,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.Values
+namespace LlvmBindings.Values
 {
     /// <summary>Support class to provide read only list semantics to the parameters of a method.</summary>
     internal class FunctionParameterList
