@@ -23,7 +23,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     member this.Statements : StatementTransformationBase = this.StatementTransformationHandle()
     member this.Expressions : ExpressionTransformationBase = this.StatementTransformationHandle().Expressions
-    member this.Common : CommonTransformationItems = this.StatementTransformationHandle().Expressions.Common
+    member this.Common : CommonTransformationNodes = this.StatementTransformationHandle().Expressions.Common
 
     new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
         new StatementKindTransformationBase(options, "_internal_")
@@ -258,7 +258,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
 
     member this.StatementKinds : StatementKindTransformationBase = this.StatementKindTransformationHandle()
     member this.Expressions : ExpressionTransformationBase = this.ExpressionTransformationHandle()
-    member this.Common : CommonTransformationItems = this.ExpressionTransformationHandle().Common
+    member this.Common : CommonTransformationNodes = this.ExpressionTransformationHandle().Common
 
     new(statementKindTransformation: unit -> StatementKindTransformationBase,
         expressionTransformation: unit -> ExpressionTransformationBase,
