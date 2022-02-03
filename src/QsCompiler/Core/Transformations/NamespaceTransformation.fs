@@ -51,7 +51,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnAbsoluteLocation instead">]
-    default this.OnLocation loc = loc
+    override this.OnLocation loc = loc
 
     abstract OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
@@ -68,7 +68,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnItemNameDeclaration instead">]
-    default this.OnItemName name = name
+    override this.OnItemName name = name
 
     abstract OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
 
@@ -81,7 +81,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             let t = this.Statements.Expressions.Types.OnType itemType
             QsTupleItem << Anonymous |> Node.BuildOr original t
         | QsTupleItem (Named item) as original ->
-            let loc = this.Common.OnSymbolLocation (item.Position, item.Range)
+            let loc = this.Common.OnSymbolLocation(item.Position, item.Range)
             let name = this.Common.OnItemNameDeclaration item.VariableName
             let t = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
@@ -95,7 +95,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // TODO: RELEASE 2022-09: Remove.
     [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead.">]
-    default this.OnArgumentName arg =
+    override this.OnArgumentName arg =
         match arg with
         | ValidName name -> this.Statements.Expressions.Common.OnLocalNameDeclaration name |> ValidName
         | InvalidName -> arg
@@ -107,13 +107,13 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     // TODO: RELEASE 2022-09: Make this an internal member. Keep the following comment:
     // do not expose this - this handle is exposed as a virtual member in the SyntaxTreeTransformation itself
     [<Obsolete "Use SyntaxTreeTransformation.OnArgumentTuple instead.">]
-    default this.OnArgumentTuple arg =
+    override this.OnArgumentTuple arg =
         match arg with
         | QsTuple items as original ->
             let transformed = items |> Seq.map this.Common.OnArgumentTuple |> ImmutableArray.CreateRange
             QsTuple |> Node.BuildOr original transformed
         | QsTupleItem declInfo as original ->
-            let loc = this.Common.OnSymbolLocation (declInfo.Position, declInfo.Range)
+            let loc = this.Common.OnSymbolLocation(declInfo.Position, declInfo.Range)
             let name = this.OnArgumentName declInfo.VariableName // replace with the implementation once the deprecated member is removed
             let t = this.Statements.Expressions.Types.OnType declInfo.Type
             let info = this.Statements.Expressions.OnExpressionInformation declInfo.InferredInformation

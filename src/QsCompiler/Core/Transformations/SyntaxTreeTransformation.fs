@@ -60,7 +60,8 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
 
     // These overrides are here since it is impractical to have them live in the definition of CommonTransformationItems.
 
-    override this.OnArgumentTuple argTuple = this.Namespaces.OnArgumentTuple argTuple
+    override this.OnArgumentTuple argTuple =
+        this.Namespaces.OnArgumentTuple argTuple
 
     // These overrides are only here to preserve the functionality of the now deprecated methods.
     // They can be removed and the deprecation warning for this file can be reenabled once the deprecated methods are removed.
@@ -70,7 +71,9 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
     override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
     override this.OnRelativeLocation loc = this.Statements.OnLocation loc
     override this.OnTypeRange range = this.Types.OnTypeRange range
-    override this.OnExpressionRange range = this.Expressions.OnRangeInformation range
+
+    override this.OnExpressionRange range =
+        this.Expressions.OnRangeInformation range
 
 
 and TypeTransformation<'T> internal (options, _internal_) =
@@ -331,7 +334,8 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
 
     // These overrides are here since it is impractical to have them live in the definition of CommonTransformationItems.
 
-    override this.OnArgumentTuple argTuple = this.Namespaces.OnArgumentTuple argTuple
+    override this.OnArgumentTuple argTuple =
+        this.Namespaces.OnArgumentTuple argTuple
 
     // These overrides are only here to preserve the functionality of the now deprecated methods.
     // They can be removed and the deprecation warning for this file can be reenabled once the deprecated methods are removed.
@@ -341,7 +345,9 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
     override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
     override this.OnRelativeLocation loc = this.Statements.OnLocation loc
     override this.OnTypeRange range = this.Types.OnTypeRange range
-    override this.OnExpressionRange range = this.Expressions.OnRangeInformation range
+
+    override this.OnExpressionRange range =
+        this.Expressions.OnRangeInformation range
 
 
 and TypeTransformation internal (options, _internal_) =

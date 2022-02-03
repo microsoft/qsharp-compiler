@@ -28,8 +28,7 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
 
     member this.Common : CommonTransformationNodes = this.CommonTransformationItemsHandle()
 
-    internal new(getCommonItems: unit -> CommonTransformationNodes,
-                 options: TransformationOptions) as this =
+    internal new(getCommonItems: unit -> CommonTransformationNodes, options: TransformationOptions) as this =
         new TypeTransformationBase(options, "_internal_")
         then this.CommonTransformationItemsHandle <- getCommonItems
 
@@ -49,7 +48,7 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
 
     // TODO: RELEASE 2021-10: Remove obsolete method.
     [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
-    default this.OnRangeInformation range = range
+    override this.OnRangeInformation range = range
 
     // TODO: RELEASE 2022-09: Remove obsolete method.
     [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
@@ -57,7 +56,7 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
 
     // TODO: RELEASE 2022-09: Remove obsolete method.
     [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
-    default this.OnTypeRange range = range
+    override this.OnTypeRange range = range
 
     abstract OnCharacteristicsExpression : ResolvedCharacteristics -> ResolvedCharacteristics
     default this.OnCharacteristicsExpression fs = fs

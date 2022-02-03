@@ -24,7 +24,7 @@ type InferredExpressionInformation =
     /// Returns the inferred expression information used for declared parameters to callables.
     /// Note that this information is used within the declaration but not for the argument(s) in any given call-like expressions.
     static member ParameterDeclaration = { IsMutable = false; HasLocalQuantumDependency = false }
-            
+
 type LocalVariableDeclaration<'Name, 'Type> =
     {
         /// the name of the declared variable
@@ -60,18 +60,19 @@ type LocalVariableDeclaration<'Name, 'Type> =
             Range = this.Range
         }
 
-    member this.WithPosition position = {this with Position = position}
+    member this.WithPosition position = { this with Position = position }
 
-    member this.WithRange range = {this with Range = range}
+    member this.WithRange range = { this with Range = range }
 
-    member this.WithInferredInformation info = {this with InferredInformation = info}
+    member this.WithInferredInformation info =
+        { this with InferredInformation = info }
 
 module LocalVariableDeclaration =
     let New isMutable ((pos, range), vName: 'Name, t, hasLocalQuantumDependency) =
         {
             VariableName = vName
             Type = t
-            InferredInformation = {IsMutable = isMutable; HasLocalQuantumDependency = hasLocalQuantumDependency}
+            InferredInformation = { IsMutable = isMutable; HasLocalQuantumDependency = hasLocalQuantumDependency }
             Position = pos
             Range = range
         }

@@ -83,7 +83,8 @@ let toInt n = IntLiteral(int64 n) |> toExpr
 let toBigInt b =
     BigIntLiteral(System.Numerics.BigInteger.Parse b) |> toExpr
 
-let toSymbol s = { Symbol = Symbol s; Range = Value Range.Zero }
+let toSymbol s =
+    { Symbol = Symbol s; Range = Value Range.Zero }
 
 let toIdentifier s =
     (Identifier(toSymbol s, Null)) |> toExpr
@@ -232,11 +233,12 @@ let rec matchExpression e1 e2 =
     | ControlledApplication s1, ControlledApplication s2 -> matchExpression s1 s2
     | CallLikeExpression (s1a, s1b), CallLikeExpression (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
     | Lambda lambda1, Lambda lambda2 ->
-        let matchArguments (arg1 : _ seq) (arg2 : _ seq) =
-            let argMismatch (d1: LocalVariableDeclaration<_,_>, d2 : LocalVariableDeclaration<_, _>) =
+        let matchArguments (arg1: _ seq) (arg2: _ seq) =
+            let argMismatch (d1: LocalVariableDeclaration<_, _>, d2: LocalVariableDeclaration<_, _>) =
                 d1.VariableName <> d2.VariableName
-            arg1.Count() = arg2.Count()
-            && (Seq.zip arg1 arg2 |> Seq.exists argMismatch |> not)
+
+            arg1.Count() = arg2.Count() && (Seq.zip arg1 arg2 |> Seq.exists argMismatch |> not)
+
         lambda1.Kind = lambda2.Kind
         && matchArguments lambda1.ArgumentTuple.Items lambda2.ArgumentTuple.Items
         && matchExpression lambda1.Body lambda2.Body

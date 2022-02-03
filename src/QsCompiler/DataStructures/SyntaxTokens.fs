@@ -149,7 +149,7 @@ type Lambda<'Expr, 'Type> =
     member lambda.Kind = lambda.kind
 
     /// The symbol tuple for the lambda's parameter.
-    member lambda.ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>>= lambda.argTuple
+    member lambda.ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>> = lambda.argTuple
 
     /// The body of the lambda.
     member lambda.Body = lambda.body
@@ -164,30 +164,32 @@ module Lambda =
             body = body
         }
 
-    let createUnchecked kind (argTuple : QsSymbol) body =
-        let variableDeclaration = {
-                VariableName = InvalidName;
-                Type = { Type = MissingType; Range = Null };
+    let createUnchecked kind (argTuple: QsSymbol) body =
+        let variableDeclaration =
+            {
+                VariableName = InvalidName
+                Type = { Type = MissingType; Range = Null }
                 InferredInformation = InferredExpressionInformation.ParameterDeclaration
-                Position = Null;
+                Position = Null
                 Range = Range.Zero
             }
 
-        let rec mapSymbol (sym : QsSymbol) =
+        let rec mapSymbol (sym: QsSymbol) =
             match sym.Symbol with
             | Symbol name ->
-                let range = sym.Range.ValueOrApply (fun _ -> failwith "missing range information for valid symbol")
-                QsTupleItem {variableDeclaration with VariableName = ValidName name; Range = range}
+                let range = sym.Range.ValueOrApply(fun _ -> failwith "missing range information for valid symbol")
+                QsTupleItem { variableDeclaration with VariableName = ValidName name; Range = range }
             | SymbolTuple syms -> syms |> Seq.map mapSymbol |> ImmutableArray.CreateRange |> QsTuple
             | QualifiedSymbol _ -> failwith "qualified symbol in argument tuple"
             | OmittedSymbols -> failwith "omitted symbols in argument tuple"
             | MissingSymbol
-            | InvalidSymbol -> QsTupleItem {variableDeclaration with Range = sym.Range.ValueOr Range.Zero}
+            | InvalidSymbol -> QsTupleItem { variableDeclaration with Range = sym.Range.ValueOr Range.Zero }
 
         let argTuple = // argument tuples are always passed as QsTuple even if they contain no items or a single item
             match mapSymbol argTuple with
-            | QsTuple _ as tuple -> tuple 
+            | QsTuple _ as tuple -> tuple
             | QsTupleItem _ as item -> ImmutableArray.Create(item) |> QsTuple
+
         create kind argTuple body
 
 type QsExpressionKind<'Expr, 'Symbol, 'Type> =

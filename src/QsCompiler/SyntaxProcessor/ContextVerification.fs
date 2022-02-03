@@ -363,5 +363,6 @@ let rec internal freeVariables e =
             match decl.VariableName with
             | SyntaxTree.QsLocalSymbol.ValidName name -> Some name
             | SyntaxTree.QsLocalSymbol.InvalidName -> None
+
         let bindings = lambda.ArgumentTuple.Items |> Seq.choose validVariable |> Set
         freeVariables lambda.Body |> Map.filter (fun name _ -> Set.contains name bindings |> not)

@@ -203,7 +203,10 @@ let private statementPatterns statement =
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override this.OnTypedExpression expression =
-                expressionPatterns false expression |> Seq.map (addOffset transformation.Offset) |> patterns.AddRange
+                expressionPatterns false expression
+                |> Seq.map (addOffset transformation.Offset)
+                |> patterns.AddRange
+
                 expression
         }
 

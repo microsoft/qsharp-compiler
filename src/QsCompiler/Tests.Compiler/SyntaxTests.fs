@@ -1369,7 +1369,10 @@ let ``Lambda tests`` () =
 
         "f -> f()",
         true,
-        Lambda.createUnchecked Function (toSymbol "f") (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+        Lambda.createUnchecked
+            Function
+            (toSymbol "f")
+            (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
         |> Lambda
         |> toExpr,
         []
@@ -1377,7 +1380,10 @@ let ``Lambda tests`` () =
         "(f -> f())",
         true,
         [
-            Lambda.createUnchecked Function (toSymbol "f") (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+            Lambda.createUnchecked
+                Function
+                (toSymbol "f")
+                (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
             |> Lambda
             |> toExpr
         ]
@@ -1480,7 +1486,9 @@ let ``Lambda tests`` () =
         CallLikeExpression(
             toIdentifier "F",
             [
-                Lambda.createUnchecked Function { Symbol = MissingSymbol; Range = Null } (toInt 0) |> Lambda |> toExpr
+                Lambda.createUnchecked Function { Symbol = MissingSymbol; Range = Null } (toInt 0)
+                |> Lambda
+                |> toExpr
                 toIdentifier "xs"
             ]
             |> toTuple

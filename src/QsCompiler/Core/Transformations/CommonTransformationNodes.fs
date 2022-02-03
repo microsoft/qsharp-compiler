@@ -38,7 +38,7 @@ type CommonTransformationNodes internal () =
     default this.OnRelativeLocation loc = loc
 
     abstract OnSymbolLocation : QsNullable<Position> * Range -> QsNullable<Position> * Range
-    default this.OnSymbolLocation (offset, range) = (offset, range)
+    default this.OnSymbolLocation(offset, range) = (offset, range)
 
     abstract OnExpressionRange : QsNullable<Range> -> QsNullable<Range>
     default this.OnExpressionRange range = range

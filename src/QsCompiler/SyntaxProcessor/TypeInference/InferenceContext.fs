@@ -330,12 +330,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         relativePos <- Null
         statementPosition <- position
 
-    member context.UseSyntaxTreeNodeLocation (rootNodePosition, relativePosition) =
+    member context.UseSyntaxTreeNodeLocation(rootNodePosition, relativePosition) =
         rootNodePos <- Value rootNodePosition
         relativePos <- Value relativePosition
         statementPosition <- rootNodePosition + relativePosition
 
-    member internal context.GetRelativeStatementPosition () =
+    member internal context.GetRelativeStatementPosition() =
         match relativePos with
         | Value pos -> pos
         | Null -> InvalidOperationException "location information is unspecified" |> raise

@@ -913,25 +913,26 @@ type QsExpression with
                 if var.InferredInformation.IsMutable then
                     Map.tryFind var.VariableName freeVars |> Option.iter (diagnoseMutable var.VariableName |> Seq.iter)
 
-            let rec mapArgumentTuple = function
-                | QsTupleItem (decl : LocalVariableDeclaration<_, _>) ->
+            let rec mapArgumentTuple =
+                function
+                | QsTupleItem (decl: LocalVariableDeclaration<_, _>) ->
                     let var : LocalVariableDeclaration<QsLocalSymbol, ResolvedType> =
-                        let resDecl = decl.WithPosition (inference.GetRelativeStatementPosition() |> Value)
-                        resDecl.WithType (inference.Fresh decl.Range)
+                        let resDecl = decl.WithPosition(inference.GetRelativeStatementPosition() |> Value)
+                        resDecl.WithType(inference.Fresh decl.Range)
+
                     let added, diagnostics = symbols.TryAddVariableDeclartion var
                     Array.iter diagnose diagnostics
-                    if added then QsTupleItem var
-                    else QsTupleItem (var.WithName InvalidName)
-                | QsTuple tuple ->
-                    tuple
-                    |> Seq.map mapArgumentTuple
-                    |> ImmutableArray.CreateRange
-                    |> QsTuple
+                    if added then QsTupleItem var else QsTupleItem(var.WithName InvalidName)
+                | QsTuple tuple -> tuple |> Seq.map mapArgumentTuple |> ImmutableArray.CreateRange |> QsTuple
+
             let argTuple = mapArgumentTuple lambda.ArgumentTuple
 
-            let rec getArgumentTupleType = function
-                | QsTupleItem (decl : LocalVariableDeclaration<_, _>) -> decl.Type
-                | QsTuple tuple -> tuple |> Seq.map getArgumentTupleType |> ImmutableArray.CreateRange |> TupleType |> ResolvedType.New
+            let rec getArgumentTupleType =
+                function
+                | QsTupleItem (decl: LocalVariableDeclaration<_, _>) -> decl.Type
+                | QsTuple tuple ->
+                    tuple |> Seq.map getArgumentTupleType |> ImmutableArray.CreateRange |> TupleType |> ResolvedType.New
+
             let inputType =
                 match argTuple with
                 | QsTuple tuple when tuple.Length = 0 -> UnitType |> ResolvedType.New

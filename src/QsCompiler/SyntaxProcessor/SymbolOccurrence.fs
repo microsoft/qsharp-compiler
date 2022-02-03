@@ -63,11 +63,13 @@ module SymbolOccurrence =
                 match decl.VariableName with
                 | SyntaxTree.QsLocalSymbol.ValidName name -> Some { Symbol = Symbol name; Range = Value decl.Range }
                 | SyntaxTree.QsLocalSymbol.InvalidName -> None
+
             let declarations =
                 lambda.ArgumentTuple.Items
                 |> Seq.choose validDeclaration
-                |> Seq.map (fun decl -> Declaration decl )
+                |> Seq.map (fun decl -> Declaration decl)
                 |> Seq.toList
+
             declarations @ inExpression lambda.Body
         // TODO: Handle named item accessor.
         | NamedItem (e, _)
