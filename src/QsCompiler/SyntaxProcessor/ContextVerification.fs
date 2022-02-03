@@ -357,7 +357,7 @@ let rec internal freeVariables e =
     | CONDITIONAL (e1, e2, e3) -> freeVariables e1 |> merge (freeVariables e2) |> merge (freeVariables e3)
     | ValueTuple es
     | StringLiteral (_, es)
-    | ValueArray es -> es |> Seq.map freeVariables |> Seq.reduce merge
+    | ValueArray es -> es |> Seq.map freeVariables |> Seq.fold merge Map.empty
     | Lambda lambda ->
         let validVariable (decl: SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol, _>) =
             match decl.VariableName with

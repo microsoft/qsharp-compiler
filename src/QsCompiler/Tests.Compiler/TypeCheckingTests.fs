@@ -3,28 +3,45 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 
 /// Tests for type checking of Q# programs.
 module TypeCheckingTests =
+    let private compilation = CompilerTests.Compile("TestCases", [ "General.qs"; "TypeChecking.qs"; "Types.qs" ])
+
     /// The compiled type-checking tests.
-    let private tests =
-        CompilerTests.Compile("TestCases", [ "General.qs"; "TypeChecking.qs"; "Types.qs" ]) |> CompilerTests
+    let private tests = CompilerTests compilation
+
+    let private ns = "Microsoft.Quantum.Testing.TypeChecking"
 
     /// <summary>
     /// Asserts that the declaration with the given <paramref name="name"/> has the given
     /// <paramref name="diagnostics"/>.
     /// </summary>
     let internal expect name diagnostics =
-        let ns = "Microsoft.Quantum.Testing.TypeChecking"
         tests.VerifyDiagnostics(QsQualifiedName.New(ns, name), diagnostics)
 
     let private allValid name count =
         for i = 1 to count do
             expect (sprintf "%s%i" name i) []
+
+    let private findSpecScope name kind =
+        let callable = compilation.Callables.[QsQualifiedName.New(ns, name)]
+        let spec = callable.Specializations |> Seq.find (fun s -> s.Kind = kind)
+
+        match spec.Implementation with
+        | Provided (_, scope) -> scope
+        | _ -> failwith "Missing specialization implementation."
+
+    let private getOperationType (type_: ResolvedType) =
+        match type_.Resolution with
+        | QsTypeKind.Operation (io, info) -> io, info
+        | _ -> failwith "Not an operation type."
 
     [<Fact>]
     let ``Supports integral operators`` () =
@@ -79,7 +96,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Supports lambda expressions`` () =
-        allValid "Lambda" 14
+        allValid "Lambda" 22
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
@@ -87,6 +104,59 @@ module TypeCheckingTests =
         expect "LambdaInvalid5" [ Error ErrorCode.MutableClosure; Error ErrorCode.MutableClosure ]
         expect "LambdaInvalid6" [ Error ErrorCode.LocalVariableAlreadyExists ]
         expect "LambdaInvalid7" [ Error ErrorCode.LocalVariableAlreadyExists ]
+
+    [<Fact>]
+    let ``Operation lambda with non-unit return (1)`` () =
+        let scope = findSpecScope "Lambda17" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let (_, output), info = getOperationType lambda.Type
+        Assert.Equal(Int, output.Resolution)
+        Assert.Empty(info.Characteristics.GetProperties())
+
+    [<Fact>]
+    let ``Operation lambda with non-unit return (2)`` () =
+        let scope = findSpecScope "Lambda18" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let (_, output), info = getOperationType lambda.Type
+
+        let outputs =
+            match output.Resolution with
+            | TupleType ts -> ts |> Seq.map (fun t -> t.Resolution)
+            | _ -> failwith "Not a tuple type."
+
+        Assert.Equal([ UnitType; Int ], outputs)
+        Assert.Empty(info.Characteristics.GetProperties())
+
+    [<Fact>]
+    let ``Operation lambda with non-unit return (3)`` () =
+        let scope = findSpecScope "Lambda19" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let (_, output), info = getOperationType lambda.Type
+        Assert.Equal(Int, output.Resolution)
+        Assert.Empty(info.Characteristics.GetProperties())
+
+    [<Fact>]
+    let ``Operation lambda characteristics intersection (1)`` () =
+        let scope = findSpecScope "Lambda20" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let _, info = getOperationType lambda.Type
+        let properties = info.Characteristics.GetProperties()
+        Assert.True(properties.SetEquals(ImmutableHashSet.Create Adjointable), "Set not equal to Adj.")
+
+    [<Fact>]
+    let ``Operation lambda characteristics intersection (2)`` () =
+        let scope = findSpecScope "Lambda21" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let _, info = getOperationType lambda.Type
+        let properties = info.Characteristics.GetProperties()
+        Assert.True(properties.SetEquals(ImmutableHashSet.Create Controllable), "Set not equal to Ctl.")
+
+    [<Fact>]
+    let ``Operation lambda characteristics intersection (3)`` () =
+        let scope = findSpecScope "Lambda22" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let _, info = getOperationType lambda.Type
+        Assert.Empty(info.Characteristics.GetProperties())
 
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =

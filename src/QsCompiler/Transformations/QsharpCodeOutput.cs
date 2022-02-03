@@ -742,6 +742,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
             /// <inheritdoc/>
+            public override QsExpressionKind OnLambda(Lambda<TypedExpression, ResolvedType> lambda)
+            {
+                // ToDo: Use lambda operators defined in QsKeywords.fs (https://github.com/microsoft/qsharp-compiler/issues/1113)
+                var qsLambdaOp = Keywords.QsOperator.New("=>", 0, false);
+                var qsLambdaFunc = Keywords.QsOperator.New("->", 0, false);
+
+                var op = lambda.Kind.IsFunction ? qsLambdaFunc : qsLambdaOp;
+                var paramStr = ArgumentTuple(lambda.ArgumentTuple, this.typeToQs);
+                this.Output = $"{paramStr} {op.op} {this.Recur(op.prec, lambda.Body)}";
+                this.currentPrecedence = op.prec;
+                return QsExpressionKind.NewLambda(lambda);
+            }
+
+            /// <inheritdoc/>
             public override QsExpressionKind OnFunctionCall(TypedExpression method, TypedExpression arg)
             {
                 return this.CallLike(method, arg);
