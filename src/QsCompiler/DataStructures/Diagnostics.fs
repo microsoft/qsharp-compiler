@@ -471,7 +471,7 @@ type DiagnosticItem =
             | ErrorCode.TypeIntersectionMismatch ->
                 "The type {1} does not {0} the type {2}.\nLeft-hand type:  {3}\nRight-hand type: {4}"
             | ErrorCode.ValueImplicitlyIgnored ->
-                "This expression has type {1} and its value is implicitly ignored. " +
+                "This expression has type {0} and its value is implicitly ignored. " +
                 "Use \"let _ = expr;\" or \"Ignore(expr);\" to discard the value explicitly."
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
