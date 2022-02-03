@@ -89,40 +89,36 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             QsTupleItem << Named << LocalVariableDeclaration.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
-    // TODO: RELEASE 2022-09: Remove member.
-    [<Obsolete "Use SyntaxTreeTransformation.OnArgumentTuple instead.">]
-    abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
-
-    // TODO: RELEASE 2022-09: Remove member.
-    [<Obsolete "Use SyntaxTreeTransformation.OnArgumentTuple instead.">]
-    default this.OnArgumentTuple arg =
-        match arg with
-        | QsTuple items as original ->
-            let transformed = items |> Seq.map this.OnArgumentTuple |> ImmutableArray.CreateRange
-            QsTuple |> Node.BuildOr original transformed
-        | QsTupleItem item as original ->
-            QsTupleItem << this.OnVariableDeclarationInformation |> Node.BuildOr original item
-
     // TODO: RELEASE 2022-09: Remove.
     [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead.">]
     abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
 
-    // TODO: RELEASE 2022-09: Make this an internal method or move implementation into CommonTransformationNodes.
-    // If it is kept here as an internal member, keep the following comment:
-    // do not expose this - this handle is exposed as a virtual member in the SyntaxTreeTransformation itself
+    // TODO: RELEASE 2022-09: Remove.
     [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead.">]
     default this.OnArgumentName arg =
         match arg with
         | ValidName name -> this.Statements.Expressions.Common.OnLocalNameDeclaration name |> ValidName
         | InvalidName -> arg
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use SyntaxTreeTransformation.OnArgumentTuple instead.">]
+    abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
+
+    // TODO: RELEASE 2022-09: Make this an internal member. Keep the following comment:
     // do not expose this - this handle is exposed as a virtual member in the SyntaxTreeTransformation itself
-    member internal this.OnVariableDeclarationInformation declInfo =
-        let loc = this.Common.OnSymbolLocation (declInfo.Position, declInfo.Range)
-        let name = this.OnArgumentName declInfo.VariableName // replace with the implementation once the deprecated member is removed
-        let t = this.Statements.Expressions.Types.OnType declInfo.Type
-        let info = this.Statements.Expressions.OnExpressionInformation declInfo.InferredInformation
-        LocalVariableDeclaration.New info.IsMutable (loc, name, t, info.HasLocalQuantumDependency)
+    [<Obsolete "Use SyntaxTreeTransformation.OnArgumentTuple instead.">]
+    default this.OnArgumentTuple arg =
+        match arg with
+        | QsTuple items as original ->
+            let transformed = items |> Seq.map this.Common.OnArgumentTuple |> ImmutableArray.CreateRange
+            QsTuple |> Node.BuildOr original transformed
+        | QsTupleItem declInfo as original ->
+            let loc = this.Common.OnSymbolLocation (declInfo.Position, declInfo.Range)
+            let name = this.OnArgumentName declInfo.VariableName // replace with the implementation once the deprecated member is removed
+            let t = this.Statements.Expressions.Types.OnType declInfo.Type
+            let info = this.Statements.Expressions.OnExpressionInformation declInfo.InferredInformation
+            let newDecl = LocalVariableDeclaration.New info.IsMutable (loc, name, t, info.HasLocalQuantumDependency)
+            QsTupleItem |> Node.BuildOr original newDecl
 
     abstract OnSignature : ResolvedSignature -> ResolvedSignature
 
@@ -139,7 +135,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     abstract OnProvidedImplementation : QsArgumentTuple * QsScope -> QsArgumentTuple * QsScope
 
     default this.OnProvidedImplementation(argTuple, body) =
-        let argTuple = this.OnArgumentTuple argTuple
+        let argTuple = this.Common.OnArgumentTuple argTuple
         let body = this.Statements.OnScope body
         argTuple, body
 
@@ -245,7 +241,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         let loc = this.Common.OnAbsoluteLocation c.Location
         let attributes = c.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
         let signature = this.OnSignature c.Signature
-        let argTuple = this.OnArgumentTuple c.ArgumentTuple
+        let argTuple = this.Common.OnArgumentTuple c.ArgumentTuple
 
         let specializations =
             c.Specializations

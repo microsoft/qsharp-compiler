@@ -31,9 +31,6 @@ type CommonTransformationNodes internal () =
     abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
     default this.OnArgumentTuple argTuple = argTuple
 
-    abstract OnVariableDeclarationInformation : LocalVariableDeclaration<QsLocalSymbol, ResolvedType> -> LocalVariableDeclaration<QsLocalSymbol, ResolvedType>
-    default this.OnVariableDeclarationInformation declInfo = declInfo
-
     abstract OnAbsoluteLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnAbsoluteLocation loc = loc
 

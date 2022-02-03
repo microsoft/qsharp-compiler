@@ -656,7 +656,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 source: callable.Source,
                 position: callable.Position,
                 symbolRange: callable.SymbolRange,
-                argumentTuple: this.Namespaces.OnArgumentTuple(callable.ArgumentTuple),
+                argumentTuple: this.OnArgumentTuple(callable.ArgumentTuple),
                 signature: this.Namespaces.OnSignature(callable.Signature),
                 documentation: this.Namespaces.OnDocumentation(callable.Documentation));
 
