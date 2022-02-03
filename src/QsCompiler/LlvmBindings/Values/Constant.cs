@@ -6,10 +6,10 @@
 // -----------------------------------------------------------------------
 
 using System;
-using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Types;
+using LlvmBindings.Interop;
+using LlvmBindings.Types;
 
-namespace Ubiquity.NET.Llvm.Values
+namespace LlvmBindings.Values
 {
     /// <summary>Contains an LLVM Constant value.</summary>
     public unsafe class Constant

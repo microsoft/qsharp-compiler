@@ -7,9 +7,9 @@
 
 using System;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.Values
+namespace LlvmBindings.Values
 {
     /// <summary>Single attribute for functions, function returns and function parameters.</summary>
     /// <remarks>

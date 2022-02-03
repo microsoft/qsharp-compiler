@@ -7,13 +7,6 @@ $ErrorActionPreference = 'Stop'
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
 
-choco install llvm --version=11.1.0 --allow-downgrade
-if (!(Get-Command clang -ErrorAction SilentlyContinue) -and (choco find --idonly -l llvm) -contains "llvm") {
-    # For some reason, adding to the path does not work on our build servers, even after calling refreshenv.
-    # LLVM was installed by Chocolatey, so add the install location to the path.
-    $env:PATH += ";$($env:SystemDrive)\Program Files\LLVM\bin"
-}
-
 ##
 # Q# compiler and Sdk tools
 ##
@@ -145,7 +138,7 @@ Build-One '../src/QuantumSdk/Tools/Tools.sln'
 Build-One '../src/Telemetry/Telemetry.sln'
 Build-One '../QsFmt.sln'
 
-if ($Env:ENABLE_VSIX -ne "false") {
+if ($Env:ENABLE_VSIX -ne "false" -and $IsWindows) {
     Build-VSCode
     Build-VS
 } else {

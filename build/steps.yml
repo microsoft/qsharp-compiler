@@ -11,11 +11,12 @@ steps:
 - pwsh: ./pack.ps1
   displayName: "Pack NuGets and VS Code"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
+  condition: eq( variables['Agent.OS'], 'Windows_NT' )
 
 # Visual Studio extension can't be built from the build script as MSBuild is not available.
 - task: VSBuild@1
   displayName: 'Pack VisualStudio extension'
-  condition: and(succeeded(), ne(variables['Enable.VSIX'], 'false'))
+  condition: and(succeeded(), and(ne(variables['Enable.VSIX'], 'false'), eq( variables['Agent.OS'], 'Windows_NT' )))
   inputs:
     solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
     msbuildArgs: >-
@@ -25,5 +26,5 @@ steps:
 
 - pwsh: ./manifest.ps1
   displayName: "List built packages & assemblies"
-  condition: succeededOrFailed()
+  condition: and(succeededOrFailed(), eq( variables['Agent.OS'], 'Windows_NT' ))
   workingDirectory: '$(System.DefaultWorkingDirectory)/build'

@@ -5,7 +5,7 @@
 
 using System;
 
-namespace LLVMSharp.Interop
+namespace LlvmBindings.Interop
 {
     /// <summary>Support for refs to LLVMOpaqueValueMetadataEntry*.</summary>
     public unsafe partial struct LLVMValueMetadataEntryRef : IEquatable<LLVMValueMetadataEntryRef>
