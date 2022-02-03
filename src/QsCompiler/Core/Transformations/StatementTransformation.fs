@@ -309,13 +309,13 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
 
     default this.OnLocalDeclarations decl =
         let onLocalVariableDeclaration (local: LocalVariableDeclaration<string>) =
-            let loc = local.Position, local.Range // TODO: SYMBOL RANGE FROM LOCALVARDECL
-            let name = this.Expressions.Common.OnLocalName local.VariableName
-            let varType = this.Expressions.Types.OnType local.Type
-            let info = this.Expressions.OnExpressionInformation local.InferredInformation
-            LocalVariableDeclaration.New info.IsMutable (loc, name, varType, info.HasLocalQuantumDependency)
-
-        let variableDeclarations = decl.Variables |> Seq.map onLocalVariableDeclaration
+            let mapped =
+                local.WithName (ValidName local.VariableName)
+                |> this.Common.OnVariableDeclarationInformation
+            match mapped.VariableName with
+            | ValidName name -> Some (mapped.WithName name)
+            | InvalidName -> None
+        let variableDeclarations = decl.Variables |> Seq.choose onLocalVariableDeclaration
 
         if options.Rebuild then
             LocalDeclarations.New(variableDeclarations |> ImmutableArray.CreateRange)

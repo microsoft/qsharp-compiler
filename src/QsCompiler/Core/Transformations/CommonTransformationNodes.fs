@@ -5,6 +5,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
+
+type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 
 
 /// <summary>
@@ -25,14 +28,23 @@ type CommonTransformationItems internal () =
     abstract OnItemName : UserDefinedType * string -> string
     default this.OnItemName(parentType, itemName) = itemName
 
+    abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
+    default this.OnArgumentTuple argTuple = argTuple
+
+    abstract OnVariableDeclarationInformation : LocalVariableDeclaration<QsLocalSymbol, ResolvedType> -> LocalVariableDeclaration<QsLocalSymbol, ResolvedType>
+    default this.OnVariableDeclarationInformation declInfo = declInfo
+
     abstract OnAbsoluteLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnAbsoluteLocation loc = loc
 
     abstract OnRelativeLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnRelativeLocation loc = loc
 
-    abstract OnTypeRange : TypeRange -> TypeRange
-    default this.OnTypeRange range = range
+    abstract OnSymbolLocation : QsNullable<Position> * Range -> QsNullable<Position> * Range
+    default this.OnSymbolLocation (offset, range) = (offset, range)
 
     abstract OnExpressionRange : QsNullable<Range> -> QsNullable<Range>
     default this.OnExpressionRange range = range
+
+    abstract OnTypeRange : TypeRange -> TypeRange
+    default this.OnTypeRange range = range

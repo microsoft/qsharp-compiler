@@ -14,8 +14,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
-type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
-
 
 type NamespaceTransformationBase internal (options: TransformationOptions, _internal_) =
 
@@ -83,7 +81,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             let t = this.Statements.Expressions.Types.OnType itemType
             QsTupleItem << Anonymous |> Node.BuildOr original t
         | QsTupleItem (Named item) as original ->
-            let loc = item.Position, item.Range // TODO: SYMBOL RANGE FROM LOCALVARDECL
+            let loc = this.Common.OnSymbolLocation (item.Position, item.Range)
             let name = this.Common.OnItemNameDeclaration item.VariableName
             let t = this.Statements.Expressions.Types.OnType item.Type
             let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
@@ -92,37 +90,44 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
     // TODO: RELEASE 2022-09: Remove member.
-    [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead">]
-    abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
-
-    // TODO: RELEASE 2022-09: Remove member.
-    [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead">]
-    default this.OnArgumentName arg =
-        match arg with
-        | ValidName name ->
-            ValidName |> Node.BuildOr arg (this.Statements.Expressions.Common.OnLocalNameDeclaration name)
-        | InvalidName -> arg
-
+    [<Obsolete "Use SyntaxTreeTransformation.OnArgumentTuple instead.">]
     abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
 
+    // TODO: RELEASE 2022-09: Remove member.
+    [<Obsolete "Use SyntaxTreeTransformation.OnArgumentTuple instead.">]
     default this.OnArgumentTuple arg =
         match arg with
         | QsTuple items as original ->
             let transformed = items |> Seq.map this.OnArgumentTuple |> ImmutableArray.CreateRange
             QsTuple |> Node.BuildOr original transformed
         | QsTupleItem item as original ->
-            let loc = item.Position, item.Range // TODO: SYMBOL RANGE FROM LOCALVARDECL
-            let name = this.OnArgumentName item.VariableName // replace with the implementation once the deprecated member is removed
-            let t = this.Statements.Expressions.Types.OnType item.Type
-            let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
+            QsTupleItem << this.OnVariableDeclarationInformation |> Node.BuildOr original item
 
-            QsTupleItem << LocalVariableDeclaration.New info.IsMutable
-            |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
+    // TODO: RELEASE 2022-09: Remove.
+    [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead.">]
+    abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
+
+    // TODO: RELEASE 2022-09: Make this an internal method or move implementation into CommonTransformationNodes.
+    // If it is kept here as an internal member, keep the following comment:
+    // do not expose this - this handle is exposed as a virtual member in the SyntaxTreeTransformation itself
+    [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead.">]
+    default this.OnArgumentName arg =
+        match arg with
+        | ValidName name -> this.Statements.Expressions.Common.OnLocalNameDeclaration name |> ValidName
+        | InvalidName -> arg
+
+    // do not expose this - this handle is exposed as a virtual member in the SyntaxTreeTransformation itself
+    member internal this.OnVariableDeclarationInformation declInfo =
+        let loc = this.Common.OnSymbolLocation (declInfo.Position, declInfo.Range)
+        let name = this.OnArgumentName declInfo.VariableName // replace with the implementation once the deprecated member is removed
+        let t = this.Statements.Expressions.Types.OnType declInfo.Type
+        let info = this.Statements.Expressions.OnExpressionInformation declInfo.InferredInformation
+        LocalVariableDeclaration.New info.IsMutable (loc, name, t, info.HasLocalQuantumDependency)
 
     abstract OnSignature : ResolvedSignature -> ResolvedSignature
 
     default this.OnSignature(s: ResolvedSignature) =
-        let typeParams = s.TypeParameters // FIXME: TYPE NAME DOESN'T HAVE A RANGE...
+        let typeParams = s.TypeParameters // if this had a range is should be handled by the corresponding Common nodes
         let argType = this.Statements.Expressions.Types.OnType s.ArgumentType
         let returnType = this.Statements.Expressions.Types.OnType s.ReturnType
         let info = this.Statements.Expressions.Types.OnCallableInformation s.Information

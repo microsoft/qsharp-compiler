@@ -58,6 +58,11 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
 
     new(state: 'T) = new SyntaxTreeTransformation<'T>(state, TransformationOptions.Default)
 
+    // These overrides are here since it is impractical to have them live in the definition of CommonTransformationItems.
+
+    override this.OnArgumentTuple argTuple = this.Namespaces.OnArgumentTuple argTuple
+    override this.OnVariableDeclarationInformation declInfo = this.Namespaces.OnVariableDeclarationInformation declInfo
+
     // These overrides are only here to preserve the functionality of the now deprecated methods.
     // They can be removed and the deprecation warning for this file can be reenabled once the deprecated methods are removed.
 
@@ -324,6 +329,11 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
             this.Namespaces <- new NamespaceTransformation(this, options)
 
     new() = new SyntaxTreeTransformation(TransformationOptions.Default)
+
+    // These overrides are here since it is impractical to have them live in the definition of CommonTransformationItems.
+
+    override this.OnArgumentTuple argTuple = this.Namespaces.OnArgumentTuple argTuple
+    override this.OnVariableDeclarationInformation declInfo = this.Namespaces.OnVariableDeclarationInformation declInfo
 
     // These overrides are only here to preserve the functionality of the now deprecated methods.
     // They can be removed and the deprecation warning for this file can be reenabled once the deprecated methods are removed.

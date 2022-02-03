@@ -354,19 +354,8 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     abstract OnLambda : lambda: Lambda<TypedExpression, ResolvedType> -> ExpressionKind
 
-    default this.OnLambda lambda =
-        let rec onSymbol (s : QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>) = // FIXME: REPLACE WITH onArgumenttuple
-            match s with
-            | QsTuple tuple -> tuple |> Seq.map onSymbol |> ImmutableArray.CreateRange |> QsTuple
-            | QsTupleItem decl ->
-                let name =
-                    match decl.VariableName with
-                    | ValidName name -> this.Common.OnLocalNameDeclaration name |> ValidName
-                    | InvalidName -> InvalidName
-                let t = decl.Type |> this.Types.OnType
-                (decl.WithType t).WithName name |> QsTupleItem
-            
-        let syms = onSymbol lambda.ArgumentTuple // TODO: SYMBOL RANGE FROM VAR DECL
+    default this.OnLambda lambda =            
+        let syms = this.Common.OnArgumentTuple lambda.ArgumentTuple
         let body = this.Expressions.OnTypedExpression lambda.Body
 
         Lambda.create lambda.Kind syms >> Lambda
