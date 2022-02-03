@@ -5,13 +5,13 @@ entry:
   %id = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR_____GUID___Identity__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %id, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %id, i32 1)
-  %1 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
+  %1 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i64 }* getelementptr ({ i64, i64 }, { i64, i64 }* null, i32 1) to i64))
   %2 = bitcast %Tuple* %1 to { i64, i64 }*
   %3 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %2, i32 0, i32 0
   %4 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %2, i32 0, i32 1
   store i64 0, i64* %3, align 4
   store i64 0, i64* %4, align 4
-  %5 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
+  %5 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i64 }* getelementptr ({ i64, i64 }, { i64, i64 }* null, i32 1) to i64))
   call void @__quantum__rt__callable_invoke(%Callable* %id, %Tuple* %1, %Tuple* %5)
   %6 = getelementptr inbounds { %String*, %Array* }, { %String*, %Array* }* %0, i32 0, i32 0
   %7 = load %String*, %String** %6, align 8

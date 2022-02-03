@@ -6,15 +6,15 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using LlvmBindings;
+using LlvmBindings.Instructions;
+using LlvmBindings.Interop;
+using LlvmBindings.Types;
+using LlvmBindings.Values;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Ubiquity.NET.Llvm;
-using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Interop;
-using Ubiquity.NET.Llvm.Types;
-using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
@@ -43,7 +43,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// The context used for QIR generation.
         /// </summary>
-        /// <inheritdoc cref="Ubiquity.NET.Llvm.Context"/>
+        /// <inheritdoc cref="LlvmBindings.Context"/>
         public Context Context { get; }
 
         /// <summary>

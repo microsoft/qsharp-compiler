@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>Debug Information Compile Unit, which acts as the containing parent for debug information in a module</summary>
     /// <seealso href="xref:llvm_langref#dicompileunit">LLVM DICompileUnit</seealso>

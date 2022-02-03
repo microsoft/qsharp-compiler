@@ -6,12 +6,12 @@
 // -----------------------------------------------------------------------
 
 using System;
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
 // Interface+internal type matches file name
 #pragma warning disable SA1649
 
-namespace Ubiquity.NET.Llvm.Types
+namespace LlvmBindings.Types
 {
     /// <summary>Interface for an LLVM array type. </summary>
     public interface IArrayType

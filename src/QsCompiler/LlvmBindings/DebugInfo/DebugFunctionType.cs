@@ -8,9 +8,9 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using Ubiquity.NET.Llvm.Types;
+using LlvmBindings.Types;
 
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>This class provides debug information binding for an <see cref="IFunctionType"/>
     /// and a <see cref="DISubroutineType"/>
@@ -34,7 +34,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     /// <note type="note">It is important to keep in mind that signatures are only concerned
     /// with types. That is, they do not include names of parameters. Parameter information is
     /// provided by <see cref="DebugInfoBuilder.CreateArgument(DIScope, string, DIFile, uint, DIType, bool, DebugInfoFlags, ushort)"/>
-    /// and [DebugInfoBuilder.InsertDeclare](xref:Ubiquity.NET.Llvm.DebugInfo.DebugInfoBuilder.InsertDeclare*)</note>
+    /// and [DebugInfoBuilder.InsertDeclare](xref:LlvmBindings.DebugInfo.DebugInfoBuilder.InsertDeclare*)</note>
     /// </remarks>
     /// <seealso href="xref:llvm_langref#disubroutinetype">LLVM DISubroutineType</seealso>
     public class DebugFunctionType

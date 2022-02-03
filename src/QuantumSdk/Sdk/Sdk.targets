@@ -70,10 +70,7 @@
     </ItemGroup>
     <!-- get the path for the llvm runtime libs -->
     <PropertyGroup Condition="'$(LlvmLibsPath)' == ''">
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkglibLLVM_runtime_osx-x64)</LlvmLibsPath>
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkglibLLVM_runtime_win-x64)</LlvmLibsPath>
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'">$(PkglibLLVM_runtime_ubuntu_18_04-x64)</LlvmLibsPath>
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'">$(PkglibLLVM_runtime_ubuntu_20_04-x64)</LlvmLibsPath>
+      <LlvmLibsPath>$(PkgMicrosoft_Quantum_LlvmBindings_Native)</LlvmLibsPath>
     </PropertyGroup>
     <!-- build the command for the Q# command line compiler -->
     <PropertyGroup>
