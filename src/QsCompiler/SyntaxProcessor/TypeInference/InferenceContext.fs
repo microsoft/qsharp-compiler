@@ -117,7 +117,7 @@ module private Inference =
     /// <summary>
     /// True if <paramref name="info1"/> and <paramref name="info2"/> contain the same set of characteristics.
     /// </summary>
-    let characteristicsEqual info1 info2 =
+    let charsEqual info1 info2 =
         let chars1 = info1.Characteristics
         let chars2 = info2.Characteristics
         chars1.AreInvalid || chars2.AreInvalid || chars1.GetProperties().SetEquals(chars2.GetProperties())
@@ -126,8 +126,10 @@ module private Inference =
     /// True if the characteristics of <paramref name="info1"/> are a subset of the characteristics of
     /// <paramref name="info2"/>.
     /// </summary>
-    let isSubset info1 info2 =
-        info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
+    let charsSubset info1 info2 =
+        let chars1 = info1.Characteristics
+        let chars2 = info2.Characteristics
+        chars1.AreInvalid || chars2.AreInvalid || chars1.GetProperties().IsSubsetOf(chars2.GetProperties())
 
     /// <summary>
     /// True if the characteristics of <paramref name="info"/> contain the given <paramref name="functor"/>.
@@ -172,18 +174,14 @@ module private Inference =
     let private combineCallableInfo ordering info1 info2 =
         match ordering with
         | Subtype ->
-            let chars = Union(info1.Characteristics, info2.Characteristics)
-
-            CallableInformation.New(ResolvedCharacteristics.New chars, InferredCallableInformation.NoInformation)
-            |> Some
-        | Equal when characteristicsEqual info1 info2 ->
-            let characteristics =
-                if info1.Characteristics.AreInvalid then info2.Characteristics else info1.Characteristics
-
+            let chars = Union(info1.Characteristics, info2.Characteristics) |> ResolvedCharacteristics.New
+            CallableInformation.New(chars, InferredCallableInformation.NoInformation) |> Some
+        | Equal when charsEqual info1 info2 ->
             let inferred =
                 [ info1.InferredInformation; info2.InferredInformation ] |> InferredCallableInformation.Common
 
-            CallableInformation.New(characteristics, inferred) |> Some
+            let chars = if info1.Characteristics.AreInvalid then info2.Characteristics else info1.Characteristics
+            CallableInformation.New(chars, inferred) |> Some
         | Equal -> None
         | Supertype -> [ info1; info2 ] |> CallableInformation.Common |> Some
 
@@ -420,9 +418,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             ]
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let errors =
-                if ordering = Equal && not (characteristicsEqual info1 info2)
-                   || ordering = Supertype && not (isSubset info1 info2)
-                   || ordering = Subtype && not (isSubset info2 info1) then
+                if ordering = Equal && not (charsEqual info1 info2)
+                   || ordering = Supertype && not (charsSubset info1 info2)
+                   || ordering = Subtype && not (charsSubset info2 info1) then
                     [ error ]
                 else
                     []
