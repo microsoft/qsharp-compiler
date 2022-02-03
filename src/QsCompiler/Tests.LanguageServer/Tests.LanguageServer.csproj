@@ -42,7 +42,7 @@
   <Target Name="PublishQsFmt" BeforeTargets="BeforeCompile">
     <Message Importance="high" Text="Publishing QsFmt"/>
     <PropertyGroup>
-      <QsFmtPublishPath>$(OutputPath)\qsfmt\</QsFmtPublishPath>
+      <QsFmtPublishPath>$(OutputPath)/qsfmt/</QsFmtPublishPath>
     </PropertyGroup>
     <MakeDir Directories="$(OutputPath)\qsfmt" />
     <Exec Command="dotnet publish $(EnlistmentRoot)src/QsFmt/App/App.fsproj -o $(QsFmtPublishPath)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
