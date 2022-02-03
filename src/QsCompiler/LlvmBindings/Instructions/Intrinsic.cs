@@ -7,9 +7,9 @@
 
 using System;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.Instructions
+namespace LlvmBindings.Instructions
 {
     /// <summary>base class for calls to LLVM intrinsic functions.</summary>
     public class Intrinsic
