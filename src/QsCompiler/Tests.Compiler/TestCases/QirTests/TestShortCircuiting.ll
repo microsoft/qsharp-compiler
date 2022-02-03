@@ -19,7 +19,7 @@ condTrue__2:                                      ; preds = %condContinue__1
 
 condContinue__2:                                  ; preds = %condTrue__2, %condContinue__1
   %ror = phi i1 [ %4, %condTrue__2 ], [ %2, %condContinue__1 ]
-  %5 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1* getelementptr (i1, i1* null, i32 1) to i64), i64 2))
+  %5 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i1, i1 }* getelementptr ({ i1, i1 }, { i1, i1 }* null, i32 1) to i64))
   %6 = bitcast %Tuple* %5 to { i1, i1 }*
   %7 = getelementptr inbounds { i1, i1 }, { i1, i1 }* %6, i32 0, i32 0
   %8 = getelementptr inbounds { i1, i1 }, { i1, i1 }* %6, i32 0, i32 1

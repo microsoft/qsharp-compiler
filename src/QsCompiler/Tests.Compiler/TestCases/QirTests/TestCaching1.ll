@@ -4,7 +4,7 @@ entry:
   %q = call %Qubit* @__quantum__rt__qubit_allocate()
   call void @__quantum__qis__h__body(%Qubit* %q)
   %res = call %Result* @__quantum__qis__mz(%Qubit* %q)
-  %0 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (double* getelementptr (double, double* null, i32 1) to i64), i64 2))
+  %0 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, double }* getelementptr ({ double, double }, { double, double }* null, i32 1) to i64))
   %1 = bitcast %Tuple* %0 to { double, double }*
   %2 = getelementptr inbounds { double, double }, { double, double }* %1, i32 0, i32 0
   %3 = getelementptr inbounds { double, double }, { double, double }* %1, i32 0, i32 1

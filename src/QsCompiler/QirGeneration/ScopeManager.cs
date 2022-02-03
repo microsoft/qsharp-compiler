@@ -5,10 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using LlvmBindings.Types;
+using LlvmBindings.Values;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
-using Ubiquity.NET.Llvm.Types;
-using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
