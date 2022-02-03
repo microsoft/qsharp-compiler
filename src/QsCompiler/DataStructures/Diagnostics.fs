@@ -9,6 +9,7 @@ open System.Collections.Generic
 type ErrorCode =
     | TypeMismatch = 1
     | TypeIntersectionMismatch = 2
+    | ValueImplicitlyIgnored = 3
 
     | ExcessBracketError = 1001
     | MissingBracketError = 1002
@@ -469,6 +470,9 @@ type DiagnosticItem =
                 "The type {1} does not match the type {0}.\nActual type:   {3}\nExpected type: {2}"
             | ErrorCode.TypeIntersectionMismatch ->
                 "The type {1} does not {0} the type {2}.\nLeft-hand type:  {3}\nRight-hand type: {4}"
+            | ErrorCode.ValueImplicitlyIgnored ->
+                "This expression has type {1} and its value is implicitly ignored. " +
+                "Use \"let _ = expr;\" or \"Ignore(expr);\" to discard the value explicitly."
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
