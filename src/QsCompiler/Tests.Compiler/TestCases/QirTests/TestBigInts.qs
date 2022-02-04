@@ -16,5 +16,8 @@ namespace Microsoft.Quantum.Testing.QIR
     @EntryPoint()
     function Main() : Unit {
         let _ = TestBigInts(0L, 0L);
+        let N1 = 12345L;
+        let N2 = 1522605027922533360535618378132637429718068114961380688657908494580122963258952897654000350692006139L;
+        let _ = TestBigInts(N1, N2);
     }
 }
