@@ -115,7 +115,8 @@ module private TypeContext =
 /// Tools to help with type inference.
 module private Inference =
     /// <summary>
-    /// True if <paramref name="info1"/> and <paramref name="info2"/> contain the same set of characteristics.
+    /// True if <paramref name="info1"/> and <paramref name="info2"/> have the same set of characteristics, or if either
+    /// <paramref name="info1"/> or <paramref name="info2"/> have invalid characteristics.
     /// </summary>
     let charsEqual info1 info2 =
         let chars1 = info1.Characteristics
@@ -124,7 +125,8 @@ module private Inference =
 
     /// <summary>
     /// True if the characteristics of <paramref name="info1"/> are a subset of the characteristics of
-    /// <paramref name="info2"/>.
+    /// <paramref name="info2"/>, or if either <paramref name="info1"/> or <paramref name="info2"/> have invalid
+    /// characteristics.
     /// </summary>
     let charsSubset info1 info2 =
         let chars1 = info1.Characteristics
