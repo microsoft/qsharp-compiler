@@ -1150,7 +1150,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var createBigInt = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateArray);
                 var bytes = b.ToByteArray();
                 var n = this.SharedState.Context.CreateConstant(bytes.Length);
-                var globalConstant = this.SharedState.CreateArrayConstant(bytes);
+                var globalConstant = this.SharedState.CreateGlobalConstantArray(bytes);
 
                 var byteArrayPointer = this.SharedState.CurrentBuilder.GetElementPtr(
                     this.SharedState.Context.Int8Type.CreateArrayType((uint)bytes.Length),

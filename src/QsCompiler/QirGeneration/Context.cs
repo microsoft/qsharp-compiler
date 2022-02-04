@@ -484,7 +484,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Creates a global constant (data array) that stores the given bytes.
         /// </summary>
-        internal GlobalVariable CreateArrayConstant(byte[] array) {
+        internal GlobalVariable CreateGlobalConstantArray(byte[] array)
+        {
             var byteArray = ConstantArray.From(
                 this.Context.Int8Type,
                 array.Select(s => this.Context.CreateConstant(s)).ToArray());
