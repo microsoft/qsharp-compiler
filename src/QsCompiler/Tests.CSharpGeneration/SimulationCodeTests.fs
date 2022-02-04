@@ -3533,6 +3533,8 @@ using Microsoft.Quantum.Simulation.Core;
 [assembly: SpecializationDeclaration("{\"Kind\":{\"Case\":\"QsBody\"},\"TypeArguments\":{\"Case\":\"Null\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}},\"Parent\":{\"Namespace\":\"Microsoft.Quantum.Tests.UnitTests\",\"Name\":\"UnitTest1\"},\"Attributes\":[],\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":21,\"Item2\":4},\"HeaderRange\":{\"Item1\":{\"Line\":1,\"Column\":11},\"Item2\":{\"Line\":1,\"Column\":20}},\"Documentation\":[]}")]
 [assembly: CallableDeclaration("{\"Kind\":{\"Case\":\"Operation\"},\"QualifiedName\":{\"Namespace\":\"Microsoft.Quantum.Tests.UnitTests\",\"Name\":\"UnitTest2\"},\"Attributes\":[{\"TypeId\":{\"Case\":\"Value\",\"Fields\":[{\"Namespace\":\"Microsoft.Quantum.Diagnostics\",\"Name\":\"Test\",\"Range\":{\"Case\":\"Value\",\"Fields\":[{\"Item1\":{\"Line\":1,\"Column\":2},\"Item2\":{\"Line\":1,\"Column\":6}}]}}]},\"TypeIdRange\":{\"Case\":\"Value\",\"Fields\":[{\"Item1\":{\"Line\":1,\"Column\":2},\"Item2\":{\"Line\":1,\"Column\":6}}]},\"Argument\":{\"Item1\":{\"Case\":\"StringLiteral\",\"Fields\":[\"SomeNamespace.CustomSimulator\",[]]},\"Item2\":[],\"Item3\":{\"Case\":\"String\"},\"Item4\":{\"IsMutable\":false,\"HasLocalQuantumDependency\":false},\"Item5\":{\"Case\":\"Value\",\"Fields\":[{\"Item1\":{\"Line\":1,\"Column\":7},\"Item2\":{\"Line\":1,\"Column\":38}}]}},\"Offset\":{\"Item1\":24,\"Item2\":4},\"Comments\":{\"OpeningComments\":[],\"ClosingComments\":[]}}],\"Modifiers\":{\"Access\":{\"Case\":\"DefaultAccess\"}},\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":25,\"Item2\":4},\"SymbolRange\":{\"Item1\":{\"Line\":1,\"Column\":11},\"Item2\":{\"Line\":1,\"Column\":20}},\"ArgumentTuple\":{\"Case\":\"QsTuple\",\"Fields\":[[]]},\"Signature\":{\"TypeParameters\":[],\"ArgumentType\":{\"Case\":\"UnitType\"},\"ReturnType\":{\"Case\":\"UnitType\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}}},\"Documentation\":[]}")]
 [assembly: SpecializationDeclaration("{\"Kind\":{\"Case\":\"QsBody\"},\"TypeArguments\":{\"Case\":\"Null\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}},\"Parent\":{\"Namespace\":\"Microsoft.Quantum.Tests.UnitTests\",\"Name\":\"UnitTest2\"},\"Attributes\":[],\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":25,\"Item2\":4},\"HeaderRange\":{\"Item1\":{\"Line\":1,\"Column\":11},\"Item2\":{\"Line\":1,\"Column\":20}},\"Documentation\":[]}")]
+[assembly: CallableDeclaration("{\"Kind\":{\"Case\":\"Operation\"},\"QualifiedName\":{\"Namespace\":\"Microsoft.Quantum.Tests.UnitTests\",\"Name\":\"UnitTest3\"},\"Attributes\":[{\"TypeId\":{\"Case\":\"Value\",\"Fields\":[{\"Namespace\":\"Microsoft.Quantum.Diagnostics\",\"Name\":\"Test\",\"Range\":{\"Case\":\"Value\",\"Fields\":[{\"Item1\":{\"Line\":1,\"Column\":2},\"Item2\":{\"Line\":1,\"Column\":6}}]}}]},\"TypeIdRange\":{\"Case\":\"Value\",\"Fields\":[{\"Item1\":{\"Line\":1,\"Column\":2},\"Item2\":{\"Line\":1,\"Column\":6}}]},\"Argument\":{\"Item1\":{\"Case\":\"StringLiteral\",\"Fields\":[\"SparseSimulator\",[]]},\"Item2\":[],\"Item3\":{\"Case\":\"String\"},\"Item4\":{\"IsMutable\":false,\"HasLocalQuantumDependency\":false},\"Item5\":{\"Case\":\"Value\",\"Fields\":[{\"Item1\":{\"Line\":1,\"Column\":7},\"Item2\":{\"Line\":1,\"Column\":24}}]}},\"Offset\":{\"Item1\":29,\"Item2\":4},\"Comments\":{\"OpeningComments\":[],\"ClosingComments\":[]}},{\"TypeId\":{\"Case\":\"Value\",\"Fields\":[{\"Namespace\":\"Microsoft.Quantum.Diagnostics\",\"Name\":\"Test\",\"Range\":{\"Case\":\"Value\",\"Fields\":[{\"Item1\":{\"Line\":1,\"Column\":2},\"Item2\":{\"Line\":1,\"Column\":6}}]}}]},\"TypeIdRange\":{\"Case\":\"Value\",\"Fields\":[{\"Item1\":{\"Line\":1,\"Column\":2},\"Item2\":{\"Line\":1,\"Column\":6}}]},\"Argument\":{\"Item1\":{\"Case\":\"StringLiteral\",\"Fields\":[\"ResourcesEstimator\",[]]},\"Item2\":[],\"Item3\":{\"Case\":\"String\"},\"Item4\":{\"IsMutable\":false,\"HasLocalQuantumDependency\":false},\"Item5\":{\"Case\":\"Value\",\"Fields\":[{\"Item1\":{\"Line\":1,\"Column\":7},\"Item2\":{\"Line\":1,\"Column\":27}}]}},\"Offset\":{\"Item1\":28,\"Item2\":4},\"Comments\":{\"OpeningComments\":[],\"ClosingComments\":[]}}],\"Modifiers\":{\"Access\":{\"Case\":\"DefaultAccess\"}},\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":30,\"Item2\":4},\"SymbolRange\":{\"Item1\":{\"Line\":1,\"Column\":11},\"Item2\":{\"Line\":1,\"Column\":20}},\"ArgumentTuple\":{\"Case\":\"QsTuple\",\"Fields\":[[]]},\"Signature\":{\"TypeParameters\":[],\"ArgumentType\":{\"Case\":\"UnitType\"},\"ReturnType\":{\"Case\":\"UnitType\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}}},\"Documentation\":[]}")]
+[assembly: SpecializationDeclaration("{\"Kind\":{\"Case\":\"QsBody\"},\"TypeArguments\":{\"Case\":\"Null\"},\"Information\":{\"Characteristics\":{\"Case\":\"EmptySet\"},\"InferredInformation\":{\"IsSelfAdjoint\":false,\"IsIntrinsic\":false}},\"Parent\":{\"Namespace\":\"Microsoft.Quantum.Tests.UnitTests\",\"Name\":\"UnitTest3\"},\"Attributes\":[],\"SourceFile\":\"%%%\",\"Position\":{\"Item1\":30,\"Item2\":4},\"HeaderRange\":{\"Item1\":{\"Line\":1,\"Column\":11},\"Item2\":{\"Line\":1,\"Column\":20}},\"Documentation\":[]}")]
 #line hidden
 namespace Microsoft.Quantum.Core
 {
@@ -3690,7 +3692,7 @@ namespace Microsoft.Quantum.Tests.UnitTests
         }
     }
 
-    [SourceLocation("%%", OperationFunctor.Body, 26, -1)]
+    [SourceLocation("%%", OperationFunctor.Body, 26, 31)]
     public partial class UnitTest2 : Operation<QVoid, QVoid>, ICallable
     {
         public UnitTest2(IOperationFactory m) : base(m)
@@ -3758,6 +3760,120 @@ namespace Microsoft.Quantum.Tests.UnitTests
         public static System.Threading.Tasks.Task<QVoid> Run(IOperationFactory __m__)
         {
             return __m__.Run<UnitTest2, QVoid, QVoid>(QVoid.Instance);
+        }
+    }
+
+    [SourceLocation("%%", OperationFunctor.Body, 31,-1)]
+    public partial class UnitTest3 : Operation<QVoid, QVoid>, ICallable
+    {
+        public UnitTest3(IOperationFactory m) : base(m)
+        {
+        }
+
+        public class ResourcesEstimator
+        {
+            public ResourcesEstimator(Xunit.Abstractions.ITestOutputHelper Output)
+            {
+                this.Output = Output;
+            }
+
+            internal Xunit.Abstractions.ITestOutputHelper Output
+            {
+                get;
+            }
+
+            [Xunit.Fact()]
+            [Xunit.Trait("Target", "ResourcesEstimator")]
+            [Xunit.Trait("Name", "UnitTest3")]
+            public void UnitTest3()
+#line 31 "%%"
+            {
+                var sim = new Microsoft.Quantum.Simulation.Simulators.ResourcesEstimator();
+                if (sim is Microsoft.Quantum.Simulation.Common.SimulatorBase baseSim && this.Output != null)
+                {
+                    baseSim.OnLog += this.Output.WriteLine;
+                }
+
+                try
+                {
+                    sim.Execute<UnitTest3, QVoid, QVoid>(QVoid.Instance);
+                }
+                catch
+                {
+#line 31 "%%"
+                    Xunit.Assert.True(false, "Q# Test failed. For details see the Standard output below.");
+                }
+                finally
+                {
+                    if (sim is IDisposable disposeSim)
+                    {
+                        disposeSim.Dispose();
+                    }
+                }
+            }
+        }
+
+        public class SparseSimulator
+        {
+            public SparseSimulator(Xunit.Abstractions.ITestOutputHelper Output)
+            {
+                this.Output = Output;
+            }
+
+            internal Xunit.Abstractions.ITestOutputHelper Output
+            {
+                get;
+            }
+
+            [Xunit.Fact()]
+            [Xunit.Trait("Target", "SparseSimulator")]
+            [Xunit.Trait("Name", "UnitTest3")]
+            public void UnitTest3()
+#line 31 "%%"
+            {
+                var sim = new Microsoft.Quantum.Simulation.Simulators.SparseSimulator();
+                if (sim is Microsoft.Quantum.Simulation.Common.SimulatorBase baseSim && this.Output != null)
+                {
+                    baseSim.OnLog += this.Output.WriteLine;
+                }
+
+                try
+                {
+                    sim.Execute<UnitTest3, QVoid, QVoid>(QVoid.Instance);
+                }
+                catch
+                {
+#line 31 "%%"
+                    Xunit.Assert.True(false, "Q# Test failed. For details see the Standard output below.");
+                }
+                finally
+                {
+                    if (sim is IDisposable disposeSim)
+                    {
+                        disposeSim.Dispose();
+                    }
+                }
+            }
+        }
+
+        String ICallable.Name => "UnitTest3";
+        String ICallable.FullName => "Microsoft.Quantum.Tests.UnitTests.UnitTest3";
+        public override Func<QVoid, QVoid> __Body__ => (__in__) =>
+        {
+#line hidden
+            return QVoid.Instance;
+        }
+
+        ;
+        public override void __Init__()
+        {
+        }
+
+        public override IApplyData __DataIn__(QVoid data) => data;
+        public override IApplyData __DataOut__(QVoid data) => data;
+        public static System.Threading.Tasks.Task<QVoid> Run(IOperationFactory __m__)
+        {
+            return __m__.Run<UnitTest3, QVoid, QVoid>(QVoid.Instance);
         }
     }
 }

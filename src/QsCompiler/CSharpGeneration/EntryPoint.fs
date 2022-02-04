@@ -85,6 +85,7 @@ let private customSimulatorFactory name =
             name
             [
                 AssemblyConstants.QuantumSimulator
+                AssemblyConstants.SparseSimulator
                 AssemblyConstants.ToffoliSimulator
                 AssemblyConstants.ResourcesEstimator
             ]
@@ -396,6 +397,7 @@ let private driverSettings context =
     [
         namedArg "simulatorOptionAliases" simulatorOptionAliases
         namedArg "quantumSimulatorName" <| literal AssemblyConstants.QuantumSimulator
+        namedArg "sparseSimulatorName" <| literal AssemblyConstants.SparseSimulator
         namedArg "toffoliSimulatorName" <| literal AssemblyConstants.ToffoliSimulator
         namedArg "resourcesEstimatorName" <| literal AssemblyConstants.ResourcesEstimator
         namedArg "defaultSimulatorName" <| literal defaultSimulator
