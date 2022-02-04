@@ -40,6 +40,8 @@ type 'context Rewriter() as rewriter =
             Block = rewriter.Block(context, rewriter.Statement, statement.Block)
         }
 
+    member val EffectsCount : int = 0 with get, set
+
     abstract Document : context: 'context * document: Document -> Document
 
     default _.Document(context, document) =

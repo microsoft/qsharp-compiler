@@ -11,7 +11,6 @@ open Microsoft.Quantum.QsFmt.Formatter.ParseTree.Namespace
 open Microsoft.Quantum.QsFmt.Formatter.Printer
 open Microsoft.Quantum.QsFmt.Formatter.Rules
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
-open Microsoft.Quantum.QsFmt.Formatter.Utils
 open Microsoft.Quantum.QsFmt.Parser
 
 /// <summary>
@@ -33,7 +32,11 @@ let parse (source: string) =
     else
         errorListener.SyntaxErrors |> Error
 
-let simpleRule (rule: unit Rewriter) = curry rule.Document ()
+let simpleRule<'context> (rule: Rewriter<'context>) (startingContext : 'context) =
+        fun (doc : Document, effectsCount : int) ->
+            let result = rule.Document(startingContext, doc)
+            let effects = rule.EffectsCount
+            (result, effects + effectsCount)
 
 /// <summary>
 /// Tests whether there is data loss during parsing and unparsing.
@@ -51,32 +54,31 @@ let checkParsed source parsed =
     parsed
 
 
-let versionToFormatRules (version: Version option) =
+let internal formatParsed (version: Version option) =
     let rules =
         match version with
         // The following lines are provided as examples of different rules for different versions:
-        //| Some v when v < new Version("1.0") -> [simpleRule collapsedSpaces]
-        //| Some v when v < new Version("1.5") -> [simpleRule operatorSpacing]
+        //| Some v when v < new Version("1.0") -> [simpleRule collapsedSpaces ()]
+        //| Some v when v < new Version("1.5") -> [simpleRule operatorSpacing ()]
         | None
         | Some _ ->
             [
-                simpleRule collapsedSpaces
-                simpleRule operatorSpacing
-                simpleRule newLines
-                curry indentation.Document 0
+                simpleRule collapsedSpaces ()
+                simpleRule operatorSpacing ()
+                simpleRule newLines ()
+                simpleRule indentation 0
             ]
 
-    rules |> List.fold (>>) id
-
-let internal formatParsed qsharp_version parsed =
-    parsed |> Result.map (versionToFormatRules qsharp_version)
+    // For formatting, we only care about the document, so we ignore the effects count.
+    fun doc -> (rules |> List.fold (>>) id)(doc, 0) |> fst
 
 [<CompiledName "Format">]
 let format qsharp_version source =
     parse source
-    |> Result.map (checkParsed source)
-    |> (formatParsed qsharp_version)
-    |> Result.map printer.Document
+    |> Result.map (fun doc ->
+        checkParsed source |> ignore
+        formatParsed qsharp_version doc
+        |> printer.Document)
 
 let versionToUpdateRules (version: Version option) =
     let rules =
@@ -87,47 +89,45 @@ let versionToUpdateRules (version: Version option) =
         | None
         | Some _ ->
             [
-                simpleRule qubitBindingUpdate
-                simpleRule unitUpdate
-                simpleRule forParensUpdate
-                simpleRule specializationUpdate
-                simpleRule arraySyntaxUpdate
-                simpleRule booleanOperatorUpdate
+                simpleRule qubitBindingUpdate ()
+                simpleRule unitUpdate ()
+                simpleRule forParensUpdate ()
+                simpleRule specializationUpdate ()
+                simpleRule arraySyntaxUpdate ()
+                simpleRule booleanOperatorUpdate ()
             ]
 
-    rules |> List.fold (>>) id
+    fun doc -> (rules |> List.fold (>>) id)(doc, 0)
 
 let internal updateParsed fileName qsharp_version parsed =
-    let updateDocument document =
+    let updatedDocument, effectsCount = versionToUpdateRules qsharp_version parsed
 
-        let updatedDocument = versionToUpdateRules qsharp_version document
+    let warningList =
+        match qsharp_version with
+        // The following line is provided as an example of different rules for different versions:
+        //| Some v when v < new Version("1.5") -> []
+        | None
+        | Some _ -> updatedDocument |> checkArraySyntax fileName
 
-        let warningList =
-            match qsharp_version with
-            // The following line is provided as an example of different rules for different versions:
-            //| Some v when v < new Version("1.5") -> []
-            | None
-            | Some _ -> updatedDocument |> checkArraySyntax fileName
-
-        warningList |> List.iter (eprintfn "%s")
-        updatedDocument
-
-    parsed |> Result.map updateDocument
+    warningList |> List.iter (eprintfn "%s")
+    updatedDocument, effectsCount
 
 [<CompiledName "Update">]
 let update fileName qsharp_version source =
     parse source
-    |> Result.map (checkParsed source)
-    |> updateParsed fileName qsharp_version
-    |> Result.map printer.Document
+    |> Result.map (fun doc ->
+        checkParsed source |> ignore
+        let doc, effectsCount = updateParsed fileName qsharp_version doc
+        printer.Document doc)
 
 [<CompiledName "UpdateAndFormat">]
 let updateAndFormat fileName qsharp_version source =
     parse source
-    |> Result.map (checkParsed source)
-    |> updateParsed fileName qsharp_version
-    |> formatParsed qsharp_version
-    |> Result.map printer.Document
+    |> Result.map (fun doc ->
+        checkParsed source |> ignore
+        let doc, effectsCount = updateParsed fileName qsharp_version doc
+        formatParsed qsharp_version doc
+        |> printer.Document)
 
 [<CompiledName "Identity">]
 let identity source =

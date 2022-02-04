@@ -118,8 +118,17 @@ let qubitBindingUpdate =
 
             let keyword =
                 match decl.Kind with
-                | Use -> "use"
-                | Borrow -> "borrow"
+                | Use ->
+                    if decl.Keyword.Text <> "use" then
+                        rewriter.EffectsCount <- rewriter.EffectsCount + 1
+                    "use"
+                | Borrow ->
+                    if decl.Keyword.Text <> "borrow" then
+                        rewriter.EffectsCount <- rewriter.EffectsCount + 1
+                    "borrow"
+
+            if decl.OpenParen.IsSome then
+                rewriter.EffectsCount <- rewriter.EffectsCount + 1
 
             { decl with
                 Keyword = rewriter.Terminal((), { decl.Keyword with Text = keyword })
@@ -136,10 +145,11 @@ let qubitBindingUpdate =
 
 let unitUpdate =
     { new Rewriter<_>() with
-        override _.Type((), typ) =
+        override rewriter.Type((), typ) =
             let updated =
                 match typ with
                 | Type.Tuple tuple when Seq.isEmpty tuple.Items ->
+                    rewriter.EffectsCount <- rewriter.EffectsCount + 1
                     { Prefix = tuple.OpenParen.Prefix; Text = "Unit" } |> Type.BuiltIn
                 | _ -> typ
 
@@ -152,6 +162,9 @@ let forParensUpdate =
             let openTrivia = loop.OpenParen |> getTrivia
             let closeTrivia = loop.CloseParen |> getTrivia
 
+            if loop.OpenParen.IsSome then
+                rewriter.EffectsCount <- rewriter.EffectsCount + 1
+                
             { loop with
                 OpenParen = None
                 Binding = loop.Binding |> ForBinding.mapPrefix ((@) openTrivia)
@@ -170,6 +183,7 @@ let ensureComma (item: 'a SequenceItem) =
 
 /// <summary>
 /// Prepends the <paramref name="parameters"/> with an ellipsis <see cref="Terminal"/> item if it does not already contain one.
+/// Returns the updated parameters, and a Boolean that is `true` if and only if the parameters were actually changed.
 /// </summary>
 let ensureEllipsis (parameters: Terminal Tuple) =
     let ellipsis nspace =
@@ -178,22 +192,30 @@ let ensureEllipsis (parameters: Terminal Tuple) =
     let ellipsisItem nspace =
         { Item = ellipsis nspace |> Some; Comma = None }
 
-    { parameters with
-        Items =
-            match parameters.Items with
-            // Replace, e.g., `body ()` with `body (...)`
-            | [] -> [ ellipsisItem 0 ]
-            // Replace, e.g., `controlled (q)` with `controlled (q, ...)`
-            | [ x ] ->
-                match Option.get(x.Item).Text with
-                | "..." -> [ x ]
-                | _ -> [ ensureComma x; ellipsisItem 1 ]
-            | _ -> parameters.Items
-    }
+    let mutable isChange = false
+
+    let newParams =
+        { parameters with
+            Items =
+                match parameters.Items with
+                // Replace, e.g., `body ()` with `body (...)`
+                | [] ->
+                    isChange <- true
+                    [ ellipsisItem 0 ]
+                // Replace, e.g., `controlled (q)` with `controlled (q, ...)`
+                | [ x ] ->
+                    match Option.get(x.Item).Text with
+                    | "..." -> [ x ]
+                    | _ ->
+                        isChange <- true
+                        [ ensureComma x; ellipsisItem 1 ]
+                | _ -> parameters.Items
+        }
+    newParams, isChange
 
 let specializationUpdate =
     { new Rewriter<_>() with
-        override _.SpecializationGenerator((), generator) =
+        override rewriter.SpecializationGenerator((), generator) =
             let emptyTuple =
                 {
                     OpenParen = { Prefix = [ spaces 1 ]; Text = "(" }
@@ -207,9 +229,17 @@ let specializationUpdate =
                     parameters =
                         (match parameters with
                          // Replace, e.g., `body` with `body (...)`
-                         | None -> ensureEllipsis emptyTuple |> Some
+                         | None ->
+                            let newParams, isChange = ensureEllipsis emptyTuple
+                            if isChange then
+                                rewriter.EffectsCount <- rewriter.EffectsCount + 1
+                            newParams |> Some
                          // Replace, e.g., `body ()` with `body (...)`
-                         | Some par -> ensureEllipsis par |> Some),
+                         | Some par ->
+                            let newParams, isChange = ensureEllipsis par
+                            if isChange then
+                                rewriter.EffectsCount <- rewriter.EffectsCount + 1
+                            newParams |> Some),
                     statements = statements
                 )
             | _ -> generator
@@ -298,6 +328,7 @@ let arraySyntaxUpdate =
             | NewArray newArray ->
                 match getDefaultValue newArray.ItemType with
                 | Some value ->
+                    rewriter.EffectsCount <- rewriter.EffectsCount + 1
                     {
                         OpenBracket =
                             rewriter.Terminal(
@@ -387,7 +418,7 @@ let ensureSpace prefix =
 
 let booleanOperatorUpdate =
     { new Rewriter<_>() with
-        override _.Expression((), expression) =
+        override rewriter.Expression((), expression) =
             let dict =
                 Map [ ("!", "not")
                       ("&&", "and")
@@ -396,6 +427,7 @@ let booleanOperatorUpdate =
             let updated =
                 match expression with
                 | PrefixOperator prefixOperator when dict |> Map.containsKey prefixOperator.PrefixOperator.Text ->
+                    rewriter.EffectsCount <- rewriter.EffectsCount + 1
                     {
                         PrefixOperator =
                             { prefixOperator.PrefixOperator with
@@ -405,6 +437,7 @@ let booleanOperatorUpdate =
                     }
                     |> PrefixOperator
                 | InfixOperator infixOperator when dict |> Map.containsKey infixOperator.InfixOperator.Text ->
+                    rewriter.EffectsCount <- rewriter.EffectsCount + 1
                     {
                         Left = infixOperator.Left
                         InfixOperator =

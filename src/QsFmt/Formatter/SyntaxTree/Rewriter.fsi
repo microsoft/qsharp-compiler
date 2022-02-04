@@ -14,6 +14,11 @@ type internal 'context Rewriter =
     new: unit -> 'context Rewriter
 
     /// <summary>
+    /// The number times the transformation makes a change to the code.
+    /// </summary>
+    member public EffectsCount : int with get, set
+
+    /// <summary>
     /// Rewrites a <see cref="Document"/> node.
     /// </summary>
     abstract Document: context:'context * document:Document -> Document
