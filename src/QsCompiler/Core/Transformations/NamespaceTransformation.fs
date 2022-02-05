@@ -201,8 +201,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
         let typeArgs =
             spec.TypeArguments
-            |> QsNullable<_>.Map
-                (fun args -> args |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
+            |> QsNullable<_>.Map (fun args -> args |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
 
         let signature = this.OnSignature spec.Signature
         let impl = this.OnSpecializationImplementation spec.Implementation
