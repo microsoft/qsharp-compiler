@@ -25,7 +25,9 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
 
     member this.Statements : StatementTransformationBase = this.StatementTransformationHandle()
-    member this.Common : CommonTransformationNodes = this.StatementTransformationHandle().Expressions.Common
+    member this.Expressions : ExpressionTransformationBase = this.StatementTransformationHandle().Expressions
+    member this.Types : TypeTransformationBase = this.StatementTransformationHandle().Expressions.Types
+    member this.Common : CommonTransformationNodes = this.StatementTransformationHandle().Expressions.Types.Common
 
     new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
         new NamespaceTransformationBase(options, "_internal_")
@@ -78,13 +80,13 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             let transformed = items |> Seq.map this.OnTypeItems |> ImmutableArray.CreateRange
             QsTuple |> Node.BuildOr original transformed
         | QsTupleItem (Anonymous itemType) as original ->
-            let t = this.Statements.Expressions.Types.OnType itemType
+            let t = this.Types.OnType itemType
             QsTupleItem << Anonymous |> Node.BuildOr original t
         | QsTupleItem (Named item) as original ->
             let loc = this.Common.OnSymbolLocation(item.Position, item.Range)
             let name = this.Common.OnItemNameDeclaration item.VariableName
-            let t = this.Statements.Expressions.Types.OnType item.Type
-            let info = this.Statements.Expressions.OnExpressionInformation item.InferredInformation
+            let t = this.Types.OnType item.Type
+            let info = this.Expressions.OnExpressionInformation item.InferredInformation
 
             QsTupleItem << Named << LocalVariableDeclaration.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
@@ -97,7 +99,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead.">]
     override this.OnArgumentName arg =
         match arg with
-        | ValidName name -> this.Statements.Expressions.Common.OnLocalNameDeclaration name |> ValidName
+        | ValidName name -> this.Common.OnLocalNameDeclaration name |> ValidName
         | InvalidName -> arg
 
     // TODO: RELEASE 2022-09: Remove member.
@@ -115,8 +117,8 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         | QsTupleItem declInfo as original ->
             let loc = this.Common.OnSymbolLocation(declInfo.Position, declInfo.Range)
             let name = this.OnArgumentName declInfo.VariableName // replace with the implementation once the deprecated member is removed
-            let t = this.Statements.Expressions.Types.OnType declInfo.Type
-            let info = this.Statements.Expressions.OnExpressionInformation declInfo.InferredInformation
+            let t = this.Types.OnType declInfo.Type
+            let info = this.Expressions.OnExpressionInformation declInfo.InferredInformation
             let newDecl = LocalVariableDeclaration.New info.IsMutable (loc, name, t, info.HasLocalQuantumDependency)
             QsTupleItem |> Node.BuildOr original newDecl
 
@@ -124,9 +126,9 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     default this.OnSignature(s: ResolvedSignature) =
         let typeParams = s.TypeParameters // if this had a range is should be handled by the corresponding Common nodes
-        let argType = this.Statements.Expressions.Types.OnType s.ArgumentType
-        let returnType = this.Statements.Expressions.Types.OnType s.ReturnType
-        let info = this.Statements.Expressions.Types.OnCallableInformation s.Information
+        let argType = this.Types.OnType s.ArgumentType
+        let returnType = this.Types.OnType s.ReturnType
+        let info = this.Types.OnCallableInformation s.Information
         ResolvedSignature.New |> Node.BuildOr s ((argType, returnType), info, typeParams)
 
 
@@ -200,7 +202,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         let typeArgs =
             spec.TypeArguments
             |> QsNullable<_>.Map
-                (fun args -> args |> Seq.map this.Statements.Expressions.Types.OnType |> ImmutableArray.CreateRange)
+                (fun args -> args |> Seq.map this.Types.OnType |> ImmutableArray.CreateRange)
 
         let signature = this.OnSignature spec.Signature
         let impl = this.OnSpecializationImplementation spec.Implementation
@@ -278,7 +280,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         let source = this.OnSource t.Source
         let loc = this.Common.OnAbsoluteLocation t.Location
         let attributes = t.Attributes |> Seq.map this.OnAttribute |> ImmutableArray.CreateRange
-        let underlyingType = this.Statements.Expressions.Types.OnType t.Type
+        let underlyingType = this.Types.OnType t.Type
         let typeItems = this.OnTypeItems t.TypeItems
         let doc = this.OnDocumentation t.Documentation
         let comments = t.Comments

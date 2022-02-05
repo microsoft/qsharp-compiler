@@ -23,7 +23,8 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     member this.Statements : StatementTransformationBase = this.StatementTransformationHandle()
     member this.Expressions : ExpressionTransformationBase = this.StatementTransformationHandle().Expressions
-    member this.Common : CommonTransformationNodes = this.StatementTransformationHandle().Expressions.Common
+    member this.Types : TypeTransformationBase = this.StatementTransformationHandle().Expressions.Types
+    member this.Common : CommonTransformationNodes = this.StatementTransformationHandle().Expressions.Types.Common
 
     new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
         new StatementKindTransformationBase(options, "_internal_")
@@ -64,7 +65,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         match syms with
         | VariableNameTuple tuple ->
             tuple |> Seq.map this.OnSymbolTuple |> ImmutableArray.CreateRange |> VariableNameTuple
-        | VariableName name -> this.Expressions.Common.OnLocalNameDeclaration name |> VariableName
+        | VariableName name -> this.Common.OnLocalNameDeclaration name |> VariableName
         | DiscardedItem
         | InvalidItem -> syms
 
@@ -141,7 +142,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
     default this.OnForStatement stm =
         let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
         let loopVar = fst stm.LoopItem |> this.OnSymbolTuple
-        let loopVarType = this.Expressions.Types.OnType(snd stm.LoopItem)
+        let loopVarType = this.Types.OnType(snd stm.LoopItem)
         let body = this.Statements.OnScope stm.Body
 
         QsForStatement << QsForStatement.New
@@ -258,7 +259,8 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
 
     member this.StatementKinds : StatementKindTransformationBase = this.StatementKindTransformationHandle()
     member this.Expressions : ExpressionTransformationBase = this.ExpressionTransformationHandle()
-    member this.Common : CommonTransformationNodes = this.ExpressionTransformationHandle().Common
+    member this.Types : TypeTransformationBase = this.ExpressionTransformationHandle().Types
+    member this.Common : CommonTransformationNodes = this.ExpressionTransformationHandle().Types.Common
 
     new(statementKindTransformation: unit -> StatementKindTransformationBase,
         expressionTransformation: unit -> ExpressionTransformationBase,
@@ -310,8 +312,8 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     default this.OnLocalDeclarations decl =
         let onLocalVariableDeclaration (local: LocalVariableDeclaration<string>) =
             let loc = this.Common.OnSymbolLocation (local.Position, local.Range)
-            let name = this.Expressions.Common.OnLocalName local.VariableName
-            let varType = this.Expressions.Types.OnType local.Type
+            let name = this.Common.OnLocalName local.VariableName
+            let varType = this.Types.OnType local.Type
             let info = this.Expressions.OnExpressionInformation local.InferredInformation
             LocalVariableDeclaration.New info.IsMutable (loc, name, varType, info.HasLocalQuantumDependency)
 
