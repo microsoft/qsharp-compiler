@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
-#nowarn "44" // disable deprecation warnings due to the overrides pointing to deprecated methods
+#nowarn "44" // TODO: RELEASE 2022-09, reenable after the overrides (*) are removed
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -63,8 +63,8 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
     override this.OnArgumentTuple argTuple =
         this.Namespaces.OnArgumentTuple argTuple
 
-    // These overrides are only here to preserve the functionality of the now deprecated methods.
-    // They can be removed and the deprecation warning for this file can be reenabled once the deprecated methods are removed.
+    // (*) These overrides are only here to preserve the functionality of the now deprecated methods.
+    // RELEASE 2022-09: They can be removed and the deprecation warning for this file can be reenabled.
 
     override this.OnLocalName name = this.Statements.OnVariableName name
     override this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
@@ -337,8 +337,8 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
     override this.OnArgumentTuple argTuple =
         this.Namespaces.OnArgumentTuple argTuple
 
-    // These overrides are only here to preserve the functionality of the now deprecated methods.
-    // They can be removed and the deprecation warning for this file can be reenabled once the deprecated methods are removed.
+    // (*) These overrides are only here to preserve the functionality of the now deprecated methods.
+    // RELEASE 2022-09: They can be removed and the deprecation warning for this file can be reenabled.
 
     override this.OnLocalName name = this.Statements.OnVariableName name
     override this.OnItemNameDeclaration name = this.Namespaces.OnItemName name

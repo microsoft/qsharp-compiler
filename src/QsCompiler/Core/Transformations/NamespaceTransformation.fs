@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
-#nowarn "44" // OnArgumentName is deprecated.
+#nowarn "44" // TODO: RELEASE 2022-09, reenable after OnArgumentName is removed.
 
 open System
 open System.Collections.Immutable

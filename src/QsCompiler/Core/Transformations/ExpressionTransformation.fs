@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
-#nowarn "44" // OnArrayItem and OnNamedItem are deprecated.
+#nowarn "44" // TODO: RELEASE 2022-09, reenable after OnArrayItem and OnNamedItem are removed.
 
 open System
 open System.Collections.Generic
