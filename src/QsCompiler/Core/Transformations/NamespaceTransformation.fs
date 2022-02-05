@@ -114,11 +114,11 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         | QsTuple items as original ->
             let transformed = items |> Seq.map this.Common.OnArgumentTuple |> ImmutableArray.CreateRange
             QsTuple |> Node.BuildOr original transformed
-        | QsTupleItem declInfo as original ->
-            let loc = this.Common.OnSymbolLocation(declInfo.Position, declInfo.Range)
-            let name = this.OnArgumentName declInfo.VariableName // replace with the implementation once the deprecated member is removed
-            let t = this.Types.OnType declInfo.Type
-            let info = this.Expressions.OnExpressionInformation declInfo.InferredInformation
+        | QsTupleItem item as original ->
+            let loc = this.Common.OnSymbolLocation(item.Position, item.Range)
+            let name = this.OnArgumentName item.VariableName // replace with the implementation once the deprecated member is removed
+            let t = this.Types.OnType item.Type
+            let info = this.Expressions.OnExpressionInformation item.InferredInformation
             let newDecl = LocalVariableDeclaration.New info.IsMutable (loc, name, t, info.HasLocalQuantumDependency)
             QsTupleItem |> Node.BuildOr original newDecl
 

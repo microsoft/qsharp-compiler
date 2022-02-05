@@ -117,11 +117,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     }
                 }
 
-                private ParameterTuple MakeLambdaParams(ParameterTuple paramNames)
+                private ParameterTuple SanitizeLambdaParams(ParameterTuple paramNames)
                 {
                     var missingSymbolCount = 0;
 
-                    ParameterTuple MatchNameWithType(ParameterTuple paramName)
+                    ParameterTuple Sanitize(ParameterTuple paramName)
                     {
                         if (paramName is ParameterTuple.QsTupleItem param)
                         {
@@ -145,12 +145,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                             }
                             else if (tup.Item.Length == 1)
                             {
-                                return MatchNameWithType(tup.Item.First());
+                                return Sanitize(tup.Item.First());
                             }
                             else
                             {
                                 return ParameterTuple.NewQsTuple(tup.Item
-                                    .Select(symbol => MatchNameWithType(symbol))
+                                    .Select(symbol => Sanitize(symbol))
                                     .ToImmutableArray());
                             }
                         }
@@ -160,7 +160,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                         }
                     }
 
-                    return MatchNameWithType(paramNames);
+                    return Sanitize(paramNames);
                 }
 
                 private TypedExpression HandleLambdas(TypedExpression ex, Lambda<TypedExpression, ResolvedType> lambda)
@@ -168,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     var processedLambdaExpressionKind = this.ExpressionKinds.OnLambda(lambda);
                     var processedLambda = (processedLambdaExpressionKind as ExpressionKind.Lambda)!.Item;
                     var lambdaBody = processedLambda.Body;
-                    var lambdaParams = this.MakeLambdaParams(processedLambda.ArgumentTuple);
+                    var lambdaParams = this.SanitizeLambdaParams(processedLambda.ArgumentTuple);
                     var callableInfo =
                         ex.ResolvedType.Resolution is ResolvedTypeKind.Operation op
                         ? op.Item2
