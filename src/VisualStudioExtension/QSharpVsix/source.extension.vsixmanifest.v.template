@@ -32,7 +32,7 @@
     </Assets>
     <Prerequisites>
         <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[16.0.28315.86,17.0)" DisplayName="Visual Studio core editor" />
-        <Prerequisite Id="Microsoft.Net.Core.Component.SDK.2.1" Version="[15.8.27924.0,)" DisplayName=".NET Core 2.1 development tools" />
+        <Prerequisite Id="Microsoft.NetCore.Component.SDK" Version="[16.11.31603.221,)" DisplayName=".NET Core Development tools" />
     </Prerequisites>
 </PackageManifest>
 

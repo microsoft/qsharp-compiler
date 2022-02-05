@@ -1,7 +1,7 @@
 {
-    "name": "quantum-devkit-vscode",
-    "version": "#SEMVER_VERSION#",
-    "displayName": "Microsoft Quantum Development Kit for Visual Studio Code",
+    "name": "quantum-devkit-vscode-net6",
+    "version": "#VSCODEVSIX_VERSION#",
+    "displayName": "Microsoft Quantum Development Kit for Visual Studio Code .NET 6 Preview",
     "description": "Microsoft Quantum Development Kit for Visual Studio Code provides support for developing quantum algorithms in the Q# programming language.",
     "publisher": "quantum",
     "author": "Microsoft DevLabs",

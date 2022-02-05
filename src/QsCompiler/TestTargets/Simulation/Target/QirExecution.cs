@@ -102,9 +102,9 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
                 throw new ExternalException($"Failed to verify module: {verifyMessage}");
             }
 
-            LLVM.InitializeNativeTarget();
-            LLVM.InitializeNativeAsmParser();
-            LLVM.InitializeNativeAsmPrinter();
+            LLVMSharp.Interop.LLVM.InitializeNativeTarget();
+            LLVMSharp.Interop.LLVM.InitializeNativeAsmParser();
+            LLVMSharp.Interop.LLVM.InitializeNativeAsmPrinter();
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
