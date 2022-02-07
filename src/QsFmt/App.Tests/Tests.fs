@@ -99,36 +99,6 @@ let private SubExample3 = makeTestFile "Examples\\SubExamples2\\SubExample3.qs"
 let private NestedExample1 = makeTestFile "Examples\\SubExamples2\\NestedExamples\\NestedExample1.qs"
 let private NestedExample2 = makeTestFile "Examples\\SubExamples2\\NestedExamples\\NestedExample2.qs"
 
-let private StandardInputTest =
-    {
-        Path = "-"
-        Original =
-            "namespace StandardIn { function Bar() : Int { for (i in 0..1) {} return 0; } }
-"
-        Formatted =
-            "namespace StandardIn {
-    function Bar() : Int {
-        for (i in 0..1) {}
-        return 0;
-    }
-}
-"
-            |> standardizeNewLines
-        Updated =
-            "namespace StandardIn { function Bar() : Int { for i in 0..1 {} return 0; } }
-"
-            |> standardizeNewLines
-        UpdatedAndFormatted =
-            "namespace StandardIn {
-    function Bar() : Int {
-        for i in 0..1 {}
-        return 0;
-    }
-}
-"
-            |> standardizeNewLines
-    }
-
 /// <summary>
 /// Runs the application with the command-line arguments, <paramref name="args"/>, and the standard input,
 /// <paramref name="input"/>.
@@ -186,17 +156,6 @@ let ``Update file`` () =
 [<Fact>]
 let ``Update and format file`` () =
     runWithFiles UpdateAndFormat [ Example1 ] "" CleanResult [| "update-and-format"; "-i"; Example1.Path |]
-
-[<Fact(Skip = "Standard Input is not currently supported.")>]
-let ``Updates standard input`` () =
-    Assert.Equal(
-        {
-            Code = ExitCode.Success |> int
-            Out = StandardInputTest.Updated
-            Error = ""
-        },
-        run [| "update"; "-" |] StandardInputTest.Original
-    )
 
 [<Fact>]
 let ``Shows syntax errors`` () =
