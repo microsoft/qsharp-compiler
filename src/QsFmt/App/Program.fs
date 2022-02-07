@@ -90,22 +90,23 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
 
     let runResults = processManyInputs inputs
 
-    match commandWithOptions.CommandKind with
-    | Update ->
-        printfn "Updated %i files:" (Set.count filesUpdated)
-        for file in filesUpdated do
-            printfn "\tUpdated %s" file
-    | Format ->
-        printfn "Formatted %i files:" (Set.count filesFormatted)
-        for file in filesFormatted do
-            printfn "\tFormatted %s" file
-    | UpdateAndFormat ->
-        printfn "Updated %i files:" (Set.count filesUpdated)
-        for file in filesUpdated do
-            printfn "\tUpdated %s" file
-        printfn "Formatted %i files:" (Set.count filesFormatted)
-        for file in filesFormatted do
-            printfn "\tFormatted %s" file
+    if runResults.ExitCode = ExitCode.Success then
+        match commandWithOptions.CommandKind with
+        | Update ->
+            printfn "Updated %i files:" (Set.count filesUpdated)
+            for file in filesUpdated do
+                printfn "\tUpdated %s" file
+        | Format ->
+            printfn "Formatted %i files:" (Set.count filesFormatted)
+            for file in filesFormatted do
+                printfn "\tFormatted %s" file
+        | UpdateAndFormat ->
+            printfn "Updated %i files:" (Set.count filesUpdated)
+            for file in filesUpdated do
+                printfn "\tUpdated %s" file
+            printfn "Formatted %i files:" (Set.count filesFormatted)
+            for file in filesFormatted do
+                printfn "\tFormatted %s" file
 
     runResults
 
