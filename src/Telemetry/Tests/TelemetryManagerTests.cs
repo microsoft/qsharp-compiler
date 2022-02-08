@@ -28,6 +28,7 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 SendTelemetryInitializedEvent = false,
                 SendTelemetryTearDownEvent = false,
                 TestMode = true,
+                DefaultTelemetryConsent = ConsentKind.OptedIn,
             };
 
         private Exception CreateExceptionWithStackTrace()
@@ -381,6 +382,49 @@ namespace Microsoft.Quantum.Telemetry.Tests
             }
             finally
             {
+                Environment.SetEnvironmentVariable(telemetryManagerConfig.TelemetryOptOutVariableName, "");
+            }
+        }
+
+        [TestMethod]
+        public void TestTelemetryOptIn()
+        {
+            var telemetryManagerConfig = this.GetConfig();
+            telemetryManagerConfig.DefaultTelemetryConsent = ConsentKind.OptedOut;
+            try
+            {
+                using (TelemetryManager.Initialize(telemetryManagerConfig))
+                {
+                    TelemetryManager.LogEvent("MyEventName");
+                    TelemetryManager.LogEvent(this.CreateEventPropertiesObject());
+                    TelemetryManager.LogObject(this.CreateTestEventObject());
+                    Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
+                }
+
+                Environment.SetEnvironmentVariable(telemetryManagerConfig.TelemetryOptInVariableName, "1");
+                Environment.SetEnvironmentVariable(telemetryManagerConfig.TelemetryOptOutVariableName, "1");
+
+                using (TelemetryManager.Initialize(telemetryManagerConfig))
+                {
+                    TelemetryManager.LogEvent("MyEventName");
+                    TelemetryManager.LogEvent(this.CreateEventPropertiesObject());
+                    TelemetryManager.LogObject(this.CreateTestEventObject());
+                    Assert.AreEqual(0, TelemetryManager.TotalEventsCount);
+                }
+
+                Environment.SetEnvironmentVariable(telemetryManagerConfig.TelemetryOptOutVariableName, "");
+
+                using (TelemetryManager.Initialize(telemetryManagerConfig))
+                {
+                    TelemetryManager.LogEvent("MyEventName");
+                    TelemetryManager.LogEvent(this.CreateEventPropertiesObject());
+                    TelemetryManager.LogObject(this.CreateTestEventObject());
+                    Assert.AreEqual(3, TelemetryManager.TotalEventsCount);
+                }
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(telemetryManagerConfig.TelemetryOptInVariableName, "");
                 Environment.SetEnvironmentVariable(telemetryManagerConfig.TelemetryOptOutVariableName, "");
             }
         }

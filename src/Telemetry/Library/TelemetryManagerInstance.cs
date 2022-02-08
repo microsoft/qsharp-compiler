@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Reflection;
@@ -50,14 +51,16 @@ namespace Microsoft.Quantum.Telemetry
         public TelemetryManagerConfig Configuration { get; private set; }
 
         /// <summary>
-        /// If this value is true, no data will be collected or sent.
-        /// Every public method of this class check this variable first and if it's true the method
+        /// If this value is false, no data will be collected or sent.
+        /// Every public method of this class check this variable first and if it's false the method
         /// immediately returns without doing anything.
         /// This property defaults to "false".
-        /// This property is automatically set to true during initialization if the environment variable
-        /// named in Configuration.HostingEnvironmentVariableName has a value of "1".
+        /// This property is automatically set during initialization based on the
+        /// Configuration.DefaultTelemetryConsent and based on the environment variables
+        /// named in Configuration.TelemetryOptOutVariableName and
+        /// Configuration.TelemetryOptInVariableName.
         /// </summary>
-        public bool TelemetryOptOut { get; private set; } = false;
+        public bool TelemetryOptedIn { get; private set; } = false;
 
         public event EventHandler<EventProperties>? OnEventLogged;
 
@@ -92,7 +95,7 @@ namespace Microsoft.Quantum.Telemetry
 
             this.Configuration = configuration;
 
-            this.TelemetryOptOut = this.GetTelemetryOptOut(configuration);
+            this.TelemetryOptedIn = this.GetTelemetryOptIn(configuration);
 
             this.CheckAndRunSafe(
                 () =>
@@ -375,7 +378,7 @@ namespace Microsoft.Quantum.Telemetry
 
         private void CheckAndRunSafe(Action action, bool initializingOrTearingDown = false)
         {
-            if (this.TelemetryOptOut)
+            if (!this.TelemetryOptedIn)
             {
                 return;
             }
@@ -417,8 +420,14 @@ namespace Microsoft.Quantum.Telemetry
                 .Where(address => address != null && !string.IsNullOrWhiteSpace(address) && !address.StartsWith("000000"))
                 .FirstOrDefault();
 
-        private bool GetTelemetryOptOut(TelemetryManagerConfig configuration) =>
-            Environment.GetEnvironmentVariable(configuration.TelemetryOptOutVariableName) == "1";
+        [SuppressMessage("StyleCop.CSharp.SpacingRules", "SA1009:ClosingParenthesisMustBeSpacedCorrectly", Justification = "Easier to read the logic.")]
+        private bool GetTelemetryOptIn(TelemetryManagerConfig configuration) =>
+            (
+                (configuration.DefaultTelemetryConsent == ConsentKind.OptedIn)
+                ||
+                (Environment.GetEnvironmentVariable(configuration.TelemetryOptInVariableName) == "1")
+            )
+            && !(Environment.GetEnvironmentVariable(configuration.TelemetryOptOutVariableName) == "1");
 
         private bool GetEnableTelemetryExceptions(bool enableTelemetryExceptions)
         {

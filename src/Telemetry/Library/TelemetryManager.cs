@@ -66,14 +66,16 @@ namespace Microsoft.Quantum.Telemetry
         public static TelemetryManagerConfig Configuration => Instance.Configuration;
 
         /// <summary>
-        /// If this value is true, no data will be collected or sent.
-        /// Every public method of this class check this variable first and if it's true the method
+        /// If this value is false, no data will be collected or sent.
+        /// Every public method of this class check this variable first and if it's false the method
         /// immediately returns without doing anything.
         /// This property defaults to "false".
-        /// This property is automatically set to true during initialization if the environment variable
-        /// named in Configuration.HostingEnvironmentVariableName has a value of "1".
+        /// This property is automatically set during initialization based on the
+        /// Configuration.DefaultTelemetryConsent and based on the environment variables
+        /// named in Configuration.TelemetryOptOutVariableName and
+        /// Configuration.TelemetryOptInVariableName.
         /// </summary>
-        public static bool TelemetryOptOut => Instance.TelemetryOptOut;
+        public static bool TelemetryOptedIn => Instance.TelemetryOptedIn;
 
         public static event EventHandler<EventProperties>? OnEventLogged
         {

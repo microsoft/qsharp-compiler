@@ -38,6 +38,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                 },
                 SendTelemetryInitializedEvent = true,
                 SendTelemetryTearDownEvent = true,
+                DefaultTelemetryConsent = ConsentKind.OptedIn,
 
                 // When TestMode is true, the events won't be sent to Microsoft servers
                 // but will only be printed to the Debug Console
