@@ -8,17 +8,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-/// An ordering comparison between types.
-type internal Ordering =
-    /// The type is a subtype of another type.
-    | Subtype
-
-    /// The types are equal.
-    | Equal
-
-    /// The type is a supertype of another type.
-    | Supertype
-
 /// A relationship between two types.
 type internal 'a Relation
 

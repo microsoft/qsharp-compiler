@@ -24,13 +24,10 @@ type Variable =
     {
         /// The substituted type.
         Substitution: ResolvedType option
-
         /// The list of constraints on the type of this variable.
         Constraints: Constraint list
-
         /// Whether this variable encountered a type inference error.
         HasError: bool
-
         /// The source range that this variable originated from.
         Source: Range
     }
@@ -40,9 +37,13 @@ module Variable =
     let constrain typeConstraint variable =
         { variable with Constraints = typeConstraint :: variable.Constraints }
 
+/// An ordering comparison between types.
 type Ordering =
+    /// The type is a subtype of another type.
     | Subtype
+    /// The types are equal.
     | Equal
+    /// The type is a supertype of another type.
     | Supertype
 
 module Ordering =
