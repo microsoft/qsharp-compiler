@@ -13,6 +13,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference.RelationOps
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -56,7 +57,7 @@ let private asStatement comments location vars kind =
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewExpressionStatement comments location context expr =
     let expr, diagnostics = resolveExpr context expr
-    context.Inference.Unify(Supertype, ResolvedType.New UnitType, expr.ResolvedType) |> diagnostics.AddRange
+    context.Inference.Match(ResolvedType.New UnitType .> expr.ResolvedType) |> diagnostics.AddRange
     QsExpressionStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
 /// Resolves and verifies the given Q# expression given the resolution context, verifies that the resolved expression is
@@ -65,7 +66,7 @@ let NewExpressionStatement comments location context expr =
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewFailStatement comments location context expr =
     let expr, diagnostics = resolveExpr context expr
-    context.Inference.Unify(Supertype, ResolvedType.New String, expr.ResolvedType) |> diagnostics.AddRange
+    context.Inference.Match(ResolvedType.New String .> expr.ResolvedType) |> diagnostics.AddRange
     onAutoInvertCheckQuantumDependency context.Symbols expr |> diagnostics.AddRange
     QsFailStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
@@ -127,7 +128,7 @@ let rec private VerifyBinding (inference: InferenceContext) tryBuildDeclaration 
             |> TupleType
             |> ResolvedType.create (TypeRange.inferred symbol.Range)
 
-        let unifyDiagnostics = inference.Unify(Supertype, tupleType, rhsType)
+        let unifyDiagnostics = inference.Match(tupleType .> rhsType)
 
         let verify symbol symbolType =
             VerifyBinding inference tryBuildDeclaration (symbol, symbolType) warnOnDiscard
@@ -263,7 +264,7 @@ let NewForStatement comments (location: QsLocation) context (symbol, expr) =
 /// as well as a delegate that given a Q# scope returns the built while-statement with the given scope as the body.
 let NewWhileStatement comments (location: QsLocation) context condition =
     let condition, diagnostics = resolveExpr context condition
-    context.Inference.Unify(Supertype, ResolvedType.New Bool, condition.ResolvedType) |> diagnostics.AddRange
+    context.Inference.Match(ResolvedType.New Bool .> condition.ResolvedType) |> diagnostics.AddRange
 
     let whileLoop body =
         QsWhileStatement.New(condition, body) |> QsWhileStatement
@@ -276,7 +277,7 @@ let NewWhileStatement comments (location: QsLocation) context condition =
 /// as well as a delegate that given a positioned block of Q# statements returns the corresponding conditional block.
 let NewConditionalBlock comments location context condition =
     let condition, diagnostics = resolveExpr context condition
-    context.Inference.Unify(Supertype, ResolvedType.New Bool, condition.ResolvedType) |> diagnostics.AddRange
+    context.Inference.Match(ResolvedType.New Bool .> condition.ResolvedType) |> diagnostics.AddRange
     onAutoInvertCheckQuantumDependency context.Symbols condition |> diagnostics.AddRange
     BlockStatement(fun body -> condition, QsPositionedBlock.New comments (Value location) body), diagnostics.ToArray()
 
@@ -368,7 +369,7 @@ let private NewBindingScope kind comments (location: QsLocation) context (symbol
             SingleQubitAllocation |> ResolvedInitializer.create (TypeRange.inferred init.Range), Seq.empty
         | QubitRegisterAllocation size ->
             let size, diagnostics = resolveExpr context size
-            context.Inference.Unify(Supertype, ResolvedType.New Int, size.ResolvedType) |> diagnostics.AddRange
+            context.Inference.Match(ResolvedType.New Int .> size.ResolvedType) |> diagnostics.AddRange
             onAutoInvertCheckQuantumDependency context.Symbols size |> diagnostics.AddRange
 
             QubitRegisterAllocation size |> ResolvedInitializer.create (TypeRange.inferred init.Range),
