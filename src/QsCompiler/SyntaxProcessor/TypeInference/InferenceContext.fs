@@ -119,8 +119,8 @@ module Diagnostic =
         let actualContext = mismatch.ActualContext |> Option.defaultValue mismatch.Actual
 
         [
-            describeType mismatch.Expected
             describeType mismatch.Actual
+            describeType mismatch.Expected
             SyntaxTreeToQsharp.Default.ToCode expectedContext
             SyntaxTreeToQsharp.Default.ToCode actualContext
         ]
@@ -135,7 +135,7 @@ module Diagnostic =
                 match ordering with
                 | Subtype -> "share a subtype with"
                 | Equal -> "equal"
-                | Supertype -> "share a base type with"
+                | Supertype -> "share a supertype with"
 
             let args = orderingString :: typeMismatchArgs mismatch
 

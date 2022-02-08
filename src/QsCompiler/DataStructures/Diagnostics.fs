@@ -465,9 +465,9 @@ type DiagnosticItem =
     static member Message(code: ErrorCode, args: IEnumerable<string>) =
         let message =
             match code with
-            | ErrorCode.TypeMismatch -> "The type {1} does not match the type {0}.\nExpected: {2}\n  Actual: {3}"
+            | ErrorCode.TypeMismatch -> "The type {0} does not match the type {1}.\nExpected: {2}\n  Actual: {3}"
             | ErrorCode.TypeIntersectionMismatch ->
-                "The type {1} does not {0} the type {2}.\n Starting with: {3}\nCombining with: {4}"
+                "The type {1} does not {0} the type {2}.\nExpected: {3}\n  Actual: {4}"
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
