@@ -46,25 +46,20 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
                         match commandWithOptions.CommandKind with
                         | Update ->
                             Formatter.performUpdate input commandWithOptions.QSharpVersion source
-                            |> Result.map(fun isUpdated ->
-                                if isUpdated then
-                                    filesUpdated <- filesUpdated.Add input)
+                            |> Result.map (fun isUpdated -> if isUpdated then filesUpdated <- filesUpdated.Add input)
                         | Format ->
                             Formatter.performFormat input commandWithOptions.QSharpVersion source
-                            |> Result.map(fun isFormatted ->
-                                if isFormatted then
-                                    filesFormatted <- filesFormatted.Add input)
+                            |> Result.map
+                                (fun isFormatted -> if isFormatted then filesFormatted <- filesFormatted.Add input)
                         | UpdateAndFormat ->
                             Formatter.performUpdateAndFormat input commandWithOptions.QSharpVersion source
-                            |> Result.map(fun (isUpdated, isFormatted) ->
-                                if isUpdated then
-                                    filesUpdated <- filesUpdated.Add input
-                                if isFormatted then
-                                    filesFormatted <- filesFormatted.Add input)
+                            |> Result.map
+                                (fun (isUpdated, isFormatted) ->
+                                    if isUpdated then filesUpdated <- filesUpdated.Add input
+                                    if isFormatted then filesFormatted <- filesFormatted.Add input)
 
                     match result with
-                    | Ok _ ->
-                        { RunResult.Default with FilesProcessed = 1 }
+                    | Ok _ -> { RunResult.Default with FilesProcessed = 1 }
                     | Error errors ->
                         errors |> List.iter (eprintfn "%s, %O" input)
                         { RunResult.Default with ExitCode = ExitCode.SyntaxErrors; SyntaxErrors = errors }
@@ -94,17 +89,22 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
         match commandWithOptions.CommandKind with
         | Update ->
             printfn "Updated %i files:" (Set.count filesUpdated)
+
             for file in filesUpdated do
                 printfn "\tUpdated %s" file
         | Format ->
             printfn "Formatted %i files:" (Set.count filesFormatted)
+
             for file in filesFormatted do
                 printfn "\tFormatted %s" file
         | UpdateAndFormat ->
             printfn "Updated %i files:" (Set.count filesUpdated)
+
             for file in filesUpdated do
                 printfn "\tUpdated %s" file
+
             printfn "Formatted %i files:" (Set.count filesFormatted)
+
             for file in filesFormatted do
                 printfn "\tFormatted %s" file
 
