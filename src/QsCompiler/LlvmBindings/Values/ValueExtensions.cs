@@ -7,13 +7,11 @@
 
 using System;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Instructions;
+using LlvmBindings.Interop;
+using LlvmBindings.Types;
 
-using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Interop;
-using Ubiquity.NET.Llvm.Types;
-
-namespace Ubiquity.NET.Llvm.Values
+namespace LlvmBindings.Values
 {
     /// <summary>Provides extension methods to <see cref="Value"/> that cannot be achieved as members of the class.</summary>
     /// <remarks>

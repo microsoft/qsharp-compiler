@@ -7,15 +7,15 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
+using LlvmBindings.Instructions;
+using LlvmBindings.Types;
+using LlvmBindings.Values;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Types;
-using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
@@ -1150,12 +1150,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var createBigInt = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateArray);
                 var bytes = b.ToByteArray();
                 var n = this.SharedState.Context.CreateConstant(bytes.Length);
-                var byteArray = ConstantArray.From(
-                    this.SharedState.Context.Int8Type,
-                    bytes.Select(s => this.SharedState.Context.CreateConstant(s)).ToArray());
+                var globalConstant = this.SharedState.CreateGlobalConstantArray(bytes);
+
                 var byteArrayPointer = this.SharedState.CurrentBuilder.GetElementPtr(
                     this.SharedState.Context.Int8Type.CreateArrayType((uint)bytes.Length),
-                    byteArray,
+                    globalConstant,
                     new[] { this.SharedState.Context.CreateConstant(0) });
                 var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
                     byteArrayPointer,
@@ -1446,7 +1445,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (exType.Resolution.IsInt)
             {
                 var baseValue = this.SharedState.CurrentBuilder.SIToFPCast(lhs.Value, this.SharedState.Context.DoubleType);
-                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f", this.SharedState.Context.DoubleType);
+                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f.i", this.SharedState.Context.DoubleType, this.SharedState.Context.Int32Type);
                 var exponent = this.SharedState.CurrentBuilder.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true);
                 var resAsDouble = this.SharedState.CurrentBuilder.Call(powFunc, baseValue, exponent);
                 var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.Types.Int);

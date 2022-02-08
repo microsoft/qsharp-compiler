@@ -167,7 +167,8 @@ let ``QIR doubles`` () = qirTest false "TestDoubles"
 let ``QIR bools`` () = qirTest false "TestBools"
 
 [<Fact>]
-let ``QIR bigints`` () = qirTest false "TestBigInts"
+let ``QIR bigints`` () =
+    qirMultiTest false "TestBigInts" [ "TestBigInts1"; "TestBigInts2" ]
 
 [<Fact>]
 let ``QIR controlled partial applications`` () =
@@ -271,3 +272,6 @@ let ``QIR Library generation`` () =
         "TestLibraryGeneration"
         compilerArgs
         [ "TestLibraryGeneration1"; "TestLibraryGeneration2"; "TestLibraryGeneration3" ]
+
+[<Fact(Skip = "Produces 'stack overflow' on Mac, see https://github.com/microsoft/qsharp-compiler/issues/1318")>]
+let ``QIR deep nesting`` () = qirTest false "TestDeepNesting"

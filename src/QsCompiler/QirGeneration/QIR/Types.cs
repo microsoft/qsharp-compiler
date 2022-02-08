@@ -4,11 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using LlvmBindings;
+using LlvmBindings.Types;
+using LlvmBindings.Values;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Ubiquity.NET.Llvm;
-using Ubiquity.NET.Llvm.Types;
-using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QIR
 {
