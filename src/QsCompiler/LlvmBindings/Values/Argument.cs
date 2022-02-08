@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.Values
+namespace LlvmBindings.Values
 {
     /// <summary>An LLVM Value representing an Argument to a function.</summary>
     public class Argument

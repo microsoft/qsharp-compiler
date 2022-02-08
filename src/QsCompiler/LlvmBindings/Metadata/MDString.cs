@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     /// <summary>Stores a string in Metadata</summary>
     public class MDString

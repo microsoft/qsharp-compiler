@@ -7,9 +7,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.Instructions
+namespace LlvmBindings.Instructions
 {
     /// <summary>Unified predicate enumeration.</summary>
     /// <remarks>

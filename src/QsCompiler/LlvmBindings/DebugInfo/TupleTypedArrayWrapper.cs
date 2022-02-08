@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>Generic wrapper to treat an MDTuple as an array of elements of specific type</summary>
     /// <typeparam name="T">Type of elements</typeparam>

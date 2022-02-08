@@ -5,7 +5,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     /// <summary>Static class to hold constant strings for well known operand bundle tag names</summary>
     public static class OperandBundleNames

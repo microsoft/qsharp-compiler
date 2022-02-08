@@ -7,11 +7,11 @@
 
 using System.Linq;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-using Ubiquity.NET.Llvm.Values;
+using LlvmBindings.Values;
 
-namespace Ubiquity.NET.Llvm.Instructions
+namespace LlvmBindings.Instructions
 {
     /// <summary>PHI node instruction.</summary>
     public class PhiNode
