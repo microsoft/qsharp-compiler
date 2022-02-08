@@ -124,15 +124,15 @@ let private verifyUdtWith processUdt (resolvedType: ResolvedType) range =
 /// Verifies that <paramref name="lhs"/> and <paramref name="rhs"/> have type Bool.
 /// </summary>
 let private verifyAreBooleans (inference: InferenceContext) lhs rhs =
-    inference.Unify(ResolvedType.New Bool, lhs.ResolvedType)
-    @ inference.Unify(ResolvedType.New Bool, rhs.ResolvedType)
+    inference.Unify(Supertype, ResolvedType.New Bool, lhs.ResolvedType)
+    @ inference.Unify(Supertype, ResolvedType.New Bool, rhs.ResolvedType)
 
 /// <summary>
 /// Verifies that <paramref name="lhs"/> and <paramref name="rhs"/> have type Int.
 /// </summary>
 let private verifyAreIntegers (inference: InferenceContext) lhs rhs =
-    inference.Unify(ResolvedType.New Int, lhs.ResolvedType)
-    @ inference.Unify(ResolvedType.New Int, rhs.ResolvedType)
+    inference.Unify(Supertype, ResolvedType.New Int, lhs.ResolvedType)
+    @ inference.Unify(Supertype, ResolvedType.New Int, rhs.ResolvedType)
 
 /// <summary>
 /// Verifies that <paramref name="expr"/> has type Int or BigInt.
@@ -330,7 +330,7 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
 /// IMPORTANT: ignores any external type parameter occuring in expectedType without raising an error!
 let internal verifyAssignment (inference: InferenceContext) expectedType mismatchErr rhs =
     [
-        if inference.Unify(expectedType, rhs.ResolvedType) |> List.isEmpty |> not then
+        if inference.Unify(Supertype, expectedType, rhs.ResolvedType) |> List.isEmpty |> not then
             QsCompilerDiagnostic.Error
                 (mismatchErr, [ showType rhs.ResolvedType; showType expectedType ])
                 (rangeOrDefault rhs)
@@ -390,7 +390,7 @@ type QsExpression with
             let resolveSlicingRange start step end' =
                 let integerExpr ex =
                     let ex = resolve ex
-                    inference.Unify(ResolvedType.New Int, ex.ResolvedType) |> List.iter diagnose
+                    inference.Unify(Supertype, ResolvedType.New Int, ex.ResolvedType) |> List.iter diagnose
                     ex
 
                 let resolvedStep = step |> Option.map integerExpr
@@ -453,7 +453,7 @@ type QsExpression with
         /// and returns the corrsponding NewArray expression as typed expression
         let buildNewArray (bType, ex: QsExpression) =
             let ex = resolve ex
-            inference.Unify(ResolvedType.New Int, ex.ResolvedType) |> List.iter diagnose
+            inference.Unify(Supertype, ResolvedType.New Int, ex.ResolvedType) |> List.iter diagnose
 
             let resolvedBase = symbols.ResolveType diagnose bType
             let arrType = resolvedBase |> ArrayType |> ResolvedType.create (TypeRange.inferred this.Range)
@@ -474,7 +474,7 @@ type QsExpression with
             let value = resolve value
             let arrayType = ArrayType value.ResolvedType |> ResolvedType.create (TypeRange.inferred this.Range)
             let size = resolve size
-            inference.Unify(ResolvedType.New Int, size.ResolvedType) |> List.iter diagnose
+            inference.Unify(Supertype, ResolvedType.New Int, size.ResolvedType) |> List.iter diagnose
 
             let quantumDependency =
                 value.InferredInformation.HasLocalQuantumDependency
@@ -581,7 +581,7 @@ type QsExpression with
         /// *under the assumption* that the range operator is left associative.
         let buildRange (lhs: QsExpression, rhs: QsExpression) =
             let rhs = resolve rhs
-            inference.Unify(ResolvedType.New Int, rhs.ResolvedType) |> List.iter diagnose
+            inference.Unify(Supertype, ResolvedType.New Int, rhs.ResolvedType) |> List.iter diagnose
 
             let lhs =
                 match lhs.Expression with
@@ -599,7 +599,7 @@ type QsExpression with
                 | _ ->
                     resolve lhs
                     |> (fun resStart ->
-                        inference.Unify(ResolvedType.New Int, resStart.ResolvedType) |> List.iter diagnose
+                        inference.Unify(Supertype, ResolvedType.New Int, resStart.ResolvedType) |> List.iter diagnose
                         resStart)
 
             let localQdependency =
@@ -658,7 +658,7 @@ type QsExpression with
 
             let resolvedType =
                 if lhs.ResolvedType.Resolution = BigInt then
-                    inference.Unify(ResolvedType.New Int, rhs.ResolvedType) |> List.iter diagnose
+                    inference.Unify(Supertype, ResolvedType.New Int, rhs.ResolvedType) |> List.iter diagnose
                     lhs.ResolvedType
                 else
                     verifyArithmeticOp inference this.Range lhs rhs |> takeDiagnostics
@@ -689,7 +689,7 @@ type QsExpression with
             let lhs = resolve lhs
             let rhs = resolve rhs
             let resolvedType = verifyIsIntegral inference lhs |> takeDiagnostics
-            inference.Unify(ResolvedType.New Int, rhs.ResolvedType) |> List.iter diagnose
+            inference.Unify(Supertype, ResolvedType.New Int, rhs.ResolvedType) |> List.iter diagnose
 
             let localQdependency =
                 lhs.InferredInformation.HasLocalQuantumDependency
@@ -720,7 +720,7 @@ type QsExpression with
             let cond = resolve cond
             let ifTrue = resolve ifTrue
             let ifFalse = resolve ifFalse
-            inference.Unify(ResolvedType.New Bool, cond.ResolvedType) |> List.iter diagnose
+            inference.Unify(Supertype, ResolvedType.New Bool, cond.ResolvedType) |> List.iter diagnose
             verifyConditionalExecution ifTrue |> List.iter diagnose
             verifyConditionalExecution ifFalse |> List.iter diagnose
 
@@ -766,7 +766,7 @@ type QsExpression with
                 inference.Constrain(callable.ResolvedType, Callable(argType, output)) |> List.iter diagnose
             else
                 let diagnostics =
-                    inference.Unify(QsTypeKind.Function(argType, output) |> ResolvedType.New, callable.ResolvedType)
+                    inference.Unify(Subtype, callable.ResolvedType, QsTypeKind.Function(argType, output) |> ResolvedType.New)
 
                 if inference.Resolve callable.ResolvedType |> isOperation then
                     QsCompilerDiagnostic.Error(ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
@@ -886,4 +886,4 @@ type QsExpression with
                 NOT
                 (fun expr ->
                     Bool |> ResolvedType.create (TypeRange.inferred this.Range),
-                    inference.Unify(ResolvedType.New Bool, expr.ResolvedType))
+                    inference.Unify(Supertype, ResolvedType.New Bool, expr.ResolvedType))

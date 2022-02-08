@@ -8,6 +8,17 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+/// An ordering comparison of two types.
+type internal Ordering =
+    /// The type is a subtype of the other type.
+    | Subtype
+
+    /// The types are equal.
+    | Equal
+
+    /// The type is a supertype of the other type.
+    | Supertype
+
 /// The inference context is an implementation of Hindley-Milner type inference. It is a source of fresh type parameters
 /// and can unify types containing them.
 type InferenceContext =
@@ -31,7 +42,7 @@ type InferenceContext =
     /// Unifies the <paramref name="expected"/> type with the <paramref name="actual"/> type. Fails if
     /// <paramref name="actual"/> is not a subtype of <paramref name="expected"/>.
     /// </summary>
-    member internal Unify: expected:ResolvedType * actual:ResolvedType -> QsCompilerDiagnostic list
+    member internal Unify: ordering:Ordering * expected:ResolvedType * actual:ResolvedType -> QsCompilerDiagnostic list
 
     /// <summary>
     /// Returns a type that is a supertype of both types <paramref name="left"/> and <paramref name="right"/>, and that

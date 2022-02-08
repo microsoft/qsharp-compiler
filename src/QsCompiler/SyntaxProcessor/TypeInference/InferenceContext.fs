@@ -40,15 +40,9 @@ module private Variable =
     let constrain typeConstraint variable =
         { variable with Constraints = typeConstraint :: variable.Constraints }
 
-/// An ordering comparison of two types.
-type private Ordering =
-    /// The type is a subtype of the other type.
+type internal Ordering =
     | Subtype
-
-    /// The types are equal.
     | Equal
-
-    /// The type is a supertype of the other type.
     | Supertype
 
 module private Ordering =
@@ -102,15 +96,6 @@ module private TypeContext =
             { context with Left = leftChild; Right = rightChild }
         else
             create leftChild rightChild
-
-    /// Swaps the left and right types.
-    let swap context =
-        {
-            Left = context.Right
-            Right = context.Left
-            OriginalLeft = context.OriginalRight
-            OriginalRight = context.OriginalLeft
-        }
 
 /// Tools to help with type inference.
 module private Inference =
@@ -340,8 +325,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         variables.Add(param, variable)
         TypeParameter param |> ResolvedType.create (Inferred source)
 
-    member internal context.Unify(expected, actual) =
-        context.UnifyByOrdering(Supertype, TypeContext.create (context.Resolve expected) (context.Resolve actual))
+    member internal context.Unify(ordering, expected, actual) =
+        context.UnifyByOrdering(ordering, TypeContext.create (context.Resolve expected) (context.Resolve actual))
         |> rememberErrors [ expected; actual ]
 
     member internal context.Intersect(left, right) =
@@ -427,14 +412,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 else
                     []
 
-            context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
+            context.UnifyByOrdering(Ordering.not ordering, types |> TypeContext.intoRight in1 in2)
             @ context.UnifyByOrdering(
                 ordering,
                 types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2)
               )
               @ errors
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
+            context.UnifyByOrdering(Ordering.not ordering, types |> TypeContext.intoRight in1 in2)
             @ context.UnifyByOrdering(
                 ordering,
                 types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2)
@@ -442,7 +427,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
             error
-            :: context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
+            :: context.UnifyByOrdering(Ordering.not ordering, types |> TypeContext.intoRight in1 in2)
             @ context.UnifyByOrdering(
                 ordering,
                 types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2)
@@ -469,9 +454,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match resolvedType.Resolution with
             | QsTypeKind.Operation _ ->
                 let operationType = QsTypeKind.Operation((input, output), CallableInformation.NoInformation)
-                context.Unify(ResolvedType.New operationType, resolvedType)
+                context.Unify(Subtype, resolvedType, ResolvedType.New operationType)
             | QsTypeKind.Function _ ->
-                context.Unify(QsTypeKind.Function(input, output) |> ResolvedType.New, resolvedType)
+                context.Unify(Subtype, resolvedType, QsTypeKind.Function(input, output) |> ResolvedType.New)
             | _ ->
                 [
                     QsCompilerDiagnostic.Error(ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]) range
@@ -500,14 +485,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
                 [
                     if info |> hasFunctor Controlled |> not then error
-                    yield! context.Unify(controlled, actualControlled)
+                    yield! context.Unify(Supertype, controlled, actualControlled)
                 ]
             | QsTypeKind.Function (input, output) ->
                 let actualControlled =
                     QsTypeKind.Operation((SyntaxGenerator.AddControlQubits input, output), CallableInformation.Invalid)
                     |> ResolvedType.New
 
-                error :: context.Unify(controlled, actualControlled)
+                error :: context.Unify(Supertype, controlled, actualControlled)
             | _ -> [ error ]
         | Equatable ->
             [
@@ -519,9 +504,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | HasPartialApplication (missing, result) ->
             match resolvedType.Resolution with
             | QsTypeKind.Function (_, output) ->
-                context.Unify(result, QsTypeKind.Function(missing, output) |> ResolvedType.New)
+                context.Unify(Subtype, QsTypeKind.Function(missing, output) |> ResolvedType.New, result)
             | QsTypeKind.Operation ((_, output), info) ->
-                context.Unify(result, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New)
+                context.Unify(Subtype, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New, result)
             | _ ->
                 [
                     QsCompilerDiagnostic.Error(ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]) range
@@ -530,8 +515,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             let index = context.Resolve index
 
             match resolvedType.Resolution, index.Resolution with
-            | ArrayType actualItem, Int -> context.Unify(item, actualItem)
-            | ArrayType _, Range -> context.Unify(item, resolvedType)
+            | ArrayType actualItem, Int -> context.Unify(Supertype, item, actualItem)
+            | ArrayType _, Range -> context.Unify(Supertype, item, resolvedType)
             | ArrayType _, InvalidType -> []
             | ArrayType _, _ ->
                 [
@@ -550,7 +535,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             ]
         | Iterable item ->
             match resolvedType.supportsIteration with
-            | Some actualItem -> context.Unify(item, actualItem)
+            | Some actualItem -> context.Unify(Supertype, item, actualItem)
             | None ->
                 [
                     QsCompilerDiagnostic.Error(ErrorCode.ExpectingIterableExpr, [ showType resolvedType ]) range
@@ -569,7 +554,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match resolvedType.Resolution with
             | UserDefinedType udt ->
                 let actualItem = symbolTracker.GetUnderlyingType(fun _ -> ()) udt
-                context.Unify(item, actualItem)
+                context.Unify(Supertype, item, actualItem)
             | _ ->
                 [
                     QsCompilerDiagnostic.Error(ErrorCode.ExpectingUserDefinedType, [ showType resolvedType ]) range
