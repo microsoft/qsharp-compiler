@@ -6,7 +6,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 
-namespace LlvmBindings.Interop
+namespace Ubiquity.NET.Llvm.Interop
 {
     /// <summary>Abstract base class for implementing the Disposable pattern.</summary>
     public abstract class DisposableObject

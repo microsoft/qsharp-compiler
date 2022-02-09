@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.Instructions
+namespace Ubiquity.NET.Llvm.Instructions
 {
     /// <summary>Custom operator that can be used in LLVM transform passes but should be removed before target instruction selection.</summary>
     public class UserOp2 : Instruction

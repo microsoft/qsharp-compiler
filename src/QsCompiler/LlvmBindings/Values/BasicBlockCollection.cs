@@ -10,9 +10,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.Values
+namespace Ubiquity.NET.Llvm.Values
 {
     internal class BasicBlockCollection
         : ICollection<BasicBlock>

@@ -7,9 +7,9 @@
 
 using System;
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.Values
+namespace Ubiquity.NET.Llvm.Values
 {
     /// <summary>Represents an arbitrary bit width integer constant in LLVM.</summary>
     /// <remarks>

@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Template Value parameter</summary>
     /// <seealso href="xref:llvm_langref#ditemplatevalueparameter">LLVM DITemplateValueParameter</seealso>

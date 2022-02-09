@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>A source module that is imported by a compile unit</summary>
     public class DIModule

@@ -7,7 +7,7 @@
 
 using System;
 
-namespace LlvmBindings
+namespace Ubiquity.NET.Llvm
 {
     /// <summary>Exception generated when the internal state of the code generation cannot proceed due to an internal error.</summary>
     [Serializable]

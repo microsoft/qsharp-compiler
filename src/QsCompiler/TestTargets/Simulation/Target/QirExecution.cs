@@ -4,20 +4,21 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
-using LlvmBindings;
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.Testing.Qir
 {
     public static class JitCompilation
     {
-        [DllImport("Microsoft.Quantum.Qir.QSharp.Core", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("Microsoft.Quantum.Qir.QSharp.Core", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
         public static extern IntPtr CreateFullstateSimulatorC(long seed);
 
-        [DllImport("Microsoft.Quantum.Qir.Runtime", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("Microsoft.Quantum.Qir.Runtime", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
         public static extern void InitializeQirContext(IntPtr driver, bool trackAllocatedObjects);
 
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        [UnmanagedFunctionPointer(System.Runtime.InteropServices.CallingConvention.Cdecl)]
         private delegate void SimpleFunction();
 
         // For testing purposes I needed to make this an executable such that we can properly detect when the invoked
@@ -27,42 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
         private static void Main(string[] args) =>
             BuildAndRun(args[0], args[1..]);
 
-        private static unsafe bool TryParseBitcode(string path, out LLVMSharp.Interop.LLVMModuleRef outModule, out string outMessage)
-        {
-            LLVMSharp.Interop.LLVMMemoryBufferRef handle;
-            sbyte* msg;
-            if (LLVMSharp.Interop.LLVM.CreateMemoryBufferWithContentsOfFile(path.AsMarshaledString(), (LLVMSharp.Interop.LLVMOpaqueMemoryBuffer**)&handle, &msg) != 0)
-            {
-                var span = new ReadOnlySpan<byte>(msg, int.MaxValue);
-                var errTxt = span.Slice(0, span.IndexOf((byte)'\0')).AsString();
-                LLVMSharp.Interop.LLVM.DisposeMessage(msg);
-                throw new InternalCodeGeneratorException(errTxt);
-            }
-
-            fixed (LLVMSharp.Interop.LLVMModuleRef* pOutModule = &outModule)
-            {
-                sbyte* pMessage = null;
-                var result = LLVMSharp.Interop.LLVM.ParseBitcodeInContext(
-                    LLVMSharp.Interop.LLVM.ContextCreate(),
-                    handle,
-                    (LLVMSharp.Interop.LLVMOpaqueModule**)pOutModule,
-                    &pMessage);
-
-                if (pMessage == null)
-                {
-                    outMessage = string.Empty;
-                }
-                else
-                {
-                    var span = new ReadOnlySpan<byte>(pMessage, int.MaxValue);
-                    outMessage = span.Slice(0, span.IndexOf((byte)'\0')).AsString();
-                }
-
-                return result == 0;
-            }
-        }
-
-        public static unsafe void BuildAndRun(string pathToBitcode, params string[] functionNames)
+        public static void BuildAndRun(string pathToBitcode, params string[] functionNames)
         {
             // To get this line to work, I had to change the CreateFullstateSimulator API to use raw pointers instead of shared pointers,
             // and I had to update both calls to be "extern 'C'" otherwise name mangling makes then impossible to call here.
@@ -74,30 +40,26 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
                 throw new FileNotFoundException($"Could not find file {pathToBitcode}");
             }
 
-            if (!TryParseBitcode(pathToBitcode, out LLVMSharp.Interop.LLVMModuleRef modRef, out string message))
-            {
-                throw new InternalCodeGeneratorException(message);
-            }
-
-            if (!modRef.TryVerify(LLVMSharp.Interop.LLVMVerifierFailureAction.LLVMReturnStatusAction, out string verifyMessage))
+            var context = new Context();
+            var module = BitcodeModule.LoadFrom(pathToBitcode, context);
+            if (!module.Verify(out string verifyMessage))
             {
                 throw new ExternalException($"Failed to verify module: {verifyMessage}");
             }
 
-            LLVMSharp.Interop.LLVM.InitializeNativeTarget();
-            LLVMSharp.Interop.LLVM.InitializeNativeAsmParser();
-            LLVMSharp.Interop.LLVM.InitializeNativeAsmPrinter();
+            LLVM.InitializeNativeTarget();
+            LLVM.InitializeNativeAsmParser();
+            LLVM.InitializeNativeAsmPrinter();
 
-            var engine = modRef.CreateMCJITCompiler();
+            var engine = module.ModuleHandle.CreateMCJITCompiler();
             foreach (var functionName in functionNames)
             {
-                var funcDef = modRef.GetNamedFunction(functionName);
-                if (funcDef == default)
+                if (!module.TryGetFunction(functionName, out IrFunction? funcDef))
                 {
                     throw new ExternalException($"Failed to find function '{functionName}'");
                 }
 
-                var function = engine.GetPointerToGlobal<SimpleFunction>(funcDef);
+                var function = engine.GetPointerToGlobal<SimpleFunction>(funcDef.ValueHandle);
                 function();
             }
         }

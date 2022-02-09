@@ -6,9 +6,9 @@
 using System;
 using System.Text;
 
-namespace LlvmBindings.Interop
+namespace LLVMSharp.Interop
 {
-    public static unsafe class SpanExtensions
+    internal static unsafe class SpanExtensions
     {
         public static string AsString(this Span<byte> self) => AsString((ReadOnlySpan<byte>)self);
 

@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug information for a composite type</summary>
     /// <seealso href="xref:llvm_langref#dicompositetype">LLVM DICompositeType</seealso>

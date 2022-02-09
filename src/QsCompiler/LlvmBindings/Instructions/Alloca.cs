@@ -5,10 +5,10 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
-using LlvmBindings.Types;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Types;
 
-namespace LlvmBindings.Instructions
+namespace Ubiquity.NET.Llvm.Instructions
 {
     /// <summary>Alloca instruction for allocating stack space.</summary>
     /// <remarks>

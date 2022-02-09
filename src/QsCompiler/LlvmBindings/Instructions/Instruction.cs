@@ -8,10 +8,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using LlvmBindings.Interop;
-using LlvmBindings.Values;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings.Instructions
+namespace Ubiquity.NET.Llvm.Instructions
 {
     /// <summary>LLVM Instruction opcodes.</summary>
     /// <remarks>

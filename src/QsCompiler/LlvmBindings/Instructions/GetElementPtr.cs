@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.Instructions
+namespace Ubiquity.NET.Llvm.Instructions
 {
     /// <summary>Instruction to compute the address of a sub element of an aggregate data type.</summary>
     /// <seealso href="xref:llvm_langref#getelementptr-instruction">LLVM getelementptr Instruction</seealso>

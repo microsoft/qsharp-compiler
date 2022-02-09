@@ -108,7 +108,7 @@ exit__2:                                          ; preds = %header__2
   %74 = extractvalue %Range %46, 0
   %75 = extractvalue %Range %46, 1
   %76 = extractvalue %Range %46, 2
-  %77 = call i8* @__quantum__rt__memory_allocate(i64 ptrtoint ({ i64, i64, i64 }* getelementptr ({ i64, i64, i64 }, { i64, i64, i64 }* null, i32 1) to i64))
+  %77 = call i8* @__quantum__rt__memory_allocate(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 3))
   %78 = bitcast i8* %77 to { i64, i64, i64 }*
   %79 = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %78, i64 0, i32 0
   store i64 %74, i64* %79, align 4

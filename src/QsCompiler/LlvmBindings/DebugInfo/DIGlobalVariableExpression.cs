@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug Global variable expression</summary>
     /// <remarks>This node binds a <see cref="DIGlobalVariable"/> and a <see cref="DIExpression"/></remarks>

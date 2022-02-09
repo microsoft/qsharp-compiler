@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug information namespace scope</summary>
     /// <seealso href="xref:llvm_langref#dinamespace"/>

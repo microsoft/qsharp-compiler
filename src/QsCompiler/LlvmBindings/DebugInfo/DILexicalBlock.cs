@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug information for a Lexical block</summary>
     /// <seealso href="xref:llvm_langref#dilexicalblock">LLVM DILexicalBlock</seealso>

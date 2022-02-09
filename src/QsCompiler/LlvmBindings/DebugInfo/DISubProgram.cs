@@ -7,10 +7,10 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-using LlvmBindings.Interop;
-using LlvmBindings.Values;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug information for a SubProgram</summary>
     /// <seealso href="xref:llvm_langref#disubprogram"/>

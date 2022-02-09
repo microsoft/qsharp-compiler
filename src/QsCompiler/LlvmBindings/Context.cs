@@ -11,11 +11,12 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using LlvmBindings.Interop;
-using LlvmBindings.Types;
-using LlvmBindings.Values;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Interop;
+using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings
+namespace Ubiquity.NET.Llvm
 {
     /// <summary>Encapsulates an LLVM context.</summary>
     /// <remarks>
@@ -27,7 +28,7 @@ namespace LlvmBindings
     /// <para>LLVM Debug information is ultimately all parented to a top level <see cref="DICompileUnit"/> as
     /// the scope, and a compilation unit is bound to a <see cref="BitcodeModule"/>, even though, technically
     /// the types are owned by a Context. Thus to keep things simpler and help make working with debug information
-    /// easier. LlvmBindings encapsulates the native type and the debug type in separate classes that are instances
+    /// easier. Ubiquity.NET.Llvm encapsulates the native type and the debug type in separate classes that are instances
     /// of the <see cref="IDebugType{NativeT, DebugT}"/> interface. </para>
     ///
     /// <note type="note">It is important to be aware of the fact that a Context is not thread safe. The context

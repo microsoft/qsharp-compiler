@@ -8,14 +8,14 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-using LlvmBindings.Types;
-using LlvmBindings.Values;
+using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
 #pragma warning disable SA1649 // File name must match first type ( Justification -  Interface + internal Impl + public extensions )
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Provides pairing of a <see cref="ITypeRef"/> with a <see cref="DIType"/> for function signatures</summary>
     /// <typeparam name="TNative">Native LLVM type</typeparam>

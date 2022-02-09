@@ -7,9 +7,9 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace LlvmBindings.Interop
+namespace LLVMSharp.Interop
 {
-    public unsafe struct MarshaledString : IDisposable
+    internal unsafe struct MarshaledString : IDisposable
     {
         public MarshaledString(ReadOnlySpan<char> input)
         {

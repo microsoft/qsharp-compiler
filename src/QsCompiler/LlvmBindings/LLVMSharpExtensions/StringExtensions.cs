@@ -6,9 +6,9 @@
 using System;
 using System.Text;
 
-namespace LlvmBindings.Interop
+namespace LLVMSharp.Interop
 {
-    public static unsafe class StringExtensions
+    internal static unsafe class StringExtensions
     {
         public static MarshaledString AsMarshaledString(this string self)
         {

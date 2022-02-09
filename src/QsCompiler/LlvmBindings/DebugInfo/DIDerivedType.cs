@@ -5,10 +5,10 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
-using LlvmBindings.Values;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Derived type</summary>
     /// <remarks>

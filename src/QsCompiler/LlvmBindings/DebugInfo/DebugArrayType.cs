@@ -7,11 +7,11 @@
 
 using System;
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-using LlvmBindings.Types;
+using Ubiquity.NET.Llvm.Types;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Provides debug information binding between an <see cref="IArrayType"/> and a <see cref="DICompositeType"/></summary>
     /// <seealso href="xref:llvm_langref#dicompositetype">DICompositeType</seealso>

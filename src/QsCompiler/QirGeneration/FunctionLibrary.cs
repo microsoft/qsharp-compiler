@@ -4,9 +4,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using LlvmBindings;
-using LlvmBindings.Types;
-using LlvmBindings.Values;
+using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {

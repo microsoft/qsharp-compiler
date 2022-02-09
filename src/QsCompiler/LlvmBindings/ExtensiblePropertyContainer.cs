@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace LlvmBindings
+namespace Ubiquity.NET.Llvm
 {
     /// <summary>Common implementation of <see cref="IExtensiblePropertyContainer"/></summary>
     /// <remarks>

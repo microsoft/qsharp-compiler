@@ -7,14 +7,14 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-using LlvmBindings.Values;
+using Ubiquity.NET.Llvm.Values;
 
 // Interface+internal type matches file name
 #pragma warning disable SA1649
 
-namespace LlvmBindings.Types
+namespace Ubiquity.NET.Llvm.Types
 {
     /// <summary>Basic kind of a type.</summary>
     public enum TypeKind

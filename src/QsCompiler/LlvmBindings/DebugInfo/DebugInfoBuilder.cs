@@ -8,13 +8,15 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using LlvmBindings.Instructions;
-using LlvmBindings.Interop;
-using LlvmBindings.Values;
+using System.Text;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Instructions;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Defines the amount of debug information to emit</summary>
     public enum DwarfEmissionKind
@@ -224,17 +226,7 @@ namespace LlvmBindings.DebugInfo
         /// </returns>
         public DIFile CreateFile(string? fileName, string? directory)
         {
-            if (fileName == null)
-            {
-                throw new ArgumentNullException(nameof(fileName));
-            }
-
-            if (directory == null)
-            {
-                throw new ArgumentNullException(nameof(directory));
-            }
-
-            var handle = this.BuilderHandle.CreateFile(fileName!, directory!);
+            var handle = this.BuilderHandle.CreateFile(fileName, directory);
             return MDNode.FromHandle<DIFile>(handle)!;
         }
 

@@ -7,9 +7,9 @@
 
 using System;
 
-using LlvmBindings.Types;
+using Ubiquity.NET.Llvm.Types;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug information binding between an LLVM native <see cref="ITypeRef"/> and a <see cref="DIBasicType"/></summary>
     /// <remarks>

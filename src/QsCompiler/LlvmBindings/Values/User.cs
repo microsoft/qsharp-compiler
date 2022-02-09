@@ -7,9 +7,9 @@
 
 using System.Collections.Generic;
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.Values
+namespace Ubiquity.NET.Llvm.Values
 {
     /// <summary>Contains an LLVM User value.</summary>
     /// <remarks>

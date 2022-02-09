@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug information for a basic type</summary>
     /// <seealso cref="DebugInfoBuilder.CreateBasicType(string, ulong, DiTypeKind, DebugInfoFlags)"/>

@@ -8,10 +8,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using LlvmBindings.Interop;
-using LlvmBindings.Values;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings.Instructions
+namespace Ubiquity.NET.Llvm.Instructions
 {
     /// <summary>Call instruction.</summary>
     /// <seealso href="xref:llvm_langref#call-instruction"/>

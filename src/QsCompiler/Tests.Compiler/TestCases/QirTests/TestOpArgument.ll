@@ -2,14 +2,14 @@ define internal %String* @Microsoft__Quantum__Testing__QIR__TestOpArgument__body
 entry:
   %q1 = call %Qubit* @__quantum__rt__qubit_allocate()
   %q2 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %0 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Qubit*, %Qubit* }* getelementptr ({ %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* null, i32 1) to i64))
+  %0 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %qs = bitcast %Tuple* %0 to { %Qubit*, %Qubit* }*
   %1 = getelementptr inbounds { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %qs, i32 0, i32 0
   %2 = getelementptr inbounds { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %qs, i32 0, i32 1
   store %Qubit* %q1, %Qubit** %1, align 8
   store %Qubit* %q2, %Qubit** %2, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %0, i32 1)
-  %3 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, %Qubit* }* getelementptr ({ %Callable*, %Qubit* }, { %Callable*, %Qubit* }* null, i32 1) to i64))
+  %3 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %4 = bitcast %Tuple* %3 to { %Callable*, %Qubit* }*
   %5 = getelementptr inbounds { %Callable*, %Qubit* }, { %Callable*, %Qubit* }* %4, i32 0, i32 0
   %6 = getelementptr inbounds { %Callable*, %Qubit* }, { %Callable*, %Qubit* }* %4, i32 0, i32 1
@@ -21,7 +21,7 @@ entry:
   call void @__quantum__rt__callable_update_alias_count(%Callable* %op, i32 1)
   call void @__quantum__qis__cnot__body(%Qubit* %q1, %Qubit* %q2)
   call void @__quantum__qis__swap(%Qubit* %q1, %Qubit* %q2)
-  %8 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, %Qubit* }* getelementptr ({ %Callable*, %Qubit* }, { %Callable*, %Qubit* }* null, i32 1) to i64))
+  %8 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %9 = bitcast %Tuple* %8 to { %Callable*, %Qubit* }*
   %10 = getelementptr inbounds { %Callable*, %Qubit* }, { %Callable*, %Qubit* }* %9, i32 0, i32 0
   %11 = getelementptr inbounds { %Callable*, %Qubit* }, { %Callable*, %Qubit* }* %9, i32 0, i32 1
@@ -30,7 +30,7 @@ entry:
   store %Qubit* %q1, %Qubit** %11, align 8
   %13 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__2__FunctionTable, [2 x void (%Tuple*, i32)*]* @MemoryManagement__2__FunctionTable, %Tuple* %8)
   call void @Microsoft__Quantum__Testing__QIR__Apply__body(%Callable* %13)
-  %14 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, %Qubit* }* getelementptr ({ %Callable*, %Qubit* }, { %Callable*, %Qubit* }* null, i32 1) to i64))
+  %14 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %15 = bitcast %Tuple* %14 to { %Callable*, %Qubit* }*
   %16 = getelementptr inbounds { %Callable*, %Qubit* }, { %Callable*, %Qubit* }* %15, i32 0, i32 0
   %17 = getelementptr inbounds { %Callable*, %Qubit* }, { %Callable*, %Qubit* }* %15, i32 0, i32 1
@@ -39,7 +39,7 @@ entry:
   store %Qubit* %q1, %Qubit** %17, align 8
   %19 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__3__FunctionTable, [2 x void (%Tuple*, i32)*]* @MemoryManagement__3__FunctionTable, %Tuple* %14)
   call void @Microsoft__Quantum__Testing__QIR__Apply__body(%Callable* %19)
-  %20 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, %Qubit*, %Qubit* }* getelementptr ({ %Callable*, %Qubit*, %Qubit* }, { %Callable*, %Qubit*, %Qubit* }* null, i32 1) to i64))
+  %20 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 3))
   %21 = bitcast %Tuple* %20 to { %Callable*, %Qubit*, %Qubit* }*
   %22 = getelementptr inbounds { %Callable*, %Qubit*, %Qubit* }, { %Callable*, %Qubit*, %Qubit* }* %21, i32 0, i32 0
   %23 = getelementptr inbounds { %Callable*, %Qubit*, %Qubit* }, { %Callable*, %Qubit*, %Qubit* }* %21, i32 0, i32 1
@@ -50,7 +50,7 @@ entry:
   store %Qubit* %q2, %Qubit** %24, align 8
   %26 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__4__FunctionTable, [2 x void (%Tuple*, i32)*]* @MemoryManagement__4__FunctionTable, %Tuple* %20)
   call void @Microsoft__Quantum__Testing__QIR__Apply__body(%Callable* %26)
-  %27 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, %Qubit*, %Qubit* }* getelementptr ({ %Callable*, %Qubit*, %Qubit* }, { %Callable*, %Qubit*, %Qubit* }* null, i32 1) to i64))
+  %27 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 3))
   %28 = bitcast %Tuple* %27 to { %Callable*, %Qubit*, %Qubit* }*
   %29 = getelementptr inbounds { %Callable*, %Qubit*, %Qubit* }, { %Callable*, %Qubit*, %Qubit* }* %28, i32 0, i32 0
   %30 = getelementptr inbounds { %Callable*, %Qubit*, %Qubit* }, { %Callable*, %Qubit*, %Qubit* }* %28, i32 0, i32 1
@@ -61,7 +61,7 @@ entry:
   store %Qubit* %q2, %Qubit** %31, align 8
   %33 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__5__FunctionTable, [2 x void (%Tuple*, i32)*]* @MemoryManagement__4__FunctionTable, %Tuple* %27)
   call void @Microsoft__Quantum__Testing__QIR__Apply__body(%Callable* %33)
-  %34 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, { %Qubit*, %Qubit* }* }* getelementptr ({ %Callable*, { %Qubit*, %Qubit* }* }, { %Callable*, { %Qubit*, %Qubit* }* }* null, i32 1) to i64))
+  %34 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %35 = bitcast %Tuple* %34 to { %Callable*, { %Qubit*, %Qubit* }* }*
   %36 = getelementptr inbounds { %Callable*, { %Qubit*, %Qubit* }* }, { %Callable*, { %Qubit*, %Qubit* }* }* %35, i32 0, i32 0
   %37 = getelementptr inbounds { %Callable*, { %Qubit*, %Qubit* }* }, { %Callable*, { %Qubit*, %Qubit* }* }* %35, i32 0, i32 1

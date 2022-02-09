@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using LlvmBindings;
-using LlvmBindings.Values;
+using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QIR
 {

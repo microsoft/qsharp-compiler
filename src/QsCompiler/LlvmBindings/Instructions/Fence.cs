@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.Instructions
+namespace Ubiquity.NET.Llvm.Instructions
 {
     /// <summary>Synchronization instruction to introduce "happens-before" edges between operations.</summary>
     /// <seealso href="xref:llvm_langref#fence-instruction">LLVM fence Instruction</seealso>

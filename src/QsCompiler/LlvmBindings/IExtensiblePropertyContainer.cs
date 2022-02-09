@@ -7,7 +7,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace LlvmBindings
+namespace Ubiquity.NET.Llvm
 {
     /// <summary>Interface to allow adding arbitrary named data items to an object</summary>
     /// <remarks>

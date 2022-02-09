@@ -7,10 +7,12 @@
 
 using System;
 using System.Collections.Generic;
-using LlvmBindings.Instructions;
-using LlvmBindings.Interop;
 
-namespace LlvmBindings.Values
+using LLVMSharp.Interop;
+
+using Ubiquity.NET.Llvm.Instructions;
+
+namespace Ubiquity.NET.Llvm.Values
 {
     /// <summary>Provides access to an LLVM Basic block.</summary>
     /// <remarks>

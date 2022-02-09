@@ -5,12 +5,12 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>DebugMemberLayout is used to define custom layout information for structure members</summary>
     /// <remarks>
     /// Ordinarily layout information is handle automatically in
-    /// <see href="xref:LlvmBindings.DebugInfo.DebugStructType.SetBody*">DebugStructType.SetBody</see>
+    /// <see href="xref:Ubiquity.NET.Llvm.DebugInfo.DebugStructType.SetBody*">DebugStructType.SetBody</see>
     /// however in cases where explicitly controlled (or "packed") layout is required, instances of DebugMemberLayout are
     /// used to provide the information necessary to generate a proper type and debug information.
     /// </remarks>

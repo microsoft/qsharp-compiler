@@ -8,11 +8,12 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
-using LlvmBindings.Instructions;
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Instructions;
 
-namespace LlvmBindings.Values
+namespace Ubiquity.NET.Llvm.Values
 {
     /// <summary>Enumeration for the known LLVM attributes.</summary>
     /// <remarks>

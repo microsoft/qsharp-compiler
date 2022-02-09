@@ -7,9 +7,9 @@
 
 using System.Collections.Generic;
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.Values
+namespace Ubiquity.NET.Llvm.Values
 {
     /// <summary>Function index for attributes.</summary>
     /// <remarks>

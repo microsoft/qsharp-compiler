@@ -7,9 +7,9 @@
 
 using System;
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings
+namespace Ubiquity.NET.Llvm
 {
     /// <summary>
     /// Manages a cache of <see cref="Context"/> instances using thread local storage.

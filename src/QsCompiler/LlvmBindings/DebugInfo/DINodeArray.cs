@@ -7,7 +7,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Array of <see cref="DINode"/> debug information nodes for use with <see cref="DebugInfoBuilder"/> methods</summary>
     /// <seealso cref="DebugInfoBuilder.GetOrCreateArray(System.Collections.Generic.IEnumerable{DINode})"/>

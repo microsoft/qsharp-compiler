@@ -10,9 +10,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-using LlvmBindings.Types;
+using Ubiquity.NET.Llvm.Types;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug representation of a union type</summary>
     /// <remarks>The underlying native LLVM type is a structure with a single member</remarks>

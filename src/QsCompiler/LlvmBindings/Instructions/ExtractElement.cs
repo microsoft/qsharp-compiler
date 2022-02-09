@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.Instructions
+namespace Ubiquity.NET.Llvm.Instructions
 {
     /// <summary>Instruction to extract a single scalar element from a vector at a specified index.</summary>
     /// <seealso href="xref:llvm_langref#extractelement-instruction">LLVM extractelement Instruction</seealso>

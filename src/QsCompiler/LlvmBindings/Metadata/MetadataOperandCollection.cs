@@ -9,10 +9,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using LlvmBindings.Interop;
-using LlvmBindings.Values;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings
+namespace Ubiquity.NET.Llvm
 {
     /// <summary>Support class to provide read/update semantics to the operands of a container element</summary>
     /// <remarks>

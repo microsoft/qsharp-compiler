@@ -8,11 +8,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using LlvmBindings.DebugInfo;
-using LlvmBindings.Interop;
-using LlvmBindings.Types;
 
-namespace LlvmBindings.Values
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.DebugInfo;
+using Ubiquity.NET.Llvm.Types;
+
+namespace Ubiquity.NET.Llvm.Values
 {
     /* values for CallingConvention enum come directly from LLVM's CallingConv.h
     // rather then the mapped C API version as the C version is not

@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
-namespace LlvmBindings
+namespace Ubiquity.NET.Llvm
 {
     /// <summary>Wrapper class to provide Write-Once semantics to a value</summary>
     /// <typeparam name="T">Type of value to store</typeparam>

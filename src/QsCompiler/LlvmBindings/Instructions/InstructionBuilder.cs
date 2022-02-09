@@ -9,11 +9,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using LlvmBindings.Interop;
-using LlvmBindings.Types;
-using LlvmBindings.Values;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings.Instructions
+namespace Ubiquity.NET.Llvm.Instructions
 {
     /// <summary>LLVM Instruction builder allowing managed code to generate IR instructions.</summary>
     public sealed unsafe class InstructionBuilder

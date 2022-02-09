@@ -37,27 +37,27 @@ On Windows, the conda method is recommended since it's also able to install the 
 
 Package managers:
 
-* **Ubuntu** : `sudo apt install clang-13`
-* **Windows** : `choco install llvm --version=13.0.0` using [chocolatey](https://chocolatey.org/)
+* **Ubuntu** : `sudo apt install clang-11`
+* **Windows** : `choco install llvm --version=11.1.0` using [chocolatey](https://chocolatey.org/)
 * **macOS** : `brew install llvm@11` using [homebrew](https://brew.sh/)
 
-* **all** : `conda install -c conda-forge clang=13.0.0 clangxx=13.0.0 llvm=13.0.0` using [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)
+* **all** : `conda install -c conda-forge clang=11.1.0 clangxx=11.1.0 llvm=11.1.0` using [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)
 
 Pre-built binaries/installers:
 
-* **Ubuntu** : get `clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.10.tar.xz` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.0)
-* **Windows** : get `LLVM-13.0.0-win64.exe` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.0)
-* **macOS** : get `clang+llvm-13.0.0-x86_64-apple-darwin.tar.xz` from the [13.0.0 release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.0)
+* **Ubuntu** : get `clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-20.10.tar.xz` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.1.0)
+* **Windows** : get `LLVM-11.1.0-win64.exe` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.1.0)
+* **macOS** : get `clang+llvm-11.0.0-x86_64-apple-darwin.tar.xz` from the [11.0.0 release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.0.0) (11.1.0 not released)
 
 
-(**Linux**) If installing via `apt`, the clang/llvm commands will have `-13` attached to their name.
+(**Linux**) If installing via `apt`, the clang/llvm commands will have `-11` attached to their name.
 It's convenient to define aliases for these commands so as not to have to type out the full name every time.
-If you want to skip this step, substitute `clang`/`clang++`/`opt` with `clang-13`/`clang++-13`/`opt-13` throughout the rest of this document.
+If you want to skip this step, substitute `clang`/`clang++`/`opt` with `clang-11`/`clang++-11`/`opt-11` throughout the rest of this document.
 
 ```bash
-echo 'alias clang=clang-13' >> ~/.bashrc
-echo 'alias clang++=clang++-13' >> ~/.bashrc
-echo 'alias opt=opt-13' >> ~/.bashrc
+echo 'alias clang=clang-11' >> ~/.bashrc
+echo 'alias clang++=clang++-11' >> ~/.bashrc
+echo 'alias opt=opt-11' >> ~/.bashrc
 ```
 
 Restart the terminal for the aliases to take effect.

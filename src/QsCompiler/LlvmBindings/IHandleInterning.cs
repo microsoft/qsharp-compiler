@@ -12,7 +12,7 @@ using System.Collections.Generic;
 // gripes about these for interfaces...
 #pragma warning disable SA1600
 
-namespace LlvmBindings
+namespace Ubiquity.NET.Llvm
 {
     internal interface IHandleInterning<THandle, TMappedType>
         : IEnumerable<TMappedType>

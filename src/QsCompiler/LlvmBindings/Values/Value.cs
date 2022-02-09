@@ -6,11 +6,11 @@
 // -----------------------------------------------------------------------
 
 using System;
-using LlvmBindings.Instructions;
-using LlvmBindings.Interop;
-using LlvmBindings.Types;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Instructions;
+using Ubiquity.NET.Llvm.Types;
 
-namespace LlvmBindings.Values
+namespace Ubiquity.NET.Llvm.Values
 {
     /// <summary>LLVM Value.</summary>
     /// <remarks>
@@ -18,7 +18,7 @@ namespace LlvmBindings.Values
     /// are never constructed directly with the new operator. Instead, they are produced by other classes
     /// in this library internally. This is because they are just wrappers around the LLVM-C API handles
     /// and must maintain the "uniqueing" semantics. (e.g. allowing reference equality for values that are
-    /// fundamentally the same value). This is generally hidden in the internals of the LlvmBindings library so
+    /// fundamentally the same value). This is generally hidden in the internals of the Ubiquity.NET.Llvm library so
     /// that callers need not be concerned with the details but can rely on the expected behavior that two
     /// Value instances referring to the same actual value (i.e. a function) are actually the same .NET object
     /// as well within the same <see cref="Llvm.Context"/>.
@@ -90,9 +90,9 @@ namespace LlvmBindings.Values
             this.ValueHandle.ReplaceAllUsesWith(other.ValueHandle);
         }
 
-        /// <summary>Gets an LlvmBindings managed wrapper for a LibLLVM value handle.</summary>
+        /// <summary>Gets an Ubiquity.NET.Llvm managed wrapper for a LibLLVM value handle.</summary>
         /// <param name="valueRef">Value handle to wrap.</param>
-        /// <returns>LlvmBindings managed instance for the handle.</returns>
+        /// <returns>Ubiquity.NET.Llvm managed instance for the handle.</returns>
         /// <remarks>
         /// This method uses a cached mapping to ensure that two calls given the same
         /// input handle returns the same managed instance so that reference equality
@@ -100,10 +100,10 @@ namespace LlvmBindings.Values
         /// </remarks>
         internal static Value FromHandle(LLVMValueRef valueRef) => FromHandle<Value>(valueRef);
 
-        /// <summary>Gets an LlvmBindings managed wrapper for a LibLLVM value handle.</summary>
+        /// <summary>Gets an Ubiquity.NET.Llvm managed wrapper for a LibLLVM value handle.</summary>
         /// <typeparam name="T">Required type for the handle.</typeparam>
         /// <param name="valueRef">Value handle to wrap.</param>
-        /// <returns>LlvmBindings managed instance for the handle.</returns>
+        /// <returns>Ubiquity.NET.Llvm managed instance for the handle.</returns>
         /// <remarks>
         /// This method uses a cached mapping to ensure that two calls given the same
         /// input handle returns the same managed instance so that reference equality

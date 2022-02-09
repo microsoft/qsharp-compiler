@@ -7,9 +7,9 @@
 
 using System;
 using System.Collections.Generic;
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.Values
+namespace Ubiquity.NET.Llvm.Values
 {
     /// <summary>Base class for Global objects in an LLVM Module.</summary>
     public unsafe class GlobalObject
@@ -38,7 +38,7 @@ namespace LlvmBindings.Values
             set
             {
                 var val = this.ValueHandle;
-                val.Section = value!;
+                val.Section = value;
             }
         }
     }

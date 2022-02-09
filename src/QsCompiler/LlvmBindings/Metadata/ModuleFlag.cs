@@ -7,7 +7,7 @@
 
 using System;
 
-namespace LlvmBindings
+namespace Ubiquity.NET.Llvm
 {
     /// <summary>Module Flags Tuple for a module</summary>
     public class ModuleFlag

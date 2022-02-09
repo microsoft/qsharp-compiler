@@ -5,7 +5,7 @@
 
 using System;
 
-namespace LlvmBindings.Interop
+namespace LLVMSharp.Interop
 {
     /// <summary>Extensions for <see cref="LLVMValueRef"/>.</summary>
     public static unsafe class LLVMValueRefExtensions

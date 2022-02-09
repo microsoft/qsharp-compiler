@@ -39,7 +39,7 @@ exit__1:                                          ; preds = %header__1
   %16 = call %Callable* @__quantum__rt__callable_copy(%Callable* %15, i1 false)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %16, i32 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %16)
-  %17 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Array*, %Tuple* }* getelementptr ({ %Array*, %Tuple* }, { %Array*, %Tuple* }* null, i32 1) to i64))
+  %17 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %18 = bitcast %Tuple* %17 to { %Array*, %Tuple* }*
   %19 = getelementptr inbounds { %Array*, %Tuple* }, { %Array*, %Tuple* }* %18, i32 0, i32 0
   %20 = getelementptr inbounds { %Array*, %Tuple* }, { %Array*, %Tuple* }* %18, i32 0, i32 1
@@ -55,11 +55,11 @@ exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__capture_update_alias_count(%Callable* %fct, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %fct, i32 1)
   %25 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @0, i32 0, i32 0))
-  %26 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %String* }* getelementptr ({ %String* }, { %String* }* null, i32 1) to i64))
+  %26 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
   %27 = bitcast %Tuple* %26 to { %String* }*
   %28 = getelementptr inbounds { %String* }, { %String* }* %27, i32 0, i32 0
   store %String* %25, %String** %28, align 8
-  %29 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %String*, { i64, double }* }* getelementptr ({ %String*, { i64, double }* }, { %String*, { i64, double }* }* null, i32 1) to i64))
+  %29 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   call void @__quantum__rt__callable_invoke(%Callable* %fct, %Tuple* %26, %Tuple* %29)
   %30 = bitcast %Tuple* %29 to { %String*, { i64, double }* }*
   %31 = getelementptr inbounds { %String*, { i64, double }* }, { %String*, { i64, double }* }* %30, i32 0, i32 0

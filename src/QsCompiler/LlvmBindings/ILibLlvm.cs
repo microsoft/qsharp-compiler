@@ -7,7 +7,7 @@
 
 using System;
 
-namespace LlvmBindings.Interop
+namespace Ubiquity.NET.Llvm.Interop
 {
     /// <summary>Code gen target to register/initialize.</summary>
     public enum CodeGenTarget
@@ -111,5 +111,9 @@ namespace LlvmBindings.Interop
     public interface ILibLlvm
         : IDisposable
     {
+        /// <summary>Registers components for ARM AArch64 target(s).</summary>
+        /// <param name="target">Target architecture to register/initialize.</param>
+        /// <param name="registrations">Flags indicating which components to register/enable.</param>
+        void RegisterTarget(CodeGenTarget target, TargetRegistrations registrations = TargetRegistrations.All);
     }
 }

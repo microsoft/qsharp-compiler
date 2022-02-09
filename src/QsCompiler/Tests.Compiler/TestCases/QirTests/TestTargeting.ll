@@ -2,7 +2,7 @@ define internal void @Microsoft__Quantum__Testing__QIR__NoArgs__body() {
 entry:
   %q = call %Qubit* @__quantum__rt__qubit_allocate()
   %0 = call %Result* @__quantum__qis__mz(%Qubit* %q)
-  %1 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, %Tuple* }* getelementptr ({ %Callable*, %Tuple* }, { %Callable*, %Tuple* }* null, i32 1) to i64))
+  %1 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %2 = bitcast %Tuple* %1 to { %Callable*, %Tuple* }*
   %3 = getelementptr inbounds { %Callable*, %Tuple* }, { %Callable*, %Tuple* }* %2, i32 0, i32 0
   %4 = getelementptr inbounds { %Callable*, %Tuple* }, { %Callable*, %Tuple* }* %2, i32 0, i32 1

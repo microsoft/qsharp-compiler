@@ -59,7 +59,7 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  %22 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i64 }* getelementptr ({ i64, i64 }, { i64, i64 }* null, i32 1) to i64))
+  %22 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
   %23 = bitcast %Tuple* %22 to { i64, i64 }*
   %24 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %23, i32 0, i32 0
   %25 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %23, i32 0, i32 1

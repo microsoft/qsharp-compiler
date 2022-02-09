@@ -6,7 +6,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-namespace LlvmBindings.Interop
+namespace Ubiquity.NET.Llvm.Interop
 {
     /// <summary>Keep alive holder to ensure native call back delegates are not destroyed while registered with native code.</summary>
     /// <remarks>

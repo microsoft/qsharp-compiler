@@ -4,12 +4,12 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using LlvmBindings.Values;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {

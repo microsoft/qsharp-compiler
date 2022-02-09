@@ -5,10 +5,10 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
-using LlvmBindings.Values;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings.Instructions
+namespace Ubiquity.NET.Llvm.Instructions
 {
     /// <summary>Intrinsic LLVM IR instruction to declare Debug information for a <see cref="Value"/>.</summary>
     /// <seealso href="xref:llvm_sourcelevel_debugging#llvm-dbg-declare">llvm.dbg.declare</seealso>

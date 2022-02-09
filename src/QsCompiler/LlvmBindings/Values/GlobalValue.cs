@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
-namespace LlvmBindings.Values
+namespace Ubiquity.NET.Llvm.Values
 {
     /// <summary>Linkage specification for functions and globals.</summary>
     /// <seealso href="xref:llvm_langref#linkage-types">LLVM Linkage Types</seealso>

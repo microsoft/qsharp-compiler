@@ -8,11 +8,11 @@
 using System;
 using System.Collections.Generic;
 
-using LlvmBindings.Interop;
-using LlvmBindings.Types;
-using LlvmBindings.Values;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings
+namespace Ubiquity.NET.Llvm
 {
     /// <summary>Byte ordering for target code generation and data type layout</summary>
     public enum ByteOrdering

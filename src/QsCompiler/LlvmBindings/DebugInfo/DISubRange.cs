@@ -7,10 +7,10 @@
 
 using System;
 
-using LlvmBindings.Interop;
-using LlvmBindings.Values;
+using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Values;
 
-namespace LlvmBindings.DebugInfo
+namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Sub range</summary>
     /// <seealso href="xref:llvm_langref#disubrange">LLVM DISubRange</seealso>

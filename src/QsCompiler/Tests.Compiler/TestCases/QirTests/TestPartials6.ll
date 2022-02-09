@@ -3,7 +3,7 @@ entry:
   %0 = bitcast %Tuple* %capture-tuple to { %Callable*, %Callable* }*
   %1 = getelementptr inbounds { %Callable*, %Callable* }, { %Callable*, %Callable* }* %0, i32 0, i32 1
   %2 = load %Callable*, %Callable** %1, align 8
-  %3 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, { %Array* }* }* getelementptr ({ %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* null, i32 1) to i64))
+  %3 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %4 = bitcast %Tuple* %3 to { %Callable*, { %Array* }* }*
   %5 = getelementptr inbounds { %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* %4, i32 0, i32 0
   %6 = getelementptr inbounds { %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* %4, i32 0, i32 1
@@ -22,7 +22,7 @@ entry:
   %0 = bitcast %Tuple* %capture-tuple to { %Callable*, %Callable* }*
   %1 = getelementptr inbounds { %Callable*, %Callable* }, { %Callable*, %Callable* }* %0, i32 0, i32 1
   %2 = load %Callable*, %Callable** %1, align 8
-  %3 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, { %Array* }* }* getelementptr ({ %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* null, i32 1) to i64))
+  %3 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %4 = bitcast %Tuple* %3 to { %Callable*, { %Array* }* }*
   %5 = getelementptr inbounds { %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* %4, i32 0, i32 0
   %6 = getelementptr inbounds { %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* %4, i32 0, i32 1
@@ -51,13 +51,13 @@ entry:
   %5 = bitcast %Tuple* %capture-tuple to { %Callable*, %Callable* }*
   %6 = getelementptr inbounds { %Callable*, %Callable* }, { %Callable*, %Callable* }* %5, i32 0, i32 1
   %7 = load %Callable*, %Callable** %6, align 8
-  %8 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, { %Array* }* }* getelementptr ({ %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* null, i32 1) to i64))
+  %8 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %9 = bitcast %Tuple* %8 to { %Callable*, { %Array* }* }*
   %10 = getelementptr inbounds { %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* %9, i32 0, i32 0
   %11 = getelementptr inbounds { %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* %9, i32 0, i32 1
   store %Callable* %7, %Callable** %10, align 8
   store { %Array* }* %4, { %Array* }** %11, align 8
-  %12 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Array*, { %Callable*, { %Array* }* }* }* getelementptr ({ %Array*, { %Callable*, { %Array* }* }* }, { %Array*, { %Callable*, { %Array* }* }* }* null, i32 1) to i64))
+  %12 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %13 = bitcast %Tuple* %12 to { %Array*, { %Callable*, { %Array* }* }* }*
   %14 = getelementptr inbounds { %Array*, { %Callable*, { %Array* }* }* }, { %Array*, { %Callable*, { %Array* }* }* }* %13, i32 0, i32 0
   %15 = getelementptr inbounds { %Array*, { %Callable*, { %Array* }* }* }, { %Array*, { %Callable*, { %Array* }* }* }* %13, i32 0, i32 1
@@ -86,13 +86,13 @@ entry:
   %5 = bitcast %Tuple* %capture-tuple to { %Callable*, %Callable* }*
   %6 = getelementptr inbounds { %Callable*, %Callable* }, { %Callable*, %Callable* }* %5, i32 0, i32 1
   %7 = load %Callable*, %Callable** %6, align 8
-  %8 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, { %Array* }* }* getelementptr ({ %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* null, i32 1) to i64))
+  %8 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %9 = bitcast %Tuple* %8 to { %Callable*, { %Array* }* }*
   %10 = getelementptr inbounds { %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* %9, i32 0, i32 0
   %11 = getelementptr inbounds { %Callable*, { %Array* }* }, { %Callable*, { %Array* }* }* %9, i32 0, i32 1
   store %Callable* %7, %Callable** %10, align 8
   store { %Array* }* %4, { %Array* }** %11, align 8
-  %12 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Array*, { %Callable*, { %Array* }* }* }* getelementptr ({ %Array*, { %Callable*, { %Array* }* }* }, { %Array*, { %Callable*, { %Array* }* }* }* null, i32 1) to i64))
+  %12 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %13 = bitcast %Tuple* %12 to { %Array*, { %Callable*, { %Array* }* }* }*
   %14 = getelementptr inbounds { %Array*, { %Callable*, { %Array* }* }* }, { %Array*, { %Callable*, { %Array* }* }* }* %13, i32 0, i32 0
   %15 = getelementptr inbounds { %Array*, { %Callable*, { %Array* }* }* }, { %Array*, { %Callable*, { %Array* }* }* }* %13, i32 0, i32 1

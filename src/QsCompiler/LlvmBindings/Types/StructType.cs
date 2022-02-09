@@ -8,12 +8,12 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using LlvmBindings.Interop;
+using LLVMSharp.Interop;
 
 // Interface+internal type matches file name
 #pragma warning disable SA1649
 
-namespace LlvmBindings.Types
+namespace Ubiquity.NET.Llvm.Types
 {
     /// <summary>Interface for a named type with members.</summary>
     /// <remarks>This is a common interface for structures and unions.</remarks>
