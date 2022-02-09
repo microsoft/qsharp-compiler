@@ -69,9 +69,5 @@ namespace Microsoft.Quantum.Testing.General {
     function DelayedId<'a>(x : 'a, u : Unit) : 'a {
         return x;
     }
-
-    function Default<'a>() : 'a {
-        return (new 'a[1])[0];
-    }
 }
 
