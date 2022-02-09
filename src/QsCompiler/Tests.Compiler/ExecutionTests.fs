@@ -36,8 +36,8 @@ type ExecutionTests(output: ITestOutputHelper) =
     let ExecuteAndCompareOutput cName expectedOutput =
         let args = sprintf "%s.%s" "Microsoft.Quantum.Testing.ExecutionTests" cName
         let exitCode, out, err = args |> ExecuteOnReferenceTarget 0
-        Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
+        Assert.Equal(0, exitCode)
         AssertEqual expectedOutput out
 
     let WriteBitcode pathToBitcode files =
@@ -97,20 +97,20 @@ type ExecutionTests(output: ITestOutputHelper) =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__NoReturn"
         let exitCode, out, err = QirExecutionTest functionName
-        Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
+        Assert.Equal(0, exitCode)
         AssertEqual "()" out
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__ReturnsUnit"
         let exitCode, out, err = QirExecutionTest functionName
-        Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
+        Assert.Equal(0, exitCode)
         AssertEqual "()" out
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__ReturnsString"
         let exitCode, out, err = QirExecutionTest functionName
-        Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
+        Assert.Equal(0, exitCode)
         AssertEqual "\"Success!\"" out // the quotes are correct and needed here
 
 
@@ -119,8 +119,8 @@ type ExecutionTests(output: ITestOutputHelper) =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestInterpolatedStrings"
         let exitCode, out, err = QirExecutionTest functionName
-        Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
+        Assert.Equal(0, exitCode)
 
         let expected =
             """
@@ -144,12 +144,42 @@ type ExecutionTests(output: ITestOutputHelper) =
 
 
     [<Fact>]
+    member this.``QIR default values``() =
+
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestDefaultValues"
+        let exitCode, out, err = QirExecutionTest functionName
+        AssertEqual String.Empty err
+        Assert.Equal(0, exitCode)
+
+        let expected =
+            """
+            [0, 0, 0]
+            [0.0, 0.0, 0.0]
+            [false, false, false]
+            [PauliI, PauliI, PauliI]
+            ["", "", ""]
+            [0..-1, 0..-1, 0..-1]
+            [0, 0, 0]
+            [Zero, Zero, Zero]
+            [(), (), ()]
+            [("", 0), ("", 0), ("", 0)]
+            [[], [], []]
+            [Microsoft.Quantum.Testing.ExecutionTests.MyUdt(("", ("", Microsoft.Quantum.Testing.ExecutionTests.Tuple("", ""))), ""), Microsoft.Quantum.Testing.ExecutionTests.MyUdt(("", ("", Microsoft.Quantum.Testing.ExecutionTests.Tuple("", ""))), ""), Microsoft.Quantum.Testing.ExecutionTests.MyUdt(("", ("", Microsoft.Quantum.Testing.ExecutionTests.Tuple("", ""))), "")]
+            [<function>, <function>, <function>]
+            [<operation>, <operation>, <operation>]
+            ()
+            """
+
+        AssertEqual expected out
+
+
+    [<Fact>]
     member this.``QIR array slicing``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestArraySlicing"
         let exitCode, out, err = QirExecutionTest functionName
-        Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
+        Assert.Equal(0, exitCode)
 
         let expected =
             """
@@ -183,8 +213,8 @@ type ExecutionTests(output: ITestOutputHelper) =
         // ... and now the actual tests
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__RunExample"
         let exitCode, _, err = QirExecutionTest functionName
-        Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
+        Assert.Equal(0, exitCode)
 
 
     [<Fact>]

@@ -10,9 +10,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-using Ubiquity.NET.Llvm.Types;
+using LlvmBindings.Types;
 
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>Debug information for a structure type</summary>
     /// <seealso href="xref:llvm_langref#dicompositetype">LLVM DICompositeType</seealso>

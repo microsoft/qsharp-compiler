@@ -8,9 +8,9 @@
 using System;
 using System.Text;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.Values
+namespace LlvmBindings.Values
 {
     /// <summary>
     /// A vector or array constant whose element type is a simple 1/2/4/8-byte integer

@@ -8,13 +8,13 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
 // The names describe what they are, further details are available in the DWARF specs
 #pragma warning disable CS1591, SA1600, SA1602 // Enumeration items must be documented
 
 // ReSharper disable IdentifierTypo
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>DWARF Debug information language</summary>
     public enum SourceLanguage
@@ -66,10 +66,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Base value for unofficial languages ids</summary>
         UserMin = 0x8000,
 
-        /// <summary>[Ubiquity.NET.Llvm] C# Language</summary>
+        /// <summary>[LlvmBindings] C# Language</summary>
         CSharp = UserMin + 0x01000,
 
-        /// <summary>[Ubiquity.NET.Llvm] .NET IL Assembly language (ILAsm)</summary>
+        /// <summary>[LlvmBindings] .NET IL Assembly language (ILAsm)</summary>
         ILAsm = UserMin + 0x01001,
 
         /// <summary>Max Value for unofficial language ids</summary>

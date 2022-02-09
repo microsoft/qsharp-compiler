@@ -32,6 +32,14 @@
     <ProjectReference Include="..\Compiler\Compiler.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
+    <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="13.0.0-CI-20220129-005156">
+      <PrivateAssets>all</PrivateAssets>
+      <Visible>false</Visible>
+      <Pack>false</Pack>
+    </PackageReference>
+  </ItemGroup>
+
   <ItemGroup>
     <Content Include="..\..\..\NOTICE.txt" Link="NOTICE.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
