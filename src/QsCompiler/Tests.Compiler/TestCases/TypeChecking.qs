@@ -93,12 +93,12 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
 
     // Power operator
 
-    function DelayedAsBigInt(x : Int, u : Unit) : BigInt {
+    function DelayedIntAsBigInt(x : Int, u : Unit) : BigInt {
         return 1L;
     }
 
     function Power1() : BigInt {
-        let a = DelayedAsBigInt(1, ());
+        let a = DelayedIntAsBigInt(1, ());
         return a ^ 3;
     }
 
@@ -108,7 +108,7 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function Power3() : BigInt {
-        let getOne = DelayedAsBigInt(1, _);
+        let getOne = DelayedIntAsBigInt(1, _);
         let c = getOne();
         return c ^ 3;
     }
@@ -125,7 +125,7 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function PowerInvalid1() : BigInt {
-        let a = DelayedAsBigInt(1, ());
+        let a = DelayedIntAsBigInt(1, ());
         return a ^ 3L;
     }
 
@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function PowerInvalid3() : BigInt {
-        let getOne = DelayedAsBigInt(1, _);
+        let getOne = DelayedIntAsBigInt(1, _);
         let c = getOne();
         return c ^ 3L;
     }
