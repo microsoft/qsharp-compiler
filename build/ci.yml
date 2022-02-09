@@ -1,4 +1,4 @@
-name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(DayOfMonth)$(rev:rr)
+name: $(Build.Major).$(Build.Minor).$(DayOfMonth)$(rev:rr)
 
 variables:
   Build.Major: 0
@@ -41,7 +41,7 @@ jobs:
         imageName: 'macOS-latest'
       windows:
         imageName: 'windows-latest'
-  pool: 
+  pool:
     vmImage: $(imageName)
 
 
