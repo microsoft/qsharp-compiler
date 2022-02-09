@@ -93,7 +93,7 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
 
     // Power operator
 
-    function DelayedAsBigInt(x : Int, unit : Unit) : BigInt {
+    function DelayedAsBigInt(x : Int, u : Unit) : BigInt {
         return 1L;
     }
 

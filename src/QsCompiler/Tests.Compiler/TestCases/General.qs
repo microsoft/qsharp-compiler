@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.Testing.General {
         body intrinsic;
     }
 
-    function DelayedId<'a>(x : 'a, unit : Unit) : 'a {
+    function DelayedId<'a>(x : 'a, u : Unit) : 'a {
         return x;
     }
 
