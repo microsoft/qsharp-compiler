@@ -45,6 +45,19 @@ module TypeCheckingTests =
         expect "NumericInvalid2" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
 
     [<Fact>]
+    let ``Supports power operator`` () =
+        expect "Power1" []
+        expect "Power2" []
+        expect "Power3" []
+        expect "Power4" []
+        expect "Power5" []
+        expect "PowerInvalid1" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid2" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid3" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid4" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid5" [ Error ErrorCode.TypeMismatch ]
+
+    [<Fact>]
     let ``Supports the semigroup operator`` () =
         expect "Semigroup1" []
         expect "Semigroup2" []
