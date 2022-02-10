@@ -141,7 +141,7 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         private readonly IValue.Cached<IValue> cachedValue;
 
-        public Value Pointer { get; }
+        internal Value Pointer { get; } // internal access for the purpose of generating debug symbols only
 
         public Value Value => this.LoadValue().Value;
 

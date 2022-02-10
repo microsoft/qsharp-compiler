@@ -36,7 +36,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Instantiates a transformation capable of emitting QIR for the given compilation.
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
-        public Generator(QsCompilation compilation, bool enableDebugSymbols)
+        /// <param name="enableDebugSymbols">Emit debug symbols</param>
+        public Generator(QsCompilation compilation, bool enableDebugSymbols = false)
         : base(new GenerationContext(compilation.Namespaces, compilation.EntryPoints.Length == 0, enableDebugSymbols), TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;
