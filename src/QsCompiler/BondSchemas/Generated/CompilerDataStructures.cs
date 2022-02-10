@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         protected Position(string fullName, string name)
         {
-
+            
         }
     }
 
@@ -661,7 +661,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         protected InferredCallableInformation(string fullName, string name)
         {
-
+            
         }
     }
 
@@ -823,7 +823,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
         protected InferredExpressionInformation(string fullName, string name)
         {
-
+            
         }
     }
 
