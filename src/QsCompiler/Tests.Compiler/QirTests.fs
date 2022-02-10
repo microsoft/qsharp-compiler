@@ -13,11 +13,20 @@ open System
 let private GUID =
     new Regex(@"[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?", RegexOptions.IgnoreCase)
 
+let private DebugSymbolsProducerVersion =
+    Assembly.GetExecutingAssembly().GetName().Version.ToString()
+
 /// <summary>
 /// Ensures that the new line characters will conform to the standard of the environment's new line character.
 /// </summary>
 let private standardizeNewLines (s: string) =
     s.Replace("\r", "").Replace("\n", Environment.NewLine)
+
+/// <summary>
+/// Escapes non-printable characters.
+/// </summary>
+let sanitizeString (s: string) =
+    Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, false)
 
 let private testOne expected args =
     let result = Program.Main args
@@ -27,31 +36,14 @@ let private clearOutput name =
     File.WriteAllText(name, "Test did not run to completion")
 
 let private checkAltOutput name (actualText: string) debugTest =
-    let expectedPath =
-        (if debugTest then ("TestCases", "DebugInfoTests", name) else ("TestCases", "QirTests", name))
-        |> Path.Combine
+    let referenceFile = Path.Combine ("TestCases", (if debugTest then "DebugInfoTests" else "QirTests"), name) |> Path.GetFullPath
+    let expectedText =
+        File.ReadAllText(referenceFile)
+            .Replace("__QIRPRODUCERVERSION__", DebugSymbolsProducerVersion)
+            .Replace("__DIRECTORY__", Path.GetDirectoryName(referenceFile) |> sanitizeString)
 
-    let expectedText = expectedPath |> File.ReadAllText
-
-    let debugTestsDirectory =
-        (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "TestCases", "DebugInfoTests")
-        |> Path.Combine
-
-    let debugTestsDirectoryFormatted = debugTestsDirectory.Replace(@"\", @"\\") // The backslashes in the file are escaped
-
-    let qirProducerVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString()
-
-    let actualTextFormatted =
-        (if debugTest then
-             actualText
-                 .Replace(debugTestsDirectoryFormatted, "__DIRECTORY__")
-                 .Replace(qirProducerVersion, "__QIRPRODUCERVERSION__")
-         else
-             actualText)
-
-    let replacedGUID = GUID.Replace(actualTextFormatted, "__GUID__")
-
-    Assert.Contains(standardizeNewLines expectedText, standardizeNewLines replacedGUID)
+    let sanitzedText = GUID.Replace(actualText, "__GUID__")
+    Assert.Contains(standardizeNewLines expectedText, standardizeNewLines sanitzedText)
 
 let private compilerArgs target (name: string) debugTest =
     seq {

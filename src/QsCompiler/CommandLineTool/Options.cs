@@ -125,6 +125,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             foreach (var keyValue in this.AdditionalAssemblyProperties ?? Array.Empty<string>())
             {
+                if (string.IsNullOrWhiteSpace(keyValue))
+                {
+                    continue;
+                }
+
                 // NB: We use `count: 2` here to ensure that assembly constants can contain colons.
                 var pieces = keyValue?.Split(":", count: 2);
                 if (pieces is null || pieces.Length != 2)
