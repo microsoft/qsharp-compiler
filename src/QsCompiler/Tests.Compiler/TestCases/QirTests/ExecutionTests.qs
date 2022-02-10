@@ -1325,6 +1325,14 @@
         Message($"{value}");
     }
 
+    function TestArrayConcatenation1() : Unit {
+
+        mutable res = [(0, 0)];
+        for i in 1..3 {
+            set res += [(i, i^2)];
+        }
+        Message($"{res}");
+    }
 
     function TestCopyAndUpdate1 () : Unit {
 
@@ -2078,6 +2086,10 @@
         TestVariableReassignment8("c", "?");
         TestVariableReassignment8("d", "?");
         TestVariableReassignment8("e", "?");
+
+        PrintSection(19, "");
+
+        TestArrayConcatenation1();
 
         Message("Executed successfully!");
     }
