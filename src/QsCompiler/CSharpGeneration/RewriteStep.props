@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-
-  <PropertyGroup>
-    <QscRef_Microsoft_Quantum_CSharpGeneration>$(MSBuildThisFileDirectory)/../lib/netstandard2.1/Microsoft.Quantum.CSharpGeneration.dll</QscRef_Microsoft_Quantum_CSharpGeneration>
-  </PropertyGroup>
-
-</Project>

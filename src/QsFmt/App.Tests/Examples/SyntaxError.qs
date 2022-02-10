@@ -1,1 +1,0 @@
-﻿namespace Foo { invalid syntax; }

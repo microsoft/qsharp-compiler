@@ -1,1 +1,0 @@
-This folder contains projects used to test the LanguageServer's ProjectLoader.
