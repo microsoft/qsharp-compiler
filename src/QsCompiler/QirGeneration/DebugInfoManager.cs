@@ -60,8 +60,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// Returns a string representing the producer information for the QIR
             /// </summary>
             public static string QirProducerIdentifier =>
-                $"{CompilationLoader.QSharpCompilerAssemblyName.Name} with {DebugInfoProducerAssemblyName.Name} V {DebugInfoProducerAssemblyName.Version}";
+                $"{QSharpCompilerAssemblyName.Name} with {DebugInfoProducerAssemblyName.Name} V {DebugInfoProducerAssemblyName.Version}";
         }
+
+        private static AssemblyName QSharpCompilerAssemblyName => typeof(CompilationLoader).Assembly.GetName();
 
         private static AssemblyName DebugInfoProducerAssemblyName => Assembly.GetExecutingAssembly().GetName();
 

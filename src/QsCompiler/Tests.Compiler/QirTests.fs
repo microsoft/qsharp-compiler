@@ -53,7 +53,7 @@ let private checkAltOutput name (actualText: string) debugTest =
 
     Assert.Contains(standardizeNewLines expectedText, standardizeNewLines replacedGUID)
 
-let private qirCompilerArgs target (name: string) =
+let private compilerArgs target (name: string) debugTest =
     seq {
         "build"
         "-o"
@@ -62,7 +62,7 @@ let private qirCompilerArgs target (name: string) =
         name
         "--build-exe"
         "--input"
-        ("TestCases", "QirTests", name + ".qs") |> Path.Combine
+        ("TestCases", (if debugTest then "DebugInfoTests" else "QirTests"), name + ".qs") |> Path.Combine
         ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine
 
         (if target then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine else "")
@@ -78,34 +78,7 @@ let private qirCompilerArgs target (name: string) =
         "Diagnostic"
         "--assembly-properties"
         "QirOutputPath:qir"
-    }
-
-let private debugInfoCompilerArgs target (name: string) =
-    seq {
-        "build"
-        "-o"
-        "outputFolder"
-        "--proj"
-        name
-        "--build-exe"
-        "--input"
-        ("TestCases", "DebugInfoTests", name + ".qs") |> Path.Combine
-        ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine
-
-        (if target then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine else "")
-
-        "--load"
-
-        Path.Combine(
-            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
-            "Microsoft.Quantum.QirGeneration.dll"
-        )
-
-        "--verbosity"
-        "Diagnostic"
-        "--assembly-properties"
-        "QirOutputPath:qir"
-        "EnableDebugSymbols:true"
+        (if debugTest then "EnableDebugSymbols:true" else "")
     }
 
 let private customTest name compilerArgs snippets debugTest =
@@ -118,13 +91,13 @@ let private customTest name compilerArgs snippets debugTest =
     snippets |> List.map (fun s -> checkAltOutput (s + ".ll") fullText debugTest)
 
 let private qirMultiTest target name snippets =
-    let compilerArgs = qirCompilerArgs target name |> Seq.toArray
+    let compilerArgs = compilerArgs target name false |> Seq.toArray
     customTest name compilerArgs snippets false
 
 let private qirTest target name = qirMultiTest target name [ name ]
 
 let private debugInfoMultiTest target name snippets =
-    let compilerArgs = debugInfoCompilerArgs target name |> Seq.toArray
+    let compilerArgs = compilerArgs target name true |> Seq.toArray
     customTest name compilerArgs snippets true
 
 let private debugInfoTest target name = debugInfoMultiTest target name [ name ]
@@ -310,7 +283,7 @@ let ``QIR targeting`` () =
             "BasicMeasurementFeedback"
             "--force-rewrite-step-execution" // to make sure the target specific transformation actually runs
         ]
-        |> Seq.append (qirCompilerArgs true "TestTargeting")
+        |> Seq.append (compilerArgs true "TestTargeting" false)
         |> Seq.toArray
 
     customTest "TestTargeting" compilerArgs [ "TestTargeting" ]
@@ -318,7 +291,7 @@ let ``QIR targeting`` () =
 [<Fact>]
 let ``QIR Library generation`` () =
     let compilerArgs =
-        Seq.append (qirCompilerArgs true "TestLibraryGeneration") [ "QSharpOutputType:QSharpLibrary" ]
+        Seq.append (compilerArgs true "TestLibraryGeneration" false) [ "QSharpOutputType:QSharpLibrary" ]
         |> Seq.filter (fun arg -> arg <> "--build-exe")
         |> Seq.toArray
 
