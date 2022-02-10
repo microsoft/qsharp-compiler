@@ -1,0 +1,9 @@
+!6 = !{}
+!7 = distinct !DISubprogram(name: "IntToUnit", linkageName: "Microsoft__Quantum__Testing__QirDebugInfo__IntToUnit__body", scope: null, file: !5, line: 10, type: !8, scopeLine: 10, spFlags: DISPFlagLocalToUnit | DISPFlagDefinition, unit: !4, retainedNodes: !12)
+!8 = !DISubroutineType(types: !9)
+!9 = !{!10, !11}
+!10 = !DIBasicType(name: "This debug type is not yet supported")
+!11 = !DIBasicType(name: "Int", size: 64, encoding: DW_ATE_signed)
+!12 = !{!13}
+!13 = !DILocalVariable(name: "varX", arg: 1, scope: !7, file: !5, line: 10, type: !11)
+!14 = !DILocation(line: 10, column: 1, scope: !7)

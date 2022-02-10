@@ -8,9 +8,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Interop;
 using Ubiquity.NET.Llvm.Types;
@@ -87,6 +89,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private readonly FunctionLibrary runtimeLibrary;
         private readonly FunctionLibrary quantumInstructionSet;
+
+        internal DebugInfoManager DIManager { get; }
 
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
@@ -177,14 +181,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
+        /// <param name="enableDebugSymbols">Whether the emission of debug symbols within the QIR is enabled.</param>
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, bool enableDebugSymbols)
         {
             this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
             this.globalTypes = syntaxTree.GlobalTypeResolutions();
 
             this.Context = new Context();
+
             this.Module = this.Context.CreateBitcodeModule();
+            this.DIManager = new DebugInfoManager(this, enableDebugSymbols);
+            this.DIManager.AddTopLevelDebugInfo(this.Module);
 
             this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
             this.Constants = new Constants(this.Context, this.Module, this.Types);
@@ -384,7 +392,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the givne name
+        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the given name
         /// and the corresponding QIR function for the given specialization kind.
         /// Attaches the attributes with the given names to the returned IrFunction.
         /// </summary>
@@ -522,7 +530,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Ends a QIR function by finishing the current basic block, closing the current scope in teh scope manager
+        /// Ends a QIR function by finishing the current basic block, closing the current scope in the scope manager
         /// and closing a naming scope.
         /// </summary>
         /// <returns>true if the function has been properly ended</returns>
@@ -598,6 +606,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// generated as declarations with no definition.
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function</param>
+        /// <returns>The <see cref="IrFunction"/> that has been registered.</returns>
         internal IrFunction RegisterFunction(QsSpecialization spec)
         {
             var name = NameGeneration.FunctionName(spec.Parent, spec.Kind);
@@ -610,7 +619,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
-            return this.Module.CreateFunction(name, signature);
+            return this.DIManager.CreateGlobalFunction(spec, name, signature);
         }
 
         /// <summary>
@@ -691,6 +700,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
+                int argNo = 1; // arg numbers are 1-indexed
                 for (var i = 0; i < outerArgItems.Length; ++i)
                 {
                     var (argName, argType) = outerArgItems[i];
@@ -699,6 +709,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.CurrentFunction.Parameters[i].Name = argName;
                         this.ScopeMgr.RegisterVariable(argName, argValue, fromLocalId: null);
+                        this.DIManager.CreateFunctionArgument(spec, argName, argValue, argNo);
+                        argNo++;
                     }
                     else
                     {
@@ -1338,6 +1350,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // Update the iteration value (phi node) and enter the next iteration
                 this.SetCurrentBlock(exitingBlock);
+
                 var nextValue = this.CurrentBuilder.Add(loopUpdate.LoopVariable, loopUpdate.Increment);
                 loopUpdate.LoopVariable.AddIncoming(nextValue, exitingBlock);
                 outputUpdate?.PhiNode.AddIncoming(outputUpdate.Value.NewValue, exitingBlock);

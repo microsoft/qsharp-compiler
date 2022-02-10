@@ -28,6 +28,8 @@
     <CSharpGeneration>false</CSharpGeneration>
     <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
     <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) QirOutputPath:"qir"</_QscCommandPredefinedAssemblyProperties>
+    <!-- The line below enables debug information within the generated QIR. Uncomment the line to emit debug information. -->
+    <!-- <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) EnableDebugSymbols:"true"</_QscCommandPredefinedAssemblyProperties> -->
   </PropertyGroup>
 
   <ItemGroup>

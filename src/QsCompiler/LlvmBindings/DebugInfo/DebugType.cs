@@ -26,7 +26,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     /// type. (e.g. unsigned char, char, byte and signed byte might all be 8 bit integer values as far
     /// as LLVM is concerned.) Also, when using the pointer+alloca+memcpy pattern to pass by value the
     /// actual source debug info type is different than the LLVM function signature. This interface and
-    /// it's implementations are used to construct native type and debug info pairing to allow applications
+    /// its implementations are used to construct native type and debug info pairing to allow applications
     /// to maintain a link from their AST or IR types into the LLVM native type and debug information.
     /// </para>
     /// <note type="note">
@@ -48,17 +48,17 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         TDebug? DIType { get; }
 
         /// <summary>Creates a pointer to this type for a given module and address space</summary>
-        /// <param name="bitcodeModule">Module the debug type information belongs to</param>
+        /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/> the debug type info belongs to</param>
         /// <param name="addressSpace">Address space for the pointer</param>
         /// <returns><see cref="DebugPointerType"/></returns>
-        DebugPointerType CreatePointerType(BitcodeModule bitcodeModule, uint addressSpace);
+        DebugPointerType CreatePointerType(DebugInfoBuilder dIBuilder, uint addressSpace);
 
         /// <summary>Creates a type defining an array of elements of this type</summary>
-        /// <param name="bitcodeModule">Module the debug information belongs to</param>
+        /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/> the debug type info belongs to</param>
         /// <param name="lowerBound">Lower bound of the array</param>
         /// <param name="count">Count of elements in the array</param>
         /// <returns><see cref="DebugArrayType"/></returns>
-        DebugArrayType CreateArrayType(BitcodeModule bitcodeModule, uint lowerBound, uint count);
+        DebugArrayType CreateArrayType(DebugInfoBuilder dIBuilder, uint lowerBound, uint count);
     }
 
     /// <summary>Base class for Debug types bound with an LLVM type</summary>
@@ -168,7 +168,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public IPointerType CreatePointerType(uint addressSpace) => this.NativeType.CreatePointerType(addressSpace);
 
         /// <inheritdoc/>
-        public DebugPointerType CreatePointerType(BitcodeModule bitcodeModule, uint addressSpace)
+        public DebugPointerType CreatePointerType(DebugInfoBuilder dIBuilder, uint addressSpace)
         {
             if (this.DIType == null)
             {
@@ -176,11 +176,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             }
 
             var nativePointer = this.NativeType.CreatePointerType(addressSpace);
-            return new DebugPointerType(nativePointer, bitcodeModule, this.DIType, string.Empty);
+            return new DebugPointerType(nativePointer, dIBuilder, this.DIType, string.Empty);
         }
 
         /// <inheritdoc/>
-        public DebugArrayType CreateArrayType(BitcodeModule bitcodeModule, uint lowerBound, uint count)
+        public DebugArrayType CreateArrayType(DebugInfoBuilder dIBuilder, uint lowerBound, uint count)
         {
             if (this.DIType == null)
             {
@@ -188,7 +188,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             }
 
             var llvmArray = this.NativeType.CreateArrayType(count);
-            return new DebugArrayType(llvmArray, bitcodeModule, this.DIType, count, lowerBound);
+            return new DebugArrayType(llvmArray, dIBuilder, this.DIType, count, lowerBound);
         }
 
         /// <inheritdoc/>

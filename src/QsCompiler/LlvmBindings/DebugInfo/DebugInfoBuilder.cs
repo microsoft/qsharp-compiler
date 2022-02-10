@@ -66,6 +66,34 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Gets the module that owns this builder</summary>
         public BitcodeModule OwningModule { get; }
 
+        /// <summary>
+        /// Gets the compile unit paired with this DebugInfoBuilder if there is one.
+        /// DIBuilder can only contain one compile unit, and compile units can only belong to one DIBuilder
+        /// </summary>
+        public DICompileUnit? CompileUnit { get; private set; }
+
+        /// <summary>Creates a new <see cref="DICompileUnit"/>. Assumes by default that the code in this compilation unit is not optimized and the runtime version is 0.</summary>
+        /// <param name="language"><see cref="SourceLanguage"/> for the compilation unit</param>
+        /// <param name="sourceFilePath">Full path to the source file of this compilation unit</param>
+        /// <param name="producer">Name of the application processing the compilation unit</param>
+        /// <param name="compilationFlags">Additional tool specific flags</param>
+        /// <returns><see cref="DICompileUnit"/></returns>
+        public DICompileUnit CreateCompileUnit(
+            SourceLanguage language,
+            string sourceFilePath,
+            string? producer,
+            string? compilationFlags)
+        {
+            return this.CreateCompileUnit(
+                language,
+                Path.GetFileName(sourceFilePath),
+                Path.GetDirectoryName(sourceFilePath) ?? Environment.CurrentDirectory,
+                producer,
+                false,
+                compilationFlags,
+                0);
+        }
+
         /// <summary>Creates a new <see cref="DICompileUnit"/></summary>
         /// <param name="language"><see cref="SourceLanguage"/> for the compilation unit</param>
         /// <param name="sourceFilePath">Full path to the source file of this compilation unit</param>
@@ -121,9 +149,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 compilationFlags = string.Empty;
             }
 
-            if (this.OwningModule.DICompileUnit != null)
+            if (this.CompileUnit != null)
             {
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Can't have more than one DICompileUnit per DebugInfoBuilder");
             }
 
             var file = this.CreateFile(fileName, fileDirectory);
@@ -142,8 +170,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 string.Empty,
                 string.Empty);
 
-            this.OwningModule.DICompileUnit = MDNode.FromHandle<DICompileUnit>(handle)!;
-            return this.OwningModule.DICompileUnit;
+            this.CompileUnit = MDNode.FromHandle<DICompileUnit>(handle)!;
+            return this.CompileUnit;
         }
 
         /// <summary>Creates a debugging information temporary entry for a macro file</summary>
@@ -273,11 +301,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="name">Name of the function as it appears in the source language</param>
         /// <param name="mangledName">Linkage (mangled) name of the function</param>
         /// <param name="file"><see cref="DIFile"/> containing the function</param>
-        /// <param name="line">starting line of the function definition</param>
+        /// <param name="line">starting line of the function definition (1-based)</param>
         /// <param name="signatureType"><see cref="DISubroutineType"/> for the function's signature type</param>
         /// <param name="isLocalToUnit">Flag to indicate if this function is local to the compilation unit or available externally</param>
         /// <param name="isDefinition">Flag to indicate if this is a definition or a declaration only</param>
-        /// <param name="scopeLine">starting line of the first scope of the function's body</param>
+        /// <param name="scopeLine">starting line of the first scope of the function's body (1-based)</param>
         /// <param name="debugFlags"><see cref="DebugInfoFlags"/> for this function</param>
         /// <param name="isOptimized">Flag to indicate if this function is optimized</param>
         /// <param name="function">Underlying LLVM <see cref="IrFunction"/> to attach debug info to</param>
@@ -330,7 +358,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="scope">Scope the variable belongs to</param>
         /// <param name="name">Name of the variable</param>
         /// <param name="file">File where the variable is declared</param>
-        /// <param name="line">Line where the variable is declared</param>
+        /// <param name="line">Line where the variable is declared (1-based)</param>
         /// <param name="type">Type of the variable</param>
         /// <param name="alwaysPreserve">Flag to indicate if this variable's debug information should always be preserved</param>
         /// <param name="debugFlags">Flags for the variable</param>
@@ -364,7 +392,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="scope">Scope for the argument</param>
         /// <param name="name">Name of the argument</param>
         /// <param name="file"><see cref="DIFile"/> containing the function this argument is declared in</param>
-        /// <param name="line">Line number fort his argument</param>
+        /// <param name="line">Line number fort his argument (1-based)</param>
         /// <param name="type">Debug type for this argument</param>
         /// <param name="alwaysPreserve">Flag to indicate if this argument is always preserved for debug view even if optimization would remove it</param>
         /// <param name="debugFlags"><see cref="DebugInfoFlags"/> for this argument</param>

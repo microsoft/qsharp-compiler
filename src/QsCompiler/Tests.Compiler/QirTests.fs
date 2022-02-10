@@ -26,12 +26,34 @@ let private testOne expected args =
 let private clearOutput name =
     File.WriteAllText(name, "Test did not run to completion")
 
-let private checkAltOutput name actualText =
-    let expectedText = ("TestCases", "QirTests", name) |> Path.Combine |> File.ReadAllText
-    let replacedGUID = GUID.Replace(actualText, "__GUID__")
+let private checkAltOutput name (actualText: string) debugTest =
+    let expectedPath =
+        (if debugTest then ("TestCases", "DebugInfoTests", name) else ("TestCases", "QirTests", name))
+        |> Path.Combine
+
+    let expectedText = expectedPath |> File.ReadAllText
+
+    let debugTestsDirectory =
+        (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "TestCases", "DebugInfoTests")
+        |> Path.Combine
+
+    let debugTestsDirectoryFormatted = debugTestsDirectory.Replace(@"\", @"\\") // The backslashes in the file are escaped
+
+    let qirProducerVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString()
+
+    let actualTextFormatted =
+        (if debugTest then
+             actualText
+                 .Replace(debugTestsDirectoryFormatted, "__DIRECTORY__")
+                 .Replace(qirProducerVersion, "__QIRPRODUCERVERSION__")
+         else
+             actualText)
+
+    let replacedGUID = GUID.Replace(actualTextFormatted, "__GUID__")
+
     Assert.Contains(standardizeNewLines expectedText, standardizeNewLines replacedGUID)
 
-let private compilerArgs target (name: string) =
+let private qirCompilerArgs target (name: string) =
     seq {
         "build"
         "-o"
@@ -58,21 +80,54 @@ let private compilerArgs target (name: string) =
         "QirOutputPath:qir"
     }
 
-let private customTest name compilerArgs snippets =
-    if not <| Directory.Exists "qir" then Directory.CreateDirectory "qir" |> ignore
+let private debugInfoCompilerArgs target (name: string) =
+    seq {
+        "build"
+        "-o"
+        "outputFolder"
+        "--proj"
+        name
+        "--build-exe"
+        "--input"
+        ("TestCases", "DebugInfoTests", name + ".qs") |> Path.Combine
+        ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine
 
+        (if target then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine else "")
+
+        "--load"
+
+        Path.Combine(
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+            "Microsoft.Quantum.QirGeneration.dll"
+        )
+
+        "--verbosity"
+        "Diagnostic"
+        "--assembly-properties"
+        "QirOutputPath:qir"
+        "EnableDebugSymbols:true"
+    }
+
+let private customTest name compilerArgs snippets debugTest =
+    if not <| Directory.Exists "qir" then Directory.CreateDirectory "qir" |> ignore
     let fileName = Path.Combine("qir", name + ".ll")
     clearOutput fileName
     compilerArgs |> testOne ReturnCode.Success
 
     let fullText = fileName |> File.ReadAllText
-    snippets |> List.map (fun s -> checkAltOutput (s + ".ll") fullText)
+    snippets |> List.map (fun s -> checkAltOutput (s + ".ll") fullText debugTest)
 
 let private qirMultiTest target name snippets =
-    let compilerArgs = compilerArgs target name |> Seq.toArray
-    customTest name compilerArgs snippets
+    let compilerArgs = qirCompilerArgs target name |> Seq.toArray
+    customTest name compilerArgs snippets false
 
 let private qirTest target name = qirMultiTest target name [ name ]
+
+let private debugInfoMultiTest target name snippets =
+    let compilerArgs = debugInfoCompilerArgs target name |> Seq.toArray
+    customTest name compilerArgs snippets true
+
+let private debugInfoTest target name = debugInfoMultiTest target name [ name ]
 
 
 [<Fact>]
@@ -255,7 +310,7 @@ let ``QIR targeting`` () =
             "BasicMeasurementFeedback"
             "--force-rewrite-step-execution" // to make sure the target specific transformation actually runs
         ]
-        |> Seq.append (compilerArgs true "TestTargeting")
+        |> Seq.append (qirCompilerArgs true "TestTargeting")
         |> Seq.toArray
 
     customTest "TestTargeting" compilerArgs [ "TestTargeting" ]
@@ -263,7 +318,7 @@ let ``QIR targeting`` () =
 [<Fact>]
 let ``QIR Library generation`` () =
     let compilerArgs =
-        Seq.append (compilerArgs true "TestLibraryGeneration") [ "QSharpOutputType:QSharpLibrary" ]
+        Seq.append (qirCompilerArgs true "TestLibraryGeneration") [ "QSharpOutputType:QSharpLibrary" ]
         |> Seq.filter (fun arg -> arg <> "--build-exe")
         |> Seq.toArray
 
@@ -271,3 +326,64 @@ let ``QIR Library generation`` () =
         "TestLibraryGeneration"
         compilerArgs
         [ "TestLibraryGeneration1"; "TestLibraryGeneration2"; "TestLibraryGeneration3" ]
+
+[<Fact>]
+let ``QIR Debug Info Module`` () = debugInfoTest false "TestModuleInfo"
+
+[<Fact>]
+let ``QIR Debug Info Statement Breakpoints`` () =
+    debugInfoMultiTest false "TestStatementBreakpoints" [ "TestStatementBreakpoints1"; "TestStatementBreakpoints2" ]
+
+[<Fact>]
+let ``QIR Debug Info Function Returns Unit`` () =
+    debugInfoMultiTest
+        false
+        "TestFunctionReturnsUnit"
+        [
+            "TestFunctionReturnsUnit1"
+            "TestFunctionReturnsUnit2"
+            "TestFunctionReturnsUnit3"
+            "TestFunctionReturnsUnit4"
+            "TestFunctionReturnsUnit5"
+            "TestFunctionReturnsUnit6"
+            "TestFunctionReturnsUnit7"
+        ]
+
+[<Fact>]
+let ``QIR Debug Info Function Returns Type`` () =
+    debugInfoMultiTest
+        false
+        "TestFunctionReturnsType"
+        [
+            "TestFunctionReturnsType1"
+            "TestFunctionReturnsType2"
+            "TestFunctionReturnsType3"
+            "TestFunctionReturnsType4"
+            "TestFunctionReturnsType5"
+            "TestFunctionReturnsType6"
+            "TestFunctionReturnsType7"
+        ]
+
+[<Fact>]
+let ``QIR Debug Info Int Variable`` () =
+    debugInfoMultiTest false "TestIntVariable" [ "TestIntVariable1"; "TestIntVariable2" ]
+
+[<Fact>]
+let ``QIR Debug Info Double Variable`` () =
+    debugInfoMultiTest false "TestDoubleVariable" [ "TestDoubleVariable1"; "TestDoubleVariable2" ]
+
+[<Fact>]
+let ``QIR Debug Info Boolean Variable`` () =
+    debugInfoMultiTest false "TestBooleanVariable" [ "TestBooleanVariable1"; "TestBooleanVariable2" ]
+
+[<Fact>]
+let ``QIR Debug Info Unsupported Debug Info Type Variable`` () =
+    debugInfoMultiTest
+        false
+        "TestUnsupportedDebugInfoType"
+        [
+            "TestUnsupportedDebugInfoType1"
+            "TestUnsupportedDebugInfoType2"
+            "TestUnsupportedDebugInfoType3"
+            "TestUnsupportedDebugInfoType4"
+        ]

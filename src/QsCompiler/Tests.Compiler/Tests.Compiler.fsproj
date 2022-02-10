@@ -383,6 +383,111 @@
     <Content Include="TestCases\QirTests\TestWhile.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\DebugInfoTests\TestModuleInfo.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestModuleInfo.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestStatementBreakpoints.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestStatementBreakpoints1.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestStatementBreakpoints2.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsUnit.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsUnit1.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsUnit2.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsUnit3.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsUnit4.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsUnit5.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsUnit6.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsUnit7.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsType.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsType1.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsType2.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsType3.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsType4.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsType5.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsType6.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestFunctionReturnsType7.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestIntVariable.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestIntVariable1.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestIntVariable2.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestDoubleVariable.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestDoubleVariable1.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestDoubleVariable2.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestBooleanVariable.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestBooleanVariable1.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestBooleanVariable2.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnsupportedDebugInfoType.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnsupportedDebugInfoType1.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnsupportedDebugInfoType2.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnsupportedDebugInfoType3.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\DebugInfoTests\TestUnsupportedDebugInfoType4.ll">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <None Include="TestCases\CapabilityTests\Verification.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

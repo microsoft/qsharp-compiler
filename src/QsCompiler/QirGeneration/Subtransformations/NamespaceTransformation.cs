@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -54,6 +55,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /* public overrides */
+
+        public override QsNamespaceElement OnNamespaceElement(QsNamespaceElement nse)
+        {
+            // keep track of the location of the current namespace so that we can calculate the offset of locations accurately
+            QsNullable<QsLocation> locNullable = nse switch
+            {
+                QsNamespaceElement.QsCallable callable => callable.Item.Location,
+                QsNamespaceElement.QsCustomType type => type.Item.Location,
+                _ => throw new ArgumentException("unknown namespace element"),
+            };
+
+            QsLocation? loc = locNullable.IsNull ? null : locNullable.Item;
+
+            this.SharedState.DIManager.CurrentNamespaceElementLocation = loc;
+            QsNamespaceElement result = base.OnNamespaceElement(nse);
+            this.SharedState.DIManager.CurrentNamespaceElementLocation = null;
+            return result;
+        }
 
         public override void OnIntrinsicImplementation()
         {

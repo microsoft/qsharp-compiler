@@ -15,8 +15,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     {
         /// <summary>Initializes a new instance of the <see cref="DILocation"/> class.</summary>
         /// <param name="context">Context that owns this location</param>
-        /// <param name="line">line number for the location</param>
-        /// <param name="column">Column number for the location</param>
+        /// <param name="line">line number for the location (1-based)</param>
+        /// <param name="column">Column number for the location (1-based)</param>
         /// <param name="scope">Containing scope for the location</param>
         public DILocation(Context context, uint line, uint column, DILocalScope scope)
             : this(context, line, column, scope, null)
@@ -25,8 +25,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
         /// <summary>Initializes a new instance of the <see cref="DILocation"/> class.</summary>
         /// <param name="context">Context that owns this location</param>
-        /// <param name="line">line number for the location</param>
-        /// <param name="column">Column number for the location</param>
+        /// <param name="line">line number for the location (1-based)</param>
+        /// <param name="column">Column number for the location (1-based)</param>
         /// <param name="scope">Containing scope for the location</param>
         /// <param name="inlinedAt">Scope where this scope is inlined at/into</param>
         public DILocation(Context context, uint line, uint column, DILocalScope scope, DILocation? inlinedAt)
@@ -41,10 +41,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Gets the scope for this location</summary>
         public DILocalScope Scope => FromHandle<DILocalScope>(this.Context, this.MetadataHandle.DILocationGetScope())!;
 
-        /// <summary>Gets the line for this location</summary>
+        /// <summary>Gets the line for this location (1-based)</summary>
         public uint Line => this.MetadataHandle.DILocationGetLine();
 
-        /// <summary>Gets the column for this location</summary>
+        /// <summary>Gets the column for this location (1-based)</summary>
         public uint Column => this.MetadataHandle.DILocationGetColumn();
 
         /// <summary>Gets the location this location is inlined at</summary>

@@ -1,0 +1,5 @@
+!13 = !DILocalVariable(name: "varX", scope: !7, file: !5, line: 5, type: !10)
+!14 = !DILocalVariable(name: "varY", scope: !7, file: !5, line: 6, type: !10)
+!15 = !DILocation(line: 5, column: 9, scope: !7)
+!16 = !DILocation(line: 6, column: 9, scope: !7)
+!17 = !DILocation(line: 7, column: 9, scope: !7)

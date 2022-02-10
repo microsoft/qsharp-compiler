@@ -62,13 +62,11 @@ namespace Ubiquity.NET.Llvm
     {
         private LLVMModuleRef moduleHandle;
 
-        private readonly Lazy<DebugInfoBuilder> lazyDiBuilder;
-
         private BitcodeModule(LLVMModuleRef handle)
         {
             this.moduleHandle = handle;
             this.Context = ThreadContextCache.GetOrCreateAndRegister(handle.Context);
-            this.lazyDiBuilder = new Lazy<DebugInfoBuilder>(() => new DebugInfoBuilder(this));
+            this.DIBuilders = new List<DebugInfoBuilder>();
         }
 
         /// <summary>Name of the Debug Version information module flag</summary>
@@ -120,19 +118,60 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
-        /// <summary>Gets the <see cref="DebugInfoBuilder"/> used to create debug information for this module</summary>
-        /// <remarks>The builder returned from this property is lazy constructed on first access so doesn't consume resources unless used.</remarks>
+        /// <summary>Creates and returns a new <see cref="DebugInfoBuilder"/> used to create debug information for this module</summary>
+        public DebugInfoBuilder CreateDIBuilder()
+        {
+            this.ThrowIfDisposed();
+            DebugInfoBuilder dIBuilder = new DebugInfoBuilder(this);
+            this.DIBuilders.Add(dIBuilder);
+            return dIBuilder;
+        }
+
+        /// <summary>Gets the list of <see cref="DebugInfoBuilder"/>s used to create debug information for this module</summary>
+        /// <remarks>Each DebugInfoBuilder can own one paired compile unit.</remarks>
+        private List<DebugInfoBuilder> DIBuilders { get; }
+
+        /// <summary>
+        /// If there is exactly one <see cref="DebugInfoBuilder"/> used to create debug info for this module,
+        /// we return it through a get. This field is retained for backward compatibility.
+        /// </summary>
+        /// <remarks> If there are 0 or 2+ <see cref="DebugInfoBuilder"/>s associated with this module, we throw an exception.</remarks>
         public DebugInfoBuilder DIBuilder
         {
             get
             {
                 this.ThrowIfDisposed();
-                return this.lazyDiBuilder.Value;
+                if (this.DIBuilders.Count == 1)
+                {
+                    return this.DIBuilders.Single();
+                }
+                else
+                {
+                    throw new Exception("Reference to the DIBuilder is ambiguous because this module does not contain exactly one DebugInfoBuilder.");
+                }
             }
         }
 
-        /// <summary>Gets the Debug Compile unit for this module</summary>
-        public DICompileUnit? DICompileUnit { get; internal set; }
+        /// <summary>
+        /// If there is exactly one <see cref="DebugInfoBuilder"/> used to create debug info for this module,
+        /// we return its <see cref="DICompileUnit"/> through a get. This field is retained for backward compatibility.
+        /// </summary>
+        /// <remarks> If there are 0 or 2+ <see cref="DebugInfoBuilder"/>s associated with this module, we throw an exception.</remarks>
+        public DICompileUnit? DICompileUnit
+        {
+            get
+            {
+                this.ThrowIfDisposed();
+                if (this.DIBuilders.Count == 1)
+                {
+                    return this.DIBuilders.Single().CompileUnit;
+                }
+                else
+                {
+                    throw new Exception("Reference to the DICompileUnit is ambiguous because this module does not contain exactly one DebugInfoBuilder.");
+                }
+            }
+        }
 
         /// <summary>Gets the Data layout string for this module</summary>
         /// <remarks>
@@ -383,6 +422,77 @@ namespace Ubiquity.NET.Llvm
             return Value.FromHandle<IrFunction>(valueRef)!;
         }
 
+        /// <summary>Creates a Function definition with Debug information</summary>
+        /// <param name="scope">Containing scope for the function</param>
+        /// <param name="name">Name of the function in source language form</param>
+        /// <param name="mangledName">Mangled linker visible name of the function (may be same as <paramref name="name"/> if mangling not required by source language</param>
+        /// <param name="file">File containing the function definition</param>
+        /// <param name="line">line number of the function definition (1-based)</param>
+        /// <param name="signature">LLVM Function type for the signature of the function</param>
+        /// <param name="isLocalToUnit">Flag to indicate if this function is local to the compilation unit</param>
+        /// <param name="isDefinition">Flag to indicate if this is a definition</param>
+        /// <param name="scopeLine">First line of the function's outermost scope, this may not be the same as the first line of the function definition due to source formatting (1-based)</param>
+        /// <param name="debugFlags">Additional flags describing this function</param>
+        /// <param name="isOptimized">Flag to indicate if this function is optimized</param>
+        /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/>to use when creating debug info</param>
+        /// <returns>Function described by the arguments</returns>
+        /// <remarks>
+        /// If a matching function already exists it is returned, and therefore the returned
+        /// <see cref="IrFunction"/> may have a body and additional attributes. If a function of
+        /// the same name exists with a different signature an exception is thrown as LLVM does
+        /// not perform any function overloading. If the matching function already has a DISubProgram,
+        /// it is returned directly. If not, the given information is used to create a DISubProgram
+        /// </remarks>
+        public IrFunction CreateFunction(
+            DIScope? scope,
+            string name,
+            string? mangledName,
+            DIFile? file,
+            uint line,
+            DebugFunctionType signature,
+            bool isLocalToUnit,
+            bool isDefinition,
+            uint scopeLine,
+            DebugInfoFlags debugFlags,
+            bool isOptimized,
+            DebugInfoBuilder dIBuilder)
+        {
+            this.ThrowIfDisposed();
+
+            if (string.IsNullOrWhiteSpace(mangledName))
+            {
+                mangledName = name;
+            }
+
+            if (signature.DIType == null)
+            {
+                throw new ArgumentException("DIType is null");
+            }
+
+            var func = this.CreateFunction(mangledName, signature);
+            if (func.DISubProgram == null)
+            { // if func had already been created it might already have a DISubProgram
+                var diSignature = signature.DIType;
+                var diFunc = dIBuilder.CreateFunction(
+                    scope: scope,
+                    name: name,
+                    mangledName: mangledName,
+                    file: file,
+                    line: line,
+                    signatureType: diSignature,
+                    isLocalToUnit: isLocalToUnit,
+                    isDefinition: isDefinition,
+                    scopeLine: scopeLine,
+                    debugFlags: debugFlags,
+                    isOptimized: isOptimized,
+                    function: func);
+
+                func.DISubProgram = diFunc;
+            }
+
+            return func;
+        }
+
         /// <summary>Writes a bit-code module to a file.</summary>
         /// <param name="path">Path to write the bit-code into.</param>
         /// <remarks>
@@ -574,6 +684,39 @@ namespace Ubiquity.NET.Llvm
             return hGlobal == default ? default : Value.FromHandle<GlobalVariable>(hGlobal);
         }
 
+        /// <summary>Adds a module flag to the module</summary>
+        /// <param name="behavior">Module flag behavior for this flag</param>
+        /// <param name="name">Name of the flag</param>
+        /// <param name="value">Value of the flag</param>
+        public void AddModuleFlag(ModuleFlagBehavior behavior, string name, uint value)
+        {
+            this.ThrowIfDisposed();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException();
+            }
+
+            this.moduleHandle.AddModuleFlag(name, (LLVMModuleFlagBehavior)behavior, value);
+        }
+
+        /// <summary>Adds an llvm.ident metadata string to the module</summary>
+        /// <param name="producer">producer and version information to place in the llvm.ident metadata</param>
+        public void AddProducerIdentMetadata(string producer)
+        {
+            this.ThrowIfDisposed();
+
+            if (string.IsNullOrWhiteSpace(producer))
+            {
+                throw new ArgumentException();
+            }
+
+            LLVMValueRef identNode = LLVMValueRef.CreateMDNode(new[]
+            {
+                this.Context.ContextHandle.GetMDString(producer),
+            });
+            this.ModuleHandle.AddNamedMetadataOperand("llvm.ident", identNode);
+        }
+
         /// <summary>
         /// Get the operands of a <see cref="NamedMDNode"/>.
         /// </summary>
@@ -712,6 +855,11 @@ namespace Ubiquity.NET.Llvm
                 return this.GetOrCreateItem(hContext);
             }
 
+            /// <summary>
+            /// Creates a <see cref="BitcodeModule"/> and adds a <see cref="DebugInfoBuilder"/>
+            /// with a compile unit populated by information.
+            /// </summary>
+            /// <returns>The BitcodeModule created.</returns>
             public BitcodeModule CreateBitcodeModule(
                 string moduleId,
                 SourceLanguage language,
@@ -722,7 +870,7 @@ namespace Ubiquity.NET.Llvm
                 uint runtimeVersion = 0)
             {
                 var retVal = this.CreateBitcodeModule(moduleId);
-                retVal.DICompileUnit = retVal.DIBuilder.CreateCompileUnit(
+                retVal.CreateDIBuilder().CreateCompileUnit(
                     language,
                     srcFilePath,
                     producer,

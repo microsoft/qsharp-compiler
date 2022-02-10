@@ -23,7 +23,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     {
         /// <summary>Initializes a new instance of the <see cref="DebugUnionType"/> class.</summary>
         /// <param name="llvmType">Underlying native type this debug type describes</param>
-        /// <param name="module">Module to contain the debug metadata for this type</param>
+        /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/> to use when constructing debug meta data for this type</param>
         /// <param name="scope">Scope containing this type</param>
         /// <param name="name">Debug/source name of the type</param>
         /// <param name="file">Source file containing this type</param>
@@ -32,7 +32,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="elements">Descriptors for the members of the type</param>
         public DebugUnionType(
             IStructType llvmType,
-            BitcodeModule module,
+            DebugInfoBuilder dIBuilder,
             DIScope? scope,
             string name,
             DIFile? file,
@@ -41,8 +41,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             IEnumerable<DebugMemberInfo> elements)
             : base(
                 llvmType,
-                module.DIBuilder
-                          .CreateReplaceableCompositeType(
+                dIBuilder.CreateReplaceableCompositeType(
                               Tag.UnionType,
                               name,
                               scope,
@@ -54,27 +53,26 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 throw new ArgumentException();
             }
 
-            this.SetBody(module, scope, file, line, debugFlags, elements);
+            this.SetBody(dIBuilder, scope, file, line, debugFlags, elements);
         }
 
         /// <summary>Initializes a new instance of the <see cref="DebugUnionType"/> class.</summary>
-        /// <param name="module">Module to contain the debug metadata for this type</param>
+        /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/> to use when constructing debug meta data for this type</param>
         /// <param name="nativeName">Native LLVM type name</param>
         /// <param name="scope">Scope containing this type</param>
         /// <param name="name">Debug/source name of the type</param>
         /// <param name="file">Source file containing this type</param>
         /// <param name="line">Line number for this type</param>
         public DebugUnionType(
-            BitcodeModule module,
+            DebugInfoBuilder dIBuilder,
             string nativeName,
             DIScope? scope,
             string name,
             DIFile? file,
             uint line = 0)
             : base(
-                module.Context.CreateStructType(nativeName),
-                module.DIBuilder
-                          .CreateReplaceableCompositeType(
+                dIBuilder.OwningModule.Context.CreateStructType(nativeName),
+                dIBuilder.CreateReplaceableCompositeType(
                               Tag.UnionType,
                               name,
                               scope,
@@ -96,21 +94,21 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public IReadOnlyList<DebugMemberInfo> DebugMembers { get; private set; } = new List<DebugMemberInfo>().AsReadOnly();
 
         /// <summary>Sets the body of the union type</summary>
-        /// <param name="module">Module to contain the debug metadata</param>
+        /// <param name="dIBuilder"><see cref="DebugInfoBuilder"/> to use when constructing debug meta data</param>
         /// <param name="scope">Scope containing this type</param>
         /// <param name="file">File for the type</param>
         /// <param name="line">line number for the type</param>
         /// <param name="debugFlags">Flags for the type</param>
         /// <param name="debugElements">Descriptors for each element in the type</param>
         public void SetBody(
-            BitcodeModule module,
+            DebugInfoBuilder dIBuilder,
             DIScope? scope,
             DIFile? file,
             uint line,
             DebugInfoFlags debugFlags,
             IEnumerable<DebugMemberInfo> debugElements)
         {
-            if (module.Layout == null)
+            if (dIBuilder.OwningModule.Layout == null)
             {
                 throw new ArgumentException();
             }
@@ -120,7 +118,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             ITypeRef[] nativeMembers = { null! };
             foreach (var elem in debugElements)
             {
-                ulong? bitSize = elem.ExplicitLayout?.BitSize ?? module.Layout?.BitSizeOf(elem.DebugType);
+                ulong? bitSize = elem.ExplicitLayout?.BitSize ?? dIBuilder.OwningModule.Layout?.BitSizeOf(elem.DebugType);
                 if (!bitSize.HasValue)
                 {
                     throw new ArgumentException();
@@ -141,14 +139,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             // Debug info contains details of each member of the union
             this.DebugMembers = new ReadOnlyCollection<DebugMemberInfo>(debugElements as IList<DebugMemberInfo> ?? debugElements.ToList());
             var memberTypes = (from memberInfo in this.DebugMembers
-                                select this.CreateMemberType(module, memberInfo))
+                                select this.CreateMemberType(dIBuilder, memberInfo))
                               .ToList<DIDerivedType>();
 
             var (unionBitSize, unionAlign)
                 = memberTypes.Aggregate(
                     (MaxSize: 0ul, MaxAlign: 0ul),
                     (a, d) => (Math.Max(a.MaxSize, d.BitSize), Math.Max(a.MaxAlign, d.BitAlignment)));
-            var concreteType = module.DIBuilder.CreateUnionType(
+            var concreteType = dIBuilder.CreateUnionType(
                 scope: scope,
                 name: this.DIType!.Name, // not null via construction
                 file: file,
@@ -160,23 +158,23 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             this.DIType = concreteType;
         }
 
-        private DIDerivedType CreateMemberType(BitcodeModule module, DebugMemberInfo memberInfo)
+        private DIDerivedType CreateMemberType(DebugInfoBuilder dIBuilder, DebugMemberInfo memberInfo)
         {
             ulong bitSize;
             if (!(memberInfo.ExplicitLayout is null))
             {
                 bitSize = memberInfo.ExplicitLayout.BitSize;
             }
-            else if (!(module.Layout is null))
+            else if (!(dIBuilder.OwningModule.Layout is null))
             {
-                bitSize = module.Layout.BitSizeOf(memberInfo.DebugType);
+                bitSize = dIBuilder.OwningModule.Layout.BitSizeOf(memberInfo.DebugType);
             }
             else
             {
                 throw new ArgumentException("Cannot determine size of member", nameof(memberInfo));
             }
 
-            return module.DIBuilder.CreateMemberType(
+            return dIBuilder.CreateMemberType(
                 scope: this.DIType,
                 name: memberInfo.Name,
                 file: memberInfo.File,

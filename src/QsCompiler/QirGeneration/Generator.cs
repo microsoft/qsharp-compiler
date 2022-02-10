@@ -36,12 +36,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Instantiates a transformation capable of emitting QIR for the given compilation.
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
-        public Generator(QsCompilation compilation)
-        : base(new GenerationContext(compilation.Namespaces, compilation.EntryPoints.Length == 0), TransformationOptions.NoRebuild)
+        public Generator(QsCompilation compilation, bool enableDebugSymbols)
+        : base(new GenerationContext(compilation.Namespaces, compilation.EntryPoints.Length == 0, enableDebugSymbols), TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;
 
             this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild);
+            this.Statements = new QirStatementTransformation(this, TransformationOptions.NoRebuild);
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);
             this.Expressions = new QirExpressionTransformation(this, TransformationOptions.NoRebuild);
             this.ExpressionKinds = new QirExpressionKindTransformation(this, TransformationOptions.NoRebuild);
@@ -73,6 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.GenerateRequiredFunctions();
+            this.SharedState.DIManager.FinalizeDebugInfo();
         }
 
         /// <summary>

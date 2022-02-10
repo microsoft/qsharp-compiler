@@ -68,9 +68,12 @@ namespace LLVMSharp.Interop
         }
 
         /// <summary>Convenience wrapper for <see cref="LLVM.AddModuleFlag"/>.</summary>
-        public static void AddModuleFlag(this LLVMModuleRef self, LLVMModuleFlagBehavior behavior, string key, LLVMMetadataRef val)
+        /// <remarks>When we update LLVMSharp to include the updates from this PR (https://github.com/microsoft/LLVMSharp/pull/181/files),
+        /// we can remove this wrapper</remarks>
+        public static void AddModuleFlag(this LLVMModuleRef self, string key, LLVMModuleFlagBehavior behavior, uint val)
         {
-            LLVM.AddModuleFlag(self, behavior, key.AsMarshaledString(), (UIntPtr)key.Length, val);
+            LLVMOpaqueMetadata* valAsMetadata = LLVM.ValueAsMetadata(LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, val));
+            LLVM.AddModuleFlag(self, behavior, key.AsMarshaledString(), (UIntPtr)key.Length, valAsMetadata);
         }
 
         /// <summary>Convenience wrapper for <see cref="LLVM.GetIntrinsicDeclaration"/>.</summary>

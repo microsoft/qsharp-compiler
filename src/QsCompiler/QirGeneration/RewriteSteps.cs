@@ -74,8 +74,14 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
+            bool enableDebugSymbols = false;
+            if (this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.EnableDebugSymbols, out string? debugEnabledString))
+            {
+                enableDebugSymbols = string.Equals(debugEnabledString?.Trim(), "true", StringComparison.OrdinalIgnoreCase);
+            }
+
             transformed = compilation;
-            using var generator = new Generator(transformed);
+            using var generator = new Generator(transformed, enableDebugSymbols);
             generator.Apply();
 
             // write generated QIR to disk

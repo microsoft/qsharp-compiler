@@ -1256,5 +1256,10 @@ namespace Microsoft.Quantum.QsCompiler
             File.WriteAllText(targetFile, content);
             return targetFile;
         }
+
+        /// <summary>
+        /// Gets the executing assembly (the Qsharp Compiler) AssemblyName
+        /// </summary>
+        public static AssemblyName QSharpCompilerAssemblyName => typeof(CompilationLoader).Assembly.GetName();
     }
 }
