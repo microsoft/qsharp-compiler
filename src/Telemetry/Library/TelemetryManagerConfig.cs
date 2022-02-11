@@ -56,7 +56,8 @@ namespace Microsoft.Quantum.Telemetry
         }
 
         /// <summary>
-        /// The default User Consent to collect telemetry.
+        /// The default User Consent to collect or not collect telemetry
+        /// (defaults to ConsentKind.OptedOut if not set).
         /// If the default value is ConsentKind.OptedOut, then the user can opt-in via
         /// the environment variable defined in TelemetryOptInVariableName.
         /// If the default value is ConsentKind.OptedIn, then the user can opt-out via

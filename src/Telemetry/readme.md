@@ -102,7 +102,7 @@ var telemetryConfig = new TelemetryManagerConfig()
 
 ### .DefaultTelemetryConsent
 
-The default User Consent to collect telemetry (defaults to ConsentKind.OptedOut, can also be set ConsentKind.OptedIn).
+The default User Consent to collect or not collect telemetry (defaults to ConsentKind.OptedOut, can also be set ConsentKind.OptedIn).
 If the default value is ConsentKind.OptedOut, then the user can opt-in via the environment variable defined in TelemetryOptInVariableName.
 If the default value is ConsentKind.OptedIn, then the user can opt-out via the environment variable defined in TelemetryOptOutVariableName.
 

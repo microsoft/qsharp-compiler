@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.Telemetry
         /// named in Configuration.TelemetryOptOutVariableName and
         /// Configuration.TelemetryOptInVariableName.
         /// </summary>
-        public static bool TelemetryOptedIn => Instance.TelemetryOptedIn;
+        public static bool TelemetryEnabled => Instance.TelemetryEnabled;
 
         public static event EventHandler<EventProperties>? OnEventLogged
         {

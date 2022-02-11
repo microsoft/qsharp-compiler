@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.Telemetry
         /// named in Configuration.TelemetryOptOutVariableName and
         /// Configuration.TelemetryOptInVariableName.
         /// </summary>
-        public bool TelemetryOptedIn { get; private set; } = false;
+        public bool TelemetryEnabled { get; private set; } = false;
 
         public event EventHandler<EventProperties>? OnEventLogged;
 
@@ -95,7 +95,7 @@ namespace Microsoft.Quantum.Telemetry
 
             this.Configuration = configuration;
 
-            this.TelemetryOptedIn = this.GetTelemetryOptIn(configuration);
+            this.TelemetryEnabled = this.GetTelemetryOptIn(configuration);
 
             this.CheckAndRunSafe(
                 () =>
@@ -378,7 +378,7 @@ namespace Microsoft.Quantum.Telemetry
 
         private void CheckAndRunSafe(Action action, bool initializingOrTearingDown = false)
         {
-            if (!this.TelemetryOptedIn)
+            if (!this.TelemetryEnabled)
             {
                 return;
             }
