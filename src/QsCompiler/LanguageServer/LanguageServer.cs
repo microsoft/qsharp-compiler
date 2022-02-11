@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             if (!MSBuildLocator.IsRegistered)
             {
-                this.LogToWindow("The Q# Language Server is running without the .NET SDK, not all features will be availalbe.", MessageType.Warning);
+                this.LogToWindow("The Q# Language Server is running without the .NET SDK, not all features will be available.", MessageType.Warning);
             }
 
             this.waitForInit.Set();
