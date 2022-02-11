@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.Telemetry
         /// <summary>
         /// The name of the environment variable to be checked at initialization to see if
         /// the user wants to opt-in of sending telemetry data.
-        /// If the value of the environment variable is "1", data will be collected or sent.
+        /// If the value of the environment variable is "1", data will be collected and sent.
         /// The "TelemetryOptOut" will always take precedence.
         /// </summary>
         public string TelemetryOptInVariableName { get; set; } = "QDK_TELEMETRY_OPT_IN";
