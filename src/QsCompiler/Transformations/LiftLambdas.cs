@@ -13,7 +13,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
-    using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
+    using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     internal static class LiftLambdaExpressions
@@ -31,7 +31,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
             {
                 internal List<QsCallable>? GeneratedCallables { get; set; } = null;
 
-                internal ImmutableArray<LocalVariableDeclaration<string>> KnownVariables { get; set; } = ImmutableArray<LocalVariableDeclaration<string>>.Empty;
+                internal ImmutableArray<LocalVariableDeclaration<string, ResolvedType>> KnownVariables { get; set; } =
+                    ImmutableArray<LocalVariableDeclaration<string, ResolvedType>>.Empty;
 
                 internal QsCallable? CurrentCallable { get; set; } = null;
             }
@@ -116,97 +117,58 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.LiftLambdas
                     }
                 }
 
-                private ParameterTuple MakeLambdaParams(ResolvedType expressionType, QsSymbol paramNames)
+                private ParameterTuple SanitizeLambdaParams(ParameterTuple paramNames)
                 {
                     var missingSymbolCount = 0;
 
-                    ParameterTuple MatchNameWithType(ResolvedType paramType, QsSymbol paramName)
+                    ParameterTuple Sanitize(ParameterTuple paramName)
                     {
-                        if (paramName.Symbol.IsMissingSymbol)
+                        if (paramName is ParameterTuple.QsTupleItem param)
                         {
-                            var localVar = new LocalVariableDeclaration<QsLocalSymbol>(
-                                QsLocalSymbol.NewValidName($"__missingLambdaParam_{missingSymbolCount}__"),
-                                paramType,
-                                new InferredExpressionInformation(false, false),
-                                QsNullable<Position>.Null,
-                                paramName.Range.IsNull
-                                    ? DataTypes.Range.Zero
-                                    : paramName.Range.Item);
-                            missingSymbolCount++;
-                            return ParameterTuple.NewQsTupleItem(localVar);
+                            return param.Item.VariableName.IsInvalidName
+                                ? ParameterTuple.NewQsTupleItem(
+                                    param.Item.WithName(QsLocalSymbol.NewValidName($"__missingLambdaParam_{missingSymbolCount++}__")))
+                                : param;
                         }
-                        else if (paramName.Symbol is QsSymbolKind<QsSymbol>.Symbol sym)
+                        else if (paramName is ParameterTuple.QsTuple tup)
                         {
-                            var localVar = new LocalVariableDeclaration<QsLocalSymbol>(
-                                QsLocalSymbol.NewValidName(sym.Item),
-                                paramType,
-                                new InferredExpressionInformation(false, false),
-                                QsNullable<Position>.Null,
-                                paramName.Range.IsNull
-                                    ? DataTypes.Range.Zero
-                                    : paramName.Range.Item);
-                            return ParameterTuple.NewQsTupleItem(localVar);
-                        }
-                        else if (paramName.Symbol is QsSymbolKind<QsSymbol>.SymbolTuple tup)
-                        {
-                            if (tup.Item.Length == 0 && paramType.Resolution.IsUnitType)
+                            if (tup.Item.Length == 0)
                             {
                                 // Need an artificial Unit parameter here
-                                var localVar = new LocalVariableDeclaration<QsLocalSymbol>(
+                                var localVar = new LocalVariableDeclaration<QsLocalSymbol, ResolvedType>(
                                     QsLocalSymbol.NewValidName("__lambdaUnitParam__"),
-                                    paramType,
-                                    new InferredExpressionInformation(false, false),
+                                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                                    InferredExpressionInformation.ParameterDeclaration,
                                     QsNullable<Position>.Null,
-                                    paramName.Range.IsNull
-                                        ? DataTypes.Range.Zero
-                                        : paramName.Range.Item);
+                                    DataTypes.Range.Zero);
                                 return ParameterTuple.NewQsTupleItem(localVar);
                             }
                             else if (tup.Item.Length == 1)
                             {
-                                return MatchNameWithType(paramType, tup.Item.First());
-                            }
-                            else if (paramType.Resolution is ResolvedTypeKind.TupleType tupType)
-                            {
-                                var subSymbols = tup.Item;
-                                var subSymbolTypes = tupType.Item;
-
-                                if (subSymbols.Length != subSymbolTypes.Length)
-                                {
-                                    throw new ArgumentException("Lambda parameter tuple type length mismatch.");
-                                }
-
-                                return ParameterTuple.NewQsTuple(subSymbols
-                                    .Select((symbol, i) => MatchNameWithType(subSymbolTypes[i], symbol))
-                                    .ToImmutableArray());
+                                return Sanitize(tup.Item.First());
                             }
                             else
                             {
-                                throw new ArgumentException("Lambda tuple parameter matched non-tuple type.");
+                                return ParameterTuple.NewQsTuple(tup.Item
+                                    .Select(symbol => Sanitize(symbol))
+                                    .ToImmutableArray());
                             }
                         }
                         else
                         {
-                            throw new ArgumentException("Lambda parameter unsupported symbol kind. Only `Symbol`, `SymbolTuple`, and `MissingSymbol` are supported.");
+                            throw new ArgumentException("Unsupported lambda parameter. Only `QsTupleItem`, and `QsTuple` are supported.");
                         }
                     }
 
-                    var paramTypes =
-                        expressionType.Resolution is ResolvedTypeKind.Operation op
-                        ? op.Item1.Item1
-                        : expressionType.Resolution is ResolvedTypeKind.Function func
-                        ? func.Item1
-                        : throw new ArgumentException("Lambda with non-callable type");
-
-                    return MatchNameWithType(paramTypes, paramNames);
+                    return Sanitize(paramNames);
                 }
 
-                private TypedExpression HandleLambdas(TypedExpression ex, Lambda<TypedExpression> lambda)
+                private TypedExpression HandleLambdas(TypedExpression ex, Lambda<TypedExpression, ResolvedType> lambda)
                 {
                     var processedLambdaExpressionKind = this.ExpressionKinds.OnLambda(lambda);
                     var processedLambda = (processedLambdaExpressionKind as ExpressionKind.Lambda)!.Item;
                     var lambdaBody = processedLambda.Body;
-                    var lambdaParams = this.MakeLambdaParams(ex.ResolvedType, processedLambda.Param);
+                    var lambdaParams = this.SanitizeLambdaParams(processedLambda.ArgumentTuple);
                     var callableInfo =
                         ex.ResolvedType.Resolution is ResolvedTypeKind.Operation op
                         ? op.Item2

@@ -474,6 +474,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 AssertReferences(1, new[] { new Position(16, 12), new Position(16, 17) });
                 AssertReferences(1, new[] { new Position(17, 16), new Position(17, 21), new Position(17, 26) });
                 AssertReferences(1, new[] { new Position(18, 16), new Position(18, 21) });
+                AssertReferences(1, new[] { new Position(19, 16), new Position(19, 21) });
+
+                AssertReferences(3, new[] { new Position(22, 18), new Position(22, 31), new Position(22, 37) });
             });
 
             void AssertReferences(int symbolLength, IReadOnlyCollection<Position> positions)

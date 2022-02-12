@@ -362,7 +362,7 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
     | Symbol name ->
         match tryBuildDeclaration (name, symbol.RangeOrDefault) rhsType with
         | Some declaration, diagnostics -> VariableName name, [| declaration |], diagnostics
-        | None, diagnostics -> VariableName name, [||], diagnostics
+        | None, diagnostics -> InvalidItem, [||], diagnostics
     | SymbolTuple symbols ->
         let types = symbols |> Seq.map (fun symbol -> inference.Fresh symbol.RangeOrDefault) |> Seq.toList
 
@@ -900,7 +900,7 @@ type QsExpression with
             let info = InferredExpressionInformation.New(isMutable = false, quantumDep = hasQuantumDependency)
             TypedExpression.New(callExpression, callable.TypeParameterResolutions, resultType, info, this.Range)
 
-        let buildLambda (lambda: _ Lambda) =
+        let buildLambda (lambda: Lambda<QsExpression, QsType>) =
             symbols.BeginScope ImmutableHashSet.Empty
             let freeVars = Context.freeVariables this
 
@@ -913,19 +913,35 @@ type QsExpression with
                 if var.InferredInformation.IsMutable then
                     Map.tryFind var.VariableName freeVars |> Option.iter (diagnoseMutable var.VariableName |> Seq.iter)
 
-            let addBinding (name: string, range) type_ =
-                let var = LocalVariableDeclaration.New false ((Null, range), name, type_, true)
-                let _, diagnostics = symbols.TryAddVariableDeclartion var
-                None, diagnostics
+            let rec mapArgumentTuple =
+                function
+                | QsTupleItem (decl: LocalVariableDeclaration<_, _>) ->
+                    let var : LocalVariableDeclaration<QsLocalSymbol, ResolvedType> =
+                        let resDecl = decl.WithPosition(inference.GetRelativeStatementPosition() |> Value)
+                        resDecl.WithType(inference.Fresh decl.Range)
 
-            let inputType = inference.Fresh lambda.Param.RangeOrDefault
-            let _, _, diagnostics = verifyBinding inference addBinding (lambda.Param, inputType) false
-            Array.iter diagnose diagnostics
+                    let added, diagnostics = symbols.TryAddVariableDeclartion var
+                    Array.iter diagnose diagnostics
+                    if added then QsTupleItem var else QsTupleItem(var.WithName InvalidName)
+                | QsTuple tuple -> tuple |> Seq.map mapArgumentTuple |> ImmutableArray.CreateRange |> QsTuple
+
+            let argTuple = mapArgumentTuple lambda.ArgumentTuple
+
+            let rec getArgumentTupleType =
+                function
+                | QsTupleItem (decl: LocalVariableDeclaration<_, _>) -> decl.Type
+                | QsTuple tuple ->
+                    tuple |> Seq.map getArgumentTupleType |> ImmutableArray.CreateRange |> TupleType |> ResolvedType.New
+
+            let inputType =
+                match argTuple with
+                | QsTuple tuple when tuple.Length = 0 -> UnitType |> ResolvedType.New
+                | _ -> getArgumentTupleType argTuple
 
             let lambda' =
                 verifyAndBuildWith
                     { context with IsInOperation = lambda.Kind = LambdaKind.Operation }
-                    (Lambda.create lambda.Kind lambda.Param >> Lambda)
+                    (fun body' -> Lambda.create lambda.Kind argTuple body' |> Lambda)
                     (fun body' -> inferLambda inference this.Range lambda.Kind inputType body', [])
                     lambda.Body
 

@@ -16,7 +16,7 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
-    using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
+    using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     /// </summary>
     internal static class LiftContent
     {
-        private static IEnumerable<LocalVariableDeclaration<QsLocalSymbol>> FlattenParamTuple(ParameterTuple parameters)
+        private static IEnumerable<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> FlattenParamTuple(ParameterTuple parameters)
         {
             if (parameters is ParameterTuple.QsTupleItem item)
             {
@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 return tuple.Item.SelectMany(FlattenParamTuple);
             }
 
-            return ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>.Empty;
+            return ImmutableArray<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>.Empty;
         }
 
         private static ResolvedType ExtractParamType(ParameterTuple parameters)
@@ -181,7 +181,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             var newContents = new QsScope(
                 contents.Statements,
                 new LocalDeclarations(FlattenParamTuple(parameters)
-                    .Select(decl => new LocalVariableDeclaration<string>(
+                    .Select(decl => new LocalVariableDeclaration<string, ResolvedType>(
                         ((QsLocalSymbol.ValidName)decl.VariableName).Item,
                         decl.Type,
                         decl.InferredInformation,
@@ -250,7 +250,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             }
 
             var parameters = ParameterTuple.NewQsTuple(usedSymbols
-                .Select(var => ParameterTuple.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol>(
+                .Select(var => ParameterTuple.NewQsTupleItem(new LocalVariableDeclaration<QsLocalSymbol, ResolvedType>(
                     QsLocalSymbol.NewValidName(var.VariableName),
                     var.Type,
                     new InferredExpressionInformation(false, false),
@@ -578,10 +578,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             public static bool Apply(
                 QsScope content,
                 bool isReturnsAllowed,
-                out ImmutableArray<LocalVariableDeclaration<string>> usedSymbols,
+                out ImmutableArray<LocalVariableDeclaration<string, ResolvedType>> usedSymbols,
                 out ResolvedType returnType)
             {
-                usedSymbols = ImmutableArray<LocalVariableDeclaration<string>>.Empty;
+                usedSymbols = ImmutableArray<LocalVariableDeclaration<string, ResolvedType>>.Empty;
                 returnType = ResolvedType.New(ResolvedTypeKind.UnitType);
 
                 var filter = new LiftValidationWalker(content, isReturnsAllowed);
@@ -616,8 +616,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
                 public bool IsReturnAllowed { get; private set; } = false;
 
-                public List<(LocalVariableDeclaration<string> Variable, bool Used)> SuperContextSymbols { get; set; } =
-                    new List<(LocalVariableDeclaration<string> Variable, bool Used)>();
+                public List<(LocalVariableDeclaration<string, ResolvedType> Variable, bool Used)> SuperContextSymbols { get; set; } =
+                    new List<(LocalVariableDeclaration<string, ResolvedType> Variable, bool Used)>();
 
                 public TransformationState(bool isReturnAllowed)
                 {

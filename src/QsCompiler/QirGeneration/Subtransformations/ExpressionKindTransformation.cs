@@ -1085,7 +1085,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpressionKind OnAdjointApplication(TypedExpression ex) =>
             this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, ex);
 
-        public override ResolvedExpressionKind OnArrayItem(TypedExpression arr, TypedExpression idx)
+        public override ResolvedExpressionKind OnArrayItemAccess(TypedExpression arr, TypedExpression idx)
         {
             // TODO: handle multi-dimensional arrays
             var array = (ArrayValue)this.SharedState.EvaluateSubexpression(arr);
@@ -1870,7 +1870,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpressionKind OnNamedItem(TypedExpression ex, Identifier acc)
+        public override ResolvedExpressionKind OnNamedItemAccess(TypedExpression ex, Identifier acc)
         {
             IValue value;
             if (!(ex.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt))

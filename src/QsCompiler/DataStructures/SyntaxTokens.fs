@@ -10,6 +10,7 @@ open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 // marker interface used for types on which tuple matching can be done
 type ITuple =
@@ -37,8 +38,9 @@ type QsPauli =
 // Q# symbols
 
 type QsSymbolKind<'Symbol> =
-    /// Let's make the distinction for things that *have* to be an unqualified symbol.
+    /// For symbols that *have* to be an unqualified.
     | Symbol of string
+    /// For qualified symbols.
     | QualifiedSymbol of string * string
     /// For bindings.
     | SymbolTuple of ImmutableArray<'Symbol>
@@ -75,6 +77,7 @@ type QsSymbol =
             match symbol2 with
             | :? QsSymbol as symbol2 -> compare symbol1.Symbol symbol2.Symbol
             | _ -> ArgumentException "Types are different." |> raise
+
 
 // Q# types
 
@@ -122,6 +125,10 @@ type QsType =
 
 // Q# expressions
 
+type QsTuple<'Item> =
+    | QsTupleItem of 'Item
+    | QsTuple of ImmutableArray<QsTuple<'Item>>
+
 /// Represents whether a lambda is a function or operation.
 type LambdaKind =
     /// The lambda is a function.
@@ -130,19 +137,19 @@ type LambdaKind =
     | Operation
 
 /// A lambda expression.
-type 'expr Lambda =
+type Lambda<'Expr, 'Type> =
     private
         {
             kind: LambdaKind
-            param: QsSymbol
-            body: 'expr
+            paramTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>>
+            body: 'Expr
         }
 
     /// Represents whether a lambda is a function or operation.
     member lambda.Kind = lambda.kind
 
-    /// The symbol bindings for the lambda's parameter.
-    member lambda.Param = lambda.param
+    /// The symbol tuple for the lambda's parameter.
+    member lambda.ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>> = lambda.paramTuple
 
     /// The body of the lambda.
     member lambda.Body = lambda.body
@@ -150,12 +157,40 @@ type 'expr Lambda =
 module Lambda =
     /// Creates a lambda expression.
     [<CompiledName "Create">]
-    let create kind param body =
+    let create kind paramTuple body =
         {
             kind = kind
-            param = param
+            paramTuple = paramTuple
             body = body
         }
+
+    let createUnchecked kind (paramTuple: QsSymbol) body =
+        let variableDeclaration =
+            {
+                VariableName = InvalidName
+                Type = { Type = MissingType; Range = Null }
+                InferredInformation = InferredExpressionInformation.ParameterDeclaration
+                Position = Null
+                Range = Range.Zero
+            }
+
+        let rec mapSymbol (sym: QsSymbol) =
+            match sym.Symbol with
+            | Symbol name ->
+                let range = sym.Range.ValueOrApply(fun _ -> failwith "missing range information for valid symbol")
+                QsTupleItem { variableDeclaration with VariableName = ValidName name; Range = range }
+            | SymbolTuple syms -> syms |> Seq.map mapSymbol |> ImmutableArray.CreateRange |> QsTuple
+            | QualifiedSymbol _ -> failwith "qualified symbol in argument tuple"
+            | OmittedSymbols -> failwith "omitted symbols in argument tuple"
+            | MissingSymbol
+            | InvalidSymbol -> QsTupleItem { variableDeclaration with Range = sym.Range.ValueOr Range.Zero }
+
+        let argTuple = // argument tuples are always passed as QsTuple even if they contain no items or a single item
+            match mapSymbol paramTuple with
+            | QsTuple _ as tuple -> tuple
+            | QsTupleItem _ as item -> ImmutableArray.Create(item) |> QsTuple
+
+        create kind argTuple body
 
 type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | UnitValue
@@ -209,7 +244,7 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | MissingExpr
     | InvalidExpr
     | SizedArray of value: 'Expr * size: 'Expr
-    | Lambda of 'Expr Lambda
+    | Lambda of Lambda<'Expr, 'Type>
 
 type QsExpression =
     {
@@ -258,10 +293,6 @@ type QsSpecializationGenerator =
 
 
 // Q# fragments
-
-type QsTuple<'Item> =
-    | QsTupleItem of 'Item
-    | QsTuple of ImmutableArray<QsTuple<'Item>>
 
 type CallableSignature =
     {

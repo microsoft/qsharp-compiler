@@ -234,7 +234,7 @@ namespace Microsoft.Quantum.Documentation
             }
         }
 
-        internal static Dictionary<string, ResolvedType> ToDictionaryOfDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) =>
+        internal static Dictionary<string, ResolvedType> ToDictionaryOfDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> items) =>
             items.InputDeclarations().ToDictionary(
                 declaration => declaration.Item1,
                 declaration => declaration.Item2);
@@ -263,13 +263,13 @@ namespace Microsoft.Quantum.Documentation
                 _ => throw new ArgumentException($"Type items {typeItems} aren't a tuple of type items.", nameof(typeItems)),
             };
 
-        internal static List<(string, ResolvedType)> InputDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> items) => items switch
+        internal static List<(string, ResolvedType)> InputDeclarations(this QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> items) => items switch
             {
-                QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTuple tuple =>
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>.QsTuple tuple =>
                     tuple.Item.SelectMany(
                         item => item.InputDeclarations())
                     .ToList(),
-                QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTupleItem item =>
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>.QsTupleItem item =>
                     new List<(string, ResolvedType)>
                     {
                         (

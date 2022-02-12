@@ -17,6 +17,9 @@ namespace Test16 {
         if (x -> x or true)(true) {
         } elif (y -> y or y or true)(true) {
         } elif (y -> y == 1)(1) {
+        } elif (x -> x + 1)(1) == 2 {
         }
+
+        let f4 = (foo, foo) -> foo + foo;
     }
 }

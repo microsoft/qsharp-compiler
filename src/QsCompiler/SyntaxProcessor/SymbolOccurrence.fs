@@ -4,6 +4,7 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
 
 open System
 open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
@@ -57,7 +58,19 @@ module SymbolOccurrence =
         | Identifier (s, ts) ->
             let ts' = QsNullable.defaultValue ImmutableArray.Empty ts |> Seq.collect inType |> Seq.toList
             UsedVariable s :: ts'
-        | Lambda lambda -> symbolDeclarations lambda.Param @ inExpression lambda.Body
+        | Lambda lambda ->
+            let validDeclaration (decl: SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol, _>) =
+                match decl.VariableName with
+                | SyntaxTree.QsLocalSymbol.ValidName name -> Some { Symbol = Symbol name; Range = Value decl.Range }
+                | SyntaxTree.QsLocalSymbol.InvalidName -> None
+
+            let declarations =
+                lambda.ArgumentTuple.Items
+                |> Seq.choose validDeclaration
+                |> Seq.map (fun decl -> Declaration decl)
+                |> Seq.toList
+
+            declarations @ inExpression lambda.Body
         // TODO: Handle named item accessor.
         | NamedItem (e, _)
         | NEG e

@@ -4,6 +4,7 @@
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.Context
 
 open System
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
@@ -306,15 +307,6 @@ let private mergeMaps onDuplicateKey =
         | None -> Map.add key value map
     |> Map.fold
 
-let rec private unqualifiedSymbols s =
-    match s.Symbol with
-    | QualifiedSymbol _
-    | OmittedSymbols
-    | MissingSymbol
-    | InvalidSymbol -> Set.empty
-    | Symbol name -> Set.singleton name
-    | SymbolTuple ss -> ss |> Seq.map unqualifiedSymbols |> Set.unionMany
-
 let rec internal freeVariables e =
     let merge = mergeMaps (@)
 
@@ -367,5 +359,10 @@ let rec internal freeVariables e =
     | StringLiteral (_, es)
     | ValueArray es -> es |> Seq.map freeVariables |> Seq.fold merge Map.empty
     | Lambda lambda ->
-        let bindings = unqualifiedSymbols lambda.Param
+        let validVariable (decl: SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol, _>) =
+            match decl.VariableName with
+            | SyntaxTree.QsLocalSymbol.ValidName name -> Some name
+            | SyntaxTree.QsLocalSymbol.InvalidName -> None
+
+        let bindings = lambda.ArgumentTuple.Items |> Seq.choose validVariable |> Set
         freeVariables lambda.Body |> Map.filter (fun name _ -> Set.contains name bindings |> not)

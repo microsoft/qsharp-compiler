@@ -581,17 +581,6 @@ type ResolvedType with
             t |> ResolvedType.withKind (QsTypeKind.Operation((inner it, inner ot), fList))
         | _ -> t
 
-/// used to represent information on typed expressions generated and/or tracked during compilation
-type InferredExpressionInformation =
-    {
-        /// whether or not the value of this expression can be modified (true if it can)
-        IsMutable: bool
-        /// indicates whether the annotated expression directly or indirectly depends on an operation call within the surrounding implementation block
-        /// -> it will be set to false for variables declared within the argument tuple
-        /// -> using and borrowing are *not* considered to implicitly invoke a call to an operation, and are thus *not* considered to have a quantum dependency.
-        HasLocalQuantumDependency: bool
-    }
-
 
 /// Fully resolved Q# expression
 /// containing the content (kind) of the expression as well as its (fully resolved) type before and after application of type arguments.
@@ -687,22 +676,7 @@ type ResolvedInitializer with
     static member New kind =
         ResolvedInitializer.create Generated kind
 
-type LocalVariableDeclaration<'Name> =
-    {
-        /// the name of the declared variable
-        VariableName: 'Name
-        /// the fully resolved type of the declared variable
-        Type: ResolvedType
-        /// contains information generated and/or tracked by the compiler
-        /// -> in particular, contains the information about whether or not the symbol may be re-bound
-        InferredInformation: InferredExpressionInformation
-        /// Denotes the position where the variable is declared
-        /// relative to the position of the specialization declaration within which the variable is declared.
-        /// If the Position is Null, then the variable is not declared within a specialization (but belongs to a callable or type declaration).
-        Position: QsNullable<Position>
-        /// Denotes the range of the variable name relative to the position of the variable declaration.
-        Range: Range
-    }
+type LocalVariableDeclaration<'Name> = LocalVariableDeclaration<'Name, ResolvedType>
 
 
 /// used to attach information about which symbols are declared to each scope and statement
@@ -915,12 +889,6 @@ type Source with
         }
 
 
-/// used to represent the names of declared type parameters or the name of the declared argument items of a callable
-type QsLocalSymbol =
-    | ValidName of string
-    | InvalidName
-
-
 /// used to represent an attribute attached to a type, callable, or specialization declaration.
 type QsDeclarationAttribute =
     {
@@ -1026,10 +994,6 @@ type QsSpecialization =
 
     member this.WithSource source = { this with Source = source }
 
-    // TODO: RELEASE 2021-07: Remove QsSpecialization.SourceFile.
-    [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCodeFile this.Source
-
 
 /// describes a Q# function, operation, or type constructor
 type QsCallable =
@@ -1065,14 +1029,6 @@ type QsCallable =
         /// contains comments in the code associated with this declarations
         Comments: QsComments
     }
-
-    // TODO: RELEASE 2021-08: Remove QsCallable.Modifiers.
-    [<Obsolete "Replaced by Access.">]
-    member this.Modifiers = { Access = AccessModifier.ofAccess this.Access }
-
-    // TODO: RELEASE 2021-07: Remove QsCallable.SourceFile.
-    [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
     member this.AddAttribute att =
         { this with Attributes = this.Attributes.Add att }
@@ -1130,14 +1086,6 @@ type QsCustomType =
         /// contains comments in the code associated with this declarations
         Comments: QsComments
     }
-
-    // TODO: RELEASE 2021-08: Remove QsCallable.Modifiers.
-    [<Obsolete "Replaced by Access.">]
-    member this.Modifiers = { Access = AccessModifier.ofAccess this.Access }
-
-    // TODO: RELEASE 2021-07: Remove QsCustomType.SourceFile.
-    [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
     member this.AddAttribute att =
         { this with Attributes = this.Attributes.Add att }

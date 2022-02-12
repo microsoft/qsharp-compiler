@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations;
@@ -17,8 +18,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
 {
     using QsExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using QsInitializerKind = QsInitializerKind<ResolvedInitializer, TypedExpression>;
-    using QsSymbolKind = QsSymbolKind<QsSymbol>;
-    using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     internal static class SyntaxUtils
     {
@@ -62,14 +61,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
             bool IsSelectedExpression(TypedExpression e) =>
                 e.Range.Any(r => r.Contains(position - currentStatement.Location.Item.Offset));
 
-            IEnumerable<LocalVariableDeclaration<string>> VarsWithOffset(TypedExpression e)
+            IEnumerable<LocalVariableDeclaration<string, ResolvedType>> VarsWithOffset(TypedExpression e)
             {
                 if (currentStatement.Location.IsNull)
                 {
-                    return Enumerable.Empty<LocalVariableDeclaration<string>>();
+                    return Enumerable.Empty<LocalVariableDeclaration<string, ResolvedType>>();
                 }
 
-                e = new ExpressionOffsetTransformation(currentStatement.Location.Item.Offset).OnTypedExpression(e);
+                e = new ExpressionOffsetTransformation(currentStatement.Location.Item.Offset).Expressions.OnTypedExpression(e);
                 return DeclarationsInExpressionByPosition(e, position);
             }
         }
@@ -163,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
                 }
 
                 var offset = b.Item2.Location.Item.Offset - statement.Location.Item.Offset;
-                return new ExpressionOffsetTransformation(offset).OnTypedExpression(b.Item1);
+                return new ExpressionOffsetTransformation(offset).Expressions.OnTypedExpression(b.Item1);
             }
 
             static IEnumerable<TypedExpression> InitializerExpressions(ResolvedInitializer i) => i.Resolution switch
@@ -174,75 +173,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport
             };
         }
 
-        private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInExpressionByPosition(
-            TypedExpression expression, Position position)
-        {
-            return expression.ExtractAll(Declarations);
-
-            IEnumerable<LocalVariableDeclaration<string>> Declarations(TypedExpression e)
+        private static IEnumerable<LocalVariableDeclaration<string, ResolvedType>> DeclarationsInExpressionByPosition(
+            TypedExpression expression, Position position) =>
+            expression.ExtractAll(e =>
             {
                 if (!e.Range.Any(r => r.Contains(position)))
                 {
-                    return Enumerable.Empty<LocalVariableDeclaration<string>>();
+                    return Enumerable.Empty<LocalVariableDeclaration<string, ResolvedType>>();
                 }
 
                 if (e.Expression is QsExpressionKind.Lambda lambda)
                 {
-                    // Since lambda parameters are bound later to a value from any source, pessimistically assume it has
-                    // a local quantum dependency.
-                    var inferred = new InferredExpressionInformation(false, true);
-
-                    return DeclarationsInTypedSymbol(lambda.Item.Param, CallableInputType(e.ResolvedType), inferred)
+                    return SyntaxGenerator.ExtractItems(lambda.Item.ArgumentTuple).ValidDeclarations()
                         .Concat(DeclarationsInExpressionByPosition(lambda.Item.Body, position));
                 }
 
-                return Enumerable.Empty<LocalVariableDeclaration<string>>();
-            }
+                return Enumerable.Empty<LocalVariableDeclaration<string, ResolvedType>>();
+            });
 
-            static ResolvedType CallableInputType(ResolvedType type) => type.Resolution switch
-            {
-                QsTypeKind.Function function => function.Item1,
-                QsTypeKind.Operation operation => operation.Item1.Item1,
-                _ => throw new Exception("Type is not a callable type."),
-            };
-        }
-
-        private static IEnumerable<LocalVariableDeclaration<string>> DeclarationsInTypedSymbol(
-            QsSymbol symbol, ResolvedType type, InferredExpressionInformation inferred)
-        {
-            switch (symbol.Symbol, type.Resolution)
-            {
-                case (QsSymbolKind.Symbol name, _):
-                    var range = symbol.Range.IsValue
-                        ? symbol.Range.Item
-                        : throw new ArgumentException("Range is null.", nameof(symbol));
-
-                    var position = QsNullable<Position>.NewValue(range.Start);
-                    return new[]
-                    {
-                        new LocalVariableDeclaration<string>(name.Item, type, inferred, position, range - range.Start),
-                    };
-                case (QsSymbolKind.SymbolTuple symbols, QsTypeKind.TupleType types):
-                    return
-                        from typedSymbol in symbols.Item.Zip(types.Item, ValueTuple.Create)
-                        from declaration in DeclarationsInTypedSymbol(typedSymbol.Item1, typedSymbol.Item2, inferred)
-                        select declaration;
-                case (QsSymbolKind.SymbolTuple symbols, _):
-                    return symbols.Item.SingleOrDefault() is { } single
-                        ? DeclarationsInTypedSymbol(single, type, inferred)
-                        : Enumerable.Empty<LocalVariableDeclaration<string>>();
-                default:
-                    return Enumerable.Empty<LocalVariableDeclaration<string>>();
-            }
-        }
-
-        private class ExpressionOffsetTransformation : ExpressionTransformation
+        private class ExpressionOffsetTransformation : SyntaxTreeTransformation
         {
             private readonly Position offset;
 
             internal ExpressionOffsetTransformation(Position offset) => this.offset = offset;
 
-            public override QsNullable<Range> OnRangeInformation(QsNullable<Range> range) =>
+            public override QsNullable<Range> OnExpressionRange(QsNullable<Range> range) =>
                 range.Map(r => this.offset + r);
         }
     }

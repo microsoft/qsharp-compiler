@@ -288,6 +288,8 @@ open Inference
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
 
+    let mutable rootNodePos = Null
+    let mutable relativePos = Null
     let mutable statementPosition = Position.Zero
 
     let bind param substitution =
@@ -323,7 +325,20 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         |> Seq.map (fun item -> diagnostic item.Key item.Value)
         |> Seq.toList
 
-    member context.UseStatementPosition position = statementPosition <- position
+    member context.UseStatementPosition position =
+        rootNodePos <- Null
+        relativePos <- Null
+        statementPosition <- position
+
+    member context.UseSyntaxTreeNodeLocation(rootNodePosition, relativePosition) =
+        rootNodePos <- Value rootNodePosition
+        relativePos <- Value relativePosition
+        statementPosition <- rootNodePosition + relativePosition
+
+    member internal context.GetRelativeStatementPosition() =
+        match relativePos with
+        | Value pos -> pos
+        | Null -> InvalidOperationException "location information is unspecified" |> raise
 
     member internal context.Fresh source =
         let name = letters |> Seq.item variables.Count

@@ -12,8 +12,6 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
@@ -132,7 +130,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise.
 let private TryAddDeclaration isMutable (symbols: SymbolTracker) (name: string, location, localQdep) rhsType =
     let t, tpErr = rhsType, [||]
-    let decl = LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)
+    let decl = LocalVariableDeclaration.New isMutable (location, name, t, localQdep)
     let added, errs = symbols.TryAddVariableDeclartion decl
     (if added then Some decl else None), Array.append tpErr errs
 
