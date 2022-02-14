@@ -256,6 +256,25 @@ namespace Microsoft.Quantum.Testing.FunctorGeneration {
         controlled (cs, ...) { return 1; }
     }
 
+    operation NeedsUnitReturn7(q : Qubit) : Result is Adj {
+        return Zero;
+    }
+
+    operation CallNeedsUnitReturn1(q : Qubit) : Unit {
+        let _ = NeedsUnitReturn1(q);
+    }
+
+    operation CallNeedsUnitReturn2(q : Qubit) : Unit {
+        let _ = Adjoint NeedsUnitReturn1(q);
+    }
+
+    operation CallNeedsUnitReturn3(q : Qubit) : Unit {
+        let _ = NeedsUnitReturn7(q);
+    }
+
+    operation CallNeedsUnitReturn4(q : Qubit) : Unit {
+        let _ = Adjoint NeedsUnitReturn7(q);
+    }
 
     operation UnitReturn1 (q : Qubit) : Unit {
         body intrinsic;
