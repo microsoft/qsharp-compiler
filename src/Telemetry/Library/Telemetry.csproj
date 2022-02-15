@@ -10,7 +10,7 @@
     <Authors>Microsoft</Authors>
     <Description>Microsoft QDK telemetry library.</Description>
     <PackageName>Microsoft.Quantum.Telemetry</PackageName>
-    <PackageReleaseNotes>See: https://docs.microsoft.com/azure/quantum/qdk-relnotes/</PackageReleaseNotes>
+    <PackageReleaseNotes>See: https://docs.microsoft.com/azure/quantum/qdk-relnotes</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/microsoft/qsharp-compiler</PackageProjectUrl>
     <PackageIcon>qdk-nuget-icon.png</PackageIcon>
