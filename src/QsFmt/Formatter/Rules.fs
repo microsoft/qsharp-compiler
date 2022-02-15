@@ -362,9 +362,6 @@ let checkArraySyntax fileName document =
                     let prefixLines, prefixChars = processPrefix newArray.New.Prefix
                     let subWarnings = base.Expression expression
 
-                    // Change the "-" input to say "input" in the warning
-                    let fileName = if fileName = "-" || fileName = "" then "input" else fileName
-
                     let warning =
                         sprintf
                             "Warning: Unable to update deprecated new array syntax in %s from line %i, character %i to line %i, character %i."
