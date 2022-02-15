@@ -1,18 +1,36 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>Microsoft.Quantum.Telemetry</RootNamespace>
     <AssemblyName>Microsoft.Quantum.Telemetry</AssemblyName>
-    <PackageId>Microsoft.Quantum.Telemetry</PackageId>
-    <AssemblyTitle>Microsoft Q# telemetry library.</AssemblyTitle>
-    <AssemblyDescription>Microsoft Q# telemetry library.</AssemblyDescription>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Microsoft</Authors>
+    <Description>Microsoft QDK telemetry library.</Description>
+    <PackageName>Microsoft.Quantum.Telemetry</PackageName>
+    <PackageReleaseNotes>See: https://docs.microsoft.com/azure/quantum/qdk-relnotes/</PackageReleaseNotes>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/microsoft/qsharp-compiler</PackageProjectUrl>
+    <PackageIcon>qdk-nuget-icon.png</PackageIcon>
+    <PackageTags>Quantum QDK</PackageTags>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>Microsoft.Quantum.Telemetry.Tests$(PublicKeySuffix)</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\build\assets\qdk-nuget-icon.png" Pack="true" Visible="false" PackagePath="" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Applications.Events.Client" Version="1.1.1.337" />
+    <PackageReference Include="System.Text.Json" Version="6.0.2" />
   </ItemGroup>
+  
 </Project>

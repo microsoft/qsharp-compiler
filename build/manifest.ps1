@@ -35,11 +35,13 @@ $artifacts = @{
         "Microsoft.Quantum.QirGeneration",
         "Microsoft.Quantum.CSharpGeneration",
         "Microsoft.Quantum.DocumentationGenerator",
+        "Microsoft.Quantum.Telemetry",
         "Microsoft.Quantum.ProjectTemplates",
         "Microsoft.Quantum.Sdk"
     ) | ForEach-Object { Join-Path $Env:NUGET_OUTDIR "$_.$Env:NUGET_VERSION.nupkg" };
 
     Assemblies = $VsixAssemblies + @(
+        ".\src\Telemetry\Library\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.Telemetry.dll",
         ".\src\Documentation\DocumentationGenerator\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.DocumentationGenerator.dll",
         ".\src\Documentation\DocumentationParser\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsDocumentationParser.dll",
         ".\src\QsCompiler\BondSchemas\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.BondSchemas.dll",
