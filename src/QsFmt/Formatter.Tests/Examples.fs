@@ -251,6 +251,28 @@ let ``Removes For-Loop Parens`` =
 }"""
 
 [<Example(ExampleKind.Update)>]
+let ``Ensure Spaces with Removed Parens`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        using(q = Qubit()) {
+            for(i in 0..3) {
+                Message("HelloQ");
+            }
+        }
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        use q = Qubit() {
+            for i in 0..3 {
+                Message("HelloQ");
+            }
+        }
+    }
+}"""
+
+[<Example(ExampleKind.Update)>]
 let ``Update Specialization Declaration`` =
     """namespace Foo {
     operation Bar() : Unit is Ctl + Adj {

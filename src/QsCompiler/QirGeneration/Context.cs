@@ -482,6 +482,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
+        /// Creates a global constant (data array) that stores the given bytes.
+        /// </summary>
+        internal GlobalVariable CreateGlobalConstantArray(byte[] array)
+        {
+            var byteArray = ConstantArray.From(
+                this.Context.Int8Type,
+                array.Select(s => this.Context.CreateConstant(s)).ToArray());
+
+            return this.Module.AddGlobal(byteArray.NativeType, true, Linkage.Internal, byteArray);
+        }
+
+        /// <summary>
         /// Tries to find a global Q# callable in the current compilation.
         /// </summary>
         /// <param name="fullName">The callable's qualified name</param>
