@@ -64,6 +64,7 @@ let internal initializeTelemetry args =
                 ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
             SendTelemetryInitializedEvent = false,
             SendTelemetryTearDownEvent = false,
+            DefaultTelemetryConsent = ConsentKind.OptedIn,
             TestMode = testMode
         )
 
