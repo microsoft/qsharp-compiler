@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
+open System.IO
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -10,9 +11,16 @@ open Xunit
 
 /// Tests for type checking of Q# programs.
 module TypeCheckingTests =
+    let private sourceFiles =
+        [
+            Path.Combine("LinkingTests", "Core.qs")
+            "General.qs"
+            "TypeChecking.qs"
+            "Types.qs"
+        ]
+
     /// The compiled type-checking tests.
-    let private tests =
-        CompilerTests.Compile("TestCases", [ "General.qs"; "TypeChecking.qs"; "Types.qs" ]) |> CompilerTests
+    let private tests = CompilerTests.Compile("TestCases", sourceFiles) |> CompilerTests
 
     /// <summary>
     /// Asserts that the declaration with the given <paramref name="name"/> has the given
@@ -43,6 +51,19 @@ module TypeCheckingTests =
         expect "Numeric3" []
         expect "NumericInvalid1" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
         expect "NumericInvalid2" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
+
+    [<Fact>]
+    let ``Supports power operator`` () =
+        expect "Power1" []
+        expect "Power2" []
+        expect "Power3" []
+        expect "Power4" []
+        expect "Power5" []
+        expect "PowerInvalid1" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid2" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid3" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid4" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid5" [ Error ErrorCode.TypeMismatch ]
 
     [<Fact>]
     let ``Supports the semigroup operator`` () =
