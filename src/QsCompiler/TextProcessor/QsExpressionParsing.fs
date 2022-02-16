@@ -694,8 +694,8 @@ let private termParser missingMode tupleExpr =
     // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly.
     [
         attempt newArray
-        attempt lambda
-        if missingMode = AllowMissing then missingExpr
+        attempt lambda // needs to be before unitValue
+        if missingMode = AllowMissing then missingExpr // needs to be after lambda but before identifier
         attempt unitValue
         attempt callLikeExpr // needs to be after unitValue
         attempt itemAccessExpr // needs to be after callLikeExpr
