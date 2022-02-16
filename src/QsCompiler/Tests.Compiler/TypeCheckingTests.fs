@@ -17,7 +17,6 @@ module TypeCheckingTests =
 
     /// The compiled type-checking tests.
     let private tests = CompilerTests compilation
-        CompilerTests.Compile("TestCases", [ "General.qs"; "TypeChecking.qs"; "Types.qs" ]) |> CompilerTests
 
     let private ns = "Microsoft.Quantum.Testing.TypeChecking"
 
