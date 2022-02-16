@@ -656,15 +656,15 @@ let internal invalidSymbol = QsSymbol.New(InvalidSymbol, Null)
 let internal buildSymbolTuple (items, range: Range) = QsSymbol.New(SymbolTuple items, range)
 
 let internal symbolTuple continuation =
+    let continuation = continuation >>% () <|> isTupleContinuation
     let empty = unitValue |>> fun unit -> { Symbol = SymbolTuple ImmutableArray.Empty; Range = unit.Range }
-    let continuation' = continuation >>% () <|> isTupleContinuation
-    let symbol = (discardedSymbol <|> localIdentifier) .>>? followedBy continuation'
+    let symbol = (discardedSymbol <|> localIdentifier) .>>? followedBy continuation
 
     // Let's only specifically detect this particular invalid scenario.
     let symbolArray = arrayBrackets (sepBy1 symbol (comma .>>? followedBy symbol) .>> opt comma) |>> snd
 
     let invalid =
-        buildError (symbolArray .>>? followedBy continuation') ErrorCode.InvalidAssignmentToExpression
+        buildError (symbolArray .>>? followedBy continuation) ErrorCode.InvalidAssignmentToExpression
         >>% invalidSymbol
 
     empty
