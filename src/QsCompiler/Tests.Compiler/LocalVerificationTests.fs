@@ -630,3 +630,10 @@ type LocalVerificationTests() =
                 Warning WarningCode.DeprecatedQubitBindingKeyword
                 Warning WarningCode.DeprecatedTupleBrackets
             ]
+
+    [<Fact>]
+    member this.``Expression statements``() =
+        this.Expect "ExpressionStatements1" []
+        this.Expect "ExpressionStatements2" [ Error ErrorCode.ValueImplicitlyIgnored ]
+        this.Expect "ExpressionStatements3" []
+        this.Expect "ExpressionStatements4" []
