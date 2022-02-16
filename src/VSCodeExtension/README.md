@@ -31,7 +31,7 @@ Your feedback about all parts of the Quantum Development Kit is important. Pleas
 The Quantum Development Kit preview provides a complete development and simulation environment.
 Refer to [our documentation](https://docs.microsoft.com/azure/quantum) for further information on the Quantum Development Kit and its [components](https://docs.microsoft.com/azure/quantum/overview-what-is-qsharp-and-qdk).
 
-If you'd like more general information about Microsoft's quantum computing initiative, see [Microsoft Quantum](https://www.microsoft.com/quantum/).
+If you'd like more general information about Microsoft's quantum computing approach, see [Microsoft Quantum](https://www.microsoft.com/quantum/).
 
 ## Privacy
 
