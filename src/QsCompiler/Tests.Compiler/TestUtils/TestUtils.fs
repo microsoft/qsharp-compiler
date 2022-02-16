@@ -5,25 +5,31 @@ module Microsoft.Quantum.QsCompiler.Testing.TestUtils
 
 open System
 open System.Collections.Immutable
+open System.IO
+open System.Linq
 open System.Text.RegularExpressions
 open FParsec
 open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
+open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.TextProcessing
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
+open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
 // utils for regex testing
 
-let VerifyNoMatch input (m: Match) =
+let verifyNoMatch input (m: Match) =
     Assert.False(m.Success, sprintf "matched \"%s\" for input \"%s\"" m.Value input)
 
-let VerifyMatch expected (m: Match) =
+let verifyMatch expected (m: Match) =
     Assert.True(m.Success, sprintf "failed to match \"%s\"" expected)
     Assert.Equal(expected, m.Value)
 
-let VerifyMatches (expected: _ list) (m: MatchCollection) =
+let verifyMatches (expected: _ list) (m: MatchCollection) =
     Assert.Equal(expected.Length, m.Count)
 
     for i = 0 to m.Count - 1 do
@@ -77,7 +83,8 @@ let toInt n = IntLiteral(int64 n) |> toExpr
 let toBigInt b =
     BigIntLiteral(System.Numerics.BigInteger.Parse b) |> toExpr
 
-let toSymbol s = { Symbol = Symbol s; Range = Null }
+let toSymbol s =
+    { Symbol = Symbol s; Range = Value Range.Zero }
 
 let toIdentifier s =
     (Identifier(toSymbol s, Null)) |> toExpr
@@ -99,7 +106,8 @@ let qubitType = Qubit |> toType
 let internal toTupleType items =
     ImmutableArray.CreateRange items |> TupleType |> toType
 
-let toOpType it ot s = Operation((it, ot), s) |> toType
+let toOpType it ot s =
+    QsTypeKind.Operation((it, ot), s) |> toType
 
 let toCharacteristicsExpr k = { Characteristics = k; Range = Null }
 
@@ -161,13 +169,13 @@ let rec matchType (t1: QsType) (t2: QsType) =
         match t2.Type with
         | TypeParameter tp2 -> tp1.Symbol = tp2.Symbol
         | _ -> false
-    | Operation ((it1, ot1), s1) ->
+    | QsTypeKind.Operation ((it1, ot1), s1) ->
         match t2.Type with
-        | Operation ((it2, ot2), s2) -> (matchType it1 it2) && (matchType ot1 ot2) && (matchSetExpr s1 s2)
+        | QsTypeKind.Operation ((it2, ot2), s2) -> (matchType it1 it2) && (matchType ot1 ot2) && (matchSetExpr s1 s2)
         | _ -> false
-    | Function (it1, ot1) ->
+    | QsTypeKind.Function (it1, ot1) ->
         match t2.Type with
-        | Function (it2, ot2) -> (matchType it1 it2) && (matchType ot1 ot2)
+        | QsTypeKind.Function (it2, ot2) -> (matchType it1 it2) && (matchType ot1 ot2)
         | _ -> false
 
 let rec matchExpression e1 e2 =
@@ -182,172 +190,59 @@ let rec matchExpression e1 e2 =
         else
             false
 
-    let ex1 = e1.Expression
-    let ex2 = e2.Expression
+    match e1.Expression, e2.Expression with
+    | DoubleLiteral d1, DoubleLiteral d2 -> d1 = d2 || (Double.IsNaN d1 && Double.IsNaN d2)
+    | Identifier (i1, t1), Identifier (i2, t2) -> i1.Symbol = i2.Symbol && matchTypeArray t1 t2
+    | StringLiteral (s1, a1), StringLiteral (s2, a2) -> s1 = s2 && matchAll a1 a2
+    | ValueTuple a1, ValueTuple a2 -> matchAll a1 a2
+    | NewArray (t1, s1), NewArray (t2, s2) -> matchType t1 t2 && matchExpression s1 s2
+    | ValueArray a1, ValueArray a2 -> matchAll a1 a2
+    | SizedArray (value1, size1), SizedArray (value2, size2) ->
+        matchExpression value1 value2 && matchExpression size1 size2
+    | ArrayItem (s1a, s1b), ArrayItem (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | NamedItem (u1, a1), NamedItem (u2, a2) -> matchExpression u1 u2 && a1.Symbol = a2.Symbol
+    | NEG s1, NEG s2 -> matchExpression s1 s2
+    | NOT s1, NOT s2 -> matchExpression s1 s2
+    | BNOT s1, BNOT s2 -> matchExpression s1 s2
+    | ADD (s1a, s1b), ADD (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | SUB (s1a, s1b), SUB (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | MUL (s1a, s1b), MUL (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | DIV (s1a, s1b), DIV (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | MOD (s1a, s1b), MOD (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | POW (s1a, s1b), POW (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | EQ (s1a, s1b), EQ (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | NEQ (s1a, s1b), NEQ (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | LT (s1a, s1b), LT (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | LTE (s1a, s1b), LTE (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | GT (s1a, s1b), GT (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | GTE (s1a, s1b), GTE (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | AND (s1a, s1b), AND (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | OR (s1a, s1b), OR (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | BOR (s1a, s1b), BOR (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | BAND (s1a, s1b), BAND (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | BXOR (s1a, s1b), BXOR (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | LSHIFT (s1a, s1b), LSHIFT (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | RSHIFT (s1a, s1b), RSHIFT (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | RangeLiteral (s1a, s1b), RangeLiteral (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | CopyAndUpdate (s1a, s1b, s1c), CopyAndUpdate (s2a, s2b, s2c) ->
+        matchExpression s1a s2a && matchExpression s1b s2b && matchExpression s1c s2c
+    | CONDITIONAL (s1a, s1b, s1c), CONDITIONAL (s2a, s2b, s2c) ->
+        matchExpression s1a s2a && matchExpression s1b s2b && matchExpression s1c s2c
+    | UnwrapApplication s1, UnwrapApplication s2 -> matchExpression s1 s2
+    | AdjointApplication s1, AdjointApplication s2 -> matchExpression s1 s2
+    | ControlledApplication s1, ControlledApplication s2 -> matchExpression s1 s2
+    | CallLikeExpression (s1a, s1b), CallLikeExpression (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
+    | Lambda lambda1, Lambda lambda2 ->
+        let matchArguments (arg1: _ seq) (arg2: _ seq) =
+            let argMismatch (d1: LocalVariableDeclaration<_, _>, d2: LocalVariableDeclaration<_, _>) =
+                d1.VariableName <> d2.VariableName
 
-    match ex1 with
-    | UnitValue
-    | IntLiteral _
-    | BigIntLiteral _
-    | BoolLiteral _
-    | ResultLiteral _
-    | PauliLiteral _
-    | MissingExpr
-    | InvalidExpr -> ex1 = ex2
-    | DoubleLiteral d1 ->
-        match ex2 with
-        | DoubleLiteral d2 -> d1 = d2 || (Double.IsNaN d1 && Double.IsNaN d2)
-        | _ -> false
-    | Identifier (i1, t1) ->
-        match ex2 with
-        | Identifier (i2, t2) -> i1.Symbol = i2.Symbol && matchTypeArray t1 t2
-        | _ -> false
-    | StringLiteral (s1, a1) ->
-        match ex2 with
-        | StringLiteral (s2, a2) -> (s1 = s2) && (matchAll a1 a2)
-        | _ -> false
-    | ValueTuple a1 ->
-        match ex2 with
-        | ValueTuple a2 -> matchAll a1 a2
-        | _ -> false
-    | NewArray (t1, s1) ->
-        match ex2 with
-        | NewArray (t2, s2) -> matchType t1 t2 && matchExpression s1 s2
-        | _ -> false
-    | ValueArray a1 ->
-        match ex2 with
-        | ValueArray a2 -> matchAll a1 a2
-        | _ -> false
-    | SizedArray (value1, size1) ->
-        match ex2 with
-        | SizedArray (value2, size2) -> matchExpression value1 value2 && matchExpression size1 size2
-        | _ -> false
-    | ArrayItem (s1a, s1b) ->
-        match ex2 with
-        | ArrayItem (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | NamedItem (u1, a1) ->
-        match ex2 with
-        | NamedItem (u2, a2) -> (matchExpression u1 u2) && (a1.Symbol = a2.Symbol)
-        | _ -> false
-    | NEG s1 ->
-        match ex2 with
-        | NEG s2 -> matchExpression s1 s2
-        | _ -> false
-    | NOT s1 ->
-        match ex2 with
-        | NOT s2 -> matchExpression s1 s2
-        | _ -> false
-    | BNOT s1 ->
-        match ex2 with
-        | BNOT s2 -> matchExpression s1 s2
-        | _ -> false
-    | ADD (s1a, s1b) ->
-        match ex2 with
-        | ADD (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | SUB (s1a, s1b) ->
-        match ex2 with
-        | SUB (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | MUL (s1a, s1b) ->
-        match ex2 with
-        | MUL (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | DIV (s1a, s1b) ->
-        match ex2 with
-        | DIV (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | MOD (s1a, s1b) ->
-        match ex2 with
-        | MOD (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | POW (s1a, s1b) ->
-        match ex2 with
-        | POW (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | EQ (s1a, s1b) ->
-        match ex2 with
-        | EQ (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | NEQ (s1a, s1b) ->
-        match ex2 with
-        | NEQ (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | LT (s1a, s1b) ->
-        match ex2 with
-        | LT (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | LTE (s1a, s1b) ->
-        match ex2 with
-        | LTE (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | GT (s1a, s1b) ->
-        match ex2 with
-        | GT (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | GTE (s1a, s1b) ->
-        match ex2 with
-        | GTE (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | AND (s1a, s1b) ->
-        match ex2 with
-        | AND (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | OR (s1a, s1b) ->
-        match ex2 with
-        | OR (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | BOR (s1a, s1b) ->
-        match ex2 with
-        | BOR (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | BAND (s1a, s1b) ->
-        match ex2 with
-        | BAND (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | BXOR (s1a, s1b) ->
-        match ex2 with
-        | BXOR (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | LSHIFT (s1a, s1b) ->
-        match ex2 with
-        | LSHIFT (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | RSHIFT (s1a, s1b) ->
-        match ex2 with
-        | RSHIFT (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | RangeLiteral (s1a, s1b) ->
-        match ex2 with
-        | RangeLiteral (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
-    | CopyAndUpdate (s1a, s1b, s1c) ->
-        match ex2 with
-        | CopyAndUpdate (s2a, s2b, s2c) ->
-            (matchExpression s1a s2a) && (matchExpression s1b s2b) && (matchExpression s1c s2c)
-        | _ -> false
-    | CONDITIONAL (s1a, s1b, s1c) ->
-        match ex2 with
-        | CONDITIONAL (s2a, s2b, s2c) ->
-            (matchExpression s1a s2a) && (matchExpression s1b s2b) && (matchExpression s1c s2c)
-        | _ -> false
-    | UnwrapApplication s1 ->
-        match ex2 with
-        | UnwrapApplication s2 -> matchExpression s1 s2
-        | _ -> false
-    | AdjointApplication s1 ->
-        match ex2 with
-        | AdjointApplication s2 -> matchExpression s1 s2
-        | _ -> false
-    | ControlledApplication s1 ->
-        match ex2 with
-        | ControlledApplication s2 -> matchExpression s1 s2
-        | _ -> false
-    | CallLikeExpression (s1a, s1b) ->
-        match ex2 with
-        | CallLikeExpression (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)
-        | _ -> false
+            arg1.Count() = arg2.Count() && (Seq.zip arg1 arg2 |> Seq.exists argMismatch |> not)
+
+        lambda1.Kind = lambda2.Kind
+        && matchArguments lambda1.ArgumentTuple.Items lambda2.ArgumentTuple.Items
+        && matchExpression lambda1.Body lambda2.Body
+    | expr1, expr2 -> expr1 = expr2
 
 let testOne parser (str, succExp, resExp, diagsExp) =
     let succ, diags, res = parse_string_diags_res parser str
@@ -393,4 +288,157 @@ let testExpr (str, succExp, resExp, diagsExp) =
             (if not succOk then sprintf "%s unexpectedly" (if succExp then "failed" else "passed")
              elif not resOk then sprintf "expected result %A but received %A" resExp res.Value
              else sprintf "expected errors %A but received %A" diagsExp diags)
+    )
+
+
+// utils for building test cases
+
+let readAndChunkSourceFile fileName =
+    let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText
+    sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
+
+let buildContent content =
+    let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
+    let fileId = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+
+    let file =
+        CompilationUnitManager.InitializeFileManager(
+            fileId,
+            content,
+            compilationManager.PublishDiagnostics,
+            compilationManager.LogException
+        )
+
+    compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
+    let compilationDataStructures = compilationManager.Build()
+    compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
+
+    compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
+    Assert.NotNull compilationDataStructures.BuiltCompilation
+
+    compilationDataStructures
+
+
+// utils for getting components from test materials
+
+let getBodyFromCallable call =
+    call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsBody)
+
+let getAdjFromCallable call =
+    call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsAdjoint)
+
+let getCtlFromCallable call =
+    call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlled)
+
+let getCtlAdjFromCallable call =
+    call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlledAdjoint)
+
+let getLinesFromSpecialization specialization =
+    let writer = new SyntaxTreeToQsharp()
+
+    specialization
+    |> fun x ->
+        match x.Implementation with
+        | Provided (_, body) -> Some body
+        | _ -> None
+    |> Option.get
+    |> writer.Statements.OnScope
+    |> ignore
+
+    writer.SharedState.StatementOutputHandle
+    |> Seq.filter (not << String.IsNullOrWhiteSpace)
+    |> Seq.toArray
+
+let getCallableWithName compilation ns name =
+    compilation.Namespaces
+    |> Seq.filter (fun x -> x.Name = ns)
+    |> GlobalCallableResolutions
+    |> Seq.find (fun x -> x.Key.Name = name)
+    |> (fun x -> x.Value)
+
+let getCallablesWithSuffix compilation ns (suffix: string) =
+    compilation.Namespaces
+    |> Seq.filter (fun x -> x.Name = ns)
+    |> GlobalCallableResolutions
+    |> Seq.filter (fun x -> x.Key.Name.EndsWith suffix)
+    |> Seq.map (fun x -> x.Value)
+
+let identifyCallablesBySignature generatedCallables signatures =
+    let mutable callables =
+        generatedCallables
+        |> Seq.map
+            (fun x ->
+                x,
+                (SyntaxTreeToQsharp.ArgumentTuple(x.ArgumentTuple, (fun x -> SyntaxTreeToQsharp.Default.ToCode(x))),
+                 SyntaxTreeToQsharp.Default.ToCode(x.Signature.ReturnType)))
+
+    Assert.True(Seq.length callables = Seq.length signatures) // This should be true if this method is called correctly
+
+    let mutable rtrn = Seq.empty
+
+    let removeAt i lst =
+        Seq.append <| Seq.take i lst <| Seq.skip (i + 1) lst
+
+    for signature in signatures do
+        callables
+        |> Seq.tryFindIndex (fun callSig -> signature = (snd callSig))
+        |> (fun x ->
+            Assert.True(x <> None, "Did not find expected generated content")
+            rtrn <- Seq.append rtrn [ Seq.item x.Value callables |> fst ]
+            callables <- removeAt x.Value callables)
+
+    rtrn
+
+
+// utils for testing checks and assertions
+
+let checkIfSpecializationHasContent specialization content =
+    let lines = specialization |> getLinesFromSpecialization
+    content |> Seq.forall (fun (i, expected) -> expected = lines.[i])
+
+let doesCallSupportFunctors expectedFunctors call =
+    let hasAdjoint = expectedFunctors |> Seq.contains QsFunctor.Adjoint
+    let hasControlled = expectedFunctors |> Seq.contains QsFunctor.Controlled
+
+    // Checks the characteristics match
+    let charMatch =
+        lazy
+            (match call.Signature.Information.Characteristics.SupportedFunctors with
+             | Value x -> x.SetEquals(expectedFunctors)
+             | Null -> 0 = Seq.length expectedFunctors)
+
+    // Checks that the target specializations are present
+    let adjMatch =
+        lazy
+            (if hasAdjoint then
+                 match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsAdjoint) with
+                 | None -> false
+                 | Some x ->
+                     match x.Implementation with
+                     | SpecializationImplementation.Generated gen ->
+                         gen = QsGeneratorDirective.Invert || gen = QsGeneratorDirective.SelfInverse
+                     | SpecializationImplementation.Provided _ -> true
+                     | _ -> false
+             else
+                 true)
+
+    let ctlMatch =
+        lazy
+            (if hasControlled then
+                 match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsControlled) with
+                 | None -> false
+                 | Some x ->
+                     match x.Implementation with
+                     | SpecializationImplementation.Generated gen -> gen = QsGeneratorDirective.Distribute
+                     | SpecializationImplementation.Provided _ -> true
+                     | _ -> false
+             else
+                 true)
+
+    charMatch.Value && adjMatch.Value && ctlMatch.Value
+
+let assertCallSupportsFunctors expectedFunctors call =
+    Assert.True(
+        doesCallSupportFunctors expectedFunctors call,
+        sprintf "Callable %O did not support the expected functors" call.FullName
     )
