@@ -9,7 +9,9 @@ open System.Collections.Generic
 type ErrorCode =
     | TypeMismatch = 1
     | TypeIntersectionMismatch = 2
-    | ValueImplicitlyIgnored = 3
+    | InfiniteType = 3
+    | MutableClosure = 4
+    | ValueImplicitlyIgnored = 5
 
     | ExcessBracketError = 1001
     | MissingBracketError = 1002
@@ -464,12 +466,25 @@ type DiagnosticItem =
         | _ -> str // let's fail silently for now
 
     static member Message(code: ErrorCode, args: IEnumerable<string>) =
+        let unlines = String.concat Environment.NewLine
+
         let message =
             match code with
             | ErrorCode.TypeMismatch ->
-                "The type {1} does not match the type {0}.\nActual type:   {3}\nExpected type: {2}"
+                unlines [ "The type {0} does not match the type {1}."
+                          "Expected type: {2}"
+                          "Actual type:   {3}" ]
             | ErrorCode.TypeIntersectionMismatch ->
-                "The type {1} does not {0} the type {2}.\nLeft-hand type:  {3}\nRight-hand type: {4}"
+                unlines [ "The type {1} does not {0} the type {2}."
+                          "Left-hand type:  {3}"
+                          "Right-hand type: {4}" ]
+            | ErrorCode.InfiniteType ->
+                unlines [ "The type {0} cannot be unified with {1} because it would create an infinite type."
+                          "Left-hand type:  {2}"
+                          "Right-hand type: {3}" ]
+            | ErrorCode.MutableClosure ->
+                "A lambda expression cannot close over a mutable variable. "
+                + "Declare '{0}' as immutable or remove the reference to '{0}'."
             | ErrorCode.ValueImplicitlyIgnored ->
                 "This expression has type {0} and its value is implicitly ignored. "
                 + "Use \"let _ = expr;\" or \"Ignore(expr);\" to discard the value explicitly."

@@ -56,15 +56,6 @@ type Namespace
                     SameAssembly
                 && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Access) SameAssembly)
 
-    /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
-    /// the same assembly as the declaration, and the declaration's access modifier.
-    // TODO: RELEASE 2021-08: Remove IsDeclarationAccessible.
-    [<Obsolete "Use Access.isAccessibleFrom instead.">]
-    static member IsDeclarationAccessible(sameAssembly, access) =
-        match access with
-        | DefaultAccess -> true
-        | AccessModifier.Internal -> sameAssembly
-
     /// name of the namespace
     member this.Name = name
     /// Immutable array with the names of all source files that contain (a part of) the namespace.

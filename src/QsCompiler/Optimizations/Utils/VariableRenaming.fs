@@ -4,9 +4,7 @@
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
 open System
-open System.Collections.Immutable
 open System.Text.RegularExpressions
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -37,6 +35,11 @@ type VariableRenaming private (_private_) =
         let m = varNameRegex.Match varName
         if m.Success then m.Groups.[1].Value else varName
 
+    /// Returns the value associated to the given key in the given variable stack.
+    /// If the key is associated with multiple values, returns the one highest on the stack.
+    /// Returns None if the key isn't associated with any values.
+    let tryGet key = List.tryPick (Map.tryFind key)
+
     /// The number of times a variable is referenced
     member val internal NewNamesSet = Set.empty with get, set
     /// The current dictionary of new names to substitute for variables
@@ -52,7 +55,6 @@ type VariableRenaming private (_private_) =
     /// </summary>
     /// <exception cref="ArgumentException">The given variable stack is empty.</exception>
     member internal this.ExitScope = List.tail
-
 
     /// Given a new variable name, generates a new unique name and updates the state accordingly
     member this.GenerateUniqueName varName =
@@ -71,13 +73,17 @@ type VariableRenaming private (_private_) =
         this.NewNamesSet <- Set.empty
         this.RenamingStack <- [ Map.empty ]
 
+    override this.OnLocalNameDeclaration name = this.GenerateUniqueName name
+
+    override this.OnLocalName name =
+        maybe { return! tryGet name this.RenamingStack } |? name
+
     new() as this =
         new VariableRenaming("_private_")
         then
             this.Namespaces <- new VariableRenamingNamespaces(this)
             this.Statements <- new VariableRenamingStatements(this)
             this.StatementKinds <- new VariableRenamingStatementKinds(this)
-            this.ExpressionKinds <- new VariableRenamingExpressionKinds(this)
             this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
 
 /// private helper class for VariableRenaming
@@ -90,6 +96,8 @@ and private VariableRenamingNamespaces(parent: VariableRenaming) =
         | QsTupleItem { VariableName = ValidName name } -> parent.GenerateUniqueName name |> ignore
         | QsTupleItem { VariableName = InvalidName } -> ()
         | QsTuple items -> Seq.iter processArgTuple items
+
+    override __.OnArgumentTuple argTuple = argTuple
 
     override __.OnProvidedImplementation(argTuple, body) =
         parent.Clear()
@@ -114,13 +122,6 @@ and private VariableRenamingStatements(parent: VariableRenaming) =
 and private VariableRenamingStatementKinds(parent: VariableRenaming) =
     inherit StatementKindTransformation(parent)
 
-    override this.OnSymbolTuple syms =
-        match syms with
-        | VariableName item -> VariableName(parent.GenerateUniqueName item)
-        | VariableNameTuple items -> Seq.map this.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
-        | InvalidItem
-        | DiscardedItem -> syms
-
     override this.OnRepeatStatement stm =
         parent.RenamingStack <- parent.EnterScope parent.RenamingStack
         parent.SkipScope <- true
@@ -128,24 +129,3 @@ and private VariableRenamingStatementKinds(parent: VariableRenaming) =
         let result = base.OnRepeatStatement stm
         parent.RenamingStack <- parent.ExitScope parent.RenamingStack
         result
-
-/// private helper class for VariableRenaming
-and private VariableRenamingExpressionKinds(parent: VariableRenaming) =
-    inherit ExpressionKindTransformation(parent)
-
-    /// Returns the value associated to the given key in the given variable stack.
-    /// If the key is associated with multiple values, returns the one highest on the stack.
-    /// Returns None if the key isn't associated with any values.
-    let tryGet key = List.tryPick (Map.tryFind key)
-
-    override this.OnIdentifier(sym, tArgs) =
-        maybe {
-            let! name =
-                match sym with
-                | LocalVariable name -> Some name
-                | _ -> None
-
-            let! newName = tryGet name parent.RenamingStack
-            return Identifier(LocalVariable newName, tArgs)
-        }
-        |? Identifier(sym, tArgs)
