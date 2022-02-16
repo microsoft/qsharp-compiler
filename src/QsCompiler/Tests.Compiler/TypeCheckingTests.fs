@@ -13,7 +13,7 @@ open Xunit
 
 /// Tests for type checking of Q# programs.
 module TypeCheckingTests =
-    let private compilation = CompilerTests.Compile("TestCases", [ "General.qs"; "TypeChecking.qs"; "Types.qs" ])
+    let private compilation = CompilerTests.Compile("TestCases", [ Path.Combine("LinkingTests", "Core.qs"); "General.qs"; "TypeChecking.qs"; "Types.qs" ])
 
     /// The compiled type-checking tests.
     let private tests = CompilerTests compilation
