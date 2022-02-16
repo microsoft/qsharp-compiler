@@ -5,9 +5,9 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm.DebugInfo
+namespace LlvmBindings.DebugInfo
 {
     /// <summary>Base class for all Debug information scopes</summary>
     public class DIScope

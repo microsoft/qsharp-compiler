@@ -43,7 +43,7 @@
   <!-- Creates the CommandArgsFile with all the parameters for the Q# compiler. -->
   <Target Name="PrepareQSharpCompile"
           Condition="'$(DesignTimeBuild)' != 'true'"
-          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQSharpCompile;Restore;_CopyFilesMarkedCopyLocal"
+          DependsOnTargets="ResolveQSharpReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQSharpCompile;Restore"
           BeforeTargets="QSharpCompile">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
@@ -67,20 +67,14 @@
     <ItemGroup>
       <PackageLoadFallbackFolder Include="$(MSBuildProjectDirectory)/$(OutputPath)" Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''" />
       <ResolvedPackageLoadFallbackFolders Include="@(PackageLoadFallbackFolder->'$([MSBuild]::Unescape('%(PackageLoadFallbackFolder.Identity)').Replace('\','/'))')" />
-      <ResolvedQSharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig|serilog')) == false" />
     </ItemGroup>
     <!-- get the path for the llvm runtime libs -->
     <PropertyGroup Condition="'$(LlvmLibsPath)' == ''">
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkglibLLVM_runtime_osx-x64)</LlvmLibsPath>
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkglibLLVM_runtime_win-x64)</LlvmLibsPath>
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'">$(PkglibLLVM_runtime_ubuntu_18_04-x64)</LlvmLibsPath>
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'">$(PkglibLLVM_runtime_ubuntu_20_04-x64)</LlvmLibsPath>
+      <LlvmLibsPath>$(PkgMicrosoft_Quantum_LlvmBindings_Native)</LlvmLibsPath>
     </PropertyGroup>
     <!-- build the command for the Q# command line compiler -->
     <PropertyGroup>
-      <!-- For the package ID that gets displayed in documentation, we default
-           to the actual package ID if it's set, but allow overriding with
-           QSharpDocsPackageId. -->
+      <!-- For the package ID that gets displayed in documentation, we default to the actual package ID if it's set, but allow overriding with QSharpDocsPackageId. -->
       <_NewLine>%0D%0A</_NewLine>
       <_NewLineIndent>$(_NewLine)%20%20%20%20</_NewLineIndent>
       <_QscCommandProjFlag>--proj$(_NewLineIndent)"$([System.IO.Path]::GetFullPath('$(PathCompatibleAssemblyName)'))"</_QscCommandProjFlag>
@@ -94,21 +88,22 @@
       <_QscCommandReferencesFlag Condition="@(ResolvedQSharpReferences->Count()) &gt; 0">$(_NewLine)--references$(_NewLineIndent)"@(ResolvedQSharpReferences,'"$(_NewLineIndent)"')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">$(_NewLine)--load$(_NewLineIndent)"@(_PrioritizedResolvedQscReferences,'"$(_NewLineIndent)"')"</_QscCommandLoadFlag>
       <_QscCommandRuntimeFlag>$(_NewLine)--runtime$(_NewLineIndent)$(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag>
-      <_QscCommandSkipMonomorphization Condition="'$(ResolvedRuntimeCapabilities)' == 'FullComputation' And $(CSharpGeneration)">$(_NewLine)--skip-monomorphization</_QscCommandSkipMonomorphization>
+      <_QscCommandSkipMonomorphization Condition="'$(ResolvedRuntimeCapabilities)' == 'FullComputation' And $(CSharpGeneration) And !$(EnableQirSubmission)">$(_NewLine)--skip-monomorphization</_QscCommandSkipMonomorphization>
       <_QscCommandPerfDataGenerationFlag Condition="$(PerfDataGeneration)">$(_NewLine)--perf$(_NewLineIndent)$(PerfDataOutputPath)</_QscCommandPerfDataGenerationFlag>
       <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">$(_NewLine)--target-specific-decompositions$(_NewLineIndent)"@(ResolvedTargetSpecificDecompositions,'"$(_NewLineIndent)"')"</_QscCommandTargetDecompositionsFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">$(_NewLine)--package-load-fallback-folders$(_NewLineIndent)"@(ResolvedPackageLoadFallbackFolders,'"$(_NewLineIndent)"')"</_QscPackageLoadFallbackFoldersFlag>
       <_QscCommandLlvmLibsPath Condition="'$(LlvmLibsPath)' != ''">$(_NewLine)--llvm-libs$(_NewLineIndent)$(LlvmLibsPath)</_QscCommandLlvmLibsPath>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">$(_NewLine)--load-test-names</_QscCommandTestNamesFlag>
-      <_QscCommandPredefinedAssemblyProperties>$(_NewLineIndent)AssemblyName:$(PathCompatibleAssemblyName)$(_NewLineIndent)ProcessorArchitecture:$(ResolvedProcessorArchitecture)$(_NewLineIndent)QSharpOutputType:$(ResolvedQSharpOutputType)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExposeReferencesViaTestNames)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DocsPackageId:$(_QscDocsPackageId)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(QirGeneration)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)QirOutputPath:"$(QirOutputPath)"</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(QSharpDocsGeneration)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DocsOutputPath:"$(QSharpDocsOutputPath)"</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(PerfDataGeneration)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)PerfDataOutputPath:"$(PerfDataOutputPath)"</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(GenerateConcreteIntrinsic)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)GenerateConcreteIntrinsic:$(GenerateConcreteIntrinsic)</_QscCommandPredefinedAssemblyProperties>
+      <!-- Appending the current content of _QscCommandPredefinedAssemblyProperties *after* new properties allows to effectively override them for development purposes -->
+      <_QscCommandPredefinedAssemblyProperties>$(_NewLineIndent)AssemblyName:$(PathCompatibleAssemblyName)$(_NewLineIndent)ProcessorArchitecture:$(ResolvedProcessorArchitecture)$(_NewLineIndent)QSharpOutputType:$(ResolvedQSharpOutputType)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_NewLineIndent)DefaultSimulator:$(DefaultSimulator)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_NewLineIndent)ExecutionTarget:$(ExecutionTarget)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(ExposeReferencesViaTestNames)">$(_NewLineIndent)ExposeReferencesViaTestNames:true$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_NewLineIndent)DocsPackageId:$(_QscDocsPackageId)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(QirGeneration)">$(_NewLineIndent)QirOutputPath:"$(QirOutputPath)"$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(QSharpDocsGeneration)">$(_NewLineIndent)DocsOutputPath:"$(QSharpDocsOutputPath)"$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(PerfDataGeneration)">$(_NewLineIndent)PerfDataOutputPath:"$(PerfDataOutputPath)"$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(GenerateConcreteIntrinsic)">$(_NewLineIndent)GenerateConcreteIntrinsic:$(GenerateConcreteIntrinsic)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="'$(QSharpDocsLintingRules)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DocsLintingRules:$(QSharpDocsLintingRules)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandAssemblyPropertiesFlag>$(_NewLine)--assembly-properties$(_QscCommandPredefinedAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <_QscCommandAssemblyPropertiesFlag Condition="'$(QscCommandAssemblyProperties)' != ''">$(_QscCommandAssemblyPropertiesFlag)$(_NewLineIndent)$(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
@@ -160,13 +155,13 @@
   <!-- Configures the dll built by the C# compiler. This target needs to execute during the C# design time build to get accurate intellisense information for (non-generate) C# source files. -->
   <Target Name="PrepareCSharpCompileAfterCSharpGeneration" DependsOnTargets="QSharpCompile" AfterTargets="QSharpCompile" BeforeTargets="BeforeCSharpCompile;BeforeBuild">
     <PropertyGroup>
-      <_DefaultEntryPoint Condition="$(QirGeneration) And '$(CSharpGeneration)' != 'true' And @(Compile->Count()) == 0">$(GeneratedFilesOutputPath)Main.cs</_DefaultEntryPoint>
+      <_DefaultEntryPoint Condition="$(QirGeneration) And !$(CSharpGeneration) And @(Compile->Count()) == 0">$(GeneratedFilesOutputPath)Main.cs</_DefaultEntryPoint>
       <_GeneratedBinary>$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName)</_GeneratedBinary>
     </PropertyGroup>
     <Exec Condition="$(_DefaultEntryPoint) != ''" Command="$(DefaultEntryPointGeneration) $(_DefaultEntryPoint)" IgnoreExitCode="false" />
     <ItemGroup>
       <EmbeddedResource Include="$(_GeneratedBinary).bson" LogicalName="__qsharp_data_bond_v1__.bson" Visible="false" />
-      <EmbeddedResource Condition="$(QirGeneration)" Include="$(_GeneratedBinary).bc" LogicalName="__qsharp_data_qir_v1__.bc" Visible="false" />
+      <EmbeddedResource Condition="$(QirGeneration) Or $(EnableQirSubmission)" Include="$(_GeneratedBinary).bc" LogicalName="__qsharp_data_qir_v1__.bc" Visible="false" />
       <Compile Condition="$(CSharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
       <Compile Condition="$(_DefaultEntryPoint) != ''" Include="$(_DefaultEntryPoint)" AutoGen="true" />
     </ItemGroup>
@@ -176,6 +171,19 @@
       Importance="High" />
   </Target>
 
+  <!-- Invokes the Q# formatting and update tool to update deprecated syntax and common syntax errors. -->
+  <Target Name="UpdateSyntax" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <QSharpSyntaxUpdate Condition="$(QSharpSyntaxUpdate) == ''">$(QsFmtExe) update --qsharp-version $(QuantumSdkVersion) --input </QSharpSyntaxUpdate>
+      <QSharpSyntaxUpdateCommand>$(QSharpSyntaxUpdate) "@(QSharpCompile->'%(FullPath)', '" "')"</QSharpSyntaxUpdateCommand>
+    </PropertyGroup>
+    <Exec Command="$(QSharpSyntaxUpdateCommand)" IgnoreExitCode="true" ContinueOnError="ErrorAndContinue">
+      <Output TaskParameter="ExitCode" PropertyName="QsFmtExitCode"/>
+    </Exec>
+    <Message Importance="low" Text="Invoking QsFmt: $(QSharpSyntaxUpdateCommand)"/>
+    <Message Importance="low" Text="QsFmt command exit code: $(QsFmtExitCode)"/>
+    <Error Text="Q# update tool failed with exit code: $(QsFmtExitCode)." Condition="'$(QsFmtExitCode)' != '0'" />
+  </Target>
 
   <!-- The following targets need to live in this file since they are specifically defined
   anchor the targets that a project may redefine to execute at a certain stage during the build.

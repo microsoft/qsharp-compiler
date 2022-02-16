@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
+open System
 open System.Text.RegularExpressions
 
 type Trivia =
@@ -10,7 +11,7 @@ type Trivia =
     | Whitespace of string
 
     /// A new line character.
-    | NewLine
+    | NewLine of string
 
     /// A comment.
     | Comment of string
@@ -19,20 +20,25 @@ module Trivia =
     let (|Whitespace|NewLine|Comment|) =
         function
         | Whitespace ws -> Whitespace ws
-        | NewLine -> NewLine
+        | NewLine nl -> NewLine nl
         | Comment comment -> Comment comment
 
     let spaces count =
         String.replicate count " " |> Whitespace
 
-    let newLine = NewLine
+    let newLine = NewLine Environment.NewLine
+
+    let isNewLine trivia =
+        match trivia with
+        | NewLine _ -> true
+        | _ -> false
 
     let collapseSpaces =
         let replace str = Regex.Replace(str, "\s+", " ")
 
         function
         | Whitespace ws -> replace ws |> Whitespace
-        | NewLine -> NewLine
+        | NewLine nl -> NewLine nl
         | Comment comment -> Comment comment
 
     /// <summary>
@@ -47,10 +53,10 @@ module Trivia =
     let rec ofString =
         function
         | "" -> []
-        | Prefix "\r\n" (_, rest)
-        | Prefix "\r" (_, rest)
-        | Prefix "\n" (_, rest) -> NewLine :: ofString rest
-        | Prefix "\s+" (result, rest) -> Whitespace result :: ofString rest
+        | Prefix "\r\n" (_, rest) -> NewLine "\r\n" :: ofString rest
+        | Prefix "\r" (_, rest) -> NewLine "\r" :: ofString rest
+        | Prefix "\n" (_, rest) -> NewLine "\n" :: ofString rest
+        | Prefix "[^\S\r\n]+" (result, rest) -> Whitespace result :: ofString rest
         | Prefix "//[^\r\n]*" (result, rest) -> Comment result :: ofString rest
         | _ ->
             // TODO: Use option.
@@ -71,10 +77,18 @@ type 'a Tuple =
         CloseParen: Terminal
     }
 
-type 'a BinaryOperator =
+module Tuple =
+    let mapPrefix mapper tuple =
+        { tuple with OpenParen = tuple.OpenParen |> Terminal.mapPrefix mapper }
+
+type 'a PrefixOperator = { PrefixOperator: Terminal; Operand: 'a }
+
+type 'a PostfixOperator = { Operand: 'a; PostfixOperator: Terminal }
+
+type 'a InfixOperator =
     {
         Left: 'a
-        Operator: Terminal
+        InfixOperator: Terminal
         Right: 'a
     }
 
@@ -84,3 +98,7 @@ type 'a Block =
         Items: 'a list
         CloseBrace: Terminal
     }
+
+module Block =
+    let mapPrefix mapper block =
+        { block with OpenBrace = block.OpenBrace |> Terminal.mapPrefix mapper }

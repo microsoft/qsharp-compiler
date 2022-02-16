@@ -8,9 +8,16 @@ open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Xunit
 open System.Reflection
 open System.Text.RegularExpressions
+open System
 
 let private GUID =
     new Regex(@"[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?", RegexOptions.IgnoreCase)
+
+/// <summary>
+/// Ensures that the new line characters will conform to the standard of the environment's new line character.
+/// </summary>
+let private standardizeNewLines (s: string) =
+    s.Replace("\r", "").Replace("\n", Environment.NewLine)
 
 let private testOne expected args =
     let result = Program.Main args
@@ -21,7 +28,8 @@ let private clearOutput name =
 
 let private checkAltOutput name actualText =
     let expectedText = ("TestCases", "QirTests", name) |> Path.Combine |> File.ReadAllText
-    Assert.Contains(expectedText, GUID.Replace(actualText, "__GUID__"))
+    let replacedGUID = GUID.Replace(actualText, "__GUID__")
+    Assert.Contains(standardizeNewLines expectedText, standardizeNewLines replacedGUID)
 
 let private compilerArgs target (name: string) =
     seq {
@@ -46,6 +54,8 @@ let private compilerArgs target (name: string) =
 
         "--verbosity"
         "Diagnostic"
+        "--assembly-properties"
+        "QirOutputPath:qir"
     }
 
 let private customTest name compilerArgs snippets =
@@ -77,7 +87,7 @@ let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
 
 [<Fact>]
 let ``QIR reference counts`` () =
-    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2" ]
+    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2"; "TestReferenceCounts3" ]
 
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
@@ -113,7 +123,8 @@ let ``QIR array update`` () =
 let ``QIR tuple deconstructing`` () = qirTest false "TestDeconstruct"
 
 [<Fact>]
-let ``QIR UDT constructor`` () = qirTest false "TestUdt"
+let ``QIR UDT constructor`` () =
+    qirMultiTest false "TestUdt" [ "TestUdt1"; "TestUdt2" ]
 
 [<Fact>]
 let ``QIR UDT construction`` () = qirTest false "TestUdtConstruction"
@@ -143,7 +154,8 @@ let ``QIR operation call`` () =
 let ``QIR while loop`` () = qirTest false "TestWhile"
 
 [<Fact>]
-let ``QIR repeat loop`` () = qirTest true "TestRepeat"
+let ``QIR repeat loop`` () =
+    qirMultiTest true "TestRepeat" [ "TestRepeat1"; "TestRepeat2" ]
 
 [<Fact>]
 let ``QIR integers`` () = qirTest false "TestIntegers"
@@ -155,7 +167,8 @@ let ``QIR doubles`` () = qirTest false "TestDoubles"
 let ``QIR bools`` () = qirTest false "TestBools"
 
 [<Fact>]
-let ``QIR bigints`` () = qirTest false "TestBigInts"
+let ``QIR bigints`` () =
+    qirMultiTest false "TestBigInts" [ "TestBigInts1"; "TestBigInts2" ]
 
 [<Fact>]
 let ``QIR controlled partial applications`` () =
@@ -247,3 +260,18 @@ let ``QIR targeting`` () =
         |> Seq.toArray
 
     customTest "TestTargeting" compilerArgs [ "TestTargeting" ]
+
+[<Fact>]
+let ``QIR Library generation`` () =
+    let compilerArgs =
+        Seq.append (compilerArgs true "TestLibraryGeneration") [ "QSharpOutputType:QSharpLibrary" ]
+        |> Seq.filter (fun arg -> arg <> "--build-exe")
+        |> Seq.toArray
+
+    customTest
+        "TestLibraryGeneration"
+        compilerArgs
+        [ "TestLibraryGeneration1"; "TestLibraryGeneration2"; "TestLibraryGeneration3" ]
+
+[<Fact(Skip = "Produces 'stack overflow' on Mac, see https://github.com/microsoft/qsharp-compiler/issues/1318")>]
+let ``QIR deep nesting`` () = qirTest false "TestDeepNesting"

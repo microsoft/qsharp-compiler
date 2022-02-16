@@ -16,7 +16,7 @@ The Q# [command line compiler](./src/QsCompiler/CommandLineTool) is included as 
 - **[VSCodeExtension](./src/VSCodeExtension/)**: Visual Studio Code extension
 - **[VisualStudioExtension](./src/VisualStudioExtension/)**: Visual Studio extension
 
-Q# executables can be compiled into an LLVM-based [Quantum Intermediate Representation (QIR)](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR). More details on that capability and how to use it can be found in this [README](https://github.com/microsoft/qsharp-compiler/tree/main/src/QsCompiler/QirGeneration).
+Q# executables can be compiled into an LLVM-based [Quantum Intermediate Representation (QIR)](https://github.com/qir-alliance/qir-spec). More details on that capability and how to use it can be found in this [README](https://github.com/microsoft/qsharp-compiler/tree/main/src/QsCompiler/QirGeneration).
 
 ## New to Quantum? ##
 
@@ -73,6 +73,7 @@ If you edit the [Microsoft.Quantum.Sdk](./src/QuantumSdk) as part of your change
 ```
 dotnet publish src/QuantumSdk/Tools/Tools.sln -c Debug
 dotnet publish src/QsCompiler/CommandLineTool/CommandLineTool.csproj -c Debug
+dotnet publish src/QsFmt/App/App.fsproj -c Debug
 nuget.exe pack src/QuantumSdk/QuantumSdk.nuspec -Version 1.0.0 -Properties Configuration=Debug
 ```
 Move the created .nupkg file into your [local NuGet folder](https://docs.microsoft.com/en-us/nuget/hosting-packages/local-feeds). You can now use the package to build any Q# project by opening the project file in a text editor, and editing the Sdk version number in the first line to be

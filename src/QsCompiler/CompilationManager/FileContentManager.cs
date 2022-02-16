@@ -32,6 +32,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public string FileName { get; }
 
+        /// <summary>
+        /// An arbitrary integer representing the current version number of the file, or null if no version number is available.
+        /// The version number may change at any time to any other integer, including a lower number than its current value.
+        /// </summary>
+        public int? Version { get; set; }
+
         private readonly ManagedList<CodeLine> content;
         private readonly ManagedList<ImmutableArray<CodeFragment>> tokens;
         private readonly FileHeader header;
@@ -113,6 +119,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.Uri = uri;
             this.FileName = fileName;
+            this.Version = null;
 
             this.content = new ManagedList<CodeLine>(this.SyncRoot);
             this.content.Add(CodeLine.Empty()); // each new file per default has one line without text
@@ -1141,12 +1148,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
+        /// Forces the processing of all currently queued changes, and return the current file content.
+        /// </summary>
+        internal string GetFileContent()
+        {
+            this.SyncRoot.EnterUpgradeableReadLock();
+            try
+            {
+                this.Flush();
+                return string.Concat(this.content.Get().Select(line => line.Text));
+            }
+            finally
+            {
+                this.SyncRoot.ExitUpgradeableReadLock();
+            }
+        }
+
+        /// <summary>
         /// Forces the processing of all currently queued changes.
         /// </summary>
         /// <remarks>
         /// Does *NOT* call <see cref="TimerTriggeredUpdateEvent"/> with the update.
         /// </remarks>
-        /// <!-- TODO: is this remarks change correct? -->
         internal void Flush()
         {
             this.timer.Stop();

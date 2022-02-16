@@ -9,6 +9,9 @@ open System.Collections.Generic
 type ErrorCode =
     | TypeMismatch = 1
     | TypeIntersectionMismatch = 2
+    | InfiniteType = 3
+    | MutableClosure = 4
+    | ValueImplicitlyIgnored = 5
 
     | ExcessBracketError = 1001
     | MissingBracketError = 1002
@@ -369,6 +372,7 @@ type WarningCode =
     | [<Obsolete("This diagnostic is no longer in use. The error InvalidUseOfUnderscorePattern is given instead.")>] UseOfUnderscorePattern = 3305
     | DeprecatedTupleBrackets = 3306
     | DeprecatedQubitBindingKeyword = 3307
+    | DeprecatedNewArray = 3308
     | DeprecatedRUSloopInFunction = 4001
 
     | DiscardingItemInAssignment = 5001
@@ -419,6 +423,7 @@ type WarningCode =
 
     | InvalidAssemblyProperties = 8101
     | MissingTargetInstructionName = 8102
+    | DuplicateAssemblyProperty = 8103
 
 
 type InformationCode =
@@ -457,16 +462,32 @@ type DiagnosticItem =
 
         try
             String.Format(str, args)
-        with _ -> str // let's fail silently for now
+        with
+        | _ -> str // let's fail silently for now
 
     static member Message(code: ErrorCode, args: IEnumerable<string>) =
-        let ApplyArguments =
-            DiagnosticItem.ApplyArguments args
-            << function
+        let unlines = String.concat Environment.NewLine
+
+        let message =
+            match code with
             | ErrorCode.TypeMismatch ->
-                "The type {1} does not match the type {0}.\nActual type:   {3}\nExpected type: {2}"
+                unlines [ "The type {0} does not match the type {1}."
+                          "Expected type: {2}"
+                          "Actual type:   {3}" ]
             | ErrorCode.TypeIntersectionMismatch ->
-                "The type {1} does not {0} the type {2}.\nLeft-hand type:  {3}\nRight-hand type: {4}"
+                unlines [ "The type {1} does not {0} the type {2}."
+                          "Left-hand type:  {3}"
+                          "Right-hand type: {4}" ]
+            | ErrorCode.InfiniteType ->
+                unlines [ "The type {0} cannot be unified with {1} because it would create an infinite type."
+                          "Left-hand type:  {2}"
+                          "Right-hand type: {3}" ]
+            | ErrorCode.MutableClosure ->
+                "A lambda expression cannot close over a mutable variable. "
+                + "Declare '{0}' as immutable or remove the reference to '{0}'."
+            | ErrorCode.ValueImplicitlyIgnored ->
+                "This expression has type {0} and its value is implicitly ignored. "
+                + "Use \"let _ = expr;\" or \"Ignore(expr);\" to discard the value explicitly."
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
@@ -929,12 +950,11 @@ type DiagnosticItem =
 
             | _ -> ""
 
-        code |> ApplyArguments
+        DiagnosticItem.ApplyArguments args message
 
     static member Message(code: WarningCode, args: IEnumerable<string>) =
-        let ApplyArguments =
-            DiagnosticItem.ApplyArguments args
-            << function
+        let message =
+            match code with
             | WarningCode.ExcessSemicolon -> "Extra semicolon will be ignored."
             | WarningCode.ExcessComma -> "Extra comma will be ignored."
             | WarningCode.DeprecatedUnitType -> "Deprecated syntax. Use the type name \"Unit\" instead."
@@ -954,6 +974,8 @@ type DiagnosticItem =
             | WarningCode.DeprecatedQubitBindingKeyword ->
                 "The \"{0}\" keyword has been replaced with \"{1}\", and qubits may now be allocated without a block. "
                 + "Consider \"{1} q = Qubit();\" or \"{1} q = Qubit() {{ ... }}\"."
+            | WarningCode.DeprecatedNewArray ->
+                "Deprecated syntax. Use [] to construct an empty array, or [x, size = n] to construct an array of x repeated n times."
             | WarningCode.DeprecatedRUSloopInFunction ->
                 "The use of repeat-until-success-loops within functions may not be supported in the future. Please use a while-loop instead."
 
@@ -1040,14 +1062,15 @@ type DiagnosticItem =
                 "Some of the specified assembly properties could not be processed. Either they did not match the expected format, or they duplicate existing ones."
             | WarningCode.MissingTargetInstructionName ->
                 "Missing target instruction name for intrinsic callable. The automatically determined name conflicts with another target instruction."
+            | WarningCode.DuplicateAssemblyProperty ->
+                "The assembly property \"{0}\" has been declared multiple times. Its value will be set to \"{1}\"."
             | _ -> ""
 
-        code |> ApplyArguments
+        DiagnosticItem.ApplyArguments args message
 
     static member Message(code: InformationCode, args: IEnumerable<string>) =
-        let ApplyArguments =
-            DiagnosticItem.ApplyArguments args
-            << function
+        let message =
+            match code with
             | InformationCode.CommandLineArguments -> "Compiling with command line arguments"
             | InformationCode.CompilingWithSourceFiles -> "Compiling source files"
             | InformationCode.CompilingWithAssemblies -> "Compiling with referenced assemblies"
@@ -1067,4 +1090,4 @@ type DiagnosticItem =
             | InformationCode.QirEmissionGeneratedInfo -> ""
             | _ -> ""
 
-        code |> ApplyArguments
+        DiagnosticItem.ApplyArguments args message

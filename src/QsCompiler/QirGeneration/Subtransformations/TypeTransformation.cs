@@ -5,12 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using LlvmBindings.Types;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
-using Ubiquity.NET.Llvm.Types;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
@@ -157,9 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var udtDefinition = this.getTypeDeclaration(udt.GetFullName());
             if (udtDefinition != null)
             {
-                this.builtType = udtDefinition.Type.Resolution.IsUnitType
-                    ? this.qirTypes.Tuple
-                    : this.LlvmStructTypeFromQsharpType(udtDefinition.Type).CreatePointerType();
+                this.builtType = this.LlvmStructTypeFromQsharpType(udtDefinition.Type).CreatePointerType();
             }
             else
             {

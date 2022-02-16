@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
+open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
@@ -27,6 +28,7 @@ type BuiltIn =
     static member ClassicallyControlledNamespace = "Microsoft.Quantum.ClassicalControl"
     static member CoreNamespace = "Microsoft.Quantum.Core"
     static member DiagnosticsNamespace = "Microsoft.Quantum.Diagnostics"
+    static member LlvmNamespace = "Microsoft.Quantum.Llvm"
     static member IntrinsicNamespace = "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = "Microsoft.Quantum.Arrays"
     static member TargetingNamespace = "Microsoft.Quantum.Targeting"
@@ -38,13 +40,38 @@ type BuiltIn =
 
     /// Returns the set of callables that rewrite steps take dependencies on.
     /// These should be non-Generic callables only.
+    [<Obsolete "RewriteStepDependencies will be removed in favor of each rewrite step declaring its dependencies.">]
     static member RewriteStepDependencies =
-        ImmutableHashSet.Create(BuiltIn.RangeReverse.FullName, BuiltIn.Length.FullName)
+        ImmutableHashSet.Create(
+            BuiltIn.RangeReverse.FullName,
+            BuiltIn.Length.FullName,
+            BuiltIn.Inline.FullName,
+            BuiltIn.TargetInstruction.FullName,
+            BuiltIn.RequiresCapability.FullName,
+            BuiltIn.NoOp.FullName,
+            BuiltIn.ApplyConditionally.FullName,
+            BuiltIn.ApplyConditionallyA.FullName,
+            BuiltIn.ApplyConditionallyC.FullName,
+            BuiltIn.ApplyConditionallyCA.FullName,
+            BuiltIn.ApplyIfZero.FullName,
+            BuiltIn.ApplyIfZeroA.FullName,
+            BuiltIn.ApplyIfZeroC.FullName,
+            BuiltIn.ApplyIfZeroCA.FullName,
+            BuiltIn.ApplyIfOne.FullName,
+            BuiltIn.ApplyIfOneA.FullName,
+            BuiltIn.ApplyIfOneC.FullName,
+            BuiltIn.ApplyIfOneCA.FullName,
+            BuiltIn.ApplyIfElseR.FullName,
+            BuiltIn.ApplyIfElseRA.FullName,
+            BuiltIn.ApplyIfElseRC.FullName,
+            BuiltIn.ApplyIfElseRCA.FullName
+        )
 
     /// The set of all built in callables and attributes
+    [<Obsolete "AllBuiltIns will be removed in favor of each rewrite step being able to declare its dependencies.">]
     static member AllBuiltIns =
         [|
-            // dependencies in Microsoft.Quantum.Core
+            // in Microsoft.Quantum.Core
             BuiltIn.Length
             BuiltIn.RangeStart
             BuiltIn.RangeStep
@@ -54,22 +81,23 @@ type BuiltIn =
             BuiltIn.EntryPoint
             BuiltIn.Deprecated
             BuiltIn.Inline
-            // dependencies in Microsoft.Quantum.Targeting
+            // in Microsoft.Quantum.Targeting
             BuiltIn.TargetInstruction
             BuiltIn.RequiresCapability
-            // dependencies in Microsoft.Quantum.Diagnostics
+            // in Microsoft.Quantum.Diagnostics
             BuiltIn.Test
             BuiltIn.EnableTestingViaName
             BuiltIn.DumpMachine
             BuiltIn.DumpRegister
-            // dependencies in Microsoft.Quantum.Canon
+            // in Microsoft.Quantum.Llvm
+            BuiltIn.ReadCycleCounter
+            // in Microsoft.Quantum.Canon
             BuiltIn.NoOp
-            // dependencies in Microsoft.Quantum.Convert
+            // in Microsoft.Quantum.Convert
             BuiltIn.IntAsDouble
             BuiltIn.DoubleAsInt
-            // ToDo: Uncomment once BigInts are supported in QIR
-            //BuiltIn.IntAsBigInt
-            // dependencies in Microsoft.Quantum.Math
+            BuiltIn.IntAsBigInt
+            // in Microsoft.Quantum.Math
             BuiltIn.Truncate
             BuiltIn.ApplyConditionally
             BuiltIn.ApplyConditionallyA
@@ -87,7 +115,7 @@ type BuiltIn =
             BuiltIn.ApplyIfElseRA
             BuiltIn.ApplyIfElseRC
             BuiltIn.ApplyIfElseRCA
-            // dependencies in other namespaces (e.g. things used for code actions)
+            // in other namespaces (e.g. things used for code actions)
             BuiltIn.IndexRange
         |]
         |> ImmutableHashSet.Create<BuiltIn>
@@ -223,6 +251,14 @@ type BuiltIn =
         {
             FullName = { Name = "DumpRegister"; Namespace = BuiltIn.DiagnosticsNamespace }
             Kind = Function(TypeParameters = ImmutableArray.Create "T")
+        }
+
+    // dependencies in Microsoft.Quantum.Llvm
+
+    static member ReadCycleCounter =
+        {
+            FullName = { Name = "ReadCycleCounter"; Namespace = BuiltIn.LlvmNamespace }
+            Kind = Operation(TypeParameters = ImmutableArray.Empty, IsSelfAdjoint = false)
         }
 
     // dependencies in Microsoft.Quantum.Canon

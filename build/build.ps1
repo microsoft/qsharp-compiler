@@ -41,8 +41,27 @@ function Build-One {
 ##
 function Build-VSCode() {
     Write-Host "##[info]Building VS Code extension..."
+
     Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
+        $npmVersion = (npm --version);
+        @{
+            "npm" = $npmVersion;
+            "node" = (node --version);
+        } | Format-Table | Write-Output;
+
+        # Check if npm is up to date enough.
+        if ([semver]::new($npmVersion) -lt [semver]::new(7, 0, 0)) {
+            $IsCI = "$Env:TF_BUILD" -ne "" -or "$Env:CI" -eq "true";
+            $msg = "npm was version $npmVersion, but building the VS Code extension requires 7.0 or later.";
+            if ($IsCI) {
+                Write-Host "##[error]$msg";
+            } else {
+                Write-Error $msg;
+            }
+            throw;
+        }
+
         Try {
             npm ci
             npm run compile
@@ -116,9 +135,10 @@ $all_ok = $True
 Build-One '../QsCompiler.sln'
 Build-One '../examples/QIR/QIR.sln'
 Build-One '../src/QuantumSdk/Tools/Tools.sln'
+Build-One '../src/Telemetry/Telemetry.sln'
 Build-One '../QsFmt.sln'
 
-if ($Env:ENABLE_VSIX -ne "false") {
+if ($Env:ENABLE_VSIX -ne "false" -and $IsWindows) {
     Build-VSCode
     Build-VS
 } else {

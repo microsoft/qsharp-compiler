@@ -5,6 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
@@ -156,6 +159,80 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                    IsValidPosition(range.Start) &&
                    IsValidPosition(range.End) &&
                    IsBeforeOrEqual(range.Start, range.End);
+        }
+
+        internal static void AssertCapability<TOptions>(
+            this SumType<bool, TOptions>? capability, bool shouldHave = true, Func<TOptions, bool>? condition = null)
+        {
+            if (shouldHave)
+            {
+                Assert.IsTrue(capability.HasValue, "Expected capability to have value, but was null.");
+            }
+
+            capability?.Match(
+                flag =>
+                {
+                    Assert.AreEqual(flag, shouldHave);
+                    return true;
+                },
+                options =>
+                {
+                    if (condition is null)
+                    {
+                        Assert.IsNotNull(options);
+                    }
+                    else
+                    {
+                        Assert.IsTrue(condition(options));
+                    }
+
+                    return true;
+                });
+        }
+
+        internal static Task TestAfterTypeCheckingAsync(ProjectManager projectManager, Uri file, Action action) =>
+            projectManager.ManagerTaskAsync(file, (unitManager, foundProject) =>
+            {
+                Assert.IsTrue(foundProject);
+
+                unitManager.FlushAndExecute(() =>
+                {
+                    action();
+                    return new object();
+                });
+            });
+
+        /// <summary>
+        /// Instantiates a project manager for the project file with given Uri, and waits for the project to finish loading.
+        /// </summary>
+        /// <returns>The project manager for the fully loaded project.</returns>
+        internal static async Task<ProjectManager> LoadProjectAsync(this Uri projectFile, SendTelemetryHandler? telemetryHandler = null)
+        {
+            ManualResetEvent eventSignal = new ManualResetEvent(false);
+            void CheckForLoadingCompleted(string msg, MessageType messageType)
+            {
+                Console.WriteLine($"[{messageType}]: {msg}");
+                if (msg.StartsWith("Done loading project"))
+                {
+                    eventSignal.Set();
+                }
+            }
+
+            var projectManager = new ProjectManager(
+                ex => Assert.IsNull(ex),
+                CheckForLoadingCompleted,
+                sendTelemetry: telemetryHandler);
+            await projectManager.LoadProjectsAsync(
+                new[] { projectFile },
+                CompilationContext.Editor.QsProjectLoader,
+                enableLazyLoading: false);
+
+            // Note that many commands will return null until the project has finished loading,
+            // and similarly when a project is reloaded because it has been modified.
+            // All in all, that seem like reasonable behavior.
+            eventSignal.WaitOne();
+            eventSignal.Reset();
+            return projectManager;
         }
     }
 }

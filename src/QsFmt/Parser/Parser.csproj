@@ -11,27 +11,39 @@
     <AntlrVersion>4.9.1</AntlrVersion>
     <AntlrJar>antlr-$(AntlrVersion)-complete.jar</AntlrJar>
     <AntlrJarUrl>https://www.antlr.org/download/$(AntlrJar)</AntlrJarUrl>
-    <AntlrPath>$(BaseIntermediateOutputPath)Antlr</AntlrPath>
+    <AntlrPath>$(BaseIntermediateOutputPath)Antlr/</AntlrPath>
   </PropertyGroup>
 
   <ItemGroup>
     <AntlrInput Include="*.g4" />
 
-    <AntlrOutput Include="$(AntlrPath)\QSharpLexer.cs" />
-    <AntlrOutput Include="$(AntlrPath)\QSharpParser.cs" />
-    <AntlrOutput Include="$(AntlrPath)\QSharpParserBaseVisitor.cs" />
-    <AntlrOutput Include="$(AntlrPath)\QSharpParserVisitor.cs" />
+    <AntlrOutput Include="$(AntlrPath)QSharpLexer.cs" />
+    <AntlrOutput Include="$(AntlrPath)QSharpParser.cs" />
+    <AntlrOutput Include="$(AntlrPath)QSharpParserBaseVisitor.cs" />
+    <AntlrOutput Include="$(AntlrPath)QSharpParserVisitor.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="$(AntlrVersion)" />
+  </ItemGroup>
+  
   <Target Name="Antlr" BeforeTargets="CoreCompile" Inputs="@(AntlrInput)" Outputs="@(AntlrOutput)">
     <DownloadFile DestinationFolder="$(AntlrPath)" SourceUrl="$(AntlrJarUrl)" />
-    <Exec Command="java -jar &quot;$(AntlrPath)/$(AntlrJar)&quot; -o &quot;$(AntlrPath)&quot; -no-listener -visitor -package &quot;$(RootNamespace)&quot; -Dlanguage=CSharp &quot;@(AntlrInput, '&quot; &quot;')&quot;" />
+    <Exec Command="java -jar &quot;$(AntlrPath)$(AntlrJar)&quot; -o &quot;$(AntlrPath)&quot; -no-listener -visitor -package &quot;$(RootNamespace)&quot; -Dlanguage=CSharp &quot;@(AntlrInput, '&quot; &quot;')&quot;" />
     <ItemGroup>
       <Compile Include="@(AntlrOutput)" />
     </ItemGroup>
   </Target>
 
-  <ItemGroup>
-    <PackageReference Include="Antlr4.Runtime.Standard" Version="$(AntlrVersion)" />
-  </ItemGroup>
-</Project>
+  <!--
+  Providing this target is necessary since otherwise generated C# files are not properly cleaned.
+  -->
+  <Target Name="CleanAntlrFiles" BeforeTargets="Clean">
+    <ItemGroup>
+      <_FilesToClean Include="$(AntlrPath)**" />
+      <Compile Remove="$(_FilesToClean)**/*.cs" />
+    </ItemGroup>
+    <Delete Files="@(_FilesToClean)" />
+  </Target>
+
+  </Project>

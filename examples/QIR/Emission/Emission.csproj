@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.16.2105140327-beta">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.20.2110171573">
 
   <PropertyGroup>
     <QscVerbosity>Detailed</QscVerbosity>

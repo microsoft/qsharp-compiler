@@ -5,6 +5,6 @@ namespace test3 {
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
 
-    operation Operation3a () : Unit {
+    operation Operation12a () : () {
     }
 }

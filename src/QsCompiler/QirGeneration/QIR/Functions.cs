@@ -4,12 +4,12 @@
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using LlvmBindings.Values;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
-using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QIR
 {
@@ -61,6 +61,7 @@ namespace Microsoft.Quantum.QIR
             optBuiltIn.Add(QsCompiler.BuiltIn.RangeReverse.FullName, this.RangeReverse);
             builtIn.Add(QsCompiler.BuiltIn.Message.FullName, this.Message);
             builtIn.Add(QsCompiler.BuiltIn.Truncate.FullName, this.DoubleAsInt); // This redundancy needs to be eliminated in the Q# libraries.
+            builtIn.Add(QsCompiler.BuiltIn.ReadCycleCounter.FullName, this.ReadCycleCounter);
             builtIn.Add(QsCompiler.BuiltIn.DumpMachine.FullName, this.DumpMachine);
             builtIn.Add(QsCompiler.BuiltIn.DumpRegister.FullName, this.DumpRegister);
             optBuiltIn.Add(QsCompiler.BuiltIn.DumpRegister.FullName, this.DumpRegister);
@@ -277,6 +278,13 @@ namespace Microsoft.Quantum.QIR
             var message = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Message);
             this.sharedState.CurrentBuilder.Call(message, arg.Value);
             return this.sharedState.Values.Unit;
+        }
+
+        private IValue ReadCycleCounter(IValue arg)
+        {
+            var func = this.sharedState.Module.GetIntrinsicDeclaration("llvm.readcyclecounter");
+            var call = this.sharedState.CurrentBuilder.Call(func);
+            return this.sharedState.Values.FromSimpleValue(call, Int);
         }
 
         private IValue DumpMachine(IValue arg)

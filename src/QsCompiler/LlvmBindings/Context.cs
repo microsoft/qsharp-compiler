@@ -11,12 +11,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Interop;
-using Ubiquity.NET.Llvm.Types;
-using Ubiquity.NET.Llvm.Values;
+using LlvmBindings.Interop;
+using LlvmBindings.Types;
+using LlvmBindings.Values;
 
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     /// <summary>Encapsulates an LLVM context.</summary>
     /// <remarks>
@@ -28,7 +27,7 @@ namespace Ubiquity.NET.Llvm
     /// <para>LLVM Debug information is ultimately all parented to a top level <see cref="DICompileUnit"/> as
     /// the scope, and a compilation unit is bound to a <see cref="BitcodeModule"/>, even though, technically
     /// the types are owned by a Context. Thus to keep things simpler and help make working with debug information
-    /// easier. Ubiquity.NET.Llvm encapsulates the native type and the debug type in separate classes that are instances
+    /// easier. LlvmBindings encapsulates the native type and the debug type in separate classes that are instances
     /// of the <see cref="IDebugType{NativeT, DebugT}"/> interface. </para>
     ///
     /// <note type="note">It is important to be aware of the fact that a Context is not thread safe. The context
@@ -397,7 +396,10 @@ namespace Ubiquity.NET.Llvm
         public ConstantDataArray CreateConstantString(string value, bool nullTerminate)
         {
             var handle = LLVM.ConstStringInContext(this.ContextHandle, value.AsMarshaledString(), (uint)value.Length, !nullTerminate ? 1 : 0);
-            return Value.FromHandle<ConstantDataArray>(handle)!;
+            var created = Value.FromHandle(handle);
+            return created is ConstantDataArray dataArr
+                ? dataArr
+                : new ConstantDataArray(created.ValueHandle);
         }
 
         /// <summary>Creates a new <see cref="ConstantInt"/> with a bit length of 1.</summary>
@@ -545,47 +547,12 @@ namespace Ubiquity.NET.Llvm
             return AttributeValue.FromHandle(this, handle);
         }
 
-        /// <summary>Creates an attribute with an integer value parameter.</summary>
-        /// <param name="kind">The kind of attribute.</param>
-        /// <param name="value">Value for the attribute.</param>
-        /// <remarks>
-        /// <para>Not all attributes support a value and those that do don't all support
-        /// a full 64bit value. The following table provides the kinds of attributes
-        /// accepting a value and the allowed size of the values.</para>
-        /// <list type="table">
-        /// <listheader><term><see cref="AttributeKind"/></term><term>Bit Length</term></listheader>
-        /// <item><term><see cref="AttributeKind.Alignment"/></term><term>32</term></item>
-        /// <item><term><see cref="AttributeKind.StackAlignment"/></term><term>32</term></item>
-        /// <item><term><see cref="AttributeKind.Dereferenceable"/></term><term>64</term></item>
-        /// <item><term><see cref="AttributeKind.DereferenceableOrNull"/></term><term>64</term></item>
-        /// </list>
-        /// </remarks>
-        /// <returns><see cref="AttributeValue"/> with the specified kind and value.</returns>
-        public AttributeValue CreateAttribute(AttributeKind kind, ulong value)
-        {
-            if (!kind.RequiresIntValue())
-            {
-                throw new ArgumentException();
-            }
-
-            var handle = LLVM.CreateEnumAttribute(
-                this.ContextHandle,
-                kind.GetEnumAttributeId(),
-                value);
-            return AttributeValue.FromHandle(this, handle);
-        }
-
         /// <summary>Adds a valueless named attribute.</summary>
         /// <param name="name">Attribute name.</param>
         /// <returns><see cref="AttributeValue"/> with the specified name.</returns>
-        public AttributeValue CreateAttribute(string name) => this.CreateAttribute(name, string.Empty);
-
-        /// <summary>Adds a Target specific named attribute with value.</summary>
-        /// <param name="name">Name of the attribute.</param>
-        /// <param name="value">Value of the attribute.</param>
-        /// <returns><see cref="AttributeValue"/> with the specified name and value.</returns>
-        public AttributeValue CreateAttribute(string name, string value)
+        public AttributeValue CreateAttribute(string name, string? value = null)
         {
+            value ??= string.Empty;
             var handle = LLVM.CreateStringAttribute(this.ContextHandle, name.AsMarshaledString(), (uint)name.Length, value.AsMarshaledString(), (uint)value.Length);
             return AttributeValue.FromHandle(this, handle);
         }

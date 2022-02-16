@@ -163,6 +163,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     }
                 }
 
+                /// <summary>
+                /// Converts conditional statements whose top-most condition is a NOT.
+                /// Creates a blank `else` clause if there is no `else` clause already, then
+                /// swaps the `else` and `if` clauses while removing the NOT from the condition.
+                /// </summary>
                 private (bool, QsConditionalStatement) ProcessNOT(QsConditionalStatement conditionStatement)
                 {
                     // This method expects elif blocks to have been abstracted out
@@ -185,10 +190,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         {
                             var emptyScope = new QsScope(
                                 ImmutableArray<QsStatement>.Empty,
-                                LocalDeclarations.Empty);
+                                block.Body.KnownSymbols);
                             var newConditionalBlock = new QsPositionedBlock(
                                     emptyScope,
-                                    QsNullable<QsLocation>.Null,
+                                    block.Location,
                                     QsComments.Empty);
                             return (true, new QsConditionalStatement(
                                 ImmutableArray.Create(Tuple.Create(notCondition.Item, newConditionalBlock)),
@@ -620,19 +625,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 /// </summary>
                 private QsStatement ConvertConditionalToControlCall(QsStatement statement)
                 {
-                    var condition = this.IsConditionWithSingleBlock(statement);
+                    var condition = IsConditionWithSingleBlock(statement);
 
                     if (condition.HasValue)
                     {
-                        if (this.IsConditionedOnResultLiteralExpression(condition.Value.Condition, out var literal, out var conditionExpression))
+                        if (IsConditionedOnResultLiteralExpression(condition.Value.Condition, out var literal, out var conditionExpression))
                         {
                             return this.CreateControlStatement(statement, this.CreateApplyIfExpression(literal, conditionExpression, condition.Value.Body, condition.Value.Default));
                         }
-                        else if (this.IsConditionedOnResultEqualityExpression(condition.Value.Condition, out var lhsConditionExpression, out var rhsConditionExpression))
+                        else if (IsConditionedOnResultEqualityExpression(condition.Value.Condition, out var lhsConditionExpression, out var rhsConditionExpression))
                         {
                             return this.CreateControlStatement(statement, this.CreateApplyConditionallyExpression(lhsConditionExpression, rhsConditionExpression, condition.Value.Body, condition.Value.Default));
                         }
-                        else if (this.IsConditionedOnResultInequalityExpression(condition.Value.Condition, out lhsConditionExpression, out rhsConditionExpression))
+                        else if (IsConditionedOnResultInequalityExpression(condition.Value.Condition, out lhsConditionExpression, out rhsConditionExpression))
                         {
                             // The scope arguments are reversed to account for the negation of the NEQ
                             return this.CreateControlStatement(statement, this.CreateApplyConditionallyExpression(lhsConditionExpression, rhsConditionExpression, condition.Value.Default, condition.Value.Body));
@@ -655,7 +660,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 /// If it is, returns the condition, the body of the conditional block, and, optionally, the body of the
                 /// default block, otherwise returns null. If there is no default block, the last value of the return tuple will be null.
                 /// </summary>
-                private (TypedExpression Condition, QsScope Body, QsScope? Default)? IsConditionWithSingleBlock(QsStatement statement)
+                private static (TypedExpression Condition, QsScope Body, QsScope? Default)? IsConditionWithSingleBlock(QsStatement statement)
                 {
                     if (statement.Statement is QsStatementKind.QsConditionalStatement condition && condition.Item.ConditionalBlocks.Length == 1)
                     {
@@ -671,7 +676,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 /// expression in the (in)equality, otherwise returns false with nulls. If it is an
                 /// inequality, the returned result value will be the opposite of the result literal found.
                 /// </summary>
-                private bool IsConditionedOnResultLiteralExpression(
+                private static bool IsConditionedOnResultLiteralExpression(
                     TypedExpression expression,
                     [NotNullWhen(true)] out QsResult? literal,
                     [NotNullWhen(true)] out TypedExpression? conditionExpression)
@@ -719,7 +724,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 /// Checks if the expression is an equality comparison between two Result-typed expressions.
                 /// If it is, returns true along with the two expressions, otherwise returns false with nulls.
                 /// </summary>
-                private bool IsConditionedOnResultEqualityExpression(
+                private static bool IsConditionedOnResultEqualityExpression(
                     TypedExpression expression,
                     [NotNullWhen(true)] out TypedExpression? lhs,
                     [NotNullWhen(true)] out TypedExpression? rhs)
@@ -743,7 +748,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 /// Checks if the expression is an inequality comparison between two Result-typed expressions.
                 /// If it is, returns true along with the two expressions, otherwise returns false with nulls.
                 /// </summary>
-                private bool IsConditionedOnResultInequalityExpression(
+                private static bool IsConditionedOnResultInequalityExpression(
                     TypedExpression expression,
                     [NotNullWhen(true)] out TypedExpression? lhs,
                     [NotNullWhen(true)] out TypedExpression? rhs)
@@ -832,20 +837,55 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             return (identifier, args);
         }
 
-        private class LiftContent : ContentLifting.LiftContent<LiftContent.TransformationState>
+        private class LiftContent : ContentLifting.LiftContentUsingContext<LiftContent.TransformationState>
         {
-            internal class TransformationState : ContentLifting.LiftContent.TransformationState
+            internal class TransformationState : ContentLifting.LiftContentUsingContext.TransformationState
             {
                 internal bool IsConditionLiftable { get; set; } = false;
+
+                internal List<QsCallable>? GeneratedCallables { get; set; } = null;
             }
 
             public LiftContent()
                 : base(new TransformationState())
             {
+                this.Namespaces = new NamespaceTransformation(this);
                 this.StatementKinds = new StatementKindTransformation(this);
             }
 
-            private new class StatementKindTransformation : ContentLifting.LiftContent<TransformationState>.StatementKindTransformation
+            private static bool IsConditionValidForLifting(QsConditionalStatement conditionStatement)
+            {
+                var condition = conditionStatement.ConditionalBlocks.Single().Item1;
+                return
+                    (condition.Expression is ExpressionKind.EQ eq
+                    && eq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
+                    && eq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
+                    || (condition.Expression is ExpressionKind.NEQ neq
+                    && neq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
+                    && neq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result);
+            }
+
+            private new class NamespaceTransformation : ContentLifting.LiftContentUsingContext<TransformationState>.NamespaceTransformation
+            {
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
+                {
+                }
+
+                /// <inheritdoc/>
+                public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
+
+                /// <inheritdoc/>
+                public override QsNamespace OnNamespace(QsNamespace ns)
+                {
+                    // Generated callables list will be populated in the transform
+                    this.SharedState.GeneratedCallables = new List<QsCallable>();
+                    return base.OnNamespace(ns)
+                        .WithElements(elems => elems.AddRange(this.SharedState.GeneratedCallables.Select(callable => QsNamespaceElement.NewQsCallable(callable))));
+                }
+            }
+
+            private new class StatementKindTransformation : ContentLifting.LiftContentUsingContext<TransformationState>.StatementKindTransformation
             {
                 public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
                     : base(parent)
@@ -868,6 +908,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
                 public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
                 {
+                    // If the conditional is classical, don't lift it.
+                    if (!IsConditionValidForLifting(stm))
+                    {
+                        // But still check nested conditionals.
+                        return base.OnConditionalStatement(stm);
+                    }
+
                     var contextIsConditionLiftable = this.SharedState.IsConditionLiftable;
                     this.SharedState.IsConditionLiftable = true;
 
@@ -875,17 +922,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     var generatedOperations = new List<QsCallable>();
                     foreach (var conditionBlock in stm.ConditionalBlocks)
                     {
-                        var contextValidScope = this.SharedState.IsValidScope;
-                        var contextParams = this.SharedState.GeneratedOpParams;
-
-                        this.SharedState.IsValidScope = true;
-                        this.SharedState.GeneratedOpParams = conditionBlock.Item2.Body.KnownSymbols.Variables;
-
                         var (expr, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.NewValue(conditionBlock.Item1), conditionBlock.Item2);
 
-                        // ToDo: Reduce the number of unnecessary generated operations by generalizing
-                        // the condition logic for the conversion and using that condition here
-                        // var (isExprCondition, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
                         if (block.Body.Statements.Length == 0)
                         {
                             // This is an empty scope, so it can just be treated as a call to NoOp.
@@ -917,10 +955,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         else
                         {
                             // Lift the scope to its own operation
-                            if (this.SharedState.LiftBody(block.Body, out var callable, out var call))
+                            if (this.SharedState.LiftBody(block.Body, null, false, out var call, out var callable))
                             {
+                                var callStatement = new QsStatement(
+                                    QsStatementKind.NewQsExpressionStatement(call),
+                                    LocalDeclarations.Empty,
+                                    QsNullable<QsLocation>.Null,
+                                    QsComments.Empty);
                                 block = new QsPositionedBlock(
-                                    new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
+                                    new QsScope(ImmutableArray.Create(callStatement), block.Body.KnownSymbols),
                                     block.Location,
                                     block.Comments);
                                 newConditionBlocks.Add(Tuple.Create(expr.Item, block));
@@ -932,9 +975,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                             }
                         }
 
-                        this.SharedState.GeneratedOpParams = contextParams;
-                        this.SharedState.IsValidScope = contextValidScope;
-
                         if (!this.SharedState.IsConditionLiftable)
                         {
                             break;
@@ -944,12 +984,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     var newDefault = QsNullable<QsPositionedBlock>.Null;
                     if (this.SharedState.IsConditionLiftable && stm.Default.IsValue)
                     {
-                        var contextValidScope = this.SharedState.IsValidScope;
-                        var contextParams = this.SharedState.GeneratedOpParams;
-
-                        this.SharedState.IsValidScope = true;
-                        this.SharedState.GeneratedOpParams = stm.Default.Item.Body.KnownSymbols.Variables;
-
                         var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
 
                         if (this.IsScopeSingleCall(block.Body))
@@ -962,10 +996,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         else
                         {
                             // Lift the scope to its own operation
-                            if (this.SharedState.LiftBody(block.Body, out var callable, out var call))
+                            if (this.SharedState.LiftBody(block.Body, null, false, out var call, out var callable))
                             {
+                                // Make sure the inferred information for the callable has local quantum dependency
+                                call = new TypedExpression(
+                                    call.Expression,
+                                    call.TypeArguments,
+                                    call.ResolvedType,
+                                    new InferredExpressionInformation(false, true),
+                                    call.Range);
+
+                                var callStatement = new QsStatement(
+                                    QsStatementKind.NewQsExpressionStatement(call),
+                                    LocalDeclarations.Empty,
+                                    QsNullable<QsLocation>.Null,
+                                    QsComments.Empty);
                                 block = new QsPositionedBlock(
-                                    new QsScope(ImmutableArray.Create(call), block.Body.KnownSymbols),
+                                    new QsScope(ImmutableArray.Create(callStatement), block.Body.KnownSymbols),
                                     block.Location,
                                     block.Comments);
                                 newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
@@ -976,14 +1023,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                                 this.SharedState.IsConditionLiftable = false;
                             }
                         }
-
-                        this.SharedState.GeneratedOpParams = contextParams;
-                        this.SharedState.IsValidScope = contextValidScope;
                     }
 
                     if (this.SharedState.IsConditionLiftable)
                     {
-                        this.SharedState.GeneratedOperations?.AddRange(generatedOperations);
+                        this.SharedState.GeneratedCallables!.AddRange(generatedOperations);
                     }
 
                     var rtrn = this.SharedState.IsConditionLiftable

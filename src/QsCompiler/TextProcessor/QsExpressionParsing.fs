@@ -372,12 +372,14 @@ let internal numericLiteral =
                         >>. returnWithRange (doubleValue |> DoubleLiteral)
                     else
                         returnWithRange (doubleValue |> DoubleLiteral)
-                with :? System.OverflowException ->
+                with
+                | :? System.OverflowException ->
                     buildError (preturn range) ErrorCode.DoubleOverflow
                     >>. returnWithRange (System.Double.NaN |> DoubleLiteral)
             else
                 fail "invalid number format"
-        with _ -> fail "failed to initialize number literal"
+        with
+        | _ -> fail "failed to initialize number literal"
 
     let format = // not allowed are: infinity, NaN
         NumberLiteralOptions.AllowPlusSign // minus signs are processed by the corresponding unary operator
@@ -513,11 +515,14 @@ let private valueArray =
     <|> bracketDefinedCommaSepExpr (lArray, rArray)
 
 /// Parses a Q# array declaration as QsExpression.
-/// Raises an InvalidContructorExpression if the array declaration keyword is not followed by a valid array constructor,
+/// Adds an InvalidConstructorExpression if the array declaration keyword is not followed by a valid array constructor,
 /// and advances to the next whitespace character or QsFragmentHeader.
 let private newArray =
     let itemType = expectedQsType (lArray >>% ()) >>= fun itemType -> validateTypeSyntax true itemType >>% itemType
     let body = itemType .>>. (arrayBrackets (expectedExpr eof) |>> fst) |>> NewArray
+
+    let toExpr headRange (kind, bodyRange) =
+        QsExpression.New(kind, Range.Span headRange bodyRange)
 
     let invalid =
         checkForInvalid
@@ -525,7 +530,13 @@ let private newArray =
             ErrorCode.InvalidConstructorExpression
         >>% unknownExpr
 
-    arrayDecl.parse >>. (term body |>> QsExpression.New <|> (term invalid |>> fst))
+    let withWarning (expr: QsExpression) =
+        let range = expr.Range |> QsNullable.defaultValue Range.Zero
+        QsCompilerDiagnostic.Warning(WarningCode.DeprecatedNewArray, []) range |> pushDiagnostic >>% expr
+
+    arrayDecl.parse
+    >>= fun headRange -> term body |>> toExpr headRange <|> (term invalid |>> fst)
+    >>= withWarning
 
 /// used to temporarily store item accessors for both array item and named item access expressions
 type private ItemAccessor =
@@ -579,27 +590,27 @@ let private itemAccessExpr =
 
             getCharStreamState >>= fun state -> skipToTailingRangeOrEnd >>. slicingExpr state
             |>> fun ((pre, core: QsExpression), post) ->
-                let applyPost ex =
-                    match post with
-                    | None -> ex
+                    let applyPost ex =
+                        match post with
+                        | None -> ex
+                        | Some (_, range) ->
+                            buildCombinedExpr (RangeLiteral(ex, missingEx range.End)) (ex.Range, Value range)
+
+                    match pre with
+                    // we potentially need to re-construct the expression following the open range operator
+                    // to get the correct behavior (in terms of associativity and precedence)
                     | Some (_, range) ->
-                        buildCombinedExpr (RangeLiteral(ex, missingEx range.End)) (ex.Range, Value range)
+                        let combineWith right left =
+                            buildCombinedExpr (RangeLiteral(left, right)) (left.Range, right.Range)
 
-                match pre with
-                // we potentially need to re-construct the expression following the open range operator
-                // to get the correct behavior (in terms of associativity and precedence)
-                | Some (_, range) ->
-                    let combineWith right left =
-                        buildCombinedExpr (RangeLiteral(left, right)) (left.Range, right.Range)
-
-                    match core.Expression with
-                    // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence,
-                    // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it.
-                    | RangeLiteral (lex, rex) ->
-                        buildCombinedExpr (RangeLiteral(missingEx range.End, lex)) (Value range, lex.Range)
-                        |> combineWith rex
-                    | _ -> missingEx range.End |> combineWith core |> applyPost
-                | None -> core |> applyPost
+                        match core.Expression with
+                        // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence,
+                        // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it.
+                        | RangeLiteral (lex, rex) ->
+                            buildCombinedExpr (RangeLiteral(missingEx range.End, lex)) (Value range, lex.Range)
+                            |> combineWith rex
+                        | _ -> missingEx range.End |> combineWith core |> applyPost
+                    | None -> core |> applyPost
 
         let arrayItemAccess = arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
 
@@ -634,22 +645,70 @@ let internal callLikeExpr =
     |>> List.Cons
     |>> List.reduce (applyBinary CallLikeExpression ())
 
+/// Parses a (unqualified) symbol-like expression used as local identifier, raising a suitable error for an invalid
+/// symbol name.
+let internal localIdentifier = symbolLike ErrorCode.InvalidIdentifierName // i.e. not a qualified name
+
+/// Returns a QsSymbol representing an invalid symbol (i.e. syntax error on parsing).
+let internal invalidSymbol = QsSymbol.New(InvalidSymbol, Null)
+
+/// Given an array of QsSymbols and a tuple with start and end position, builds a Q# SymbolTuple as QsSymbol.
+let internal buildSymbolTuple (items, range: Range) = QsSymbol.New(SymbolTuple items, range)
+
+let internal symbolTuple continuation =
+    let continuation = continuation >>% () <|> isTupleContinuation
+    let empty = unitValue |>> fun unit -> { Symbol = SymbolTuple ImmutableArray.Empty; Range = unit.Range }
+    let symbol = (discardedSymbol <|> localIdentifier) .>>? followedBy continuation
+
+    // Let's only specifically detect this particular invalid scenario.
+    let symbolArray = arrayBrackets (sepBy1 symbol (comma .>>? followedBy symbol) .>> opt comma) |>> snd
+
+    let invalid =
+        buildError (symbolArray .>>? followedBy continuation) ErrorCode.InvalidAssignmentToExpression
+        >>% invalidSymbol
+
+    empty
+    <|> buildTupleItem
+            (symbol <|> invalid)
+            buildSymbolTuple
+            ErrorCode.InvalidSymbolTupleDeclaration
+            ErrorCode.MissingSymbolTupleDeclaration
+            invalidSymbol
+            continuation
+
+let private lambda =
+    let arrow = (fctArrow >>% Function) <|> (opArrow >>% Operation)
+
+    let toLambda ((param, kind), body) =
+        Lambda.createUnchecked kind param body |> Lambda
+
+    symbolTuple arrow .>>. arrow .>>. expr |>> toLambda |> term |>> QsExpression.New
+
 // processing terms of operator precedence parsers
 
-let private termParser tupleExpr =
-    // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly.
-    choice [ attempt unitValue
-             attempt newArray
-             attempt callLikeExpr // needs to be after unitValue
-             attempt itemAccessExpr // needs to be after callLikeExpr
-             attempt valueArray // needs to be after arryItemExpr
-             attempt tupleExpr // needs to be after unitValue, arrayItemExpr, and callLikeExpr
-             attempt pauliLiteral
-             attempt resultLiteral
-             attempt numericLiteral
-             attempt boolLiteral
-             attempt stringLiteral
-             attempt identifier ] // needs to be at the very end
+type private MissingMode =
+    | NoMissing
+    | AllowMissing
 
-qsExpression.TermParser <- termParser (valueTuple expr)
-qsArgument.TermParser <- missingExpr <|> termParser (valueTuple argument) // missing needs to be first
+let private termParser missingMode tupleExpr =
+    // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly.
+    [
+        attempt newArray
+        attempt lambda // needs to be before unitValue
+        if missingMode = AllowMissing then missingExpr // needs to be after lambda but before identifier
+        attempt unitValue
+        attempt callLikeExpr // needs to be after unitValue
+        attempt itemAccessExpr // needs to be after callLikeExpr
+        attempt valueArray // needs to be after arryItemExpr
+        attempt tupleExpr // needs to be after unitValue, arrayItemExpr, and callLikeExpr
+        attempt pauliLiteral
+        attempt resultLiteral
+        attempt numericLiteral
+        attempt boolLiteral
+        attempt stringLiteral
+        attempt identifier // needs to be at the very end
+    ]
+    |> choice
+
+qsExpression.TermParser <- valueTuple expr |> termParser NoMissing
+qsArgument.TermParser <- valueTuple argument |> termParser AllowMissing

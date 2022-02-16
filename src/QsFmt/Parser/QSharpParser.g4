@@ -23,35 +23,37 @@ qualifiedName : Identifier ('.' Identifier)*;
 namespaceElement
     : openDirective # OpenElement
     | typeDeclaration # TypeElement
-    | callable=callableDeclaration # CallableElement
+    | callableDeclaration # CallableElement
     ;
 
 // Open Directive
 
-openDirective : 'open' qualifiedName ('as' qualifiedName)? ';';
+openDirective : open='open' openName=qualifiedName (as='as' asName=qualifiedName)? semicolon=';';
 
 // Declaration
 
-attribute : '@' expression;
+attribute : at='@' expr=expression;
 
 access : 'internal';
 
-declarationPrefix : attribute* access?;
+declarationPrefix : attributes+=attribute* access?;
 
 // Type Declaration
 
-typeDeclaration : declarationPrefix 'newtype' Identifier '=' underlyingType ';';
-
-underlyingType
-    : typeDeclarationTuple
-    | type
+typeDeclaration
+    : prefix=declarationPrefix keyword='newtype' declared=Identifier equals='=' underlying=underlyingType semicolon=';'
     ;
 
-typeDeclarationTuple : '(' (typeTupleItem (',' typeTupleItem)*)? ')';
+underlyingType
+    : typeDeclarationTuple # TupleUnderlyingType
+    | type # UnnamedTypeItem
+    ;
+
+typeDeclarationTuple : openParen='(' (items+=typeTupleItem (commas+=',' items+=typeTupleItem)*)? closeParen=')';
 
 typeTupleItem
-    : namedItem
-    | underlyingType
+    : namedItem # NamedTypeItem
+    | underlyingType # UnderlyingTypeItem
     ;
 
 namedItem : name=Identifier colon=':' itemType=type;
@@ -59,13 +61,14 @@ namedItem : name=Identifier colon=':' itemType=type;
 // Callable Declaration
 
 callableDeclaration
-    : declarationPrefix keyword=('function' | 'operation')
-      name=Identifier typeParameterBinding? tuple=parameterTuple
-      colon=':' returnType=type characteristics?
+    : prefix=declarationPrefix keyword=('function' | 'operation')
+      name=Identifier typeParameters=typeParameterBinding? tuple=parameterTuple
+      colon=':' returnType=type returnChar=characteristics?
       body=callableBody
     ;
 
-typeParameterBinding : '<' (TypeParameter (',' TypeParameter)*)? '>';
+typeParameterBinding
+    : openBracket='<' (parameters+=TypeParameter (commas+=',' parameters+=TypeParameter)*)? closeBracket='>';
 
 parameterTuple : openParen='(' (parameters+=parameter (commas+=',' parameters+=parameter)*)? closeParen=')';
 
@@ -74,22 +77,22 @@ parameter
     | parameterTuple # TupledParameter
     ;
 
-characteristics : 'is' characteristicsExpression;
+characteristics : is='is' charExp=characteristicsExpression;
 
 characteristicsExpression
-    : 'Adj'
-    | 'Ctl'
-    | '(' characteristicsExpression ')'
-    | characteristicsExpression '*' characteristicsExpression
-    | characteristicsExpression '+' characteristicsExpression
+    : 'Adj' # AdjointCharacteristics
+    | 'Ctl' # ControlledCharacteristics
+    | openParen='(' charExp=characteristicsExpression closeParen=')' # CharacteristicGroup
+    | left=characteristicsExpression '*' right=characteristicsExpression # IntersectCharacteristics
+    | left=characteristicsExpression '+' right=characteristicsExpression # UnionCharacteristics
     ;
 
 callableBody
-    : scope
-    | BraceLeft specialization* BraceRight
+    : block=scope # CallableStatements
+    | openBrace=BraceLeft specializations+=specialization* closeBrace=BraceRight # CallableSpecializations
     ;
 
-specialization : specializationName+ specializationGenerator;
+specialization : names+=specializationName+ generator=specializationGenerator;
 
 specializationName
     : 'body'
@@ -98,17 +101,18 @@ specializationName
     ;
 
 specializationGenerator
-    : 'auto' ';'
-    | 'self' ';'
-    | 'invert' ';'
-    | 'distribute' ';'
-    | 'intrinsic' ';'
-    | providedSpecialization
+    : auto='auto' semicolon=';' # AutoGenerator
+    | self='self' semicolon=';' # SelfGenerator
+    | invert='invert' semicolon=';' # InvertGenerator
+    | distribute='distribute' semicolon=';' # DistributeGenerator
+    | intrinsic='intrinsic' semicolon=';' # IntrinsicGenerator
+    | provided=providedSpecialization # ProvidedGenerator
     ;
 
-providedSpecialization : specializationParameterTuple? scope;
+providedSpecialization : parameters=specializationParameterTuple? block=scope;
 
-specializationParameterTuple : '(' (specializationParameter (',' specializationParameter)*)? ')';
+specializationParameterTuple
+    : openParen='(' (parameters+=specializationParameter (commas+=',' parameters+=specializationParameter)*)? closeParen=')';
 
 specializationParameter
     : Identifier
@@ -119,10 +123,10 @@ specializationParameter
 
 type
     : '_' # MissingType
-    | '(' (type (',' type)* ','?)? ')' # TupleType
-    | TypeParameter # TypeParameter
-    | type '[' ']' # ArrayType
-    | type ('->' | '=>') type characteristics? # CallableType
+    | openParen='(' (items+=type (commas+=',' items+=type)* commas+=','?)? closeParen=')' # TupleType
+    | typeParameter=TypeParameter # TypeParameter
+    | itemType=type openBracket='[' closeBracket=']' # ArrayType
+    | fromType=type arrow=('->' | '=>') toType=type character=characteristics? # CallableType
     | 'BigInt' # BigIntType
     | 'Bool' # BoolType
     | 'Double' # DoubleType
@@ -139,31 +143,30 @@ type
 // Statement
 
 statement
-    : expression ';' # ExpressionStatement
+    : value=expression semicolon=';' # ExpressionStatement
     | return='return' value=expression semicolon=';' # ReturnStatement
-    | 'fail' expression ';' # FailStatement
+    | fail='fail' value=expression semicolon=';' # FailStatement
     | let='let' binding=symbolBinding equals='=' value=expression semicolon=';' # LetStatement
-    | 'mutable' symbolBinding '=' expression ';' # MutableStatement
-    | 'set' symbolBinding '=' expression ';' # SetStatement
-    | 'set' Identifier updateOperator expression ';' # SetUpdateStatement
-    | 'set' Identifier 'w/=' expression '<-' expression ';' # SetWithStatement
+    | mutable='mutable' binding=symbolBinding equals='=' value=expression semicolon=';' # MutableStatement
+    | set='set' binding=symbolBinding equals='=' value=expression semicolon=';' # SetStatement
+    | set='set' name=Identifier operator=updateOperator value=expression semicolon=';' # UpdateStatement
+    | set='set' name=Identifier with='w/=' index=expression arrow='<-' value=expression semicolon=';' # UpdateWithStatement
     | if='if' condition=expression body=scope # IfStatement
-    | 'elif' expression scope # ElifStatement
+    | elif='elif' condition=expression body=scope # ElifStatement
     | else='else' body=scope # ElseStatement
-    | 'for' (forBinding | '(' forBinding ')') scope # ForStatement
-    | 'while' expression scope # WhileStatement
-    | 'repeat' scope # RepeatStatement
-    | 'until' expression (';' | 'fixup' scope) # UntilStatement
-    | 'within' scope # WithinStatement
-    | 'apply' scope # ApplyStatement
-    | ('use' | 'using') (qubitBinding | '(' qubitBinding ')') (';' | scope) # UseStatement
-    | ('borrow' | 'borrowing') (qubitBinding | '(' qubitBinding ')') (';' | scope) # BorrowStatement
+    | for='for' (binding=forBinding | openParen='(' binding=forBinding closeParen=')') body=scope # ForStatement
+    | while='while' condition=expression body=scope # WhileStatement
+    | repeat='repeat' body=scope # RepeatStatement
+    | until='until' condition=expression (semicolon=';' | fixup='fixup' body=scope) # UntilStatement
+    | within='within' body=scope # WithinStatement
+    | apply='apply' body=scope # ApplyStatement
+    | keyword=('use' | 'using' | 'borrow' | 'borrowing') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') (body=scope | semicolon=';') # QubitDeclaration
     ;
 
 scope : openBrace=BraceLeft statements+=statement* closeBrace=BraceRight;
 
 symbolBinding
-    : '_' # DiscardSymbol
+    : discard='_' # DiscardSymbol
     | name=Identifier # SymbolName
     | openParen='(' (bindings+=symbolBinding (commas+=',' bindings+=symbolBinding)* ','?)? closeParen=')' # SymbolTuple
     ;
@@ -184,56 +187,62 @@ updateOperator
     | 'or='
     ;
 
-forBinding : symbolBinding 'in' expression;
+forBinding : binding=symbolBinding in='in' value=expression;
 
-qubitBinding : symbolBinding '=' qubitInitializer;
+qubitBinding : binding=symbolBinding equals='=' value=qubitInitializer;
 
 qubitInitializer
-    : 'Qubit' '(' ')'
-    | 'Qubit' '[' expression ']'
-    | '(' (qubitInitializer (',' qubitInitializer)* ','?)? ')'
+    : qubit='Qubit' openParen='(' closeParen=')' # SingleQubit
+    | qubit='Qubit' openBracket='[' length=expression closeBracket=']' # QubitArray
+    | openParen='(' (initializers+=qubitInitializer (commas+=',' initializers+=qubitInitializer)* ','?)? closeParen=')' # QubitTuple
     ;
 
 // Expression
 
 expression
     : '_' # MissingExpression
-    | name=qualifiedName ('<' (type (',' type)* ','?)? '>')? # IdentifierExpression
+    | name=qualifiedName types=typeTuple? # IdentifierExpression
     | value=IntegerLiteral # IntegerExpression
-    | BigIntegerLiteral # BigIntegerExpression
-    | DoubleLiteral # DoubleExpression
+    | value=BigIntegerLiteral # BigIntegerExpression
+    | value=DoubleLiteral # DoubleExpression
     | DoubleQuote stringContent* StringDoubleQuote # StringExpression
-    | DollarQuote interpStringContent* InterpDoubleQuote # InterpStringExpression
-    | boolLiteral # BoolExpression
-    | resultLiteral # ResultExpression
-    | pauliLiteral # PauliExpression
+    | openQuote=DollarQuote content+=interpStringContent* closeQuote=InterpDoubleQuote # InterpStringExpression
+    | value=boolLiteral # BoolExpression
+    | value=resultLiteral # ResultExpression
+    | value=pauliLiteral # PauliExpression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
-    | '[' (expression (',' expression)* ','?)? ']' # ArrayExpression
-    | 'new' type '[' expression ']' # NewArrayExpression
-    | expression ('::' Identifier | '[' expression ']') # ItemAccessExpression
-    | expression '!' # UnwrapExpression
-    | <assoc=right> 'Controlled' expression # ControlledExpression
-    | <assoc=right> 'Adjoint' expression # AdjointExpression
-    | expression '(' (expression (',' expression)* ','?)? ')' # CallExpression
-    | <assoc=right> ('-' | 'not' | '~~~') expression # NegationExpression
-    | <assoc=right> expression '^' expression # ExponentExpression
-    | expression ('*' | '/' | '%') expression # MultiplyExpression
+    | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
+    | openBracket='[' value=expression comma=',' size=sizeKey equals='=' length=expression closeBracket=']' # SizedArrayExpression
+    | new='new' itemType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
+    | record=expression colon='::' name=Identifier # NamedItemAccessExpression
+    | array=expression openBracket='[' index=expression closeBracket=']' # ArrayAccessExpression
+    | operand=expression operator='!' # UnwrapExpression
+    | <assoc=right> functor='Controlled' operation=expression # ControlledExpression
+    | <assoc=right> functor='Adjoint' operation=expression # AdjointExpression
+    | callable=expression openParen='(' (arguments+=expression (commas+=',' arguments+=expression)* commas+=','?)? closeParen=')' # CallExpression
+    | <assoc=right> operator=('!' | '+' | '-' | 'not' | '~~~') operand=expression # PrefixOpExpression
+    | <assoc=right> left=expression operator='^' right=expression # ExponentExpression
+    | left=expression operator=('*' | '/' | '%') right=expression # MultiplyExpression
     | left=expression operator=('+' | '-') right=expression # AddExpression
-    | expression ('>>>' | '<<<') expression # ShiftExpression
-    | expression ('>' | '<' | '>=' | '<=') expression # CompareExpression
+    | left=expression operator=('>>>' | '<<<') right=expression # ShiftExpression
+    | left=expression operator=('>' | '<' | '>=' | '<=') right=expression # CompareExpression
     | left=expression operator=('==' | '!=') right=expression # EqualsExpression
-    | expression '&&&' expression # BitwiseAndExpression
-    | expression '^^^' expression # BitwiseXorExpression
-    | expression '|||' expression # BitwiseOrExpression
-    | expression 'and' expression # AndExpression
-    | expression 'or' expression # OrExpression
-    | <assoc=right> expression '?' expression '|' expression # ConditionalExpression
-    | expression '..' expression # RangeExpression
-    | expression '...' # RightOpenRangeExpression
-    | '...' expression # LeftOpenRangeExpression
+    | left=expression operator='&&&' right=expression # BitwiseAndExpression
+    | left=expression operator='^^^' right=expression # BitwiseXorExpression
+    | left=expression operator='|||' right=expression # BitwiseOrExpression
+    | left=expression operator=('&&' | 'and') right=expression # AndExpression
+    | left=expression operator=('||' | 'or') right=expression # OrExpression
+    | <assoc=right> cond=expression question='?' ifTrue=expression pipe='|' ifFalse=expression # ConditionalExpression
+    | left=expression ellipsis='..' right=expression # RangeExpression
+    | left=expression ellipsis='...' # RightOpenRangeExpression
+    | ellipsis='...' right=expression # LeftOpenRangeExpression
     | '...' # OpenRangeExpression
     | record=expression with='w/' item=expression arrow='<-' value=expression # UpdateExpression
     ;
+
+sizeKey : terminal=Identifier {_localctx.terminal.Text == "size"}?;
+
+typeTuple : openBracket='<' (typeArgs+=type (commas+=',' typeArgs+=type)* commas+=','?)? closeBracket='>';
 
 boolLiteral
     : 'false'
@@ -258,7 +267,7 @@ stringContent
     ;
 
 interpStringContent
-    : InterpStringEscape
-    | InterpBraceLeft expression BraceRight
-    | InterpStringText
+    : InterpStringEscape # InterpStringEscapeContent
+    | openBrace=InterpBraceLeft exp=expression closeBrace=BraceRight # InterpExpressionContent
+    | InterpStringText # InterpTextContent
     ;

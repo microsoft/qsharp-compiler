@@ -1,18 +1,32 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.DataTypes
 
 open System
+open System.Collections
 open System.Collections.Generic
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Newtonsoft.Json
+open Newtonsoft.Json.Converters
 
-
-// to avoid having to include the F# core in the C# part of the compiler...
+/// A nullable type.
+[<JsonConverter(typeof<DiscriminatedUnionConverter>)>]
 [<Struct>]
 type QsNullable<'T> =
     | Null
     | Value of 'T
+
+    interface 'T seq with
+        member nullable.GetEnumerator() =
+            match nullable with
+            | Null -> Seq.empty.GetEnumerator()
+            | Value x -> Seq.singleton(x).GetEnumerator()
+
+        member nullable.GetEnumerator() =
+            match nullable with
+            | Null -> (Seq.empty :> IEnumerable).GetEnumerator()
+            | Value x -> (Seq.singleton x :> IEnumerable).GetEnumerator()
 
     /// If the given nullable has a value, applies the given function to it and returns the result, which must be
     /// another nullable. Returns Null otherwise.
@@ -54,17 +68,9 @@ type QsNullable<'T> =
         |> Seq.choose (
             fct
             >> function
-            | Null -> None
-            | Value v -> Some v
+                | Null -> None
+                | Value v -> Some v
         )
-
-    /// Converts the given F# option to a QsNullable.
-    // TODO: RELEASE 2021-08: Remove QsNullable<T>.FromOption.
-    [<Obsolete "Use QsNullable.ofOption or QsNullable.FromOption instead.">]
-    static member FromOption opt =
-        match opt with
-        | Some v -> Value v
-        | None -> Null
 
 /// Operations for QsNullable<'T>.
 module QsNullable =
@@ -124,6 +130,15 @@ module QsNullable =
     /// </summary>
     [<CompiledName "IsValue">]
     let isValue nullable = isNull nullable |> not
+
+// C# interoperability.
+type QsNullable<'T> with
+    /// <summary>
+    /// Applies <paramref name="f"/> to the value inside the nullable if it has a value.
+    /// </summary>
+    /// <param name="f">The function to apply to the value.</param>
+    /// <return>The transformed nullable.</return>
+    member nullable.Map(f: Func<'T, 'a>) = QsNullable<_>.Map f.Invoke nullable
 
 /// A position in a text document.
 type Position =
@@ -226,6 +241,10 @@ type Range =
     /// Adds the range's start and end positions to the given position.
     static member (+)(position: Position, range: Range) =
         Range(position + range.Start, position + range.End)
+
+    /// Subtracts the position from the range's start and end positions.
+    static member (-)(range: Range, position: Position) =
+        Range(range.Start - position, range.End - position)
 
     /// Returns true if the ranges have the same start and end positions.
     static member op_Equality(a: Range, b: Range) = a = b

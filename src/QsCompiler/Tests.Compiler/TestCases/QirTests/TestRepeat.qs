@@ -7,7 +7,22 @@ namespace Microsoft.Quantum.Testing.QIR
 
     newtype Energy = (Abs : Double, Name : String);
 
-    operation TestRepeat (q : Qubit) : Int
+    operation TestRepeat2 (q : Qubit) : Result[] {
+
+        mutable (iter, res) = (1, []);
+        repeat {
+            H(q);
+            set res += [M(q)];
+        }
+        until (iter > 3)
+        fixup {
+            set iter *= 2;
+        }
+
+        return res;
+    }
+
+    operation TestRepeat1 (q : Qubit) : Int
     {
         mutable n = 0;
         repeat
@@ -39,5 +54,12 @@ namespace Microsoft.Quantum.Testing.QIR
             set res w/= Name <- "";
         }
         return n;
+    }
+
+    @EntryPoint()
+    operation Main() : Unit {
+        use q = Qubit();
+        let _ = TestRepeat1(q);
+        let _ = TestRepeat2(q);
     }
 }

@@ -11,40 +11,111 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
-    internal class ProjectProperties
+    public delegate void SendTelemetryHandler(string eventName, Dictionary<string, string?> properties, Dictionary<string, int> measures);
+
+    /// <summary>
+    /// Represents project properties defined in the project file.
+    /// </summary>
+    public class ProjectProperties
     {
-        public string Version { get; }
+        private static readonly Version DefaultAssemblyVersion =
+            Assembly.GetExecutingAssembly().GetName().Version;
 
-        public string OutputPath { get; }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.QsharpLangVersion"/>,
+        /// or the language version that corresponding to this compiler version if no valid value is specified.
+        /// </summary>
+        public Version LanguageVersion =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.QsharpLangVersion, out var versionProp)
+            && Version.TryParse(versionProp, out Version version)
+                ? version
+                : new Version(DefaultAssemblyVersion.Major, DefaultAssemblyVersion.Minor);
 
-        public RuntimeCapability RuntimeCapability { get; }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.QuantumSdkVersion"/>,
+        /// or null if no valid value is specified.
+        /// </summary>
+        public Version? SdkVersion =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.QuantumSdkVersion, out var versionProp)
+            && Version.TryParse(versionProp, out Version version)
+                ? version
+                : null;
 
-        public bool IsExecutable { get; }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.QuantumSdkPath"/>,
+        /// or an empty string if no value is specified.
+        /// </summary>
+        public string SdkPath =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.QuantumSdkPath, out var path)
+                ? path ?? string.Empty
+                : string.Empty;
 
-        public string ProcessorArchitecture { get; }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.TargetPath"/>,
+        /// or an empty string if no value is specified.
+        /// </summary>
+        public string DllOutputPath =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.TargetPath, out var path)
+                ? path ?? string.Empty
+                : string.Empty;
 
-        public bool ExposeReferencesViaTestNames { get; }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.ResolvedRuntimeCapabilities"/>,
+        /// or <see cref="RuntimeCapability.FullComputation"/> if no valid value is specified.
+        /// </summary>
+        public RuntimeCapability RuntimeCapability =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedRuntimeCapabilities, out var capability)
+                ? RuntimeCapability.TryParse(capability).ValueOr(RuntimeCapability.FullComputation)
+                : RuntimeCapability.FullComputation;
 
-        public ProjectProperties(
-            string version,
-            string outputPath,
-            RuntimeCapability runtimeCapability,
-            bool isExecutable,
-            string processorArchitecture,
-            bool loadTestNames)
-        {
-            this.Version = version ?? "";
-            this.OutputPath = outputPath;
-            this.RuntimeCapability = runtimeCapability;
-            this.IsExecutable = isExecutable;
-            this.ProcessorArchitecture = processorArchitecture;
-            this.ExposeReferencesViaTestNames = loadTestNames;
-        }
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
+        /// or an user friendly string indicating and unspecified processor architecture if no value is specified.
+        /// </summary>
+        public string ProcessorArchitecture =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedProcessorArchitecture, out var architecture)
+            && !string.IsNullOrEmpty(architecture)
+                ? architecture
+                : "Unspecified";
+
+        /// <summary>
+        /// Returns true if the <see cref="MSBuildProperties.ResolvedQsharpOutputType"/> indicates that
+        /// the project is an executable project opposed to a library.
+        /// </summary>
+        public bool IsExecutable =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedQsharpOutputType, out var outputType)
+            && AssemblyConstants.QsharpExe.Equals(outputType, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Returns true if the <see cref="MSBuildProperties.ExposeReferencesViaTestNames"/> indicates that
+        /// declarations should be loaded via a test name specified by an attribute.
+        /// </summary>
+        internal bool ExposeReferencesViaTestNames =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.ExposeReferencesViaTestNames, out var exposeViaTestNames)
+            && "true".Equals(exposeViaTestNames, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.QsFmtExe"/>,
+        /// or an empty string if no value is specified.
+        /// </summary>
+        internal string QsFmtExe =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.QsFmtExe, out var path)
+                ? path ?? string.Empty
+                : string.Empty;
+
+        private ImmutableDictionary<string, string?> BuildProperties { get; }
+
+        public static ProjectProperties Empty =>
+            new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
+
+        public ProjectProperties(IDictionary<string, string?> buildProperties) =>
+            this.BuildProperties = buildProperties.ToImmutableDictionary();
     }
 
     public class ProjectInformation
@@ -59,21 +130,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public ImmutableArray<string> References { get; }
 
-        internal static ProjectInformation Empty(
-                string version,
-                string outputPath,
-                RuntimeCapability capability) =>
+        internal static ProjectInformation Empty(string outputPath) =>
             new ProjectInformation(
-                version,
-                outputPath,
-                capability,
-                false,
-                "Unspecified",
-                false,
                 Enumerable.Empty<string>(),
                 Enumerable.Empty<string>(),
-                Enumerable.Empty<string>());
+                Enumerable.Empty<string>(),
+                ImmutableDictionary.CreateRange(new[]
+                {
+                    new KeyValuePair<string, string?>(MSBuildProperties.TargetPath, outputPath),
+                }));
 
+        public ProjectInformation(
+            IEnumerable<string> sourceFiles,
+            IEnumerable<string> projectReferences,
+            IEnumerable<string> references,
+            IDictionary<string, string?> buildProperties)
+        {
+            this.Properties = new ProjectProperties(buildProperties);
+            this.SourceFiles = sourceFiles.ToImmutableArray();
+            this.ProjectReferences = projectReferences.ToImmutableArray();
+            this.References = references.ToImmutableArray();
+        }
+
+        [Obsolete]
         public ProjectInformation(
             string version,
             string outputPath,
@@ -85,8 +164,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<string> projectReferences,
             IEnumerable<string> references)
         {
-            this.Properties = new ProjectProperties(
-                version, outputPath, runtimeCapability, isExecutable, processorArchitecture, loadTestNames);
+            var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
+            buildProperties.Add(MSBuildProperties.QsharpLangVersion, version);
+            buildProperties.Add(MSBuildProperties.TargetPath, outputPath);
+            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, runtimeCapability.Name);
+            buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, isExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
+            buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
+            buildProperties.Add(MSBuildProperties.ExposeReferencesViaTestNames, loadTestNames ? "true" : "false");
+
+            this.Properties = new ProjectProperties(buildProperties);
             this.SourceFiles = sourceFiles.ToImmutableArray();
             this.ProjectReferences = projectReferences.ToImmutableArray();
             this.References = references.ToImmutableArray();
@@ -189,25 +275,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.Properties = projectInfo.Properties;
                 this.SetProjectInformation(projectInfo);
 
-                var version = Version.TryParse(projectInfo.Properties.Version, out Version v) ? v : null;
-                if (projectInfo.Properties.Version.Equals("Latest", StringComparison.InvariantCultureIgnoreCase))
-                {
-                    version = new Version(0, 3);
-                }
-
-                var ignore = version == null || version < new Version(0, 3) ? true : false;
+                var version = projectInfo.Properties.LanguageVersion;
+                var ignore = version == null || version < new Version(0, 3);
 
                 // We track the file contents for unsupported projects in case the files are migrated to newer projects while editing,
                 // but we don't do any semantic verification, and we don't publish diagnostics for them.
                 this.processing = new ProcessingQueue(onException);
-                this.Manager = new CompilationUnitManager(
-                    onException,
-                    ignore ? null : publishDiagnostics,
-                    syntaxCheckOnly: ignore,
-                    this.Properties.RuntimeCapability,
-                    this.Properties.IsExecutable,
-                    this.Properties.ProcessorArchitecture);
                 this.log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
+                this.Manager = new CompilationUnitManager(
+                    this.Properties,
+                    onException,
+                    ignore ? null : this.log,
+                    ignore ? null : publishDiagnostics,
+                    syntaxCheckOnly: ignore);
 
                 this.loadedSourceFiles = ImmutableHashSet<Uri>.Empty;
                 this.loadedReferences = References.Empty;
@@ -226,7 +306,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.Properties = projectInfo.Properties;
                 this.isLoaded = false;
 
-                var outputPath = projectInfo.Properties.OutputPath;
+                var outputPath = projectInfo.Properties.DllOutputPath;
                 try
                 {
                     outputPath = Path.GetFullPath(outputPath);
@@ -720,20 +800,33 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         private readonly Action<string, MessageType>? log;
 
+        /// <summary>
+        /// Used to send telemetry events during processing, if the project is compiled with TELEMETRY defined.
+        /// </summary>
+        /// <remarks>
+        /// May be null!
+        /// </remarks>
+        private readonly SendTelemetryHandler? sendTelemetry;
+
         /// <remarks>
         /// If <paramref name="publishDiagnostics"/> is not null,
         /// it is called whenever diagnostics for the project have changed and are ready for publishing.
         /// <para/>
         /// Any exceptions caught during processing are logged using <paramref name="exceptionLogger"/>.
         /// </remarks>
-        public ProjectManager(Action<Exception>? exceptionLogger, Action<string, MessageType>? log = null, Action<PublishDiagnosticParams>? publishDiagnostics = null)
+        public ProjectManager(
+            Action<Exception>? exceptionLogger,
+            Action<string, MessageType>? log = null,
+            Action<PublishDiagnosticParams>? publishDiagnostics = null,
+            SendTelemetryHandler? sendTelemetry = null)
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
-            this.defaultManager = new CompilationUnitManager(exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
+            this.defaultManager = new CompilationUnitManager(ProjectProperties.Empty, exceptionLogger, log, publishDiagnostics, syntaxCheckOnly: true);
             this.publishDiagnostics = publishDiagnostics;
             this.logException = exceptionLogger;
             this.log = log;
+            this.sendTelemetry = sendTelemetry;
         }
 
         /// <inheritdoc/>
@@ -814,7 +907,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public Task LoadProjectsAsync(
             IEnumerable<Uri> projectFiles,
             ProjectInformation.Loader projectLoader,
-            Func<Uri, FileContentManager?>? openInEditor = null)
+            Func<Uri, FileContentManager?>? openInEditor = null,
+            bool enableLazyLoading = true)
         {
             openInEditor ??= _ => null;
 
@@ -840,7 +934,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         continue;
                     }
 
-                    if (project.ContainsAnySourceFiles(uri => openInEditor(uri) != null))
+                    if (!enableLazyLoading || project.ContainsAnySourceFiles(uri => openInEditor(uri) != null))
                     {
                         project.LoadProjectAsync(outputPaths, this.MigrateToProject(openInEditor), null);
                     }
@@ -868,24 +962,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 if (!projectLoader(projectFile, out var info))
                 {
+                    // the project file has been removed and we hence migrate all source files to the default manager if needed
                     existing?.LoadProjectAsync(
                         ImmutableDictionary<Uri, Uri?>.Empty,
                         null,
                         this.MigrateToDefaultManager(openInEditor),
                         ProjectInformation.Empty(
-                            "Latest",
-                            existing.OutputPath?.LocalPath ?? throw new Exception("Missing output path."),
-                            RuntimeCapability.FullComputation))
+                            existing.OutputPath?.LocalPath ?? throw new Exception("Missing output path.")))
                         ?.Wait(); // does need to block, or the call to the DefaultManager in ManagerTaskAsync needs to be adapted
                     if (existing != null)
                     {
+                        // we reload the project references for all projects since they may reference the now removed project
                         this.ProjectReferenceChangedOnDiskChangeAsync(projectFile);
                     }
 
                     return;
                 }
 
-                var updated = existing ?? new Project(projectFile, info, this.logException, this.publishDiagnostics, this.log);
+                // Since the project file also contains information about e.g. the targeted processor architecture,
+                // we need to make sure to validate the full project again.
+                // We could potentially update the existing project for the sake of saving some compilation,
+                // but the cleaner version is to just recompile it entirely. For now, we recompile it,
+                // given that this seems like a reasonable behavior after updates to the project itself.
+                var updated = new Project(projectFile, info, this.logException, this.publishDiagnostics, this.log);
                 this.projects.AddOrUpdate(projectFile, updated, (_, __) => updated);
 
                 // If any of the files that are currently open in the editor is part of the project,
@@ -1041,7 +1140,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 //     TextDocumentEdit | CreateFile | RenameFile | DeleteFile.
                 //     Note that the SumType struct is defined in the LSP client,
                 //     and works by defining explicit cast operators for each case.
-                IEnumerable<SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>> CastToSumType(SumType<TextDocumentEdit[], SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>[]>? editCollection) =>
+                static IEnumerable<SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>> CastToSumType(SumType<TextDocumentEdit[], SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>[]>? editCollection) =>
                     editCollection switch
                     {
                         { } edits => edits.Match(
@@ -1067,6 +1166,36 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routines related to providing information for non-blocking editor commands
         // -> these commands need to be responsive and therefore won't wait for any processing to finish
         // -> if the query cannot be processed immediately, they simply return null
+
+        /// <summary>
+        /// Returns the edits to format the file according to the specified settings.
+        /// </summary>
+        /// <remarks>
+        /// Returns null if some parameters are unspecified (null),
+        /// or if the specified file is not listed as source file
+        /// </remarks>
+        public TextEdit[]? Formatting(DocumentFormattingParams? param)
+        {
+            var manager = this.Manager(param?.TextDocument?.Uri);
+            var edits = manager?.Formatting(param?.TextDocument, format: true, update: true, timeout: 10000); // Formatting flushes unprocessed text changes
+
+            if (manager != null && edits == null)
+            {
+                this.log?.Invoke("Failed to format document. Formatter may be unavailable.", MessageType.Info);
+            }
+
+            // send telemetry if telemetry is enabled
+            var telemetryProps = new Dictionary<string, string?>
+            {
+                ["quantumSdkVersion"] = manager?.BuildProperties.SdkVersion?.ToString(),
+            };
+            var telemetryMeas = new Dictionary<string, int>
+            {
+                { "totalEdits", edits?.Count() ?? 0 },
+            };
+            this.sendTelemetry?.Invoke("formatting", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
+            return edits;
+        }
 
         /// <summary>
         /// Returns the source file and position where the item at the given position is declared at,
@@ -1111,7 +1240,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         public Hover? HoverInformation(TextDocumentPositionParams? param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.HoverInformation(c, param?.Position?.ToQSharp(), format), suppressExceptionLogging: true);
+                param?.TextDocument,
+                (f, c) => param?.Position?.ToQSharp() is { } p ? f.HoverInformation(c, p, format) : null,
+                suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns an array with all usages of the identifier at the given position (if any) as an array of <see cref="DocumentHighlight"/>.
@@ -1169,9 +1300,55 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </remarks>
-        public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams? param) =>
+        public IEnumerable<CodeAction>? CodeActions(CodeActionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range?.ToQSharp(), param?.Context), suppressExceptionLogging: true);
+                param?.TextDocument,
+                (file, c) =>
+                {
+                    var codeActionSuggestions = file.CodeActions(c, param?.Range?.ToQSharp(), param?.Context) ?? Enumerable.Empty<(string, WorkspaceEdit)>();
+                    var diagnostics = param?.Context?.Diagnostics;
+                    if (diagnostics != null && diagnostics.Any(DiagnosticTools.WarningType(
+                        WarningCode.DeprecatedTupleBrackets,
+                        WarningCode.DeprecatedUnitType,
+                        WarningCode.DeprecatedQubitBindingKeyword,
+                        WarningCode.DeprecatedANDoperator,
+                        WarningCode.DeprecatedNOToperator,
+                        WarningCode.DeprecatedORoperator,
+                        WarningCode.DeprecatedNewArray)))
+                    {
+                        var formattingEdits = this.Manager(
+                            param?.TextDocument?.Uri)?.Formatting(param?.TextDocument, update: true, format: false, timeout: 2000);
+                        if (formattingEdits != null)
+                        {
+                            codeActionSuggestions = codeActionSuggestions.Append(
+                                ("Update deprecated syntax in file.", file.GetWorkspaceEdit(formattingEdits)));
+                        }
+
+                        // send telemetry if telemetry is enabled
+                        var telemetryProps = new Dictionary<string, string?>()
+                        {
+                            { "quantumSdkVersion", c.BuildProperties.SdkVersion?.ToString() },
+                        };
+                        var telemetryMeas = new Dictionary<string, int>()
+                        {
+                            { "qsfmtUpdateEdits", formattingEdits?.Count() ?? 0 },
+                            { "totalEdits", codeActionSuggestions.Count() },
+                        };
+                        this.sendTelemetry?.Invoke("code-action", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
+                    }
+
+                    return codeActionSuggestions
+                        .ToLookup(s => s.Item1, s => s.Item2)
+                        .SelectMany(vs => vs.Select(v => CreateAction(vs.Key, v)));
+
+                    static CodeAction CreateAction(string title, WorkspaceEdit edit) =>
+                        new CodeAction
+                        {
+                            Title = title,
+                            Edit = edit,
+                        };
+                },
+                suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns a list of suggested completion items for the given location.

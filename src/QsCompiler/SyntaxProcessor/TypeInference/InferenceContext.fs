@@ -75,6 +75,11 @@ type private TypeContext =
         OriginalRight: ResolvedType
     }
 
+/// An error that can occur when binding a type parameter to another type during unification.
+type private BindError =
+    /// The binding would create an infinite type; i.e., the occurs check failed.
+    | InfiniteType
+
 module private TypeContext =
     /// <summary>
     /// Creates a type context originating with <paramref name="left"/> and <paramref name="right"/>.
@@ -115,19 +120,23 @@ module private TypeContext =
 /// Tools to help with type inference.
 module private Inference =
     /// <summary>
-    /// True if <paramref name="info1"/> and <paramref name="info2"/> contain the same set of characteristics.
+    /// True if <paramref name="info1"/> and <paramref name="info2"/> have the same set of characteristics, or if either
+    /// <paramref name="info1"/> or <paramref name="info2"/> have invalid characteristics.
     /// </summary>
-    let characteristicsEqual info1 info2 =
+    let charsEqual info1 info2 =
         let chars1 = info1.Characteristics
         let chars2 = info2.Characteristics
         chars1.AreInvalid || chars2.AreInvalid || chars1.GetProperties().SetEquals(chars2.GetProperties())
 
     /// <summary>
     /// True if the characteristics of <paramref name="info1"/> are a subset of the characteristics of
-    /// <paramref name="info2"/>.
+    /// <paramref name="info2"/>, or if either <paramref name="info1"/> or <paramref name="info2"/> have invalid
+    /// characteristics.
     /// </summary>
-    let isSubset info1 info2 =
-        info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
+    let charsSubset info1 info2 =
+        let chars1 = info1.Characteristics
+        let chars2 = info2.Characteristics
+        chars1.AreInvalid || chars2.AreInvalid || chars1.GetProperties().IsSubsetOf(chars2.GetProperties())
 
     /// <summary>
     /// True if the characteristics of <paramref name="info"/> contain the given <paramref name="functor"/>.
@@ -172,18 +181,14 @@ module private Inference =
     let private combineCallableInfo ordering info1 info2 =
         match ordering with
         | Subtype ->
-            let chars = Union(info1.Characteristics, info2.Characteristics)
-
-            CallableInformation.New(ResolvedCharacteristics.New chars, InferredCallableInformation.NoInformation)
-            |> Some
-        | Equal when characteristicsEqual info1 info2 ->
-            let characteristics =
-                if info1.Characteristics.AreInvalid then info2.Characteristics else info1.Characteristics
-
+            let chars = Union(info1.Characteristics, info2.Characteristics) |> ResolvedCharacteristics.New
+            CallableInformation.New(chars, InferredCallableInformation.NoInformation) |> Some
+        | Equal when charsEqual info1 info2 ->
             let inferred =
                 [ info1.InferredInformation; info2.InferredInformation ] |> InferredCallableInformation.Common
 
-            CallableInformation.New(characteristics, inferred) |> Some
+            let chars = if info1.Characteristics.AreInvalid then info2.Characteristics else info1.Characteristics
+            CallableInformation.New(chars, inferred) |> Some
         | Equal -> None
         | Supertype -> [ info1; info2 ] |> CallableInformation.Common |> Some
 
@@ -268,14 +273,14 @@ module private Inference =
     let typeParameters resolvedType =
         let mutable parameters = Set.empty
 
-        { new TypeTransformation() with
-            member this.OnTypeParameter param =
-                parameters <- parameters |> Set.add param
-                TypeParameter param
-        }
-            .OnType resolvedType
-        |> ignore
+        let transformation =
+            { new TypeTransformation() with
+                member this.OnTypeParameter param =
+                    parameters <- parameters |> Set.add param
+                    TypeParameter param
+            }
 
+        transformation.OnType resolvedType |> ignore
         parameters
 
 open Inference
@@ -283,14 +288,18 @@ open Inference
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
 
+    let mutable rootNodePos = Null
+    let mutable relativePos = Null
     let mutable statementPosition = Position.Zero
 
     let bind param substitution =
-        if occursCheck param substitution |> not then failwith "Occurs check failed."
-        let variable = variables.[param]
-
-        if Option.isSome variable.Substitution then failwith "Type parameter is already bound."
-        variables.[param] <- { variable with Substitution = Some substitution }
+        if occursCheck param substitution then
+            let variable = variables.[param]
+            if Option.isSome variable.Substitution then failwith "Type parameter is already bound."
+            variables.[param] <- { variable with Substitution = Some substitution }
+            Ok()
+        else
+            Result.Error InfiniteType
 
     let rememberErrors types diagnostics =
         if types |> Seq.contains (ResolvedType.New InvalidType) || List.isEmpty diagnostics |> not then
@@ -316,7 +325,20 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         |> Seq.map (fun item -> diagnostic item.Key item.Value)
         |> Seq.toList
 
-    member context.UseStatementPosition position = statementPosition <- position
+    member context.UseStatementPosition position =
+        rootNodePos <- Null
+        relativePos <- Null
+        statementPosition <- position
+
+    member context.UseSyntaxTreeNodeLocation(rootNodePosition, relativePosition) =
+        rootNodePos <- Value rootNodePosition
+        relativePos <- Value relativePosition
+        statementPosition <- rootNodePosition + relativePosition
+
+    member internal context.GetRelativeStatementPosition() =
+        match relativePos with
+        | Value pos -> pos
+        | Null -> InvalidOperationException "location information is unspecified" |> raise
 
     member internal context.Fresh source =
         let name = letters |> Seq.item variables.Count
@@ -367,9 +389,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         |> rememberErrors (resolvedType :: Constraint.types typeConstraint)
 
     member internal context.Resolve resolvedType =
-        let resolveWithRange type' =
-            let type' = context.Resolve type'
-            type' |> ResolvedType.withRange (type'.Range |> TypeRange.orElse resolvedType.Range)
+        let resolveWithRange type_ =
+            let resolvedType' = context.Resolve type_
+
+            // Prefer the original type range since it may be closer to the source of an error, but otherwise fall back
+            // to the newly resolved type range.
+            resolvedType' |> ResolvedType.withRange (resolvedType.Range |> TypeRange.orElse resolvedType'.Range)
 
         match resolvedType.Resolution with
         | TypeParameter param ->
@@ -394,33 +419,34 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     /// to the right-hand type.
     /// </summary>
     member private context.UnifyByOrdering(ordering, types) =
-        let error =
+        let error code =
             QsCompilerDiagnostic.Error
-                (ErrorCode.TypeMismatch, describeTypeContext types)
+                (code, describeTypeContext types)
                 (TypeRange.tryRange types.Right.Range |> QsNullable.defaultValue Range.Zero)
+
+        let tryBind param substitution =
+            match bind param substitution with
+            | Ok () -> context.ApplyConstraints(param, substitution)
+            | Result.Error InfiniteType -> [ error ErrorCode.InfiniteType ]
 
         match types.Left.Resolution, types.Right.Resolution with
         | _ when types.Left = types.Right -> []
-        | TypeParameter param, _ when variables.ContainsKey param ->
-            bind param types.Right
-            context.ApplyConstraints(param, types.Right)
-        | _, TypeParameter param when variables.ContainsKey param ->
-            bind param types.Left
-            context.ApplyConstraints(param, types.Left)
+        | TypeParameter param, _ when variables.ContainsKey param -> tryBind param types.Right
+        | _, TypeParameter param when variables.ContainsKey param -> tryBind param types.Left
         | ArrayType item1, ArrayType item2 -> context.UnifyByOrdering(Equal, types |> TypeContext.intoRight item1 item2)
         | TupleType items1, TupleType items2 ->
             [
-                if items1.Length <> items2.Length then error
+                if items1.Length <> items2.Length then error ErrorCode.TypeMismatch
                 for item1, item2 in Seq.zip items1 items2 do
                     let types = types |> TypeContext.intoRight (context.Resolve item1) (context.Resolve item2)
                     yield! context.UnifyByOrdering(ordering, types)
             ]
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let errors =
-                if ordering = Equal && not (characteristicsEqual info1 info2)
-                   || ordering = Supertype && not (isSubset info1 info2)
-                   || ordering = Subtype && not (isSubset info2 info1) then
-                    [ error ]
+                if ordering = Equal && not (charsEqual info1 info2)
+                   || ordering = Supertype && not (charsSubset info1 info2)
+                   || ordering = Subtype && not (charsSubset info2 info1) then
+                    [ error ErrorCode.TypeMismatch ]
                 else
                     []
 
@@ -438,7 +464,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             )
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
-            error
+            error ErrorCode.TypeMismatch
             :: context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
             @ context.UnifyByOrdering(
                 ordering,
@@ -448,7 +474,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
-        | _ -> [ error ]
+        | _ -> [ error ErrorCode.TypeMismatch ]
 
     /// <summary>
     /// Applies the <paramref name="typeConstraint"/> to the given <paramref name="resolvedType"/>.
@@ -529,6 +555,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match resolvedType.Resolution, index.Resolution with
             | ArrayType actualItem, Int -> context.Unify(item, actualItem)
             | ArrayType _, Range -> context.Unify(item, resolvedType)
+            | ArrayType _, InvalidType -> []
             | ArrayType _, _ ->
                 [
                     QsCompilerDiagnostic.Error

@@ -6,6 +6,7 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import yo = require("yeoman-generator");
 import yosay = require("yosay");
+import { sanitizeNamespaceName } from './sanitize-namespace-name';
 
 export class QSharpGenerator extends yo {
 
@@ -76,11 +77,14 @@ export class QSharpGenerator extends yo {
         let targetDir = this.options.outputUri.fsPath;
         fs.mkdir(targetDir);
 
-        // Namespace is the directory name itself.
+        // Project name is the directory name itself.
         let dirs = targetDir.split(path.sep);
 
         // In case there is a trailing separator.
-        let namespaceName = dirs.pop() || dirs.pop();
+        let projectName = dirs.pop() || dirs.pop();
+
+        // Namespace name must be alphanumeric, except for dots and underscores. 
+        let namespaceName = sanitizeNamespaceName(projectName);
 
         fs.readdir(sourceDir, (err, files) => {
             if (err){
@@ -91,7 +95,7 @@ export class QSharpGenerator extends yo {
                 let fileExtension = filename.split(".").pop();
 
                 if (fileExtension && fileExtension.toLowerCase() === "csproj") {
-                    destinationName = namespaceName + ".csproj";
+                    destinationName = projectName + ".csproj";
                 }
 
                 this.fs.copyTpl(

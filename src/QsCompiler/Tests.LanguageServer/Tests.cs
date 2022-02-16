@@ -2,50 +2,21 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
+using Range = Microsoft.VisualStudio.LanguageServer.Protocol.Range;
 
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
-    internal static class Extensions
-    {
-        internal static void AssertCapability<TOptions>(this SumType<bool, TOptions>? capability, bool shouldHave = true, Func<TOptions, bool>? condition = null)
-        {
-            if (shouldHave)
-            {
-                Assert.IsTrue(capability.HasValue, "Expected capability to have value, but was null.");
-            }
-
-            if (capability.HasValue)
-            {
-                capability!.Value.Match(
-                    flag =>
-                    {
-                        Assert.AreEqual(flag, shouldHave);
-                        return true;
-                    },
-                    options =>
-                    {
-                        if (condition != null)
-                        {
-                            Assert.IsTrue(condition(options));
-                        }
-                        else
-                        {
-                            Assert.IsNotNull(options);
-                        }
-
-                        return true;
-                    });
-            }
-        }
-    }
-
     [TestClass]
     public partial class BasicFunctionality
     {
@@ -138,7 +109,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             initReply.Capabilities.WorkspaceSymbolProvider.AssertCapability(shouldHave: false);
             initReply.Capabilities.RenameProvider.AssertCapability();
             initReply.Capabilities.HoverProvider.AssertCapability();
-            initReply.Capabilities.DocumentFormattingProvider.AssertCapability(shouldHave: false);
+            initReply.Capabilities.DocumentFormattingProvider.AssertCapability(shouldHave: true);
             initReply.Capabilities.DocumentRangeFormattingProvider.AssertCapability(shouldHave: false);
             initReply.Capabilities.CodeActionProvider.AssertCapability();
         }
@@ -274,9 +245,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 }
             }
 
-            await RunTest(emptyLastLine: true, useQsExtension: false);
-            await RunTest(emptyLastLine: false, useQsExtension: false);
             await RunTest(emptyLastLine: true, useQsExtension: true);
+            await RunTest(emptyLastLine: true, useQsExtension: false);
+            await RunTest(emptyLastLine: false, useQsExtension: true);
+            await RunTest(emptyLastLine: false, useQsExtension: false);
         }
 
         [TestMethod]
@@ -312,6 +284,248 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Assert.AreEqual(expectedContent.Count(), trackedContent.Count(), $"expected: \n{expected} \ngot: \n{got}");
                 Assert.AreEqual(expected, got);
             }
+        }
+
+        [TestMethod]
+        public async Task UpdateProjectFileAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test14");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var programFile = Path.Combine(projDir, "Teleport.qs");
+            var projectFileContent = XDocument.Load(projectFile.AbsolutePath);
+            var executionTarget = projectFileContent.Root.Elements()
+                .Where(element => element.Name == "PropertyGroup")
+                .SelectMany(element => element.Elements().Where(child => child.Name == "ExecutionTarget"))
+                .Single();
+
+            var initParams = TestUtils.GetInitializeParams();
+            initParams.RootPath = projDir;
+            initParams.RootUri = new Uri(projDir);
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParams = TestUtils.GetOpenFileParams(programFile);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+            var diagnostics1 = await this.GetFileDiagnosticsAsync(programFile);
+
+            this.projectLoaded.Reset();
+            executionTarget.SetValue("honeywell.qpu");
+            File.WriteAllText(projectFile.AbsolutePath, projectFileContent.ToString());
+            this.projectLoaded.WaitOne();
+            var diagnostics2 = await this.GetFileDiagnosticsAsync(programFile);
+
+            this.projectLoaded.Reset();
+            executionTarget.SetValue("ionq.qpu");
+            File.WriteAllText(projectFile.AbsolutePath, projectFileContent.ToString());
+            this.projectLoaded.WaitOne();
+            var diagnostics3 = await this.GetFileDiagnosticsAsync(programFile);
+
+            Assert.IsNotNull(diagnostics1);
+            Assert.AreEqual(2, diagnostics1!.Length);
+            Assert.AreEqual("QS5023", diagnostics1[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics1[0].Severity);
+            Assert.AreEqual("QS5023", diagnostics1[1].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics1[1].Severity);
+
+            Assert.IsNotNull(diagnostics2);
+            Assert.AreEqual(0, diagnostics2!.Length);
+
+            Assert.IsNotNull(diagnostics3);
+            Assert.AreEqual(2, diagnostics3!.Length);
+            Assert.AreEqual("QS5023", diagnostics3[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics3[0].Severity);
+            Assert.AreEqual("QS5023", diagnostics3[1].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics3[1].Severity);
+        }
+
+        [TestMethod]
+        public async Task UpdateAndFormatAsync()
+        {
+            async Task RunFormattingTestAsync(string projectName)
+            {
+                var projectFile = ProjectLoaderTests.ProjectUri(projectName);
+                var projDir = Path.GetDirectoryName(projectFile.LocalPath) ?? "";
+                var telemetryEvents = new List<(string, int)>();
+                var projectManager = await projectFile.LoadProjectAsync(
+                    (eventName, _, measures) => telemetryEvents.Add((eventName, measures.TryGetValue("totalEdits", out var nrEdits) ? nrEdits : 0)));
+
+                var fileToFormat = new Uri(Path.Combine(projDir, "format", "Unformatted.qs"));
+                var expectedContent = File.ReadAllText(Path.Combine(projDir, "format", "Formatted.qs"));
+                var param = new DocumentFormattingParams
+                {
+                    TextDocument = new TextDocumentIdentifier { Uri = fileToFormat },
+                    Options = new FormattingOptions { TabSize = 2, InsertSpaces = false, OtherOptions = new Dictionary<string, object>() },
+                };
+
+                var edits = projectManager.Formatting(param);
+                Assert.IsNotNull(edits);
+                Assert.AreEqual(1, edits!.Length);
+                Assert.AreEqual(expectedContent, edits[0].NewText);
+                Assert.AreEqual(1, telemetryEvents.Count());
+                Assert.AreEqual("formatting", telemetryEvents[0].Item1);
+                Assert.AreEqual(edits.Length, telemetryEvents[0].Item2);
+            }
+
+            await RunFormattingTestAsync("test12");
+            await RunFormattingTestAsync("test15");
+        }
+
+        [TestMethod]
+        public async Task TestLambdaHoverInfoAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test16");
+            var projectManager = await LoadProjectFileAsync(projectFile);
+            var lambdaFile = new Uri(projectFile, "Lambda.qs");
+
+            await TestUtils.TestAfterTypeCheckingAsync(projectManager, lambdaFile, () =>
+            {
+                AssertHover(new Position(2, 12), "x1", "String", true);
+                AssertHover(new Position(2, 18), "x1", "Double", true);
+                AssertHover(new Position(2, 27), "x1", "Double", false);
+
+                AssertHover(new Position(4, 12), "q1", "Qubit[]", true);
+                AssertHover(new Position(4, 24), "x", "Int", true);
+                AssertHover(new Position(4, 29), "x", "Int", false);
+
+                AssertHover(new Position(6, 12), "q2", "(Qubit[], Qubit, Qubit[])", true);
+                AssertHover(new Position(6, 25), "x", "Int", true);
+                AssertHover(new Position(6, 30), "x", "Int", false);
+                AssertHover(new Position(6, 58), "x", "Double", true);
+                AssertHover(new Position(6, 63), "x", "Double", false);
+
+                AssertHover(new Position(8, 12), "f1", "(Int -> Int)", true);
+                AssertHover(new Position(8, 18), "foo", "Int", true);
+                AssertHover(new Position(8, 26), "foo", "Int", false);
+                AssertHover(new Position(8, 36), "foo", "Int", false);
+
+                AssertHover(new Position(10, 12), "f2", "((Int, Int) -> Int)", true);
+                AssertHover(new Position(10, 18), "foo", "Int", true);
+                AssertHover(new Position(10, 23), "bar", "Int", true);
+                AssertHover(new Position(10, 31), "foo", "Int", false);
+                AssertHover(new Position(10, 37), "bar", "Int", false);
+
+                AssertHover(new Position(12, 12), "f3", "(Int -> Int)", true);
+                AssertHover(new Position(12, 17), "foo", "Int", true);
+                AssertHover(new Position(12, 24), "foo", "Int", false);
+
+                AssertHover(new Position(14, 12), "i", "String", true);
+                AssertHover(new Position(14, 18), "i", "Double", true);
+                AssertHover(new Position(14, 27), "i", "Double", false);
+
+                AssertHover(new Position(16, 12), "x", "Bool", true);
+                AssertHover(new Position(16, 17), "x", "Bool", false);
+                AssertHover(new Position(17, 16), "y", "Bool", true);
+                AssertHover(new Position(17, 21), "y", "Bool", false);
+                AssertHover(new Position(17, 26), "y", "Bool", false);
+                AssertHover(new Position(18, 16), "y", "Int", true);
+                AssertHover(new Position(18, 21), "y", "Int", false);
+            });
+
+            void AssertHover(Position position, string expectedName, string expectedType, bool expectedDeclaration)
+            {
+                var documentPosition = new TextDocumentPositionParams
+                {
+                    Position = position,
+                    TextDocument = new TextDocumentIdentifier { Uri = lambdaFile! },
+                };
+
+                var expected =
+                    (expectedDeclaration
+                        ? $"Declaration of an immutable variable {expectedName}"
+                        : $"Immutable variable {expectedName}")
+                    + $"    \nType: {expectedType}";
+
+                var actual = projectManager!.HoverInformation(documentPosition);
+                Assert.AreEqual(expected, actual!.Contents.Third.Value);
+            }
+        }
+
+        [TestMethod]
+        public async Task TestLambdaReferencesAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test16");
+            var projectManager = await LoadProjectFileAsync(projectFile);
+            var lambdaFile = new Uri(projectFile, "Lambda.qs");
+
+            await TestUtils.TestAfterTypeCheckingAsync(projectManager, lambdaFile, () =>
+            {
+                AssertReferences(2, new[] { new Position(2, 12) });
+                AssertReferences(2, new[] { new Position(2, 18), new Position(2, 27) });
+
+                AssertReferences(2, new[] { new Position(4, 12) });
+                AssertReferences(1, new[] { new Position(4, 24), new Position(4, 29) });
+
+                AssertReferences(2, new[] { new Position(6, 12) });
+                AssertReferences(1, new[] { new Position(6, 25), new Position(6, 30) });
+                AssertReferences(1, new[] { new Position(6, 58), new Position(6, 63) });
+
+                AssertReferences(2, new[] { new Position(8, 12) });
+                AssertReferences(3, new[] { new Position(8, 18), new Position(8, 26), new Position(8, 36) });
+
+                AssertReferences(2, new[] { new Position(10, 12) });
+                AssertReferences(3, new[] { new Position(10, 18), new Position(10, 31) });
+                AssertReferences(3, new[] { new Position(10, 23), new Position(10, 37) });
+
+                AssertReferences(2, new[] { new Position(12, 12) });
+                AssertReferences(3, new[] { new Position(12, 17), new Position(12, 24) });
+
+                AssertReferences(1, new[] { new Position(14, 12) });
+                AssertReferences(1, new[] { new Position(14, 18), new Position(14, 27) });
+
+                AssertReferences(1, new[] { new Position(16, 12), new Position(16, 17) });
+                AssertReferences(1, new[] { new Position(17, 16), new Position(17, 21), new Position(17, 26) });
+                AssertReferences(1, new[] { new Position(18, 16), new Position(18, 21) });
+                AssertReferences(1, new[] { new Position(19, 16), new Position(19, 21) });
+
+                AssertReferences(3, new[] { new Position(22, 18), new Position(22, 31), new Position(22, 37) });
+            });
+
+            void AssertReferences(int symbolLength, IReadOnlyCollection<Position> positions)
+            {
+                foreach (var position in positions)
+                {
+                    var reference = new ReferenceParams
+                    {
+                        Position = position,
+                        TextDocument = new TextDocumentIdentifier { Uri = lambdaFile! },
+                    };
+
+                    var expected = positions
+                        .Select(p => new Location
+                        {
+                            Uri = lambdaFile!,
+                            Range = new Range { Start = p, End = new Position(p.Line, p.Character + symbolLength) },
+                        })
+                        .ToImmutableHashSet();
+
+                    if (projectManager!.SymbolReferences(reference)?.ToImmutableHashSet() is { } actual)
+                    {
+                        var expectedStr = string.Join(", ", expected.Select(LocationToString));
+                        var actualStr = string.Join(", ", actual.Select(LocationToString));
+                        Assert.IsTrue(actual.SetEquals(expected), $"Expected: {expectedStr}. Actual: {actualStr}.");
+                    }
+                    else
+                    {
+                        Assert.Fail("Actual references are null.");
+                    }
+                }
+            }
+
+            static string LocationToString(Location location)
+            {
+                var start = PositionToString(location.Range.Start);
+                var end = PositionToString(location.Range.End);
+                return $"Range({start} to {end})";
+            }
+
+            static string PositionToString(Position p) => $"Ln {p.Line}, Col {p.Character}";
+        }
+
+        private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)
+        {
+            var projectManager = new ProjectManager(e => throw e);
+            await projectManager.LoadProjectsAsync(
+                new[] { uri }, CompilationContext.Editor.QsProjectLoader, enableLazyLoading: false);
+            return projectManager;
         }
     }
 }

@@ -182,7 +182,7 @@ let rec private singleAdditionalArg mismatchErr (qsSym: QsSymbol) =
     | sym -> sym |> singleAndOmitted |> nameAndRange false
 
 
-let private StripRangeInfo = StripPositionInfo.Default.Namespaces.OnArgumentTuple
+let private StripRangeInfo = StripPositionInfo.Default.OnArgumentTuple
 
 /// Given the declared argument tuple of a callable, and the declared symbol tuple for the corresponding body specialization,
 /// verifies that the symbol tuple indeed has the expected shape for that specialization.
@@ -235,8 +235,10 @@ let public WithAbsolutePosition (this: LocalDeclarations) (updatePosition: Func<
     LocalDeclarations.New(
         this
             .Variables
-            .Select(Func<_, _>
-                        (fun (d: LocalVariableDeclaration<_>) ->
-                            { d with Position = updatePosition.Invoke d.Position |> Value }))
+            .Select(
+                Func<_, _>
+                    (fun (d: LocalVariableDeclaration<_>) ->
+                        { d with Position = updatePosition.Invoke d.Position |> Value })
+            )
             .ToImmutableArray()
     )

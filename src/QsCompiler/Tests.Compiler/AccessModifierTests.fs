@@ -14,7 +14,7 @@ type AccessModifierTests() =
     inherit CompilerTests(AccessModifierTests.Compile())
 
     static member private Compile() =
-        CompilerTests.Compile("TestCases", [ "AccessModifiers.qs" ], [ File.ReadAllLines("ReferenceTargets.txt").[1] ])
+        CompilerTests.Compile("TestCases", [ "AccessModifiers.qs" ], [ File.ReadAllLines("ReferenceTargets.txt").[2] ])
 
     member private this.Expect name (diagnostics: IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.AccessModifiers"
@@ -27,8 +27,12 @@ type AccessModifierTests() =
 
     [<Fact>]
     member this.Types() =
-        this.Expect "TypeUseOK" []
-        this.Expect "TypeReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleType ]
+        this.Expect "TypeUseOK" (Warning WarningCode.DeprecatedNewArray |> List.replicate 3)
+
+        this.Expect
+            "TypeReferenceInternalInaccessible"
+            [ Error ErrorCode.InaccessibleType; Warning WarningCode.DeprecatedNewArray ]
+
         this.Expect "TypeConstructorReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleCallable ]
 
     [<Fact>]

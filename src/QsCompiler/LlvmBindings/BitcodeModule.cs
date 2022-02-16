@@ -7,20 +7,16 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Linq;
+using LlvmBindings.DebugInfo;
+using LlvmBindings.Instructions;
+using LlvmBindings.Interop;
+using LlvmBindings.Types;
+using LlvmBindings.Values;
 
-using LLVMSharp.Interop;
-
-using Ubiquity.NET.Llvm.DebugInfo;
-using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Types;
-using Ubiquity.NET.Llvm.Values;
-
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     /// <summary>Enumeration to indicate the behavior of module level flags metadata sharing the same name in a <see cref="BitcodeModule"/>.</summary>
     [SuppressMessage("Design", "CA1027:Mark enums with FlagsAttribute", Justification = "It isn't a flags enum")]
@@ -240,41 +236,7 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
-        internal ref LLVMModuleRef ModuleHandle => ref this.moduleHandle;
-
-        /// <summary>Load a bit-code module from a given file.</summary>
-        /// <param name="path">path of the file to load.</param>
-        /// <param name="context">Context to use for creating the module.</param>
-        /// <returns>Loaded <see cref="BitcodeModule"/>.</returns>
-        public static BitcodeModule LoadFrom(string path, Context context)
-        {
-            if (!File.Exists(path))
-            {
-                throw new FileNotFoundException();
-            }
-
-            var buffer = new MemoryBuffer(path);
-            return LoadFrom(buffer, context);
-        }
-
-        /// <summary>Load bit code from a memory buffer.</summary>
-        /// <param name="buffer">Buffer to load from.</param>
-        /// <param name="context">Context to load the module into.</param>
-        /// <returns>Loaded <see cref="BitcodeModule"/>.</returns>
-        /// <remarks>
-        /// This along with <see cref="WriteToBuffer"/> are useful for "cloning"
-        /// a module from one context to another. This allows creation of multiple
-        /// modules on different threads and contexts and later moving them to a
-        /// single context in order to link them into a single final module for
-        /// optimization.
-        /// </remarks>
-        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Module created here is owned, and disposed of via the projected BitcodeModule")]
-        public static BitcodeModule LoadFrom(MemoryBuffer buffer, Context context)
-        {
-            return context.ContextHandle.TryParseBitcode(buffer.BufferHandle, out LLVMModuleRef modRef, out string message)
-                ? throw new InternalCodeGeneratorException(message)
-                : context.GetModuleFor(modRef);
-        }
+        public ref LLVMModuleRef ModuleHandle => ref this.moduleHandle;
 
         /// <summary>Disposes the <see cref="BitcodeModule"/>, releasing resources associated with the module in native code.</summary>
         public void Dispose()
@@ -291,32 +253,6 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
-        /// <summary>Link another module into this one.</summary>
-        /// <param name="otherModule">module to link into this one.</param>
-        /// <remarks>
-        /// <note type="warning">
-        /// <paramref name="otherModule"/> is destroyed by this process and no longer usable
-        /// when this method returns.
-        /// </note>
-        /// </remarks>
-        public void Link(BitcodeModule otherModule)
-        {
-            this.ThrowIfDisposed();
-
-            if (otherModule.Context != this.Context)
-            {
-                throw new ArgumentException();
-            }
-
-            if (this.moduleHandle.Link(otherModule.moduleHandle))
-            {
-                throw new InternalCodeGeneratorException();
-            }
-
-            this.Context.RemoveModule(otherModule);
-            otherModule.Detach().Dispose();
-        }
-
         /// <summary>Verifies a bit-code module.</summary>
         /// <param name="errorMessage">Error messages describing any issues found in the bit-code.</param>
         /// <returns>true if the verification succeeded and false if not.</returns>
@@ -324,18 +260,6 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
             return this.moduleHandle.TryVerify(LLVMVerifierFailureAction.LLVMReturnStatusAction, out errorMessage);
-        }
-
-        /// <summary>Gets a function by name from this module.</summary>
-        /// <param name="name">Name of the function to get.</param>
-        /// <returns>The function or default if not found.</returns>
-        [Obsolete("Use TryGetFunction instead")]
-        public IrFunction? GetFunction(string name)
-        {
-            this.ThrowIfDisposed();
-
-            var funcRef = this.moduleHandle.GetNamedFunction(name);
-            return funcRef == default ? default : Value.FromHandle<IrFunction>(funcRef);
         }
 
         /// <summary>Looks up a function in the module by name.</summary>
@@ -667,23 +591,6 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
             return FromHandle(this.moduleHandle.Clone())!;
-        }
-
-        /// <summary>Clones the module into a new <see cref="Context"/>.</summary>
-        /// <param name="targetContext"><see cref="Context"/> to clone the module into.</param>
-        /// <returns>Cloned copy of the module.</returns>
-        public BitcodeModule Clone(Context targetContext)
-        {
-            this.ThrowIfDisposed();
-
-            if (targetContext == this.Context)
-            {
-                return this.Clone();
-            }
-
-            var buffer = this.WriteToBuffer();
-            var retVal = LoadFrom(buffer, targetContext);
-            return retVal;
         }
 
         internal static BitcodeModule FromHandle(LLVMModuleRef nativeHandle)

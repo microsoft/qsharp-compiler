@@ -4,7 +4,6 @@
 module Microsoft.Quantum.QsCompiler.Testing.Signatures
 
 open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
@@ -20,11 +19,24 @@ let private _BaseTypes =
         "String", String
         "Result", Result
         "Qubit", Qubit
-        "Qubit[]", ResolvedType.New Qubit |> ArrayType
     |]
 
-let private _MakeTypeMap udts =
-    Array.concat [ _BaseTypes; udts ] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
+let private _MakeTypeParam originNs originName paramName =
+    originName + "." + paramName,
+    QsTypeParameter.New({ Namespace = originNs; Name = originName }, paramName) |> TypeParameter
+
+let private _MakeArrayType baseTypeName baseType =
+    baseTypeName + "[]", ResolvedType.New baseType |> ArrayType
+
+let private _MakeTupleType tupleItems =
+    let names, types = List.unzip tupleItems
+
+    names
+    |> String.concat ", "
+    |> fun x -> "(" + x + ")", types |> List.map ResolvedType.New |> fun x -> x.ToImmutableArray() |> TupleType
+
+let private _MakeTypeMap extraTypes =
+    Array.concat [ _BaseTypes; extraTypes ] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict
 
 let private _DefaultTypes = _MakeTypeMap [||]
 
@@ -47,10 +59,6 @@ let private _MakeSig input (typeMap: IDictionary<string, ResolvedType>) =
 
 let private _MakeSignatures sigs =
     sigs |> Seq.map (fun (types, case) -> Seq.map (fun _sig -> _MakeSig _sig types) case) |> Seq.toArray
-
-let _MakeTypeParam originNs originName paramName =
-    originName + "." + paramName,
-    QsTypeParameter.New({ Namespace = originNs; Name = originName }, paramName) |> TypeParameter
 
 /// For all given namespaces in checkedNamespaces, checks that there are exactly
 /// the callables specified with targetSignatures in the given compilation.
@@ -124,10 +132,13 @@ let public MonomorphizationNS = "Microsoft.Quantum.Testing.Monomorphization"
 let public GenericsNS = "Microsoft.Quantum.Testing.Generics"
 let public IntrinsicResolutionNS = "Microsoft.Quantum.Testing.IntrinsicResolution"
 let public ClassicalControlNS = "Microsoft.Quantum.Testing.ClassicalControl"
+let public LambdaLiftingNS = "Microsoft.Quantum.Testing.LambdaLifting"
 let public InternalRenamingNS = "Microsoft.Quantum.Testing.InternalRenaming"
 let public CycleDetectionNS = "Microsoft.Quantum.Testing.CycleDetection"
 let public PopulateCallGraphNS = "Microsoft.Quantum.Testing.PopulateCallGraph"
 let public SyntaxTreeTrimmingNS = "Microsoft.Quantum.Testing.SyntaxTreeTrimming"
+
+let private _DefaultWithQubitArray = _MakeTypeMap [| _MakeArrayType "Qubit" Qubit |]
 
 /// Expected callable signatures to be found when running Monomorphization tests
 let public MonomorphizationSignatures =
@@ -163,7 +174,7 @@ let public MonomorphizationSignatures =
              GenericsNS, "GenericCallsGeneric", [| "Qubit"; "Int" |], "Unit"
          |])
         // Test Case 3
-        (_DefaultTypes,
+        (_DefaultWithQubitArray,
          [|
              MonomorphizationNS, "Test3", [||], "Unit"
              GenericsNS, "Test1Main", [||], "Unit"
@@ -271,13 +282,13 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit" // The original operation
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit" // The generated operation
+             ClassicalControlNS, "_Foo", [||], "Unit" // The generated operation
          |])
         // Lift Loops
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Don't Lift Single Call
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
@@ -285,7 +296,7 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Don't Lift Return Statements
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
@@ -340,7 +351,7 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Don't Lift General Mutable
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
@@ -348,7 +359,7 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Adjoint Support
         (_DefaultTypes,
@@ -356,19 +367,19 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "Provided", [||], "Unit"
              ClassicalControlNS, "Self", [||], "Unit"
              ClassicalControlNS, "Invert", [||], "Unit"
-             ClassicalControlNS, "_Provided", [| "Result" |], "Unit"
-             ClassicalControlNS, "_Provided", [| "Result" |], "Unit"
-             ClassicalControlNS, "_Self", [| "Result" |], "Unit"
-             ClassicalControlNS, "_Invert", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Provided", [||], "Unit"
+             ClassicalControlNS, "_Provided", [||], "Unit"
+             ClassicalControlNS, "_Self", [||], "Unit"
+             ClassicalControlNS, "_Invert", [||], "Unit"
          |])
         // Controlled Support
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Provided", [||], "Unit"
              ClassicalControlNS, "Distribute", [||], "Unit"
-             ClassicalControlNS, "_Provided", [| "Result" |], "Unit"
-             ClassicalControlNS, "_Provided", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
-             ClassicalControlNS, "_Distribute", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Provided", [||], "Unit"
+             ClassicalControlNS, "_Provided", [||], "Unit"
+             ClassicalControlNS, "_Distribute", [||], "Unit"
          |])
         // Controlled Adjoint Support - Provided
         (_DefaultTypes,
@@ -378,21 +389,21 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "ProvidedControlled", [||], "Unit"
              ClassicalControlNS, "ProvidedAll", [||], "Unit"
 
-             ClassicalControlNS, "_ProvidedBody", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedBody", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_ProvidedBody", [||], "Unit"
+             ClassicalControlNS, "_ProvidedBody", [||], "Unit"
 
-             ClassicalControlNS, "_ProvidedAdjoint", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedAdjoint", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedAdjoint", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_ProvidedAdjoint", [||], "Unit"
+             ClassicalControlNS, "_ProvidedAdjoint", [||], "Unit"
+             ClassicalControlNS, "_ProvidedAdjoint", [||], "Unit"
 
-             ClassicalControlNS, "_ProvidedControlled", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
-             ClassicalControlNS, "_ProvidedControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_ProvidedControlled", [||], "Unit"
+             ClassicalControlNS, "_ProvidedControlled", [||], "Unit"
+             ClassicalControlNS, "_ProvidedControlled", [||], "Unit"
 
-             ClassicalControlNS, "_ProvidedAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_ProvidedAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
-             ClassicalControlNS, "_ProvidedAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_ProvidedAll", [||], "Unit"
+             ClassicalControlNS, "_ProvidedAll", [||], "Unit"
+             ClassicalControlNS, "_ProvidedAll", [||], "Unit"
+             ClassicalControlNS, "_ProvidedAll", [||], "Unit"
          |])
         // Controlled Adjoint Support - Distribute
         (_DefaultTypes,
@@ -402,17 +413,17 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "DistributeControlled", [||], "Unit"
              ClassicalControlNS, "DistributeAll", [||], "Unit"
 
-             ClassicalControlNS, "_DistributeBody", [| "Result" |], "Unit"
+             ClassicalControlNS, "_DistributeBody", [||], "Unit"
 
-             ClassicalControlNS, "_DistributeAdjoint", [| "Result" |], "Unit"
-             ClassicalControlNS, "_DistributeAdjoint", [| "Result" |], "Unit"
+             ClassicalControlNS, "_DistributeAdjoint", [||], "Unit"
+             ClassicalControlNS, "_DistributeAdjoint", [||], "Unit"
 
-             ClassicalControlNS, "_DistributeControlled", [| "Result" |], "Unit"
-             ClassicalControlNS, "_DistributeControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_DistributeControlled", [||], "Unit"
+             ClassicalControlNS, "_DistributeControlled", [||], "Unit"
 
-             ClassicalControlNS, "_DistributeAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_DistributeAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_DistributeAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_DistributeAll", [||], "Unit"
+             ClassicalControlNS, "_DistributeAll", [||], "Unit"
+             ClassicalControlNS, "_DistributeAll", [||], "Unit"
          |])
         // Controlled Adjoint Support - Invert
         (_DefaultTypes,
@@ -422,17 +433,17 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "InvertControlled", [||], "Unit"
              ClassicalControlNS, "InvertAll", [||], "Unit"
 
-             ClassicalControlNS, "_InvertBody", [| "Result" |], "Unit"
+             ClassicalControlNS, "_InvertBody", [||], "Unit"
 
-             ClassicalControlNS, "_InvertAdjoint", [| "Result" |], "Unit"
-             ClassicalControlNS, "_InvertAdjoint", [| "Result" |], "Unit"
+             ClassicalControlNS, "_InvertAdjoint", [||], "Unit"
+             ClassicalControlNS, "_InvertAdjoint", [||], "Unit"
 
-             ClassicalControlNS, "_InvertControlled", [| "Result" |], "Unit"
-             ClassicalControlNS, "_InvertControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_InvertControlled", [||], "Unit"
+             ClassicalControlNS, "_InvertControlled", [||], "Unit"
 
-             ClassicalControlNS, "_InvertAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_InvertAll", [| "Result" |], "Unit"
-             ClassicalControlNS, "_InvertAll", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_InvertAll", [||], "Unit"
+             ClassicalControlNS, "_InvertAll", [||], "Unit"
+             ClassicalControlNS, "_InvertAll", [||], "Unit"
          |])
         // Controlled Adjoint Support - Self
         (_DefaultTypes,
@@ -440,17 +451,17 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "SelfBody", [||], "Unit"
              ClassicalControlNS, "SelfControlled", [||], "Unit"
 
-             ClassicalControlNS, "_SelfBody", [| "Result" |], "Unit"
+             ClassicalControlNS, "_SelfBody", [||], "Unit"
 
-             ClassicalControlNS, "_SelfControlled", [| "Result" |], "Unit"
-             ClassicalControlNS, "_SelfControlled", [| "Result"; "Qubit[]"; "Unit" |], "Unit"
+             ClassicalControlNS, "_SelfControlled", [||], "Unit"
+             ClassicalControlNS, "_SelfControlled", [||], "Unit"
          |])
         // Within Block Support
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Arguments Partially Resolve Type Parameters
         (_TypeParameterTypes,
@@ -462,26 +473,26 @@ let public ClassicalControlSignatures =
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Lift Partial Application
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Bar", [| "Int"; "Double" |], "Unit"
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Lift Array Item Call
         (_DefaultWithOperation,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "SubOp1Type[]"; "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "SubOp1Type[]" |], "Unit"
          |])
         // Lift One Not Both
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"
-             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
          |])
         // Apply Conditionally
         (_DefaultTypes,
@@ -535,6 +546,319 @@ let public ClassicalControlSignatures =
          |])
         // One-sided NOT condition
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Don't Lift Classical Conditions
+        (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Mutables with Nesting Lift Both
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+         |])
+        // Mutables with Nesting Lift Outer
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+         |])
+        // Mutables with Nesting Lift Neither
+        (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Mutables with Classic Nesting Lift Inner
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [||], "Unit"
+         |])
+        // Mutables with Classic Nesting Lift Outer
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
+         |])
+        // Mutables with Classic Nesting Lift Outer With More Classic
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
+         |])
+        // Mutables with Classic Nesting Lift Middle
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
+         |])
+        // Nested Invalid Lifting
+        (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Mutables with Classic Nesting Elif
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
+         |])
+        // Mutables with Classic Nesting Elif Lift First
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int" |], "Unit"
+         |])
+        // NOT Condition Retains Used Variables
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
+         |])
+        // Minimal Parameter Capture
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Double"; "String"; "Double" |], "Unit"
+         |])
+    |]
+    |> _MakeSignatures
+
+let private _WithTupleTypes =
+    _MakeTypeMap [| _MakeTupleType [ "Double", Double
+                                     "String", String
+                                     "Result", Result ]
+                    _MakeTupleType [ "Double", Double
+                                     "String", String ]
+                    _MakeTupleType [ "Int", Int
+                                     "Double", Double ] |]
+
+let private _WithLambdaOperation =
+    _MakeTypeMap [| "Unit => Int",
+                    ((ResolvedType.New UnitType, ResolvedType.New Int),
+                     {
+                         Characteristics = ResolvedCharacteristics.Empty
+                         InferredInformation = InferredCallableInformation.NoInformation
+                     })
+                    |> QsTypeKind.Operation |]
+
+/// Expected callable signatures to be found when running Lambda Lifting tests
+let public LambdaLiftingSignatures =
+    [| // Basic Lift
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Int" // The generated operation
+         |])
+        // Without Return Value
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Unit" // The generated operation
+         |])
+        // Call Valued Callable
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "Bar", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Int" // The generated operation
+         |])
+        // Call Unit Callable
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "Bar", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit" // The generated operation
+         |])
+        // Call Valued Callable Recursive
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Int" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Int" // The generated operation
+         |])
+        // Call Unit Callable Recursive
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Unit" // The generated operation
+         |])
+        // Use Closure
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Double"; "String"; "Result"; "Unit" |], "(Double, String, Result)" // The generated operation
+         |])
+        // With Lots of Params
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double"; "String" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "(Double, String)" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double"; "String" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "(Int, Double)"; "String" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double"; "String" |], "Unit"
+         |])
+        // Use Closure With Params
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Double"; "String"; "Result"; "Int" |], "(Double, String, Result)"
+             LambdaLiftingNS, "_Foo", [| "Double"; "String"; "Result"; "Int" |], "(Double, String, Result)"
+             LambdaLiftingNS, "_Foo", [| "Double"; "String"; "Result"; "Int"; "Double" |], "(Double, String, Result)"
+             LambdaLiftingNS,
+             "_Foo",
+             [| "Double"; "String"; "Result"; "Int"; "Double"; "String" |],
+             "(Double, String, Result)"
+             LambdaLiftingNS,
+             "_Foo",
+             [| "Double"; "String"; "Result"; "Int"; "(Double, String)" |],
+             "(Double, String, Result)"
+             LambdaLiftingNS,
+             "_Foo",
+             [| "Double"; "String"; "Result"; "Int"; "Double"; "String" |],
+             "(Double, String, Result)"
+             LambdaLiftingNS,
+             "_Foo",
+             [| "Double"; "String"; "Result"; "(Int, Double)"; "String" |],
+             "(Double, String, Result)"
+             LambdaLiftingNS,
+             "_Foo",
+             [| "Double"; "String"; "Result"; "Int"; "Double"; "String" |],
+             "(Double, String, Result)"
+         |])
+        // Function Lambda
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Int"
+         |])
+        // With Type Parameters
+        (_DefaultTypes,
+         [|
+         // This check is done manually in the test, but we have an empty entry here to
+         // keep the index numbers of this list consistent with the test case numbers.
+         |])
+        // With Nested Lambda Call
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Int"
+         |])
+        // With Nested Lambda
+        (_WithLambdaOperation,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Unit => Int"
+             LambdaLiftingNS, "_Foo", [||], "Int"
+         |])
+        // Functor Support Basic Return
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+         |])
+        // Functor Support Call
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit"
+             LambdaLiftingNS, "BarInt", [||], "Int"
+             LambdaLiftingNS, "Bar", [||], "Unit"
+             LambdaLiftingNS, "BarAdj", [||], "Unit"
+             LambdaLiftingNS, "BarCtl", [||], "Unit"
+             LambdaLiftingNS, "BarAdjCtl", [||], "Unit"
+
+             LambdaLiftingNS, "_Foo", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+         |])
+        // Functor Support Lambda Call
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit"
+             LambdaLiftingNS, "BarAdj", [||], "Unit"
+             LambdaLiftingNS, "BarCtl", [||], "Unit"
+             LambdaLiftingNS, "BarAdjCtl", [||], "Unit"
+
+             LambdaLiftingNS, "_Foo", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Int"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+         |])
+        // Functor Support Recursive
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit"
+             LambdaLiftingNS, "FooAdj", [||], "Unit"
+             LambdaLiftingNS, "FooCtl", [||], "Unit"
+             LambdaLiftingNS, "FooAdjCtl", [||], "Unit"
+
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_FooAdj", [||], "Unit"
+             LambdaLiftingNS, "_FooCtl", [||], "Unit"
+             LambdaLiftingNS, "_FooAdjCtl", [||], "Unit"
+         |])
+        // With Missing Params
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+
+             LambdaLiftingNS, "_Foo", [||], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "(Int, Double)" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "String"; "(Int, Double)" |], "Unit"
+             LambdaLiftingNS, "_Foo", [| "String"; "Int"; "Double" |], "Unit"
+         |])
+        // Use Parameter Single
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Int" // The generated operation
+         |])
+        // Use Parameter Tuple
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Double"; "Int" |], "(Int, Double)" // The generated operation
+         |])
+        // Use Parameter and Closure
+        (_WithTupleTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Int"; "Double" |], "(Int, Double)" // The generated operation
+         |])
+        // Use Parameter with Missing Params
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Int"; "Result"; "String" |], "Int" // The generated operation
+         |])
+        // Multiple Lambdas in One Expression
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Int"
+             LambdaLiftingNS, "_Foo", [| "Int" |], "Int"
+         |])
+        // Function Without Return Value
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Unit" // The generated operation
+         |])
+        // Return Unit-Typed Expression
+        (_DefaultTypes,
+         [|
+             LambdaLiftingNS, "Foo", [||], "Unit" // The original operation
+             LambdaLiftingNS, "_Foo", [||], "Unit" // The generated operation
+         |])
     |]
     |> _MakeSignatures
 

@@ -6,20 +6,19 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using LlvmBindings;
+using LlvmBindings.Instructions;
+using LlvmBindings.Interop;
+using LlvmBindings.Types;
+using LlvmBindings.Values;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
-using Ubiquity.NET.Llvm;
-using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Interop;
-using Ubiquity.NET.Llvm.Types;
-using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
+    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
@@ -37,7 +36,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         static GenerationContext()
         {
             LibContext = Library.InitializeLLVM();
-            LibContext.RegisterTarget(CodeGenTarget.Native);
         }
 
         #region Member variables
@@ -45,7 +43,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// The context used for QIR generation.
         /// </summary>
-        /// <inheritdoc cref="Ubiquity.NET.Llvm.Context"/>
+        /// <inheritdoc cref="LlvmBindings.Context"/>
         public Context Context { get; }
 
         /// <summary>
@@ -107,6 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Stack<IValue> inlineLevels;
         private readonly Dictionary<string, int> uniqueLocalNames = new Dictionary<string, int>();
         private readonly Dictionary<string, int> uniqueGlobalNames = new Dictionary<string, int>();
+        private readonly Dictionary<string, GlobalVariable> definedStrings = new Dictionary<string, GlobalVariable>();
 
         private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new Dictionary<string, (QsCallable, GlobalVariable)>();
@@ -165,6 +164,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal bool IsInlined => this.inlineLevels.Any();
 
+        internal bool IsLibrary { get; private set; }
+
         #endregion
 
         /// <summary>
@@ -175,8 +176,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// 3.) the quantum instructions set needs to be registered by calling <see cref="RegisterQuantumInstructionSet"/>.
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree)
+        /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
         {
+            this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
             this.globalTypes = syntaxTree.GlobalTypeResolutions();
 
@@ -216,8 +219,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             quantumInstructionSet = this.quantumInstructionSet;
         }
 
-        #region Static members
-
         /// <summary>
         /// Creates a new name by combining the given name with a unique identifier according to the given dictionary.
         /// Adds the name and the identifier to the given dictionary.
@@ -229,69 +230,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return $"{name}__{index}";
         }
 
-        /// <summary>
-        /// Cleans a namespace name by replacing periods with double underscores.
-        /// </summary>
-        /// <param name="namespaceName">The namespace name to clean</param>
-        /// <returns>The cleaned name</returns>
-        internal static string FlattenNamespaceName(string namespaceName) =>
-            namespaceName.Replace(".", "__");
-
-        /// <summary>
-        /// The name of the interop-friendly wrapper function for the callable.
-        /// </summary>
+        /// <inheritdoc cref="NameGeneration.InteropFriendlyWrapperName(QsQualifiedName)"/>
+        [Obsolete("Please use NameGeneration.InteropFriendlyWrapperName instead.", true)]
         public static string InteropFriendlyWrapperName(QsQualifiedName fullName) =>
-            $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}__Interop";
+            NameGeneration.InteropFriendlyWrapperName(fullName);
 
-        /// <summary>
-        /// The name of the entry point function calling into the body of the callable with the given name.
-        /// </summary>
+        /// <inheritdoc cref="NameGeneration.EntryPointName(QsQualifiedName)"/>
+        [Obsolete("Please use NameGeneration.EntryPointName instead.", true)]
         public static string EntryPointName(QsQualifiedName fullName) =>
-            $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}";
+            NameGeneration.EntryPointName(fullName);
 
-        /// <summary>
-        /// Generates a mangled name for a callable specialization.
-        /// QIR mangled names are the namespace name, with periods replaced by double underscores, followed
-        /// by a double underscore and the callable name, then another double underscore and the name of the
-        /// callable kind ("body", "adj", "ctl", or "ctladj").
-        /// </summary>
-        /// <param name="fullName">The callable's qualified name.</param>
-        /// <param name="kind">The specialization kind.</param>
-        /// <returns>The mangled name for the specialization.</returns>
-        public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind)
-        {
-            var suffix = InferTargetInstructions.SpecializationSuffix(kind).ToLowerInvariant();
-            return $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}{suffix}";
-        }
+        /// <inheritdoc cref="NameGeneration.FunctionName(QsQualifiedName, QsSpecializationKind)"/>
+        [Obsolete("Please use NameGeneration.FunctionName instead.", true)]
+        public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind) =>
+            NameGeneration.FunctionName(fullName, kind);
 
-        /// <summary>
-        /// Generates a mangled name for a callable specialization wrapper.
-        /// Wrapper names are the mangled specialization name followed by double underscore and "wrapper".
-        /// </summary>
-        /// <param name="fullName">The callable's qualified name</param>
-        /// <param name="kind">The specialization kind.</param>
-        /// <returns>The mangled name for the wrapper.</returns>
+        /// <inheritdoc cref="NameGeneration.FunctionWrapperName(QsQualifiedName, QsSpecializationKind)"/>
+        [Obsolete("Please use NameGeneration.FunctionWrapperName instead.", true)]
         public static string FunctionWrapperName(QsQualifiedName fullName, QsSpecializationKind kind) =>
-            $"{FunctionName(fullName, kind)}__wrapper";
-
-        /// <returns>
-        /// Returns true and the target instruction name for the callable as out parameter
-        /// if a target instruction exists for the callable.
-        /// Returns false otherwise.
-        /// </returns>
-        internal static bool TryGetTargetInstructionName(QsCallable callable, [MaybeNullWhen(false)] out string instructionName)
-        {
-            if (SymbolResolution.TryGetTargetInstructionName(callable.Attributes) is var att && att.IsValue)
-            {
-                instructionName = att.Item;
-                return true;
-            }
-            else
-            {
-                instructionName = null;
-                return false;
-            }
-        }
+            NameGeneration.FunctionWrapperName(fullName, kind);
 
         /// <summary>
         /// Order of specializations in the constant array that contains the fours IrFunctions
@@ -302,8 +259,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             QsSpecializationKind.QsAdjoint,
             QsSpecializationKind.QsControlled,
             QsSpecializationKind.QsControlledAdjoint);
-
-        #endregion
 
         #region Initialization and emission
 
@@ -331,10 +286,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // to-string conversion functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntToString, this.Types.String, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BoolToString, this.Types.String, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.DoubleToString, this.Types.String, this.Context.DoubleType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.IntToString, this.Types.String, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.PauliToString, this.Types.String, this.Types.Pauli);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitToString, this.Types.String, this.Types.Qubit);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.RangeToString, this.Types.String, this.Types.Range);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultToString, this.Types.String, this.Types.Result);
@@ -375,7 +328,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateReferenceCount, this.Context.VoidType, this.Types.Array, this.Context.Int32Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayConcatenate, this.Types.Array, this.Types.Array, this.Types.Array);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice1d, this.Types.Array, this.Types.Array, this.Types.Range, this.Context.BoolType);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice1d, this.Types.Array, this.Types.Array, this.Types.Range, this.Types.Bool);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetSize1d, this.Context.Int64Type, this.Types.Array);
 
             // callable library functions
@@ -414,7 +367,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             foreach (var c in this.globalCallables.Values)
             {
-                if (TryGetTargetInstructionName(c, out var name))
+                if (NameGeneration.TryGetTargetInstructionName(c, out var name))
                 {
                     // Special handling for Unit since by default it turns into an empty tuple
                     var returnType = c.Signature.ReturnType.Resolution.IsUnitType
@@ -469,7 +422,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
         public void CreateInteropFriendlyWrapper(QsQualifiedName qualifiedName)
         {
-            string wrapperName = InteropFriendlyWrapperName(qualifiedName);
+            string wrapperName = NameGeneration.InteropFriendlyWrapperName(qualifiedName);
             IrFunction InteropWrapper(QsCallable callable, IrFunction implementation) =>
                 Interop.GenerateWrapper(this, wrapperName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation);
             this.CreateBridgeFunction(qualifiedName, QsSpecializationKind.QsBody, InteropWrapper, AttributeNames.InteropFriendly);
@@ -484,7 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
         internal void CreateEntryPoint(QsQualifiedName qualifiedName)
         {
-            string entryPointName = EntryPointName(qualifiedName);
+            string entryPointName = NameGeneration.EntryPointName(qualifiedName);
             IrFunction EntryPoint(QsCallable callable, IrFunction implementation) =>
                 Interop.GenerateEntryPoint(this, entryPointName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation);
             this.CreateBridgeFunction(qualifiedName, QsSpecializationKind.QsBody, EntryPoint, AttributeNames.EntryPoint);
@@ -511,6 +464,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The LLVM function object</returns>
         internal IrFunction GetOrCreateTargetInstruction(string name) =>
             this.quantumInstructionSet.GetOrCreateFunction(name);
+
+        /// <summary>
+        /// Gets or creates a global constant (data array) that stores the given string.
+        /// The global constant contains a data array with the zero-terminated representation of the string.
+        /// </summary>
+        internal GlobalVariable GetOrCreateStringConstant(string str)
+        {
+            if (!this.definedStrings.TryGetValue(str, out var constant))
+            {
+                var constantString = this.Context.CreateConstantString(str, true);
+                constant = this.Module.AddGlobal(constantString.NativeType, true, Linkage.Internal, constantString);
+                this.definedStrings.Add(str, constant);
+            }
+
+            return constant;
+        }
+
+        /// <summary>
+        /// Creates a global constant (data array) that stores the given bytes.
+        /// </summary>
+        internal GlobalVariable CreateGlobalConstantArray(byte[] array)
+        {
+            var byteArray = ConstantArray.From(
+                this.Context.Int8Type,
+                array.Select(s => this.Context.CreateConstant(s)).ToArray());
+
+            return this.Module.AddGlobal(byteArray.NativeType, true, Linkage.Internal, byteArray);
+        }
 
         /// <summary>
         /// Tries to find a global Q# callable in the current compilation.
@@ -567,9 +548,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
 
-            if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType.IsVoid)
+            if (this.CurrentBlock.Terminator == null)
             {
-                this.CurrentBuilder.Return();
+                if (this.CurrentFunction.ReturnType.IsVoid)
+                {
+                    this.CurrentBuilder.Return();
+                }
+                else
+                {
+                    this.CurrentBuilder.Unreachable();
+                }
             }
 
             if (generatePending)
@@ -624,7 +612,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="spec">The Q# specialization for which to register a function</param>
         internal IrFunction RegisterFunction(QsSpecialization spec)
         {
-            var name = FunctionName(spec.Parent, spec.Kind);
+            var name = NameGeneration.FunctionName(spec.Parent, spec.Kind);
             var returnTypeRef = spec.Signature.ReturnType.Resolution.IsUnitType
                 ? this.Context.VoidType
                 : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
@@ -643,7 +631,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function.</param>
         /// <param name="argTuple">The specialization's argument tuple.</param>
-        internal void GenerateFunctionHeader(QsSpecialization spec, ArgumentTuple argTuple, bool deconstuctArgument = true)
+        /// <param name="deconstuctArgument">Whether or not to deconstruct the argument tuple.</param>
+        /// <param name="shouldBeExtern">Whether the given specialization should be generated as extern.</param>
+        internal void GenerateFunctionHeader(QsSpecialization spec, ArgumentTuple argTuple, bool deconstuctArgument = true, bool shouldBeExtern = false)
         {
             (string?, ResolvedType)[] ArgTupleToArgItems(ArgumentTuple arg, Queue<(string?, ArgumentTuple)> tupleQueue)
             {
@@ -672,7 +662,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.CurrentFunction = this.RegisterFunction(spec);
-            this.CurrentFunction.Linkage = Linkage.Internal;
+            this.CurrentFunction.Linkage = shouldBeExtern ? Linkage.External : Linkage.Internal;
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
@@ -701,7 +691,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var name = outerArgItems[0].Item1;
                 if (name != null)
                 {
-                    this.ScopeMgr.RegisterVariable(name, innerTuple);
+                    this.ScopeMgr.RegisterVariable(name, innerTuple, fromLocalId: null);
                 }
                 else
                 {
@@ -720,7 +710,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (argName != null)
                     {
                         this.CurrentFunction.Parameters[i].Name = argName;
-                        this.ScopeMgr.RegisterVariable(argName, argValue);
+                        this.ScopeMgr.RegisterVariable(argName, argValue, fromLocalId: null);
                     }
                     else
                     {
@@ -744,7 +734,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var element = tupleValue.GetTupleElement(i);
                     if (argName != null)
                     {
-                        this.ScopeMgr.RegisterVariable(argName, element);
+                        this.ScopeMgr.RegisterVariable(argName, element, fromLocalId: null);
                     }
                     else
                     {
@@ -765,7 +755,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                this.AddReturn(this.Values.Unit, returnsVoid: false);
+                var udtTuple = this.Values.CreateTuple(this.Values.Unit);
+                this.AddReturn(udtTuple, returnsVoid: false);
             }
             else if (this.CurrentFunction != null)
             {
@@ -790,7 +781,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal IrFunction GeneratePartialApplication(string name, QsSpecializationKind kind, Action<IReadOnlyList<Argument>> body)
         {
-            var funcName = FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
+            var funcName = NameGeneration.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
             IrFunction func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
             func.Linkage = Linkage.Internal;
             this.liftedPartialApplications.Add((func, body));
@@ -807,7 +798,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>true if the function has already been declared/defined, or false otherwise.</returns>
         private bool TryGetFunction(QsQualifiedName callableName, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
         {
-            var fullName = FunctionName(callableName, kind);
+            var fullName = NameGeneration.FunctionName(callableName, kind);
             return this.Module.TryGetFunction(fullName, out function);
         }
 
@@ -844,7 +835,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Queues the generation of that function if necessary such that the current context is not modified
         /// beyond adding the corresponding constant and function declaration, if necessary.
         /// </summary>
-        private GlobalVariable CreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec)
+        internal GlobalVariable CreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec)
         {
             var funcs = new Constant[4];
             for (var index = 0; index < 4; index++)
@@ -863,12 +854,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // Build the callable table
             var array = ConstantArray.From(this.Types.FunctionSignature.CreatePointerType(), funcs);
-            return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
+            return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
         }
-
-        /// <inheritdoc cref="CreateCallableTable"/>
-        internal GlobalVariable GetOrCreateCallableTable(string name, Func<QsSpecializationKind, IrFunction?> getSpec) =>
-            this.CreateCallableTable(name, getSpec);
 
         /// <summary>
         /// If a constant array with the IrFunctions for the given callable already exists,
@@ -880,7 +867,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal GlobalVariable GetOrCreateCallableTable(QsCallable callable)
         {
-            var tableName = $"{FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
+            var tableName = $"{NameGeneration.FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
             if (this.callableTables.TryGetValue(tableName, out (QsCallable, GlobalVariable) item))
             {
                 return item.Item2;
@@ -890,7 +877,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 IrFunction? BuildSpec(QsSpecializationKind kind) =>
                     callable.Specializations.Any(spec => spec.Kind == kind &&
                         (spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic))
-                            ? this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
+                            ? this.Module.CreateFunction(NameGeneration.FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
                             : null;
 
                 var table = this.CreateCallableTable(tableName, BuildSpec);
@@ -934,7 +921,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             funcs[1] = func;
 
             var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
-            table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
+            table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
             this.memoryManagementTables.Add(type, table);
             this.pendingMemoryManagementTables.Add(type);
             return table;
@@ -1000,31 +987,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// It extracts the function arguments from the corresponding tuple, calls into the given implementation with them,
         /// and populates the third tuple with the returned values.
         /// </summary>
-        private void GenerateFunctionWrapper(IrFunction func, ResolvedSignature signature, Func<TupleValue, Value> implementation)
+        private void GenerateFunctionWrapper(IrFunction func, ResolvedSignature signature, Func<TupleValue, IValue> implementation)
         {
             // result value contains the return value, and output tuple is the tuple where that value should be stored
-            void PopulateResultTuple(ResolvedType resultType, Value resultValue, Value outputTuple)
+            void PopulateResultTuple(IValue resultValue, TupleValue outputTuple)
             {
-                var resultTupleItemTypes = resultType.Resolution is ResolvedTypeKind.TupleType ts
-                    ? ts.Item
-                    : ImmutableArray.Create(resultType);
-                var qirOutputTuple = this.Values.FromTuple(outputTuple, resultTupleItemTypes);
-
-                if (resultType.Resolution is ResolvedTypeKind.TupleType tupleType)
+                void StoreItemInOutputTuple(int itemIdx, IValue value)
                 {
-                    var resultTuple = this.Values.FromTuple(resultValue, resultTupleItemTypes);
-                    for (int j = 0; j < tupleType.Item.Length; j++)
+                    var itemOutputPointer = outputTuple.GetTupleElementPointer(itemIdx);
+                    itemOutputPointer.StoreValue(value);
+                    this.ScopeMgr.IncreaseReferenceCount(value);
+                }
+
+                if (resultValue is TupleValue resultTuple && resultTuple.TypeName == null)
+                {
+                    var outputItemPtrs = outputTuple.GetTupleElementPointers();
+                    for (int j = 0; j < outputItemPtrs.Length; j++)
                     {
-                        var itemOutputPointer = qirOutputTuple.GetTupleElementPointer(j);
                         var resItem = resultTuple.GetTupleElement(j);
-                        itemOutputPointer.StoreValue(resItem);
+                        StoreItemInOutputTuple(j, resItem);
                     }
                 }
-                else if (!resultType.Resolution.IsUnitType)
+                else if (!resultValue.QSharpType.Resolution.IsUnitType)
                 {
-                    var result = this.Values.From(resultValue, resultType);
-                    var outputPointer = qirOutputTuple.GetTupleElementPointer(0);
-                    outputPointer.StoreValue(result);
+                    StoreItemInOutputTuple(0, resultValue);
                 }
             }
 
@@ -1032,7 +1018,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var argTuple = this.AsArgumentTuple(signature.ArgumentType, parameters[1]);
                 var result = implementation(argTuple);
-                PopulateResultTuple(signature.ReturnType, result, parameters[2]);
+                var resultTupleItemTypes = signature.ReturnType.Resolution is ResolvedTypeKind.TupleType ts
+                    ? ts.Item
+                    : ImmutableArray.Create(signature.ReturnType);
+                var outputTuple = this.Values.FromTuple(parameters[2], resultTupleItemTypes);
+                PopulateResultTuple(result, outputTuple);
             });
         }
 
@@ -1062,20 +1052,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void GenerateRequiredFunctions()
         {
-            Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, Value[] args)
+            IValue GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, Value[] args)
             {
-                if (TryGetTargetInstructionName(callable, out var name))
+                Value value;
+                if (NameGeneration.TryGetTargetInstructionName(callable, out var name))
                 {
                     var func = this.GetOrCreateTargetInstruction(name);
-                    return specKind == QsSpecializationKind.QsBody
+                    value = specKind == QsSpecializationKind.QsBody
                         ? this.CurrentBuilder.Call(func, args)
                         : throw new ArgumentException($"non-body specialization for target instruction");
                 }
                 else
                 {
                     var func = this.GetFunctionByName(callable.FullName, specKind);
-                    return this.CurrentBuilder.Call(func, args);
+                    value = this.CurrentBuilder.Call(func, args);
                 }
+
+                var result = this.Values.From(value, callable.Signature.ReturnType);
+                this.ScopeMgr.RegisterValue(result);
+                return result;
             }
 
             foreach (var tableName in this.pendingCallableTables)
@@ -1083,7 +1078,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var (callable, _) = this.callableTables[tableName];
                 foreach (var spec in callable.Specializations)
                 {
-                    var fullName = FunctionWrapperName(callable.FullName, spec.Kind);
+                    var fullName = NameGeneration.FunctionWrapperName(callable.FullName, spec.Kind);
                     if ((spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)
                         && this.Module.TryGetFunction(fullName, out IrFunction? func))
                     {
@@ -1097,7 +1092,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                                     argTuple.ElementTypes.Length > 1 ? argTuple :
                                     argTuple.ElementTypes.Length == 1 ? argTuple.GetTupleElement(0) :
                                     this.Values.Unit;
-                                return implementation(arg).Value;
+                                return implementation(arg);
                             }
                             else
                             {
@@ -1127,10 +1122,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             foreach (var type in this.pendingMemoryManagementTables)
             {
                 var table = this.memoryManagementTables[type];
+                var name = table.Name.Substring(0, table.Name.Length - "__FunctionTable".Length);
                 var functions = new List<(string, Action<Value, IValue>)>
                 {
-                    ($"{table.Name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
-                    ($"{table.Name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture)),
+                    ($"{name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
+                    ($"{name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture)),
                 };
 
                 foreach (var (funcName, updateCounts) in functions)
@@ -1357,7 +1353,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             Value? output = null;
-            this.ExecuteLoop(exitBlock, () =>
+            this.ExecuteLoop(() =>
             {
                 var (loopVariable, outputValue) = PopulateLoopHeader(startValue, evaluateCondition);
                 var newOutputValue = executeBody(loopVariable, outputValue);
@@ -1365,6 +1361,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 ContinueOrExitLoop((loopVariable, increment), outputUpdate);
                 output = outputUpdate?.Item1;
             });
+
+            this.SetCurrentBlock(exitBlock);
             return output;
         }
 
@@ -1394,14 +1392,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Executes the loop defined by the given action.
         /// Ensures that all pointers will be properly loaded during and after the loop.
         /// </summary>
-        /// <param name="continuation">The block to set as the current block after executing the loop</param>
         /// <param name="loop">The loop to execute</param>
-        internal void ExecuteLoop(BasicBlock continuation, Action loop)
+        internal void ExecuteLoop(Action loop)
         {
             this.StartLoop();
             loop();
             this.EndLoop();
-            this.SetCurrentBlock(continuation);
         }
 
         /// <summary>

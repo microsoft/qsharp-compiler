@@ -7,7 +7,7 @@
 
 using System.Collections.Generic;
 
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     /// <summary>Interface for a fixed shape collection of operands.</summary>
     /// <typeparam name="T">Type of elements in the container.</typeparam>

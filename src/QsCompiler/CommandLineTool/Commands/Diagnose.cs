@@ -234,11 +234,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             options.Print(logger);
             options.SetupLoadingContext();
-            if (!options.ParseAssemblyProperties(out var assemblyConstants))
-            {
-                logger.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
-            }
-
+            options.ParseAssemblyProperties(logger, out var assemblyConstants);
             var loadOptions = new CompilationLoader.Configuration
             {
                 AssemblyConstants = assemblyConstants,
@@ -246,6 +242,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapability = options.RuntimeCapability,
                 SkipMonomorphization = options.SkipMonomorphization,
+                LiftLambdaExpressions = true,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 SkipConjugationInlining = options.TrimLevel == 0,
@@ -255,11 +252,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 EnableAdditionalChecks = true,
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames,
             };
+
             var loaded = new CompilationLoader(
                 options.LoadSourcesOrSnippet(logger),
                 options.References ?? Enumerable.Empty<string>(),
                 loadOptions,
                 logger);
+
             if (loaded.VerifiedCompilation == null)
             {
                 return ReturnCode.Status(loaded);

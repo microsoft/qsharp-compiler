@@ -35,12 +35,12 @@ type GlobalVerificationTests() =
         this.Expect "LocalNamespaceShortNames1" []
         this.Expect "LocalNamespaceShortNames2" []
         this.Expect "LocalNamespaceShortNames3" [ Error ErrorCode.UnknownType ]
-        this.Expect "LocalNamespaceShortNames4" [ Error ErrorCode.UnknownType ]
+        this.Expect "LocalNamespaceShortNames4" [ Error ErrorCode.UnknownType; Warning WarningCode.DeprecatedNewArray ]
         this.Expect "LocalNamespaceShortNames5" [ Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames6" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
         this.Expect "LocalNamespaceShortNames7" [ Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames8" []
-        this.Expect "LocalNamespaceShortNames9" []
+        this.Expect "LocalNamespaceShortNames9" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "LocalNamespaceShortNames10" []
         this.Expect "LocalNamespaceShortNames11" [ Error ErrorCode.UnknownType; Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames12" [ Error ErrorCode.UnknownIdentifier ]
@@ -53,7 +53,7 @@ type GlobalVerificationTests() =
         this.Expect "LocalNamespaceShortNames19" []
         this.Expect "LocalNamespaceShortNames20" []
         this.Expect "LocalNamespaceShortNames21" []
-        this.Expect "LocalNamespaceShortNames22" []
+        this.Expect "LocalNamespaceShortNames22" (Warning WarningCode.DeprecatedNewArray |> List.replicate 2)
         this.Expect "LocalNamespaceShortNames23" []
         this.Expect "LocalNamespaceShortNames24" []
 
@@ -533,7 +533,7 @@ type GlobalVerificationTests() =
         this.Expect "ValidAttributes1" []
         this.Expect "ValidAttributes2" []
         this.Expect "ValidAttributes3" []
-        this.Expect "ValidAttributes4" []
+        this.Expect "ValidAttributes4" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "ValidAttributes5" []
         this.Expect "ValidAttributes6" []
         this.Expect "ValidAttributes7" []
@@ -555,7 +555,14 @@ type GlobalVerificationTests() =
         this.Expect "InvalidAttributes5" [ Error ErrorCode.UnknownTypeInNamespace ]
         this.Expect "InvalidAttributes6" [ Error ErrorCode.AttributeArgumentTypeMismatch ]
         this.Expect "InvalidAttributes7" [ Error ErrorCode.InvalidAttributeArgument ]
-        this.Expect "InvalidAttributes8" [ Error ErrorCode.ArgumentOfUserDefinedTypeInAttribute ]
+
+        this.Expect
+            "InvalidAttributes8"
+            [
+                Error ErrorCode.ArgumentOfUserDefinedTypeInAttribute
+                Warning WarningCode.DeprecatedNewArray
+            ]
+
         this.Expect "InvalidAttributes9" [ Error ErrorCode.MisplacedDeclarationAttribute ]
         this.Expect "InvalidAttributes10" [ Error ErrorCode.MisplacedDeclarationAttribute ]
         this.Expect "InvalidAttributes11" [ Error ErrorCode.MisplacedDeclarationAttribute ]

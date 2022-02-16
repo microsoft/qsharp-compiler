@@ -129,8 +129,8 @@ let private userDefinedType =
     multiSegmentSymbol ErrorCode.InvalidTypeName
     |>> asQualifiedSymbol
     |>> function
-    | { Symbol = InvalidSymbol } -> (InvalidType, Null) |> QsType.New
-    | symbol -> (UserDefinedType symbol, symbol.Range) |> QsType.New
+        | { Symbol = InvalidSymbol } -> (InvalidType, Null) |> QsType.New
+        | symbol -> (UserDefinedType symbol, symbol.Range) |> QsType.New
 
 
 // composite types
@@ -147,7 +147,7 @@ let private operationType =
     let characteristics = qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
 
     inAndOutputType .>>. (characteristics <|>% Characteristics.New(EmptySet, Null)) |> term
-    |>> asType Operation
+    |>> asType QsTypeKind.Operation
 
 /// <summary>
 /// Parses a Q# function type.
@@ -157,7 +157,7 @@ let private operationType =
 /// </remarks>
 let private functionType =
     leftRecursionByInfix fctArrow qsType (expectedQsType isTupleContinuation) |> term
-    |>> asType Function
+    |>> asType QsTypeKind.Function
 
 /// Parses a Q# tuple type, raising an Missing- or InvalidTypeDeclaration error for missing or invalid items.
 /// The tuple must consist of at least one tuple item.
@@ -174,8 +174,8 @@ let internal validateTypeSyntax isArrayItem { Type = kind; Range = range } =
     let end' = (range.ValueOr Range.Zero).End
 
     match kind with
-    | Function _
-    | Operation _ when isArrayItem ->
+    | QsTypeKind.Function _
+    | QsTypeKind.Operation _ when isArrayItem ->
         // To avoid confusing syntax like "new Int -> Int[3]" or "Qubit => Unit is Adj[]", require that function and
         // operation types are tupled when used as an array item type.
         [

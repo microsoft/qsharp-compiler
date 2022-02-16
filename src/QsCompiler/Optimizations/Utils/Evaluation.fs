@@ -296,7 +296,8 @@ and private ExpressionKindEvaluator
 
         match ex.Expression with
         | CallLikeExpression ({ Expression = Identifier (GlobalCallable qualName, types) }, arg) when
-            (callables.[qualName]).Kind = TypeConstructor ->
+            (callables.[qualName]).Kind = TypeConstructor
+            ->
             // TODO - must be adapted if we want to support user-defined type constructors
             QsCompilerError.Verify(
                 (callables.[qualName]).Specializations.Length = 1,
@@ -311,7 +312,7 @@ and private ExpressionKindEvaluator
             arg.Expression
         | _ -> UnwrapApplication ex
 
-    override this.OnArrayItem(arr, idx) =
+    override this.OnArrayItemAccess(arr, idx) =
         let arr, idx = this.simplify (arr, idx)
 
         match arr.Expression, idx.Expression with

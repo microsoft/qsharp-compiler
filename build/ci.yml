@@ -1,4 +1,4 @@
-name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(DayOfMonth)$(rev:rr)
+name: $(Build.Major).$(Build.Minor).$(DayOfMonth)$(rev:rr)
 
 variables:
   Build.Major: 0
@@ -26,8 +26,6 @@ schedules:
     - main
   always: true
 
-pool:
-  vmImage: windows-latest
 
 jobs:
 - job: Build
@@ -35,6 +33,17 @@ jobs:
   - template: init.yml
   - template: steps.yml
   - template: wrap-up.yml
+  strategy:
+    matrix:
+      linux:
+        imageName: 'ubuntu-latest'
+      mac:
+        imageName: 'macOS-latest'
+      windows:
+        imageName: 'windows-latest'
+  pool:
+    vmImage: $(imageName)
+
 
 - job: Style
   steps:
@@ -43,3 +52,5 @@ jobs:
 
   - script: dotnet tool run fantomas -- --check --recurse .
     displayName: Fantomas
+  pool:
+    vmImage: windows-latest

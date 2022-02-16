@@ -12,7 +12,7 @@ let private callables =
     CompilerTests.Compile(
         "TestCases",
         [ "CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs" ],
-        references = [ (File.ReadAllLines "ReferenceTargets.txt").[1] ]
+        references = [ (File.ReadAllLines "ReferenceTargets.txt").[2] ]
     )
     |> fun compilation -> compilation.BuiltCompilation
     |> CapabilityInference.InferCapabilities
@@ -23,7 +23,7 @@ let private callables =
 let private expect capability name =
     let fullName = CapabilityVerificationTests.testName name
     let actual = SymbolResolution.TryGetRequiredCapability callables.[fullName].Attributes
-    Assert.Equal(Value capability, actual)
+    Assert.Contains(capability, actual)
 
 [<Fact>]
 let ``Infers BasicQuantumFunctionality by source code`` () =

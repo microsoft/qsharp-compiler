@@ -219,11 +219,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             options.SetupLoadingContext();
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
-            if (!options.ParseAssemblyProperties(out var assemblyConstants))
-            {
-                logger.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
-            }
-
+            options.ParseAssemblyProperties(logger, out var assemblyConstants);
             var loadOptions = new CompilationLoader.Configuration
             {
                 ProjectName = options.ProjectName,
@@ -232,6 +228,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapability = options.RuntimeCapability,
                 SkipMonomorphization = options.SkipMonomorphization,
+                LiftLambdaExpressions = true,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 SkipConjugationInlining = options.TrimLevel == 0,

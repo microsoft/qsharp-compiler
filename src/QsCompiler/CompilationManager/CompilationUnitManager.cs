@@ -6,10 +6,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -28,6 +30,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     public class CompilationUnitManager : IDisposable
     {
         internal bool EnableVerification { get; private set; }
+
+        internal ProjectProperties BuildProperties => this.compilationUnit.BuildProperties;
 
         /// <summary>
         /// The keys are the file identifiers of the source files obtained by <see cref="GetFileId"/>
@@ -49,6 +53,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
         public Action<PublishDiagnosticParams> PublishDiagnostics { get; }
+
+        /// <summary>
+        /// General purpose logging routine.
+        /// </summary>
+        public Action<string, MessageType> Log { get; }
 
         /// <summary>
         /// Null if a global type checking has been queued but is not yet running.
@@ -73,21 +82,42 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If provided, called whenever diagnostics within a file have changed and are ready for publishing.
         /// </param>
         public CompilationUnitManager(
+            ProjectProperties buildProperties,
+            Action<Exception>? exceptionLogger = null,
+            Action<string, MessageType>? log = null,
+            Action<PublishDiagnosticParams>? publishDiagnostics = null,
+            bool syntaxCheckOnly = false)
+        {
+            this.EnableVerification = !syntaxCheckOnly;
+            this.compilationUnit = new CompilationUnit(buildProperties);
+            this.fileContentManagers = new ConcurrentDictionary<string, FileContentManager>();
+            this.changedFiles = new ManagedHashSet<string>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
+            this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
+            this.Log = log ?? ((_, __) => { });
+            this.LogException = exceptionLogger ?? Console.Error.WriteLine;
+            this.Processing = new ProcessingQueue(this.LogException);
+            this.waitForTypeCheck = new CancellationTokenSource();
+        }
+
+        [Obsolete("Use CompilationUnitManager(ProjectProperties, Action{Exception}?, Action{PublishDiagnosticParams}?, bool) instead.")]
+        public CompilationUnitManager(
             Action<Exception>? exceptionLogger = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
             bool syntaxCheckOnly = false,
             RuntimeCapability? capability = null,
             bool isExecutable = false,
-            string processorArchitecture = "Unspecified")
+            string? processorArchitecture = null)
+        : this(
+              new ProjectProperties(ImmutableDictionary.CreateRange(new[]
+              {
+                  new KeyValuePair<string, string?>(MSBuildProperties.ResolvedRuntimeCapabilities, capability?.Name),
+                  new KeyValuePair<string, string?>(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture),
+                  new KeyValuePair<string, string?>(MSBuildProperties.ResolvedQsharpOutputType, isExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary),
+              })),
+              exceptionLogger,
+              null,
+              publishDiagnostics)
         {
-            this.EnableVerification = !syntaxCheckOnly;
-            this.compilationUnit = new CompilationUnit(capability ?? RuntimeCapability.FullComputation, isExecutable, processorArchitecture);
-            this.fileContentManagers = new ConcurrentDictionary<string, FileContentManager>();
-            this.changedFiles = new ManagedHashSet<string>(new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion));
-            this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
-            this.LogException = exceptionLogger ?? Console.Error.WriteLine;
-            this.Processing = new ProcessingQueue(this.LogException);
-            this.waitForTypeCheck = new CancellationTokenSource();
         }
 
         /// <summary>
@@ -362,6 +392,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 this.changedFiles.Add(docKey);
                 var publish = false;
+
+                // We should keep the file version in sync with the reported by the LSP.
+                file.Version = param.TextDocument.Version;
+
                 foreach (var change in param.ContentChanges)
                 {
                     file.PushChange(change, out publish); // only the last one here is relevant
@@ -577,12 +611,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // work with a separate compilation unit instance such that processing of all further edits can go on in parallel
             var sourceFiles = this.fileContentManagers.Values.OrderBy(m => m.FileName);
             this.changedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName == f));
-            var compilation = new CompilationUnit(
-                this.compilationUnit.RuntimeCapability,
-                this.compilationUnit.IsExecutable,
-                this.compilationUnit.ProcessorArchitecture,
-                this.compilationUnit.Externals,
-                sourceFiles.Select(file => file.SyncRoot));
+            var compilation = new CompilationUnit(this.compilationUnit, sourceFiles.Select(file => file.SyncRoot));
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
             foreach (var file in sourceFiles)
             {
@@ -775,6 +804,86 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : null,
                 out var edit);
             return success ? edit : null;
+        }
+
+        /// <summary>
+        /// Returns the edits to format the file according to the specified settings.
+        /// </summary>
+        /// <remarks>
+        /// Returns null if some parameters are unspecified (null),
+        /// or if the specified file is not listed as source file
+        /// </remarks>
+        public TextEdit[]? Formatting(TextDocumentIdentifier? textDocument, bool format = true, bool update = true, int timeout = 3000)
+        {
+            var verb =
+                update && format ? "update-and-format" :
+                update ? "update" :
+                format ? "format" :
+                null;
+
+            var qsFmtExe = this.compilationUnit.BuildProperties.QsFmtExe;
+            var sdkPath = this.compilationUnit.BuildProperties.SdkPath;
+
+            var fmtCommand = qsFmtExe?.Split();
+            (string command, string dllPath) = fmtCommand != null && fmtCommand.Length > 0
+                ? (fmtCommand[0], string.Join(" ", fmtCommand[1..]))
+                : ("dotnet", Path.Combine(sdkPath ?? "", "tools", "qsfmt", "qsfmt.dll"));
+
+            // It is possible for File.Exists/Directory.Exists to return false for both dllPath and sdkPath
+            // despite that the command can indeed be successfully executed.
+            if (verb == null)
+            {
+                return null;
+            }
+
+            TextEdit[]? FormatFile(FileContentManager file)
+            {
+                var tempFile = Path.ChangeExtension(Path.GetTempFileName(), ".qs");
+                var currentContent = file.GetFileContent();
+                File.WriteAllText(tempFile, currentContent);
+
+                // The exit code is selected looking at this: https://tldp.org/LDP/abs/html/exitcodes.html
+                // Code 130 usually indicates "Script terminated by Control-C", and seem appropriate in this case.
+                var exitCodeOnTimeout = 130;
+                var commandArgs = $"{dllPath} {verb} --input {tempFile}";
+                this.Log($"Invoking {verb} command: {command} {commandArgs}", MessageType.Info);
+                var succeeded =
+                    ProcessRunner.Run(command, commandArgs, out var _, out var errstream, out var exitCode, out var ex, timeout: timeout, exitCodeOnTimeOut: exitCodeOnTimeout)
+                    && exitCode == 0 && ex == null;
+
+                if (succeeded)
+                {
+                    var range = DataTypes.Range.Create(DataTypes.Position.Zero, file.End());
+                    var edit = new TextEdit { Range = range.ToLsp(), NewText = File.ReadAllText(tempFile) };
+                    File.Delete(tempFile);
+                    return new[] { edit };
+                }
+                else if (exitCode == exitCodeOnTimeout)
+                {
+                    this.Log($"{verb} command timed out.", MessageType.Info);
+                }
+                else if (ex != null)
+                {
+                    if (qsFmtExe == null && this.compilationUnit.BuildProperties.SdkVersion > new Version(0, 21))
+                    {
+                        this.LogException(ex);
+                    }
+                }
+                else
+                {
+                    this.Log($"Unknown error during {verb} (exit code {exitCode}): \n{errstream}", MessageType.Error);
+                }
+
+                return null;
+            }
+
+            var succeeded = this.Processing.QueueForExecution(
+                () => this.FileQuery(
+                    textDocument,
+                    (file, _) => FormatFile(file),
+                    suppressExceptionLogging: false), // since the operation is blocking, no exceptions should occur
+                out var edits);
+            return succeeded ? edits : null;
         }
 
         // routines related to providing information for non-blocking editor commands

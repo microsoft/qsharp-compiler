@@ -175,10 +175,10 @@ module internal ResolutionResult =
     let internal AtMostOne<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
         TryAtMostOne(fun _ -> "")
         >> function
-        | Ambiguous _ ->
-            QsCompilerError.Raise "Resolution is ambiguous"
-            Exception() |> raise
-        | result -> result
+            | Ambiguous _ ->
+                QsCompilerError.Raise "Resolution is ambiguous"
+                Exception() |> raise
+            | result -> result
 
     /// Returns true if the resolution result indicates that a resolution exists (Found, Ambiguous or Inaccessible).
     let internal Exists =
@@ -235,8 +235,8 @@ module SymbolResolution =
         let argument =
             getArgument
             >> function
-            | Some redirect -> redirect |> AttributeAnnotation.NonInterpolatedStringArgument getInner |> Some
-            | None -> None
+                | Some redirect -> redirect |> AttributeAnnotation.NonInterpolatedStringArgument getInner |> Some
+                | None -> None
 
         attributes |> Seq.choose argument
 
@@ -421,12 +421,10 @@ module SymbolResolution =
     /// Correspondingly, the item is immutable, has no quantum dependencies,
     /// the position information is set to null, and the range is set to the given one.
     let private DeclarationArgument range (name, t) =
-        let info = { IsMutable = false; HasLocalQuantumDependency = false }
-
         {
             VariableName = name
             Type = t
-            InferredInformation = info
+            InferredInformation = InferredExpressionInformation.ParameterDeclaration
             Position = Null
             Range = range
         }
@@ -481,14 +479,14 @@ module SymbolResolution =
                 |> List.choose (
                     fst
                     >> function
-                    | ValidName name -> Some name
-                    | InvalidName -> None
+                        | ValidName name -> Some name
+                        | InvalidName -> None
                 )
 
             resolveType (validTpNames.ToImmutableArray())
 
         let argTuple, inErr = signature.Argument |> ResolveArgumentTuple(resolveArg, resolveType)
-        let argType = argTuple.ResolveWith(fun x -> x.Type.WithoutRangeInfo)
+        let argType = argTuple.ResolveWith(fun x -> (x.Type: ResolvedType).WithoutRangeInfo)
         let returnType, outErr = signature.ReturnType |> resolveType
         let resolvedParams = typeParams |> Seq.map fst |> ImmutableArray.CreateRange
         let resErrs = unusedTypeParamDiagnostics argType returnType typeParams

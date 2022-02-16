@@ -5,18 +5,18 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using LlvmBindings;
+using LlvmBindings.Instructions;
+using LlvmBindings.Types;
+using LlvmBindings.Values;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Ubiquity.NET.Llvm;
-using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Types;
-using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
+    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
@@ -538,14 +538,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.sharedState.ScopeMgr.RegisterValue(result);
 
                 // print the return value
-                if (!returnType.Resolution.IsUnitType)
-                {
-                    var message = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Message);
-                    var outputStr = QirExpressionKindTransformation.CreateStringLiteral(this.sharedState, "{0}", result);
-                    this.sharedState.CurrentBuilder.Call(message, outputStr.Value);
-                }
-
-                this.sharedState.AddReturn(this.sharedState.Values.Unit, true);
+                var message = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Message);
+                var outputStr = QirExpressionKindTransformation.CreateStringLiteral(this.sharedState, "{0}", result);
+                this.sharedState.CurrentBuilder.Call(message, outputStr.Value);
             });
 
             return entryPointFunction;

@@ -9,9 +9,9 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-using LLVMSharp.Interop;
+using LlvmBindings.Interop;
 
-namespace Ubiquity.NET.Llvm
+namespace LlvmBindings
 {
     /// <summary>LLVM MemoryBuffer.</summary>
     public sealed unsafe class MemoryBuffer
@@ -22,7 +22,7 @@ namespace Ubiquity.NET.Llvm
         {
             LLVMMemoryBufferRef handle;
             sbyte* msg;
-            if (LLVM.CreateMemoryBufferWithContentsOfFile(path.AsMarshaledString(), (LLVMOpaqueMemoryBuffer**)&handle, &msg) == 0)
+            if (LLVM.CreateMemoryBufferWithContentsOfFile(path.AsMarshaledString(), (LLVMOpaqueMemoryBuffer**)&handle, &msg) != 0)
             {
                 var span = new ReadOnlySpan<byte>(msg, int.MaxValue);
                 var errTxt = span.Slice(0, span.IndexOf((byte)'\0')).AsString();

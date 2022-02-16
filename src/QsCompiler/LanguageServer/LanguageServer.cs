@@ -10,9 +10,11 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Build.Locator;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
+using Microsoft.Quantum.Telemetry;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -96,12 +98,17 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.fileEvents = new CoalesceingQueue();
             this.fileEvents.Subscribe(fileEvents, observable => ProcessFileEvents(observable));
             this.editorState = new EditorState(
-                new ProjectLoader(this.LogToWindow),
+                MSBuildLocator.IsRegistered ? new ProjectLoader(this.LogToWindow) : null,
                 diagnostics => this.PublishDiagnosticsAsync(diagnostics),
                 (name, props, meas) => this.SendTelemetryAsync(name, props, meas),
                 this.LogToWindow,
-                this.OnInternalError,
-                this.OnTemporaryProjectLoaded);
+                this.OnInternalError);
+
+            if (!MSBuildLocator.IsRegistered)
+            {
+                this.LogToWindow("The Q# Language Server is running without the .NET SDK, not all features will be available.", MessageType.Warning);
+            }
+
             this.waitForInit.Set();
         }
 
@@ -186,6 +193,20 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal void OnInternalError(Exception ex)
         {
+            var exceptionLogRecord = ex.ToExceptionLogRecord(new ExceptionLoggingOptions()
+            {
+                CollectTargetSite = true,
+                CollectSanitizedStackTrace = true,
+            });
+            var telemetryProps = new Dictionary<string, string?>
+            {
+                { "exceptionType", exceptionLogRecord.FullName },
+                { "exceptionTargetSite", exceptionLogRecord.TargetSite },
+                { "exceptionStackTrace", exceptionLogRecord.StackTrace },
+            };
+            var telemetryMeas = new Dictionary<string, int>();
+            _ = this.SendTelemetryAsync("internal-error", telemetryProps, telemetryMeas);
+
             const string line = "\n=============================\n";
             const string logLocation = "the output window"; // TODO: Generate a proper error log in a file somewhere.
             const string message =
@@ -213,9 +234,6 @@ namespace Microsoft.Quantum.QsLanguageServer
                     break;
             }
         }
-
-        private void OnTemporaryProjectLoaded(Uri projectUri) =>
-            this.fileWatcher.ListenAsync(Path.GetDirectoryName(projectUri.LocalPath), false, null, "*.csproj").Wait();
 
         /* jsonrpc methods for initialization and shut down */
 
@@ -292,6 +310,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.WorkspaceSymbolProvider = false;
             capabilities.RenameProvider = true;
             capabilities.HoverProvider = true;
+            capabilities.DocumentFormattingProvider = true;
             capabilities.DocumentHighlightProvider = true;
             capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "(", "," };
             capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities
@@ -418,6 +437,33 @@ namespace Microsoft.Quantum.QsLanguageServer
             catch
             {
                 return null;
+            }
+        }
+
+        [JsonRpcMethod(Methods.TextDocumentFormattingName)]
+        public object OnFormatting(JToken arg)
+        {
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
+            var param = Utils.TryJTokenAs<DocumentFormattingParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentFormattingName}, but got null.");
+            }
+
+            try
+            {
+                return
+                    QsCompilerError.RaiseOnFailure(
+                        () => this.editorState.Formatting(param) ?? Array.Empty<TextEdit>(),
+                        "Formatting threw an exception");
+            }
+            catch
+            {
+                return Array.Empty<TextEdit>();
             }
         }
 
@@ -660,15 +706,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCodeActionName)]
         public object OnCodeAction(JToken arg)
         {
-            CodeAction CreateAction(string title, WorkspaceEdit edit)
-            {
-                return new CodeAction
-                {
-                    Title = title,
-                    Edit = edit,
-                };
-            }
-
             if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
@@ -685,9 +722,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return
                     QsCompilerError.RaiseOnFailure(
-                        () => this.editorState.CodeActions(param)
-                            ?.SelectMany(vs => vs.Select(v => CreateAction(vs.Key, v)))
-                            ?? Enumerable.Empty<CodeAction>(),
+                        () => this.editorState.CodeActions(param) ?? Enumerable.Empty<CodeAction>(),
                         "CodeAction threw an exception")
                     .ToArray();
             }
