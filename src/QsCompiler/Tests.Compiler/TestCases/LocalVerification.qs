@@ -1576,4 +1576,22 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation DeprecatedBorrowingKeywordParens() : Unit {
         borrowing (q = Qubit()) { }
     }
+
+    // Expression statements
+
+    operation ExpressionStatements1(q : Qubit) : Unit {
+        Operation(q);
+    }
+
+    operation ExpressionStatements2(q : Qubit) : Unit {
+        M(q);
+    }
+
+    operation ExpressionStatements3(q : Qubit) : Unit {
+        let _ = M(q);
+    }
+
+    operation ExpressionStatements4(q : Qubit) : Unit {
+        GenericFunction(M(q));
+    }
 }
