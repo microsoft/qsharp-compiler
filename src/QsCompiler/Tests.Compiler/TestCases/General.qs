@@ -66,6 +66,10 @@ namespace Microsoft.Quantum.Testing.General {
         body intrinsic;
     }
 
+    function DelayedId<'a>(x : 'a, u : Unit) : 'a {
+        return x;
+    }
+
     function Mapped<'a, 'b>(mapper : ('a -> 'b), array : 'a[]) : 'b[] {
         body intrinsic;
     }

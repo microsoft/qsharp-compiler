@@ -762,7 +762,7 @@ type QsExpression with
             let rhs = resolve context rhs
 
             let resolvedType =
-                if lhs.ResolvedType.Resolution = BigInt then
+                if inference.Resolve(lhs.ResolvedType).Resolution = BigInt then
                     inference.Unify(ResolvedType.New Int, rhs.ResolvedType) |> List.iter diagnose
                     lhs.ResolvedType
                 else

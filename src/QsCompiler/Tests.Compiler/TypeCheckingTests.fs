@@ -4,6 +4,7 @@
 namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System.Collections.Immutable
+open System.IO
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -16,6 +17,7 @@ module TypeCheckingTests =
 
     /// The compiled type-checking tests.
     let private tests = CompilerTests compilation
+        CompilerTests.Compile("TestCases", [ "General.qs"; "TypeChecking.qs"; "Types.qs" ]) |> CompilerTests
 
     let private ns = "Microsoft.Quantum.Testing.TypeChecking"
 
@@ -60,6 +62,19 @@ module TypeCheckingTests =
         allValid "Numeric" 3
         expect "NumericInvalid1" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
         expect "NumericInvalid2" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
+
+    [<Fact>]
+    let ``Supports power operator`` () =
+        expect "Power1" []
+        expect "Power2" []
+        expect "Power3" []
+        expect "Power4" []
+        expect "Power5" []
+        expect "PowerInvalid1" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid2" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid3" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid4" [ Error ErrorCode.TypeMismatch ]
+        expect "PowerInvalid5" [ Error ErrorCode.TypeMismatch ]
 
     [<Fact>]
     let ``Supports the semigroup operator`` () =
