@@ -485,7 +485,6 @@ type DiagnosticItem =
             | ErrorCode.MutableClosure ->
                 "A lambda expression cannot close over a mutable variable. "
                 + "Declare '{0}' as immutable or remove the reference to '{0}'."
-                + "The type {1} does not {0} the type {2}.\nLeft-hand type:  {3}\nRight-hand type: {4}"
             | ErrorCode.ValueImplicitlyIgnored ->
                 "This expression has type {0} and its value is implicitly ignored. "
                 + "Use \"let _ = expr;\" or \"Ignore(expr);\" to discard the value explicitly."
