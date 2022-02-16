@@ -1481,6 +1481,43 @@ let ``Lambda tests`` () =
         |> toExpr,
         []
 
+        "U(7, q => X(q))",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                toInt 7
+                Lambda.createUnchecked
+                    Operation
+                    (toSymbol "q")
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
+                |> toExpr
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
+        "U(7, i, q => X(q))",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                toInt 7
+                toIdentifier "i"
+                Lambda.createUnchecked
+                    Operation
+                    (toSymbol "q")
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
+                |> toExpr
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
         "F(_ -> 0, xs)",
         true,
         CallLikeExpression(
