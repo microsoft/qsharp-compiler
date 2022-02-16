@@ -14,6 +14,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
 // some utils for type checking statements
@@ -54,7 +55,12 @@ let private asStatement comments location vars kind =
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewExpressionStatement comments location context expr =
     let expr, diagnostics = resolveExpr context expr
-    context.Inference.Unify(ResolvedType.New UnitType, expr.ResolvedType) |> diagnostics.AddRange
+
+    if context.Inference.Unify(ResolvedType.New UnitType, expr.ResolvedType) |> List.isEmpty |> not then
+        let type_ = context.Inference.Resolve expr.ResolvedType |> SyntaxTreeToQsharp.Default.ToCode
+        let range = QsNullable.defaultValue Range.Zero expr.Range
+        QsCompilerDiagnostic.Error(ErrorCode.ValueImplicitlyIgnored, [ type_ ]) range |> diagnostics.Add
+
     QsExpressionStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
 /// Resolves and verifies the given Q# expression given the resolution context, verifies that the resolved expression is
