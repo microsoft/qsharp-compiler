@@ -161,36 +161,46 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                    IsBeforeOrEqual(range.Start, range.End);
         }
 
-        internal static void AssertCapability<TOptions>(this SumType<bool, TOptions>? capability, bool shouldHave = true, Func<TOptions, bool>? condition = null)
+        internal static void AssertCapability<TOptions>(
+            this SumType<bool, TOptions>? capability, bool shouldHave = true, Func<TOptions, bool>? condition = null)
         {
             if (shouldHave)
             {
                 Assert.IsTrue(capability.HasValue, "Expected capability to have value, but was null.");
             }
 
-            if (capability.HasValue)
-            {
-                capability!.Value.Match(
-                    flag =>
+            capability?.Match(
+                flag =>
+                {
+                    Assert.AreEqual(flag, shouldHave);
+                    return true;
+                },
+                options =>
+                {
+                    if (condition is null)
                     {
-                        Assert.AreEqual(flag, shouldHave);
-                        return true;
-                    },
-                    options =>
+                        Assert.IsNotNull(options);
+                    }
+                    else
                     {
-                        if (condition != null)
-                        {
-                            Assert.IsTrue(condition(options));
-                        }
-                        else
-                        {
-                            Assert.IsNotNull(options);
-                        }
+                        Assert.IsTrue(condition(options));
+                    }
 
-                        return true;
-                    });
-            }
+                    return true;
+                });
         }
+
+        internal static Task TestAfterTypeCheckingAsync(ProjectManager projectManager, Uri file, Action action) =>
+            projectManager.ManagerTaskAsync(file, (unitManager, foundProject) =>
+            {
+                Assert.IsTrue(foundProject);
+
+                unitManager.FlushAndExecute(() =>
+                {
+                    action();
+                    return new object();
+                });
+            });
 
         /// <summary>
         /// Instantiates a project manager for the project file with given Uri, and waits for the project to finish loading.

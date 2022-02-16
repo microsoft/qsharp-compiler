@@ -24,8 +24,8 @@ module internal DeclarationLocations =
     type NamespaceTransformation(parent: SyntaxTreeTransformation<TransformationState>) =
         inherit NamespaceTransformation<TransformationState>(parent)
 
-        override this.OnSourceFile file =
-            this.SharedState.CurrentSource <- file
+        override this.OnSource file =
+            this.SharedState.CurrentSource <- Source.assemblyOrCodeFile file
             file
 
         override this.OnLocation sourceLocation =

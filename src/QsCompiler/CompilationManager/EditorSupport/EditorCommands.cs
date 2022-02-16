@@ -366,7 +366,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool BeforePosition(Range symRange) => fragmentStart + symRange.End < position;
 
             IEnumerable<(Range?, string?)> ExtractParameterRanges(
-                QsExpression? ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> decl)
+                QsExpression? ex, QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> decl)
             {
                 var @null = ((Range?)null, (string?)null);
                 IEnumerable<(Range?, string?)> SingleItem(string paramName)
@@ -377,12 +377,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return new[] { arg };
                 }
 
-                if (decl is QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTupleItem dItem)
+                if (decl is QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>.QsTupleItem dItem)
                 {
                     return SingleItem(dItem.Item.VariableName is QsLocalSymbol.ValidName n ? n.Item : "__argName__");
                 }
 
-                var declItems = decl as QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTuple;
+                var declItems = decl as QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>.QsTuple;
                 var exItems = ex?.Expression as QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple;
                 if (declItems == null)
                 {
