@@ -65,5 +65,9 @@ namespace Microsoft.Quantum.Testing.General {
     operation CoinFlip() : Bool {
         body intrinsic;
     }
+
+    function DelayedId<'a>(x : 'a, u : Unit) : 'a {
+        return x;
+    }
 }
 
