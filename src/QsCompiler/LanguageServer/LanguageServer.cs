@@ -10,6 +10,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Build.Locator;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
@@ -97,11 +98,17 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.fileEvents = new CoalesceingQueue();
             this.fileEvents.Subscribe(fileEvents, observable => ProcessFileEvents(observable));
             this.editorState = new EditorState(
-                new ProjectLoader(this.LogToWindow),
+                MSBuildLocator.IsRegistered ? new ProjectLoader(this.LogToWindow) : null,
                 diagnostics => this.PublishDiagnosticsAsync(diagnostics),
                 (name, props, meas) => this.SendTelemetryAsync(name, props, meas),
                 this.LogToWindow,
                 this.OnInternalError);
+
+            if (!MSBuildLocator.IsRegistered)
+            {
+                this.LogToWindow("The Q# Language Server is running without the .NET SDK, not all features will be available.", MessageType.Warning);
+            }
+
             this.waitForInit.Set();
         }
 

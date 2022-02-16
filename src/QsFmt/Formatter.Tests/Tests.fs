@@ -22,7 +22,7 @@ let private run input expectedOutput expectedWarnings =
 
     try
         Console.SetError error
-        let output = Formatter.update "" None input |> Result.map standardizeNewLines
+        let output = Formatter.update "input" None input |> Result.map standardizeNewLines
         let warnings = error.ToString() |> standardizeNewLines
         Assert.Equal(expectedOutput, output)
         Assert.Equal(expectedWarnings, warnings)

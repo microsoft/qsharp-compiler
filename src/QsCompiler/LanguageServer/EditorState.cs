@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsLanguageServer
     internal class EditorState : IDisposable
     {
         private readonly ProjectManager projects;
-        private readonly ProjectLoader projectLoader;
+        private readonly ProjectLoader? projectLoader;
 
         public void Dispose() => this.projects.Dispose();
 
@@ -56,7 +56,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// does nothing if the a given action is null.
         /// </summary>
         internal EditorState(
-            ProjectLoader projectLoader,
+            ProjectLoader? projectLoader,
             Action<PublishDiagnosticParams>? publishDiagnostics,
             SendTelemetryHandler? sendTelemetry,
             Action<string, MessageType>? log,
@@ -107,7 +107,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal bool QsProjectLoader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? info)
         {
             info = null;
-            if (projectFile == null || !ValidFileUri(projectFile) || this.IgnoreFile(projectFile))
+
+            if (this.projectLoader is null || projectFile == null || !ValidFileUri(projectFile) || this.IgnoreFile(projectFile))
             {
                 return false;
             }
@@ -160,14 +161,18 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// and publishes suitable diagnostics for it.
         /// </summary>
         public Task LoadProjectsAsync(IEnumerable<Uri> projects) =>
-            this.projects.LoadProjectsAsync(projects, this.QsProjectLoader, this.GetOpenFile);
+            this.projectLoader is object ?
+                this.projects.LoadProjectsAsync(projects, this.QsProjectLoader, this.GetOpenFile) :
+                Task.CompletedTask;
 
         /// <summary>
         /// If the given uri corresponds to the project file for a Q# project,
         /// updates that project in the list of tracked projects or adds it if needed, and publishes suitable diagnostics for it.
         /// </summary>
         public Task ProjectDidChangeOnDiskAsync(Uri project) =>
-            this.projects.ProjectChangedOnDiskAsync(project, this.QsProjectLoader, this.GetOpenFile);
+            this.projectLoader is object ?
+                this.projects.ProjectChangedOnDiskAsync(project, this.QsProjectLoader, this.GetOpenFile) :
+                Task.CompletedTask;
 
         /// <summary>
         /// Updates all tracked Q# projects that reference the assembly with the given uri

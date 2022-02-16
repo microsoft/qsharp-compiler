@@ -167,7 +167,8 @@ let ``QIR doubles`` () = qirTest false "TestDoubles"
 let ``QIR bools`` () = qirTest false "TestBools"
 
 [<Fact>]
-let ``QIR bigints`` () = qirTest false "TestBigInts"
+let ``QIR bigints`` () =
+    qirMultiTest false "TestBigInts" [ "TestBigInts1"; "TestBigInts2" ]
 
 [<Fact>]
 let ``QIR controlled partial applications`` () =

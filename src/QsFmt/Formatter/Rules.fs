@@ -110,6 +110,12 @@ let getTrivia paren =
     | None -> []
     | Some p -> p.Prefix
 
+/// <summary>
+/// Insert a whitespace to <paramref name="prefix"/> if it is empty.
+/// </summary>
+let ensureSpace prefix =
+    if List.isEmpty prefix then [ spaces 1 ] else prefix
+
 let qubitBindingUpdate =
     { new Rewriter<_>() with
         override rewriter.QubitDeclarationStatement(_, decl) =
@@ -124,7 +130,7 @@ let qubitBindingUpdate =
             { decl with
                 Keyword = rewriter.Terminal((), { decl.Keyword with Text = keyword })
                 OpenParen = None
-                Binding = decl.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
+                Binding = decl.Binding |> QubitBinding.mapPrefix (((@) openTrivia) >> ensureSpace)
                 CloseParen = None
                 Coda =
                     match decl.Coda with
@@ -154,7 +160,7 @@ let forParensUpdate =
 
             { loop with
                 OpenParen = None
-                Binding = loop.Binding |> ForBinding.mapPrefix ((@) openTrivia)
+                Binding = loop.Binding |> ForBinding.mapPrefix (((@) openTrivia) >> ensureSpace)
                 CloseParen = None
                 Block = rewriter.Block((), rewriter.Statement, loop.Block) |> Block.mapPrefix ((@) closeTrivia)
             }
@@ -356,9 +362,6 @@ let checkArraySyntax fileName document =
                     let prefixLines, prefixChars = processPrefix newArray.New.Prefix
                     let subWarnings = base.Expression expression
 
-                    // Change the "-" input to say "input" in the warning
-                    let fileName = if fileName = "-" || fileName = "" then "input" else fileName
-
                     let warning =
                         sprintf
                             "Warning: Unable to update deprecated new array syntax in %s from line %i, character %i to line %i, character %i."
@@ -378,12 +381,6 @@ let checkArraySyntax fileName document =
         }
 
     reducer.Document document
-
-/// <summary>
-/// Insert a whitespace to <paramref name="prefix"/> if it is empty.
-/// </summary>
-let ensureSpace prefix =
-    if List.isEmpty prefix then [ spaces 1 ] else prefix
 
 let booleanOperatorUpdate =
     { new Rewriter<_>() with
