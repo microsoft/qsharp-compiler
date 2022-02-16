@@ -1,21 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFrameworks>netcoreapp3.1;netstandard2.1;net6.0</TargetFrameworks>
     <RootNamespace>Microsoft.Quantum.Telemetry</RootNamespace>
     <AssemblyName>Microsoft.Quantum.Telemetry</AssemblyName>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <Authors>Microsoft</Authors>
     <Description>Microsoft QDK telemetry library.</Description>
-    <PackageName>Microsoft.Quantum.Telemetry</PackageName>
+    <PackageId>Microsoft.Quantum.Telemetry</PackageId>
     <PackageReleaseNotes>See: https://docs.microsoft.com/azure/quantum/qdk-relnotes</PackageReleaseNotes>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/microsoft/qsharp-compiler</PackageProjectUrl>
     <PackageIcon>qdk-nuget-icon.png</PackageIcon>
-    <PackageTags>Quantum QDK</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <files>
+      <file src="bin\$(Configuration)\**\Microsoft.Quantum.Telemetry.dll" target="lib" />
+    </files>
+    <dependencies Condition="'$(TargetFramework)' == 'netstandard2.1'">
+      <dependency id="System.Text.Json" version="6.0.2" />
+    </dependencies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +25,15 @@
       <_Parameter1>Microsoft.Quantum.Telemetry.Tests$(PublicKeySuffix)</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
+    <PackageReference Include="System.Text.Json" Version="6.0.2" />
+  </ItemGroup>
+
+  <!-- .NET Standard 2.1 references, compilation flags and build options -->
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.1'">
+    <DefineConstants>NETCORE;NETSTANDARD;NETSTANDARD2_1</DefineConstants>
+  </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\..\..\build\assets\qdk-nuget-icon.png" Pack="true" Visible="false" PackagePath="" />
