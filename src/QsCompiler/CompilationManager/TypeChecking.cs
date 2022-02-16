@@ -1616,6 +1616,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return ImmutableArray<QsSpecialization>.Empty;
             }
 
+            // TODO: Bug investigation data point: definedSpecs contains only QsBody.
             var definedSpecs = compilation.GlobalSymbols.DefinedSpecializations(new QsQualifiedName(specsRoot.Namespace, specsRoot.Callable))
                 .ToLookup(s => s.Item2.Kind).ToImmutableDictionary(
                     specs => specs.Key,
@@ -1651,6 +1652,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new ArgumentException($"missing entry for {kind} specialization of {specsRoot.Namespace}.{specsRoot.Callable}");
                 }
 
+                // TODO: Bug investigation data point: directive (QsGeneratorDirective) is null here.
                 var (directive, spec) = defined;
                 var implementation = directive.IsValue ? SpecializationImplementation.NewGenerated(directive.Item) : null;
 
@@ -1663,6 +1665,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         Diagnostics.Generate(spec.Source.AssemblyOrCodeFile, message, specPos)));
 
                     QsGeneratorDirective? GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
+                    // TODO: Bug investigation data point: requiredFunctorSupport here is empty.
                     var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
                     var context = ScopeContext.Create(
                         compilation.GlobalSymbols,
@@ -1675,7 +1678,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 implementation ??= SpecializationImplementation.Intrinsic;
-                return GetSpecialization(spec, signature, implementation, comments);
+                // TODO: Bug investigation data point: THIS IS PROBABLY WHEN IT GOES WRONG. CAN'T FIND SPECIALIZATION.
+                var dbgSpec = GetSpecialization(spec, signature, implementation, comments);
+                Console.WriteLine(dbgSpec);
+                return dbgSpec;
             }
 
             var parentCharacteristics = parentSignature.Information.Characteristics; // note that if this one is invalid, the corresponding specializations are still compiled
@@ -1692,6 +1698,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 bool InvalidCharacteristicsOrSupportedFunctors(params QsFunctor[] functors) =>
                     parentCharacteristics.AreInvalid || !functors.Any(f => !supportedFunctors.Contains(f));
+
+                // TODO: Maybe do some debug variables here.
                 if (!definedSpecs.Values.Any(d => d.Item2.Position is DeclarationHeader.Offset.Defined pos && pos.Item == root.Fragment.Range.Start))
                 {
                     return null; // only process specializations that are valid
@@ -1755,6 +1763,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // build the specializations defined in the source code
             var existing = ImmutableArray.CreateBuilder<QsSpecialization>();
+            // TODO: Bug investigation data point: Use a loop here in order to see how BuildSpec works out for each one.
+            if (specsRoot.Specializations != null)
+            {
+                foreach (var node in specsRoot.Specializations)
+                {
+                    var spec = BuildSpec(node);
+                    Console.WriteLine(spec);
+                }
+            }
+
             specsRoot.Specializations?.SelectNotNull(BuildSpec).Apply(existing.AddRange);
             if (cancellationToken.IsCancellationRequested)
             {

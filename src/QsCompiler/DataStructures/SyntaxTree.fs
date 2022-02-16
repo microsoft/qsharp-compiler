@@ -357,7 +357,8 @@ type ResolvedCharacteristics =
     /// The properties cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
     /// </exception>
     member this.GetProperties() =
-        match ResolvedCharacteristics.ExtractProperties(fun ex -> ex._Characteristics) this with
+        let properties = ResolvedCharacteristics.ExtractProperties(fun ex -> ex._Characteristics) this
+        match properties with
         | Some props -> props.ToImmutableHashSet()
         | None -> InvalidOperationException "properties cannot be determined" |> raise
 

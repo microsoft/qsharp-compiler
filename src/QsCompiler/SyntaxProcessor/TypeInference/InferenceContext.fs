@@ -127,7 +127,10 @@ module private Inference =
     /// <paramref name="info2"/>.
     /// </summary>
     let isSubset info1 info2 =
-        info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
+        // TODO: Debug: Trying to see where is the problem.
+        let info1Properties = info1.Characteristics.GetProperties()
+        let info2Properties = info2.Characteristics.GetProperties()
+        info1Properties.IsSubsetOf(info2Properties)
 
     /// <summary>
     /// True if the characteristics of <paramref name="info"/> contain the given <paramref name="functor"/>.

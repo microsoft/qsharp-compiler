@@ -830,6 +830,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 // verify that a compilation indeed exists for each type, callable and specialization currently defined in global symbols
+                // TODO: Remove debug variable.
+                var tmpDefinedTypes = this.GlobalSymbols.DefinedTypes();
                 foreach (var declaration in this.GlobalSymbols.DefinedTypes())
                 {
                     var compilationExists = this.compiledTypes.TryGetValue(declaration.QualifiedName, out QsCustomType compiled);
@@ -841,6 +843,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 var entryPoints = ImmutableArray.CreateBuilder<QsQualifiedName>();
+                // TODO: Remove debug variable.
+                var tmpDefinedCallables = this.GlobalSymbols.DefinedCallables();
                 foreach (var declaration in this.GlobalSymbols.DefinedCallables())
                 {
                     if (declaration.Attributes.Any(BuiltIn.MarksEntryPoint))
@@ -851,6 +855,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var compilationExists = this.compiledCallables.TryGetValue(declaration.QualifiedName, out QsCallable compiled);
                     if (!compilationExists)
                     {
+                        // TODO: Here's where the error happens.
                         throw new InvalidOperationException($"missing compilation for callable " +
                         $"{declaration.QualifiedName.Namespace}.{declaration.QualifiedName.Name} defined in '{declaration.Source.AssemblyOrCodeFile}'");
                     }

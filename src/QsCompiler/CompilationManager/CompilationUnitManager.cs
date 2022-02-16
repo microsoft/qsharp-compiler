@@ -695,6 +695,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         return;
                     }
 
+                    // TODO: Remove debbug variable.
+                    var tmpRawCallables = compilation.GetCallables();
                     var validCallables = compilation.GetCallables().Values.Where(c => !changedFiles.Contains(c.Source.AssemblyOrCodeFile));
                     var validTypes = compilation.GetTypes().Values.Where(t => !changedFiles.Contains(t.Source.AssemblyOrCodeFile));
                     this.compilationUnit.UpdateCallables(validCallables);
@@ -1013,6 +1015,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             try
             {
+
                 return new Compilation(this);
             }
             catch (Exception ex)
