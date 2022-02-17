@@ -88,12 +88,13 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         Assert.False(
             codeMismatch.Any() || nrMismatch.Any(),
             sprintf
-                "%A code mismatch for %s.%s \nexpected: %s\ngot: %s"
+                "%A code mismatch for %s.%s \nexpected: %s\ngot: %s\nmessages: \n\t%s"
                 severity
                 name.Namespace
                 name.Name
                 (String.Join(", ", expected))
                 (String.Join(", ", got))
+                (String.Join("\n\t", diag.Where(fun d -> d.Severity = severity).Select(fun d -> d.Message)))
         )
 
 

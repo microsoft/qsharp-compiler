@@ -233,6 +233,7 @@ let private qirSubmission (entryPoint: QsCallable) parameters parseResult =
 let private generateAzurePayloadMethod context entryPoint parameters =
     let parseResultParamName = "parseResult"
     let settingsParamName = "settings"
+
     let args =
         [
             ident settingsParamName :> ExpressionSyntax

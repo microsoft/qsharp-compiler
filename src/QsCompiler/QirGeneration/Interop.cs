@@ -16,7 +16,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
+    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
