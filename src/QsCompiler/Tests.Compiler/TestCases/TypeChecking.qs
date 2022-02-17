@@ -91,6 +91,66 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         let _ = "1" / "2";
     }
 
+    // Power operator
+
+    function DelayedIntAsBigInt(x : Int, u : Unit) : BigInt {
+        return 1L;
+    }
+
+    function Power1() : BigInt {
+        let a = DelayedIntAsBigInt(1, ());
+        return a ^ 3;
+    }
+
+    function Power2() : BigInt {
+        let b = Default<BigInt>();
+        return b ^ 2;
+    }
+
+    function Power3() : BigInt {
+        let getOne = DelayedIntAsBigInt(1, _);
+        let c = getOne();
+        return c ^ 3;
+    }
+
+    function Power4() : BigInt {
+        let getOneGen = DelayedId(1L, _);
+        let d = getOneGen();
+        return d ^ 2;
+    }
+
+    function Power5() : BigInt {
+        let e = (DelayedId(_, ())(1L));
+        return e ^ 2;
+    }
+
+    function PowerInvalid1() : BigInt {
+        let a = DelayedIntAsBigInt(1, ());
+        return a ^ 3L;
+    }
+
+    function PowerInvalid2() : BigInt {
+        let b = Default<BigInt>();
+        return b ^ 2L;
+    }
+
+    function PowerInvalid3() : BigInt {
+        let getOne = DelayedIntAsBigInt(1, _);
+        let c = getOne();
+        return c ^ 3L;
+    }
+
+    function PowerInvalid4() : BigInt {
+        let getOneGen = DelayedId(1L, _);
+        let d = getOneGen();
+        return d ^ 2L;
+    }
+
+    function PowerInvalid5() : BigInt {
+        let e = (DelayedId(_, ())(1L));
+        return e ^ 2L;
+    }
+
     // Semigroup operator
 
     function Semigroup1() : Unit {
