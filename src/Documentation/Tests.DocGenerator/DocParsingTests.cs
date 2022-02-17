@@ -15,7 +15,7 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 {
-    using ArgDeclType = LocalVariableDeclaration<QsLocalSymbol>;
+    using ArgDeclType = LocalVariableDeclaration<QsLocalSymbol, ResolvedType>;
     using QsType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
     using SigTypeTuple = Tuple<ResolvedType, ResolvedType>;
 

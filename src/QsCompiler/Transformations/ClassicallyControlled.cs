@@ -837,9 +837,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
             return (identifier, args);
         }
 
-        private class LiftContent : ContentLifting.LiftContent<LiftContent.TransformationState>
+        private class LiftContent : ContentLifting.LiftContentUsingContext<LiftContent.TransformationState>
         {
-            internal class TransformationState : ContentLifting.LiftContent.TransformationState
+            internal class TransformationState : ContentLifting.LiftContentUsingContext.TransformationState
             {
                 internal bool IsConditionLiftable { get; set; } = false;
 
@@ -865,7 +865,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     && neq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result);
             }
 
-            private new class NamespaceTransformation : ContentLifting.LiftContent<TransformationState>.NamespaceTransformation
+            private new class NamespaceTransformation : ContentLifting.LiftContentUsingContext<TransformationState>.NamespaceTransformation
             {
                 public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
                     : base(parent)
@@ -885,7 +885,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                 }
             }
 
-            private new class StatementKindTransformation : ContentLifting.LiftContent<TransformationState>.StatementKindTransformation
+            private new class StatementKindTransformation : ContentLifting.LiftContentUsingContext<TransformationState>.StatementKindTransformation
             {
                 public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
                     : base(parent)
@@ -955,7 +955,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         else
                         {
                             // Lift the scope to its own operation
-                            if (this.SharedState.LiftBody(block.Body, false, out var call, out var callable))
+                            if (this.SharedState.LiftBody(block.Body, null, false, out var call, out var callable))
                             {
                                 var callStatement = new QsStatement(
                                     QsStatementKind.NewQsExpressionStatement(call),
@@ -996,8 +996,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         else
                         {
                             // Lift the scope to its own operation
-                            if (this.SharedState.LiftBody(block.Body, false, out var call, out var callable))
+                            if (this.SharedState.LiftBody(block.Body, null, false, out var call, out var callable))
                             {
+                                // Make sure the inferred information for the callable has local quantum dependency
+                                call = new TypedExpression(
+                                    call.Expression,
+                                    call.TypeArguments,
+                                    call.ResolvedType,
+                                    new InferredExpressionInformation(false, true),
+                                    call.Range);
+
                                 var callStatement = new QsStatement(
                                     QsStatementKind.NewQsExpressionStatement(call),
                                     LocalDeclarations.Empty,

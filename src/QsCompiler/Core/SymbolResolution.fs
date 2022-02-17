@@ -421,12 +421,10 @@ module SymbolResolution =
     /// Correspondingly, the item is immutable, has no quantum dependencies,
     /// the position information is set to null, and the range is set to the given one.
     let private DeclarationArgument range (name, t) =
-        let info = { IsMutable = false; HasLocalQuantumDependency = false }
-
         {
             VariableName = name
             Type = t
-            InferredInformation = info
+            InferredInformation = InferredExpressionInformation.ParameterDeclaration
             Position = Null
             Range = range
         }
@@ -488,7 +486,7 @@ module SymbolResolution =
             resolveType (validTpNames.ToImmutableArray())
 
         let argTuple, inErr = signature.Argument |> ResolveArgumentTuple(resolveArg, resolveType)
-        let argType = argTuple.ResolveWith(fun x -> x.Type.WithoutRangeInfo)
+        let argType = argTuple.ResolveWith(fun x -> (x.Type: ResolvedType).WithoutRangeInfo)
         let returnType, outErr = signature.ReturnType |> resolveType
         let resolvedParams = typeParams |> Seq.map fst |> ImmutableArray.CreateRange
         let resErrs = unusedTypeParamDiagnostics argType returnType typeParams

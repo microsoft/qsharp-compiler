@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             TypeTransformation.CharacteristicsExpression(characteristics);
 
         public static string ArgumentTuple(
-                QsTuple<LocalVariableDeclaration<QsLocalSymbol>> arg,
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> arg,
                 Func<ResolvedType, string?> typeTransformation,
                 Action? onInvalidName = null,
                 bool symbolsOnly = false) =>
@@ -742,6 +742,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
             /// <inheritdoc/>
+            public override QsExpressionKind OnLambda(Lambda<TypedExpression, ResolvedType> lambda)
+            {
+                var op = lambda.Kind.IsFunction ? "->" : "=>";
+                var paramStr = ArgumentTuple(lambda.ArgumentTuple, this.typeToQs);
+                this.Output = $"{paramStr} {op} {this.Recur(int.MinValue, lambda.Body)}";
+                this.currentPrecedence = int.MaxValue;
+                return QsExpressionKind.NewLambda(lambda);
+            }
+
+            /// <inheritdoc/>
             public override QsExpressionKind OnFunctionCall(TypedExpression method, TypedExpression arg)
             {
                 return this.CallLike(method, arg);
@@ -841,7 +851,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
             /// <inheritdoc/>
-            public override QsExpressionKind OnArrayItem(TypedExpression arr, TypedExpression idx)
+            public override QsExpressionKind OnArrayItemAccess(TypedExpression arr, TypedExpression idx)
             {
                 var prec = Keywords.qsArrayAccessCombinator.prec;
                 this.Output = $"{this.Recur(prec, arr)}[{this.Recur(int.MinValue, idx)}]"; // Todo: generate contextual open range expression when appropriate
@@ -850,7 +860,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
             /// <inheritdoc/>
-            public override QsExpressionKind OnNamedItem(TypedExpression ex, Identifier acc)
+            public override QsExpressionKind OnNamedItemAccess(TypedExpression ex, Identifier acc)
             {
                 this.OnIdentifier(acc, QsNullable<ImmutableArray<ResolvedType>>.Null);
                 var (op, itemName) = (Keywords.qsNamedItemCombinator, this.Output);
@@ -1437,8 +1447,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             // overrides
 
             /// <inheritdoc/>
-            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> OnProvidedImplementation(
-                QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
+            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope> OnProvidedImplementation(
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> argTuple, QsScope body)
             {
                 var functorArg = "(...)";
                 if (this.currentSpecialization == Keywords.ctrlDeclHeader.id || this.currentSpecialization == Keywords.ctrlAdjDeclHeader.id)
@@ -1477,7 +1487,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     this.AddComments(comments.ClosingComments);
                 }
 
-                return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
+                return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope>(argTuple, body);
             }
 
             /// <inheritdoc/>

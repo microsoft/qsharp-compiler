@@ -3,52 +3,71 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
+open System.Collections.Immutable
 open System.IO
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 
 /// Tests for type checking of Q# programs.
 module TypeCheckingTests =
-    let private sourceFiles =
-        [
-            Path.Combine("LinkingTests", "Core.qs")
-            "General.qs"
-            "TypeChecking.qs"
-            "Types.qs"
-        ]
+    let private compilation =
+        CompilerTests.Compile(
+            "TestCases",
+            [
+                Path.Combine("LinkingTests", "Core.qs")
+                "General.qs"
+                "TypeChecking.qs"
+                "Types.qs"
+            ]
+        )
 
     /// The compiled type-checking tests.
-    let private tests = CompilerTests.Compile("TestCases", sourceFiles) |> CompilerTests
+    let private tests = CompilerTests compilation
+
+    let private ns = "Microsoft.Quantum.Testing.TypeChecking"
 
     /// <summary>
     /// Asserts that the declaration with the given <paramref name="name"/> has the given
     /// <paramref name="diagnostics"/>.
     /// </summary>
     let internal expect name diagnostics =
-        let ns = "Microsoft.Quantum.Testing.TypeChecking"
         tests.VerifyDiagnostics(QsQualifiedName.New(ns, name), diagnostics)
+
+    let private allValid name count =
+        for i = 1 to count do
+            expect (sprintf "%s%i" name i) []
+
+    let private findSpecScope name kind =
+        let callable = compilation.Callables.[QsQualifiedName.New(ns, name)]
+        let spec = callable.Specializations |> Seq.find (fun s -> s.Kind = kind)
+
+        match spec.Implementation with
+        | Provided (_, scope) -> scope
+        | _ -> failwith "Missing specialization implementation."
+
+    let private getOperationType (type_: ResolvedType) =
+        match type_.Resolution with
+        | QsTypeKind.Operation (io, info) -> io, info
+        | _ -> failwith "Not an operation type."
 
     [<Fact>]
     let ``Supports integral operators`` () =
-        expect "Integral1" []
-        expect "Integral2" []
+        allValid "Integral" 2
         expect "IntegralInvalid1" (Error ErrorCode.ExpectingIntegralExpr |> List.replicate 4)
         expect "IntegralInvalid2" (Error ErrorCode.TypeIntersectionMismatch |> List.replicate 4)
 
     [<Fact>]
     let ``Supports iteration`` () =
-        expect "Iterable1" []
-        expect "Iterable2" []
+        allValid "Iterable" 2
         expect "IterableInvalid1" [ Error ErrorCode.ExpectingIterableExpr ]
         expect "IterableInvalid2" [ Error ErrorCode.ExpectingIterableExpr ]
 
     [<Fact>]
     let ``Supports numeric operators`` () =
-        expect "Numeric1" []
-        expect "Numeric2" []
-        expect "Numeric3" []
+        allValid "Numeric" 3
         expect "NumericInvalid1" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
         expect "NumericInvalid2" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
 
@@ -67,11 +86,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Supports the semigroup operator`` () =
-        expect "Semigroup1" []
-        expect "Semigroup2" []
-        expect "Semigroup3" []
-        expect "Semigroup4" []
-        expect "Semigroup5" []
+        allValid "Semigroup" 5
         expect "SemigroupInvalid1" [ Error ErrorCode.InvalidTypeForConcatenation ]
         expect "SemigroupInvalid2" [ Error ErrorCode.InvalidTypeForConcatenation ]
 
@@ -97,13 +112,74 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Supports sized array literals`` () =
-        expect "SizedArray1" []
-        expect "SizedArray2" []
-        expect "SizedArray3" []
-        expect "SizedArray4" []
+        allValid "SizedArray" 4
         expect "SizedArrayInvalid1" [ Error ErrorCode.TypeMismatch ]
         expect "SizedArrayInvalid2" [ Error ErrorCode.TypeMismatch ]
         expect "SizedArrayInvalid3" [ Error ErrorCode.TypeMismatch ]
+
+    [<Fact>]
+    let ``Supports lambda expressions`` () =
+        allValid "Lambda" 22
+        expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
+        expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
+        expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
+        expect "LambdaInvalid4" [ Error ErrorCode.MutableClosure ]
+        expect "LambdaInvalid5" [ Error ErrorCode.MutableClosure; Error ErrorCode.MutableClosure ]
+        expect "LambdaInvalid6" [ Error ErrorCode.LocalVariableAlreadyExists ]
+        expect "LambdaInvalid7" [ Error ErrorCode.LocalVariableAlreadyExists ]
+
+    [<Fact>]
+    let ``Operation lambda with non-unit return (1)`` () =
+        let scope = findSpecScope "Lambda17" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let (_, output), info = getOperationType lambda.Type
+        Assert.Equal(Int, output.Resolution)
+        Assert.Empty(info.Characteristics.GetProperties())
+
+    [<Fact>]
+    let ``Operation lambda with non-unit return (2)`` () =
+        let scope = findSpecScope "Lambda18" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let (_, output), info = getOperationType lambda.Type
+
+        let outputs =
+            match output.Resolution with
+            | TupleType ts -> ts |> Seq.map (fun t -> t.Resolution)
+            | _ -> failwith "Not a tuple type."
+
+        Assert.Equal([ UnitType; Int ], outputs)
+        Assert.Empty(info.Characteristics.GetProperties())
+
+    [<Fact>]
+    let ``Operation lambda with non-unit return (3)`` () =
+        let scope = findSpecScope "Lambda19" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let (_, output), info = getOperationType lambda.Type
+        Assert.Equal(Int, output.Resolution)
+        Assert.Empty(info.Characteristics.GetProperties())
+
+    [<Fact>]
+    let ``Operation lambda characteristics intersection (1)`` () =
+        let scope = findSpecScope "Lambda20" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let _, info = getOperationType lambda.Type
+        let properties = info.Characteristics.GetProperties()
+        Assert.True(properties.SetEquals(ImmutableHashSet.Create Adjointable), "Set not equal to Adj.")
+
+    [<Fact>]
+    let ``Operation lambda characteristics intersection (2)`` () =
+        let scope = findSpecScope "Lambda21" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let _, info = getOperationType lambda.Type
+        let properties = info.Characteristics.GetProperties()
+        Assert.True(properties.SetEquals(ImmutableHashSet.Create Controllable), "Set not equal to Ctl.")
+
+    [<Fact>]
+    let ``Operation lambda characteristics intersection (3)`` () =
+        let scope = findSpecScope "Lambda22" QsBody
+        let lambda = Seq.exactlyOne scope.Statements.[0].SymbolDeclarations.Variables
+        let _, info = getOperationType lambda.Type
+        Assert.Empty(info.Characteristics.GetProperties())
 
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =
