@@ -152,6 +152,7 @@ type CodegenContext =
                 target = AssemblyConstants.HoneywellProcessor
                 || target = AssemblyConstants.IonQProcessor
                 || target = AssemblyConstants.QCIProcessor
+                || target = AssemblyConstants.QuantinuumProcessor
                 || target = "MicrosoftSimulator" // ToDo: We need to have an assembly constant for this.
             | _ -> false
 
