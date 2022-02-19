@@ -281,11 +281,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// <returns>The argument string</returns>
         internal static string CallableToArguments(QsCallable callable)
         {
-            void ProcessTuple(StringBuilder builder, QsTuple<LocalVariableDeclaration<QsLocalSymbol>> tuple, bool topLevel)
+            void ProcessTuple(StringBuilder builder, QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> tuple, bool topLevel)
             {
                 if (tuple.IsQsTupleItem)
                 {
-                    var item = ((QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTupleItem)tuple).Item;
+                    var item = ((QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>.QsTupleItem)tuple).Item;
                     if (topLevel)
                     {
                         builder.Append('(');
@@ -302,7 +302,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 }
                 else
                 {
-                    var items = ((QsTuple<LocalVariableDeclaration<QsLocalSymbol>>.QsTuple)tuple).Item;
+                    var items = ((QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>.QsTuple)tuple).Item;
                     builder.Append('(');
                     var first = true;
                     foreach (var item in items)

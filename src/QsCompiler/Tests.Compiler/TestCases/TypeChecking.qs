@@ -839,4 +839,132 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     function SizedArrayInvalid3() : Int[] {
         return [5, size = (1, 2)];
     }
+
+    // Lambdas
+
+    function Lambda1<'a>() : 'a -> 'a {
+        return x -> x;
+    }
+
+    function Lambda2(x : Int) : Int -> Int {
+        return y -> x + y;
+    }
+
+    function Lambda3<'a>() : 'a => 'a {
+        return x => x;
+    }
+
+    function Lambda4(x : Int) : Int => Int {
+        return y => x + y;
+    }
+
+    function Lambda5() : Qubit => Unit {
+        return q => Operation(q);
+    }
+
+    function Lambda6() : Qubit => Unit is Adj {
+        return q => Adjointable(q);
+    }
+
+    function Lambda7() : Qubit => Unit is Adj + Ctl {
+        return q => Unitary(q);
+    }
+
+    function Lambda8(xs : Int[]) : String[] {
+        return Mapped(x -> $"{x}", xs);
+    }
+
+    function Lambda9() : Int[] {
+        return Mapped(_ -> 0, ["a", "b", "c"]);
+    }
+
+    function Lambda10() : Int {
+        let id = x -> x;
+        return id(0);
+    }
+
+    function Lambda11() : (Int, Int) {
+        let id = x -> x;
+        return id(0, 1);
+    }
+
+    function Lambda12() : Int {
+        let fst = (x, _) -> x;
+        return fst(0, 1);
+    }
+
+    function Lambda13() : Int {
+        let call = (f, x) -> f(x);
+        let add1 = x -> x + 1;
+        return call(add1, 0);
+    }
+
+    function Lambda14() : Unit -> Int {
+        return () -> 0;
+    }
+
+    function Lambda15<'a>() : 'a -> String {
+        return x -> "foo";
+    }
+
+    function Lambda16<'a>() : 'a -> 'a[] {
+        return x -> [];
+    }
+
+    function Lambda17() : Unit {
+        let op = () => 1;
+    }
+
+    function Lambda18() : Unit {
+        let op = () => (GenericUnitary(), 2);
+    }
+
+    function Lambda19() : Unit {
+        let op = x => x + 1;
+    }
+
+    function Lambda20() : Unit {
+        let op = q => GenericFunction(Unitary(q), Adjointable(q));
+    }
+
+    function Lambda21() : Unit {
+        let op = q => GenericFunction(Unitary(q), Controllable(q));
+    }
+
+    function Lambda22() : Unit {
+        let op = q => GenericFunction(Adjointable(q), Controllable(q));
+    }
+
+    function LambdaInvalid1() : Qubit => Unit is Adj {
+        return q => Operation(q);
+    }
+
+    function LambdaInvalid2() : Qubit => Unit is Adj + Ctl {
+        return q => Adjointable(q);
+    }
+
+    function LambdaInvalid3() : Int {
+        let f = (f, x) -> f(f, x);
+        return f(f, 0);
+    }
+
+    function LambdaInvalid4() : Unit -> Int {
+        mutable x = 0;
+        return () -> x;
+    }
+
+    function LambdaInvalid5() : Unit -> Int {
+        mutable x = 0;
+        return () -> x + x;
+    }
+
+    function LambdaInvalid6() : Int -> Int {
+        let x = 0;
+        return x -> x;
+    }
+
+    function LambdaInvalid7() : Int -> Int {
+        mutable x = 0;
+        return x -> x;
+    }
 }

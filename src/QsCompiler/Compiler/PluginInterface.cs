@@ -21,7 +21,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// Priority of the built-in transformation that removes all
         /// unused callables from the syntax tree.
         /// </summary>
-        public const int SyntaxTreeTrimming = 1200;
+        public const int SyntaxTreeTrimming = 1300;
+
+        /// <summary>
+        /// Priority of the built-in transformation that replaces
+        /// lambda expressions with the corresponding calls to generated callables if possible.
+        /// </summary>
+        public const int LambdaExpressionElimination = 1200;
 
         /// <summary>
         /// Priority of the built-in transformation that replaces

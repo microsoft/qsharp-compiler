@@ -26,6 +26,10 @@ namespace Microsoft.Quantum.Tests.UnitTests {
     operation UnitTest2() : Unit {
 	}
 
+    @Test("ResourcesEstimator")
+    @Test("SparseSimulator")
+    operation UnitTest3 () : Unit {
+    }
 }
 
 

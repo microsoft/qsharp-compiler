@@ -304,6 +304,10 @@ let qsNEGop = QsOperator.New("-", 45, false)
 let qsSetUnion = QsOperator.New("+", 10, true)
 let qsSetIntersection = QsOperator.New("*", 20, true)
 
+// ToDo: clarify the precedence of the lambda operators (https://github.com/microsoft/qsharp-compiler/issues/1113)
+//let qsLambdaOp = QsOperator.New("=>", 0, false)
+//let qsLambdaFunc = QsOperator.New("->", 0, false)
+
 // As far as the precedence rules of Q# go,
 // there are operators (the things above, processed by an operator precedence parser),
 // modifiers (functors and unwrap, processed manually as part of certain expressions),

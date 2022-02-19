@@ -464,6 +464,10 @@ type LocalVerificationTests() =
         this.Expect "ValidTestAttribute18" []
         this.Expect "ValidTestAttribute19" [ Warning WarningCode.DuplicateAttribute ]
         this.Expect "ValidTestAttribute20" []
+        this.Expect "ValidTestAttribute21" []
+        this.Expect "ValidTestAttribute22" []
+        this.Expect "ValidTestAttribute23" []
+        this.Expect "ValidTestAttribute24" [ Warning WarningCode.DuplicateAttribute ]
 
         this.Expect "InvalidTestAttribute1" [ Error ErrorCode.InvalidTestAttributePlacement ]
         this.Expect "InvalidTestAttribute2" [ Error ErrorCode.MisplacedDeclarationAttribute ]

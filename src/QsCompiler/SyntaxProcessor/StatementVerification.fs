@@ -12,8 +12,6 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
@@ -93,57 +91,6 @@ let NewReturnStatement comments (location: QsLocation) context expr =
 
     QsReturnStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
-/// Given a Q# symbol, as well as the resolved type of the right hand side that is assigned to it,
-/// shape matches the symbol tuple with the type to determine whether the assignment is valid, and
-/// calls the given function tryBuildDeclaration on each symbol item and its matched type.
-/// The passed function tryBuildDeclaration is expected to take a symbol name and type as well as their respective ranges as argument,
-/// and return either the built declaration as Some - if it was built successfully - or None, as well as an array with diagnostics.
-/// Generates an ExpectingUnqualifiedSymbol error if the given symbol contains qualified symbol items.
-/// Generates a SymbolTupleShapeMismatch error for the corresponding range if the shape matching fails.
-/// Generates an ExpressionOfUnknownType error if the given type of the right hand side contains a missing type.
-/// If warnOnDiscard is set to true, generates a DiscardingItemInAssignment warning if a symbol on the left hand side is missing.
-/// Returns the resolved SymbolTuple, as well as an array with all local variable declarations returned by tryBuildDeclaration,
-/// along with an array containing all generated diagnostics.
-let rec private VerifyBinding (inference: InferenceContext) tryBuildDeclaration (symbol, rhsType) warnOnDiscard =
-    let symbolTuple =
-        function
-        | [] -> failwith "Symbol tuple is empty."
-        | [ x ] -> x
-        | xs -> ImmutableArray.CreateRange xs |> VariableNameTuple
-
-    match symbol.Symbol with
-    | InvalidSymbol -> InvalidItem, [||], [||]
-    | MissingSymbol when warnOnDiscard ->
-        let warning = QsCompilerDiagnostic.Warning(WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
-        DiscardedItem, [||], [| warning |]
-    | MissingSymbol -> DiscardedItem, [||], [||]
-    | OmittedSymbols
-    | QualifiedSymbol _ ->
-        let error = QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
-        InvalidItem, [||], [| error |]
-    | Symbol name ->
-        match tryBuildDeclaration (name, symbol.RangeOrDefault) (rhsType) with
-        | Some declaration, diagnostics -> VariableName name, [| declaration |], diagnostics
-        | None, diagnostics -> VariableName name, [||], diagnostics
-    | SymbolTuple symbols ->
-        let types = symbols |> Seq.map (fun symbol -> inference.Fresh symbol.RangeOrDefault) |> Seq.toList
-
-        let tupleType =
-            ImmutableArray.CreateRange types
-            |> TupleType
-            |> ResolvedType.create (TypeRange.inferred symbol.Range)
-
-        let unifyDiagnostics = inference.Unify(tupleType, rhsType)
-
-        let verify symbol symbolType =
-            VerifyBinding inference tryBuildDeclaration (symbol, symbolType) warnOnDiscard
-
-        let combine (item, declarations1, diagnostics1) (items, declarations2, diagnostics2) =
-            item :: items, Array.append declarations1 declarations2, Array.append diagnostics1 diagnostics2
-
-        let items, declarations, diagnostics = Seq.foldBack combine (Seq.map2 verify symbols types) ([], [||], [||])
-        symbolTuple items, declarations, List.toArray unifyDiagnostics |> Array.append diagnostics
-
 /// Resolves and verifies the given Q# expressions using the resolution context.
 /// Verifies that the type of the resolved right hand side expression is indeed compatible with the resolved type of the left hand side expression.
 /// Uses VerifyAssignment to verify that this is indeed the case.
@@ -189,7 +136,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise.
 let private TryAddDeclaration isMutable (symbols: SymbolTracker) (name: string, location, localQdep) rhsType =
     let t, tpErr = rhsType, [||]
-    let decl = LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)
+    let decl = LocalVariableDeclaration.New isMutable (location, name, t, localQdep)
     let added, errs = symbols.TryAddVariableDeclartion decl
     (if added then Some decl else None), Array.append tpErr errs
 
@@ -209,7 +156,7 @@ let private NewBinding kind comments (location: QsLocation) context (symbol, exp
                 context.Symbols
                 (name, (Value location.Offset, range), expr.InferredInformation.HasLocalQuantumDependency)
 
-        VerifyBinding context.Inference addDeclaration (symbol, expr.ResolvedType) false
+        verifyBinding context.Inference addDeclaration (symbol, expr.ResolvedType) false
 
     diagnostics.AddRange bindingDiagnostics
     onAutoInvertCheckQuantumDependency context.Symbols expr |> diagnostics.AddRange
@@ -253,7 +200,7 @@ let NewForStatement comments (location: QsLocation) context (symbol, expr) =
                 context.Symbols
                 (name, (Value location.Offset, range), expr.InferredInformation.HasLocalQuantumDependency)
 
-        VerifyBinding context.Inference addDeclaration (symbol, itemType) false
+        verifyBinding context.Inference addDeclaration (symbol, itemType) false
 
     diagnostics.AddRange bindingDiagnostics
     onAutoInvertCheckQuantumDependency context.Symbols expr |> diagnostics.AddRange
@@ -395,7 +342,7 @@ let private NewBindingScope kind comments (location: QsLocation) context (symbol
         let addDeclaration (name, range) =
             TryAddDeclaration false context.Symbols (name, (Value location.Offset, range), false)
 
-        VerifyBinding context.Inference addDeclaration (symbol, init.Type) true
+        verifyBinding context.Inference addDeclaration (symbol, init.Type) true
 
     let bindingScope body =
         QsQubitScope.New kind ((symbolTuple, init), body) |> QsQubitScope

@@ -249,7 +249,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         }
 
         private static LocalVariableDeclaration<QsLocalSymbol> ToBondSchema(
-            this SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol> localVariableDeclaration) =>
+            this SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol, SyntaxTree.ResolvedType> localVariableDeclaration) =>
             localVariableDeclaration.ToBondSchemaGeneric(typeTranslator: ToBondSchema);
 
         private static QsLocation ToBondSchema(this SyntaxTree.QsLocation qsLocation) =>
@@ -488,7 +488,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         }
 
         private static QsTuple<LocalVariableDeclaration<QsLocalSymbol>> ToBondSchema(
-            this SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>> localVariableDeclaration) =>
+            this SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol, SyntaxTree.ResolvedType>> localVariableDeclaration) =>
             localVariableDeclaration.ToBondSchemaGeneric(typeTranslator: ToBondSchema);
 
         private static QsTuple<QsTypeItem> ToBondSchema(
@@ -725,7 +725,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         }
 
         private static LocalVariableDeclaration<TBond> ToBondSchemaGeneric<TBond, TCompiler>(
-            this SyntaxTree.LocalVariableDeclaration<TCompiler> localVariableDeclaration,
+            this SyntaxTree.LocalVariableDeclaration<TCompiler, SyntaxTree.ResolvedType> localVariableDeclaration,
             Func<TCompiler, TBond> typeTranslator) =>
             new LocalVariableDeclaration<TBond>
             {
@@ -1443,7 +1443,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             };
 
         private static SpecializationImplementationKindProvided ToSpecializationImplementationKindProvided(
-            SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>> tuple,
+            SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol, SyntaxTree.ResolvedType>> tuple,
             SyntaxTree.QsScope implementation) =>
             new SpecializationImplementationKindProvided
             {
