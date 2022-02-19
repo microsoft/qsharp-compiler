@@ -3,52 +3,37 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+#nowarn "44" // TODO: RELEASE 2022-09, reenable after the overrides (*) are removed
+
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
 
 // setup for syntax tree transformations with internal state
 
 type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOptions, _internal_: string) =
-
-    let mutable _Types = new TypeTransformation<'T>(TransformationOptions.Default, _internal_)
-    let mutable _ExpressionKinds = new ExpressionKindTransformation<'T>(TransformationOptions.Default, _internal_)
-    let mutable _Expressions = new ExpressionTransformation<'T>(TransformationOptions.Default, _internal_)
-    let mutable _StatementKinds = new StatementKindTransformation<'T>(TransformationOptions.Default, _internal_)
-    let mutable _Statements = new StatementTransformation<'T>(TransformationOptions.Default, _internal_)
-    let mutable _Namespaces = new NamespaceTransformation<'T>(TransformationOptions.Default, _internal_)
+    inherit CommonTransformationNodes()
 
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
-    member this.Types
-        with get () = _Types
-        and set value = _Types <- value
+    member val Types = new TypeTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
-    member this.ExpressionKinds
-        with get () = _ExpressionKinds
-        and set value = _ExpressionKinds <- value
+    member val ExpressionKinds =
+        new ExpressionKindTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all expressions encountered when traversing (parts of) the syntax tree.
-    member this.Expressions
-        with get () = _Expressions
-        and set value = _Expressions <- value
+    member val Expressions = new ExpressionTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all statement kinds encountered when traversing (parts of) the syntax tree.
-    member this.StatementKinds
-        with get () = _StatementKinds
-        and set value = _StatementKinds <- value
+    member val StatementKinds =
+        new StatementKindTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all statements encountered when traversing (parts of) the syntax tree.
-    member this.Statements
-        with get () = _Statements
-        and set value = _Statements <- value
+    member val Statements = new StatementTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all namespaces encountered when traversing (parts of) the syntax tree.
-    member this.Namespaces
-        with get () = _Namespaces
-        and set value = _Namespaces <- value
+    member val Namespaces = new NamespaceTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
     /// Invokes the transformation for all namespaces in the given compilation.
     member this.OnCompilation compilation =
@@ -73,6 +58,23 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
 
     new(state: 'T) = new SyntaxTreeTransformation<'T>(state, TransformationOptions.Default)
 
+    // These overrides are here since it is impractical to have them live in the definition of CommonTransformationItems.
+
+    override this.OnArgumentTuple argTuple =
+        this.Namespaces.OnArgumentTuple argTuple
+
+    // (*) These overrides are only here to preserve the functionality of the now deprecated methods.
+    // RELEASE 2022-09: They can be removed and the deprecation warning for this file can be reenabled.
+
+    override this.OnLocalName name = this.Statements.OnVariableName name
+    override this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
+    override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
+    override this.OnRelativeLocation loc = this.Statements.OnLocation loc
+    override this.OnTypeRange range = this.Types.OnTypeRange range
+
+    override this.OnExpressionRange range =
+        this.Expressions.OnRangeInformation range
+
 
 and TypeTransformation<'T> internal (options, _internal_) =
     inherit TypeTransformationBase(options)
@@ -83,7 +85,9 @@ and TypeTransformation<'T> internal (options, _internal_) =
     /// even if no parent transformation has been specified upon construction.
     member this.Transformation
         with get () = _Transformation.Value
-        and private set value = _Transformation <- Some value
+        and private set value =
+            _Transformation <- Some value
+            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationNodes
 
     member this.SharedState = this.Transformation.SharedState
 
@@ -115,7 +119,6 @@ and ExpressionKindTransformation<'T> internal (options, _internal_) =
         and private set value =
             _Transformation <- Some value
             this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
-            this.TypeTransformationHandle <- fun _ -> value.Types :> TypeTransformationBase
 
     member this.SharedState = this.Transformation.SharedState
 
@@ -184,7 +187,6 @@ and StatementKindTransformation<'T> internal (options, _internal_) =
         and private set value =
             _Transformation <- Some value
             this.StatementTransformationHandle <- fun _ -> value.Statements :> StatementTransformationBase
-            this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
 
     member this.SharedState = this.Transformation.SharedState
 
@@ -288,43 +290,26 @@ and NamespaceTransformation<'T> internal (options, _internal_: string) =
 // setup for syntax tree transformations without internal state
 
 type SyntaxTreeTransformation private (options: TransformationOptions, _internal_: string) =
-
-    let mutable _Types = new TypeTransformation(TransformationOptions.Default, _internal_)
-    let mutable _ExpressionKinds = new ExpressionKindTransformation(TransformationOptions.Default, _internal_)
-    let mutable _Expressions = new ExpressionTransformation(TransformationOptions.Default, _internal_)
-    let mutable _StatementKinds = new StatementKindTransformation(TransformationOptions.Default, _internal_)
-    let mutable _Statements = new StatementTransformation(TransformationOptions.Default, _internal_)
-    let mutable _Namespaces = new NamespaceTransformation(TransformationOptions.Default, _internal_)
+    inherit CommonTransformationNodes()
 
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
-    member this.Types
-        with get () = _Types
-        and set value = _Types <- value
+    member val Types = new TypeTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
-    member this.ExpressionKinds
-        with get () = _ExpressionKinds
-        and set value = _ExpressionKinds <- value
+    member val ExpressionKinds =
+        new ExpressionKindTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all expressions encountered when traversing (parts of) the syntax tree.
-    member this.Expressions
-        with get () = _Expressions
-        and set value = _Expressions <- value
+    member val Expressions = new ExpressionTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all statement kinds encountered when traversing (parts of) the syntax tree.
-    member this.StatementKinds
-        with get () = _StatementKinds
-        and set value = _StatementKinds <- value
+    member val StatementKinds = new StatementKindTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all statements encountered when traversing (parts of) the syntax tree.
-    member this.Statements
-        with get () = _Statements
-        and set value = _Statements <- value
+    member val Statements = new StatementTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Transformation invoked for all namespaces encountered when traversing (parts of) the syntax tree.
-    member this.Namespaces
-        with get () = _Namespaces
-        and set value = _Namespaces <- value
+    member val Namespaces = new NamespaceTransformation(TransformationOptions.Default, _internal_) with get, set
 
     /// Invokes the transformation for all namespaces in the given compilation.
     member this.OnCompilation compilation =
@@ -347,6 +332,23 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
 
     new() = new SyntaxTreeTransformation(TransformationOptions.Default)
 
+    // These overrides are here since it is impractical to have them live in the definition of CommonTransformationItems.
+
+    override this.OnArgumentTuple argTuple =
+        this.Namespaces.OnArgumentTuple argTuple
+
+    // (*) These overrides are only here to preserve the functionality of the now deprecated methods.
+    // RELEASE 2022-09: They can be removed and the deprecation warning for this file can be reenabled.
+
+    override this.OnLocalName name = this.Statements.OnVariableName name
+    override this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
+    override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
+    override this.OnRelativeLocation loc = this.Statements.OnLocation loc
+    override this.OnTypeRange range = this.Types.OnTypeRange range
+
+    override this.OnExpressionRange range =
+        this.Expressions.OnRangeInformation range
+
 
 and TypeTransformation internal (options, _internal_) =
     inherit TypeTransformationBase(options)
@@ -357,7 +359,9 @@ and TypeTransformation internal (options, _internal_) =
     /// even if no parent transformation has been specified upon construction.
     member this.Transformation
         with get () = _Transformation.Value
-        and private set value = _Transformation <- Some value
+        and private set value =
+            _Transformation <- Some value
+            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationNodes
 
     new(parentTransformation: SyntaxTreeTransformation, options: TransformationOptions) as this =
         new TypeTransformation(options, "_internal_")
@@ -387,7 +391,6 @@ and ExpressionKindTransformation internal (options, _internal_) =
         and private set value =
             _Transformation <- Some value
             this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
-            this.TypeTransformationHandle <- fun _ -> value.Types :> TypeTransformationBase
 
     new(parentTransformation: SyntaxTreeTransformation, options: TransformationOptions) as this =
         ExpressionKindTransformation(options, "_internal_")
@@ -452,7 +455,6 @@ and StatementKindTransformation internal (options, _internal_) =
         and private set value =
             _Transformation <- Some value
             this.StatementTransformationHandle <- fun _ -> value.Statements :> StatementTransformationBase
-            this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
 
     new(parentTransformation: SyntaxTreeTransformation, options: TransformationOptions) as this =
         StatementKindTransformation(options, "_internal_")

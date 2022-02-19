@@ -13,7 +13,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
 {
-    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
+    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using TypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 

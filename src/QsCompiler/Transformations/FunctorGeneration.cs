@@ -53,8 +53,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         private static readonly TypedExpression ControlQubits =
             SyntaxGenerator.ImmutableQubitArrayWithName(ControlQubitsName);
 
-        private static readonly LocalVariableDeclaration<string> ControlQubitsDeclaration =
-            new LocalVariableDeclaration<string>(
+        private static readonly LocalVariableDeclaration<string, ResolvedType> ControlQubitsDeclaration =
+            new LocalVariableDeclaration<string, ResolvedType>(
                 ControlQubitsName,
                 ControlQubits.ResolvedType,
                 ControlQubits.InferredInformation,
@@ -115,9 +115,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     public class AddVariableDeclarations<T>
     : StatementTransformation<T>
     {
-        private readonly IEnumerable<LocalVariableDeclaration<string>> addedVariableDeclarations;
+        private readonly IEnumerable<LocalVariableDeclaration<string, ResolvedType>> addedVariableDeclarations;
 
-        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string>[] addedVars)
+        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string, ResolvedType>[] addedVars)
         : base(parent) =>
             this.addedVariableDeclarations = addedVars;
 
@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         public override QsStatementKind OnConjugation(QsConjugation stm)
         {
             var inner = stm.InnerTransformation;
-            var innerLoc = this.Transformation.Statements.OnLocation(inner.Location);
+            var innerLoc = this.Transformation.OnRelativeLocation(inner.Location);
             var transformedInner = new QsPositionedBlock(this.Transformation.Statements.OnScope(inner.Body), innerLoc, inner.Comments);
             return QsStatementKind.NewQsConjugation(new QsConjugation(stm.OuterTransformation, transformedInner));
         }

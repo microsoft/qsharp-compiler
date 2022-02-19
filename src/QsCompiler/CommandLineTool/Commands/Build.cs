@@ -228,6 +228,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapability = options.RuntimeCapability,
                 SkipMonomorphization = options.SkipMonomorphization,
+                LiftLambdaExpressions = true,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 SkipConjugationInlining = options.TrimLevel == 0,

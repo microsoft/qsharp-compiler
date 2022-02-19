@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Given the argument tuple of a specialization, returns the argument tuple for its controlled version.
         /// Returns null if the given argument tuple is null.
         /// </summary>
-        private static QsTuple<LocalVariableDeclaration<QsLocalSymbol>>? ControlledArg(QsTuple<LocalVariableDeclaration<QsLocalSymbol>> arg) =>
+        private static QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>? ControlledArg(QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> arg) =>
             arg != null
             ? SyntaxGenerator.WithControlQubits(
                 arg,
@@ -47,10 +47,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// Return the argument tuple as well as the QsScope if the implementation is provided.
         /// Returns null if the given implementation is null or not provided.
         /// </summary>
-        private static (QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope)? GetContent(this SpecializationImplementation? impl) =>
+        private static (QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope)? GetContent(this SpecializationImplementation? impl) =>
             impl is SpecializationImplementation.Provided content
                 ? (content.Item1, content.Item2)
-                : ((QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope)?)null;
+                : ((QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope)?)null;
 
         /// <summary>
         /// If an implementation for the body of the given callable is provided,
@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <exception cref="ArgumentException">
         /// More than one body specialization exists, or <paramref name="callable"/> is not intrinsic or external and the implementation for the body is not provided.
         /// </exception>
-        private static (QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope)? BodyImplementation(this QsCallable callable)
+        private static (QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope)? BodyImplementation(this QsCallable callable)
         {
             if (callable == null || callable.Kind.IsTypeConstructor)
             {
