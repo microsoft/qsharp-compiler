@@ -1373,11 +1373,13 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @Test("QuantumSimulator")
     @Test("ToffoliSimulator")
     @Test("ResourcesEstimator")
+    @Test("SparseSimulator")
     function ValidTestAttribute13 () : Unit { }
 
     @Test("QuantumSimulator")
     @Test("ToffoliSimulator")
     @Test("ResourcesEstimator")
+    @Test("SparseSimulator")
     operation ValidTestAttribute14 () : Unit { }
 
     @Test("QuantumSimulator")
@@ -1402,6 +1404,19 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @Test("QuantumSimulator")
     operation ValidTestAttribute20 () : Unit { }
 
+    @Test("SparseSimulator")
+    function ValidTestAttribute21 () : Unit {}
+
+    @Test("SparseSimulator")
+    operation ValidTestAttribute22 () : Unit {}
+
+    @Test("SparseSimulator")
+    operation ValidTestAttribute23 () : Unit
+    is Adj + Ctl{}
+
+    @Test("SparseSimulator")
+    @Test("SparseSimulator")
+    function ValidTestAttribute24 () : Unit {}
 
     @Test("QuantumSimulator")
     newtype InvalidTestAttribute1 = Unit;
@@ -1428,7 +1443,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @Test("QuantumSimulator")
     operation InvalidTestAttribute6<'T> () : Unit { }
 
-    @Test("ResourcesEstimator")
+    @Test("SparseSimulator")
     operation InvalidTestAttribute7 () : Int {
         return 1;
     }
@@ -1444,7 +1459,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @Test("ResourcesEstimator")
     operation InvalidTestAttribute10 (a : Bool) : Unit { }
 
-    @Test("ToffoliSimulator")
+    @Test("SparseSimulator")
     operation InvalidTestAttribute11 ((a : Double)) : Unit { }
 
     @Test("")
@@ -1575,5 +1590,23 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     operation DeprecatedBorrowingKeywordParens() : Unit {
         borrowing (q = Qubit()) { }
+    }
+
+    // Expression statements
+
+    operation ExpressionStatements1(q : Qubit) : Unit {
+        Operation(q);
+    }
+
+    operation ExpressionStatements2(q : Qubit) : Unit {
+        M(q);
+    }
+
+    operation ExpressionStatements3(q : Qubit) : Unit {
+        let _ = M(q);
+    }
+
+    operation ExpressionStatements4(q : Qubit) : Unit {
+        GenericFunction(M(q));
     }
 }

@@ -89,6 +89,7 @@ module TypeMismatch =
 type Diagnostic =
     | TypeMismatch of TypeMismatch
     | TypeIntersectionMismatch of ordering: Ordering * mismatch: TypeMismatch
+    | InfiniteType of TypeMismatch
     | CompilerDiagnostic of QsCompilerDiagnostic
 
 module Diagnostic =
@@ -107,6 +108,11 @@ module Diagnostic =
                 TypeIntersectionMismatch(ordering, mismatch |> TypeMismatch.withContext expected actual)
             else
                 TypeIntersectionMismatch(ordering, mismatch)
+        | InfiniteType mismatch ->
+            if sameRange expected mismatch.ExpectedContext && sameRange actual mismatch.ActualContext then
+                mismatch |> TypeMismatch.withContext expected actual |> InfiniteType
+            else
+                InfiniteType mismatch
         | CompilerDiagnostic diagnostic -> CompilerDiagnostic diagnostic
 
     let private describeType (resolvedType: ResolvedType) =
@@ -146,6 +152,9 @@ module Diagnostic =
                 |> QsNullable.defaultValue Range.Zero
 
             QsCompilerDiagnostic.Error(ErrorCode.TypeIntersectionMismatch, args) range
+        | InfiniteType mismatch ->
+            let range = TypeRange.tryRange mismatch.Actual.Range |> QsNullable.defaultValue Range.Zero
+            QsCompilerDiagnostic.Error(ErrorCode.InfiniteType, typeMismatchArgs mismatch) range
         | CompilerDiagnostic diagnostic -> diagnostic
 
 module Utils =
@@ -266,14 +275,14 @@ module Inference =
     let typeParameters resolvedType =
         let mutable parameters = Set.empty
 
-        { new TypeTransformation() with
-            member this.OnTypeParameter param =
-                parameters <- parameters |> Set.add param
-                TypeParameter param
-        }
-            .OnType resolvedType
-        |> ignore
+        let transformation =
+            { new TypeTransformation() with
+                member this.OnTypeParameter param =
+                    parameters <- parameters |> Set.add param
+                    TypeParameter param
+            }
 
+        transformation.OnType resolvedType |> ignore
         parameters
 
 open RelationOps
@@ -281,14 +290,18 @@ open RelationOps
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
 
+    let mutable rootNodePos = Null
+    let mutable relativePos = Null
     let mutable statementPosition = Position.Zero
 
     let bind param substitution =
-        if Inference.occursCheck param substitution |> not then failwith "Occurs check failed."
-        let variable = variables.[param]
-
-        if Option.isSome variable.Substitution then failwith "Type parameter is already bound."
-        variables.[param] <- { variable with Substitution = Some substitution }
+        if Inference.occursCheck param substitution then
+            let variable = variables.[param]
+            if Option.isSome variable.Substitution then failwith "Type parameter is already bound."
+            variables.[param] <- { variable with Substitution = Some substitution }
+            Ok()
+        else
+            Result.Error()
 
     let rememberErrorsFor types diagnostics =
         if types |> Seq.contains (ResolvedType.New InvalidType) || List.isEmpty diagnostics |> not then
@@ -314,7 +327,20 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         |> Seq.map (fun item -> diagnostic item.Key item.Value)
         |> Seq.toList
 
-    member context.UseStatementPosition position = statementPosition <- position
+    member context.UseStatementPosition position =
+        rootNodePos <- Null
+        relativePos <- Null
+        statementPosition <- position
+
+    member context.UseSyntaxTreeNodeLocation(rootNodePosition, relativePosition) =
+        rootNodePos <- Value rootNodePosition
+        relativePos <- Value relativePosition
+        statementPosition <- rootNodePosition + relativePosition
+
+    member internal context.GetRelativeStatementPosition() =
+        match relativePos with
+        | Value pos -> pos
+        | Null -> InvalidOperationException "location information is unspecified" |> raise
 
     member internal context.Fresh source =
         let name = Inference.letters |> Seq.item variables.Count
@@ -394,29 +420,30 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.MatchImpl(Relation (expected, ordering, actual)) =
         let expected = context.Resolve expected
         let actual = context.Resolve actual
-        let mismatch = TypeMismatch.createWithoutContext expected actual |> TypeMismatch
+        let mismatch = TypeMismatch.createWithoutContext expected actual
+
+        let tryBind param substitution =
+            match bind param substitution with
+            | Ok () -> context.ApplyConstraints(param, substitution)
+            | Result.Error () -> [ InfiniteType mismatch ]
 
         match expected.Resolution, actual.Resolution with
         | _ when expected = actual -> []
-        | TypeParameter param, _ when variables.ContainsKey param ->
-            bind param actual
-            context.ApplyConstraints(param, actual)
-        | _, TypeParameter param when variables.ContainsKey param ->
-            bind param expected
-            context.ApplyConstraints(param, expected)
+        | TypeParameter param, _ when variables.ContainsKey param -> tryBind param actual
+        | _, TypeParameter param when variables.ContainsKey param -> tryBind param expected
         | ArrayType item1, ArrayType item2 -> context.MatchImpl(item1 .=. item2)
         | TupleType items1, TupleType items2 ->
             [
-                if items1.Length <> items2.Length then mismatch
+                if items1.Length <> items2.Length then TypeMismatch mismatch
                 for item1, item2 in Seq.zip items1 items2 do
                     yield! Relation(item1, ordering, item2) |> context.MatchImpl
             ]
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let charsErrors =
                 match ordering with
-                | Subtype when Inference.charsSubset info2 info1 |> not -> [ mismatch ]
-                | Equal when Inference.charsEqual info1 info2 |> not -> [ mismatch ]
-                | Supertype when Inference.charsSubset info1 info2 |> not -> [ mismatch ]
+                | Subtype when Inference.charsSubset info2 info1 |> not -> [ TypeMismatch mismatch ]
+                | Equal when Inference.charsEqual info1 info2 |> not -> [ TypeMismatch mismatch ]
+                | Supertype when Inference.charsSubset info1 info2 |> not -> [ TypeMismatch mismatch ]
                 | _ -> []
 
             context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
@@ -426,13 +453,13 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             @ context.MatchImpl(Relation(out1, ordering, out2))
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
-            mismatch :: context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
+            TypeMismatch mismatch :: context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
             @ context.MatchImpl(Relation(out1, ordering, out2))
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
-        | _ -> [ mismatch ]
+        | _ -> [ TypeMismatch mismatch ]
         |> List.map (Diagnostic.withContext expected actual)
 
     member private context.ApplyConstraint(constraint_, type_) =

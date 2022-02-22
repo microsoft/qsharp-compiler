@@ -100,7 +100,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond QsResult '{bondQsResult}'"),
             };
 
-        private static SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>> ToCompilerObject(
+        private static SyntaxTokens.QsTuple<LocalVariableDeclaration<SyntaxTree.QsLocalSymbol, SyntaxTree.ResolvedType>> ToCompilerObject(
             this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> bondQsTuple) =>
             bondQsTuple.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
 
@@ -165,11 +165,11 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.LocalDeclarations(
                 variables: bondLocalDeclarations.Variables.Select(v => v.ToCompilerObject()).ToImmutableArray());
 
-        private static SyntaxTree.LocalVariableDeclaration<string> ToCompilerObject(
+        private static LocalVariableDeclaration<string, SyntaxTree.ResolvedType> ToCompilerObject(
             this LocalVariableDeclaration<string> bondLocalVariableDeclaration) =>
             bondLocalVariableDeclaration.ToCompilerObjectGeneric(typeTranslator: s => s);
 
-        private static SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol> ToCompilerObject(
+        private static LocalVariableDeclaration<SyntaxTree.QsLocalSymbol, SyntaxTree.ResolvedType> ToCompilerObject(
             this LocalVariableDeclaration<QsLocalSymbol> bondLocalVariableDeclaration) =>
             bondLocalVariableDeclaration.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
 
@@ -1179,10 +1179,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.LocalVariableDeclaration<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
+        private static SyntaxTree.LocalVariableDeclaration<TCompiler, SyntaxTree.ResolvedType> ToCompilerObjectGeneric<TCompiler, TBond>(
             this LocalVariableDeclaration<TBond> bondLocalVariableDeclaration,
             Func<TBond, TCompiler> typeTranslator) =>
-            new SyntaxTree.LocalVariableDeclaration<TCompiler>(
+            new SyntaxTree.LocalVariableDeclaration<TCompiler, SyntaxTree.ResolvedType>(
                 variableName: typeTranslator(bondLocalVariableDeclaration.VariableName),
                 type: bondLocalVariableDeclaration.Type.ToCompilerObject(),
                 inferredInformation: bondLocalVariableDeclaration.InferredInformation.ToCompilerObject(),

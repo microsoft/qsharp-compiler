@@ -55,6 +55,23 @@ let private CleanResult =
         Error = ""
     }
 
+let private makeOutput verb files =
+    (Seq.length files |> sprintf "%s %i files:" verb)
+    :: (files |> Seq.map (fun file -> sprintf "\t%s %s" verb file) |> Seq.toList)
+    |> fun lines -> String.Join(Environment.NewLine, lines)
+
+let private updateOutput files =
+    (makeOutput "Updated" files) + Environment.NewLine
+
+let private formatOutput files =
+    (makeOutput "Formatted" files) + Environment.NewLine
+
+let private updateAndFormatOutput files =
+    (makeOutput "Updated" files)
+    + Environment.NewLine
+    + (makeOutput "Formatted" files)
+    + Environment.NewLine
+
 let private makeTestFile (path: string) =
     let name = path.[(path.LastIndexOf "\\") + 1..(path.LastIndexOf ".qs") - 1]
 
@@ -99,36 +116,6 @@ let private SubExample3 = makeTestFile "Examples\\SubExamples2\\SubExample3.qs"
 let private NestedExample1 = makeTestFile "Examples\\SubExamples2\\NestedExamples\\NestedExample1.qs"
 let private NestedExample2 = makeTestFile "Examples\\SubExamples2\\NestedExamples\\NestedExample2.qs"
 
-let private StandardInputTest =
-    {
-        Path = "-"
-        Original =
-            "namespace StandardIn { function Bar() : Int { for (i in 0..1) {} return 0; } }
-"
-        Formatted =
-            "namespace StandardIn {
-    function Bar() : Int {
-        for (i in 0..1) {}
-        return 0;
-    }
-}
-"
-            |> standardizeNewLines
-        Updated =
-            "namespace StandardIn { function Bar() : Int { for i in 0..1 {} return 0; } }
-"
-            |> standardizeNewLines
-        UpdatedAndFormatted =
-            "namespace StandardIn {
-    function Bar() : Int {
-        for i in 0..1 {}
-        return 0;
-    }
-}
-"
-            |> standardizeNewLines
-    }
-
 /// <summary>
 /// Runs the application with the command-line arguments, <paramref name="args"/>, and the standard input,
 /// <paramref name="input"/>.
@@ -148,7 +135,7 @@ let private run args input =
         Console.SetError error
 
         {
-            Code = main args
+            Code = args |> List.toArray |> main
             Out = out.ToString() |> standardizeNewLines
             Error = error.ToString() |> standardizeNewLines
         }
@@ -177,26 +164,30 @@ let private runWithFiles (commandKind: CommandKind) files standardInput expected
 
 [<Fact>]
 let ``Format file`` () =
-    runWithFiles Format [ Example1 ] "" CleanResult [| "format"; "-i"; Example1.Path |]
+    runWithFiles
+        Format
+        [ Example1 ]
+        ""
+        { CleanResult with Out = formatOutput [ Example1.Path ] }
+        [ "format"; "-i"; Example1.Path ]
 
 [<Fact>]
 let ``Update file`` () =
-    runWithFiles Update [ Example1 ] "" CleanResult [| "update"; "-i"; Example1.Path |]
+    runWithFiles
+        Update
+        [ Example1 ]
+        ""
+        { CleanResult with Out = updateOutput [ Example1.Path ] }
+        [ "update"; "-i"; Example1.Path ]
 
 [<Fact>]
 let ``Update and format file`` () =
-    runWithFiles UpdateAndFormat [ Example1 ] "" CleanResult [| "update-and-format"; "-i"; Example1.Path |]
-
-[<Fact(Skip = "Standard Input is not currently supported.")>]
-let ``Updates standard input`` () =
-    Assert.Equal(
-        {
-            Code = ExitCode.Success |> int
-            Out = StandardInputTest.Updated
-            Error = ""
-        },
-        run [| "update"; "-" |] StandardInputTest.Original
-    )
+    runWithFiles
+        UpdateAndFormat
+        [ Example1 ]
+        ""
+        { CleanResult with Out = updateAndFormatOutput [ Example1.Path ] }
+        [ "update-and-format"; "-i"; Example1.Path ]
 
 [<Fact>]
 let ``Shows syntax errors`` () =
@@ -209,12 +200,12 @@ let ``Shows syntax errors`` () =
                     "Examples\SyntaxError.qs, Line 1, Character 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
 "
         },
-        run [| "update"; "-i"; "Examples\\SyntaxError.qs" |] ""
+        run [ "update"; "-i"; "Examples\\SyntaxError.qs" ] ""
     )
 
 [<Fact>]
 let ``Shows file not found error`` () =
-    let result = run [| "update"; "-i"; "Examples\\NotFound.qs" |] ""
+    let result = run [ "update"; "-i"; "Examples\\NotFound.qs" ] ""
     Assert.Equal(ExitCode.IOError |> int, result.Code)
     Assert.Empty result.Out
     Assert.NotEmpty result.Error
@@ -222,43 +213,74 @@ let ``Shows file not found error`` () =
 [<Fact>]
 let ``Input multiple files`` () =
     let files = [ Example1; Example2 ]
+    let paths = files |> List.map (fun f -> f.Path)
 
-    runWithFiles Format files "" CleanResult [| "format"; "-i"; Example1.Path; Example2.Path |]
-    runWithFiles Update files "" CleanResult [| "update"; "-i"; Example1.Path; Example2.Path |]
-    runWithFiles UpdateAndFormat files "" CleanResult [| "update-and-format"; "-i"; Example1.Path; Example2.Path |]
+    runWithFiles Format files "" { CleanResult with Out = formatOutput paths } ([ "format"; "-i" ] @ paths)
+    runWithFiles Update files "" { CleanResult with Out = updateOutput paths } ([ "update"; "-i" ] @ paths)
+
+    runWithFiles
+        UpdateAndFormat
+        files
+        ""
+        { CleanResult with Out = updateAndFormatOutput paths }
+        ([ "update-and-format"; "-i" ] @ paths)
 
 [<Fact>]
 let ``Input directories`` () =
     let files = [ SubExample1; SubExample2; SubExample3 ]
+    let paths = files |> List.map (fun f -> f.Path)
 
-    runWithFiles Format files "" CleanResult [| "format"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
-    runWithFiles Update files "" CleanResult [| "update"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
+    runWithFiles
+        Format
+        files
+        ""
+        { CleanResult with Out = formatOutput paths }
+        [ "format"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" ]
+
+    runWithFiles
+        Update
+        files
+        ""
+        { CleanResult with Out = updateOutput paths }
+        [ "update"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" ]
 
     runWithFiles
         UpdateAndFormat
         files
         ""
-        CleanResult
-        [|
+        { CleanResult with Out = updateAndFormatOutput paths }
+        [
             "update-and-format"
             "-i"
             "Examples\\SubExamples1"
             "Examples\\SubExamples2"
-        |]
+        ]
 
 [<Fact>]
 let ``Input directories with files`` () =
     let files = [ Example1; SubExample1; SubExample2 ]
+    let paths = files |> List.map (fun f -> f.Path)
 
-    runWithFiles Format files "" CleanResult [| "format"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
-    runWithFiles Update files "" CleanResult [| "update"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
+    runWithFiles
+        Format
+        files
+        ""
+        { CleanResult with Out = formatOutput paths }
+        [ "format"; "-i"; Example1.Path; "Examples\\SubExamples1" ]
+
+    runWithFiles
+        Update
+        files
+        ""
+        { CleanResult with Out = updateOutput paths }
+        [ "update"; "-i"; Example1.Path; "Examples\\SubExamples1" ]
 
     runWithFiles
         UpdateAndFormat
         files
         ""
-        CleanResult
-        [| "update-and-format"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
+        { CleanResult with Out = updateAndFormatOutput paths }
+        [ "update-and-format"; "-i"; Example1.Path; "Examples\\SubExamples1" ]
 
 [<Fact>]
 let ``Input directories with recursive flag`` () =
@@ -267,31 +289,35 @@ let ``Input directories with recursive flag`` () =
             Example1
             SubExample1
             SubExample2
-            SubExample3
             NestedExample1
             NestedExample2
+            SubExample3
         ]
 
+    let paths = files |> List.map (fun f -> f.Path)
+
     let args verb =
-        [|
+        [
             verb
             "-r"
             "-i"
             Example1.Path
             "Examples\\SubExamples1"
             "Examples\\SubExamples2"
-        |]
+        ]
 
-    args "format" |> runWithFiles Format files "" CleanResult
-    args "update" |> runWithFiles Update files "" CleanResult
-    args "update-and-format" |> runWithFiles UpdateAndFormat files "" CleanResult
+    args "format" |> runWithFiles Format files "" { CleanResult with Out = formatOutput paths }
+    args "update" |> runWithFiles Update files "" { CleanResult with Out = updateOutput paths }
+
+    args "update-and-format"
+    |> runWithFiles UpdateAndFormat files "" { CleanResult with Out = updateAndFormatOutput paths }
 
 [<Fact>]
 let ``Process correct files while erroring on incorrect`` () =
     let files = [ Example1; Example2 ]
 
     try
-        let result = run [| "update"; "-i"; Example1.Path; "Examples\\NotFound.qs"; Example2.Path |] ""
+        let result = run [ "update"; "-i"; Example1.Path; "Examples\\NotFound.qs"; Example2.Path ] ""
 
         Assert.Equal(ExitCode.IOError |> int, result.Code)
         Assert.NotEmpty(result.Error)
@@ -306,11 +332,12 @@ let ``Process correct files while erroring on incorrect`` () =
 [<Fact>]
 let ``Backup flag`` () =
     let files = [ Example1; SubExample3 ]
+    let paths = files |> List.map (fun f -> f.Path)
 
     try
-        let result = run [| "update"; "-b"; "-i"; Example1.Path; "Examples\\SubExamples2" |] ""
+        let result = run [ "update"; "-b"; "-i"; Example1.Path; "Examples\\SubExamples2" ] ""
 
-        Assert.Equal(CleanResult, result)
+        Assert.Equal({ CleanResult with Out = updateOutput paths }, result)
 
         for file in files do
             let backup = file.Path + "~"
@@ -340,14 +367,14 @@ This input has already been processed: Examples\Example1.qs
         }
 
     let args verb =
-        [|
+        [
             verb
             "-i"
             Example1.Path
             "Examples\\SubExamples1"
             SubExample1.Path
             Example1.Path
-        |]
+        ]
 
     args "format" |> runWithFiles Format files "" outputResult
     args "update" |> runWithFiles Update files "" outputResult
@@ -426,17 +453,18 @@ let ``Project file as input`` () =
     let TestTargetExcluded2 = makeTestFile "Examples\\TestTarget\\Excluded2.qs" 3
 
 
-    let files = [ TestTargetProgram; TestTargetIncluded ]
+    let files = [ TestTargetIncluded; TestTargetProgram ]
+    let paths = files |> List.map (fun f -> Path.GetFullPath f.Path)
 
     let testCommand commandKind =
-        let verb =
+        let verb, getOutput =
             match commandKind with
-            | Format -> "format"
-            | Update -> "update"
-            | UpdateAndFormat -> "update-and-format"
+            | Format -> "format", formatOutput
+            | Update -> "update", updateOutput
+            | UpdateAndFormat -> "update-and-format", updateAndFormatOutput
 
-        [| verb; "-p"; "Examples\\TestTarget\\TestTarget.csproj" |]
-        |> runWithFiles commandKind files "" CleanResult
+        [ verb; "-p"; "Examples\\TestTarget\\TestTarget.csproj" ]
+        |> runWithFiles commandKind files "" { CleanResult with Out = getOutput paths }
 
         let excluded1 = File.ReadAllText TestTargetExcluded1.Path
         Assert.Equal(excluded1, TestTargetExcluded1.Original)
@@ -459,13 +487,13 @@ let ``Outdated version project file as input`` () =
                     "Error: Qdk Version is out of date. Only Qdk version 0.16.2104.138035 or later is supported.
 "
         },
-        run [| "update"; "-p"; "Examples\\TestProjects\\OldVersion\\OldVersion.csproj" |] ""
+        run [ "update"; "-p"; "Examples\\TestProjects\\OldVersion\\OldVersion.csproj" ] ""
     )
 
 [<Fact>]
 let ``Outdated system project file as input`` () =
     let project = "Examples\\TestProjects\\OldApplication\\OldApplication.csproj"
-    let result = run [| "update"; "-p"; project |] ""
+    let result = run [ "update"; "-p"; project ] ""
     Assert.Equal(ExitCode.UnhandledException |> int, result.Code)
     Assert.Equal("", result.Out)
 

@@ -14,6 +14,22 @@ namespace Microsoft.Quantum.Telemetry
         public bool CollectSanitizedStackTrace { get; set; } = true;
     }
 
+    /// <summary>
+    /// The kind of consent to collect telemetry.
+    /// </summary>
+    public enum ConsentKind
+    {
+        /// <summary>
+        /// User has opted in, and telemetry may be collected.
+        /// </summary>
+        OptedIn,
+
+        /// <summary>
+        /// User has opted out and telemetry will not be collected.
+        /// </summary>
+        OptedOut,
+    }
+
     public class TelemetryManagerConfig
     {
         private string appId = "DefaultQDKApp";
@@ -40,11 +56,29 @@ namespace Microsoft.Quantum.Telemetry
         }
 
         /// <summary>
+        /// The default User Consent to collect or not collect telemetry
+        /// (defaults to ConsentKind.OptedOut if not set).
+        /// If the default value is ConsentKind.OptedOut, then the user can opt-in via
+        /// the environment variable defined in TelemetryOptInVariableName.
+        /// If the default value is ConsentKind.OptedIn, then the user can opt-out via
+        /// the environment variable defined in TelemetryOptOutVariableName.
+        /// </summary>
+        public ConsentKind DefaultTelemetryConsent { get; set; } = ConsentKind.OptedOut;
+
+        /// <summary>
         /// The name of the environment variable to be checked at initialization to see if
         /// the user wants to opt-out of sending telemetry data.
         /// If the value of the environment variable is "1", no data will be collected or sent.
         /// </summary>
         public string TelemetryOptOutVariableName { get; set; } = "QDK_TELEMETRY_OPT_OUT";
+
+        /// <summary>
+        /// The name of the environment variable to be checked at initialization to see if
+        /// the user wants to opt-in of sending telemetry data.
+        /// If the value of the environment variable is "1", data will be collected and sent.
+        /// The "TelemetryOptOut" will always take precedence.
+        /// </summary>
+        public string TelemetryOptInVariableName { get; set; } = "QDK_TELEMETRY_OPT_IN";
 
         /// <summary>
         /// The name of the environment variable to be logged as HostingEnvironment in the telemetry.

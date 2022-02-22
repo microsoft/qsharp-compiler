@@ -70,6 +70,7 @@ let main args =
                 ExceptionLoggingOptions(CollectTargetSite = true, CollectSanitizedStackTrace = true),
             SendTelemetryInitializedEvent = true,
             SendTelemetryTearDownEvent = true,
+            DefaultTelemetryConsent = ConsentKind.OptedIn,
             TestMode = IsTestMode
         )
 

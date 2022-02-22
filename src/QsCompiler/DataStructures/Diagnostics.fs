@@ -9,6 +9,9 @@ open System.Collections.Generic
 type ErrorCode =
     | TypeMismatch = 1
     | TypeIntersectionMismatch = 2
+    | InfiniteType = 3
+    | MutableClosure = 4
+    | ValueImplicitlyIgnored = 5
 
     | ExcessBracketError = 1001
     | MissingBracketError = 1002
@@ -463,11 +466,28 @@ type DiagnosticItem =
         | _ -> str // let's fail silently for now
 
     static member Message(code: ErrorCode, args: IEnumerable<string>) =
+        let unlines = String.concat Environment.NewLine
+
         let message =
             match code with
-            | ErrorCode.TypeMismatch -> "The type {0} does not match the type {1}.\nExpected: {2}\n  Actual: {3}"
+            | ErrorCode.TypeMismatch ->
+                unlines [ "The type {0} does not match the type {1}."
+                          "Expected: {2}"
+                          "  Actual: {3}" ]
             | ErrorCode.TypeIntersectionMismatch ->
-                "The type {1} does not {0} the type {2}.\nExpected: {3}\n  Actual: {4}"
+                unlines [ "The type {1} does not {0} the type {2}."
+                          "Expected: {3}"
+                          "  Actual: {4}" ]
+            | ErrorCode.InfiniteType ->
+                unlines [ "The type {0} cannot be unified with {1} because it would create an infinite type."
+                          "Left-hand type:  {2}"
+                          "Right-hand type: {3}" ]
+            | ErrorCode.MutableClosure ->
+                "A lambda expression cannot close over a mutable variable. "
+                + "Declare '{0}' as immutable or remove the reference to '{0}'."
+            | ErrorCode.ValueImplicitlyIgnored ->
+                "This expression has type {0} and its value is implicitly ignored. "
+                + "Use \"let _ = expr;\" or \"Ignore(expr);\" to discard the value explicitly."
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
@@ -821,7 +841,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidTestAttributePlacement ->
                 "Invalid test attribute. Test attributes may only occur on callables that have no arguments and return Unit."
             | ErrorCode.InvalidExecutionTargetForTest ->
-                "Invalid execution target. Currently, valid execution targets for tests are the QuantumSimulator, the ToffoliSimulator, or the ResourcesEstimator."
+                "Invalid execution target. Currently, valid execution targets for tests are the QuantumSimulator, the SparseSimulator, the ToffoliSimulator, or the ResourcesEstimator."
             | ErrorCode.ExpectingFullNameAsAttributeArgument ->
                 "Invalid attribute argument. Expecting a fully qualified name as argument to the {0} attribute."
             | ErrorCode.AttributeInvalidOnSpecialization ->
