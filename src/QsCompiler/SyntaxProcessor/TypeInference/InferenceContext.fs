@@ -105,6 +105,15 @@ type Diagnostic =
     | CompilerDiagnostic of QsCompilerDiagnostic
 
 module Diagnostic =
+    /// <summary>
+    /// Updates the parents in the diagnostic's type context if the type range of the new parents is the same as the old
+    /// parents.
+    /// </summary>
+    /// <remarks>
+    /// When updating diagnostic parents "inside out" (from the innermost nested types that caused the error to the
+    /// outermost original types), the range checking behavior has the effect of finding the full type of the expression
+    /// that is underlined by the diagnostic.
+    /// </remarks>
     let withParents expected actual =
         let hasSameRange (type1: ResolvedType) : ResolvedType option -> _ =
             Option.forall (fun type2 -> type1.Range = type2.Range)
@@ -121,6 +130,9 @@ module Diagnostic =
             else
                 context
 
+        // For diagnostics whose range corresponds to the actual type of the provided expression, only check the actual
+        // type's range. For diagnostics whose range spans both the expected and actual types, check both ranges. See
+        // `toCompilerDiagnostic` for which range is used by each diagnostic case.
         function
         | TypeMismatch context -> checkActualRange context |> TypeMismatch
         | TypeIntersectionMismatch (ordering, context) -> TypeIntersectionMismatch(ordering, checkBothRanges context)
