@@ -66,53 +66,53 @@ module RelationOps =
 
     let (.>) lhs rhs = Relation(lhs, Supertype, rhs)
 
-type TypeMismatch =
+type TypeContext =
     {
         Expected: ResolvedType
-        ExpectedContext: ResolvedType option
+        ExpectedParent: ResolvedType option
         Actual: ResolvedType
-        ActualContext: ResolvedType option
+        ActualParent: ResolvedType option
     }
 
-module TypeMismatch =
-    let createWithoutContext expected actual =
+module TypeContext =
+    let createOrphan expected actual =
         {
             Expected = expected
-            ExpectedContext = None
+            ExpectedParent = None
             Actual = actual
-            ActualContext = None
+            ActualParent = None
         }
 
-    let withContext expected actual mismatch =
-        { mismatch with ExpectedContext = Some expected; ActualContext = Some actual }
+    let withParents expected actual mismatch =
+        { mismatch with ExpectedParent = Some expected; ActualParent = Some actual }
 
 type Diagnostic =
-    | TypeMismatch of TypeMismatch
-    | TypeIntersectionMismatch of ordering: Ordering * mismatch: TypeMismatch
-    | InfiniteType of TypeMismatch
+    | TypeMismatch of TypeContext
+    | TypeIntersectionMismatch of ordering: Ordering * context: TypeContext
+    | InfiniteType of TypeContext
     | CompilerDiagnostic of QsCompilerDiagnostic
 
 module Diagnostic =
-    let withContext expected (actual: ResolvedType) =
+    let withParents expected (actual: ResolvedType) =
         let sameRange (type_: ResolvedType) : ResolvedType option -> _ =
             Option.forall (fun context -> type_.Range = context.Range)
 
         function
-        | TypeMismatch mismatch ->
-            if sameRange actual mismatch.ActualContext then
-                mismatch |> TypeMismatch.withContext expected actual |> TypeMismatch
+        | TypeMismatch context ->
+            if sameRange actual context.ActualParent then
+                context |> TypeContext.withParents expected actual |> TypeMismatch
             else
-                TypeMismatch mismatch
-        | TypeIntersectionMismatch (ordering, mismatch) ->
-            if sameRange expected mismatch.ExpectedContext && sameRange actual mismatch.ActualContext then
-                TypeIntersectionMismatch(ordering, mismatch |> TypeMismatch.withContext expected actual)
+                TypeMismatch context
+        | TypeIntersectionMismatch (ordering, context) ->
+            if sameRange expected context.ExpectedParent && sameRange actual context.ActualParent then
+                TypeIntersectionMismatch(ordering, context |> TypeContext.withParents expected actual)
             else
-                TypeIntersectionMismatch(ordering, mismatch)
-        | InfiniteType mismatch ->
-            if sameRange expected mismatch.ExpectedContext && sameRange actual mismatch.ActualContext then
-                mismatch |> TypeMismatch.withContext expected actual |> InfiniteType
+                TypeIntersectionMismatch(ordering, context)
+        | InfiniteType context ->
+            if sameRange expected context.ExpectedParent && sameRange actual context.ActualParent then
+                context |> TypeContext.withParents expected actual |> InfiniteType
             else
-                InfiniteType mismatch
+                InfiniteType context
         | CompilerDiagnostic diagnostic -> CompilerDiagnostic diagnostic
 
     let private describeType (resolvedType: ResolvedType) =
@@ -122,14 +122,14 @@ module Diagnostic =
         | _ -> SyntaxTreeToQsharp.Default.ToCode resolvedType
 
     let private typeMismatchArgs mismatch =
-        let expectedContext = mismatch.ExpectedContext |> Option.defaultValue mismatch.Expected
-        let actualContext = mismatch.ActualContext |> Option.defaultValue mismatch.Actual
+        let expectedParent = mismatch.ExpectedParent |> Option.defaultValue mismatch.Expected
+        let actualParent = mismatch.ActualParent |> Option.defaultValue mismatch.Actual
 
         [
             describeType mismatch.Actual
             describeType mismatch.Expected
-            SyntaxTreeToQsharp.Default.ToCode expectedContext
-            SyntaxTreeToQsharp.Default.ToCode actualContext
+            SyntaxTreeToQsharp.Default.ToCode expectedParent
+            SyntaxTreeToQsharp.Default.ToCode actualParent
         ]
 
     let toCompilerDiagnostic =
@@ -220,7 +220,7 @@ module Inference =
     /// The combined type with a <see cref="Generated"/> range.
     /// </returns>
     let rec combine ordering (type1: ResolvedType) (type2: ResolvedType) =
-        let error = TypeIntersectionMismatch(ordering, TypeMismatch.createWithoutContext type1 type2)
+        let error = TypeIntersectionMismatch(ordering, TypeContext.createOrphan type1 type2)
 
         match type1.Resolution, type2.Resolution with
         | ArrayType item1, ArrayType item2 -> combine Equal item1 item2 |> mapFst (ArrayType >> ResolvedType.New)
@@ -251,7 +251,7 @@ module Inference =
         | _, InvalidType -> ResolvedType.New InvalidType, []
         | _ when type1 = type2 -> type1 |> ResolvedType.withAllRanges TypeRange.Generated, []
         | _ -> ResolvedType.New InvalidType, [ error ]
-        |> mapSnd (Diagnostic.withContext type1 type2 |> List.map)
+        |> mapSnd (Diagnostic.withParents type1 type2 |> List.map)
 
     /// <summary>
     /// True if <paramref name="param"/> does not occur in <paramref name="resolvedType"/>.
@@ -420,12 +420,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.MatchImpl(Relation (expected, ordering, actual)) =
         let expected = context.Resolve expected
         let actual = context.Resolve actual
-        let mismatch = TypeMismatch.createWithoutContext expected actual
+        let typeContext = TypeContext.createOrphan expected actual
 
         let tryBind param substitution =
             match bind param substitution with
             | Ok () -> context.ApplyConstraints(param, substitution)
-            | Result.Error () -> [ InfiniteType mismatch ]
+            | Result.Error () -> [ InfiniteType typeContext ]
 
         match expected.Resolution, actual.Resolution with
         | _ when expected = actual -> []
@@ -434,16 +434,16 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | ArrayType item1, ArrayType item2 -> context.MatchImpl(item1 .=. item2)
         | TupleType items1, TupleType items2 ->
             [
-                if items1.Length <> items2.Length then TypeMismatch mismatch
+                if items1.Length <> items2.Length then TypeMismatch typeContext
                 for item1, item2 in Seq.zip items1 items2 do
                     yield! Relation(item1, ordering, item2) |> context.MatchImpl
             ]
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let charsErrors =
                 match ordering with
-                | Subtype when Inference.charsSubset info2 info1 |> not -> [ TypeMismatch mismatch ]
-                | Equal when Inference.charsEqual info1 info2 |> not -> [ TypeMismatch mismatch ]
-                | Supertype when Inference.charsSubset info1 info2 |> not -> [ TypeMismatch mismatch ]
+                | Subtype when Inference.charsSubset info2 info1 |> not -> [ TypeMismatch typeContext ]
+                | Equal when Inference.charsEqual info1 info2 |> not -> [ TypeMismatch typeContext ]
+                | Supertype when Inference.charsSubset info1 info2 |> not -> [ TypeMismatch typeContext ]
                 | _ -> []
 
             context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
@@ -453,14 +453,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             @ context.MatchImpl(Relation(out1, ordering, out2))
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
-            TypeMismatch mismatch :: context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
+            TypeMismatch typeContext :: context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
             @ context.MatchImpl(Relation(out1, ordering, out2))
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
-        | _ -> [ TypeMismatch mismatch ]
-        |> List.map (Diagnostic.withContext expected actual)
+        | _ -> [ TypeMismatch typeContext ]
+        |> List.map (Diagnostic.withParents expected actual)
 
     member private context.ApplyConstraint(constraint_, type_) =
         let error code args range =

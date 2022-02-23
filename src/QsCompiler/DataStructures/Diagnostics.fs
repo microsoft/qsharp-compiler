@@ -476,12 +476,12 @@ type DiagnosticItem =
                           "  Actual: {3}" ]
             | ErrorCode.TypeIntersectionMismatch ->
                 unlines [ "The type {1} does not {0} the type {2}."
-                          "Expected: {3}"
+                          "Expected: {3} (or a related type)"
                           "  Actual: {4}" ]
             | ErrorCode.InfiniteType ->
-                unlines [ "The type {0} cannot be unified with {1} because it would create an infinite type."
-                          "Left-hand type:  {2}"
-                          "Right-hand type: {3}" ]
+                unlines [ "The type {0} cannot match the type {1}, because it would create an infinite type."
+                          "Expected: {2}"
+                          "  Actual: {3}" ]
             | ErrorCode.MutableClosure ->
                 "A lambda expression cannot close over a mutable variable. "
                 + "Declare '{0}' as immutable or remove the reference to '{0}'."
