@@ -478,7 +478,7 @@ type DiagnosticItem =
                     ->
                     // Use a simplified message if the parent and child types are the same.
                     "Expected type {0}, but actual type was {2}."
-                | _ -> typeMismatch "Couldn't match type {2} with {0}." "{1}" "{3}"
+                | _ -> typeMismatch "Couldn't match type {2} with type {0}." "{1}" "{3}"
             | ErrorCode.TypeIntersectionMismatch ->
                 typeMismatch "The type {3} doesn't {0} type {2}." "{2} (or a related type)" "{4}"
             | ErrorCode.InfiniteType ->
