@@ -66,6 +66,18 @@ module RelationOps =
 
     let (.>) lhs rhs = Relation(lhs, Supertype, rhs)
 
+/// <summary>A type context stores information needed for error reporting of mismatched types.</summary>
+/// <example>
+/// <para>
+/// While matching type <c>(A, B)</c> with type <c>(C, B)</c>, an error is encountered when <c>A</c> is recursively
+/// matched with <c>C</c>. The error message might look something like: "Mismatched types <c>A</c> and <c>C</c>.
+/// Expected: <c>(A, B)</c>. Actual: <c>(C, B)</c>."
+/// </para>
+/// <para>
+/// In this example, <c>A</c> is <see cref="Expected" />, <c>(A, B)</c> is <see cref="ExpectedParent" />, <c>C</c> is
+/// <see cref="Actual" />, and <c>(C, B)</c> is <see cref="ActualParent" />.
+/// </para>
+/// </example>
 type TypeContext =
     {
         Expected: ResolvedType
@@ -93,7 +105,7 @@ type Diagnostic =
     | CompilerDiagnostic of QsCompilerDiagnostic
 
 module Diagnostic =
-    let withParents expected (actual: ResolvedType) =
+    let withParents expected actual =
         let hasSameRange (type1: ResolvedType) : ResolvedType option -> _ =
             Option.forall (fun type2 -> type1.Range = type2.Range)
 
