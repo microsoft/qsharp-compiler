@@ -112,7 +112,7 @@ module Diagnostic =
         function
         | TypeMismatch context -> checkActualRange context |> TypeMismatch
         | TypeIntersectionMismatch (ordering, context) -> TypeIntersectionMismatch(ordering, checkBothRanges context)
-        | InfiniteType context -> checkActualRange context |> TypeMismatch
+        | InfiniteType context -> checkActualRange context |> InfiniteType
         | CompilerDiagnostic diagnostic -> CompilerDiagnostic diagnostic
 
     let private describeType (resolvedType: ResolvedType) =
