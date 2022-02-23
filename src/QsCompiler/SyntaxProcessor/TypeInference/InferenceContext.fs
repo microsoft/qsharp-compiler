@@ -94,25 +94,25 @@ type Diagnostic =
 
 module Diagnostic =
     let withParents expected (actual: ResolvedType) =
-        let sameRange (type1: ResolvedType) : ResolvedType option -> _ =
+        let hasSameRange (type1: ResolvedType) : ResolvedType option -> _ =
             Option.forall (fun type2 -> type1.Range = type2.Range)
 
+        let checkActualRange context =
+            if hasSameRange actual context.ActualParent then
+                context |> TypeContext.withParents expected actual
+            else
+                context
+
+        let checkBothRanges context =
+            if hasSameRange expected context.ExpectedParent && hasSameRange actual context.ActualParent then
+                context |> TypeContext.withParents expected actual
+            else
+                context
+
         function
-        | TypeMismatch context ->
-            if sameRange actual context.ActualParent then
-                context |> TypeContext.withParents expected actual |> TypeMismatch
-            else
-                TypeMismatch context
-        | TypeIntersectionMismatch (ordering, context) ->
-            if sameRange expected context.ExpectedParent && sameRange actual context.ActualParent then
-                TypeIntersectionMismatch(ordering, context |> TypeContext.withParents expected actual)
-            else
-                TypeIntersectionMismatch(ordering, context)
-        | InfiniteType context ->
-            if sameRange expected context.ExpectedParent && sameRange actual context.ActualParent then
-                context |> TypeContext.withParents expected actual |> InfiniteType
-            else
-                InfiniteType context
+        | TypeMismatch context -> checkActualRange context |> TypeMismatch
+        | TypeIntersectionMismatch (ordering, context) -> TypeIntersectionMismatch(ordering, checkBothRanges context)
+        | InfiniteType context -> checkActualRange context |> TypeMismatch
         | CompilerDiagnostic diagnostic -> CompilerDiagnostic diagnostic
 
     let private describeType (resolvedType: ResolvedType) =
