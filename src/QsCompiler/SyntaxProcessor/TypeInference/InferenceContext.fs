@@ -138,9 +138,9 @@ module Diagnostic =
         let actualParent = context.ActualParent |> Option.defaultValue context.Actual
 
         [
-            describeType context.Actual
             describeType context.Expected
             SyntaxTreeToQsharp.Default.ToCode expectedParent
+            describeType context.Actual
             SyntaxTreeToQsharp.Default.ToCode actualParent
         ]
 
