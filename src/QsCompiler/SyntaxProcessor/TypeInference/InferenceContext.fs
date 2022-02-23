@@ -94,8 +94,8 @@ type Diagnostic =
 
 module Diagnostic =
     let withParents expected (actual: ResolvedType) =
-        let sameRange (type_: ResolvedType) : ResolvedType option -> _ =
-            Option.forall (fun context -> type_.Range = context.Range)
+        let sameRange (type1: ResolvedType) : ResolvedType option -> _ =
+            Option.forall (fun type2 -> type1.Range = type2.Range)
 
         function
         | TypeMismatch context ->
@@ -121,40 +121,39 @@ module Diagnostic =
             sprintf "parameter %s (bound by %s)" (SyntaxTreeToQsharp.Default.ToCode resolvedType) param.Origin.Name
         | _ -> SyntaxTreeToQsharp.Default.ToCode resolvedType
 
-    let private typeMismatchArgs mismatch =
-        let expectedParent = mismatch.ExpectedParent |> Option.defaultValue mismatch.Expected
-        let actualParent = mismatch.ActualParent |> Option.defaultValue mismatch.Actual
+    let private typeContextArgs context =
+        let expectedParent = context.ExpectedParent |> Option.defaultValue context.Expected
+        let actualParent = context.ActualParent |> Option.defaultValue context.Actual
 
         [
-            describeType mismatch.Actual
-            describeType mismatch.Expected
+            describeType context.Actual
+            describeType context.Expected
             SyntaxTreeToQsharp.Default.ToCode expectedParent
             SyntaxTreeToQsharp.Default.ToCode actualParent
         ]
 
     let toCompilerDiagnostic =
         function
-        | TypeMismatch mismatch ->
-            let range = TypeRange.tryRange mismatch.Actual.Range |> QsNullable.defaultValue Range.Zero
-            QsCompilerDiagnostic.Error(ErrorCode.TypeMismatch, typeMismatchArgs mismatch) range
-        | TypeIntersectionMismatch (ordering, mismatch) ->
+        | TypeMismatch context ->
+            let range = TypeRange.tryRange context.Actual.Range |> QsNullable.defaultValue Range.Zero
+            QsCompilerDiagnostic.Error(ErrorCode.TypeMismatch, typeContextArgs context) range
+        | TypeIntersectionMismatch (ordering, context) ->
             let orderingString =
                 match ordering with
                 | Subtype -> "share a subtype with"
                 | Equal -> "equal"
                 | Supertype -> "share a supertype with"
 
-            let args = orderingString :: typeMismatchArgs mismatch
-
             let range =
-                (TypeRange.tryRange mismatch.Expected.Range, TypeRange.tryRange mismatch.Actual.Range)
+                (TypeRange.tryRange context.Expected.Range, TypeRange.tryRange context.Actual.Range)
                 ||> QsNullable.Map2 Range.Span
                 |> QsNullable.defaultValue Range.Zero
 
+            let args = orderingString :: typeContextArgs context
             QsCompilerDiagnostic.Error(ErrorCode.TypeIntersectionMismatch, args) range
-        | InfiniteType mismatch ->
-            let range = TypeRange.tryRange mismatch.Actual.Range |> QsNullable.defaultValue Range.Zero
-            QsCompilerDiagnostic.Error(ErrorCode.InfiniteType, typeMismatchArgs mismatch) range
+        | InfiniteType context ->
+            let range = TypeRange.tryRange context.Actual.Range |> QsNullable.defaultValue Range.Zero
+            QsCompilerDiagnostic.Error(ErrorCode.InfiniteType, typeContextArgs context) range
         | CompilerDiagnostic diagnostic -> diagnostic
 
 module Utils =
