@@ -20,105 +20,175 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
 
 /// A placeholder type variable.
-type private Variable =
+type Variable =
     {
         /// The substituted type.
         Substitution: ResolvedType option
-
         /// The list of constraints on the type of this variable.
         Constraints: Constraint list
-
         /// Whether this variable encountered a type inference error.
         HasError: bool
-
         /// The source range that this variable originated from.
         Source: Range
     }
 
-module private Variable =
+module Variable =
     /// Adds a type constraint to the type of the variable.
     let constrain typeConstraint variable =
         { variable with Constraints = typeConstraint :: variable.Constraints }
 
-/// An ordering comparison of two types.
-type private Ordering =
-    /// The type is a subtype of the other type.
+/// An ordering comparison between types.
+type Ordering =
+    /// The type is a subtype of another type.
     | Subtype
-
     /// The types are equal.
     | Equal
-
-    /// The type is a supertype of the other type.
+    /// The type is a supertype of another type.
     | Supertype
 
-module private Ordering =
-    /// Negates the direction of the ordering.
-    let not =
+module Ordering =
+    /// Reverses the direction of the ordering.
+    let reverse =
         function
         | Subtype -> Supertype
         | Equal -> Equal
         | Supertype -> Subtype
 
-/// Remembers context when recursively comparing two types side-by-side.
-type private TypeContext =
+type 'a Relation = Relation of lhs: 'a * ordering: Ordering * rhs: 'a
+
+module Relation =
+    let map f (Relation (x, ordering, y)) = Relation(f x, ordering, f y)
+
+module RelationOps =
+    let (<.) lhs rhs = Relation(lhs, Subtype, rhs)
+
+    let (.=.) lhs rhs = Relation(lhs, Equal, rhs)
+
+    let (.>) lhs rhs = Relation(lhs, Supertype, rhs)
+
+/// <summary>A type context stores information needed for error reporting of mismatched types.</summary>
+/// <example>
+/// <para>
+/// While matching type <c>(A, B)</c> with type <c>(C, B)</c>, an error is encountered when <c>A</c> is recursively
+/// matched with <c>C</c>. The error message might look something like: "Mismatched types <c>A</c> and <c>C</c>.
+/// Expected: <c>(A, B)</c>. Actual: <c>(C, B)</c>."
+/// </para>
+/// <para>
+/// In this example, <c>A</c> is <see cref="Expected" />, <c>(A, B)</c> is <see cref="ExpectedParent" />, <c>C</c> is
+/// <see cref="Actual" />, and <c>(C, B)</c> is <see cref="ActualParent" />.
+/// </para>
+/// </example>
+type TypeContext =
     {
-        /// The left-hand type.
-        Left: ResolvedType
-
-        /// The right-hand type.
-        Right: ResolvedType
-
-        /// The most recent relevant ancestor of the left-hand type.
-        OriginalLeft: ResolvedType
-
-        /// The most recent relevant ancestor of the right-hand type.
-        OriginalRight: ResolvedType
+        Expected: ResolvedType
+        ExpectedParent: ResolvedType option
+        Actual: ResolvedType
+        ActualParent: ResolvedType option
     }
 
-/// An error that can occur when binding a type parameter to another type during unification.
-type private BindError =
-    /// The binding would create an infinite type; i.e., the occurs check failed.
-    | InfiniteType
+module TypeContext =
+    let createOrphan expected actual =
+        {
+            Expected = expected
+            ExpectedParent = None
+            Actual = actual
+            ActualParent = None
+        }
 
-module private TypeContext =
+    let withParents expected actual mismatch =
+        { mismatch with ExpectedParent = Some expected; ActualParent = Some actual }
+
+type Diagnostic =
+    | TypeMismatch of TypeContext
+    | TypeIntersectionMismatch of ordering: Ordering * context: TypeContext
+    | InfiniteType of TypeContext
+    | CompilerDiagnostic of QsCompilerDiagnostic
+
+module Diagnostic =
     /// <summary>
-    /// Creates a type context originating with <paramref name="left"/> and <paramref name="right"/>.
+    /// Updates the parents in the diagnostic's type context if the type range of the new parents is the same as the old
+    /// parents.
     /// </summary>
-    let create left right =
-        {
-            Left = left
-            Right = right
-            OriginalLeft = left
-            OriginalRight = right
-        }
+    /// <remarks>
+    /// When updating diagnostic parents "inside out" (from the innermost nested types that caused the error to the
+    /// outermost original types), the range checking behavior has the effect of finding the full type of the expression
+    /// that is underlined by the diagnostic.
+    /// </remarks>
+    let withParents expected actual =
+        let hasSameRange (type1: ResolvedType) : ResolvedType option -> _ =
+            Option.forall (fun type2 -> type1.Range = type2.Range)
 
-    /// Descends into the respective children of each type, preserving the original types if the range of both the left
-    /// and the right types do not change.
-    let into (leftChild: ResolvedType) (rightChild: ResolvedType) context =
-        if leftChild.Range = context.Left.Range || rightChild.Range = context.Right.Range then
-            { context with Left = leftChild; Right = rightChild }
-        else
-            create leftChild rightChild
+        let checkActualRange context =
+            if hasSameRange actual context.ActualParent then
+                context |> TypeContext.withParents expected actual
+            else
+                context
 
-    /// Descends into the respective children of each type, preserving the original types if the range of the right type
-    /// does not change.
-    let intoRight leftChild (rightChild: ResolvedType) context =
-        if rightChild.Range = context.Right.Range then
-            { context with Left = leftChild; Right = rightChild }
-        else
-            create leftChild rightChild
+        let checkBothRanges context =
+            if hasSameRange expected context.ExpectedParent && hasSameRange actual context.ActualParent then
+                context |> TypeContext.withParents expected actual
+            else
+                context
 
-    /// Swaps the left and right types.
-    let swap context =
-        {
-            Left = context.Right
-            Right = context.Left
-            OriginalLeft = context.OriginalRight
-            OriginalRight = context.OriginalLeft
-        }
+        // For diagnostics whose range corresponds to the actual type of the provided expression, only check the actual
+        // type's range. For diagnostics whose range spans both the expected and actual types, check both ranges. See
+        // `toCompilerDiagnostic` for which range is used by each diagnostic case.
+        function
+        | TypeMismatch context -> checkActualRange context |> TypeMismatch
+        | TypeIntersectionMismatch (ordering, context) -> TypeIntersectionMismatch(ordering, checkBothRanges context)
+        | InfiniteType context -> checkActualRange context |> InfiniteType
+        | CompilerDiagnostic diagnostic -> CompilerDiagnostic diagnostic
+
+    let private describeType (resolvedType: ResolvedType) =
+        match resolvedType.Resolution with
+        | TypeParameter param ->
+            sprintf "parameter %s (bound by %s)" (SyntaxTreeToQsharp.Default.ToCode resolvedType) param.Origin.Name
+        | _ -> SyntaxTreeToQsharp.Default.ToCode resolvedType
+
+    let private typeContextArgs context =
+        let expectedParent = context.ExpectedParent |> Option.defaultValue context.Expected
+        let actualParent = context.ActualParent |> Option.defaultValue context.Actual
+
+        [
+            describeType context.Expected
+            SyntaxTreeToQsharp.Default.ToCode expectedParent
+            describeType context.Actual
+            SyntaxTreeToQsharp.Default.ToCode actualParent
+        ]
+
+    let toCompilerDiagnostic =
+        function
+        | TypeMismatch context ->
+            let range = TypeRange.tryRange context.Actual.Range |> QsNullable.defaultValue Range.Zero
+            QsCompilerDiagnostic.Error(ErrorCode.TypeMismatch, typeContextArgs context) range
+        | TypeIntersectionMismatch (ordering, context) ->
+            let orderingString =
+                match ordering with
+                | Subtype -> "share a subtype with"
+                | Equal -> "equal"
+                | Supertype -> "share a supertype with"
+
+            let range =
+                (TypeRange.tryRange context.Expected.Range, TypeRange.tryRange context.Actual.Range)
+                ||> QsNullable.Map2 Range.Span
+                |> QsNullable.defaultValue Range.Zero
+
+            let args = orderingString :: typeContextArgs context
+            QsCompilerDiagnostic.Error(ErrorCode.TypeIntersectionMismatch, args) range
+        | InfiniteType context ->
+            let range = TypeRange.tryRange context.Actual.Range |> QsNullable.defaultValue Range.Zero
+            QsCompilerDiagnostic.Error(ErrorCode.InfiniteType, typeContextArgs context) range
+        | CompilerDiagnostic diagnostic -> diagnostic
+
+module Utils =
+    let mapFst f (x, y) = (f x, y)
+
+    let mapSnd f (x, y) = (x, f y)
+
+open Utils
 
 /// Tools to help with type inference.
-module private Inference =
+module Inference =
     /// <summary>
     /// True if <paramref name="info1"/> and <paramref name="info2"/> have the same set of characteristics, or if either
     /// <paramref name="info1"/> or <paramref name="info2"/> have invalid characteristics.
@@ -146,33 +216,6 @@ module private Inference =
         |> QsNullable.defaultValue ImmutableHashSet.Empty
         |> fun functors -> functors.Contains functor
 
-    /// Shows the type as a string.
-    let showType : ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
-
-    /// <summary>
-    /// Describes a type with additional information.
-    /// </summary>
-    /// <remarks>
-    /// For most types, this is the same as <see cref="showType"/>. For type parameters, the origin is included in the
-    /// description.
-    /// </remarks>
-    let private describeType (resolvedType: ResolvedType) =
-        match resolvedType.Resolution with
-        | TypeParameter param -> sprintf "parameter %s (bound by %s)" (showType resolvedType) param.Origin.Name
-        | _ -> showType resolvedType
-
-    /// <summary>
-    /// The list of strings from applying <see cref="describeType"/> to the left and right types, and
-    /// <see cref="showType"/> to the original left and right types, in order.
-    /// </summary>
-    let describeTypeContext context =
-        [
-            describeType context.Left
-            describeType context.Right
-            showType context.OriginalLeft
-            showType context.OriginalRight
-        ]
-
     /// <summary>
     /// Combines information from two callables such that the resulting callable information satisfies the given
     /// <paramref name="ordering"/> with respect to both <paramref name="info1"/> and <paramref name="info2"/>.
@@ -193,42 +236,23 @@ module private Inference =
         | Supertype -> [ info1; info2 ] |> CallableInformation.Common |> Some
 
     /// <summary>
-    /// Combines two types such that the resulting type satisfies the given <paramref name="ordering"/> with respect to
-    /// both original types.
+    /// Combines <paramref name="type1"/> and <paramref name="type2"/> such that the resulting type satisfies the given
+    /// <paramref name="ordering"/> with respect to both original types.
     /// </summary>
     /// <returns>
     /// The combined type with a <see cref="Generated"/> range.
     /// </returns>
-    let rec combine ordering types =
-        let relation =
-            match ordering with
-            | Subtype -> "share a subtype with"
-            | Equal -> "equal"
-            | Supertype -> "share a base type with"
+    let rec combine ordering (type1: ResolvedType) (type2: ResolvedType) =
+        let error = TypeIntersectionMismatch(ordering, TypeContext.createOrphan type1 type2)
 
-        let range =
-            QsNullable.Map2 Range.Span (TypeRange.tryRange types.Left.Range) (TypeRange.tryRange types.Right.Range)
-
-        let error =
-            QsCompilerDiagnostic.Error
-                (ErrorCode.TypeIntersectionMismatch, relation :: describeTypeContext types)
-                (range |> QsNullable.defaultValue Range.Zero)
-
-        match types.Left.Resolution, types.Right.Resolution with
-        | ArrayType item1, ArrayType item2 ->
-            let combinedType, diagnostics = types |> TypeContext.into item1 item2 |> combine Equal
-            ArrayType combinedType |> ResolvedType.New, diagnostics
+        match type1.Resolution, type2.Resolution with
+        | ArrayType item1, ArrayType item2 -> combine Equal item1 item2 |> mapFst (ArrayType >> ResolvedType.New)
         | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
-            let combinedTypes, diagnostics =
-                (items1, items2)
-                ||> Seq.map2 (fun item1 item2 -> types |> TypeContext.into item1 item2 |> combine ordering)
-                |> Seq.toList
-                |> List.unzip
-
+            let combinedTypes, diagnostics = Seq.map2 (combine ordering) items1 items2 |> Seq.toList |> List.unzip
             ImmutableArray.CreateRange combinedTypes |> TupleType |> ResolvedType.New, List.concat diagnostics
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
-            let input, inDiagnostics = types |> TypeContext.into in1 in2 |> combine (Ordering.not ordering)
-            let output, outDiagnostics = types |> TypeContext.into out1 out2 |> combine ordering
+            let input, inDiagnostics = combine (Ordering.reverse ordering) in1 in2
+            let output, outDiagnostics = combine ordering out1 out2
 
             let info, infoDiagnostics =
                 match combineCallableInfo ordering info1 info2 with
@@ -243,13 +267,14 @@ module private Inference =
             QsTypeKind.Operation((input, output), info) |> ResolvedType.New,
             inDiagnostics @ outDiagnostics @ infoDiagnostics
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            let input, inDiagnostics = types |> TypeContext.into in1 in2 |> combine (Ordering.not ordering)
-            let output, outDiagnostics = types |> TypeContext.into out1 out2 |> combine ordering
+            let input, inDiagnostics = combine (Ordering.reverse ordering) in1 in2
+            let output, outDiagnostics = combine ordering out1 out2
             QsTypeKind.Function(input, output) |> ResolvedType.New, inDiagnostics @ outDiagnostics
         | InvalidType, _
         | _, InvalidType -> ResolvedType.New InvalidType, []
-        | _ when types.Left = types.Right -> types.Left |> ResolvedType.withAllRanges TypeRange.Generated, []
+        | _ when type1 = type2 -> type1 |> ResolvedType.withAllRanges TypeRange.Generated, []
         | _ -> ResolvedType.New InvalidType, [ error ]
+        |> mapSnd (Diagnostic.withParents type1 type2 |> List.map)
 
     /// <summary>
     /// True if <paramref name="param"/> does not occur in <paramref name="resolvedType"/>.
@@ -283,7 +308,7 @@ module private Inference =
         transformation.OnType resolvedType |> ignore
         parameters
 
-open Inference
+open RelationOps
 
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
@@ -293,17 +318,17 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     let mutable statementPosition = Position.Zero
 
     let bind param substitution =
-        if occursCheck param substitution then
+        if Inference.occursCheck param substitution then
             let variable = variables.[param]
             if Option.isSome variable.Substitution then failwith "Type parameter is already bound."
             variables.[param] <- { variable with Substitution = Some substitution }
             Ok()
         else
-            Result.Error InfiniteType
+            Result.Error()
 
-    let rememberErrors types diagnostics =
+    let rememberErrorsFor types diagnostics =
         if types |> Seq.contains (ResolvedType.New InvalidType) || List.isEmpty diagnostics |> not then
-            for param in types |> Seq.fold (fun params' -> typeParameters >> Set.union params') Set.empty do
+            for param in types |> Seq.fold (fun params' -> Inference.typeParameters >> Set.union params') Set.empty do
                 match variables.TryGetValue param |> tryOption with
                 | Some variable -> variables.[param] <- { variable with HasError = true }
                 | None -> ()
@@ -314,7 +339,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let diagnostic param variable =
             let args =
                 [
-                    TypeParameter param |> ResolvedType.New |> showType
+                    TypeParameter param |> ResolvedType.New |> SyntaxTreeToQsharp.Default.ToCode
                     variable.Constraints |> List.map Constraint.pretty |> String.concat ", "
                 ]
 
@@ -341,7 +366,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | Null -> InvalidOperationException "location information is unspecified" |> raise
 
     member internal context.Fresh source =
-        let name = letters |> Seq.item variables.Count
+        let name = Inference.letters |> Seq.item variables.Count
 
         let param =
             Seq.initInfinite (fun i -> if i = 0 then name else name + string (i - 1))
@@ -362,241 +387,206 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         variables.Add(param, variable)
         TypeParameter param |> ResolvedType.create (Inferred source)
 
-    member internal context.Unify(expected, actual) =
-        context.UnifyByOrdering(Supertype, TypeContext.create (context.Resolve expected) (context.Resolve actual))
-        |> rememberErrors [ expected; actual ]
+    member internal context.Match(Relation (expected, _, actual) as relation) =
+        context.MatchImpl relation
+        |> List.map Diagnostic.toCompilerDiagnostic
+        |> rememberErrorsFor [ expected; actual ]
 
-    member internal context.Intersect(left, right) =
-        context.UnifyByOrdering(Equal, TypeContext.create (context.Resolve left) (context.Resolve right))
-        |> ignore
+    member internal context.Intersect(type1, type2) =
+        context.MatchImpl(type1 .=. type2) |> ignore
+        let left = context.Resolve type1
+        let right = context.Resolve type2
 
-        let left = context.Resolve left
-        let right = context.Resolve right
-        let intersection, diagnostics = TypeContext.create left right |> combine Supertype
-        intersection, diagnostics |> rememberErrors [ left; right ]
+        Inference.combine Supertype left right
+        |> mapSnd (List.map Diagnostic.toCompilerDiagnostic >> rememberErrorsFor [ left; right ])
 
-    member internal context.Constrain(resolvedType, typeConstraint) =
-        let resolvedType = context.Resolve resolvedType
+    member internal context.Constrain(type_, constraint_) =
+        let type_ = context.Resolve type_
 
-        match resolvedType.Resolution with
+        match type_.Resolution with
         | TypeParameter param ->
             match variables.TryGetValue param |> tryOption with
             | Some variable ->
-                variables.[param] <- variable |> Variable.constrain typeConstraint
+                variables.[param] <- variable |> Variable.constrain constraint_
                 []
-            | None -> context.ApplyConstraint(typeConstraint, resolvedType)
-        | _ -> context.ApplyConstraint(typeConstraint, resolvedType)
-        |> rememberErrors (resolvedType :: Constraint.types typeConstraint)
+            | None -> context.ApplyConstraint(constraint_, type_)
+        | _ -> context.ApplyConstraint(constraint_, type_)
+        |> List.map Diagnostic.toCompilerDiagnostic
+        |> rememberErrorsFor (type_ :: Constraint.types constraint_)
 
-    member internal context.Resolve resolvedType =
+    member internal context.Resolve type_ =
         let resolveWithRange type_ =
-            let resolvedType' = context.Resolve type_
+            let type_' = context.Resolve type_
 
             // Prefer the original type range since it may be closer to the source of an error, but otherwise fall back
             // to the newly resolved type range.
-            resolvedType' |> ResolvedType.withRange (resolvedType.Range |> TypeRange.orElse resolvedType'.Range)
+            type_' |> ResolvedType.withRange (type_.Range |> TypeRange.orElse type_'.Range)
 
-        match resolvedType.Resolution with
+        match type_.Resolution with
         | TypeParameter param ->
             tryOption (variables.TryGetValue param)
             |> Option.bind (fun variable -> variable.Substitution)
             |> Option.map resolveWithRange
-            |> Option.defaultValue resolvedType
-        | ArrayType array -> resolvedType |> ResolvedType.withKind (context.Resolve array |> ArrayType)
+            |> Option.defaultValue type_
+        | ArrayType array -> type_ |> ResolvedType.withKind (context.Resolve array |> ArrayType)
         | TupleType tuple ->
-            resolvedType
+            type_
             |> ResolvedType.withKind (tuple |> Seq.map context.Resolve |> ImmutableArray.CreateRange |> TupleType)
         | QsTypeKind.Operation ((inType, outType), info) ->
-            resolvedType
+            type_
             |> ResolvedType.withKind (QsTypeKind.Operation((context.Resolve inType, context.Resolve outType), info))
         | QsTypeKind.Function (inType, outType) ->
-            resolvedType
+            type_
             |> ResolvedType.withKind (QsTypeKind.Function(context.Resolve inType, context.Resolve outType))
-        | _ -> resolvedType
+        | _ -> type_
 
-    /// <summary>
-    /// Unifies two types given that the left-hand type must satisfy the <paramref name="ordering"/> relation relative
-    /// to the right-hand type.
-    /// </summary>
-    member private context.UnifyByOrdering(ordering, types) =
-        let error code =
-            QsCompilerDiagnostic.Error
-                (code, describeTypeContext types)
-                (TypeRange.tryRange types.Right.Range |> QsNullable.defaultValue Range.Zero)
+    member private context.MatchImpl(Relation (expected, ordering, actual)) =
+        let expected = context.Resolve expected
+        let actual = context.Resolve actual
+        let typeContext = TypeContext.createOrphan expected actual
 
         let tryBind param substitution =
             match bind param substitution with
             | Ok () -> context.ApplyConstraints(param, substitution)
-            | Result.Error InfiniteType -> [ error ErrorCode.InfiniteType ]
+            | Result.Error () -> [ InfiniteType typeContext ]
 
-        match types.Left.Resolution, types.Right.Resolution with
-        | _ when types.Left = types.Right -> []
-        | TypeParameter param, _ when variables.ContainsKey param -> tryBind param types.Right
-        | _, TypeParameter param when variables.ContainsKey param -> tryBind param types.Left
-        | ArrayType item1, ArrayType item2 -> context.UnifyByOrdering(Equal, types |> TypeContext.intoRight item1 item2)
+        match expected.Resolution, actual.Resolution with
+        | _ when expected = actual -> []
+        | TypeParameter param, _ when variables.ContainsKey param -> tryBind param actual
+        | _, TypeParameter param when variables.ContainsKey param -> tryBind param expected
+        | ArrayType item1, ArrayType item2 -> context.MatchImpl(item1 .=. item2)
         | TupleType items1, TupleType items2 ->
             [
-                if items1.Length <> items2.Length then error ErrorCode.TypeMismatch
+                if items1.Length <> items2.Length then TypeMismatch typeContext
                 for item1, item2 in Seq.zip items1 items2 do
-                    let types = types |> TypeContext.intoRight (context.Resolve item1) (context.Resolve item2)
-                    yield! context.UnifyByOrdering(ordering, types)
+                    yield! Relation(item1, ordering, item2) |> context.MatchImpl
             ]
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
-            let errors =
-                if ordering = Equal && not (charsEqual info1 info2)
-                   || ordering = Supertype && not (charsSubset info1 info2)
-                   || ordering = Subtype && not (charsSubset info2 info1) then
-                    [ error ErrorCode.TypeMismatch ]
-                else
-                    []
+            let charsErrors =
+                match ordering with
+                | Subtype when Inference.charsSubset info2 info1 |> not -> [ TypeMismatch typeContext ]
+                | Equal when Inference.charsEqual info1 info2 |> not -> [ TypeMismatch typeContext ]
+                | Supertype when Inference.charsSubset info1 info2 |> not -> [ TypeMismatch typeContext ]
+                | _ -> []
 
-            context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
-            @ context.UnifyByOrdering(
-                ordering,
-                types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2)
-              )
-              @ errors
+            context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
+            @ context.MatchImpl(Relation(out1, ordering, out2)) @ charsErrors
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
-            @ context.UnifyByOrdering(
-                ordering,
-                types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2)
-            )
+            context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
+            @ context.MatchImpl(Relation(out1, ordering, out2))
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
-            error ErrorCode.TypeMismatch
-            :: context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
-            @ context.UnifyByOrdering(
-                ordering,
-                types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2)
-            )
+            TypeMismatch typeContext :: context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
+            @ context.MatchImpl(Relation(out1, ordering, out2))
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
-        | _ -> [ error ErrorCode.TypeMismatch ]
+        | _ -> [ TypeMismatch typeContext ]
+        |> List.map (Diagnostic.withParents expected actual)
 
-    /// <summary>
-    /// Applies the <paramref name="typeConstraint"/> to the given <paramref name="resolvedType"/>.
-    /// </summary>
-    member private context.ApplyConstraint(typeConstraint, resolvedType) =
-        let range = TypeRange.tryRange resolvedType.Range |> QsNullable.defaultValue Range.Zero
+    member private context.ApplyConstraint(constraint_, type_) =
+        let error code args range =
+            let range = TypeRange.tryRange range |> QsNullable.defaultValue Range.Zero
+            QsCompilerDiagnostic.Error(code, args) range |> CompilerDiagnostic
 
-        match typeConstraint with
-        | _ when resolvedType.Resolution = InvalidType -> []
+        let typeString = SyntaxTreeToQsharp.Default.ToCode type_
+
+        match constraint_ with
+        | _ when type_.Resolution = InvalidType -> []
         | Constraint.Adjointable ->
-            match resolvedType.Resolution with
-            | QsTypeKind.Operation (_, info) when hasFunctor Adjoint info -> []
-            | _ -> [ QsCompilerDiagnostic.Error(ErrorCode.InvalidAdjointApplication, []) range ]
+            match type_.Resolution with
+            | QsTypeKind.Operation (_, info) when Inference.hasFunctor Adjoint info -> []
+            | _ -> [ error ErrorCode.InvalidAdjointApplication [] type_.Range ]
         | Callable (input, output) ->
-            match resolvedType.Resolution with
+            match type_.Resolution with
             | QsTypeKind.Operation _ ->
                 let operationType = QsTypeKind.Operation((input, output), CallableInformation.NoInformation)
-                context.Unify(ResolvedType.New operationType, resolvedType)
-            | QsTypeKind.Function _ ->
-                context.Unify(QsTypeKind.Function(input, output) |> ResolvedType.New, resolvedType)
-            | _ ->
-                [
-                    QsCompilerDiagnostic.Error(ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]) range
-                ]
+                context.MatchImpl(type_ <. ResolvedType.New operationType)
+            | QsTypeKind.Function _ -> context.MatchImpl(type_ <. ResolvedType.New(QsTypeKind.Function(input, output)))
+            | _ -> [ error ErrorCode.ExpectingCallableExpr [ typeString ] type_.Range ]
         | CanGenerateFunctors functors ->
-            match resolvedType.Resolution with
+            match type_.Resolution with
             | QsTypeKind.Operation (_, info) ->
                 let supported = info.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
                 let missing = Set.difference functors (Set.ofSeq supported)
 
-                let error =
-                    ErrorCode.MissingFunctorForAutoGeneration, [ missing |> Seq.map string |> String.concat "," ]
-
                 [
                     if not info.Characteristics.AreInvalid && Set.isEmpty missing |> not then
-                        QsCompilerDiagnostic.Error error range
+                        error
+                            ErrorCode.MissingFunctorForAutoGeneration
+                            [ Seq.map string missing |> String.concat "," ]
+                            type_.Range
                 ]
             | _ -> []
         | Constraint.Controllable controlled ->
-            let error = QsCompilerDiagnostic.Error(ErrorCode.InvalidControlledApplication, []) range
+            let invalidControlled = error ErrorCode.InvalidControlledApplication [] type_.Range
 
-            match resolvedType.Resolution with
+            match type_.Resolution with
             | QsTypeKind.Operation ((input, output), info) ->
                 let actualControlled =
                     QsTypeKind.Operation((SyntaxGenerator.AddControlQubits input, output), info) |> ResolvedType.New
 
                 [
-                    if info |> hasFunctor Controlled |> not then error
-                    yield! context.Unify(controlled, actualControlled)
+                    if info |> Inference.hasFunctor Controlled |> not then invalidControlled
+                    yield! context.MatchImpl(controlled .> actualControlled)
                 ]
             | QsTypeKind.Function (input, output) ->
                 let actualControlled =
                     QsTypeKind.Operation((SyntaxGenerator.AddControlQubits input, output), CallableInformation.Invalid)
                     |> ResolvedType.New
 
-                error :: context.Unify(controlled, actualControlled)
-            | _ -> [ error ]
+                invalidControlled :: context.MatchImpl(controlled .> actualControlled)
+            | _ -> [ invalidControlled ]
         | Equatable ->
             [
-                if Option.isNone resolvedType.supportsEqualityComparison then
-                    QsCompilerDiagnostic.Error
-                        (ErrorCode.InvalidTypeInEqualityComparison, [ showType resolvedType ])
-                        range
+                if Option.isNone type_.supportsEqualityComparison then
+                    error ErrorCode.InvalidTypeInEqualityComparison [ typeString ] type_.Range
             ]
         | HasPartialApplication (missing, result) ->
-            match resolvedType.Resolution with
+            match type_.Resolution with
             | QsTypeKind.Function (_, output) ->
-                context.Unify(result, QsTypeKind.Function(missing, output) |> ResolvedType.New)
+                context.MatchImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. result)
             | QsTypeKind.Operation ((_, output), info) ->
-                context.Unify(result, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New)
-            | _ ->
-                [
-                    QsCompilerDiagnostic.Error(ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]) range
-                ]
+                context.MatchImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. result)
+            | _ -> [ error ErrorCode.ExpectingCallableExpr [ typeString ] type_.Range ]
         | Indexed (index, item) ->
             let index = context.Resolve index
 
-            match resolvedType.Resolution, index.Resolution with
-            | ArrayType actualItem, Int -> context.Unify(item, actualItem)
-            | ArrayType _, Range -> context.Unify(item, resolvedType)
+            match type_.Resolution, index.Resolution with
+            | ArrayType actualItem, Int -> context.MatchImpl(item .> actualItem)
+            | ArrayType _, Range -> context.MatchImpl(item .> type_)
             | ArrayType _, InvalidType -> []
             | ArrayType _, _ ->
                 [
-                    QsCompilerDiagnostic.Error
-                        (ErrorCode.InvalidArrayItemIndex, [ showType index ])
-                        (TypeRange.tryRange index.Range |> QsNullable.defaultValue Range.Zero)
+                    error ErrorCode.InvalidArrayItemIndex [ SyntaxTreeToQsharp.Default.ToCode index ] index.Range
                 ]
-            | _ ->
-                [
-                    QsCompilerDiagnostic.Error(ErrorCode.ItemAccessForNonArray, [ showType resolvedType ]) range
-                ]
+            | _ -> [ error ErrorCode.ItemAccessForNonArray [ typeString ] type_.Range ]
         | Integral ->
             [
-                if resolvedType.Resolution <> Int && resolvedType.Resolution <> BigInt then
-                    QsCompilerDiagnostic.Error(ErrorCode.ExpectingIntegralExpr, [ showType resolvedType ]) range
+                if type_.Resolution <> Int && type_.Resolution <> BigInt then
+                    error ErrorCode.ExpectingIntegralExpr [ typeString ] type_.Range
             ]
         | Iterable item ->
-            match resolvedType.supportsIteration with
-            | Some actualItem -> context.Unify(item, actualItem)
-            | None ->
-                [
-                    QsCompilerDiagnostic.Error(ErrorCode.ExpectingIterableExpr, [ showType resolvedType ]) range
-                ]
+            match type_.supportsIteration with
+            | Some actualItem -> context.MatchImpl(item .> actualItem)
+            | None -> [ error ErrorCode.ExpectingIterableExpr [ typeString ] type_.Range ]
         | Numeric ->
             [
-                if Option.isNone resolvedType.supportsArithmetic then
-                    QsCompilerDiagnostic.Error(ErrorCode.InvalidTypeInArithmeticExpr, [ showType resolvedType ]) range
+                if Option.isNone type_.supportsArithmetic then
+                    error ErrorCode.InvalidTypeInArithmeticExpr [ typeString ] type_.Range
             ]
         | Semigroup ->
             [
-                if Option.isNone resolvedType.supportsConcatenation && Option.isNone resolvedType.supportsArithmetic then
-                    QsCompilerDiagnostic.Error(ErrorCode.InvalidTypeForConcatenation, [ showType resolvedType ]) range
+                if Option.isNone type_.supportsConcatenation && Option.isNone type_.supportsArithmetic then
+                    error ErrorCode.InvalidTypeForConcatenation [ typeString ] type_.Range
             ]
         | Wrapped item ->
-            match resolvedType.Resolution with
+            match type_.Resolution with
             | UserDefinedType udt ->
                 let actualItem = symbolTracker.GetUnderlyingType(fun _ -> ()) udt
-                context.Unify(item, actualItem)
-            | _ ->
-                [
-                    QsCompilerDiagnostic.Error(ErrorCode.ExpectingUserDefinedType, [ showType resolvedType ]) range
-                ]
+                context.MatchImpl(item .> actualItem)
+            | _ -> [ error ErrorCode.ExpectingUserDefinedType [ typeString ] type_.Range ]
 
     /// <summary>
     /// Applies all of the constraints for <paramref name="param"/>, given that it has just been bound to
