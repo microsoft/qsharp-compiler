@@ -262,6 +262,7 @@ module AssemblyConstants =
     let HoneywellProcessor = "HoneywellProcessor"
     let IonQProcessor = "IonQProcessor"
     let QCIProcessor = "QCIProcessor"
+    let QuantinuumProcessor = "QuantinuumProcessor"
     let ExecutionTarget = "ExecutionTarget"
     let DefaultSimulator = "DefaultSimulator"
     let QuantumSimulator = "QuantumSimulator"
