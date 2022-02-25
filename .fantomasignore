@@ -1,8 +1,2 @@
 ﻿# Ignore signature files because of formatting bugs.
 *.fsi
-
-# Disabling the check for the transformations due to formatting bugs.
-# The issues are fixed with version 4.6.0, and these files can be reenabled
-after updating fantomas.
-*ExpressionTransformation.fs
-*StatementTransformation.fs
