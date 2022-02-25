@@ -48,7 +48,7 @@ type LinkingTests() =
 
     let qualifiedName ns name = { Namespace = ns; Name = name }
 
-    let createReferences : seq<string * IEnumerable<QsNamespace>> -> References =
+    let createReferences: seq<string * IEnumerable<QsNamespace>> -> References =
         Seq.map (fun (source, namespaces) -> KeyValuePair.Create(source, References.Headers(source, namespaces)))
         >> ImmutableDictionary.CreateRange
         >> References
@@ -162,12 +162,11 @@ type LinkingTests() =
         targetCallable.Specializations.Length > 0 |> Assert.True
 
         targetCallable.Specializations
-        |> Seq.map
-            (fun spec ->
-                match spec.Implementation with
-                | Provided _ -> true
-                | _ -> false
-                |> Assert.True)
+        |> Seq.map (fun spec ->
+            match spec.Implementation with
+            | Provided _ -> true
+            | _ -> false
+            |> Assert.True)
         |> ignore
 
     /// Runs the nth internal renaming test, asserting that declarations with the given name and references to them have
@@ -194,11 +193,15 @@ type LinkingTests() =
         let countAll namespaces names =
             names |> Seq.map (countReferences namespaces) |> Seq.sum
 
-        let beforeCount = countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [ renamed; notRenamed ])
+        let beforeCount =
+            countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [ renamed; notRenamed ])
+
         let afterCountOriginal = countAll referenceCompilation.BuiltCompilation.Namespaces renamed
         let decorator = new NameDecorator("QsRef")
         let newNames = renamed |> Seq.map (fun name -> decorator.Decorate(name, 0))
-        let afterCount = countAll referenceCompilation.BuiltCompilation.Namespaces (Seq.concat [ newNames; notRenamed ])
+
+        let afterCount =
+            countAll referenceCompilation.BuiltCompilation.Namespaces (Seq.concat [ newNames; notRenamed ])
 
         Assert.NotEqual(0, beforeCount)
         Assert.Equal(0, afterCountOriginal)

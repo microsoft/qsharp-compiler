@@ -92,7 +92,9 @@ type private InliningInfo =
             let! functors, callable, arg = InliningInfo.TrySplitCall callables expr.Expression
             let! specArgs, body = InliningInfo.TryGetProvidedImpl callable functors
             let body = ReplaceTypeParams(expr.TypeParameterResolutions).Statements.OnScope body
-            let returnType = ReplaceTypeParams(expr.TypeParameterResolutions).Types.OnType callable.Signature.ReturnType
+
+            let returnType =
+                ReplaceTypeParams(expr.TypeParameterResolutions).Types.OnType callable.Signature.ReturnType
 
             return
                 {
@@ -154,8 +156,7 @@ and private CallableInliningStatements(parent: CallableInlining, callables: Immu
         : unit =
         scope
         |> findAllSubStatements
-        |> Seq.iter
-            (function
+        |> Seq.iter (function
             | QsExpressionStatement ex ->
                 match InliningInfo.TryGetInfo callables ex with
                 | Some ii ->

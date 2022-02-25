@@ -384,8 +384,7 @@ type ClassicalControlTests() =
 
         let GetTypeParams call =
             call.Signature.TypeParameters
-            |> Seq.choose
-                (function
+            |> Seq.choose (function
                 | ValidName str -> Some str
                 | InvalidName -> None)
 
@@ -475,7 +474,8 @@ type ClassicalControlTests() =
         [ (1, BuiltIn.ApplyIfZero.FullName) ]
         |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable providedOp)
 
-        let _distributeOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Distribute") |> fun x -> x.Value
+        let _distributeOp =
+            callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Distribute") |> fun x -> x.Value
 
         let _providedOps =
             callables |> Seq.filter (fun x -> x.Key.Name.EndsWith "_Provided") |> Seq.map (fun x -> x.Value)
@@ -625,7 +625,8 @@ type ClassicalControlTests() =
             let adjContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
             let ctlAdjContent = [ (2, SubOpCA3) ]
 
-            let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent; ctlAdjContent ]
+            let orderedGens =
+                identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent; ctlAdjContent ]
 
             let bodyGen, ctlGen, adjGen, ctlAdjGen =
                 (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens), (Seq.item 3 orderedGens)
@@ -752,7 +753,7 @@ type ClassicalControlTests() =
             let ctlContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
             let adjContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
             let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent ]
-            let bodyGen, ctlGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
+            let bodyGen, ctlGen, adjGen = Seq.item 0 orderedGens, Seq.item 1 orderedGens, Seq.item 2 orderedGens
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [] bodyGen
             TestUtils.assertCallSupportsFunctors [] ctlGen
@@ -870,7 +871,7 @@ type ClassicalControlTests() =
             let ctlContent = [ (0, SubOpCA3); (1, SubOpCA1) ]
             let adjContent = [ (0, SubOpCA2); (1, SubOpCA3) ]
             let orderedGens = identifyGeneratedByCalls generated [ bodyContent; ctlContent; adjContent ]
-            let bodyGen, ctlGen, adjGen = (Seq.item 0 orderedGens), (Seq.item 1 orderedGens), (Seq.item 2 orderedGens)
+            let bodyGen, ctlGen, adjGen = Seq.item 0 orderedGens, Seq.item 1 orderedGens, Seq.item 2 orderedGens
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             TestUtils.assertCallSupportsFunctors [] bodyGen
             TestUtils.assertCallSupportsFunctors [ QsFunctor.Adjoint ] ctlGen
@@ -1597,7 +1598,8 @@ type ClassicalControlTests() =
             TestUtils.getCallableWithName result Signatures.ClassicalControlNS "Foo"
             |> TestUtils.getBodyFromCallable
 
-        let generated = TestUtils.getCallablesWithSuffix result Signatures.ClassicalControlNS "_Foo" |> Seq.exactlyOne
+        let generated =
+            TestUtils.getCallablesWithSuffix result Signatures.ClassicalControlNS "_Foo" |> Seq.exactlyOne
 
         let lines = original |> TestUtils.getLinesFromSpecialization
 
@@ -1618,11 +1620,10 @@ type ClassicalControlTests() =
 
         let parameters =
             generated.ArgumentTuple.Items
-            |> Seq.choose
-                (fun x ->
-                    match x.VariableName with
-                    | ValidName str -> Some str
-                    | InvalidName -> None)
+            |> Seq.choose (fun x ->
+                match x.VariableName with
+                | ValidName str -> Some str
+                | InvalidName -> None)
             |> (fun s -> String.Join(", ", s))
 
         Assert.True(

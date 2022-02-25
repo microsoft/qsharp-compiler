@@ -329,7 +329,8 @@ type LambdaLiftingTests() =
     member this.``Function Lambda``() =
         let result = compileLambdaLiftingTest 10
 
-        let generated = TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo" |> Seq.exactlyOne
+        let generated =
+            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo" |> Seq.exactlyOne
 
         Assert.True(generated.Kind = QsCallableKind.Function, "The generated callable was expected to be a function.")
 
@@ -344,7 +345,8 @@ type LambdaLiftingTests() =
         let result = LiftLambdaExpressions.Apply compilationDataStructures.BuiltCompilation
         Assert.NotNull result
 
-        let generated = TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo" |> Seq.exactlyOne
+        let generated =
+            TestUtils.getCallablesWithSuffix result Signatures.LambdaLiftingNS "_Foo" |> Seq.exactlyOne
 
         let originalExpectedName = { Namespace = Signatures.LambdaLiftingNS; Name = "Foo" }
         let ``Foo.A`` = QsTypeParameter.New(originalExpectedName, "A") |> TypeParameter |> ResolvedType.New
@@ -384,7 +386,7 @@ type LambdaLiftingTests() =
             (seq {
                 originalSigExpected
                 generatedSigExpected
-             })
+            })
             result
 
     [<Fact>]

@@ -37,7 +37,9 @@ let SimpleApplication () =
 let SimpleLibrary () =
     DesignTimeBuild.assemblyLoadContextSetup ()
 
-    let files, version = DesignTimeBuild.getSourceFiles "Examples\TestProjects\SimpleLibrary\QSharpLibrary1.csproj"
+    let files, version =
+        DesignTimeBuild.getSourceFiles "Examples\TestProjects\SimpleLibrary\QSharpLibrary1.csproj"
+
     let files = files |> List.map Path.GetFullPath
 
     let expectedFiles =

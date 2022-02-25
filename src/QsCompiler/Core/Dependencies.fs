@@ -216,7 +216,8 @@ type BuiltIn =
             Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
-    static member Attribute = { FullName = { Name = "Attribute"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
+    static member Attribute =
+        { FullName = { Name = "Attribute"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
 
     static member EntryPoint =
         { FullName = { Name = "EntryPoint"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }

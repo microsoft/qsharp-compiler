@@ -32,7 +32,8 @@ let private invalidArgTupleItem = (invalidSymbol, invalidType) |> QsTupleItem
 let private invalidInitializer = (InvalidInitializer, Null) |> QsInitializer.New
 
 /// returns a QsFunctorGenerator representing an invalid functor generator (i.e. syntax error on parsing)
-let private unknownGenerator = (FunctorGenerationDirective InvalidGenerator, Null) |> QsSpecializationGenerator.New
+let private unknownGenerator =
+    (FunctorGenerationDirective InvalidGenerator, Null) |> QsSpecializationGenerator.New
 
 /// Given a continuation (parser), attempts to parse an unqualified QsSymbol
 /// using localItentifier to generate suitable errors for invalid symbol names,
@@ -340,7 +341,8 @@ let private controlledAdjointDeclaration =
 
 /// Uses buildFragment to parse a Q# OperationDeclaration as QsFragment.
 let private operationDeclaration =
-    let invalid = CallableDeclaration.Create(invalidSymbol, Null, CallableSignature.Invalid) |> OperationDeclaration
+    let invalid =
+        CallableDeclaration.Create(invalidSymbol, Null, CallableSignature.Invalid) |> OperationDeclaration
 
     let valid visibility (symbol, signature) =
         CallableDeclaration.Create(symbol, QsNullable.ofOption visibility, signature)
@@ -350,7 +352,8 @@ let private operationDeclaration =
 
 /// Uses buildFragment to parse a Q# FunctionDeclaration as QsFragment.
 let private functionDeclaration =
-    let invalid = CallableDeclaration.Create(invalidSymbol, Null, CallableSignature.Invalid) |> FunctionDeclaration
+    let invalid =
+        CallableDeclaration.Create(invalidSymbol, Null, CallableSignature.Invalid) |> FunctionDeclaration
 
     let valid visibility (symbol, signature) =
         CallableDeclaration.Create(symbol, QsNullable.ofOption visibility, signature) |> FunctionDeclaration
@@ -512,12 +515,16 @@ let private setStatement =
 
     let symbolUpdate =
         let continuation = isTupleContinuation >>% "" <|> equal <|> lTuple // need lTuple here to make sure tuples are not parsed as expressions!
-        let invalidErr, missingErr = ErrorCode.InvalidIdentifierExprInUpdate, ErrorCode.MissingIdentifierExprInUpdate
+
+        let invalidErr, missingErr =
+            ErrorCode.InvalidIdentifierExprInUpdate, ErrorCode.MissingIdentifierExprInUpdate
 
         let symbolTuple =
             buildTupleItem (identifierExpr continuation) buildTupleExpr invalidErr missingErr unknownExpr equal
 
-        let expectedEqual = expected equal ErrorCode.ExpectingAssignment ErrorCode.ExpectingAssignment "" (preturn ())
+        let expectedEqual =
+            expected equal ErrorCode.ExpectingAssignment ErrorCode.ExpectingAssignment "" (preturn ())
+
         symbolTuple .>> expectedEqual .>>. expectedExpr eof
 
     let invalid = ValueUpdate(unknownExpr, unknownExpr)
@@ -557,7 +564,8 @@ let private whileHeader =
 
 
 /// Uses buildFragment to parse a Q# repeat intro as QsFragment.
-let private repeatHeader = buildFragment qsRepeat.parse (preturn "") RepeatIntro (fun _ _ -> RepeatIntro) eof
+let private repeatHeader =
+    buildFragment qsRepeat.parse (preturn "") RepeatIntro (fun _ _ -> RepeatIntro) eof
 
 /// Uses buildFragment to parse a Q# until success clause as QsFragment.
 let private untilSuccess =
@@ -573,10 +581,12 @@ let private untilSuccess =
 
 
 /// Uses buildFragment to parse a Q# within-block intro as QsFragment.
-let private withinHeader = buildFragment qsWithin.parse (preturn "") WithinBlockIntro (fun _ _ -> WithinBlockIntro) eof
+let private withinHeader =
+    buildFragment qsWithin.parse (preturn "") WithinBlockIntro (fun _ _ -> WithinBlockIntro) eof
 
 /// Uses buildFragment to parse a Q# apply block intro as QsFragment.
-let private applyHeader = buildFragment qsApply.parse (preturn "") ApplyBlockIntro (fun _ _ -> ApplyBlockIntro) eof
+let private applyHeader =
+    buildFragment qsApply.parse (preturn "") ApplyBlockIntro (fun _ _ -> ApplyBlockIntro) eof
 
 
 /// Parses a Q# qubit binding keyword or an equivalent deprecated keyword. If the deprecated keyword is parsed, a

@@ -26,7 +26,7 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
 
     member val internal CommonTransformationItemsHandle = missingTransformation "common items" with get, set
 
-    member this.Common : CommonTransformationNodes = this.CommonTransformationItemsHandle()
+    member this.Common: CommonTransformationNodes = this.CommonTransformationItemsHandle()
 
     internal new(getCommonItems: unit -> CommonTransformationNodes, options: TransformationOptions) as this =
         new TypeTransformationBase(options, "_internal_")
@@ -44,7 +44,7 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
 
     // TODO: RELEASE 2021-10: Remove obsolete method.
     [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
-    abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
+    abstract OnRangeInformation: QsNullable<Range> -> QsNullable<Range>
 
     // TODO: RELEASE 2021-10: Remove obsolete method.
     [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
@@ -52,16 +52,16 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
 
     // TODO: RELEASE 2022-09: Remove obsolete method.
     [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
-    abstract OnTypeRange : TypeRange -> TypeRange
+    abstract OnTypeRange: TypeRange -> TypeRange
 
     // TODO: RELEASE 2022-09: Remove obsolete method.
     [<Obsolete "Use SyntaxTreeTransformation.OnTypeRange(TypeRange) instead.">]
     override this.OnTypeRange range = range
 
-    abstract OnCharacteristicsExpression : ResolvedCharacteristics -> ResolvedCharacteristics
+    abstract OnCharacteristicsExpression: ResolvedCharacteristics -> ResolvedCharacteristics
     default this.OnCharacteristicsExpression fs = fs
 
-    abstract OnCallableInformation : CallableInformation -> CallableInformation
+    abstract OnCallableInformation: CallableInformation -> CallableInformation
 
     default this.OnCallableInformation opInfo =
         let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
@@ -71,14 +71,14 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
 
     // nodes containing subtypes
 
-    abstract OnUserDefinedType : UserDefinedType -> ExpressionType
+    abstract OnUserDefinedType: UserDefinedType -> ExpressionType
 
     default this.OnUserDefinedType udt =
         let ns, name = udt.Namespace, udt.Name
         let range = this.OnRangeInformation udt.Range // udt.Range should be removed along with OnRangeInformation
         Node.BuildOr InvalidType (ns, name, range) (UserDefinedType.New >> UserDefinedType)
 
-    abstract OnTypeParameter : QsTypeParameter -> ExpressionType
+    abstract OnTypeParameter: QsTypeParameter -> ExpressionType
 
     default this.OnTypeParameter tp =
         let origin = tp.Origin
@@ -86,25 +86,25 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
         let range = this.OnRangeInformation tp.Range // tp.Range should be removed along with OnRangeInformation
         Node.BuildOr InvalidType (origin, name, range) (QsTypeParameter.New >> TypeParameter)
 
-    abstract OnOperation : (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
+    abstract OnOperation: (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
 
     default this.OnOperation((it, ot), info) =
         let transformed = (this.OnType it, this.OnType ot), this.OnCallableInformation info
         ExpressionType.Operation |> Node.BuildOr InvalidType transformed
 
-    abstract OnFunction : ResolvedType * ResolvedType -> ExpressionType
+    abstract OnFunction: ResolvedType * ResolvedType -> ExpressionType
 
     default this.OnFunction(it, ot) =
         let transformed = this.OnType it, this.OnType ot
         ExpressionType.Function |> Node.BuildOr InvalidType transformed
 
-    abstract OnTupleType : ImmutableArray<ResolvedType> -> ExpressionType
+    abstract OnTupleType: ImmutableArray<ResolvedType> -> ExpressionType
 
     default this.OnTupleType ts =
         let transformed = ts |> Seq.map this.OnType |> ImmutableArray.CreateRange
         ExpressionType.TupleType |> Node.BuildOr InvalidType transformed
 
-    abstract OnArrayType : ResolvedType -> ExpressionType
+    abstract OnArrayType: ResolvedType -> ExpressionType
 
     default this.OnArrayType b =
         ExpressionType.ArrayType |> Node.BuildOr InvalidType (this.OnType b)
@@ -112,46 +112,46 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
 
     // leaf nodes
 
-    abstract OnUnitType : unit -> ExpressionType
+    abstract OnUnitType: unit -> ExpressionType
     default this.OnUnitType() = ExpressionType.UnitType
 
-    abstract OnQubit : unit -> ExpressionType
+    abstract OnQubit: unit -> ExpressionType
     default this.OnQubit() = ExpressionType.Qubit
 
-    abstract OnMissingType : unit -> ExpressionType
+    abstract OnMissingType: unit -> ExpressionType
     default this.OnMissingType() = ExpressionType.MissingType
 
-    abstract OnInvalidType : unit -> ExpressionType
+    abstract OnInvalidType: unit -> ExpressionType
     default this.OnInvalidType() = ExpressionType.InvalidType
 
-    abstract OnInt : unit -> ExpressionType
+    abstract OnInt: unit -> ExpressionType
     default this.OnInt() = ExpressionType.Int
 
-    abstract OnBigInt : unit -> ExpressionType
+    abstract OnBigInt: unit -> ExpressionType
     default this.OnBigInt() = ExpressionType.BigInt
 
-    abstract OnDouble : unit -> ExpressionType
+    abstract OnDouble: unit -> ExpressionType
     default this.OnDouble() = ExpressionType.Double
 
-    abstract OnBool : unit -> ExpressionType
+    abstract OnBool: unit -> ExpressionType
     default this.OnBool() = ExpressionType.Bool
 
-    abstract OnString : unit -> ExpressionType
+    abstract OnString: unit -> ExpressionType
     default this.OnString() = ExpressionType.String
 
-    abstract OnResult : unit -> ExpressionType
+    abstract OnResult: unit -> ExpressionType
     default this.OnResult() = ExpressionType.Result
 
-    abstract OnPauli : unit -> ExpressionType
+    abstract OnPauli: unit -> ExpressionType
     default this.OnPauli() = ExpressionType.Pauli
 
-    abstract OnRange : unit -> ExpressionType
+    abstract OnRange: unit -> ExpressionType
     default this.OnRange() = ExpressionType.Range
 
 
     // transformation root called on each node
 
-    abstract OnType : ResolvedType -> ResolvedType
+    abstract OnType: ResolvedType -> ResolvedType
 
     default this.OnType(t: ResolvedType) =
         if not options.Enable then

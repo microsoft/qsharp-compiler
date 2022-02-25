@@ -106,7 +106,7 @@ module MethodTests =
                 ``(``
                 [ param "thing" ``of`` (``type`` "object") ]
                 ``)``
-                [ ``public``; ``virtual`` ]
+                [ ``public``; virtual ]
                 (Some e)
 
         let actual = to_class_members_code [ m ]

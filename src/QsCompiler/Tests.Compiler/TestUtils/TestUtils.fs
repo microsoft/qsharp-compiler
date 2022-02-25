@@ -54,21 +54,21 @@ let simpleParseString parser string =
     | Failure (_) -> false
 
 let parse_string parser str =
-    let diags : QsCompilerDiagnostic list = []
+    let diags: QsCompilerDiagnostic list = []
 
     match CharParsers.runParserOnString parser diags "" str with
     | Success (_) -> true
     | Failure (_) -> false
 
 let parse_string_diags parser str =
-    let diags : QsCompilerDiagnostic list = []
+    let diags: QsCompilerDiagnostic list = []
 
     match CharParsers.runParserOnString parser diags "" str with
     | Success (_, ustate, _) -> true, ustate
     | Failure (_) -> false, []
 
 let parse_string_diags_res parser str =
-    let diags : QsCompilerDiagnostic list = []
+    let diags: QsCompilerDiagnostic list = []
 
     match CharParsers.runParserOnString parser diags "" str with
     | Success (res, ustate, _) -> true, ustate, Some res
@@ -298,7 +298,9 @@ let readAndChunkSourceFile fileName =
     sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
 let buildContent content =
-    let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
+    let compilationManager =
+        new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
+
     let fileId = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
 
     let file =
@@ -366,11 +368,10 @@ let getCallablesWithSuffix compilation ns (suffix: string) =
 let identifyCallablesBySignature generatedCallables signatures =
     let mutable callables =
         generatedCallables
-        |> Seq.map
-            (fun x ->
-                x,
-                (SyntaxTreeToQsharp.ArgumentTuple(x.ArgumentTuple, (fun x -> SyntaxTreeToQsharp.Default.ToCode(x))),
-                 SyntaxTreeToQsharp.Default.ToCode(x.Signature.ReturnType)))
+        |> Seq.map (fun x ->
+            x,
+            (SyntaxTreeToQsharp.ArgumentTuple(x.ArgumentTuple, (fun x -> SyntaxTreeToQsharp.Default.ToCode(x))),
+             SyntaxTreeToQsharp.Default.ToCode(x.Signature.ReturnType)))
 
     Assert.True(Seq.length callables = Seq.length signatures) // This should be true if this method is called correctly
 

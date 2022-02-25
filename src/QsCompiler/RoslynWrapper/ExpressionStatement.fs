@@ -281,7 +281,7 @@ module Statements =
         SyntaxFactory.YieldStatement(SyntaxKind.YieldReturnStatement, value) :> StatementSyntax
 
     // break;
-    let ``break`` = SyntaxFactory.BreakStatement() :> StatementSyntax
+    let break = SyntaxFactory.BreakStatement() :> StatementSyntax
 
     // { blocks }
     let ``}}`` = None

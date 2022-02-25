@@ -451,7 +451,7 @@ type DiagnosticItem =
     | Information of InformationCode
 
     static member private ApplyArguments (args: IEnumerable<string>) str =
-        let args : obj [] =
+        let args: obj [] =
             if args = null then
                 [||]
             else

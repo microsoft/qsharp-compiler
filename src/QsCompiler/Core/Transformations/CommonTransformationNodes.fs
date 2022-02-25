@@ -16,32 +16,32 @@ type QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 /// </summary>
 type CommonTransformationNodes internal () =
 
-    abstract OnLocalNameDeclaration : string -> string
+    abstract OnLocalNameDeclaration: string -> string
     default this.OnLocalNameDeclaration name = name
 
-    abstract OnLocalName : string -> string
+    abstract OnLocalName: string -> string
     default this.OnLocalName name = name
 
-    abstract OnItemNameDeclaration : string -> string
+    abstract OnItemNameDeclaration: string -> string
     default this.OnItemNameDeclaration name = name
 
-    abstract OnItemName : UserDefinedType * string -> string
+    abstract OnItemName: UserDefinedType * string -> string
     default this.OnItemName(parentType, itemName) = itemName
 
-    abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
+    abstract OnArgumentTuple: QsArgumentTuple -> QsArgumentTuple
     default this.OnArgumentTuple argTuple = argTuple
 
-    abstract OnAbsoluteLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
+    abstract OnAbsoluteLocation: QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnAbsoluteLocation loc = loc
 
-    abstract OnRelativeLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
+    abstract OnRelativeLocation: QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnRelativeLocation loc = loc
 
-    abstract OnSymbolLocation : QsNullable<Position> * Range -> QsNullable<Position> * Range
+    abstract OnSymbolLocation: QsNullable<Position> * Range -> QsNullable<Position> * Range
     default this.OnSymbolLocation(offset, range) = (offset, range)
 
-    abstract OnExpressionRange : QsNullable<Range> -> QsNullable<Range>
+    abstract OnExpressionRange: QsNullable<Range> -> QsNullable<Range>
     default this.OnExpressionRange range = range
 
-    abstract OnTypeRange : TypeRange -> TypeRange
+    abstract OnTypeRange: TypeRange -> TypeRange
     default this.OnTypeRange range = range

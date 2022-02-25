@@ -43,8 +43,8 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         [
             for file in compilation.SourceFiles do
                 let containedCallables =
-                    callables.Where
-                        (fun kv -> Source.assemblyOrCodeFile kv.Value.Source = file && kv.Value.Location <> Null)
+                    callables.Where (fun kv ->
+                        Source.assemblyOrCodeFile kv.Value.Source = file && kv.Value.Location <> Null)
 
                 let locations =
                     containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart)
@@ -74,11 +74,10 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         let got =
             diag.Where(fun d -> d.Severity = severity)
-            |> Seq.choose
-                (fun d ->
-                    match Diagnostics.TryGetCode d.Code with
-                    | true, code -> Some code
-                    | false, _ -> None)
+            |> Seq.choose (fun d ->
+                match Diagnostics.TryGetCode d.Code with
+                | true, code -> Some code
+                | false, _ -> None)
 
         let codeMismatch = expected.ToImmutableHashSet().SymmetricExcept got
         let gotLookup = got.ToLookup(new Func<_, _>(id))
@@ -113,22 +112,19 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
     member this.VerifyDiagnostics(name, expected: IEnumerable<DiagnosticItem>) =
         let errs =
             expected
-            |> Seq.choose
-                (function
+            |> Seq.choose (function
                 | Error err -> Some err
                 | _ -> None)
 
         let wrns =
             expected
-            |> Seq.choose
-                (function
+            |> Seq.choose (function
                 | Warning wrn -> Some wrn
                 | _ -> None)
 
         let infs =
             expected
-            |> Seq.choose
-                (function
+            |> Seq.choose (function
                 | Information inf -> Some inf
                 | _ -> None)
 
@@ -138,8 +134,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         let other =
             expected
-            |> Seq.choose
-                (function
+            |> Seq.choose (function
                 | Warning _
                 | Error _ -> None
                 | item -> Some item)
@@ -154,7 +149,9 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         let props = ImmutableDictionary.CreateBuilder()
         props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, capability.Name)
         let mutable exceptions = []
-        use manager = new CompilationUnitManager(new ProjectProperties(props), (fun e -> exceptions <- e :: exceptions))
+
+        use manager =
+            new CompilationUnitManager(new ProjectProperties(props), (fun e -> exceptions <- e :: exceptions))
 
         paths.ToImmutableDictionary(Uri, File.ReadAllText)
         |> CompilationUnitManager.InitializeFileManagers
