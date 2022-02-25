@@ -289,12 +289,10 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                 |> SymbolResolution.GenerateDeprecationWarning(fullName, qsSym.RangeOrDefault)
                 |> Array.iter addDiagnostic
 
-            let argType, returnType =
-                decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
-
             let idType =
-                kind ((argType, returnType), decl.Information)
+                kind ((decl.ArgumentType, decl.ReturnType), decl.Information)
                 |> ResolvedType.create (TypeRange.inferred qsSym.Range)
+                |> ResolvedType.withAllRanges (TypeRange.inferred qsSym.Range)
 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
 
