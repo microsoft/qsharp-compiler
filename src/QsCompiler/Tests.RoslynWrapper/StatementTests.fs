@@ -1,5 +1,7 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper.Testing
 
+#nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
+
 open Xunit
 
 open Microsoft.Quantum.RoslynWrapper

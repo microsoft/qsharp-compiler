@@ -1,5 +1,7 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper
 
+#nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
+
 [<AutoOpen>]
 module WhiteNoise =
     open Microsoft.CodeAnalysis.CSharp

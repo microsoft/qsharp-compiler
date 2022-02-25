@@ -1,5 +1,6 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper
 
+#nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
 #nowarn "1182" // Unused parameters
 
 [<AutoOpen>]

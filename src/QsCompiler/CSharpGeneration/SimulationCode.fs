@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.CsharpGeneration
 
+#nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
