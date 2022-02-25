@@ -1334,6 +1334,37 @@
         Message($"{res}");
     }
 
+    function TestArrayConcatenation2() : Unit {
+
+        mutable res = [[(0, 0)]];
+        for i in 1..3 {
+            set res += [[(i, i^2)]];
+        }
+        Message($"{res}");
+    }
+
+    function TestArrayConcatenation3() : Unit {
+
+        let defaultArr = [(0, 0)];
+        mutable res = defaultArr;
+        for i in 1..3 {
+            set res += [(i, i^2)];
+        }
+        Message($"{defaultArr}");
+        Message($"{res}");
+    }
+
+    function TestArrayConcatenation4() : Unit {
+
+        mutable res = [(0, 0), size = 2];
+        let additional = [(0, 0)];
+        for i in 1..3 {
+            set res += additional;
+        }
+        Message($"{additional}");
+        Message($"{res}");
+    }
+
     function TestCopyAndUpdate1 () : Unit {
 
         let udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4") w/ Item1 <- "";
@@ -2090,6 +2121,9 @@
         PrintSection(19, "");
 
         TestArrayConcatenation1();
+        TestArrayConcatenation2();
+        TestArrayConcatenation3();
+        TestArrayConcatenation4();
 
         Message("Executed successfully!");
     }
