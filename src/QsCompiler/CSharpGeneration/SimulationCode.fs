@@ -389,7 +389,8 @@ module SimulationCode =
         let rec buildExpression (ex: TypedExpression) =
             match ex.Expression with
             // TODO: Diagnostics
-            | InvalidExpr -> failwith "Can't generate code for error expression"
+            | InvalidExpr -> failwith "Can't generate code for invalid expression."
+            | Lambda _ -> failwith "Can't generate code for un-lifted lambda."
             | UnitValue -> (ident "QVoid") <|.|> (ident "Instance")
             | IntLiteral i -> literal i
             | BigIntLiteral b ->
@@ -1113,6 +1114,8 @@ module SimulationCode =
                 sprintf "IonQEntryPointInfo<%s, %s>" operationInput operationOutput
             | target when target = AssemblyConstants.QCIProcessor ->
                 sprintf "QCIEntryPointInfo<%s, %s>" operationInput operationOutput
+            | target when target = AssemblyConstants.QuantinuumProcessor ->
+                sprintf "QuantinuumEntryPointInfo<%s, %s>" operationInput operationOutput
             | _ -> sprintf "EntryPointInfo<%s, %s>" operationInput operationOutput
 
         let operationType = simpleBase operationName

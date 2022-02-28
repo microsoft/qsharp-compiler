@@ -14,7 +14,7 @@ using static Microsoft.Quantum.QsCompiler.Documentation.Testing.Utils;
 
 namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 {
-    using ArgDeclType = LocalVariableDeclaration<QsLocalSymbol>;
+    using ArgDeclType = LocalVariableDeclaration<QsLocalSymbol, ResolvedType>;
     using QsType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     public class DocWritingTests

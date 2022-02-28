@@ -11,25 +11,22 @@ open Microsoft.Quantum.QsFmt.App.Arguments
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
 open Microsoft.Quantum.QsFmt.Formatter
 
-let makeFullPath input =
-    if input = "-" then input else Path.GetFullPath input
-
 let runCommand (commandWithOptions: CommandWithOptions) inputs =
 
     let mutable paths = Set.empty
+    let mutable filesUpdated = Set.empty
+    let mutable filesFormatted = Set.empty
 
     let rec processOneInput input =
         // Make sure inputs are not processed more than once.
-        if input |> makeFullPath |> paths.Contains then
-            // Change the "-" input to say "<Standard Input>" in the error
-            let input = if input = "-" then "<Standard Input>" else input
+        if input |> Path.GetFullPath |> paths.Contains then
             eprintfn "This input has already been processed: %s" input
             { RunResult.Default with ExitCode = ExitCode.FileAlreadyProcessed }
         else
-            paths <- input |> makeFullPath |> paths.Add
+            paths <- input |> Path.GetFullPath |> paths.Add
 
             try
-                if input <> "-" && (File.GetAttributes input).HasFlag(FileAttributes.Directory) then
+                if (File.GetAttributes input).HasFlag(FileAttributes.Directory) then
                     let newInputs =
                         let topLevelFiles = Directory.EnumerateFiles(input, "*.qs") |> List.ofSeq
 
@@ -41,25 +38,28 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
                     newInputs |> processManyInputs
                 else
                     let source =
-                        if input = "-" then
-                            stdin.ReadToEnd()
-                        else
-                            if commandWithOptions.BackupFlag then File.Copy(input, (input + "~"), true)
-                            File.ReadAllText input
+                        if commandWithOptions.BackupFlag then File.Copy(input, (input + "~"), true)
+                        File.ReadAllText input
 
-                    let command =
+                    let result =
                         match commandWithOptions.CommandKind with
-                        | Update -> Formatter.update input commandWithOptions.QSharpVersion
-                        | Format -> Formatter.format commandWithOptions.QSharpVersion
-                        | UpdateAndFormat -> Formatter.updateAndFormat input commandWithOptions.QSharpVersion
+                        | Update ->
+                            Formatter.performUpdate input commandWithOptions.QSharpVersion source
+                            |> Result.map (fun isUpdated -> if isUpdated then filesUpdated <- filesUpdated.Add input)
+                        | Format ->
+                            Formatter.performFormat input commandWithOptions.QSharpVersion source
+                            |> Result.map
+                                (fun isFormatted -> if isFormatted then filesFormatted <- filesFormatted.Add input)
+                        | UpdateAndFormat ->
+                            Formatter.performUpdateAndFormat input commandWithOptions.QSharpVersion source
+                            |> Result.map
+                                (fun (isUpdated, isFormatted) ->
+                                    if isUpdated then filesUpdated <- filesUpdated.Add input
+                                    if isFormatted then filesFormatted <- filesFormatted.Add input)
 
-                    match command source with
-                    | Ok result ->
-                        if input = "-" then printf "%s" result else File.WriteAllText(input, result)
-                        { RunResult.Default with FilesProcessed = 1 }
+                    match result with
+                    | Ok _ -> { RunResult.Default with FilesProcessed = 1 }
                     | Error errors ->
-                        // Change the "-" input to say "<Standard Input>" in the error
-                        let input = if input = "-" then "<Standard Input>" else input
                         errors |> List.iter (eprintfn "%s, %O" input)
                         { RunResult.Default with ExitCode = ExitCode.SyntaxErrors; SyntaxErrors = errors }
             with
@@ -82,7 +82,32 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
     and processManyInputs inputs =
         inputs |> Seq.fold foldResults RunResult.Default
 
-    processManyInputs inputs
+    let runResults = processManyInputs inputs
+
+    if runResults.ExitCode = ExitCode.Success then
+        match commandWithOptions.CommandKind with
+        | Update ->
+            printfn "Updated %i files:" (Set.count filesUpdated)
+
+            for file in filesUpdated do
+                printfn "\tUpdated %s" file
+        | Format ->
+            printfn "Formatted %i files:" (Set.count filesFormatted)
+
+            for file in filesFormatted do
+                printfn "\tFormatted %s" file
+        | UpdateAndFormat ->
+            printfn "Updated %i files:" (Set.count filesUpdated)
+
+            for file in filesUpdated do
+                printfn "\tUpdated %s" file
+
+            printfn "Formatted %i files:" (Set.count filesFormatted)
+
+            for file in filesFormatted do
+                printfn "\tFormatted %s" file
+
+    runResults
 
 [<CompiledName "Main">]
 [<EntryPoint>]

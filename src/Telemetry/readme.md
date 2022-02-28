@@ -45,6 +45,7 @@ var telemetryConfig = new TelemetryManagerConfig()
     },
     SendTelemetryInitializedEvent = true,
     SendTelemetryTearDownEvent = true,
+    DefaultTelemetryConsent = ConsentKind.OptedIn,
 };
 ```
 
@@ -98,6 +99,20 @@ var telemetryConfig = new TelemetryManagerConfig()
 ```
 
 **Note:** The AppId must have from 3 to 20 characters and only letters and numbers are allowed.
+
+### .DefaultTelemetryConsent
+
+The default User Consent to collect or not collect telemetry (defaults to ConsentKind.OptedOut, can also be set ConsentKind.OptedIn).
+If the default value is ConsentKind.OptedOut, then the user can opt-in via the environment variable defined in TelemetryOptInVariableName.
+If the default value is ConsentKind.OptedIn, then the user can opt-out via the environment variable defined in TelemetryOptOutVariableName.
+
+### .TelemetryOptInVariableName
+
+This is the name of the environment variable that the Telemetry Library will use to determine if the end user has opted-in sending telemetry.
+
+For example, if your `TelemetryOptInVariableName` is `MYAPP_TELEMETRY_OPT_IN`, and the end user sets it to `MYAPP_TELEMETRY_OPT_IN="1"`, data will be collected and sent to Microsoft.
+
+**Note:** The "TelemetryOptOut" will always take precedence.
 
 ### .TelemetryOptOutVariableName
 

@@ -85,6 +85,7 @@ let private customSimulatorFactory name =
             name
             [
                 AssemblyConstants.QuantumSimulator
+                AssemblyConstants.SparseSimulator
                 AssemblyConstants.ToffoliSimulator
                 AssemblyConstants.ResourcesEstimator
             ]
@@ -233,6 +234,7 @@ let private qirSubmission (entryPoint: QsCallable) parameters parseResult =
 let private generateAzurePayloadMethod context entryPoint parameters =
     let parseResultParamName = "parseResult"
     let settingsParamName = "settings"
+
     let args =
         [
             ident settingsParamName :> ExpressionSyntax
@@ -396,6 +398,7 @@ let private driverSettings context =
     [
         namedArg "simulatorOptionAliases" simulatorOptionAliases
         namedArg "quantumSimulatorName" <| literal AssemblyConstants.QuantumSimulator
+        namedArg "sparseSimulatorName" <| literal AssemblyConstants.SparseSimulator
         namedArg "toffoliSimulatorName" <| literal AssemblyConstants.ToffoliSimulator
         namedArg "resourcesEstimatorName" <| literal AssemblyConstants.ResourcesEstimator
         namedArg "defaultSimulatorName" <| literal defaultSimulator

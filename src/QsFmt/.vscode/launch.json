@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "QsFmt",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/App/bin/Debug/netcoreapp3.1/qsfmt.dll",
+            "args": ["--TELEMETRY_TEST_MODE"],
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        }
+    ]
+}

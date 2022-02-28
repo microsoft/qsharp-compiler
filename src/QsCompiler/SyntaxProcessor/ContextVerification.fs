@@ -4,6 +4,7 @@
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.Context
 
 open System
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
@@ -298,3 +299,70 @@ let VerifySyntaxTokenContext =
             | NamespaceDeclaration _ -> verifyNamespace context
             | InvalidFragment _ -> false, [||]
         |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New(x, []) y))
+
+let private mergeMaps onDuplicateKey =
+    fun map key value ->
+        match Map.tryFind key map with
+        | Some value' -> Map.add key (onDuplicateKey value value') map
+        | None -> Map.add key value map
+    |> Map.fold
+
+let rec internal freeVariables e =
+    let merge = mergeMaps (@)
+
+    match e.Expression with
+    | Identifier ({ Symbol = Symbol name }, _) -> Map.add name [ e.Range ] Map.empty
+    | UnitValue
+    | IntLiteral _
+    | BigIntLiteral _
+    | DoubleLiteral _
+    | BoolLiteral _
+    | ResultLiteral _
+    | PauliLiteral _
+    | MissingExpr
+    | InvalidExpr
+    | Identifier _ -> Map.empty
+    | NewArray (_, e)
+    | NamedItem (e, _)
+    | NEG e
+    | NOT e
+    | BNOT e
+    | UnwrapApplication e
+    | AdjointApplication e
+    | ControlledApplication e -> freeVariables e
+    | RangeLiteral (e1, e2)
+    | ArrayItem (e1, e2)
+    | ADD (e1, e2)
+    | SUB (e1, e2)
+    | MUL (e1, e2)
+    | DIV (e1, e2)
+    | MOD (e1, e2)
+    | POW (e1, e2)
+    | EQ (e1, e2)
+    | NEQ (e1, e2)
+    | LT (e1, e2)
+    | LTE (e1, e2)
+    | GT (e1, e2)
+    | GTE (e1, e2)
+    | AND (e1, e2)
+    | OR (e1, e2)
+    | BOR (e1, e2)
+    | BAND (e1, e2)
+    | BXOR (e1, e2)
+    | LSHIFT (e1, e2)
+    | RSHIFT (e1, e2)
+    | CopyAndUpdate (e1, _, e2)
+    | CallLikeExpression (e1, e2)
+    | SizedArray (e1, e2) -> freeVariables e1 |> merge (freeVariables e2)
+    | CONDITIONAL (e1, e2, e3) -> freeVariables e1 |> merge (freeVariables e2) |> merge (freeVariables e3)
+    | ValueTuple es
+    | StringLiteral (_, es)
+    | ValueArray es -> es |> Seq.map freeVariables |> Seq.fold merge Map.empty
+    | Lambda lambda ->
+        let validVariable (decl: SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol, _>) =
+            match decl.VariableName with
+            | SyntaxTree.QsLocalSymbol.ValidName name -> Some name
+            | SyntaxTree.QsLocalSymbol.InvalidName -> None
+
+        let bindings = lambda.ArgumentTuple.Items |> Seq.choose validVariable |> Set
+        freeVariables lambda.Body |> Map.filter (fun name _ -> Set.contains name bindings |> not)

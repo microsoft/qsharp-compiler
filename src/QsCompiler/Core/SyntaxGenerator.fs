@@ -366,7 +366,7 @@ module SyntaxGenerator =
             match d.VariableName with
             | ValidName name ->
                 let mut, qDep = d.InferredInformation.IsMutable, d.InferredInformation.HasLocalQuantumDependency
-                Some(LocalVariableDeclaration<_>.New mut ((d.Position, d.Range), name, d.Type, qDep))
+                Some(LocalVariableDeclaration.New mut ((d.Position, d.Range), name, d.Type, qDep))
             | _ -> None
 
         (this |> Seq.choose withValidName).ToImmutableArray()

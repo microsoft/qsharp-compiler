@@ -9,7 +9,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>;
+    using QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
 
     internal class QirNamespaceTransformation : NamespaceTransformation<GenerationContext>
     {

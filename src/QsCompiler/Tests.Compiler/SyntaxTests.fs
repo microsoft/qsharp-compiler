@@ -821,43 +821,58 @@ let ``Modifier tests`` () = // modifiers can only be applied to identifiers, ari
 [<Fact>]
 let ``Function type tests`` () =
     [
-        "(Int -> Int)", toTupleType [ Function(toType Int, toType Int) |> toType ], []
+        "(Int -> Int)", toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ], []
 
         "(Int -> (Int -> Int))",
-        toTupleType [ Function(toType Int, toTupleType [ Function(toType Int, toType Int) |> toType ]) |> toType ],
+        toTupleType [ QsTypeKind.Function(
+                          toType Int,
+                          toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ]
+                      )
+                      |> toType ],
         []
 
         "((Int -> Int) -> Int)",
-        toTupleType [ Function(toTupleType [ Function(toType Int, toType Int) |> toType ], toType Int) |> toType ],
+        toTupleType [ QsTypeKind.Function(
+                          toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ],
+                          toType Int
+                      )
+                      |> toType ],
         []
 
-        "Int -> Int", Function(toType Int, toType Int) |> toType, []
-        "Int -> Int -> Int", Function(toType Int, Function(toType Int, toType Int) |> toType) |> toType, []
+        "Int -> Int", QsTypeKind.Function(toType Int, toType Int) |> toType, []
+        "Int -> Int -> Int",
+        QsTypeKind.Function(toType Int, QsTypeKind.Function(toType Int, toType Int) |> toType) |> toType,
+        []
 
         "Int -> (Int -> Int)",
-        Function(toType Int, toTupleType [ Function(toType Int, toType Int) |> toType ]) |> toType,
+        QsTypeKind.Function(toType Int, toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ])
+        |> toType,
         []
 
         "(Int -> Int) -> Int",
-        Function(toTupleType [ Function(toType Int, toType Int) |> toType ], toType Int) |> toType,
+        QsTypeKind.Function(toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ], toType Int)
+        |> toType,
         []
 
-        "Unit -> 'a", Function(unitType, TypeParameter(toSymbol "a") |> toType) |> toType, []
-        "'a -> Unit", Function(TypeParameter(toSymbol "a") |> toType, unitType) |> toType, []
-        "'a -> 'a", Function(TypeParameter(toSymbol "a") |> toType, TypeParameter(toSymbol "a") |> toType) |> toType, []
+        "Unit -> 'a", QsTypeKind.Function(unitType, TypeParameter(toSymbol "a") |> toType) |> toType, []
+        "'a -> Unit", QsTypeKind.Function(TypeParameter(toSymbol "a") |> toType, unitType) |> toType, []
+        "'a -> 'a",
+        QsTypeKind.Function(TypeParameter(toSymbol "a") |> toType, TypeParameter(toSymbol "a") |> toType)
+        |> toType,
+        []
 
         "(Int -> Int, Int)",
-        toTupleType [ Function(toType Int, toType Int) |> toType
+        toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType
                       toType Int ],
         []
 
         "(Int, Int -> Int)",
         toTupleType [ toType Int
-                      Function(toType Int, toType Int) |> toType ],
+                      QsTypeKind.Function(toType Int, toType Int) |> toType ],
         []
 
         "('T => Unit)[] -> Unit",
-        Function(
+        QsTypeKind.Function(
             ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet ])
             |> toType,
             unitType
@@ -866,7 +881,7 @@ let ``Function type tests`` () =
         []
 
         "('T => Unit is Adj)[] -> Unit",
-        Function(
+        QsTypeKind.Function(
             ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType adjSet ])
             |> toType,
             unitType
@@ -875,7 +890,7 @@ let ``Function type tests`` () =
         []
 
         "(('T => Unit)[] -> Unit)",
-        toTupleType [ Function(
+        toTupleType [ QsTypeKind.Function(
                           ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet ])
                           |> toType,
                           unitType
@@ -888,12 +903,12 @@ let ``Function type tests`` () =
     [
         "new (Int -> Int)[0]",
         true,
-        toNewArray (toTupleType [ Function(toType Int, toType Int) |> toType ]) (toInt 0),
+        toNewArray (toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ]) (toInt 0),
         [ Warning WarningCode.DeprecatedNewArray ]
 
         "new Int -> Int[0]",
         true,
-        toNewArray (Function(toType Int, toType Int) |> toType) (toInt 0),
+        toNewArray (QsTypeKind.Function(toType Int, toType Int) |> toType) (toInt 0),
         [
             Error ErrorCode.MissingLTupleBracket
             Error ErrorCode.MissingRTupleBracket
@@ -1345,3 +1360,177 @@ let ``Operator precendence tests`` () =
          [])
     ]
     |> List.iter testExpr
+
+[<Fact>]
+let ``Lambda tests`` () =
+    seq {
+        "x -> x", true, Lambda.createUnchecked Function (toSymbol "x") (toIdentifier "x") |> Lambda |> toExpr, []
+        "x => x", true, Lambda.createUnchecked Operation (toSymbol "x") (toIdentifier "x") |> Lambda |> toExpr, []
+
+        "f -> f()",
+        true,
+        Lambda.createUnchecked
+            Function
+            (toSymbol "f")
+            (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+        |> Lambda
+        |> toExpr,
+        []
+
+        "(f -> f())",
+        true,
+        [
+            Lambda.createUnchecked
+                Function
+                (toSymbol "f")
+                (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+            |> Lambda
+            |> toExpr
+        ]
+        |> toTuple,
+        []
+
+        "(f -> f)()",
+        true,
+        CallLikeExpression(
+            toTuple [ Lambda.createUnchecked Function (toSymbol "f") (toIdentifier "f") |> Lambda |> toExpr ],
+            toExpr UnitValue
+        )
+        |> toExpr,
+        []
+
+        "(x, y) -> x + y",
+        true,
+        Lambda.createUnchecked
+            Function
+            { Symbol = ImmutableArray.Create(toSymbol "x", toSymbol "y") |> SymbolTuple; Range = Null }
+            (ADD(toIdentifier "x", toIdentifier "y") |> toExpr)
+        |> Lambda
+        |> toExpr,
+        []
+
+        "U(q => X(q))",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                Lambda.createUnchecked
+                    Operation
+                    (toSymbol "q")
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
+                |> toExpr
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
+        "U(q => X(q), x)",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                Lambda.createUnchecked
+                    Operation
+                    (toSymbol "q")
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
+                |> toExpr
+
+                toIdentifier "x"
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
+        "U(x, q => X(q))",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                toIdentifier "x"
+
+                Lambda.createUnchecked
+                    Operation
+                    (toSymbol "q")
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
+                |> toExpr
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
+        "U((x, q) => X(q))",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                Lambda.createUnchecked
+                    Operation
+                    { Symbol = ImmutableArray.Create(toSymbol "x", toSymbol "q") |> SymbolTuple; Range = Null }
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
+                |> toExpr
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
+        "U(7, q => X(q))",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                toInt 7
+                Lambda.createUnchecked
+                    Operation
+                    (toSymbol "q")
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
+                |> toExpr
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
+        "U(7, i, q => X(q))",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                toInt 7
+                toIdentifier "i"
+                Lambda.createUnchecked
+                    Operation
+                    (toSymbol "q")
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
+                |> toExpr
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
+        "F(_ -> 0, xs)",
+        true,
+        CallLikeExpression(
+            toIdentifier "F",
+            [
+                Lambda.createUnchecked Function { Symbol = MissingSymbol; Range = Null } (toInt 0)
+                |> Lambda
+                |> toExpr
+                toIdentifier "xs"
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+    }
+    |> Seq.iter testExpr

@@ -262,9 +262,11 @@ module AssemblyConstants =
     let HoneywellProcessor = "HoneywellProcessor"
     let IonQProcessor = "IonQProcessor"
     let QCIProcessor = "QCIProcessor"
+    let QuantinuumProcessor = "QuantinuumProcessor"
     let ExecutionTarget = "ExecutionTarget"
     let DefaultSimulator = "DefaultSimulator"
     let QuantumSimulator = "QuantumSimulator"
+    let SparseSimulator = "SparseSimulator"
     let ToffoliSimulator = "ToffoliSimulator"
     let ResourcesEstimator = "ResourcesEstimator"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
@@ -299,6 +301,7 @@ module CommandLineArguments =
     let BuiltInSimulators =
         [
             AssemblyConstants.QuantumSimulator
+            AssemblyConstants.SparseSimulator
             AssemblyConstants.ToffoliSimulator
             AssemblyConstants.ResourcesEstimator
         ]

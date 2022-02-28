@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder.EditorSupport;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
@@ -660,13 +661,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ScopeContext context,
             List<Diagnostic> diagnostics)
         {
-            var statementPosition = node.Fragment.Range.Start;
-            context.Inference.UseStatementPosition(statementPosition);
-
+            context.Inference.UseSyntaxTreeNodeLocation(node.RootPosition, node.RelativePosition);
             var location = new QsLocation(node.RelativePosition, node.Fragment.HeaderRange);
             var (statement, buildDiagnostics) = build(location, context);
             diagnostics.AddRange(buildDiagnostics
-                .Select(diagnostic => Diagnostics.Generate(context.Symbols.SourceFile, diagnostic, statementPosition)));
+                .Select(diagnostic => Diagnostics.Generate(context.Symbols.SourceFile, diagnostic, node.RootPosition + node.RelativePosition)));
 
             return statement;
         }
@@ -1473,7 +1472,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static SpecializationImplementation BuildUserDefinedImplementation(
             FragmentTree.TreeNode root,
             string sourceFile,
-            QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
+            QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> argTuple,
             ImmutableHashSet<QsFunctor> requiredFunctorSupport,
             ScopeContext context,
             List<Diagnostic> diagnostics)
@@ -1606,7 +1605,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static ImmutableArray<QsSpecialization> BuildSpecializations(
             FragmentTree specsRoot,
             ResolvedSignature parentSignature,
-            QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple,
+            QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> argTuple,
             CompilationUnit compilation,
             List<Diagnostic> diagnostics,
             CancellationToken cancellationToken)
@@ -1643,7 +1642,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ResolvedSignature signature,
                 QsSpecializationGeneratorKind<QsSymbol> gen,
                 FragmentTree.TreeNode root,
-                Func<QsSymbol, Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsCompilerDiagnostic[]>> buildArg,
+                Func<QsSymbol, Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsCompilerDiagnostic[]>> buildArg,
                 QsComments? comments = null)
             {
                 if (!definedSpecs.TryGetValue(kind, out var defined))
@@ -1926,150 +1925,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Multipurpose:
-        /// <para/>
-        /// Get statements that follow a local declaration at <paramref name="relativePosition"/>.
-        /// <para/>
-        /// Get all locally declared symbols visible at <paramref name="relativePosition"/> (which must correspond to a piece of code in <paramref name="scope"/>).
-        /// </summary>
-        /// <exception cref="ArgumentException">
-        /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
-        /// </exception>
-        /// <remarks>
-        /// This method serves two entirely independent purposes since they require the exact same logic, despite what I would usually consider good practice.
-        /// The first purpose is the following:
-        /// <para/>
-        /// Returns all locally declared symbols visible at <paramref name="relativePosition"/>,
-        /// assuming that the position corresponds to a piece of code within <paramref name="scope"/>.
-        /// If <paramref name="includeDeclaredAtPosition"/> is set to true, then this includes the symbols declared within the statement at <paramref name="relativePosition"/>,
-        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
-        /// Note that if <paramref name="relativePosition"/> does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
-        /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though.
-        /// <para/>
-        /// The second purpose is the following:
-        /// <para/>
-        /// Returns the statements that follow a local declaration at <paramref name="relativePosition"/>,
-        /// i.e. the statements for which local variables declared at that position are defined.
-        /// Whether <paramref name="relativePosition"/> is indeed within a statement that declares local variables is not verified.
-        /// It is important to note that the returned statements are *not* necessarily the set of statements
-        /// for which the returned set of local variables are valid!
-        /// <para/>
-        /// <paramref name="relativePosition"/> is expected to be relative to the beginning of the specialization declaration -
-        /// or rather to be consistent with the position information saved for statements.
-        /// </remarks>
-        private static (LocalDeclarations, IEnumerable<QsStatement>) StatementsAfterAndLocalDeclarationsAt(
-            this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition)
-        {
-            LocalDeclarations Concat(LocalDeclarations fst, LocalDeclarations snd)
-                => new LocalDeclarations(fst.Variables.Concat(snd.Variables).ToImmutableArray());
-            bool BeforePosition(QsNullable<QsLocation> location) =>
-                location.IsValue && location.Item.Offset < relativePosition;
-            bool StartsBeforePosition(QsScope body) => body.Statements.Any() && BeforePosition(body.Statements.First().Location);
-
-            var precedingStatements = scope.Statements.TakeWhile(stm => BeforePosition(stm.Location)).ToImmutableArray();
-            if (precedingStatements.Length == 0)
-            {
-                return (scope.KnownSymbols, scope.Statements);
-            }
-
-            var lastPreceding = precedingStatements[precedingStatements.Length - 1];
-
-            QsScope? relevantScope = null;
-            if (lastPreceding.Statement is QsStatementKind.QsConditionalStatement condStatement)
-            {
-                var blocks = condStatement.Item.ConditionalBlocks.Select(block => block.Item2);
-                var elseBlock = condStatement.Item.Default.ValueOr(null);
-                if (elseBlock != null)
-                {
-                    blocks = blocks.Concat(new[] { elseBlock });
-                }
-
-                var preceding = blocks.TakeWhile(block => BeforePosition(block.Location));
-                relevantScope = preceding.Any() ? preceding.Last().Body : null;
-            }
-
-            if (lastPreceding.Statement is QsStatementKind.QsForStatement forStatement)
-            {
-                relevantScope = forStatement.Item.Body;
-            }
-
-            if (lastPreceding.Statement is QsStatementKind.QsWhileStatement whileStatement)
-            {
-                relevantScope = whileStatement.Item.Body;
-            }
-
-            if (lastPreceding.Statement is QsStatementKind.QsRepeatStatement repeatStatement)
-            {
-                var allContainedStatements = repeatStatement.Item.RepeatBlock.Body.Statements.Concat(repeatStatement.Item.FixupBlock.Body.Statements).ToImmutableArray();
-                relevantScope = new QsScope(allContainedStatements, repeatStatement.Item.RepeatBlock.Body.KnownSymbols);
-            }
-
-            if (lastPreceding.Statement is QsStatementKind.QsConjugation conjugation)
-            {
-                relevantScope = BeforePosition(conjugation.Item.InnerTransformation.Location)
-                    ? conjugation.Item.InnerTransformation.Body
-                    : conjugation.Item.OuterTransformation.Body;
-            }
-
-            if (lastPreceding.Statement is QsStatementKind.QsQubitScope allocationScope)
-            {
-                relevantScope = allocationScope.Item.Body;
-            }
-
-            if (relevantScope != null && StartsBeforePosition(relevantScope))
-            {
-                // the relative position is truly within the child scope
-                return relevantScope.StatementsAfterAndLocalDeclarationsAt(relativePosition, includeDeclaredAtPosition);
-            }
-
-            LocalDeclarations AggregateLocalDeclarations(IEnumerable<QsStatement> stms) =>
-                stms.Aggregate(scope.KnownSymbols, (decl, statement) => Concat(decl, statement.SymbolDeclarations));
-            var symbols = includeDeclaredAtPosition
-                ? relevantScope != null ? relevantScope.KnownSymbols : AggregateLocalDeclarations(precedingStatements)
-                : AggregateLocalDeclarations(precedingStatements.Take(precedingStatements.Length - 1));
-            var statementsAfterDecl = relevantScope == null
-                ? scope.Statements.SkipWhile(stm => BeforePosition(stm.Location))
-                : relevantScope.Statements;
-            return (symbols, statementsAfterDecl);
-        }
-
-        /// <summary>
-        /// Returns the statements that follow a local declaration at <paramref name="relativePosition"/>,
-        /// i.e. the statements for which local variables declared at that position are defined.
-        /// </summary>
-        /// <exception cref="ArgumentException">
-        /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
-        /// </exception>
-        /// <remarks>
-        /// Whether <paramref name="relativePosition"/> is indeed within a statement that declares local variables is not verified.
-        /// <para/>
-        /// <paramref name="relativePosition"/> is expected to be relative to the beginning of the specialization declaration -
-        /// or rather to be consistent with the position information saved for statements.
-        /// </remarks>
-        internal static IEnumerable<QsStatement> StatementsAfterDeclaration(this QsScope scope, Position relativePosition) =>
-            StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item2;
-
-        /// <summary>
-        /// Returns all locally declared symbols visible at <paramref name="relativePosition"/>,
-        /// assuming that the position corresponds to a piece of code within <paramref name="scope"/>.
-        /// </summary>
-        /// <exception cref="ArgumentException">
-        /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
-        /// </exception>
-        /// <remarks>
-        /// If <paramref name="includeDeclaredAtPosition"/> is set to true, then this includes the symbols declared within the statement at <paramref name="relativePosition"/>,
-        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
-        /// <para/>
-        /// <paramref name="relativePosition"/> is expected to be relative to the beginning of the specialization declaration -
-        /// or rather to be consistent with the position information saved for statements.
-        /// <para/>
-        /// Note that if <paramref name="relativePosition"/> does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
-        /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though.
-        /// </remarks>
-        internal static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition) =>
-            StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, includeDeclaredAtPosition).Item1;
-
-        /// <summary>
         /// Returns all locally declared symbols visible at <paramref name="relativePosition"/>,
         /// assuming that the position corresponds to a piece of code within <paramref name="scope"/>.
         /// </summary>
@@ -2083,7 +1938,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If <paramref name="relativePosition"/> lays outside a piece of code e.g. after a scope ending the returned declarations may be inaccurate.
         /// </remarks>
         public static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition) =>
-            StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item1;
+            SyntaxUtils.LocalsInScope(scope, relativePosition, false);
 
         /// <summary>
         /// Recomputes the globally defined symbols within <paramref name="file"/> and updates the symbols in <paramref name="compilation"/> accordingly.

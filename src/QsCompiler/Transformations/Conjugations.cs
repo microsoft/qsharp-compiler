@@ -94,8 +94,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             {
             }
 
-            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope> OnProvidedImplementation(
-                QsTuple<LocalVariableDeclaration<QsLocalSymbol>> argTuple, QsScope body)
+            public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope> OnProvidedImplementation(
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> argTuple, QsScope body)
             {
                 this.SharedState.Reset();
                 try
@@ -108,7 +108,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
                     this.SharedState.Success = false;
                 }
 
-                return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
+                return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope>(argTuple, body);
             }
         }
     }

@@ -248,7 +248,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             public override QsStatement OnStatement(QsStatement stm)
             {
                 this.SubSelector = this.CreateSelector(this.SharedState);
-                var loc = this.SubSelector.Statements.OnLocation(stm.Location);
+                var loc = this.SubSelector.OnRelativeLocation(stm.Location);
                 var stmKind = this.SubSelector.StatementKinds.OnStatementKind(stm.Statement);
                 var varDecl = this.SubSelector.Statements.OnLocalDeclarations(stm.SymbolDeclarations);
                 this.SharedState.FoldResult = this.SharedState.ConstructFold(
@@ -379,9 +379,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     internal class AddVariableDeclarations<T>
     : StatementTransformation<T>
     {
-        private readonly IEnumerable<LocalVariableDeclaration<string>> addedVariableDeclarations;
+        private readonly IEnumerable<LocalVariableDeclaration<string, ResolvedType>> addedVariableDeclarations;
 
-        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string>[] addedVars)
+        public AddVariableDeclarations(SyntaxTreeTransformation<T> parent, params LocalVariableDeclaration<string, ResolvedType>[] addedVars)
         : base(parent) =>
             this.addedVariableDeclarations = addedVars;
 
