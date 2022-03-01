@@ -13,9 +13,9 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 // setup for syntax tree transformations with internal state
 
-type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOptions, _internal_: string) =
+type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOptions, _internal_: string) as this =
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
-    member val Types = new TypeTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
+    member val Types = TypeTransformation<'T>(this, TransformationOptions.Default) with get, set
 
     /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
     member val ExpressionKinds =
@@ -74,6 +74,7 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
     default _.OnItemName(_, itemName) = itemName
 
     abstract OnArgumentTuple: argTuple: QsArgumentTuple -> QsArgumentTuple
+
     default this.OnArgumentTuple argTuple =
         this.Namespaces.OnArgumentTuple argTuple
 
@@ -89,6 +90,7 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
     default _.OnSymbolLocation(offset, range) = (offset, range)
 
     abstract OnExpressionRange: range: QsNullable<Range> -> QsNullable<Range>
+
     default this.OnExpressionRange range =
         this.Expressions.OnRangeInformation range
 
@@ -108,36 +110,21 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
         member this.OnExpressionRange range = this.OnExpressionRange range
         member this.OnTypeRange range = this.OnTypeRange range
 
-and TypeTransformation<'T> internal (options, _internal_) =
-    inherit TypeTransformationBase(options)
-    let mutable _Transformation: SyntaxTreeTransformation<'T> option = None // will be set to a suitable Some value once construction is complete
+and TypeTransformation<'T>(parentTransformation: SyntaxTreeTransformation<'T>, options) =
+    inherit TypeTransformationBase(options, (fun () -> upcast parentTransformation))
 
-    /// Handle to the parent SyntaxTreeTransformation.
-    /// This handle is always safe to access and will be set to a suitable value
-    /// even if no parent transformation has been specified upon construction.
-    member this.Transformation
-        with get () = _Transformation.Value
-        and private set value =
-            _Transformation <- Some value
-            this.CommonTransformationItemsHandle <- fun _ -> upcast value
+    member _.Transformation = parentTransformation
 
     member this.SharedState = this.Transformation.SharedState
 
-    new(parentTransformation: SyntaxTreeTransformation<'T>, options: TransformationOptions) as this =
-        new TypeTransformation<'T>(options, "_internal_")
-        then this.Transformation <- parentTransformation
-
-    new(sharedState: 'T, options: TransformationOptions) as this =
-        TypeTransformation<'T>(options, "_internal_")
-        then
-            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState, options)
-            this.Transformation.Types <- this
-
     new(parentTransformation: SyntaxTreeTransformation<'T>) =
-        new TypeTransformation<'T>(parentTransformation, TransformationOptions.Default)
+        TypeTransformation<'T>(parentTransformation, TransformationOptions.Default)
 
-    new(sharedState: 'T) = new TypeTransformation<'T>(sharedState, TransformationOptions.Default)
+    new(sharedState: 'T, options) as this =
+        TypeTransformation<'T>(SyntaxTreeTransformation(sharedState, options), options)
+        then this.Transformation.Types <- this
 
+    new(sharedState: 'T) = TypeTransformation(sharedState, TransformationOptions.Default)
 
 and ExpressionKindTransformation<'T> internal (options, _internal_) =
     inherit ExpressionKindTransformationBase(options, _internal_)
@@ -321,9 +308,9 @@ and NamespaceTransformation<'T> internal (options, _internal_: string) =
 
 // setup for syntax tree transformations without internal state
 
-type SyntaxTreeTransformation private (options: TransformationOptions, _internal_: string) =
+type SyntaxTreeTransformation private (options: TransformationOptions, _internal_: string) as this =
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
-    member val Types = new TypeTransformation(TransformationOptions.Default, _internal_) with get, set
+    member val Types = TypeTransformation(this, TransformationOptions.Default) with get, set
 
     /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
     member val ExpressionKinds =
@@ -379,6 +366,7 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
     default _.OnItemName(_, itemName) = itemName
 
     abstract OnArgumentTuple: argTuple: QsArgumentTuple -> QsArgumentTuple
+
     default this.OnArgumentTuple argTuple =
         this.Namespaces.OnArgumentTuple argTuple
 
@@ -394,6 +382,7 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
     default _.OnSymbolLocation(offset, range) = (offset, range)
 
     abstract OnExpressionRange: range: QsNullable<Range> -> QsNullable<Range>
+
     default this.OnExpressionRange range =
         this.Expressions.OnRangeInformation range
 
@@ -413,35 +402,18 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
         member this.OnExpressionRange range = this.OnExpressionRange range
         member this.OnTypeRange range = this.OnTypeRange range
 
+and TypeTransformation(parentTransformation, options) =
+    inherit TypeTransformationBase(options, (fun () -> upcast parentTransformation))
 
-and TypeTransformation internal (options, _internal_) =
-    inherit TypeTransformationBase(options)
-    let mutable _Transformation: SyntaxTreeTransformation option = None // will be set to a suitable Some value once construction is complete
+    member _.Transformation = parentTransformation
 
-    /// Handle to the parent SyntaxTreeTransformation.
-    /// This handle is always safe to access and will be set to a suitable value
-    /// even if no parent transformation has been specified upon construction.
-    member this.Transformation
-        with get () = _Transformation.Value
-        and private set value =
-            _Transformation <- Some value
-            this.CommonTransformationItemsHandle <- fun _ -> upcast value
-
-    new(parentTransformation: SyntaxTreeTransformation, options: TransformationOptions) as this =
-        new TypeTransformation(options, "_internal_")
-        then this.Transformation <- parentTransformation
+    new(parentTransformation) = TypeTransformation(parentTransformation, TransformationOptions.Default)
 
     new(options: TransformationOptions) as this =
-        TypeTransformation(options, "_internal_")
-        then
-            this.Transformation <- new SyntaxTreeTransformation(options)
-            this.Transformation.Types <- this
+        TypeTransformation(SyntaxTreeTransformation options, options)
+        then this.Transformation.Types <- this
 
-    new(parentTransformation: SyntaxTreeTransformation) =
-        new TypeTransformation(parentTransformation, TransformationOptions.Default)
-
-    new() = new TypeTransformation(TransformationOptions.Default)
-
+    new() = TypeTransformation TransformationOptions.Default
 
 and ExpressionKindTransformation internal (options, _internal_) =
     inherit ExpressionKindTransformationBase(options, _internal_)

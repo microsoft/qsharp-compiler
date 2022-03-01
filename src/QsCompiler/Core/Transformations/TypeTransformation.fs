@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -7,7 +7,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open System
 open System.Collections.Immutable
-
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -16,28 +15,14 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
 type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
+type TypeTransformationBase internal (options, getCommon) =
+    let node = if options.Rebuild then Fold else Walk
 
-type TypeTransformationBase internal (options: TransformationOptions, _internal_) =
-
-    let missingTransformation name _ =
-        new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise
-
-    let Node = if options.Rebuild then Fold else Walk
-
-    member val internal CommonTransformationItemsHandle = missingTransformation "common items" with get, set
-
-    member internal this.Common = this.CommonTransformationItemsHandle()
-
-    internal new(getCommonItems, options: TransformationOptions) as this =
-        TypeTransformationBase(options, "_internal_")
-        then this.CommonTransformationItemsHandle <- getCommonItems
-
-    new(options: TransformationOptions) as this =
-        TypeTransformationBase(options, "_internal_")
-        then
-            this.CommonTransformationItemsHandle <- fun _ -> CommonTransformation.identity
+    new(options) = TypeTransformationBase(options, (fun () -> CommonTransformation.identity))
 
     new() = TypeTransformationBase TransformationOptions.Default
+
+    member internal _.Common = getCommon ()
 
     // supplementary type information
 
@@ -65,7 +50,7 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
     default this.OnCallableInformation opInfo =
         let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
         let inferred = opInfo.InferredInformation
-        CallableInformation.New |> Node.BuildOr opInfo (characteristics, inferred)
+        CallableInformation.New |> node.BuildOr opInfo (characteristics, inferred)
 
 
     // nodes containing subtypes
@@ -75,7 +60,7 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
     default this.OnUserDefinedType udt =
         let ns, name = udt.Namespace, udt.Name
         let range = this.OnRangeInformation udt.Range // udt.Range should be removed along with OnRangeInformation
-        Node.BuildOr InvalidType (ns, name, range) (UserDefinedType.New >> UserDefinedType)
+        node.BuildOr InvalidType (ns, name, range) (UserDefinedType.New >> UserDefinedType)
 
     abstract OnTypeParameter: QsTypeParameter -> ExpressionType
 
@@ -83,30 +68,30 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
         let origin = tp.Origin
         let name = tp.TypeName
         let range = this.OnRangeInformation tp.Range // tp.Range should be removed along with OnRangeInformation
-        Node.BuildOr InvalidType (origin, name, range) (QsTypeParameter.New >> TypeParameter)
+        node.BuildOr InvalidType (origin, name, range) (QsTypeParameter.New >> TypeParameter)
 
     abstract OnOperation: (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
 
     default this.OnOperation((it, ot), info) =
         let transformed = (this.OnType it, this.OnType ot), this.OnCallableInformation info
-        ExpressionType.Operation |> Node.BuildOr InvalidType transformed
+        ExpressionType.Operation |> node.BuildOr InvalidType transformed
 
     abstract OnFunction: ResolvedType * ResolvedType -> ExpressionType
 
     default this.OnFunction(it, ot) =
         let transformed = this.OnType it, this.OnType ot
-        ExpressionType.Function |> Node.BuildOr InvalidType transformed
+        ExpressionType.Function |> node.BuildOr InvalidType transformed
 
     abstract OnTupleType: ImmutableArray<ResolvedType> -> ExpressionType
 
     default this.OnTupleType ts =
         let transformed = ts |> Seq.map this.OnType |> ImmutableArray.CreateRange
-        ExpressionType.TupleType |> Node.BuildOr InvalidType transformed
+        ExpressionType.TupleType |> node.BuildOr InvalidType transformed
 
     abstract OnArrayType: ResolvedType -> ExpressionType
 
     default this.OnArrayType b =
-        ExpressionType.ArrayType |> Node.BuildOr InvalidType (this.OnType b)
+        ExpressionType.ArrayType |> node.BuildOr InvalidType (this.OnType b)
 
 
     // leaf nodes
@@ -179,4 +164,4 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
                 | ExpressionType.Pauli -> this.OnPauli()
                 | ExpressionType.Range -> this.OnRange()
 
-            ResolvedType.create range |> Node.BuildOr t transformed
+            ResolvedType.create range |> node.BuildOr t transformed
