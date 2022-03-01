@@ -19,7 +19,7 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
 
     /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
     member val ExpressionKinds =
-        new ExpressionKindTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
+        ExpressionKindTransformation((fun _ -> this), TransformationOptions.Default) with get, set
 
     /// Transformation invoked for all expressions encountered when traversing (parts of) the syntax tree.
     member val Expressions = new ExpressionTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
@@ -47,15 +47,15 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
 
     member this.SharedState = state
 
-    new(state: 'T, options: TransformationOptions) as this =
-        SyntaxTreeTransformation<'T>(state, options, "_internal_")
+    new(state, options) as this =
+        SyntaxTreeTransformation(state, options, "_internal_")
         then
-            this.Types <- new TypeTransformation<'T>(this, options)
-            this.ExpressionKinds <- new ExpressionKindTransformation<'T>(this, options)
-            this.Expressions <- new ExpressionTransformation<'T>(this, options)
-            this.StatementKinds <- new StatementKindTransformation<'T>(this, options)
-            this.Statements <- new StatementTransformation<'T>(this, options)
-            this.Namespaces <- new NamespaceTransformation<'T>(this, options)
+            this.Types <- TypeTransformation<'T>(this, options)
+            this.ExpressionKinds <- ExpressionKindTransformation((fun _ -> this), options)
+            this.Expressions <- ExpressionTransformation<'T>(this, options)
+            this.StatementKinds <- StatementKindTransformation<'T>(this, options)
+            this.Statements <- StatementTransformation<'T>(this, options)
+            this.Namespaces <- NamespaceTransformation<'T>(this, options)
 
     new(state: 'T) = new SyntaxTreeTransformation<'T>(state, TransformationOptions.Default)
 
@@ -126,37 +126,38 @@ and TypeTransformation<'T>(parentTransformation: SyntaxTreeTransformation<'T>, o
 
     new(sharedState: 'T) = TypeTransformation(sharedState, TransformationOptions.Default)
 
-and ExpressionKindTransformation<'T> internal (options, _internal_) =
-    inherit ExpressionKindTransformationBase(options, _internal_)
-    let mutable _Transformation: SyntaxTreeTransformation<'T> option = None // will be set to a suitable Some value once construction is complete
+and ExpressionKindTransformation<'T>
+    internal
+    (
+        createParentTransformation: ExpressionKindTransformation<'T> -> SyntaxTreeTransformation<'T>,
+        options
+    ) as this =
+    inherit ExpressionKindTransformationBase
+        (
+            (fun () -> this.Transformation.Expressions :> ExpressionTransformationBase),
+            options
+        )
 
-    /// Handle to the parent SyntaxTreeTransformation.
-    /// This handle is always safe to access and will be set to a suitable value
-    /// even if no parent transformation has been specified upon construction.
-    member this.Transformation
-        with get () = _Transformation.Value
-        and private set value =
-            _Transformation <- Some value
-            this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
+    static let defaultParentTransformation sharedState options expressionKinds =
+        let transformation = SyntaxTreeTransformation(sharedState, options)
+        transformation.Types <- TypeTransformation<'T>(transformation, TransformationOptions.Disabled)
+        transformation.ExpressionKinds <- expressionKinds
+        transformation
+
+    member val Transformation: SyntaxTreeTransformation<_> = createParentTransformation this
 
     member this.SharedState = this.Transformation.SharedState
 
-    new(parentTransformation: SyntaxTreeTransformation<'T>, options: TransformationOptions) as this =
-        ExpressionKindTransformation<'T>(options, "_internal_")
-        then this.Transformation <- parentTransformation
+    new(parentTransformation: SyntaxTreeTransformation<_>, options) =
+        ExpressionKindTransformation((fun _ -> parentTransformation), options)
 
-    new(sharedState: 'T, options: TransformationOptions) as this =
-        ExpressionKindTransformation<'T>(options, "_internal_")
-        then
-            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState, options)
-            this.Transformation.Types <- new TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
-            this.Transformation.ExpressionKinds <- this
+    new(sharedState: 'T, options) =
+        ExpressionKindTransformation<'T>(defaultParentTransformation sharedState options, options)
 
-    new(parentTransformation: SyntaxTreeTransformation<'T>) =
-        new ExpressionKindTransformation<'T>(parentTransformation, TransformationOptions.Default)
+    new(parentTransformation: SyntaxTreeTransformation<_>) =
+        ExpressionKindTransformation<'T>(parentTransformation, TransformationOptions.Default)
 
-    new(sharedState: 'T) = new ExpressionKindTransformation<'T>(sharedState, TransformationOptions.Default)
-
+    new(sharedState: 'T) = ExpressionKindTransformation(sharedState, TransformationOptions.Default)
 
 and ExpressionTransformation<'T> internal (options, _internal_) =
     inherit ExpressionTransformationBase(options, _internal_)
@@ -313,8 +314,7 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
     member val Types = TypeTransformation(this, TransformationOptions.Default) with get, set
 
     /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
-    member val ExpressionKinds =
-        new ExpressionKindTransformation(TransformationOptions.Default, _internal_) with get, set
+    member val ExpressionKinds = ExpressionKindTransformation(this, TransformationOptions.Default) with get, set
 
     /// Transformation invoked for all expressions encountered when traversing (parts of) the syntax tree.
     member val Expressions = new ExpressionTransformation(TransformationOptions.Default, _internal_) with get, set
@@ -415,35 +415,29 @@ and TypeTransformation(parentTransformation, options) =
 
     new() = TypeTransformation TransformationOptions.Default
 
-and ExpressionKindTransformation internal (options, _internal_) =
-    inherit ExpressionKindTransformationBase(options, _internal_)
-    let mutable _Transformation: SyntaxTreeTransformation option = None // will be set to a suitable Some value once construction is complete
+and ExpressionKindTransformation internal (createParentTransformation: _ -> _, options: TransformationOptions) as this =
+    inherit ExpressionKindTransformationBase
+        (
+            (fun () -> this.Transformation.Expressions :> ExpressionTransformationBase),
+            options
+        )
 
-    /// Handle to the parent SyntaxTreeTransformation.
-    /// This handle is always safe to access and will be set to a suitable value
-    /// even if no parent transformation has been specified upon construction.
-    member this.Transformation
-        with get () = _Transformation.Value
-        and private set value =
-            _Transformation <- Some value
-            this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
+    static let defaultParentTransformation options expressionKinds =
+        let transformation = SyntaxTreeTransformation options
+        transformation.Types <- TypeTransformation(transformation, TransformationOptions.Disabled)
+        transformation.ExpressionKinds <- expressionKinds
+        transformation
 
-    new(parentTransformation: SyntaxTreeTransformation, options: TransformationOptions) as this =
-        ExpressionKindTransformation(options, "_internal_")
-        then this.Transformation <- parentTransformation
+    member val Transformation: SyntaxTreeTransformation = createParentTransformation this
 
-    new(options: TransformationOptions) as this =
-        ExpressionKindTransformation(options, "_internal_")
-        then
-            this.Transformation <- new SyntaxTreeTransformation(options)
-            this.Transformation.Types <- new TypeTransformation(this.Transformation, TransformationOptions.Disabled)
-            this.Transformation.ExpressionKinds <- this
+    new(parentTransformation, options) = ExpressionKindTransformation((fun _ -> parentTransformation), options)
+
+    new(options) = ExpressionKindTransformation(defaultParentTransformation options, options)
 
     new(parentTransformation: SyntaxTreeTransformation) =
-        new ExpressionKindTransformation(parentTransformation, TransformationOptions.Default)
+        ExpressionKindTransformation(parentTransformation, TransformationOptions.Default)
 
-    new() = new ExpressionKindTransformation(TransformationOptions.Default)
-
+    new() = ExpressionKindTransformation TransformationOptions.Default
 
 and ExpressionTransformation internal (options, _internal_) =
     inherit ExpressionTransformationBase(options, _internal_)
