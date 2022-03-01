@@ -32,11 +32,11 @@ type ExpressionKindTransformationBase(expressionTransformation: _ -> ExpressionT
 
     let node = if options.Rebuild then Fold else Walk
 
-    member internal this.Common = expressionTransformation().Types.Common
-
     member _.Types = expressionTransformation().Types
 
     member _.Expressions = expressionTransformation ()
+
+    member internal this.Common = expressionTransformation().Types.Common
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete("Please use ExpressionKindTransformationBase(unit -> ExpressionTransformationBase, TransformationOptions) instead.")>]
@@ -444,42 +444,34 @@ type ExpressionKindTransformationBase(expressionTransformation: _ -> ExpressionT
 
             id |> node.BuildOr kind transformed
 
-and ExpressionTransformationBase internal (options: TransformationOptions, _internal_) =
+and ExpressionTransformationBase(exkindTransformation, typeTransformation, options) =
+    static let createTypeTransformation options =
+        let types = TypeTransformationBase options
+        fun () -> types
 
-    let missingTransformation name _ =
-        new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise
+    static let createExpressionKindTransformation expressions (options: TransformationOptions) =
+        let expressionKinds = ExpressionKindTransformationBase((fun () -> expressions), options)
+        fun () -> expressionKinds
 
-    let Node = if options.Rebuild then Fold else Walk
+    let node = if options.Rebuild then Fold else Walk
 
-    member val internal TypeTransformationHandle = missingTransformation "type" with get, set
-    member val internal ExpressionKindTransformationHandle = missingTransformation "expression kind" with get, set
+    member _.Types: TypeTransformationBase = typeTransformation ()
 
-    member this.ExpressionKinds: ExpressionKindTransformationBase = this.ExpressionKindTransformationHandle()
-    member this.Types: TypeTransformationBase = this.TypeTransformationHandle()
-    member internal this.Common = this.TypeTransformationHandle().Common
+    member _.ExpressionKinds = exkindTransformation ()
 
-    new(exkindTransformation: unit -> ExpressionKindTransformationBase,
-        typeTransformation: unit -> TypeTransformationBase,
-        options: TransformationOptions) as this =
-        new ExpressionTransformationBase(options, "_internal_")
-        then
-            this.TypeTransformationHandle <- typeTransformation
-            this.ExpressionKindTransformationHandle <- exkindTransformation
+    member internal _.Common = typeTransformation().Common
 
-    new(options: TransformationOptions) as this =
-        new ExpressionTransformationBase(options, "_internal_")
-        then
-            let typeTransformation = new TypeTransformationBase(options)
-            let exprKindTransformation = new ExpressionKindTransformationBase((fun _ -> this), options)
-            this.TypeTransformationHandle <- fun _ -> typeTransformation
-            this.ExpressionKindTransformationHandle <- fun _ -> exprKindTransformation
+    new(options) as this =
+        ExpressionTransformationBase(
+            createExpressionKindTransformation this options,
+            createTypeTransformation options,
+            options
+        )
 
-    new(exkindTransformation: unit -> ExpressionKindTransformationBase,
-        typeTransformation: unit -> TypeTransformationBase) =
-        new ExpressionTransformationBase(exkindTransformation, typeTransformation, TransformationOptions.Default)
+    new(exkindTransformation, typeTransformation) =
+        ExpressionTransformationBase(exkindTransformation, typeTransformation, TransformationOptions.Default)
 
-    new() = new ExpressionTransformationBase(TransformationOptions.Default)
-
+    new() = ExpressionTransformationBase TransformationOptions.Default
 
     // supplementary expression information
 
@@ -493,7 +485,6 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
 
     abstract OnExpressionInformation: InferredExpressionInformation -> InferredExpressionInformation
     default this.OnExpressionInformation info = info
-
 
     // nodes containing subexpressions or subtypes
 
@@ -529,4 +520,4 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
             let kind = this.ExpressionKinds.OnExpressionKind ex.Expression
             let exType = this.Types.OnType ex.ResolvedType
             let inferredInfo = this.OnExpressionInformation ex.InferredInformation
-            TypedExpression.New |> Node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)
+            TypedExpression.New |> node.BuildOr ex (kind, typeParamResolutions, exType, inferredInfo, range)
