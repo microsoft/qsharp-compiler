@@ -29,7 +29,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
 
     member this.Expressions: ExpressionTransformationBase = this.ExpressionTransformationHandle()
     member this.Types: TypeTransformationBase = this.ExpressionTransformationHandle().Types
-    member this.Common: CommonTransformationNodes = this.ExpressionTransformationHandle().Types.Common
+    member internal this.Common = this.ExpressionTransformationHandle().Types.Common
 
     new(expressionTransformation: unit -> ExpressionTransformationBase, options: TransformationOptions) as this =
         new ExpressionKindTransformationBase(options, "_internal_")
@@ -463,7 +463,7 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
 
     member this.ExpressionKinds: ExpressionKindTransformationBase = this.ExpressionKindTransformationHandle()
     member this.Types: TypeTransformationBase = this.TypeTransformationHandle()
-    member this.Common: CommonTransformationNodes = this.TypeTransformationHandle().Common
+    member internal this.Common = this.TypeTransformationHandle().Common
 
     new(exkindTransformation: unit -> ExpressionKindTransformationBase,
         typeTransformation: unit -> TypeTransformationBase,

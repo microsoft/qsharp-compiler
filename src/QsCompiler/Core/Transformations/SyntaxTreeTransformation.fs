@@ -1,20 +1,19 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
-#nowarn "44" // TODO: RELEASE 2022-09, reenable after the overrides (*) are removed
+#nowarn "44" // RELEASE 2022-09: Re-enable after updating the ICommonTransformation implementations.
 
 open System.Collections.Immutable
+open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-
+open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 // setup for syntax tree transformations with internal state
 
 type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOptions, _internal_: string) =
-    inherit CommonTransformationNodes()
-
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
     member val Types = new TypeTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
 
@@ -60,23 +59,54 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
 
     new(state: 'T) = new SyntaxTreeTransformation<'T>(state, TransformationOptions.Default)
 
-    // These overrides are here since it is impractical to have them live in the definition of CommonTransformationItems.
+    abstract OnLocalNameDeclaration: name: string -> string
+    default _.OnLocalNameDeclaration name = name
 
-    override this.OnArgumentTuple argTuple =
+    // RELEASE 2022-09: Replace OnVariableName with the identity function.
+    abstract OnLocalName: name: string -> string
+    default this.OnLocalName name = this.Statements.OnVariableName name
+
+    // RELEASE 2022-09: Replace OnItemName with the identity function.
+    abstract OnItemNameDeclaration: name: string -> string
+    default this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
+
+    abstract OnItemName: parentType: UserDefinedType * itemName: string -> string
+    default _.OnItemName(_, itemName) = itemName
+
+    abstract OnArgumentTuple: argTuple: QsArgumentTuple -> QsArgumentTuple
+    default this.OnArgumentTuple argTuple =
         this.Namespaces.OnArgumentTuple argTuple
 
-    // (*) These overrides are only here to preserve the functionality of the now deprecated methods.
-    // RELEASE 2022-09: They can be removed and the deprecation warning for this file can be reenabled.
+    // RELEASE 2022-09: Replace OnLocation with the identity function.
+    abstract OnAbsoluteLocation: location: QsNullable<QsLocation> -> QsNullable<QsLocation>
+    default this.OnAbsoluteLocation location = this.Namespaces.OnLocation location
 
-    override this.OnLocalName name = this.Statements.OnVariableName name
-    override this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
-    override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
-    override this.OnRelativeLocation loc = this.Statements.OnLocation loc
-    override this.OnTypeRange range = this.Types.OnTypeRange range
+    // RELEASE 2022-09: Replace OnLocation with the identity function.
+    abstract OnRelativeLocation: location: QsNullable<QsLocation> -> QsNullable<QsLocation>
+    default this.OnRelativeLocation location = this.Statements.OnLocation location
 
-    override this.OnExpressionRange range =
+    abstract OnSymbolLocation: offset: QsNullable<Position> * range: Range -> QsNullable<Position> * Range
+    default _.OnSymbolLocation(offset, range) = (offset, range)
+
+    abstract OnExpressionRange: range: QsNullable<Range> -> QsNullable<Range>
+    default this.OnExpressionRange range =
         this.Expressions.OnRangeInformation range
 
+    // RELEASE 2022-09: Replace OnTypeRange with the identity function.
+    abstract OnTypeRange: range: TypeRange -> TypeRange
+    default this.OnTypeRange range = this.Types.OnTypeRange range
+
+    interface ICommonTransformation with
+        member this.OnLocalNameDeclaration name = this.OnLocalNameDeclaration name
+        member this.OnLocalName name = this.OnLocalName name
+        member this.OnItemNameDeclaration name = this.OnItemNameDeclaration name
+        member this.OnItemName(parentType, itemName) = this.OnItemName(parentType, itemName)
+        member this.OnArgumentTuple argTuple = this.OnArgumentTuple argTuple
+        member this.OnAbsoluteLocation location = this.OnAbsoluteLocation location
+        member this.OnRelativeLocation location = this.OnRelativeLocation location
+        member this.OnSymbolLocation(offset, range) = this.OnSymbolLocation(offset, range)
+        member this.OnExpressionRange range = this.OnExpressionRange range
+        member this.OnTypeRange range = this.OnTypeRange range
 
 and TypeTransformation<'T> internal (options, _internal_) =
     inherit TypeTransformationBase(options)
@@ -89,7 +119,7 @@ and TypeTransformation<'T> internal (options, _internal_) =
         with get () = _Transformation.Value
         and private set value =
             _Transformation <- Some value
-            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationNodes
+            this.CommonTransformationItemsHandle <- fun _ -> upcast value
 
     member this.SharedState = this.Transformation.SharedState
 
@@ -292,8 +322,6 @@ and NamespaceTransformation<'T> internal (options, _internal_: string) =
 // setup for syntax tree transformations without internal state
 
 type SyntaxTreeTransformation private (options: TransformationOptions, _internal_: string) =
-    inherit CommonTransformationNodes()
-
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
     member val Types = new TypeTransformation(TransformationOptions.Default, _internal_) with get, set
 
@@ -336,22 +364,54 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
 
     new() = new SyntaxTreeTransformation(TransformationOptions.Default)
 
-    // These overrides are here since it is impractical to have them live in the definition of CommonTransformationItems.
+    abstract OnLocalNameDeclaration: name: string -> string
+    default _.OnLocalNameDeclaration name = name
 
-    override this.OnArgumentTuple argTuple =
+    // RELEASE 2022-09: Replace OnVariableName with the identity function.
+    abstract OnLocalName: name: string -> string
+    default this.OnLocalName name = this.Statements.OnVariableName name
+
+    // RELEASE 2022-09: Replace OnItemName with the identity function.
+    abstract OnItemNameDeclaration: name: string -> string
+    default this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
+
+    abstract OnItemName: parentType: UserDefinedType * itemName: string -> string
+    default _.OnItemName(_, itemName) = itemName
+
+    abstract OnArgumentTuple: argTuple: QsArgumentTuple -> QsArgumentTuple
+    default this.OnArgumentTuple argTuple =
         this.Namespaces.OnArgumentTuple argTuple
 
-    // (*) These overrides are only here to preserve the functionality of the now deprecated methods.
-    // RELEASE 2022-09: They can be removed and the deprecation warning for this file can be reenabled.
+    // RELEASE 2022-09: Replace OnLocation with the identity function.
+    abstract OnAbsoluteLocation: location: QsNullable<QsLocation> -> QsNullable<QsLocation>
+    default this.OnAbsoluteLocation location = this.Namespaces.OnLocation location
 
-    override this.OnLocalName name = this.Statements.OnVariableName name
-    override this.OnItemNameDeclaration name = this.Namespaces.OnItemName name
-    override this.OnAbsoluteLocation loc = this.Namespaces.OnLocation loc
-    override this.OnRelativeLocation loc = this.Statements.OnLocation loc
-    override this.OnTypeRange range = this.Types.OnTypeRange range
+    // RELEASE 2022-09: Replace OnLocation with the identity function.
+    abstract OnRelativeLocation: location: QsNullable<QsLocation> -> QsNullable<QsLocation>
+    default this.OnRelativeLocation location = this.Statements.OnLocation location
 
-    override this.OnExpressionRange range =
+    abstract OnSymbolLocation: offset: QsNullable<Position> * range: Range -> QsNullable<Position> * Range
+    default _.OnSymbolLocation(offset, range) = (offset, range)
+
+    abstract OnExpressionRange: range: QsNullable<Range> -> QsNullable<Range>
+    default this.OnExpressionRange range =
         this.Expressions.OnRangeInformation range
+
+    // RELEASE 2022-09: Replace OnTypeRange with the identity function.
+    abstract OnTypeRange: range: TypeRange -> TypeRange
+    default this.OnTypeRange range = this.Types.OnTypeRange range
+
+    interface ICommonTransformation with
+        member this.OnLocalNameDeclaration name = this.OnLocalNameDeclaration name
+        member this.OnLocalName name = this.OnLocalName name
+        member this.OnItemNameDeclaration name = this.OnItemNameDeclaration name
+        member this.OnItemName(parentType, itemName) = this.OnItemName(parentType, itemName)
+        member this.OnArgumentTuple argTuple = this.OnArgumentTuple argTuple
+        member this.OnAbsoluteLocation location = this.OnAbsoluteLocation location
+        member this.OnRelativeLocation location = this.OnRelativeLocation location
+        member this.OnSymbolLocation(offset, range) = this.OnSymbolLocation(offset, range)
+        member this.OnExpressionRange range = this.OnExpressionRange range
+        member this.OnTypeRange range = this.OnTypeRange range
 
 
 and TypeTransformation internal (options, _internal_) =
@@ -365,7 +425,7 @@ and TypeTransformation internal (options, _internal_) =
         with get () = _Transformation.Value
         and private set value =
             _Transformation <- Some value
-            this.CommonTransformationItemsHandle <- fun _ -> value :> CommonTransformationNodes
+            this.CommonTransformationItemsHandle <- fun _ -> upcast value
 
     new(parentTransformation: SyntaxTreeTransformation, options: TransformationOptions) as this =
         new TypeTransformation(options, "_internal_")

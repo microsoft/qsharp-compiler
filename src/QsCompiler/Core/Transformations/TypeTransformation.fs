@@ -26,17 +26,16 @@ type TypeTransformationBase internal (options: TransformationOptions, _internal_
 
     member val internal CommonTransformationItemsHandle = missingTransformation "common items" with get, set
 
-    member this.Common: CommonTransformationNodes = this.CommonTransformationItemsHandle()
+    member internal this.Common = this.CommonTransformationItemsHandle()
 
-    internal new(getCommonItems: unit -> CommonTransformationNodes, options: TransformationOptions) as this =
-        new TypeTransformationBase(options, "_internal_")
+    internal new(getCommonItems, options: TransformationOptions) as this =
+        TypeTransformationBase(options, "_internal_")
         then this.CommonTransformationItemsHandle <- getCommonItems
 
     new(options: TransformationOptions) as this =
-        new TypeTransformationBase(options, "_internal_")
+        TypeTransformationBase(options, "_internal_")
         then
-            let commonItems = new CommonTransformationNodes()
-            this.CommonTransformationItemsHandle <- fun _ -> commonItems
+            this.CommonTransformationItemsHandle <- fun _ -> CommonTransformation.identity
 
     new() = TypeTransformationBase TransformationOptions.Default
 

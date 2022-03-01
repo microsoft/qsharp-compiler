@@ -27,7 +27,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
     member this.Statements: StatementTransformationBase = this.StatementTransformationHandle()
     member this.Expressions = this.StatementTransformationHandle().Expressions
     member this.Types = this.StatementTransformationHandle().Expressions.Types
-    member this.Common = this.StatementTransformationHandle().Expressions.Types.Common
+    member internal this.Common = this.StatementTransformationHandle().Expressions.Types.Common
 
     new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
         new NamespaceTransformationBase(options, "_internal_")

@@ -13,7 +13,7 @@
     <Compile Include="SyntaxTreeExtensions.fs" />
     <Compile Include="ConstructorExtensions.fs" />
     <Compile Include="Transformations\TransformationOptions.fs" />
-    <Compile Include="Transformations\CommonTransformationNodes.fs" />
+    <Compile Include="Transformations\ICommonTransformation.fs" />
     <Compile Include="Transformations\TypeTransformation.fs" />
     <Compile Include="Transformations\ExpressionTransformation.fs" />
     <Compile Include="Transformations\StatementTransformation.fs" />
