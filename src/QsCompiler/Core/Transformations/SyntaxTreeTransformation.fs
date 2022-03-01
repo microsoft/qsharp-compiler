@@ -111,7 +111,7 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
         member this.OnTypeRange range = this.OnTypeRange range
 
 and TypeTransformation<'T>(parentTransformation: SyntaxTreeTransformation<'T>, options) =
-    inherit TypeTransformationBase(options, (fun () -> upcast parentTransformation))
+    inherit TypeTransformationBase(options, parentTransformation :> ICommonTransformation)
 
     member _.Transformation = parentTransformation
 
@@ -403,7 +403,7 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
         member this.OnTypeRange range = this.OnTypeRange range
 
 and TypeTransformation(parentTransformation, options) =
-    inherit TypeTransformationBase(options, (fun () -> upcast parentTransformation))
+    inherit TypeTransformationBase(options, parentTransformation :> ICommonTransformation)
 
     member _.Transformation = parentTransformation
 

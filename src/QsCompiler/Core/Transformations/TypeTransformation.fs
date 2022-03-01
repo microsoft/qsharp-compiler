@@ -15,14 +15,14 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
 type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
 
-type TypeTransformationBase internal (options, getCommon) =
+type TypeTransformationBase internal (options, common) =
     let node = if options.Rebuild then Fold else Walk
 
-    new(options) = TypeTransformationBase(options, (fun () -> CommonTransformation.identity))
+    member internal _.Common = common
+
+    new(options) = TypeTransformationBase(options, CommonTransformation.identity)
 
     new() = TypeTransformationBase TransformationOptions.Default
-
-    member internal _.Common = getCommon ()
 
     // supplementary type information
 
