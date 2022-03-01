@@ -12,9 +12,15 @@
         <Tags>quantum, Q#</Tags>
     </Metadata>
     <Installation InstalledByMsi="false">
-        <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[16.0,17.0)" />
-        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[16.0,17.0)" />
-        <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[16.0,17.0)" />
+        <InstallationTarget Id="Microsoft.VisualStudio.Pro" Version="[17.0,18.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,18.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
+        <InstallationTarget Id="Microsoft.VisualStudio.Enterprise" Version="[17.0,18.0)">
+            <ProductArchitecture>amd64</ProductArchitecture>
+        </InstallationTarget>
     </Installation>
     <Dependencies>
         <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
@@ -31,8 +37,8 @@
         <Asset Type="Microsoft.VisualStudio.ItemTemplate" d:Source="Project" d:ProjectName="QSharpFileTemplate" d:TargetPath="|QSharpFileTemplate;TemplateProjectOutputGroup|" Path="ItemTemplates" d:VsixSubPath="ItemTemplates" />
     </Assets>
     <Prerequisites>
-        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[16.0.28315.86,17.0)" DisplayName="Visual Studio core editor" />
-        <Prerequisite Id="Microsoft.NetCore.Component.SDK" Version="[16.11.31603.221,)" DisplayName=".NET Core Development tools" />
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0.31804.368,18.0)" DisplayName="Visual Studio core editor" />
+        <Prerequisite Id="Microsoft.NetCore.Component.SDK" Version="[17.0.32002.159,)" DisplayName=".NET Core Development tools" />
     </Prerequisites>
 </PackageManifest>
 
