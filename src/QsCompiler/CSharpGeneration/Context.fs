@@ -38,7 +38,7 @@ module internal DeclarationLocations =
 
 
     type internal SyntaxTreeTransformation private (_private_) =
-        inherit SyntaxTreeTransformation<TransformationState>(new TransformationState(), TransformationOptions.NoRebuild)
+        inherit SyntaxTreeTransformation<TransformationState>(TransformationState(), TransformationOptions.NoRebuild)
 
         new() as this =
             new SyntaxTreeTransformation("_private_")
@@ -86,19 +86,16 @@ type CodegenContext =
             let result = new Dictionary<string, (string * QsCallable) list>()
 
             syntaxTree
-            |> Seq.collect
-                (fun ns ->
-                    ns.Elements
-                    |> Seq.choose
-                        (function
-                        | QsCallable c -> Some(ns, c)
-                        | _ -> None))
-            |> Seq.iter
-                (fun (ns: QsNamespace, c: QsCallable) ->
-                    if result.ContainsKey c.FullName.Name then
-                        result.[c.FullName.Name] <- (ns.Name, c) :: (result.[c.FullName.Name])
-                    else
-                        result.[c.FullName.Name] <- [ ns.Name, c ])
+            |> Seq.collect (fun ns ->
+                ns.Elements
+                |> Seq.choose (function
+                    | QsCallable c -> Some(ns, c)
+                    | _ -> None))
+            |> Seq.iter (fun (ns, c) ->
+                if result.ContainsKey c.FullName.Name then
+                    result.[c.FullName.Name] <- (ns.Name, c) :: result.[c.FullName.Name]
+                else
+                    result.[c.FullName.Name] <- [ ns.Name, c ])
 
             result.ToImmutableDictionary()
 

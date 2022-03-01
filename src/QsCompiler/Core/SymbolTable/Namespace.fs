@@ -48,13 +48,12 @@ type Namespace
 
         isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Access) OtherAssembly
         && isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Access) OtherAssembly
-        && Parts.Values.All
-            (fun partial ->
-                isAvailableWith
-                    (partial.TryGetCallable >> tryOption >> Option.toList)
-                    (fun c -> (snd c).Access)
-                    SameAssembly
-                && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Access) SameAssembly)
+        && Parts.Values.All (fun partial ->
+            isAvailableWith
+                (partial.TryGetCallable >> tryOption >> Option.toList)
+                (fun c -> (snd c).Access)
+                SameAssembly
+            && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Access) SameAssembly)
 
     /// name of the namespace
     member this.Name = name
@@ -88,8 +87,8 @@ type Namespace
             callablesInRefs.Where(fun (header: CallableDeclarationHeader) -> header.QualifiedName.Namespace = name)
 
         let specializationsInRefs =
-            specializationsInRefs.Where
-                (fun (header: SpecializationDeclarationHeader, _) -> header.Parent.Namespace = name)
+            specializationsInRefs.Where (fun (header: SpecializationDeclarationHeader, _) ->
+                header.Parent.Namespace = name)
 
         let discardConflicts getAccess (_, nameGroup) =
             // Only one externally accessible declaration with the same name is allowed.
@@ -215,9 +214,8 @@ type Namespace
         | true, partial ->
             partial.TryGetType tName
             |> tryOption
-            |> Option.defaultWith
-                (fun () ->
-                    SymbolNotFoundException "A type with the given name was not found in the source file." |> raise)
+            |> Option.defaultWith (fun () ->
+                SymbolNotFoundException "A type with the given name was not found in the source file." |> raise)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -254,9 +252,8 @@ type Namespace
         | true, partial ->
             partial.TryGetCallable cName
             |> tryOption
-            |> Option.defaultWith
-                (fun () ->
-                    SymbolNotFoundException "A callable with the given name was not found in the source file." |> raise)
+            |> Option.defaultWith (fun () ->
+                SymbolNotFoundException "A callable with the given name was not found in the source file." |> raise)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -309,9 +306,8 @@ type Namespace
     /// source file.
     member this.TryFindType(tName, ?checkDeprecation: (string -> bool)) =
         let checkDeprecation =
-            defaultArg
-                checkDeprecation
-                (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
+            defaultArg checkDeprecation (fun qual ->
+                String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceType (typeHeader: TypeDeclarationHeader) =
             if typeHeader.Access |> Access.isAccessibleFrom OtherAssembly then
@@ -352,9 +348,8 @@ type Namespace
     /// and source file.
     member this.TryFindCallable(cName, ?checkDeprecation: (string -> bool)) =
         let checkDeprecation =
-            defaultArg
-                checkDeprecation
-                (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
+            defaultArg checkDeprecation (fun qual ->
+                String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceCallable (callable: CallableDeclarationHeader) =
             if callable.Access |> Access.isAccessibleFrom OtherAssembly then

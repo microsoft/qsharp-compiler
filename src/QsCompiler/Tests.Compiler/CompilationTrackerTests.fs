@@ -97,7 +97,7 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         let taskName = "TestTask"
 
         // Measure time spent in a task.
-        for i in 1 .. intervalCount do
+        for i in 1..intervalCount do
             CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
             Thread.Sleep intervalDurationInMs
             CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName)
@@ -193,7 +193,7 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, parentTaskName)
         Thread.Sleep initialPaddingInMs
 
-        for i in 0 .. nestedTaskCount do
+        for i in 0..nestedTaskCount do
             let taskName = sprintf "%s-%i" nestedTaskPrefix i
             CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, parentTaskName, taskName)
             Thread.Sleep nestedTaskDurationInMs
@@ -212,7 +212,7 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         Assert.True(resultsDictionary.TryGetValue(parentTaskName, &measuredParentTaskDurationInMs))
         Assert.InRange(measuredParentTaskDurationInMs, expectedParentTaskDurationInMs, Int32.MaxValue)
 
-        for i in 0 .. nestedTaskCount do
+        for i in 0..nestedTaskCount do
             let taskId = sprintf "%s.%s-%i" parentTaskName nestedTaskPrefix i
             let mutable measuredTaskDurationInMs = 0
             Assert.True(resultsDictionary.TryGetValue(taskId, &measuredTaskDurationInMs))
@@ -258,7 +258,10 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         let resultsDictionary = MethodBase.GetCurrentMethod().Name |> getResultsDictionary
         let expectedFirstNestedTaskDurationInMs = Array.sum firstNestedTasksDurationInMs
         let expectedSecondNestedTaskDurationInMs = Array.sum secondNestedTasksDurationInMs
-        let expectedParentTaskDurationInMs = expectedFirstNestedTaskDurationInMs + expectedSecondNestedTaskDurationInMs
+
+        let expectedParentTaskDurationInMs =
+            expectedFirstNestedTaskDurationInMs + expectedSecondNestedTaskDurationInMs
+
         let mutable measuredParentTaskDurationInMs = 0
         Assert.True(resultsDictionary.TryGetValue(parentTaskName, &measuredParentTaskDurationInMs))
         Assert.InRange(measuredParentTaskDurationInMs, expectedParentTaskDurationInMs, Int32.MaxValue)
@@ -300,8 +303,8 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         // Start measuring a task but attempt to publish when it is still in progress.
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
 
-        Assert.Throws<InvalidOperationException>
-            (fun () -> MethodBase.GetCurrentMethod().Name |> getResultsDictionary |> ignore)
+        Assert.Throws<InvalidOperationException> (fun () ->
+            MethodBase.GetCurrentMethod().Name |> getResultsDictionary |> ignore)
         |> ignore
 
 
@@ -313,8 +316,8 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         // Start measuring a task when it is already in progress.
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
 
-        Assert.Throws<InvalidOperationException>
-            (fun () -> CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName))
+        Assert.Throws<InvalidOperationException> (fun () ->
+            CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName))
         |> ignore
 
     [<Fact>]
@@ -323,8 +326,8 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         let taskName = "TestTask"
 
         // Stop measuring a task when it was never started.
-        Assert.Throws<InvalidOperationException>
-            (fun () -> CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName))
+        Assert.Throws<InvalidOperationException> (fun () ->
+            CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName))
         |> ignore
 
     [<Fact>]
@@ -336,6 +339,6 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName)
 
-        Assert.Throws<InvalidOperationException>
-            (fun () -> CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName))
+        Assert.Throws<InvalidOperationException> (fun () ->
+            CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName))
         |> ignore

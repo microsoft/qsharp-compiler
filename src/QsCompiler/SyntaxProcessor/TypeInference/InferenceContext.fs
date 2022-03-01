@@ -285,12 +285,11 @@ module Inference =
     /// An infinite sequence of alphabetic strings of increasing length in alphabetical order.
     let letters =
         Seq.initInfinite ((+) 1)
-        |> Seq.collect
-            (fun length ->
-                seq { 'a' .. 'z' }
-                |> Seq.map string
-                |> Seq.replicate length
-                |> Seq.reduce (fun strings -> Seq.allPairs strings >> Seq.map String.Concat))
+        |> Seq.collect (fun length ->
+            seq { 'a' .. 'z' }
+            |> Seq.map string
+            |> Seq.replicate length
+            |> Seq.reduce (fun strings -> Seq.allPairs strings >> Seq.map String.Concat))
 
     /// <summary>
     /// The set of type parameters contained in the given <paramref name="resolvedType"/>.
@@ -371,9 +370,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let param =
             Seq.initInfinite (fun i -> if i = 0 then name else name + string (i - 1))
             |> Seq.map (fun name -> QsTypeParameter.New(symbolTracker.Parent, name))
-            |> Seq.skipWhile
-                (fun param ->
-                    variables.ContainsKey param || symbolTracker.DefinedTypeParameters.Contains param.TypeName)
+            |> Seq.skipWhile (fun param ->
+                variables.ContainsKey param || symbolTracker.DefinedTypeParameters.Contains param.TypeName)
             |> Seq.head
 
         let variable =
@@ -595,7 +593,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.ApplyConstraints(param, resolvedType) =
         match variables.TryGetValue param |> tryOption with
         | Some variable ->
-            let diagnostics = variable.Constraints |> List.collect (fun c -> context.ApplyConstraint(c, resolvedType))
+            let diagnostics =
+                variable.Constraints |> List.collect (fun c -> context.ApplyConstraint(c, resolvedType))
+
             variables.[param] <- { variable with Constraints = [] }
             diagnostics
         | None -> []

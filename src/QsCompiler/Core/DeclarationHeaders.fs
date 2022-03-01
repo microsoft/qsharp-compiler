@@ -97,7 +97,8 @@ module DeclarationHeader =
             new NullableRangeConverter() :> JsonConverter
         |]
 
-    let private Serializer = [ qsNullableConverters; Json.Converters false ] |> Array.concat |> Json.CreateSerializer
+    let private Serializer =
+        [ qsNullableConverters; Json.Converters false ] |> Array.concat |> Json.CreateSerializer
 
     let private PermissiveSerializer =
         [ qsNullableConverters; Json.Converters true ] |> Array.concat |> Json.CreateSerializer
@@ -198,9 +199,12 @@ type TypeDeclarationHeader =
     static member FromJson json =
         let success, schema = DeclarationHeader.FromJson<TypeDeclarationHeaderSchema> json
         let header = TypeDeclarationHeader.OfSchema schema
-        let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
-        let header = if attributesAreNullOrDefault then { header with Attributes = ImmutableArray.Empty } else header // no reason to raise an error
+        let attributesAreNullOrDefault =
+            Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
+
+        let header =
+            if attributesAreNullOrDefault then { header with Attributes = ImmutableArray.Empty } else header // no reason to raise an error
 
         if not (Object.ReferenceEquals(header.TypeItems, null)) then
             success, header
@@ -319,18 +323,17 @@ type CallableDeclarationHeader =
         // due to changes of fields over time are initialized to a proper value
         let success, schema = DeclarationHeader.FromJson<CallableDeclarationHeaderSchema> json
         let header = CallableDeclarationHeader.OfSchema schema
-        let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
-        let header = if attributesAreNullOrDefault then { header with Attributes = ImmutableArray.Empty } else header // no reason to raise an error
+        let attributesAreNullOrDefault =
+            Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
+
+        let header =
+            if attributesAreNullOrDefault then { header with Attributes = ImmutableArray.Empty } else header // no reason to raise an error
 
         let header = { header with ArgumentTuple = header.ArgumentTuple |> setInferredInfo }
 
         if
-            Object.ReferenceEquals
-                (
-                    header.Signature.Information,
-                    null
-                )
+            Object.ReferenceEquals(header.Signature.Information, null)
             || Object.ReferenceEquals(header.Signature.Information.Characteristics, null)
         then
             false, { header with Signature = { header.Signature with Information = CallableInformation.Invalid } }
@@ -439,9 +442,12 @@ type SpecializationDeclarationHeader =
         let header = SpecializationDeclarationHeader.OfSchema schema
         let infoIsNull = Object.ReferenceEquals(header.Information, null)
         let typeArgsAreNull = Object.ReferenceEquals(header.TypeArguments, null)
-        let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
-        let header = if attributesAreNullOrDefault then { header with Attributes = ImmutableArray.Empty } else header // no reason to raise an error
+        let attributesAreNullOrDefault =
+            Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
+
+        let header =
+            if attributesAreNullOrDefault then { header with Attributes = ImmutableArray.Empty } else header // no reason to raise an error
 
         if not (infoIsNull || typeArgsAreNull) then
             success, header

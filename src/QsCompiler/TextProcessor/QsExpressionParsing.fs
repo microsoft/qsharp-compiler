@@ -498,7 +498,9 @@ let internal buildTupleExpr (items, range: Range) =
 /// Uses buildTuple to generate suitable errors for invalid or missing expressions within the tuple.
 let private valueTuple item = // allows something like (a,(),b)
     let invalid = buildError (skipInvalidUntil qsFragmentHeader) ErrorCode.InvalidValueTuple >>% unknownExpr // used for processing e.g. (,)
-    let validTuple = buildTuple item buildTupleExpr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr
+
+    let validTuple =
+        buildTuple item buildTupleExpr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr
 
     tupledItem item
     <|> validTuple
@@ -509,7 +511,9 @@ let private valueTuple item = // allows something like (a,(),b)
 /// Uses commaSep1 to generate suitable errors for invalid or missing expressions within the array.
 let private valueArray =
     let sized = expr .>>. (comma >>. size.parse >>. equal >>. expectedExpr rArray) |>> SizedArray
-    let items = commaSep expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof |>> ValueArray
+
+    let items =
+        commaSep expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof |>> ValueArray
 
     arrayBrackets (attempt sized <|> items) |>> QsExpression.New
     <|> bracketDefinedCommaSepExpr (lArray, rArray)
@@ -518,7 +522,9 @@ let private valueArray =
 /// Adds an InvalidConstructorExpression if the array declaration keyword is not followed by a valid array constructor,
 /// and advances to the next whitespace character or QsFragmentHeader.
 let private newArray =
-    let itemType = expectedQsType (lArray >>% ()) >>= fun itemType -> validateTypeSyntax true itemType >>% itemType
+    let itemType =
+        expectedQsType (lArray >>% ()) >>= fun itemType -> validateTypeSyntax true itemType >>% itemType
+
     let body = itemType .>>. (arrayBrackets (expectedExpr eof) |>> fst) |>> NewArray
 
     let toExpr headRange (kind, bodyRange) =
@@ -631,7 +637,9 @@ let private itemAccessExpr =
 /// If the parsed argument tuple is not a unit value,
 /// uses buildTuple to generate a MissingArgument error if a tuple item is missing, or an InvalidArgument error for invalid items.
 let private argumentTuple =
-    let tupleArg = buildTuple argument buildTupleExpr ErrorCode.InvalidArgument ErrorCode.MissingArgument unknownExpr
+    let tupleArg =
+        buildTuple argument buildTupleExpr ErrorCode.InvalidArgument ErrorCode.MissingArgument unknownExpr
+
     unitValue <|> tupleArg
 
 /// Parses a Q# call-like expression as QsExpression.

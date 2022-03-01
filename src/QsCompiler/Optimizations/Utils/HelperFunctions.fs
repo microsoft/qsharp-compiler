@@ -154,9 +154,9 @@ let internal rangeLiteralToSeq (r: ExprKind) : seq<int64> =
     match r with
     | RangeLiteral (a, b) ->
         match a.Expression, b.Expression with
-        | IntLiteral start, IntLiteral stop -> seq { start .. stop }
+        | IntLiteral start, IntLiteral stop -> seq { start..stop }
         | RangeLiteral ({ Expression = IntLiteral start }, { Expression = IntLiteral step }), IntLiteral stop ->
-            seq { start .. step .. stop }
+            seq { start..step..stop }
         | _ -> ArgumentException "Invalid range literal" |> raise
     | _ -> ArgumentException "Not a range literal" |> raise
 
@@ -195,8 +195,7 @@ let rec internal (|LocalVarTuple|_|) (expr: TypedExpression) =
     | InvalidExpr -> InvalidItem |> Some
     | ValueTuple va ->
         va
-        |> Seq.map
-            (function
+        |> Seq.map (function
             | LocalVarTuple t -> Some t
             | _ -> None)
         |> List.ofSeq
@@ -331,8 +330,7 @@ let internal findAllSubStatements (scope: QsScope) =
 let internal countReturnStatements (scope: QsScope) : int =
     scope
     |> findAllSubStatements
-    |> Seq.sumBy
-        (function
+    |> Seq.sumBy (function
         | QsReturnStatement _ -> 1
         | _ -> 0)
 

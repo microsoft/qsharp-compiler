@@ -67,7 +67,8 @@ type TypeParameterTests() =
         let success = CheckCombinedResolution expected resolutions
         Assert.False(success, "Combining type resolutions should have failed.")
 
-    let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
+    let compilationManager =
+        new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
 
     let getTempFile () =
         new Uri(Path.GetFullPath(Path.GetRandomFileName()))

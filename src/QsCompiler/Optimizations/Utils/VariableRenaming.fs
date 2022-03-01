@@ -102,7 +102,7 @@ and private VariableRenamingNamespaces(parent: VariableRenaming) =
     override __.OnProvidedImplementation(argTuple, body) =
         parent.Clear()
         do processArgTuple argTuple
-        base.OnProvidedImplementation(argTuple, body)
+        ``base``.OnProvidedImplementation(argTuple, body)
 
 /// private helper class for VariableRenaming
 and private VariableRenamingStatements(parent: VariableRenaming) =

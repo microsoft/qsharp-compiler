@@ -108,7 +108,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
     verifyAssignment context.Inference lhs.ResolvedType ErrorCode.TypeMismatchInValueUpdate rhs
     |> diagnostics.AddRange
 
-    let rec verifyMutability : TypedExpression -> _ =
+    let rec verifyMutability: TypedExpression -> _ =
         function
         | Tuple exs -> exs |> Seq.iter verifyMutability
         | Item ex when ex.InferredInformation.IsMutable ->
@@ -261,7 +261,8 @@ let NewRepeatStatement (symbols: SymbolTracker) (repeatBlock: QsPositionedBlock,
         | Null -> ArgumentException "no location is set for the given repeat-block" |> raise
         | Value loc -> loc
 
-    let autoGenErrs = symbols |> onAutoInvertGenerateError ((ErrorCode.RUSloopWithinAutoInversion, []), location.Range)
+    let autoGenErrs =
+        symbols |> onAutoInvertGenerateError ((ErrorCode.RUSloopWithinAutoInversion, []), location.Range)
 
     QsRepeatStatement.New(repeatBlock, successCondition, fixupBlock)
     |> QsRepeatStatement
@@ -297,9 +298,8 @@ let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
         updatedInInner
         |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key)
         |> Seq.collect id
-        |> Seq.map
-            (fun loc ->
-                loc.Offset + loc.Range |> QsCompilerDiagnostic.Error(ErrorCode.InvalidReassignmentInApplyBlock, []))
+        |> Seq.map (fun loc ->
+            loc.Offset + loc.Range |> QsCompilerDiagnostic.Error(ErrorCode.InvalidReassignmentInApplyBlock, []))
         |> Seq.toArray
 
     QsConjugation.New(outer, inner)

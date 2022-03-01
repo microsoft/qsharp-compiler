@@ -53,7 +53,9 @@ module NamespaceTests =
 
     [<Fact>]
     let ``namespace: type aliases`` () =
-        let n = ``namespace`` "Foo" ``{`` [ using "System"; using "System.Collections"; alias "Foo" "Int" ] [] ``}``
+        let n =
+            ``namespace`` "Foo" ``{`` [ using "System"; using "System.Collections"; alias "Foo" "Int" ] [] ``}``
+
         let actual = to_namespace_code n
 
         let expected =

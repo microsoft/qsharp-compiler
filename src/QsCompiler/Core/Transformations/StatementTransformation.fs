@@ -21,10 +21,10 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
 
-    member this.Statements : StatementTransformationBase = this.StatementTransformationHandle()
-    member this.Expressions : ExpressionTransformationBase = this.StatementTransformationHandle().Expressions
-    member this.Types : TypeTransformationBase = this.StatementTransformationHandle().Expressions.Types
-    member this.Common : CommonTransformationNodes = this.StatementTransformationHandle().Expressions.Types.Common
+    member this.Statements: StatementTransformationBase = this.StatementTransformationHandle()
+    member this.Expressions = this.StatementTransformationHandle().Expressions
+    member this.Types = this.StatementTransformationHandle().Expressions.Types
+    member this.Common = this.StatementTransformationHandle().Expressions.Types.Common
 
     new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
         new StatementKindTransformationBase(options, "_internal_")
@@ -59,7 +59,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     // subconstructs used within statements
 
-    abstract OnSymbolTuple : SymbolTuple -> SymbolTuple
+    abstract OnSymbolTuple: SymbolTuple -> SymbolTuple
 
     default this.OnSymbolTuple syms =
         match syms with
@@ -69,7 +69,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         | DiscardedItem
         | InvalidItem -> syms
 
-    abstract OnQubitInitializer : ResolvedInitializer -> ResolvedInitializer
+    abstract OnQubitInitializer: ResolvedInitializer -> ResolvedInitializer
 
     default this.OnQubitInitializer init =
         let transformed =
@@ -84,7 +84,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
         ResolvedInitializer.New |> Node.BuildOr init transformed
 
-    abstract OnPositionedBlock :
+    abstract OnPositionedBlock:
         QsNullable<TypedExpression> * QsPositionedBlock -> QsNullable<TypedExpression> * QsPositionedBlock
 
     default this.OnPositionedBlock(intro: QsNullable<TypedExpression>, block: QsPositionedBlock) =
@@ -101,7 +101,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     // statements containing subconstructs or expressions
 
-    abstract OnVariableDeclaration : QsBinding<TypedExpression> -> QsStatementKind
+    abstract OnVariableDeclaration: QsBinding<TypedExpression> -> QsStatementKind
 
     default this.OnVariableDeclaration stm =
         let rhs = this.Expressions.OnTypedExpression stm.Rhs
@@ -110,26 +110,25 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         QsVariableDeclaration << QsBinding<TypedExpression>.New stm.Kind
         |> Node.BuildOr EmptyStatement (lhs, rhs)
 
-    abstract OnValueUpdate : QsValueUpdate -> QsStatementKind
+    abstract OnValueUpdate: QsValueUpdate -> QsStatementKind
 
     default this.OnValueUpdate stm =
         let rhs = this.Expressions.OnTypedExpression stm.Rhs
         let lhs = this.Expressions.OnTypedExpression stm.Lhs
         QsValueUpdate << QsValueUpdate.New |> Node.BuildOr EmptyStatement (lhs, rhs)
 
-    abstract OnConditionalStatement : QsConditionalStatement -> QsStatementKind
+    abstract OnConditionalStatement: QsConditionalStatement -> QsStatementKind
 
     default this.OnConditionalStatement stm =
         let cases =
             stm.ConditionalBlocks
-            |> Seq.map
-                (fun (c, b) ->
-                    let cond, block = this.OnPositionedBlock(Value c, b)
+            |> Seq.map (fun (c, b) ->
+                let cond, block = this.OnPositionedBlock(Value c, b)
 
-                    let invalidCondition () =
-                        failwith "missing condition in if-statement"
+                let invalidCondition () =
+                    failwith "missing condition in if-statement"
 
-                    cond.ValueOrApply invalidCondition, block)
+                cond.ValueOrApply invalidCondition, block)
             |> ImmutableArray.CreateRange
 
         let defaultCase = stm.Default |> QsNullable<_>.Map (fun b -> this.OnPositionedBlock(Null, b) |> snd)
@@ -137,7 +136,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         QsConditionalStatement << QsConditionalStatement.New
         |> Node.BuildOr EmptyStatement (cases, defaultCase)
 
-    abstract OnForStatement : QsForStatement -> QsStatementKind
+    abstract OnForStatement: QsForStatement -> QsStatementKind
 
     default this.OnForStatement stm =
         let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
@@ -148,14 +147,14 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         QsForStatement << QsForStatement.New
         |> Node.BuildOr EmptyStatement ((loopVar, loopVarType), iterVals, body)
 
-    abstract OnWhileStatement : QsWhileStatement -> QsStatementKind
+    abstract OnWhileStatement: QsWhileStatement -> QsStatementKind
 
     default this.OnWhileStatement stm =
         let condition = this.Expressions.OnTypedExpression stm.Condition
         let body = this.Statements.OnScope stm.Body
         QsWhileStatement << QsWhileStatement.New |> Node.BuildOr EmptyStatement (condition, body)
 
-    abstract OnRepeatStatement : QsRepeatStatement -> QsStatementKind
+    abstract OnRepeatStatement: QsRepeatStatement -> QsStatementKind
 
     default this.OnRepeatStatement stm =
         let repeatBlock = this.OnPositionedBlock(Null, stm.RepeatBlock) |> snd
@@ -167,26 +166,26 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         QsRepeatStatement << QsRepeatStatement.New
         |> Node.BuildOr EmptyStatement (repeatBlock, successCondition.ValueOrApply invalidCondition, fixupBlock)
 
-    abstract OnConjugation : QsConjugation -> QsStatementKind
+    abstract OnConjugation: QsConjugation -> QsStatementKind
 
     default this.OnConjugation stm =
         let outer = this.OnPositionedBlock(Null, stm.OuterTransformation) |> snd
         let inner = this.OnPositionedBlock(Null, stm.InnerTransformation) |> snd
         QsConjugation << QsConjugation.New |> Node.BuildOr EmptyStatement (outer, inner)
 
-    abstract OnExpressionStatement : TypedExpression -> QsStatementKind
+    abstract OnExpressionStatement: TypedExpression -> QsStatementKind
 
     default this.OnExpressionStatement ex =
         let transformed = this.Expressions.OnTypedExpression ex
         QsExpressionStatement |> Node.BuildOr EmptyStatement transformed
 
-    abstract OnReturnStatement : TypedExpression -> QsStatementKind
+    abstract OnReturnStatement: TypedExpression -> QsStatementKind
 
     default this.OnReturnStatement ex =
         let transformed = this.Expressions.OnTypedExpression ex
         QsReturnStatement |> Node.BuildOr EmptyStatement transformed
 
-    abstract OnFailStatement : TypedExpression -> QsStatementKind
+    abstract OnFailStatement: TypedExpression -> QsStatementKind
 
     default this.OnFailStatement ex =
         let transformed = this.Expressions.OnTypedExpression ex
@@ -201,13 +200,13 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         let body = this.Statements.OnScope stm.Body
         QsQubitScope << QsQubitScope.New kind |> Node.BuildOr EmptyStatement ((lhs, rhs), body)
 
-    abstract OnAllocateQubits : QsQubitScope -> QsStatementKind
+    abstract OnAllocateQubits: QsQubitScope -> QsStatementKind
     default this.OnAllocateQubits stm = this.OnQubitScopeKind stm
 
-    abstract OnBorrowQubits : QsQubitScope -> QsStatementKind
+    abstract OnBorrowQubits: QsQubitScope -> QsStatementKind
     default this.OnBorrowQubits stm = this.OnQubitScopeKind stm
 
-    abstract OnQubitScope : QsQubitScope -> QsStatementKind
+    abstract OnQubitScope: QsQubitScope -> QsStatementKind
 
     default this.OnQubitScope(stm: QsQubitScope) =
         match stm.Kind with
@@ -217,13 +216,13 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
 
     // leaf nodes
 
-    abstract OnEmptyStatement : unit -> QsStatementKind
+    abstract OnEmptyStatement: unit -> QsStatementKind
     default this.OnEmptyStatement() = EmptyStatement
 
 
     // transformation root called on each statement
 
-    abstract OnStatementKind : QsStatementKind -> QsStatementKind
+    abstract OnStatementKind: QsStatementKind -> QsStatementKind
 
     default this.OnStatementKind kind =
         if not options.Enable then
@@ -257,10 +256,10 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     member val internal ExpressionTransformationHandle = missingTransformation "expression" with get, set
     member val internal StatementKindTransformationHandle = missingTransformation "statement kind" with get, set
 
-    member this.StatementKinds : StatementKindTransformationBase = this.StatementKindTransformationHandle()
-    member this.Expressions : ExpressionTransformationBase = this.ExpressionTransformationHandle()
-    member this.Types : TypeTransformationBase = this.ExpressionTransformationHandle().Types
-    member this.Common : CommonTransformationNodes = this.ExpressionTransformationHandle().Types.Common
+    member this.StatementKinds: StatementKindTransformationBase = this.StatementKindTransformationHandle()
+    member this.Expressions: ExpressionTransformationBase = this.ExpressionTransformationHandle()
+    member this.Types: TypeTransformationBase = this.ExpressionTransformationHandle().Types
+    member this.Common: CommonTransformationNodes = this.ExpressionTransformationHandle().Types.Common
 
     new(statementKindTransformation: unit -> StatementKindTransformationBase,
         expressionTransformation: unit -> ExpressionTransformationBase,
@@ -293,31 +292,32 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnRelativeLocation instead">]
-    abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
+    abstract OnLocation: QsNullable<QsLocation> -> QsNullable<QsLocation>
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use SyntaxTreeTransformation.OnRelativeLocation instead">]
-    default this.OnLocation loc = loc
+    override this.OnLocation loc = loc
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
-    abstract OnVariableName : string -> string
+    abstract OnVariableName: string -> string
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete "Use ExpressionTransformationBase.OnLocalName instead">]
-    default this.OnVariableName name = name
+    override this.OnVariableName name = name
 
-    abstract OnLocalDeclarations : LocalDeclarations -> LocalDeclarations
+    abstract OnLocalDeclarations: LocalDeclarations -> LocalDeclarations
 
     default this.OnLocalDeclarations decl =
         let onLocalVariableDeclaration (local: LocalVariableDeclaration<string>) =
-            let loc = this.Common.OnSymbolLocation (local.Position, local.Range)
+            let loc = this.Common.OnSymbolLocation(local.Position, local.Range)
             let name = this.Common.OnLocalName local.VariableName
             let varType = this.Types.OnType local.Type
             let info = this.Expressions.OnExpressionInformation local.InferredInformation
             LocalVariableDeclaration.New info.IsMutable (loc, name, varType, info.HasLocalQuantumDependency)
 
         let variableDeclarations = decl.Variables |> Seq.map onLocalVariableDeclaration
+
         if options.Rebuild then
             LocalDeclarations.New(variableDeclarations |> ImmutableArray.CreateRange)
         else
@@ -326,7 +326,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
 
     // transformation roots called on each statement or statement block
 
-    abstract OnStatement : QsStatement -> QsStatement
+    abstract OnStatement: QsStatement -> QsStatement
 
     default this.OnStatement stm =
         if not options.Enable then
@@ -338,7 +338,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
             let varDecl = this.OnLocalDeclarations stm.SymbolDeclarations
             QsStatement.New comments location |> Node.BuildOr stm (kind, varDecl)
 
-    abstract OnScope : QsScope -> QsScope
+    abstract OnScope: QsScope -> QsScope
 
     default this.OnScope scope =
         if not options.Enable then
