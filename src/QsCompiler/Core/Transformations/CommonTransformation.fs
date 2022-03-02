@@ -9,10 +9,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
 type internal QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 
-/// <summary>
-/// Contains virtual methods that are invoked
-/// by several different kinds of nodes in the syntax tree.
-/// </summary>
 type internal ICommonTransformation =
     abstract OnLocalNameDeclaration: name: string -> string
 

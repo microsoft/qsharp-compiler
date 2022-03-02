@@ -22,11 +22,11 @@ type NamespaceTransformationBase(statementTransformation: _ -> StatementTransfor
 
     let node = if options.Rebuild then Fold else Walk
 
-    member _.Statements = statementTransformation ()
+    member _.Types = statementTransformation().Expressions.Types
 
     member _.Expressions = statementTransformation().Expressions
 
-    member _.Types = statementTransformation().Expressions.Types
+    member _.Statements = statementTransformation ()
 
     member internal _.Common = statementTransformation().Expressions.Types.Common
 

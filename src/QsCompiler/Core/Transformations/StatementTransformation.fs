@@ -20,11 +20,11 @@ type StatementKindTransformationBase(statementTransformation: _ -> StatementTran
 
     let node = if options.Rebuild then Fold else Walk
 
-    member _.Statements = statementTransformation ()
+    member _.Types = statementTransformation().Expressions.Types
 
     member _.Expressions = statementTransformation().Expressions
 
-    member _.Types = statementTransformation().Expressions.Types
+    member _.Statements = statementTransformation ()
 
     member internal _.Common = statementTransformation().Expressions.Types.Common
 
@@ -242,11 +242,11 @@ and StatementTransformationBase(statementKindTransformation, expressionTransform
 
     let node = if options.Rebuild then Fold else Walk
 
-    member _.StatementKinds = statementKindTransformation ()
+    member _.Types = expressionTransformation().Types
 
     member _.Expressions: ExpressionTransformationBase = expressionTransformation ()
 
-    member _.Types = expressionTransformation().Types
+    member _.StatementKinds = statementKindTransformation ()
 
     member internal _.Common = expressionTransformation().Types.Common
 
