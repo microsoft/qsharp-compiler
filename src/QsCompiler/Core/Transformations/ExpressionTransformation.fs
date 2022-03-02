@@ -33,9 +33,8 @@ type ExpressionKindTransformationBase(expressionTransformation: _ -> ExpressionT
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete("Please use ExpressionKindTransformationBase(unit -> ExpressionTransformationBase, TransformationOptions) instead.")>]
-    new(expressionTransformation: unit -> ExpressionTransformationBase,
-        typeTransformation: unit -> TypeTransformationBase,
-        options: TransformationOptions) = new ExpressionKindTransformationBase(expressionTransformation, options)
+    new(expressionTransformation, typeTransformation: unit -> TypeTransformationBase, options: TransformationOptions) =
+        ExpressionKindTransformationBase(expressionTransformation, options)
 
     new(options) as this = ExpressionKindTransformationBase(createExpressionTransformation this options, options)
 
@@ -44,8 +43,7 @@ type ExpressionKindTransformationBase(expressionTransformation: _ -> ExpressionT
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete("Please use ExpressionKindTransformationBase(unit -> ExpressionTransformationBase) instead.")>]
-    new(expressionTransformation: unit -> ExpressionTransformationBase,
-        typeTransformation: unit -> TypeTransformationBase) =
+    new(expressionTransformation, typeTransformation: unit -> TypeTransformationBase) =
         ExpressionKindTransformationBase(expressionTransformation, TransformationOptions.Default)
 
     new() = ExpressionKindTransformationBase TransformationOptions.Default

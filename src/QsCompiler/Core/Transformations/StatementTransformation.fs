@@ -30,9 +30,9 @@ type StatementKindTransformationBase(statementTransformation: _ -> StatementTran
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete("Please use StatementKindTransformationBase(unit -> StatementTransformationBase, TransformationOptions) instead.")>]
-    new(statementTransformation: unit -> StatementTransformationBase,
+    new(statementTransformation,
         expressionTransformation: unit -> ExpressionTransformationBase,
-        options: TransformationOptions) = new StatementKindTransformationBase(statementTransformation, options)
+        options: TransformationOptions) = StatementKindTransformationBase(statementTransformation, options)
 
     new(options) as this = StatementKindTransformationBase(createStatementTransformation this options, options)
 
@@ -41,9 +41,8 @@ type StatementKindTransformationBase(statementTransformation: _ -> StatementTran
 
     // TODO: RELEASE 2022-09: Remove member.
     [<Obsolete("Please use StatementKindTransformationBase(unit -> StatementTransformationBase) instead.")>]
-    new(statementTransformation: unit -> StatementTransformationBase,
-        expressionTransformation: unit -> ExpressionTransformationBase) =
-        new StatementKindTransformationBase(statementTransformation, TransformationOptions.Default)
+    new(statementTransformation, expressionTransformation: unit -> ExpressionTransformationBase) =
+        StatementKindTransformationBase(statementTransformation, TransformationOptions.Default)
 
     new() = StatementKindTransformationBase TransformationOptions.Default
 
