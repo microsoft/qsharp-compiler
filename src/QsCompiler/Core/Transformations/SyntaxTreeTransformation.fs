@@ -30,7 +30,7 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
     member val Statements = StatementTransformation<'T>(this, TransformationOptions.Default) with get, set
 
     /// Transformation invoked for all namespaces encountered when traversing (parts of) the syntax tree.
-    member val Namespaces = new NamespaceTransformation<'T>(TransformationOptions.Default, _internal_) with get, set
+    member val Namespaces = NamespaceTransformation<'T>(this, TransformationOptions.Default) with get, set
 
     /// Invokes the transformation for all namespaces in the given compilation.
     member this.OnCompilation compilation =
@@ -237,44 +237,30 @@ and StatementTransformation<'T> private (createParentTransformation, options) as
 
     new(sharedState: 'T) = StatementTransformation(sharedState, TransformationOptions.Default)
 
-and NamespaceTransformation<'T> internal (options, _internal_: string) =
-    inherit NamespaceTransformationBase(options, _internal_)
-    let mutable _Transformation: SyntaxTreeTransformation<'T> option = None // will be set to a suitable Some value once construction is complete
+and NamespaceTransformation<'T> private (createParentTransformation, options) as this =
+    inherit NamespaceTransformationBase((fun () -> upcast this.Transformation.Statements), options)
 
-    /// Handle to the parent SyntaxTreeTransformation.
-    /// This handle is always safe to access and will be set to a suitable value
-    /// even if no parent transformation has been specified upon construction.
-    member this.Transformation
-        with get () = _Transformation.Value
-        and private set value =
-            _Transformation <- Some value
-            this.StatementTransformationHandle <- fun _ -> value.Statements :> StatementTransformationBase
+    static let defaultParentTransformation sharedState options namespaces =
+        let transformation = SyntaxTreeTransformation(sharedState, options)
+        transformation.Types <- TypeTransformation<'T>(transformation, TransformationOptions.Disabled)
+        transformation.Expressions <- ExpressionTransformation<'T>(transformation, TransformationOptions.Disabled)
+        transformation.Statements <- StatementTransformation<'T>(transformation, TransformationOptions.Disabled)
+        transformation.Namespaces <- namespaces
+        transformation
+
+    member val Transformation: SyntaxTreeTransformation<_> = createParentTransformation this
 
     member this.SharedState = this.Transformation.SharedState
 
-    new(parentTransformation: SyntaxTreeTransformation<'T>, options: TransformationOptions) as this =
-        NamespaceTransformation<'T>(options, "_internal_")
-        then this.Transformation <- parentTransformation
+    new(parentTransformation, options) = NamespaceTransformation((fun _ -> parentTransformation), options)
 
-    new(sharedState: 'T, options: TransformationOptions) as this =
-        NamespaceTransformation<'T>(options, "_internal_")
-        then
-            this.Transformation <- new SyntaxTreeTransformation<'T>(sharedState, options)
-            this.Transformation.Types <- new TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
+    new(sharedState: 'T, options) =
+        NamespaceTransformation<'T>(defaultParentTransformation sharedState options, options)
 
-            this.Transformation.Expressions <-
-                new ExpressionTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
+    new(parentTransformation: SyntaxTreeTransformation<_>) =
+        NamespaceTransformation<'T>(parentTransformation, TransformationOptions.Default)
 
-            this.Transformation.Statements <-
-                new StatementTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
-
-            this.Transformation.Namespaces <- this
-
-    new(parentTransformation: SyntaxTreeTransformation<'T>) =
-        new NamespaceTransformation<'T>(parentTransformation, TransformationOptions.Default)
-
-    new(sharedState: 'T) = new NamespaceTransformation<'T>(sharedState, TransformationOptions.Default)
-
+    new(sharedState: 'T) = NamespaceTransformation(sharedState, TransformationOptions.Default)
 
 // setup for syntax tree transformations without internal state
 
@@ -295,7 +281,7 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
     member val Statements = StatementTransformation(this, TransformationOptions.Default) with get, set
 
     /// Transformation invoked for all namespaces encountered when traversing (parts of) the syntax tree.
-    member val Namespaces = new NamespaceTransformation(TransformationOptions.Default, _internal_) with get, set
+    member val Namespaces = NamespaceTransformation(this, TransformationOptions.Default) with get, set
 
     /// Invokes the transformation for all namespaces in the given compilation.
     member this.OnCompilation compilation =
@@ -484,38 +470,24 @@ and StatementTransformation private (createParentTransformation, options) as thi
 
     new() = StatementTransformation TransformationOptions.Default
 
-and NamespaceTransformation internal (options, _internal_: string) =
-    inherit NamespaceTransformationBase(options, _internal_)
-    let mutable _Transformation: SyntaxTreeTransformation option = None // will be set to a suitable Some value once construction is complete
+and NamespaceTransformation private (createParentTransformation, options) as this =
+    inherit NamespaceTransformationBase((fun () -> upcast this.Transformation.Statements), options)
 
-    /// Handle to the parent SyntaxTreeTransformation.
-    /// This handle is always safe to access and will be set to a suitable value
-    /// even if no parent transformation has been specified upon construction.
-    member this.Transformation
-        with get () = _Transformation.Value
-        and private set value =
-            _Transformation <- Some value
-            this.StatementTransformationHandle <- fun _ -> value.Statements :> StatementTransformationBase
+    static let defaultParentTransformation options namespaces =
+        let transformation = SyntaxTreeTransformation options
+        transformation.Types <- TypeTransformation(transformation, TransformationOptions.Disabled)
+        transformation.Expressions <- ExpressionTransformation(transformation, TransformationOptions.Disabled)
+        transformation.Statements <- StatementTransformation(transformation, TransformationOptions.Disabled)
+        transformation.Namespaces <- namespaces
+        transformation
 
-    new(parentTransformation: SyntaxTreeTransformation, options: TransformationOptions) as this =
-        NamespaceTransformation(options, "_internal_")
-        then this.Transformation <- parentTransformation
+    member val Transformation: SyntaxTreeTransformation = createParentTransformation this
 
-    new(options: TransformationOptions) as this =
-        NamespaceTransformation(options, "_internal_")
-        then
-            this.Transformation <- new SyntaxTreeTransformation(options)
-            this.Transformation.Types <- new TypeTransformation(this.Transformation, TransformationOptions.Disabled)
+    new(parentTransformation, options) = NamespaceTransformation((fun _ -> parentTransformation), options)
 
-            this.Transformation.Expressions <-
-                new ExpressionTransformation(this.Transformation, TransformationOptions.Disabled)
-
-            this.Transformation.Statements <-
-                new StatementTransformation(this.Transformation, TransformationOptions.Disabled)
-
-            this.Transformation.Namespaces <- this
+    new(options) = NamespaceTransformation(defaultParentTransformation options, options)
 
     new(parentTransformation: SyntaxTreeTransformation) =
-        new NamespaceTransformation(parentTransformation, TransformationOptions.Default)
+        NamespaceTransformation(parentTransformation, TransformationOptions.Default)
 
-    new() = new NamespaceTransformation(TransformationOptions.Default)
+    new() = NamespaceTransformation TransformationOptions.Default

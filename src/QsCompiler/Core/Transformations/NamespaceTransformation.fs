@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -12,38 +12,29 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
+type NamespaceTransformationBase(statementTransformation: _ -> StatementTransformationBase, options) =
+    static let createStatementTransformation options =
+        let statements = StatementTransformationBase options
+        fun () -> statements
 
-type NamespaceTransformationBase internal (options: TransformationOptions, _internal_) =
+    let node = if options.Rebuild then Fold else Walk
 
-    let missingTransformation name _ =
-        new InvalidOperationException(sprintf "No %s transformation has been specified." name) |> raise
+    member _.Statements = statementTransformation ()
 
-    let Node = if options.Rebuild then Fold else Walk
+    member _.Expressions = statementTransformation().Expressions
 
-    member val internal StatementTransformationHandle = missingTransformation "statement" with get, set
+    member _.Types = statementTransformation().Expressions.Types
 
-    member this.Statements: StatementTransformationBase = this.StatementTransformationHandle()
-    member this.Expressions = this.StatementTransformationHandle().Expressions
-    member this.Types = this.StatementTransformationHandle().Expressions.Types
-    member internal this.Common = this.StatementTransformationHandle().Expressions.Types.Common
+    member internal _.Common = statementTransformation().Expressions.Types.Common
 
-    new(statementTransformation: unit -> StatementTransformationBase, options: TransformationOptions) as this =
-        new NamespaceTransformationBase(options, "_internal_")
-        then this.StatementTransformationHandle <- statementTransformation
+    new(options) = NamespaceTransformationBase(createStatementTransformation options, options)
 
-    new(options: TransformationOptions) as this =
-        new NamespaceTransformationBase(options, "_internal_")
-        then
-            let statementTransformation = new StatementTransformationBase(options)
-            this.StatementTransformationHandle <- fun _ -> statementTransformation
+    new(statementTransformation) = NamespaceTransformationBase(statementTransformation, TransformationOptions.Default)
 
-    new(statementTransformation: unit -> StatementTransformationBase) =
-        new NamespaceTransformationBase(statementTransformation, TransformationOptions.Default)
-
-    new() = new NamespaceTransformationBase(TransformationOptions.Default)
-
+    new() = NamespaceTransformationBase TransformationOptions.Default
 
     // subconstructs used within declarations
 
@@ -78,10 +69,10 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         match tItem with
         | QsTuple items as original ->
             let transformed = items |> Seq.map this.OnTypeItems |> ImmutableArray.CreateRange
-            QsTuple |> Node.BuildOr original transformed
+            QsTuple |> node.BuildOr original transformed
         | QsTupleItem (Anonymous itemType) as original ->
             let t = this.Types.OnType itemType
-            QsTupleItem << Anonymous |> Node.BuildOr original t
+            QsTupleItem << Anonymous |> node.BuildOr original t
         | QsTupleItem (Named item) as original ->
             let loc = this.Common.OnSymbolLocation(item.Position, item.Range)
             let name = this.Common.OnItemNameDeclaration item.VariableName
@@ -89,7 +80,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             let info = this.Expressions.OnExpressionInformation item.InferredInformation
 
             QsTupleItem << Named << LocalVariableDeclaration.New info.IsMutable
-            |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
+            |> node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
     // TODO: RELEASE 2022-09: Remove.
     [<Obsolete "Use SyntaxTreeTransformation.OnLocalNameDeclaration or override OnArgumentTuple instead.">]
@@ -113,14 +104,14 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         match arg with
         | QsTuple items as original ->
             let transformed = items |> Seq.map this.Common.OnArgumentTuple |> ImmutableArray.CreateRange
-            QsTuple |> Node.BuildOr original transformed
+            QsTuple |> node.BuildOr original transformed
         | QsTupleItem item as original ->
             let loc = this.Common.OnSymbolLocation(item.Position, item.Range)
             let name = this.OnArgumentName item.VariableName // replace with the implementation once the deprecated member is removed
             let t = this.Types.OnType item.Type
             let info = this.Expressions.OnExpressionInformation item.InferredInformation
             let newDecl = LocalVariableDeclaration.New info.IsMutable (loc, name, t, info.HasLocalQuantumDependency)
-            QsTupleItem |> Node.BuildOr original newDecl
+            QsTupleItem |> node.BuildOr original newDecl
 
     abstract OnSignature: ResolvedSignature -> ResolvedSignature
 
@@ -129,8 +120,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         let argType = this.Types.OnType s.ArgumentType
         let returnType = this.Types.OnType s.ReturnType
         let info = this.Types.OnCallableInformation s.Information
-        ResolvedSignature.New |> Node.BuildOr s ((argType, returnType), info, typeParams)
-
+        ResolvedSignature.New |> node.BuildOr s ((argType, returnType), info, typeParams)
 
     // specialization declarations and implementations
 
@@ -180,7 +170,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     default this.OnSpecializationImplementation(implementation: SpecializationImplementation) =
         let Build kind transformed =
-            kind |> Node.BuildOr implementation transformed
+            kind |> node.BuildOr implementation transformed
 
         match implementation with
         | External ->
@@ -209,7 +199,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         let comments = spec.Comments
 
         QsSpecialization.New spec.Kind (source, loc)
-        |> Node.BuildOr spec (spec.Parent, attributes, typeArgs, signature, impl, doc, comments)
+        |> node.BuildOr spec (spec.Parent, attributes, typeArgs, signature, impl, doc, comments)
 
     abstract OnBodySpecialization: QsSpecialization -> QsSpecialization
     default this.OnBodySpecialization spec = this.OnSpecializationKind spec
@@ -232,7 +222,6 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         | QsSpecializationKind.QsControlled -> this.OnControlledSpecialization spec
         | QsSpecializationKind.QsControlledAdjoint -> this.OnControlledAdjointSpecialization spec
 
-
     // type and callable declarations
 
     /// This method is defined for the sole purpose of eliminating code duplication for each of the callable kinds.
@@ -254,7 +243,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         let comments = c.Comments
 
         QsCallable.New c.Kind (source, loc)
-        |> Node.BuildOr c (c.FullName, attributes, c.Access, argTuple, signature, specializations, doc, comments)
+        |> node.BuildOr c (c.FullName, attributes, c.Access, argTuple, signature, specializations, doc, comments)
 
     abstract OnOperation: QsCallable -> QsCallable
     default this.OnOperation c = this.OnCallableKind c
@@ -285,8 +274,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         let comments = t.Comments
 
         QsCustomType.New(source, loc)
-        |> Node.BuildOr t (t.FullName, attributes, t.Access, typeItems, underlyingType, doc, comments)
-
+        |> node.BuildOr t (t.FullName, attributes, t.Access, typeItems, underlyingType, doc, comments)
 
     // transformation roots called on each namespace or namespace element
 
