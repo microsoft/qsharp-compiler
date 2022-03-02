@@ -18,17 +18,10 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 type private ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
 
 type ExpressionKindTransformationBase(expressionTransformation: _ -> ExpressionTransformationBase, options) =
-    static let createExpressionTransformation expressionKindTransformation options =
-        let typeTransformation = TypeTransformationBase options
-
-        let expressionTransformation =
-            ExpressionTransformationBase(
-                (fun () -> expressionKindTransformation),
-                (fun () -> typeTransformation),
-                options
-            )
-
-        fun () -> expressionTransformation
+    static let createExpressionTransformation kinds options =
+        let types = TypeTransformationBase options
+        let expressions = ExpressionTransformationBase((fun () -> kinds), (fun () -> types), options)
+        fun () -> expressions
 
     let node = if options.Rebuild then Fold else Walk
 
@@ -450,8 +443,8 @@ and ExpressionTransformationBase(exkindTransformation, typeTransformation, optio
         fun () -> types
 
     static let createExpressionKindTransformation expressions (options: TransformationOptions) =
-        let expressionKinds = ExpressionKindTransformationBase((fun () -> expressions), options)
-        fun () -> expressionKinds
+        let kinds = ExpressionKindTransformationBase((fun () -> expressions), options)
+        fun () -> kinds
 
     let node = if options.Rebuild then Fold else Walk
 
