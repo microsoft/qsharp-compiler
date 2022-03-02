@@ -13,24 +13,24 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 // setup for syntax tree transformations with internal state
 
-type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOptions, _internal_: string) as this =
+type SyntaxTreeTransformation<'T>(state, options) as this =
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
-    member val Types = TypeTransformation<'T>(this, TransformationOptions.Default) with get, set
+    member val Types = TypeTransformation<'T>(this, options) with get, set
 
     /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
-    member val ExpressionKinds = ExpressionKindTransformation<'T>(this, TransformationOptions.Default) with get, set
+    member val ExpressionKinds = ExpressionKindTransformation<'T>(this, options) with get, set
 
     /// Transformation invoked for all expressions encountered when traversing (parts of) the syntax tree.
-    member val Expressions = ExpressionTransformation<'T>(this, TransformationOptions.Default) with get, set
+    member val Expressions = ExpressionTransformation<'T>(this, options) with get, set
 
     /// Transformation invoked for all statement kinds encountered when traversing (parts of) the syntax tree.
-    member val StatementKinds = StatementKindTransformation<'T>(this, TransformationOptions.Default) with get, set
+    member val StatementKinds = StatementKindTransformation<'T>(this, options) with get, set
 
     /// Transformation invoked for all statements encountered when traversing (parts of) the syntax tree.
-    member val Statements = StatementTransformation<'T>(this, TransformationOptions.Default) with get, set
+    member val Statements = StatementTransformation<'T>(this, options) with get, set
 
     /// Transformation invoked for all namespaces encountered when traversing (parts of) the syntax tree.
-    member val Namespaces = NamespaceTransformation<'T>(this, TransformationOptions.Default) with get, set
+    member val Namespaces = NamespaceTransformation<'T>(this, options) with get, set
 
     /// Invokes the transformation for all namespaces in the given compilation.
     member this.OnCompilation compilation =
@@ -45,17 +45,7 @@ type SyntaxTreeTransformation<'T> private (state: 'T, options: TransformationOpt
 
     member this.SharedState = state
 
-    new(state, options) as this =
-        SyntaxTreeTransformation(state, options, "_internal_")
-        then
-            this.Types <- TypeTransformation<'T>(this, options)
-            this.ExpressionKinds <- ExpressionKindTransformation<'T>(this, options)
-            this.Expressions <- ExpressionTransformation<'T>(this, options)
-            this.StatementKinds <- StatementKindTransformation<'T>(this, options)
-            this.Statements <- StatementTransformation<'T>(this, options)
-            this.Namespaces <- NamespaceTransformation<'T>(this, options)
-
-    new(state: 'T) = new SyntaxTreeTransformation<'T>(state, TransformationOptions.Default)
+    new(state) = SyntaxTreeTransformation(state, TransformationOptions.Default)
 
     abstract OnLocalNameDeclaration: name: string -> string
     default _.OnLocalNameDeclaration name = name
@@ -178,7 +168,7 @@ and ExpressionTransformation<'T> private (createParentTransformation, options) a
     new(parentTransformation: SyntaxTreeTransformation<_>) =
         ExpressionTransformation<'T>(parentTransformation, TransformationOptions.Default)
 
-    new(sharedState: 'T) = new ExpressionTransformation<'T>(sharedState, TransformationOptions.Default)
+    new(sharedState: 'T) = ExpressionTransformation(sharedState, TransformationOptions.Default)
 
 and StatementKindTransformation<'T> private (createParentTransformation, options: TransformationOptions) as this =
     inherit StatementKindTransformationBase
@@ -264,24 +254,24 @@ and NamespaceTransformation<'T> private (createParentTransformation, options) as
 
 // setup for syntax tree transformations without internal state
 
-type SyntaxTreeTransformation private (options: TransformationOptions, _internal_: string) as this =
+type SyntaxTreeTransformation(options) as this =
     /// Transformation invoked for all types encountered when traversing (parts of) the syntax tree.
-    member val Types = TypeTransformation(this, TransformationOptions.Default) with get, set
+    member val Types = TypeTransformation(this, options) with get, set
 
     /// Transformation invoked for all expression kinds encountered when traversing (parts of) the syntax tree.
-    member val ExpressionKinds = ExpressionKindTransformation(this, TransformationOptions.Default) with get, set
+    member val ExpressionKinds = ExpressionKindTransformation(this, options) with get, set
 
     /// Transformation invoked for all expressions encountered when traversing (parts of) the syntax tree.
-    member val Expressions = ExpressionTransformation(this, TransformationOptions.Default) with get, set
+    member val Expressions = ExpressionTransformation(this, options) with get, set
 
     /// Transformation invoked for all statement kinds encountered when traversing (parts of) the syntax tree.
-    member val StatementKinds = StatementKindTransformation(this, TransformationOptions.Default) with get, set
+    member val StatementKinds = StatementKindTransformation(this, options) with get, set
 
     /// Transformation invoked for all statements encountered when traversing (parts of) the syntax tree.
-    member val Statements = StatementTransformation(this, TransformationOptions.Default) with get, set
+    member val Statements = StatementTransformation(this, options) with get, set
 
     /// Transformation invoked for all namespaces encountered when traversing (parts of) the syntax tree.
-    member val Namespaces = NamespaceTransformation(this, TransformationOptions.Default) with get, set
+    member val Namespaces = NamespaceTransformation(this, options) with get, set
 
     /// Invokes the transformation for all namespaces in the given compilation.
     member this.OnCompilation compilation =
@@ -294,17 +284,7 @@ type SyntaxTreeTransformation private (options: TransformationOptions, _internal
             compilation.Namespaces |> Seq.iter (this.Namespaces.OnNamespace >> ignore)
             compilation
 
-    new(options: TransformationOptions) as this =
-        SyntaxTreeTransformation(options, "_internal_")
-        then
-            this.Types <- new TypeTransformation(this, options)
-            this.ExpressionKinds <- new ExpressionKindTransformation(this, options)
-            this.Expressions <- new ExpressionTransformation(this, options)
-            this.StatementKinds <- new StatementKindTransformation(this, options)
-            this.Statements <- new StatementTransformation(this, options)
-            this.Namespaces <- new NamespaceTransformation(this, options)
-
-    new() = new SyntaxTreeTransformation(TransformationOptions.Default)
+    new() = SyntaxTreeTransformation TransformationOptions.Default
 
     abstract OnLocalNameDeclaration: name: string -> string
     default _.OnLocalNameDeclaration name = name
