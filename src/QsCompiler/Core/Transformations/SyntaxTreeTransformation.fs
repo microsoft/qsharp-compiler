@@ -98,14 +98,14 @@ type SyntaxTreeTransformation<'T>(state, options) as this =
         member this.OnExpressionRange range = this.OnExpressionRange range
         member this.OnTypeRange range = this.OnTypeRange range
 
-and TypeTransformation<'T>(parentTransformation: SyntaxTreeTransformation<'T>, options) =
+and TypeTransformation<'T>(parentTransformation, options) =
     inherit TypeTransformationBase(options, parentTransformation :> ICommonTransformation)
 
     member _.Transformation = parentTransformation
 
-    member this.SharedState = this.Transformation.SharedState
+    member _.SharedState = parentTransformation.SharedState
 
-    new(parentTransformation: SyntaxTreeTransformation<'T>) =
+    new(parentTransformation: SyntaxTreeTransformation<_>) =
         TypeTransformation<'T>(parentTransformation, TransformationOptions.Default)
 
     new(sharedState: 'T, options) as this =
@@ -114,35 +114,29 @@ and TypeTransformation<'T>(parentTransformation: SyntaxTreeTransformation<'T>, o
 
     new(sharedState: 'T) = TypeTransformation(sharedState, TransformationOptions.Default)
 
-and ExpressionKindTransformation<'T> private (createParentTransformation, options: TransformationOptions) as this =
+and ExpressionKindTransformation<'T>(parentTransformation, options) as this =
     inherit ExpressionKindTransformationBase
         (
             (fun () -> this.Transformation.Expressions :> ExpressionTransformationBase),
             options
         )
 
-    static let defaultParentTransformation sharedState options expressionKinds =
-        let transformation = SyntaxTreeTransformation(sharedState, options)
-        transformation.Types <- TypeTransformation<'T>(transformation, TransformationOptions.Disabled)
-        transformation.ExpressionKinds <- expressionKinds
-        transformation
+    member _.Transformation: SyntaxTreeTransformation<_> = parentTransformation
 
-    member val Transformation: SyntaxTreeTransformation<_> = createParentTransformation this
+    member _.SharedState = parentTransformation.SharedState
 
-    member this.SharedState = this.Transformation.SharedState
-
-    new(parentTransformation: SyntaxTreeTransformation<_>, options) =
-        ExpressionKindTransformation((fun _ -> parentTransformation), options)
-
-    new(sharedState: 'T, options) =
-        ExpressionKindTransformation<'T>(defaultParentTransformation sharedState options, options)
+    new(sharedState: 'T, options) as this =
+        ExpressionKindTransformation<'T>(SyntaxTreeTransformation(sharedState, options), options)
+        then
+            this.Transformation.Types <- TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.ExpressionKinds <- this
 
     new(parentTransformation: SyntaxTreeTransformation<_>) =
         ExpressionKindTransformation<'T>(parentTransformation, TransformationOptions.Default)
 
     new(sharedState: 'T) = ExpressionKindTransformation(sharedState, TransformationOptions.Default)
 
-and ExpressionTransformation<'T> private (createParentTransformation, options) as this =
+and ExpressionTransformation<'T>(parentTransformation, options) as this =
     inherit ExpressionTransformationBase
         (
             (fun () -> upcast this.Transformation.ExpressionKinds),
@@ -150,55 +144,48 @@ and ExpressionTransformation<'T> private (createParentTransformation, options) a
             options
         )
 
-    static let defaultParentTransformation sharedState options expressions =
-        let transformation = SyntaxTreeTransformation(sharedState, options)
-        transformation.Types <- TypeTransformation<'T>(transformation, TransformationOptions.Disabled)
-        transformation.Expressions <- expressions
-        transformation
+    member _.Transformation: SyntaxTreeTransformation<_> = parentTransformation
 
-    member val Transformation: SyntaxTreeTransformation<_> = createParentTransformation this
+    member _.SharedState = parentTransformation.SharedState
 
-    member this.SharedState = this.Transformation.SharedState
-
-    new(parentTransformation, options) = ExpressionTransformation((fun _ -> parentTransformation), options)
-
-    new(sharedState: 'T, options) =
-        ExpressionTransformation<'T>(defaultParentTransformation sharedState options, options)
+    new(sharedState: 'T, options) as this =
+        ExpressionTransformation<'T>(SyntaxTreeTransformation(sharedState, options), options)
+        then
+            this.Transformation.Types <- TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.Expressions <- this
 
     new(parentTransformation: SyntaxTreeTransformation<_>) =
         ExpressionTransformation<'T>(parentTransformation, TransformationOptions.Default)
 
     new(sharedState: 'T) = ExpressionTransformation(sharedState, TransformationOptions.Default)
 
-and StatementKindTransformation<'T> private (createParentTransformation, options: TransformationOptions) as this =
+and StatementKindTransformation<'T>(parentTransformation, options: TransformationOptions) as this =
     inherit StatementKindTransformationBase
         (
             (fun () -> this.Transformation.Statements :> StatementTransformationBase),
             options
         )
 
-    static let defaultParentTransformation sharedState options statementKinds =
-        let transformation = SyntaxTreeTransformation(sharedState, options)
-        transformation.Types <- TypeTransformation<'T>(transformation, TransformationOptions.Disabled)
-        transformation.Expressions <- ExpressionTransformation<'T>(transformation, TransformationOptions.Disabled)
-        transformation.StatementKinds <- statementKinds
-        transformation
+    member _.Transformation: SyntaxTreeTransformation<_> = parentTransformation
 
-    member val Transformation: SyntaxTreeTransformation<_> = createParentTransformation this
+    member _.SharedState = parentTransformation.SharedState
 
-    member this.SharedState = this.Transformation.SharedState
+    new(sharedState: 'T, options) as this =
+        StatementKindTransformation<'T>(SyntaxTreeTransformation(sharedState, options), options)
+        then
+            this.Transformation.Types <- TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
 
-    new(parentTransformation, options) = StatementKindTransformation((fun _ -> parentTransformation), options)
+            this.Transformation.Expressions <-
+                ExpressionTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
 
-    new(sharedState: 'T, options) =
-        StatementKindTransformation<'T>(defaultParentTransformation sharedState options, options)
+            this.Transformation.StatementKinds <- this
 
     new(parentTransformation: SyntaxTreeTransformation<_>) =
         StatementKindTransformation<'T>(parentTransformation, TransformationOptions.Default)
 
     new(sharedState: 'T) = StatementKindTransformation(sharedState, TransformationOptions.Default)
 
-and StatementTransformation<'T> private (createParentTransformation, options) as this =
+and StatementTransformation<'T>(parentTransformation, options) as this =
     inherit StatementTransformationBase
         (
             (fun () -> upcast this.Transformation.StatementKinds),
@@ -206,46 +193,44 @@ and StatementTransformation<'T> private (createParentTransformation, options) as
             options
         )
 
-    static let defaultParentTransformation sharedState options statements =
-        let transformation = SyntaxTreeTransformation(sharedState, options)
-        transformation.Types <- TypeTransformation<'T>(transformation, TransformationOptions.Disabled)
-        transformation.Expressions <- ExpressionTransformation<'T>(transformation, TransformationOptions.Disabled)
-        transformation.Statements <- statements
-        transformation
+    member _.Transformation: SyntaxTreeTransformation<_> = parentTransformation
 
-    member val Transformation: SyntaxTreeTransformation<_> = createParentTransformation this
+    member _.SharedState = parentTransformation.SharedState
 
-    member this.SharedState = this.Transformation.SharedState
+    new(sharedState: 'T, options) as this =
+        StatementTransformation<'T>(SyntaxTreeTransformation(sharedState, options), options)
+        then
+            this.Transformation.Types <- TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
 
-    new(parentTransformation, options) = StatementTransformation((fun _ -> parentTransformation), options)
+            this.Transformation.Expressions <-
+                ExpressionTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
 
-    new(sharedState: 'T, options) =
-        StatementTransformation<'T>(defaultParentTransformation sharedState options, options)
+            this.Transformation.Statements <- this
 
     new(parentTransformation: SyntaxTreeTransformation<_>) =
         StatementTransformation<'T>(parentTransformation, TransformationOptions.Default)
 
     new(sharedState: 'T) = StatementTransformation(sharedState, TransformationOptions.Default)
 
-and NamespaceTransformation<'T> private (createParentTransformation, options) as this =
+and NamespaceTransformation<'T>(parentTransformation, options) as this =
     inherit NamespaceTransformationBase((fun () -> upcast this.Transformation.Statements), options)
 
-    static let defaultParentTransformation sharedState options namespaces =
-        let transformation = SyntaxTreeTransformation(sharedState, options)
-        transformation.Types <- TypeTransformation<'T>(transformation, TransformationOptions.Disabled)
-        transformation.Expressions <- ExpressionTransformation<'T>(transformation, TransformationOptions.Disabled)
-        transformation.Statements <- StatementTransformation<'T>(transformation, TransformationOptions.Disabled)
-        transformation.Namespaces <- namespaces
-        transformation
+    member _.Transformation: SyntaxTreeTransformation<_> = parentTransformation
 
-    member val Transformation: SyntaxTreeTransformation<_> = createParentTransformation this
+    member _.SharedState = parentTransformation.SharedState
 
-    member this.SharedState = this.Transformation.SharedState
+    new(sharedState: 'T, options) as this =
+        NamespaceTransformation<'T>(SyntaxTreeTransformation(sharedState, options), options)
+        then
+            this.Transformation.Types <- TypeTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
 
-    new(parentTransformation, options) = NamespaceTransformation((fun _ -> parentTransformation), options)
+            this.Transformation.Expressions <-
+                ExpressionTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
 
-    new(sharedState: 'T, options) =
-        NamespaceTransformation<'T>(defaultParentTransformation sharedState options, options)
+            this.Transformation.Statements <-
+                StatementTransformation<'T>(this.Transformation, TransformationOptions.Disabled)
+
+            this.Transformation.Namespaces <- this
 
     new(parentTransformation: SyntaxTreeTransformation<_>) =
         NamespaceTransformation<'T>(parentTransformation, TransformationOptions.Default)
@@ -350,31 +335,26 @@ and TypeTransformation(parentTransformation, options) =
 
     new() = TypeTransformation TransformationOptions.Default
 
-and ExpressionKindTransformation private (createParentTransformation, options: TransformationOptions) as this =
+and ExpressionKindTransformation(parentTransformation, options) as this =
     inherit ExpressionKindTransformationBase
         (
             (fun () -> this.Transformation.Expressions :> ExpressionTransformationBase),
             options
         )
 
-    static let defaultParentTransformation options expressionKinds =
-        let transformation = SyntaxTreeTransformation options
-        transformation.Types <- TypeTransformation(transformation, TransformationOptions.Disabled)
-        transformation.ExpressionKinds <- expressionKinds
-        transformation
+    member _.Transformation: SyntaxTreeTransformation = parentTransformation
 
-    member val Transformation: SyntaxTreeTransformation = createParentTransformation this
+    new(options) as this =
+        ExpressionKindTransformation(SyntaxTreeTransformation options, options)
+        then
+            this.Transformation.Types <- TypeTransformation(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.ExpressionKinds <- this
 
-    new(parentTransformation, options) = ExpressionKindTransformation((fun _ -> parentTransformation), options)
-
-    new(options) = ExpressionKindTransformation(defaultParentTransformation options, options)
-
-    new(parentTransformation: SyntaxTreeTransformation) =
-        ExpressionKindTransformation(parentTransformation, TransformationOptions.Default)
+    new(parentTransformation) = ExpressionKindTransformation(parentTransformation, TransformationOptions.Default)
 
     new() = ExpressionKindTransformation TransformationOptions.Default
 
-and ExpressionTransformation private (createParentTransformation, options) as this =
+and ExpressionTransformation(parentTransformation, options) as this =
     inherit ExpressionTransformationBase
         (
             (fun () -> upcast this.Transformation.ExpressionKinds),
@@ -382,49 +362,42 @@ and ExpressionTransformation private (createParentTransformation, options) as th
             options
         )
 
-    static let defaultParentTransformation options expressions =
-        let transformation = SyntaxTreeTransformation options
-        transformation.Types <- TypeTransformation(transformation, TransformationOptions.Disabled)
-        transformation.Expressions <- expressions
-        transformation
+    member _.Transformation: SyntaxTreeTransformation = parentTransformation
 
-    member val Transformation: SyntaxTreeTransformation = createParentTransformation this
+    new(options) as this =
+        ExpressionTransformation(SyntaxTreeTransformation options, options)
+        then
+            this.Transformation.Types <- TypeTransformation(this.Transformation, TransformationOptions.Disabled)
+            this.Transformation.Expressions <- this
 
-    new(parentTransformation, options) = ExpressionTransformation((fun _ -> parentTransformation), options)
-
-    new(options) = ExpressionTransformation(defaultParentTransformation options, options)
-
-    new(parentTransformation: SyntaxTreeTransformation) =
-        ExpressionTransformation(parentTransformation, TransformationOptions.Default)
+    new(parentTransformation) = ExpressionTransformation(parentTransformation, TransformationOptions.Default)
 
     new() = ExpressionTransformation TransformationOptions.Default
 
-and StatementKindTransformation private (createParentTransformation, options: TransformationOptions) as this =
+and StatementKindTransformation(parentTransformation, options) as this =
     inherit StatementKindTransformationBase
         (
             (fun () -> this.Transformation.Statements :> StatementTransformationBase),
             options
         )
 
-    static let defaultParentTransformation options statementKinds =
-        let transformation = SyntaxTreeTransformation options
-        transformation.Types <- TypeTransformation(transformation, TransformationOptions.Disabled)
-        transformation.Expressions <- ExpressionTransformation(transformation, TransformationOptions.Disabled)
-        transformation.StatementKinds <- statementKinds
-        transformation
+    member _.Transformation: SyntaxTreeTransformation = parentTransformation
 
-    member val Transformation: SyntaxTreeTransformation = createParentTransformation this
+    new(options) as this =
+        StatementKindTransformation(SyntaxTreeTransformation options, options)
+        then
+            this.Transformation.Types <- TypeTransformation(this.Transformation, TransformationOptions.Disabled)
 
-    new(parentTransformation, options) = StatementKindTransformation((fun _ -> parentTransformation), options)
+            this.Transformation.Expressions <-
+                ExpressionTransformation(this.Transformation, TransformationOptions.Disabled)
 
-    new(options) = StatementKindTransformation(defaultParentTransformation options, options)
+            this.Transformation.StatementKinds <- this
 
-    new(parentTransformation: SyntaxTreeTransformation) =
-        StatementKindTransformation(parentTransformation, TransformationOptions.Default)
+    new(parentTransformation) = StatementKindTransformation(parentTransformation, TransformationOptions.Default)
 
     new() = StatementKindTransformation TransformationOptions.Default
 
-and StatementTransformation private (createParentTransformation, options) as this =
+and StatementTransformation(parentTransformation, options) as this =
     inherit StatementTransformationBase
         (
             (fun () -> upcast this.Transformation.StatementKinds),
@@ -432,42 +405,40 @@ and StatementTransformation private (createParentTransformation, options) as thi
             options
         )
 
-    static let defaultParentTransformation options statements =
-        let transformation = SyntaxTreeTransformation options
-        transformation.Types <- TypeTransformation(transformation, TransformationOptions.Disabled)
-        transformation.Expressions <- ExpressionTransformation(transformation, TransformationOptions.Disabled)
-        transformation.Statements <- statements
-        transformation
+    member _.Transformation: SyntaxTreeTransformation = parentTransformation
 
-    member val Transformation: SyntaxTreeTransformation = createParentTransformation this
+    new(options) as this =
+        StatementTransformation(SyntaxTreeTransformation options, options)
+        then
+            this.Transformation.Types <- TypeTransformation(this.Transformation, TransformationOptions.Disabled)
 
-    new(parentTransformation, options) = StatementTransformation((fun _ -> parentTransformation), options)
+            this.Transformation.Expressions <-
+                ExpressionTransformation(this.Transformation, TransformationOptions.Disabled)
 
-    new(options) = StatementTransformation(defaultParentTransformation options, options)
+            this.Transformation.Statements <- this
 
-    new(parentTransformation: SyntaxTreeTransformation) =
-        StatementTransformation(parentTransformation, TransformationOptions.Default)
+    new(parentTransformation) = StatementTransformation(parentTransformation, TransformationOptions.Default)
 
     new() = StatementTransformation TransformationOptions.Default
 
-and NamespaceTransformation private (createParentTransformation, options) as this =
+and NamespaceTransformation(parentTransformation, options) as this =
     inherit NamespaceTransformationBase((fun () -> upcast this.Transformation.Statements), options)
 
-    static let defaultParentTransformation options namespaces =
-        let transformation = SyntaxTreeTransformation options
-        transformation.Types <- TypeTransformation(transformation, TransformationOptions.Disabled)
-        transformation.Expressions <- ExpressionTransformation(transformation, TransformationOptions.Disabled)
-        transformation.Statements <- StatementTransformation(transformation, TransformationOptions.Disabled)
-        transformation.Namespaces <- namespaces
-        transformation
+    member _.Transformation: SyntaxTreeTransformation = parentTransformation
 
-    member val Transformation: SyntaxTreeTransformation = createParentTransformation this
+    new(options) as this =
+        NamespaceTransformation(SyntaxTreeTransformation options, options)
+        then
+            this.Transformation.Types <- TypeTransformation(this.Transformation, TransformationOptions.Disabled)
 
-    new(parentTransformation, options) = NamespaceTransformation((fun _ -> parentTransformation), options)
+            this.Transformation.Expressions <-
+                ExpressionTransformation(this.Transformation, TransformationOptions.Disabled)
 
-    new(options) = NamespaceTransformation(defaultParentTransformation options, options)
+            this.Transformation.Statements <-
+                StatementTransformation(this.Transformation, TransformationOptions.Disabled)
 
-    new(parentTransformation: SyntaxTreeTransformation) =
-        NamespaceTransformation(parentTransformation, TransformationOptions.Default)
+            this.Transformation.Namespaces <- this
+
+    new(parentTransformation) = NamespaceTransformation(parentTransformation, TransformationOptions.Default)
 
     new() = NamespaceTransformation TransformationOptions.Default
