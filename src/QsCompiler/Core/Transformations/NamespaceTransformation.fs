@@ -16,10 +16,6 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
 type NamespaceTransformationBase(statementTransformation: _ -> StatementTransformationBase, options) =
-    static let createStatementTransformation options =
-        let statements = StatementTransformationBase options
-        fun () -> statements
-
     let node = if options.Rebuild then Fold else Walk
 
     member _.Types = statementTransformation().Expressions.Types
@@ -30,7 +26,9 @@ type NamespaceTransformationBase(statementTransformation: _ -> StatementTransfor
 
     member internal _.Common = statementTransformation().Expressions.Types.Common
 
-    new(options) = NamespaceTransformationBase(createStatementTransformation options, options)
+    new(options) =
+        let statements = StatementTransformationBase options
+        NamespaceTransformationBase((fun () -> statements), options)
 
     new(statementTransformation) = NamespaceTransformationBase(statementTransformation, TransformationOptions.Default)
 

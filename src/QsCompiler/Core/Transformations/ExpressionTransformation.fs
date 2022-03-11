@@ -18,11 +18,6 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 type private ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
 
 type ExpressionKindTransformationBase(expressionTransformation: _ -> ExpressionTransformationBase, options) =
-    static let createExpressionTransformation kinds options =
-        let types = TypeTransformationBase options
-        let expressions = ExpressionTransformationBase((fun () -> kinds), (fun () -> types), options)
-        fun () -> expressions
-
     let node = if options.Rebuild then Fold else Walk
 
     member _.Types = expressionTransformation().Types
@@ -36,7 +31,10 @@ type ExpressionKindTransformationBase(expressionTransformation: _ -> ExpressionT
     new(expressionTransformation, typeTransformation: unit -> TypeTransformationBase, options: TransformationOptions) =
         ExpressionKindTransformationBase(expressionTransformation, options)
 
-    new(options) as this = ExpressionKindTransformationBase(createExpressionTransformation this options, options)
+    new(options) as this =
+        let types = TypeTransformationBase options
+        let expressions = ExpressionTransformationBase((fun () -> this), (fun () -> types), options)
+        ExpressionKindTransformationBase((fun () -> expressions), options)
 
     new(expressionTransformation) =
         ExpressionKindTransformationBase(expressionTransformation, TransformationOptions.Default)
@@ -374,7 +372,6 @@ type ExpressionKindTransformationBase(expressionTransformation: _ -> ExpressionT
     abstract OnPauliLiteral: QsPauli -> ExpressionKind
     default this.OnPauliLiteral p = PauliLiteral p
 
-
     // transformation root called on each node
 
     abstract OnExpressionKind: ExpressionKind -> ExpressionKind
@@ -436,14 +433,6 @@ type ExpressionKindTransformationBase(expressionTransformation: _ -> ExpressionT
             id |> node.BuildOr kind transformed
 
 and ExpressionTransformationBase(exkindTransformation, typeTransformation, options) =
-    static let createTypeTransformation options =
-        let types = TypeTransformationBase options
-        fun () -> types
-
-    static let createExpressionKindTransformation expressions (options: TransformationOptions) =
-        let kinds = ExpressionKindTransformationBase((fun () -> expressions), options)
-        fun () -> kinds
-
     let node = if options.Rebuild then Fold else Walk
 
     member _.Types: TypeTransformationBase = typeTransformation ()
@@ -453,11 +442,9 @@ and ExpressionTransformationBase(exkindTransformation, typeTransformation, optio
     member internal _.Common = typeTransformation().Common
 
     new(options) as this =
-        ExpressionTransformationBase(
-            createExpressionKindTransformation this options,
-            createTypeTransformation options,
-            options
-        )
+        let types = TypeTransformationBase options
+        let kinds = ExpressionKindTransformationBase((fun () -> this), options)
+        ExpressionTransformationBase((fun () -> kinds), (fun () -> types), options)
 
     new(exkindTransformation, typeTransformation) =
         ExpressionTransformationBase(exkindTransformation, typeTransformation, TransformationOptions.Default)

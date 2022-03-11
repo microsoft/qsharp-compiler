@@ -43,7 +43,7 @@ type SyntaxTreeTransformation<'T>(state, options) as this =
             compilation.Namespaces |> Seq.iter (this.Namespaces.OnNamespace >> ignore)
             compilation
 
-    member this.SharedState = state
+    member _.SharedState = state
 
     new(state) = SyntaxTreeTransformation(state, TransformationOptions.Default)
 

@@ -13,11 +13,6 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
 type StatementKindTransformationBase(statementTransformation: _ -> StatementTransformationBase, options) =
-    static let createStatementTransformation kinds options =
-        let expressions = ExpressionTransformationBase options
-        let statements = StatementTransformationBase((fun () -> kinds), (fun () -> expressions), options)
-        fun () -> statements
-
     let node = if options.Rebuild then Fold else Walk
 
     member _.Types = statementTransformation().Expressions.Types
@@ -34,7 +29,10 @@ type StatementKindTransformationBase(statementTransformation: _ -> StatementTran
         expressionTransformation: unit -> ExpressionTransformationBase,
         options: TransformationOptions) = StatementKindTransformationBase(statementTransformation, options)
 
-    new(options) as this = StatementKindTransformationBase(createStatementTransformation this options, options)
+    new(options) as this =
+        let expressions = ExpressionTransformationBase options
+        let statements = StatementTransformationBase((fun () -> this), (fun () -> expressions), options)
+        StatementKindTransformationBase((fun () -> statements), options)
 
     new(statementTransformation) =
         StatementKindTransformationBase(statementTransformation, TransformationOptions.Default)
@@ -232,14 +230,6 @@ type StatementKindTransformationBase(statementTransformation: _ -> StatementTran
             id |> node.BuildOr kind transformed
 
 and StatementTransformationBase(statementKindTransformation, expressionTransformation, options) =
-    static let createExpressionTransformation options =
-        let expressions = ExpressionTransformationBase options
-        fun () -> expressions
-
-    static let createStatementKindTransformation statements (options: TransformationOptions) =
-        let kinds = StatementKindTransformationBase((fun () -> statements), options)
-        fun () -> kinds
-
     let node = if options.Rebuild then Fold else Walk
 
     member _.Types = expressionTransformation().Types
@@ -251,11 +241,9 @@ and StatementTransformationBase(statementKindTransformation, expressionTransform
     member internal _.Common = expressionTransformation().Types.Common
 
     new(options) as this =
-        StatementTransformationBase(
-            createStatementKindTransformation this options,
-            createExpressionTransformation options,
-            options
-        )
+        let expressions = ExpressionTransformationBase options
+        let kinds = StatementKindTransformationBase((fun () -> this), options)
+        StatementTransformationBase((fun () -> kinds), (fun () -> expressions), options)
 
     new(statementKindTransformation, expressionTransformation) =
         StatementTransformationBase(
