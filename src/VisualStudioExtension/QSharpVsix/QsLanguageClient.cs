@@ -56,6 +56,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         // properties required by ILanguageClient
 
         public string Name => "Q# Language Extension"; // name as displayed to the user
+        public bool ShowNotificationOnInitializeFailed => true; // Will notify the user if Language Server failed to initialize
         public IEnumerable<string> ConfigurationSections => null; // null is fine if the client does not provide settings
         public IEnumerable<string> FilesToWatch => null; // we use our own watcher rather than the one of the LSP Client
         public object InitializationOptions => JObject.FromObject(new
