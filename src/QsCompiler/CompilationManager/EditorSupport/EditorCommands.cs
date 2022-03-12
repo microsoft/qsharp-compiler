@@ -133,7 +133,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 DocumentChanges = changes
                     .Select(change => new TextDocumentEdit
                     {
-                        TextDocument = new VersionedTextDocumentIdentifier { Uri = change.Key, Version = 1 }, // setting version to null here won't work in VS Code ...
+                        TextDocument = new OptionalVersionedTextDocumentIdentifier { Uri = change.Key, Version = 1 }, // setting version to null here won't work in VS Code ...
                         Edits = change.ToArray(),
                     })
                     .ToArray(),

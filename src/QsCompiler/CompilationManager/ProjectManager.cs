@@ -1321,7 +1321,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         if (formattingEdits != null)
                         {
                             codeActionSuggestions = codeActionSuggestions.Append(
-                                ("Update deprecated syntax in file.", file.GetWorkspaceEdit(formattingEdits)));
+                                ("Update deprecated syntax in file.", file.GetWorkspaceEdit(formattingEdits, versionedFileId: versionedFileId)));
                         }
 
                         // send telemetry if telemetry is enabled
