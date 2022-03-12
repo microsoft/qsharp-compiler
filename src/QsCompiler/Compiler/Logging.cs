@@ -170,9 +170,10 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// </summary>
         public void Log(Diagnostic m)
         {
+            string? strcode = m.Code?.Second; // Getting the string for the diagnostics code object.
             if (m.Severity == DiagnosticSeverity.Warning &&
-                m.Code != null &&
-                CompilationBuilder.Diagnostics.TryGetCode(m.Code, out int code)
+                strcode != null &&
+                CompilationBuilder.Diagnostics.TryGetCode(strcode, out int code)
                 && this.noWarn.Contains(code))
             {
                 return;
