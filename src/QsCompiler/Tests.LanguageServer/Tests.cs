@@ -299,7 +299,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 .Single();
 
             var initParams = TestUtils.GetInitializeParams();
-            initParams.RootPath = projDir;
             initParams.RootUri = new Uri(projDir);
             await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
 

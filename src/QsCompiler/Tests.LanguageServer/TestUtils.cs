@@ -48,7 +48,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return new InitializeParams
             {
                 ProcessId = -1,
-                RootPath = null,
                 InitializationOptions = null,
                 Capabilities = new ClientCapabilities
                 {
