@@ -5,9 +5,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
+//open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
-type internal QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
+//type internal QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 
 type internal ICommonTransformation =
     abstract OnLocalNameDeclaration: name: string -> string

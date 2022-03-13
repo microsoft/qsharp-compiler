@@ -24,13 +24,11 @@ type private QsArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol>>
 
 // setup for syntax tree transformations with internal state
 
-type MonoTransformation<'T>(state, options) =
+type MonoTransformation(options) =
 
     let node = if options.Rebuild then Fold else Walk
 
-    member _.SharedState = state
-
-    new(state) = MonoTransformation(state, TransformationOptions.Default)
+    new() = MonoTransformation(TransformationOptions.Default)
 
     /// Invokes the transformation for all namespaces in the given compilation.
     member this.OnCompilation compilation =

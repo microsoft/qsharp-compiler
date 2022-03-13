@@ -15,7 +15,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
-type private ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
+//type private ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>
 
 type ExpressionKindTransformationBase(expressionTransformation: _ -> ExpressionTransformationBase, options) =
     let node = if options.Rebuild then Fold else Walk

@@ -45,7 +45,7 @@ type SyntaxTreeTransformation<'T>(state, options) as this =
 
     member _.SharedState = state
 
-    new(state) = SyntaxTreeTransformation(state, TransformationOptions.Default)
+    new(state) = SyntaxTreeTransformation<'T>(state, TransformationOptions.Default)
 
     abstract OnLocalNameDeclaration: name: string -> string
     default _.OnLocalNameDeclaration name = name
