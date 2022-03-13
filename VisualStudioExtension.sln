@@ -1,9 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.1.32228.430
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28809.33
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpFileTemplate", "src\VisualStudioExtension\QSharpFileTemplate\QSharpFileTemplate.csproj", "{5FDE4059-4A30-449C-82BA-483FDD3CD685}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpVsix", "src\VisualStudioExtension\QSharpVsix\QSharpVsix.csproj", "{35D0960B-E2EF-4FE6-B37B-613432C19C93}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpAppTemplate", "src\VisualStudioExtension\QSharpAppTemplate\QSharpAppTemplate.csproj", "{F28C2462-3025-4628-B67E-DFDE9CB7DE52}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpTestTemplate", "src\VisualStudioExtension\QSharpTestTemplate\QSharpTestTemplate.csproj", "{AF507080-9AEA-4774-87E3-3CCAB6E8A3B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpLibTemplate", "src\VisualStudioExtension\QSharpLibTemplate\QSharpLibTemplate.csproj", "{9EF3C982-D6B4-47BE-A0FE-660F91738881}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpHoneywellAppTemplate", "src\VisualStudioExtension\QsharpHoneywellAppTemplate\QSharpHoneywellAppTemplate.csproj", "{126C7559-6990-4885-B3E4-C84EAB9153DF}"
 EndProject
@@ -15,10 +23,26 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5FDE4059-4A30-449C-82BA-483FDD3CD685}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5FDE4059-4A30-449C-82BA-483FDD3CD685}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5FDE4059-4A30-449C-82BA-483FDD3CD685}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5FDE4059-4A30-449C-82BA-483FDD3CD685}.Release|Any CPU.Build.0 = Release|Any CPU
 		{35D0960B-E2EF-4FE6-B37B-613432C19C93}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{35D0960B-E2EF-4FE6-B37B-613432C19C93}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{35D0960B-E2EF-4FE6-B37B-613432C19C93}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{35D0960B-E2EF-4FE6-B37B-613432C19C93}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F28C2462-3025-4628-B67E-DFDE9CB7DE52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F28C2462-3025-4628-B67E-DFDE9CB7DE52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F28C2462-3025-4628-B67E-DFDE9CB7DE52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F28C2462-3025-4628-B67E-DFDE9CB7DE52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF507080-9AEA-4774-87E3-3CCAB6E8A3B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF507080-9AEA-4774-87E3-3CCAB6E8A3B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF507080-9AEA-4774-87E3-3CCAB6E8A3B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF507080-9AEA-4774-87E3-3CCAB6E8A3B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9EF3C982-D6B4-47BE-A0FE-660F91738881}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9EF3C982-D6B4-47BE-A0FE-660F91738881}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9EF3C982-D6B4-47BE-A0FE-660F91738881}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9EF3C982-D6B4-47BE-A0FE-660F91738881}.Release|Any CPU.Build.0 = Release|Any CPU
 		{126C7559-6990-4885-B3E4-C84EAB9153DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{126C7559-6990-4885-B3E4-C84EAB9153DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{126C7559-6990-4885-B3E4-C84EAB9153DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
