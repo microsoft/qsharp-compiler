@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler
     /// resolutions for all the type parameters found in the dictionaries. Validation is done on the
     /// resolutions, which can be checked through the IsValid flag.
     /// </summary>
-    public class TypeResolutionCombinationOld
+    public class TypeResolutionCombination
     {
         // Static Members
 
@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// type parameter resolutions are relevant to the given expression's type parameter resolutions
         /// are considered.
         /// </summary>
-        public TypeResolutionCombinationOld(TypedExpression expression)
+        public TypeResolutionCombination(TypedExpression expression)
             : this(GetTypeParameterResolutions.Apply(expression))
         {
         }
@@ -111,7 +111,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// the resolutions of a nested expression, this means that the innermost resolutions should come first, followed by
         /// the next innermost, and so on until the outermost expression is given last. Empty and null dictionaries are ignored.
         /// </summary>
-        internal TypeResolutionCombinationOld(IEnumerable<TypeParameterResolutions> independentResolutionDictionaries)
+        internal TypeResolutionCombination(IEnumerable<TypeParameterResolutions> independentResolutionDictionaries)
         {
             // Filter out empty dictionaries
             this.IndependentResolutionDictionaries = independentResolutionDictionaries.Where(res => !(res is null || res.IsEmpty)).ToImmutableArray();
@@ -249,7 +249,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Walker that collects all of the type parameter references for a given ResolvedType
         /// and returns them as a HashSet.
         /// </summary>
-        private class GetTypeParameters : TypeTransformation<GetTypeParameters.TransformationState>
+        private class GetTypeParameters : MonoTransformation
         {
             /// <summary>
             /// Walks the given ResolvedType and returns all of the type parameters referenced.
@@ -258,16 +258,13 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var walker = new GetTypeParameters();
                 walker.OnType(res);
-                return walker.SharedState.TypeParams;
+                return walker.TypeParams;
             }
 
-            internal class TransformationState
-            {
-                public HashSet<TypeParameterName> TypeParams { get; } = new HashSet<TypeParameterName>();
-            }
+            private HashSet<TypeParameterName> TypeParams { get; } = new HashSet<TypeParameterName>();
 
             private GetTypeParameters()
-                : base(new TransformationState(), TransformationOptions.NoRebuild)
+                : base(TransformationOptions.NoRebuild)
             {
             }
 
@@ -275,7 +272,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
             {
-                this.SharedState.TypeParams.Add(AsTypeResolutionKey(tp));
+                this.TypeParams.Add(AsTypeResolutionKey(tp));
                 return base.OnTypeParameter(tp);
             }
         }
@@ -285,7 +282,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// the type parameter to another type parameter of the same callable or to a
         /// nested reference of the same type parameter.
         /// </summary>
-        private class CheckForConstriction : TypeTransformation<CheckForConstriction.TransformationState>
+        private class CheckForConstriction : MonoTransformation
         {
             /// <summary>
             /// Walks the given ResolvedType, typeParamRes, and returns true if there is a reference
@@ -305,30 +302,23 @@ namespace Microsoft.Quantum.QsCompiler
 
                 var walker = new CheckForConstriction(typeParam.Item1);
                 walker.OnType(typeParamRes);
-                return walker.SharedState.IsConstrictive;
+                return walker.IsConstrictive;
             }
 
-            internal class TransformationState
-            {
-                public QsQualifiedName Origin { get; }
+            private QsQualifiedName Origin { get; }
 
-                public bool IsConstrictive { get; set; } = false;
-
-                public TransformationState(QsQualifiedName origin)
-                {
-                    this.Origin = origin;
-                }
-            }
+            private bool IsConstrictive { get; set; } = false;
 
             private CheckForConstriction(QsQualifiedName origin)
-                : base(new TransformationState(origin), TransformationOptions.NoRebuild)
+                : base(TransformationOptions.NoRebuild)
             {
+                this.Origin = origin;
             }
 
             public new ResolvedType OnType(ResolvedType t)
             {
                 // Short-circuit if we already know the type is constrictive.
-                if (!this.SharedState.IsConstrictive)
+                if (!this.IsConstrictive)
                 {
                     base.OnType(t);
                 }
@@ -341,9 +331,9 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 // If the type parameter is from the same callable,
                 // then the type resolution is constrictive.
-                if (tp.Origin.Equals(this.SharedState.Origin))
+                if (tp.Origin.Equals(this.Origin))
                 {
-                    this.SharedState.IsConstrictive = true;
+                    this.IsConstrictive = true;
                 }
 
                 return base.OnTypeParameter(tp);
@@ -354,7 +344,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Walker that returns the relevant type parameter resolution dictionaries from a given
         /// TypedExpression and its sub-expressions.
         /// </summary>
-        private class GetTypeParameterResolutions : ExpressionTransformation<GetTypeParameterResolutions.TransformationState>
+        private class GetTypeParameterResolutions : MonoTransformation
         {
             /// <summary>
             /// Walk the given TypedExpression, collecting type parameter resolution dictionaries relevant to
@@ -365,49 +355,46 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var walker = new GetTypeParameterResolutions();
                 walker.OnTypedExpression(expression);
-                return walker.SharedState.Resolutions;
+                return walker.Resolutions;
             }
 
-            internal class TransformationState
-            {
-                public List<TypeParameterResolutions> Resolutions { get; set; } = new List<TypeParameterResolutions>();
+            private List<TypeParameterResolutions> Resolutions { get; set; } = new List<TypeParameterResolutions>();
 
-                public bool InCallLike { get; set; } = false;
-            }
+            private bool InCallLike { get; set; } = false;
 
             private GetTypeParameterResolutions()
-                : base(new TransformationState(), TransformationOptions.NoRebuild)
+                : base(TransformationOptions.NoRebuild)
             {
             }
 
             public override TypedExpression OnTypedExpression(TypedExpression ex)
+            {
+                if (ex.Expression is ExpressionKind.CallLikeExpression call)
                 {
-                    if (ex.Expression is ExpressionKind.CallLikeExpression call)
+                    if (!this.InCallLike || TypedExpression.IsPartialApplication(call))
                     {
-                        if (!this.SharedState.InCallLike || TypedExpression.IsPartialApplication(call))
-                        {
-                            var contextInCallLike = this.SharedState.InCallLike;
-                            this.SharedState.InCallLike = true;
-                            this.OnTypedExpression(call.Item1);
-                            this.SharedState.Resolutions.Add(ex.TypeParameterResolutions);
-                            this.SharedState.InCallLike = contextInCallLike;
-                        }
+                        var contextInCallLike = this.InCallLike;
+                        this.InCallLike = true;
+                        this.OnTypedExpression(call.Item1);
+                        this.Resolutions.Add(ex.TypeParameterResolutions);
+                        this.InCallLike = contextInCallLike;
                     }
-                    else if (ex.Expression is ExpressionKind.AdjointApplication adj)
-                    {
-                        this.OnTypedExpression(adj.Item);
-                    }
-                    else if (ex.Expression is ExpressionKind.ControlledApplication ctrl)
-                    {
-                        this.OnTypedExpression(ctrl.Item);
-                    }
-                    else
-                    {
-                        this.SharedState.Resolutions.Add(ex.TypeParameterResolutions);
-                    }
-
-                    return ex;
                 }
+                else if (ex.Expression is ExpressionKind.AdjointApplication adj)
+                {
+                    this.OnTypedExpression(adj.Item);
+                }
+                else if (ex.Expression is ExpressionKind.ControlledApplication ctrl)
+                {
+                    this.OnTypedExpression(ctrl.Item);
+                }
+                else
+                {
+                    this.Resolutions.Add(ex.TypeParameterResolutions);
+                }
+
+                return ex;
+            }
         }
     }
 }

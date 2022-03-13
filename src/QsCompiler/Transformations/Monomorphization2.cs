@@ -132,9 +132,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization2
                 return filter.OnCallableDeclaration(callable);
             }
 
-            public TypeParameterResolutions TypeParams { get; }
+            private TypeParameterResolutions TypeParams { get; }
 
-            public GetAccessModifiers GetAccessModifiers { get; }
+            private GetAccessModifiers GetAccessModifiers { get; }
 
             private ReplaceTypeParamImplementations(TypeParameterResolutions typeParams, GetAccessModifiers getAccessModifiers)
                 : base()
@@ -194,9 +194,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization2
 
         private class GetAccessModifiers : MonoTransformation
         {
-            public HashSet<Access> AccessModifiers { get; } = new HashSet<Access>();
+            private HashSet<Access> AccessModifiers { get; } = new HashSet<Access>();
 
-            public Func<QsQualifiedName, Access> GetAccessModifier { get; }
+            private Func<QsQualifiedName, Access> GetAccessModifier { get; }
 
             public GetAccessModifiers(Func<QsQualifiedName, Access> getAccessModifier)
                 : base(TransformationOptions.NoRebuild)
@@ -260,13 +260,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization2
                 return filter.OnCompilation(compilation);
             }
 
-            public Stack<TypeParameterResolutions> CurrentTypeParamResolutions { get; } = new Stack<TypeParameterResolutions>();
+            private Stack<TypeParameterResolutions> CurrentTypeParamResolutions { get; } = new Stack<TypeParameterResolutions>();
 
-            public GetConcreteIdentifierFunc GetConcreteIdentifier { get; }
+            private GetConcreteIdentifierFunc GetConcreteIdentifier { get; }
 
-            public ImmutableHashSet<QsQualifiedName> IntrinsicsToKeep { get; }
+            private ImmutableHashSet<QsQualifiedName> IntrinsicsToKeep { get; }
 
-            public TypeParameterResolutions? LastCalculatedTypeResolutions { get; set; } = null;
+            private TypeParameterResolutions? LastCalculatedTypeResolutions { get; set; } = null;
 
             private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
                 : base()
