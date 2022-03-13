@@ -9,7 +9,7 @@ using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimmingOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 {
     /// <summary>
     /// Removes unused callables from the syntax tree.
@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimmingOld
             return TrimTree.Apply(compilation, keepAllIntrinsics, dependencies);
         }
 
-        private class TrimTree : SyntaxTreeTransformation<TrimTree.TransformationState>
+        private class TrimTree : MonoTransformation
         {
             public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics, IEnumerable<QsQualifiedName>? dependencies)
             {
@@ -88,41 +88,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimmingOld
                 }
             }
 
-            /// <summary>
-            /// Class representing the state of the transformation.
-            /// </summary>
-            public class TransformationState
-            {
-                public Func<QsNamespaceElement, bool> NamespaceElementFilter { get; }
-
-                public TransformationState(Func<QsNamespaceElement, bool> namespaceElementFilter)
-                {
-                    this.NamespaceElementFilter = namespaceElementFilter;
-                }
-            }
+            private Func<QsNamespaceElement, bool> NamespaceElementFilter { get; }
 
             private TrimTree(Func<QsNamespaceElement, bool> namespaceElementFilter)
-                : base(new TransformationState(namespaceElementFilter))
+                : base()
             {
-                this.Namespaces = new NamespaceTransformation(this);
-                this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
-                this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
-                this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                this.NamespaceElementFilter = namespaceElementFilter;
             }
 
-            private class NamespaceTransformation : NamespaceTransformation<TransformationState>
+            public override QsNamespace OnNamespace(QsNamespace ns)
             {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                    : base(parent)
-                {
-                }
-
-                public override QsNamespace OnNamespace(QsNamespace ns)
-                {
-                    return ns.WithElements(elements => elements
-                        .Where(this.SharedState.NamespaceElementFilter)
-                        .ToImmutableArray());
-                }
+                return ns.WithElements(elements => elements
+                    .Where(this.NamespaceElementFilter)
+                    .ToImmutableArray());
             }
         }
     }

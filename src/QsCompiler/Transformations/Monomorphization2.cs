@@ -12,7 +12,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization2
+namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 {
     using GetConcreteIdentifierFunc = Func<Identifier.GlobalCallable, /*TypeParameterResolutions*/ ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType>, Identifier>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;

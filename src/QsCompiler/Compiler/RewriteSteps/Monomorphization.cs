@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization2;
-using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization2.Validation;
+using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization;
+using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {

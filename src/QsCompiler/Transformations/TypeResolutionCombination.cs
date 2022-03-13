@@ -9,7 +9,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler
+namespace Microsoft.Quantum.QsCompilerOld
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler
     /// resolutions for all the type parameters found in the dictionaries. Validation is done on the
     /// resolutions, which can be checked through the IsValid flag.
     /// </summary>
-    public class TypeResolutionCombinationOld
+    public class TypeResolutionCombination
     {
         // Static Members
 
@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// type parameter resolutions are relevant to the given expression's type parameter resolutions
         /// are considered.
         /// </summary>
-        public TypeResolutionCombinationOld(TypedExpression expression)
+        public TypeResolutionCombination(TypedExpression expression)
             : this(GetTypeParameterResolutions.Apply(expression))
         {
         }
@@ -111,7 +111,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// the resolutions of a nested expression, this means that the innermost resolutions should come first, followed by
         /// the next innermost, and so on until the outermost expression is given last. Empty and null dictionaries are ignored.
         /// </summary>
-        internal TypeResolutionCombinationOld(IEnumerable<TypeParameterResolutions> independentResolutionDictionaries)
+        internal TypeResolutionCombination(IEnumerable<TypeParameterResolutions> independentResolutionDictionaries)
         {
             // Filter out empty dictionaries
             this.IndependentResolutionDictionaries = independentResolutionDictionaries.Where(res => !(res is null || res.IsEmpty)).ToImmutableArray();

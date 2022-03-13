@@ -8,7 +8,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
+namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationOld.Validation
 {
     /// <summary>
     /// Validates that the monomorphization transformation has removed all references to
