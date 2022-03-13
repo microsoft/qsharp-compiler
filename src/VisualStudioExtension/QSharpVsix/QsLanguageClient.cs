@@ -106,6 +106,20 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             customPane.Activate(); // brings the pane into view
         }
 
+        public Task<InitializationFailureContext> OnServerInitializeFailedAsync(LanguageClientInitializationInfoBase initializationState)
+        {
+            string message = "Q# Language Client failed to activate.";
+            string exception = initializationState.InitializationException?.ToString() ?? string.Empty;
+            message = $"{message}\n {exception}";
+
+            var failureContext = new InitializationFailureContext()
+            {
+                FailureMessage = message,
+            };
+
+            return Task.FromResult<InitializationFailureContext>(failureContext);
+        }
+
         /// Invoking the StartAsync event signals that the language server should be started, and triggers a call to this routine.
         /// This routine contains the logic to start the server and estabilishes a connection that is returned (exceptions here are shown in the info bar of VS).
         public async Task<Connection> ActivateAsync(CancellationToken token)
