@@ -28,10 +28,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             internal Action<Exception>? OnException { get; }
 
             internal Func<QsScope, QsScope> ResolveNames { get; set; } =
-                new UniqueVariableNames().Statements.OnScope;
+                new UniqueVariableNames().OnScope;
 
             public void Reset() =>
-                this.ResolveNames = new UniqueVariableNames().Statements.OnScope;
+                this.ResolveNames = new UniqueVariableNames().OnScope;
 
             public TransformationState(Action<Exception>? onException = null)
             {

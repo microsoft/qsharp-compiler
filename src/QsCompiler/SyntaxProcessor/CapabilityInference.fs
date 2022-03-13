@@ -135,9 +135,9 @@ let private nonLocalUpdates scope =
         scope.KnownSymbols.Variables |> Seq.exists (fun variable -> variable.VariableName = name)
 
     let accumulator = AccumulateIdentifiers()
-    accumulator.Statements.OnScope scope |> ignore
+    accumulator.OnScope scope |> ignore
 
-    accumulator.SharedState.ReassignedVariables
+    accumulator.ReassignedVariables
     |> Seq.collect (fun group -> group |> Seq.map (fun location -> group.Key, location.Offset + location.Range))
     |> Seq.filter (fst >> isKnownSymbol)
 

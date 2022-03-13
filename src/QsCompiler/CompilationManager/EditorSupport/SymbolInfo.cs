@@ -146,9 +146,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .SelectMany(ns =>
                 {
                     var references = new IdentifierReferences(fullName, defaultOffset, limitToSourceFiles);
-                    references.Namespaces.OnNamespace(ns);
-                    declLoc ??= references.SharedState.DeclarationLocation;
-                    return references.SharedState.Locations;
+                    references.OnNamespace(ns);
+                    declLoc ??= references.DeclarationLocation;
+                    return references.Locations;
                 })
                 .Select(AsLocation)
                 .ToArray(); // ToArray is needed here to force the execution before checking declLoc

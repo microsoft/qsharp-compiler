@@ -143,7 +143,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(rename.OnCallableDeclarationHeader);
             var specializations = headers.Specializations.Select(
                 specialization => (rename.OnSpecializationDeclarationHeader(specialization.Item1),
-                                   (SpecializationImplementation?)rename.Namespaces.OnSpecializationImplementation(specialization.Item2)));
+                                   (SpecializationImplementation?)rename.OnSpecializationImplementation(specialization.Item2)));
             return new Headers(source, callables, specializations, types);
         }
 
@@ -1100,10 +1100,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     group => new RenameReferences(GetMappingForSourceGroup(group)));
 
             var taggedCallables = callables.Select(
-                callable => transformations[callable.Source.AssemblyOrCodeFile].Namespaces.OnCallableDeclaration(callable))
+                callable => transformations[callable.Source.AssemblyOrCodeFile].OnCallableDeclaration(callable))
                 .ToImmutableArray();
             var taggedTypes = types.Select(
-                type => transformations[type.Source.AssemblyOrCodeFile].Namespaces.OnTypeDeclaration(type))
+                type => transformations[type.Source.AssemblyOrCodeFile].OnTypeDeclaration(type))
                 .ToImmutableArray();
             return (taggedCallables, taggedTypes);
         }

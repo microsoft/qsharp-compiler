@@ -56,11 +56,11 @@ type LinkingTests() =
     /// Counts the number of references to the qualified name in all of the namespaces, including the declaration.
     let countReferences namespaces (name: QsQualifiedName) =
         let references = IdentifierReferences(name, defaultOffset)
-        Seq.iter (references.Namespaces.OnNamespace >> ignore) namespaces
+        Seq.iter (references.OnNamespace >> ignore) namespaces
 
-        let declaration = if obj.ReferenceEquals(references.SharedState.DeclarationLocation, null) then 0 else 1
+        let declaration = if obj.ReferenceEquals(references.DeclarationLocation, null) then 0 else 1
 
-        references.SharedState.Locations.Count + declaration
+        references.Locations.Count + declaration
 
     let getCallablesWithSuffix compilation ns (suffix: string) =
         compilation.Namespaces
