@@ -344,10 +344,10 @@ let getLinesFromSpecialization specialization =
         | Provided (_, body) -> Some body
         | _ -> None
     |> Option.get
-    |> writer.Statements.OnScope
+    |> writer.OnScope
     |> ignore
 
-    writer.SharedState.StatementOutputHandle
+    writer.StatementOutputHandle
     |> Seq.filter (not << String.IsNullOrWhiteSpace)
     |> Seq.toArray
 

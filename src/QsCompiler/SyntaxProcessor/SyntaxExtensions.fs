@@ -174,26 +174,26 @@ let private showAccess kind =
     | Internal -> ReservedKeywords.Declarations.Internal + " " + kind
 
 type private TName() =
-    inherit SyntaxTreeToQsharp.TypeTransformation()
+    inherit SyntaxTreeToQsharp()
 
     override this.OnCharacteristicsExpression characteristics =
         if characteristics.AreInvalid then
-            this.Output <- "?"
+            this.TypeOutputHandle <- "?"
             characteristics
         else
             base.OnCharacteristicsExpression characteristics
 
     override this.OnInvalidType() =
-        this.Output <- "?"
+        this.TypeOutputHandle <- "?"
         InvalidType
 
     override this.OnUserDefinedType udt =
-        this.Output <- udt.Name
+        this.TypeOutputHandle <- udt.Name
         UserDefinedType udt
 
     member this.Apply t =
         this.OnType t |> ignore
-        this.Output
+        this.TypeOutputHandle
 
 let private TypeString = new TName()
 let private TypeName = TypeString.Apply
