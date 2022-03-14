@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler
             scope = new UniqueVariableNames().OnScope(scope);
             scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
             scope = new ExtractNestedOperationCalls().Statements.OnScope(scope);
-            scope = new ReverseOrderOfOperationCalls().Statements.OnScope(scope);
+            scope = new ReverseOrderOfOperationCalls().OnScope(scope);
             return StripPositionInfo.Apply(scope);
         }
 

@@ -8,7 +8,7 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
+namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformationsOld
 {
     public class GetSourceFiles
     : SyntaxTreeTransformation<GetSourceFiles.TransformationState>

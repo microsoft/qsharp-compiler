@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         {
             if (functor.IsControlled)
             {
-                this.Statements = new BasicTransformations.AddVariableDeclarations<TransformationsState>(this, ControlQubitsDeclaration);
+                //this.Statements = new BasicTransformations.AddVariableDeclarations<TransformationsState>(ControlQubitsDeclaration);
             }
 
             this.StatementKinds = new IgnoreOuterBlockInConjugations<TransformationsState>(this);
@@ -284,66 +284,48 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         public ReverseOrderOfOperationCalls()
         : base(ex => !ex.InferredInformation.HasLocalQuantumDependency, false) // no need to evaluate subexpressions
         {
-            // Do *not* disable transformations; the base class takes care of that!
-            this.StatementKinds = new ReverseLoops(this);
-            this.Statements = new StatementTransformation(this);
         }
 
-        /* helper classes */
+        /* overrides */
 
-        private class StatementTransformation
-        : StatementTransformation<ReverseOrderOfOperationCalls>
+        public override QsScope OnScope(QsScope scope)
         {
-            public StatementTransformation(ReverseOrderOfOperationCalls parent)
-            : base(state => new ReverseOrderOfOperationCalls(), parent)
+            var topStatements = ImmutableArray.CreateBuilder<QsStatement>();
+            var bottomStatements = new List<QsStatement>();
+            foreach (var statement in scope.Statements)
             {
-            }
-
-            public override QsScope OnScope(QsScope scope)
-            {
-                var topStatements = ImmutableArray.CreateBuilder<QsStatement>();
-                var bottomStatements = new List<QsStatement>();
-                foreach (var statement in scope.Statements)
+                var transformed = this.OnStatement(statement);
+                if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
                 {
-                    var transformed = this.OnStatement(statement);
-                    if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
-                    {
-                        topStatements.Add(statement);
-                    }
-                    else
-                    {
-                        bottomStatements.Add(transformed);
-                    }
+                    topStatements.Add(statement);
                 }
-
-                bottomStatements.Reverse();
-                return new QsScope(topStatements.Concat(bottomStatements).ToImmutableArray(), scope.KnownSymbols);
+                else
+                {
+                    bottomStatements.Add(transformed);
+                }
             }
+
+            bottomStatements.Reverse();
+            return new QsScope(topStatements.Concat(bottomStatements).ToImmutableArray(), scope.KnownSymbols);
         }
 
-        /// <summary>
-        /// Helper class to reverse the order of all operation calls
-        /// unless these calls occur within the outer block of a conjugation.
-        /// Outer transformations of conjugations are left unchanged.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">Encountered a while-loop.</exception>
-        private class ReverseLoops
-        : IgnoreOuterBlockInConjugations<TransformationState>
+        public override QsStatementKind OnForStatement(QsForStatement stm)
         {
-            internal ReverseLoops(ReverseOrderOfOperationCalls parent)
-            : base(parent)
-            {
-            }
+            var reversedIterable = SyntaxGenerator.ReverseIterable(stm.IterationValues);
+            stm = new QsForStatement(stm.LoopItem, reversedIterable, stm.Body);
+            return base.OnForStatement(stm);
+        }
 
-            public override QsStatementKind OnForStatement(QsForStatement stm)
-            {
-                var reversedIterable = SyntaxGenerator.ReverseIterable(stm.IterationValues);
-                stm = new QsForStatement(stm.LoopItem, reversedIterable, stm.Body);
-                return base.OnForStatement(stm);
-            }
+        public override QsStatementKind OnWhileStatement(QsWhileStatement stm) =>
+            throw new InvalidOperationException("cannot reverse while-loops");
 
-            public override QsStatementKind OnWhileStatement(QsWhileStatement stm) =>
-                throw new InvalidOperationException("cannot reverse while-loops");
+        /// <inheritdoc/>
+        public override QsStatementKind OnConjugation(QsConjugation stm)
+        {
+            var inner = stm.InnerTransformation;
+            var innerLoc = this.OnRelativeLocation(inner.Location);
+            var transformedInner = new QsPositionedBlock(this.OnScope(inner.Body), innerLoc, inner.Comments);
+            return QsStatementKind.NewQsConjugation(new QsConjugation(stm.OuterTransformation, transformedInner));
         }
     }
 }
