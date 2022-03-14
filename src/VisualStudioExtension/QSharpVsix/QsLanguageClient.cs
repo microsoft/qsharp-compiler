@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
 {
     [ContentType("Q#")]
     [Export(typeof(ILanguageClient))]
-    public class QsLanguageClient : VisualStudio.Shell.AsyncPackage, ILanguageClient, ILanguageClientCustomMessage
+    public class QsLanguageClient : VisualStudio.Shell.AsyncPackage, ILanguageClient, ILanguageClientCustomMessage2
     {
         private readonly long LaunchTime;
         public readonly string LogFile;
@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             CustomMessageTarget = new CustomServerNotifications();
         }
 
-        // properties and methods required by ILanguageClientCustomMessage
+        // properties and methods required by ILanguageClientCustomMessage2
 
         public object MiddleLayer => null; // we don't need to intercept messages
         public object CustomMessageTarget { get; }
@@ -102,11 +102,11 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
                 $"Path to the log file: \"{this.LogFile}\"",
                 ex.ToString()
             };
-            customPane.OutputString(String.Join(Environment.NewLine, messages));
+            customPane.OutputStringThreadSafe(String.Join(Environment.NewLine, messages));
             customPane.Activate(); // brings the pane into view
         }
 
-        public Task<InitializationFailureContext> OnServerInitializeFailedAsync(LanguageClientInitializationInfoBase initializationState)
+        public Task<InitializationFailureContext> OnServerInitializeFailedAsync(ILanguageClientInitializationInfo initializationState)
         {
             string message = "Q# Language Client failed to activate.";
             string exception = initializationState.InitializationException?.ToString() ?? string.Empty;
