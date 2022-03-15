@@ -8,7 +8,6 @@ open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Xunit
 
 let private pathRoot = Path.GetPathRoot(Directory.GetCurrentDirectory())
@@ -153,10 +152,7 @@ let ``execute rewrite steps only if validation passes`` () =
         )
 
     let loadSources (loader: Func<_ seq, _>) = loader.Invoke([ source1; source2 ])
-
-    let loaded =
-        new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config))
-
+    let loaded = CompilationLoader(CompilationLoader.SourceLoader loadSources, Seq.empty, config)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.ReferenceLoading)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.Validation)
@@ -164,10 +160,7 @@ let ``execute rewrite steps only if validation passes`` () =
     Assert.Equal(CompilationLoader.Status.NotRun, loaded.Monomorphization) // no entry point
 
     let loadSources (loader: Func<_ seq, _>) = loader.Invoke([ source2 ])
-
-    let loaded =
-        new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config))
-
+    let loaded = CompilationLoader(CompilationLoader.SourceLoader loadSources, Seq.empty, config)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.ReferenceLoading)
     Assert.Equal(CompilationLoader.Status.Failed, loaded.Validation)

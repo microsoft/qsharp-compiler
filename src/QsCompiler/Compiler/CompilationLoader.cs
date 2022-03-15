@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// may be specified via configuration (or project) file in the future
         /// </summary>
-        public struct Configuration
+        public class Configuration
         {
             /// <summary>
             /// The name of the project. Used as assembly name in the generated dll.
@@ -113,7 +113,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// <summary>
             /// Indicates whether the compiler will remove lambda expressions and replace them with calls to generated callables.
             /// </summary>
-            public bool LiftLambdaExpressions { get; set; }
+            public bool LiftLambdaExpressions { get; set; } = true;
 
             /// <summary>
             /// If the output folder is not null,
@@ -506,7 +506,7 @@ namespace Microsoft.Quantum.QsCompiler
             // loading the content to compiler
             this.logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
-            this.config = options ?? default;
+            this.config = options ?? new Configuration();
 
             // When loading references is done through the generated C# a Bond deserializer is not needed.
             if (!this.config.LoadReferencesBasedOnGeneratedCsharp)
