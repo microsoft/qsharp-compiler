@@ -101,7 +101,7 @@ namespace N1
         |> List.iter testCulture
 
     let parse files =
-        let mutable errors : Diagnostic list = []
+        let mutable errors: Diagnostic list = []
 
         let addError (diag: Diagnostic) =
             if diag.Severity.HasValue then
@@ -3134,7 +3134,10 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
             | QsCallable op -> op.FullName.Name
 
         let expected = [ "H"; "M"; "Qubits"; "Qubits"; "R"; "S"; "X"; "Z" ] // Qubits is two times: one for UDT and one for constructor.
-        let local = syntaxTree |> findLocalElements Some (Path.GetFullPath(Path.Combine("Circuits", "Intrinsic.qs")))
+
+        let local =
+            syntaxTree |> findLocalElements Some (Path.GetFullPath(Path.Combine("Circuits", "Intrinsic.qs")))
+
         Assert.Equal(1, local.Length)
         Assert.Equal("Microsoft.Quantum.Intrinsic", (fst local.[0]))
         let actual = (snd local.[0]) |> List.map oneName |> List.sort

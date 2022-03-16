@@ -162,10 +162,9 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
     let returnPatterns (block: QsPositionedBlock) =
         block.Body.Statements
         |> Seq.collect returnStatements
-        |> Seq.map
-            (fun statement ->
-                let range = statement.Location |> QsNullable<_>.Map (fun location -> location.Offset + location.Range)
-                ReturnInResultConditionedBlock range)
+        |> Seq.map (fun statement ->
+            let range = statement.Location |> QsNullable<_>.Map (fun location -> location.Offset + location.Range)
+            ReturnInResultConditionedBlock range)
 
     let setPatterns (block: QsPositionedBlock) =
         nonLocalUpdates block.Body
@@ -253,28 +252,26 @@ let rec private referenceReasons
         | Error ErrorCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
         | Error ErrorCode.UnsupportedCallableCapability -> Some WarningCode.UnsupportedCallableCapability
         | _ -> None
-        |> Option.map
-            (fun code ->
-                let args =
-                    Seq.append
-                        [
-                            name.Name
-                            header.Source.CodeFile
-                            string (diagnostic.Range.Start.Line + 1)
-                            string (diagnostic.Range.Start.Column + 1)
-                        ]
-                        diagnostic.Arguments
+        |> Option.map (fun code ->
+            let args =
+                Seq.append
+                    [
+                        name.Name
+                        header.Source.CodeFile
+                        string (diagnostic.Range.Start.Line + 1)
+                        string (diagnostic.Range.Start.Column + 1)
+                    ]
+                    diagnostic.Arguments
 
-                range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning(code, args))
+            range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning(code, args))
 
     match impl with
     | Provided (_, scope) ->
         scopeDiagnosticsImpl false context scope
-        |> Seq.map
-            (fun diagnostic ->
-                locationOffset header.Location
-                |> QsNullable<_>.Map (fun offset -> { diagnostic with Range = offset + diagnostic.Range })
-                |> QsNullable.defaultValue diagnostic)
+        |> Seq.map (fun diagnostic ->
+            locationOffset header.Location
+            |> QsNullable<_>.Map (fun offset -> { diagnostic with Range = offset + diagnostic.Range })
+            |> QsNullable.defaultValue diagnostic)
         |> Seq.choose (reason header)
     | _ -> Seq.empty
 
@@ -418,17 +415,16 @@ let private callableDependentCapability (callables: ImmutableDictionary<_, _>) (
     and cachedCapability visited (callable: QsCallable) =
         cache.TryGetValue callable.FullName
         |> tryOption
-        |> Option.defaultWith
-            (fun () ->
-                let capability = callableCapability visited callable
-                cache.[callable.FullName] <- capability
-                capability)
+        |> Option.defaultWith (fun () ->
+            let capability = callableCapability visited callable
+            cache.[callable.FullName] <- capability
+            capability)
 
     cachedCapability Set.empty
 
 /// Returns the attribute for the inferred runtime capability.
 let private toAttribute capability =
-    let args = AttributeUtils.StringArguments(capability.ToString(), "Inferred automatically by the compiler.")
+    let args = AttributeUtils.StringArguments(string capability, "Inferred automatically by the compiler.")
     AttributeUtils.BuildAttribute(BuiltIn.RequiresCapability.FullName, args)
 
 /// Infers the capability of all callables in the compilation, adding the built-in Capability attribute to each

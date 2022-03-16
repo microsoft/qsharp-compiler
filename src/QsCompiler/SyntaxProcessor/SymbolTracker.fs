@@ -69,7 +69,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// Contains all properties that need to be tracked for verifying the built syntax tree, but are not needed after.
     /// In particular, contains a "stack" of all local declarations up to this point in each scope,
     /// as well as which functors need to be supported by the operations called within each scope.
-    let mutable pushedScopes : TrackedScope list = []
+    let mutable pushedScopes: TrackedScope list = []
 
     /// contains the version number of the global symbols manager upon initialization
     let expectedVersionGlobals = globals.VersionNumber
@@ -91,8 +91,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
         match GlobalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with
         | Found decl ->
             decl.Signature.TypeParameters
-            |> Seq.choose
-                (function
+            |> Seq.choose (function
                 | ValidName name -> Some name
                 | InvalidName -> None)
             |> fun valid -> valid.ToImmutableArray()
@@ -289,12 +288,10 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                 |> SymbolResolution.GenerateDeprecationWarning(fullName, qsSym.RangeOrDefault)
                 |> Array.iter addDiagnostic
 
-            let argType, returnType =
-                decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
-
             let idType =
-                kind ((argType, returnType), decl.Information)
+                kind ((decl.ArgumentType, decl.ReturnType), decl.Information)
                 |> ResolvedType.create (TypeRange.inferred qsSym.Range)
+                |> ResolvedType.withAllRanges (TypeRange.inferred qsSym.Range)
 
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
 

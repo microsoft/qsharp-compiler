@@ -73,7 +73,7 @@ let private updateAndFormatOutput files =
     + Environment.NewLine
 
 let private makeTestFile (path: string) =
-    let name = path.[(path.LastIndexOf "\\") + 1..(path.LastIndexOf ".qs") - 1]
+    let name = path.[(path.LastIndexOf "\\") + 1 .. (path.LastIndexOf ".qs") - 1]
 
     {
         Path = path

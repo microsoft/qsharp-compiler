@@ -12,17 +12,17 @@ open System.Collections.Immutable
 
 type TestRewriteStep(priority: int) =
     interface IRewriteStep with
-        member this.AssemblyConstants : IDictionary<string, string> =
+        member this.AssemblyConstants: IDictionary<string, string> =
             new Dictionary<string, string>() :> IDictionary<string, string>
 
-        member this.GeneratedDiagnostics : IEnumerable<IRewriteStep.Diagnostic> = Seq.empty
-        member this.ImplementsPostconditionVerification : bool = false
-        member this.ImplementsPreconditionVerification : bool = false
-        member this.ImplementsTransformation : bool = false
-        member this.Name : string = "Test Rewrite Step"
+        member this.GeneratedDiagnostics: IEnumerable<IRewriteStep.Diagnostic> = Seq.empty
+        member this.ImplementsPostconditionVerification: bool = false
+        member this.ImplementsPreconditionVerification: bool = false
+        member this.ImplementsTransformation: bool = false
+        member this.Name: string = "Test Rewrite Step"
         member this.PostconditionVerification(compilation: SyntaxTree.QsCompilation) : bool = false
         member this.PreconditionVerification(compilation: SyntaxTree.QsCompilation) : bool = false
-        member this.Priority : int = priority
+        member this.Priority: int = priority
 
         member this.Transformation
             (
@@ -56,7 +56,7 @@ type ExternalRewriteStepsManagerTests() =
 
     [<Fact>]
     member this.``Loading Assembly based steps (legacy)``() =
-        let config = new CompilationLoader.Configuration(RewriteSteps = [ (this.GetType().Assembly.Location, "") ])
+        let config = CompilationLoader.Configuration(RewriteSteps = [ (this.GetType().Assembly.Location, "") ])
         let loadedSteps = GetSteps config
         VerifyStep loadedSteps
 
@@ -70,14 +70,14 @@ type ExternalRewriteStepsManagerTests() =
 
     [<Fact>]
     member this.``Loading Type based steps``() =
-        let config = new CompilationLoader.Configuration(RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ])
+        let config = CompilationLoader.Configuration(RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ])
         let loadedSteps = GetSteps config
         VerifyStep loadedSteps
 
     [<Fact>]
     member this.``Loading instance based steps``() =
-        let stepInstance = new TestRewriteStep()
-        let config = new CompilationLoader.Configuration(RewriteStepInstances = [ (stepInstance :> IRewriteStep, "") ])
+        let stepInstance = TestRewriteStep()
+        let config = CompilationLoader.Configuration(RewriteStepInstances = [ (upcast stepInstance, "") ])
         let loadedSteps = GetSteps config
         VerifyStep loadedSteps
 

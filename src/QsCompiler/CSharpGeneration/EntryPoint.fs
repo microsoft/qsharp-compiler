@@ -335,10 +335,13 @@ let private entryPointClass context (entryPoint: QsCallable) =
         ``property-arrow_get`` typeName name [ ``public`` ] get (``=>`` value)
 
     let nameProperty = string entryPoint.FullName |> literal |> property "Name" "string"
-    let summaryProperty = (PrintSummary entryPoint.Documentation false).Trim() |> literal |> property "Summary" "string"
+
+    let summaryProperty =
+        (PrintSummary entryPoint.Documentation false).Trim() |> literal |> property "Summary" "string"
+
     let parameters = parameters context entryPoint.Documentation entryPoint.ArgumentTuple
 
-    let members : MemberDeclarationSyntax list =
+    let members: MemberDeclarationSyntax list =
         [
             nameProperty
             summaryProperty
@@ -371,7 +374,8 @@ let private entryPointNamespace context name entryPoints =
 
 /// Returns the driver settings object.
 let private driverSettings context =
-    let newDriverSettings = driverNamespace + ".DriverSettings" |> ``type`` |> SyntaxFactory.ObjectCreationExpression
+    let newDriverSettings =
+        driverNamespace + ".DriverSettings" |> ``type`` |> SyntaxFactory.ObjectCreationExpression
 
     let namedArg (name: string) expr =
         SyntaxFactory.NameColon name |> (SyntaxFactory.Argument expr).WithNameColon

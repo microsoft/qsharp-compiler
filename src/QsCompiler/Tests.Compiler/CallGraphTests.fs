@@ -20,7 +20,8 @@ open Xunit.Abstractions
 
 type CallGraphTests(output: ITestOutputHelper) =
 
-    let compilationManager = new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
+    let compilationManager =
+        new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
 
     let compilationManagerExe =
         let props = ImmutableDictionary.CreateBuilder()
@@ -97,11 +98,10 @@ type CallGraphTests(output: ITestOutputHelper) =
         let got =
             compilationDataStructures.Diagnostics()
             |> Seq.filter (fun d -> d.Severity = Nullable DiagnosticSeverity.Error)
-            |> Seq.choose
-                (fun d ->
-                    match Diagnostics.TryGetCode d.Code.Value.Second with
-                    | true, code -> Some code
-                    | false, _ -> None)
+            |> Seq.choose (fun d ->
+                match Diagnostics.TryGetCode d.Code.Value.Second with
+                | true, code -> Some code
+                | false, _ -> None)
 
         let codeMismatch = expected.ToImmutableHashSet().SymmetricExcept got
         let gotLookup = got.ToLookup(new Func<_, _>(id))
@@ -141,8 +141,7 @@ type CallGraphTests(output: ITestOutputHelper) =
     let CompileInvalidCycleTest testNumber expected =
         let errors =
             expected
-            |> Seq.choose
-                (function
+            |> Seq.choose (function
                 | Error error -> Some error
                 | _ -> None)
 
@@ -514,11 +513,10 @@ type CallGraphTests(output: ITestOutputHelper) =
         for node in graph.Nodes do
             let unresolvedTypeParameters =
                 node.ParamResolutions
-                |> Seq.choose
-                    (fun res ->
-                        match res.Value.Resolution with
-                        | TypeParameter _ -> Some(res.Key)
-                        | _ -> None)
+                |> Seq.choose (fun res ->
+                    match res.Value.Resolution with
+                    | TypeParameter _ -> Some(res.Key)
+                    | _ -> None)
 
             Assert.Empty unresolvedTypeParameters
 

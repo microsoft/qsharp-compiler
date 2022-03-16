@@ -63,16 +63,16 @@ let indentTerminal level =
 let indentation =
     { new Rewriter<_>() with
         override _.Namespace(level, ns) =
-            { base.Namespace(level, ns) with NamespaceKeyword = indentTerminal level ns.NamespaceKeyword }
+            { ``base``.Namespace(level, ns) with NamespaceKeyword = indentTerminal level ns.NamespaceKeyword }
 
         override _.NamespaceItem(level, item) =
-            base.NamespaceItem(level, item) |> NamespaceItem.mapPrefix (indentPrefix level)
+            ``base``.NamespaceItem(level, item) |> NamespaceItem.mapPrefix (indentPrefix level)
 
         override _.Statement(level, statement) =
-            base.Statement(level, statement) |> Statement.mapPrefix (indentPrefix level)
+            ``base``.Statement(level, statement) |> Statement.mapPrefix (indentPrefix level)
 
         override _.Block(level, mapper, block) =
-            { base.Block(level + 1, mapper, block) with CloseBrace = indentTerminal level block.CloseBrace }
+            { ``base``.Block(level + 1, mapper, block) with CloseBrace = indentTerminal level block.CloseBrace }
     }
 
 /// <summary>
@@ -84,17 +84,17 @@ let ensureNewLine prefix =
 let newLines =
     { new Rewriter<_>() with
         override _.NamespaceItem((), item) =
-            base.NamespaceItem((), item) |> NamespaceItem.mapPrefix ensureNewLine
+            ``base``.NamespaceItem((), item) |> NamespaceItem.mapPrefix ensureNewLine
 
         override _.Statement((), statement) =
-            let statement = base.Statement((), statement)
+            let statement = ``base``.Statement((), statement)
 
             match statement with
             | ElseStatement _ -> statement
             | _ -> Statement.mapPrefix ensureNewLine statement
 
         override _.Block((), mapper, block) =
-            let block = base.Block((), mapper, block)
+            let block = ``base``.Block((), mapper, block)
 
             if List.isEmpty block.Items then
                 block
@@ -149,7 +149,7 @@ let unitUpdate =
                     { Prefix = tuple.OpenParen.Prefix; Text = "Unit" } |> Type.BuiltIn
                 | _ -> typ
 
-            base.Type((), updated)
+            ``base``.Type((), updated)
     }
 
 let forParensUpdate =
@@ -244,30 +244,26 @@ let arraySyntaxUpdate =
         | Type.Tuple tuple ->
             let items =
                 tuple.Items
-                |> List.mapi
-                    (fun i item ->
-                        match item.Item with
-                        | Some t ->
-                            // When Item has a value, map the Type to and Expression, if valid
-                            match getDefaultValue t with
-                            | Some value ->
-                                // If the Type was mapped to an Expression successfully, create an Expression-SequenceItem
-                                {
-                                    Item =
-                                        // For all items after the first, we need to inject a space before each item
-                                        // For example: (0,0) goes to (0, 0)
-                                        if i > 0 then
-                                            value |> Expression.mapPrefix ((@) space) |> Some
-                                        else
-                                            value |> Some
-                                    Comma = item.Comma
-                                }
-                                |> Some
-                            | None -> None
-                        | None ->
-                            // A Type-SequenceItem object with Item=None becomes an Expression-SequenceItem with Item=None
-                            // ToDo: Don't know what the use-case is for an Item of None
-                            { Item = None; Comma = item.Comma } |> Some)
+                |> List.mapi (fun i item ->
+                    match item.Item with
+                    | Some t ->
+                        // When Item has a value, map the Type to and Expression, if valid
+                        match getDefaultValue t with
+                        | Some value ->
+                            // If the Type was mapped to an Expression successfully, create an Expression-SequenceItem
+                            {
+                                Item =
+                                    // For all items after the first, we need to inject a space before each item
+                                    // For example: (0,0) goes to (0, 0)
+                                    if i > 0 then value |> Expression.mapPrefix ((@) space) |> Some else value |> Some
+                                Comma = item.Comma
+                            }
+                            |> Some
+                        | None -> None
+                    | None ->
+                        // A Type-SequenceItem object with Item=None becomes an Expression-SequenceItem with Item=None
+                        // ToDo: Don't know what the use-case is for an Item of None
+                        { Item = None; Comma = item.Comma } |> Some)
             // If any of the items are None (which means invalid for update) return None
             if items |> List.forall Option.isSome then
                 {
@@ -282,18 +278,17 @@ let arraySyntaxUpdate =
         | Type.Array arrayType ->
             arrayType.ItemType
             |> getDefaultValue
-            |> Option.map
-                (fun value ->
-                    {
-                        OpenBracket = { Prefix = []; Text = arrayType.OpenBracket.Text }
-                        Value = value
-                        Comma = { Prefix = []; Text = "," }
-                        Size = { Prefix = space; Text = "size" }
-                        Equals = { Prefix = space; Text = "=" }
-                        Length = { Prefix = space; Text = "0" } |> Literal
-                        CloseBracket = { Prefix = []; Text = arrayType.CloseBracket.Text }
-                    }
-                    |> NewSizedArray)
+            |> Option.map (fun value ->
+                {
+                    OpenBracket = { Prefix = []; Text = arrayType.OpenBracket.Text }
+                    Value = value
+                    Comma = { Prefix = []; Text = "," }
+                    Size = { Prefix = space; Text = "size" }
+                    Equals = { Prefix = space; Text = "=" }
+                    Length = { Prefix = space; Text = "0" } |> Literal
+                    CloseBracket = { Prefix = []; Text = arrayType.CloseBracket.Text }
+                }
+                |> NewSizedArray)
         | _ -> None
 
     { new Rewriter<_>() with
@@ -319,7 +314,7 @@ let arraySyntaxUpdate =
                     }
                     |> NewSizedArray
                 | None -> newArray |> NewArray // If the conversion is invalid, just leave the node as-is
-            | _ -> base.Expression((), expression)
+            | _ -> ``base``.Expression((), expression)
     }
 
 let checkArraySyntax fileName document =
@@ -414,5 +409,5 @@ let booleanOperatorUpdate =
                     |> InfixOperator
                 | _ -> expression
 
-            base.Expression((), updated)
+            ``base``.Expression((), updated)
     }

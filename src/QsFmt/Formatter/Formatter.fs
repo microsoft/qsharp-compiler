@@ -75,13 +75,12 @@ let internal formatDocument = versionToFormatRules
 
 let performFormat fileName qsharp_version source =
     parse source
-    |> Result.map
-        (fun ast ->
-            checkParsed source ast |> ignore
-            let formatted = formatDocument qsharp_version ast |> printer.Document
-            let isFormatted = formatted <> source
-            if isFormatted then File.WriteAllText(fileName, formatted)
-            isFormatted)
+    |> Result.map (fun ast ->
+        checkParsed source ast |> ignore
+        let formatted = formatDocument qsharp_version ast |> printer.Document
+        let isFormatted = formatted <> source
+        if isFormatted then File.WriteAllText(fileName, formatted)
+        isFormatted)
 
 let internal versionToUpdateRules (version: Version option) =
     let rules =
@@ -117,26 +116,24 @@ let internal updateDocument fileName qsharp_version document =
 
 let performUpdate fileName qsharp_version source =
     parse source
-    |> Result.map
-        (fun ast ->
-            checkParsed source ast |> ignore
-            let updated = updateDocument fileName qsharp_version ast |> printer.Document
-            let isUpdated = updated <> source
-            if isUpdated then File.WriteAllText(fileName, updated)
-            isUpdated)
+    |> Result.map (fun ast ->
+        checkParsed source ast |> ignore
+        let updated = updateDocument fileName qsharp_version ast |> printer.Document
+        let isUpdated = updated <> source
+        if isUpdated then File.WriteAllText(fileName, updated)
+        isUpdated)
 
 let performUpdateAndFormat fileName qsharp_version source =
     parse source
-    |> Result.map
-        (fun ast ->
-            checkParsed source ast |> ignore
-            let updatedAST = updateDocument fileName qsharp_version ast
-            let updated = printer.Document updatedAST
-            let isUpdated = updated <> source
-            let formatted = formatDocument qsharp_version updatedAST |> printer.Document
-            let isFormatted = formatted <> updated
-            if isUpdated || isFormatted then File.WriteAllText(fileName, formatted)
-            (isUpdated, isFormatted))
+    |> Result.map (fun ast ->
+        checkParsed source ast |> ignore
+        let updatedAST = updateDocument fileName qsharp_version ast
+        let updated = printer.Document updatedAST
+        let isUpdated = updated <> source
+        let formatted = formatDocument qsharp_version updatedAST |> printer.Document
+        let isFormatted = formatted <> updated
+        if isUpdated || isFormatted then File.WriteAllText(fileName, formatted)
+        (isUpdated, isFormatted))
 
 [<CompiledName "Update">]
 let update fileName qsharp_version source =

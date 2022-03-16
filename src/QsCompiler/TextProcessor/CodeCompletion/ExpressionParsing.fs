@@ -28,7 +28,8 @@ let private array expression =
 let private missingExpr = { parse = keyword "_"; id = "_" }
 
 /// Parses a prefix operator.
-let private prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
+let private prefixOp =
+    expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
 
 /// Parses an infix operator.
 let private infixOp =

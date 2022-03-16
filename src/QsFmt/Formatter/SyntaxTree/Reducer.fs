@@ -47,14 +47,14 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Combine : 'result * 'result -> 'result
+    abstract Combine: 'result * 'result -> 'result
 
-    abstract Document : document: Document -> 'result
+    abstract Document: document: Document -> 'result
 
     default _.Document document =
         (document.Namespaces |> List.map reducer.Namespace) @ [ reducer.Terminal document.Eof ] |> reduce
 
-    abstract Namespace : ns: Namespace -> 'result
+    abstract Namespace: ns: Namespace -> 'result
 
     default _.Namespace ns =
         [
@@ -64,7 +64,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract NamespaceItem : item: NamespaceItem -> 'result
+    abstract NamespaceItem: item: NamespaceItem -> 'result
 
     default _.NamespaceItem item =
         match item with
@@ -73,7 +73,7 @@ type internal 'result Reducer() as reducer =
         | CallableDeclaration callable -> reducer.CallableDeclaration callable
         | Unknown terminal -> reducer.Terminal terminal
 
-    abstract OpenDirective : directive: OpenDirective -> 'result
+    abstract OpenDirective: directive: OpenDirective -> 'result
 
     default _.OpenDirective directive =
         [ reducer.Terminal directive.OpenKeyword; reducer.Terminal directive.OpenName ]
@@ -82,7 +82,7 @@ type internal 'result Reducer() as reducer =
             @ [ reducer.Terminal directive.Semicolon ]
         |> reduce
 
-    abstract TypeDeclaration : declaration: TypeDeclaration -> 'result
+    abstract TypeDeclaration: declaration: TypeDeclaration -> 'result
 
     default _.TypeDeclaration declaration =
         (declaration.Attributes |> List.map reducer.Attribute)
@@ -96,26 +96,26 @@ type internal 'result Reducer() as reducer =
           ]
         |> reduce
 
-    abstract Attribute : attribute: Attribute -> 'result
+    abstract Attribute: attribute: Attribute -> 'result
 
     default _.Attribute attribute =
         [ reducer.Terminal attribute.At; reducer.Expression attribute.Expression ] |> reduce
 
-    abstract UnderlyingType : underlying: UnderlyingType -> 'result
+    abstract UnderlyingType: underlying: UnderlyingType -> 'result
 
     default _.UnderlyingType underlying =
         match underlying with
         | TypeDeclarationTuple tuple -> reducer.Tuple(reducer.TypeTupleItem, tuple)
         | Type _type -> reducer.Type _type
 
-    abstract TypeTupleItem : item: TypeTupleItem -> 'result
+    abstract TypeTupleItem: item: TypeTupleItem -> 'result
 
     default _.TypeTupleItem item =
         match item with
         | TypeBinding binding -> reducer.ParameterDeclaration binding
         | UnderlyingType underlying -> reducer.UnderlyingType underlying
 
-    abstract CallableDeclaration : callable: CallableDeclaration -> 'result
+    abstract CallableDeclaration: callable: CallableDeclaration -> 'result
 
     default _.CallableDeclaration callable =
         [
@@ -133,7 +133,7 @@ type internal 'result Reducer() as reducer =
         |> List.concat
         |> reduce
 
-    abstract TypeParameterBinding : binding: TypeParameterBinding -> 'result
+    abstract TypeParameterBinding: binding: TypeParameterBinding -> 'result
 
     default _.TypeParameterBinding binding =
         reducer.Terminal binding.OpenBracket
@@ -141,7 +141,7 @@ type internal 'result Reducer() as reducer =
         @ [ reducer.Terminal binding.CloseBracket ]
         |> reduce
 
-    abstract Type : typ: Type -> 'result
+    abstract Type: typ: Type -> 'result
 
     default _.Type typ =
         match typ with
@@ -154,12 +154,12 @@ type internal 'result Reducer() as reducer =
         | Callable callable -> reducer.CallableType callable
         | Type.Unknown terminal -> reducer.Terminal terminal
 
-    abstract TypeAnnotation : annotation: TypeAnnotation -> 'result
+    abstract TypeAnnotation: annotation: TypeAnnotation -> 'result
 
     default _.TypeAnnotation annotation =
         [ reducer.Terminal annotation.Colon; reducer.Type annotation.Type ] |> reduce
 
-    abstract ArrayType : array: ArrayType -> 'result
+    abstract ArrayType: array: ArrayType -> 'result
 
     default _.ArrayType array =
         [
@@ -169,7 +169,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract CallableType : callable: CallableType -> 'result
+    abstract CallableType: callable: CallableType -> 'result
 
     default _.CallableType callable =
         [
@@ -180,7 +180,7 @@ type internal 'result Reducer() as reducer =
         @ (callable.Characteristics |> Option.map reducer.CharacteristicSection |> Option.toList)
         |> reduce
 
-    abstract CharacteristicSection : section: CharacteristicSection -> 'result
+    abstract CharacteristicSection: section: CharacteristicSection -> 'result
 
     default _.CharacteristicSection section =
         [
@@ -189,7 +189,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract CharacteristicGroup : group: CharacteristicGroup -> 'result
+    abstract CharacteristicGroup: group: CharacteristicGroup -> 'result
 
     default _.CharacteristicGroup group =
         [
@@ -199,7 +199,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Characteristic : characteristic: Characteristic -> 'result
+    abstract Characteristic: characteristic: Characteristic -> 'result
 
     default _.Characteristic characteristic =
         match characteristic with
@@ -208,21 +208,21 @@ type internal 'result Reducer() as reducer =
         | Group group -> reducer.CharacteristicGroup group
         | Characteristic.InfixOperator operator -> reducer.InfixOperator(reducer.Characteristic, operator)
 
-    abstract CallableBody : body: CallableBody -> 'result
+    abstract CallableBody: body: CallableBody -> 'result
 
     default _.CallableBody body =
         match body with
         | Statements statements -> reducer.Block(reducer.Statement, statements)
         | Specializations specializations -> reducer.Block(reducer.Specialization, specializations)
 
-    abstract Specialization : specialization: Specialization -> 'result
+    abstract Specialization: specialization: Specialization -> 'result
 
     default _.Specialization specialization =
         (specialization.Names |> List.map reducer.Terminal)
         @ [ reducer.SpecializationGenerator specialization.Generator ]
         |> reduce
 
-    abstract SpecializationGenerator : generator: SpecializationGenerator -> 'result
+    abstract SpecializationGenerator: generator: SpecializationGenerator -> 'result
 
     default _.SpecializationGenerator generator =
         match generator with
@@ -232,7 +232,7 @@ type internal 'result Reducer() as reducer =
             @ [ reducer.Block(reducer.Statement, statements) ]
             |> reduce
 
-    abstract Statement : statement: Statement -> 'result
+    abstract Statement: statement: Statement -> 'result
 
     default _.Statement statement =
         match statement with
@@ -256,32 +256,32 @@ type internal 'result Reducer() as reducer =
         | QubitDeclarationStatement decl -> reducer.QubitDeclarationStatement decl
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
-    abstract ExpressionStatement : expr: ExpressionStatement -> 'result
+    abstract ExpressionStatement: expr: ExpressionStatement -> 'result
 
     default _.ExpressionStatement expr =
         [ reducer.Expression expr.Expression; reducer.Terminal expr.Semicolon ] |> reduce
 
-    abstract ReturnStatement : returns: SimpleStatement -> 'result
+    abstract ReturnStatement: returns: SimpleStatement -> 'result
 
     default _.ReturnStatement returns = defaultSimpleStatement returns
 
-    abstract FailStatement : fails: SimpleStatement -> 'result
+    abstract FailStatement: fails: SimpleStatement -> 'result
 
     default _.FailStatement fails = defaultSimpleStatement fails
 
-    abstract LetStatement : lets: BindingStatement -> 'result
+    abstract LetStatement: lets: BindingStatement -> 'result
 
     default _.LetStatement lets = defaultBindingStatement lets
 
-    abstract MutableStatement : mutables: BindingStatement -> 'result
+    abstract MutableStatement: mutables: BindingStatement -> 'result
 
     default _.MutableStatement mutables = defaultBindingStatement mutables
 
-    abstract SetStatement : sets: BindingStatement -> 'result
+    abstract SetStatement: sets: BindingStatement -> 'result
 
     default _.SetStatement sets = defaultBindingStatement sets
 
-    abstract UpdateStatement : updates: UpdateStatement -> 'result
+    abstract UpdateStatement: updates: UpdateStatement -> 'result
 
     default _.UpdateStatement updates =
         [
@@ -293,7 +293,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract UpdateWithStatement : withs: UpdateWithStatement -> 'result
+    abstract UpdateWithStatement: withs: UpdateWithStatement -> 'result
 
     default _.UpdateWithStatement withs =
         [
@@ -307,19 +307,19 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract IfStatement : ifs: ConditionalBlockStatement -> 'result
+    abstract IfStatement: ifs: ConditionalBlockStatement -> 'result
 
     default _.IfStatement ifs = defaultConditionalBlockStatement ifs
 
-    abstract ElifStatement : elifs: ConditionalBlockStatement -> 'result
+    abstract ElifStatement: elifs: ConditionalBlockStatement -> 'result
 
     default _.ElifStatement elifs = defaultConditionalBlockStatement elifs
 
-    abstract ElseStatement : elses: BlockStatement -> 'result
+    abstract ElseStatement: elses: BlockStatement -> 'result
 
     default _.ElseStatement elses = defaultBlockStatement elses
 
-    abstract ForStatement : loop: ForStatement -> 'result
+    abstract ForStatement: loop: ForStatement -> 'result
 
     default _.ForStatement loop =
         [
@@ -332,15 +332,15 @@ type internal 'result Reducer() as reducer =
         |> List.choose id
         |> reduce
 
-    abstract WhileStatement : whiles: ConditionalBlockStatement -> 'result
+    abstract WhileStatement: whiles: ConditionalBlockStatement -> 'result
 
     default _.WhileStatement whiles = defaultConditionalBlockStatement whiles
 
-    abstract RepeatStatement : repeats: BlockStatement -> 'result
+    abstract RepeatStatement: repeats: BlockStatement -> 'result
 
     default _.RepeatStatement repeats = defaultBlockStatement repeats
 
-    abstract UntilStatement : untils: UntilStatement -> 'result
+    abstract UntilStatement: untils: UntilStatement -> 'result
 
     default _.UntilStatement untils =
         [
@@ -352,19 +352,19 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Fixup : fixup: BlockStatement -> 'result
+    abstract Fixup: fixup: BlockStatement -> 'result
 
     default _.Fixup fixup = defaultBlockStatement fixup
 
-    abstract WithinStatement : withins: BlockStatement -> 'result
+    abstract WithinStatement: withins: BlockStatement -> 'result
 
     default _.WithinStatement withins = defaultBlockStatement withins
 
-    abstract ApplyStatement : apply: BlockStatement -> 'result
+    abstract ApplyStatement: apply: BlockStatement -> 'result
 
     default _.ApplyStatement apply = defaultBlockStatement apply
 
-    abstract QubitDeclarationStatement : decl: QubitDeclarationStatement -> 'result
+    abstract QubitDeclarationStatement: decl: QubitDeclarationStatement -> 'result
 
     default _.QubitDeclarationStatement decl =
         [
@@ -379,26 +379,26 @@ type internal 'result Reducer() as reducer =
         |> List.choose id
         |> reduce
 
-    abstract ParameterBinding : binding: ParameterBinding -> 'result
+    abstract ParameterBinding: binding: ParameterBinding -> 'result
 
     default _.ParameterBinding binding =
         match binding with
         | ParameterDeclaration declaration -> reducer.ParameterDeclaration declaration
         | ParameterTuple tuple -> reducer.Tuple(reducer.ParameterBinding, tuple)
 
-    abstract ParameterDeclaration : declaration: ParameterDeclaration -> 'result
+    abstract ParameterDeclaration: declaration: ParameterDeclaration -> 'result
 
     default _.ParameterDeclaration declaration =
         [ reducer.Terminal declaration.Name; reducer.TypeAnnotation declaration.Type ] |> reduce
 
-    abstract SymbolBinding : symbol: SymbolBinding -> 'result
+    abstract SymbolBinding: symbol: SymbolBinding -> 'result
 
     default _.SymbolBinding symbol =
         match symbol with
         | SymbolDeclaration declaration -> reducer.Terminal declaration
         | SymbolTuple tuple -> reducer.Tuple(reducer.SymbolBinding, tuple)
 
-    abstract QubitBinding : binding: QubitBinding -> 'result
+    abstract QubitBinding: binding: QubitBinding -> 'result
 
     default _.QubitBinding binding =
         [
@@ -408,7 +408,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract ForBinding : binding: ForBinding -> 'result
+    abstract ForBinding: binding: ForBinding -> 'result
 
     default _.ForBinding binding =
         [
@@ -418,7 +418,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract QubitInitializer : initializer: QubitInitializer -> 'result
+    abstract QubitInitializer: initializer: QubitInitializer -> 'result
 
     default _.QubitInitializer initializer =
         match initializer with
@@ -426,7 +426,7 @@ type internal 'result Reducer() as reducer =
         | QubitArray qubitArray -> reducer.QubitArray qubitArray
         | QubitTuple tuple -> reducer.Tuple(reducer.QubitInitializer, tuple)
 
-    abstract SingleQubit : newQubit: SingleQubit -> 'result
+    abstract SingleQubit: newQubit: SingleQubit -> 'result
 
     default _.SingleQubit newQubit =
         [
@@ -436,7 +436,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract QubitArray : newQubits: QubitArray -> 'result
+    abstract QubitArray: newQubits: QubitArray -> 'result
 
     default _.QubitArray newQubits =
         [
@@ -447,14 +447,14 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract InterpStringContent : interpStringContent: InterpStringContent -> 'result
+    abstract InterpStringContent: interpStringContent: InterpStringContent -> 'result
 
     default _.InterpStringContent interpStringContent =
         match interpStringContent with
         | Text text -> reducer.Terminal text
         | Expression interpStringExpression -> reducer.InterpStringExpression interpStringExpression
 
-    abstract InterpStringExpression : interpStringExpression: InterpStringExpression -> 'result
+    abstract InterpStringExpression: interpStringExpression: InterpStringExpression -> 'result
 
     default _.InterpStringExpression interpStringExpression =
         [
@@ -464,7 +464,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Expression : expression: Expression -> 'result
+    abstract Expression: expression: Expression -> 'result
 
     default _.Expression expression =
         match expression with
@@ -486,14 +486,14 @@ type internal 'result Reducer() as reducer =
         | Update update -> reducer.Update update
         | Expression.Unknown terminal -> reducer.Terminal terminal
 
-    abstract Identifier : identifier: Identifier -> 'result
+    abstract Identifier: identifier: Identifier -> 'result
 
     default _.Identifier identifier =
         reducer.Terminal identifier.Name
         :: (identifier.TypeArgs |> Option.map (curry reducer.Tuple reducer.Type) |> Option.toList)
         |> reduce
 
-    abstract InterpString : interpString: InterpString -> 'result
+    abstract InterpString: interpString: InterpString -> 'result
 
     default _.InterpString interpString =
         reducer.Terminal interpString.OpenQuote
@@ -501,7 +501,7 @@ type internal 'result Reducer() as reducer =
         @ [ reducer.Terminal interpString.CloseQuote ]
         |> reduce
 
-    abstract NewArray : newArray: NewArray -> 'result
+    abstract NewArray: newArray: NewArray -> 'result
 
     default _.NewArray newArray =
         [
@@ -513,7 +513,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract NewSizedArray : newSizedArray: NewSizedArray -> 'result
+    abstract NewSizedArray: newSizedArray: NewSizedArray -> 'result
 
     default _.NewSizedArray newSizedArray =
         [
@@ -527,7 +527,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract NamedItemAccess : namedItemAccess: NamedItemAccess -> 'result
+    abstract NamedItemAccess: namedItemAccess: NamedItemAccess -> 'result
 
     default _.NamedItemAccess namedItemAccess =
         [
@@ -537,7 +537,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract ArrayAccess : arrayAccess: ArrayAccess -> 'result
+    abstract ArrayAccess: arrayAccess: ArrayAccess -> 'result
 
     default _.ArrayAccess arrayAccess =
         [
@@ -548,7 +548,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Call : call: Call -> 'result
+    abstract Call: call: Call -> 'result
 
     default _.Call call =
         [
@@ -557,7 +557,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Conditional : conditional: Conditional -> 'result
+    abstract Conditional: conditional: Conditional -> 'result
 
     default _.Conditional conditional =
         [
@@ -569,7 +569,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Update : update: Update -> 'result
+    abstract Update: update: Update -> 'result
 
     default _.Update update =
         [
@@ -581,38 +581,38 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Block : mapper: ('a -> 'result) * block: 'a Block -> 'result
+    abstract Block: mapper: ('a -> 'result) * block: 'a Block -> 'result
 
     default _.Block(mapper, block) =
         reducer.Terminal block.OpenBrace :: (block.Items |> List.map mapper)
         @ [ reducer.Terminal block.CloseBrace ]
         |> reduce
 
-    abstract Tuple : mapper: ('a -> 'result) * tuple: 'a Tuple -> 'result
+    abstract Tuple: mapper: ('a -> 'result) * tuple: 'a Tuple -> 'result
 
     default _.Tuple(mapper, tuple) =
         reducer.Terminal tuple.OpenParen :: (tuple.Items |> List.map (curry reducer.SequenceItem mapper))
         @ [ reducer.Terminal tuple.CloseParen ]
         |> reduce
 
-    abstract SequenceItem : mapper: ('a -> 'result) * item: 'a SequenceItem -> 'result
+    abstract SequenceItem: mapper: ('a -> 'result) * item: 'a SequenceItem -> 'result
 
     default _.SequenceItem(mapper, item) =
         (item.Item |> Option.map mapper |> Option.toList)
         @ (item.Comma |> Option.map reducer.Terminal |> Option.toList)
         |> reduce
 
-    abstract PrefixOperator : mapper: ('a -> 'result) * operator: 'a PrefixOperator -> 'result
+    abstract PrefixOperator: mapper: ('a -> 'result) * operator: 'a PrefixOperator -> 'result
 
     default _.PrefixOperator(mapper, operator) =
         [ reducer.Terminal operator.PrefixOperator; mapper operator.Operand ] |> reduce
 
-    abstract PostfixOperator : mapper: ('a -> 'result) * operator: 'a PostfixOperator -> 'result
+    abstract PostfixOperator: mapper: ('a -> 'result) * operator: 'a PostfixOperator -> 'result
 
     default _.PostfixOperator(mapper, operator) =
         [ mapper operator.Operand; reducer.Terminal operator.PostfixOperator ] |> reduce
 
-    abstract InfixOperator : mapper: ('a -> 'result) * operator: 'a InfixOperator -> 'result
+    abstract InfixOperator: mapper: ('a -> 'result) * operator: 'a InfixOperator -> 'result
 
     default _.InfixOperator(mapper, operator) =
         [
@@ -622,4 +622,4 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Terminal : terminal: Terminal -> 'result
+    abstract Terminal: terminal: Terminal -> 'result

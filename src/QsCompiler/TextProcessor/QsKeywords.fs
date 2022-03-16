@@ -256,7 +256,8 @@ type QsOperator =
         prec: int
         isLeftAssociative: bool
     }
-    member internal this.Associativity = if this.isLeftAssociative then Associativity.Left else Associativity.Right
+    member internal this.Associativity =
+        if this.isLeftAssociative then Associativity.Left else Associativity.Right
 
     static member New(str, p, assoc) =
         {

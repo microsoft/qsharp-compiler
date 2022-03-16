@@ -413,9 +413,9 @@ type DictionaryAsArrayResolver() =
                 && t.GetGenericTypeDefinition() = typeof<IDictionary<_, _>>.GetGenericTypeDefinition ())
 
         if objectType.GetInterfaces().Any(new Func<_, _>(isDictionary)) then
-            base.CreateArrayContract(objectType) :> JsonContract
+            ``base``.CreateArrayContract(objectType) :> JsonContract
         else
-            base.CreateContract(objectType)
+            ``base``.CreateContract(objectType)
 
 
 module Json =

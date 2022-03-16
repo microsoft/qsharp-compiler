@@ -24,10 +24,9 @@ let globalProperties =
 /// </summary>
 let getItemsByType (project: ProjectInstance) (itemType: string) =
     project.Items
-    |> Seq.where
-        (fun item ->
-            item.ItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase)
-            && not (isNull item.EvaluatedInclude))
+    |> Seq.where (fun item ->
+        item.ItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase)
+        && not (isNull item.EvaluatedInclude))
     |> Seq.map (fun item -> Path.Combine(project.Directory, item.EvaluatedInclude))
 
 let getSourceFiles (projectFile: string) =

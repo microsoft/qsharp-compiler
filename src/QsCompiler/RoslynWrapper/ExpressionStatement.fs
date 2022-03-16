@@ -1,5 +1,6 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper
 
+#nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
 #nowarn "1182" // Unused parameters
 
 [<AutoOpen>]
@@ -281,7 +282,7 @@ module Statements =
         SyntaxFactory.YieldStatement(SyntaxKind.YieldReturnStatement, value) :> StatementSyntax
 
     // break;
-    let ``break`` = SyntaxFactory.BreakStatement() :> StatementSyntax
+    let break = SyntaxFactory.BreakStatement() :> StatementSyntax
 
     // { blocks }
     let ``}}`` = None

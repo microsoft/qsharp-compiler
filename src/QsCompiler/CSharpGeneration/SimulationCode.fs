@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.CsharpGeneration
 
+#nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -112,12 +114,10 @@ module SimulationCode =
 
     let getTypeParameters types =
         let findAll (t: ResolvedType) =
-            t.ExtractAll
-                (fun item ->
-                    item.Resolution
-                    |> function
-                        | QsTypeKind.TypeParameter tp -> seq { yield tp }
-                        | _ -> Enumerable.Empty())
+            t.ExtractAll (fun item ->
+                match item.Resolution with
+                | QsTypeKind.TypeParameter tp -> seq { tp }
+                | _ -> Seq.empty)
 
         types |> Seq.collect findAll |> Seq.distinctBy (fun tp -> tp.Origin, tp.TypeName) |> Seq.toList
 
@@ -460,6 +460,7 @@ module SimulationCode =
             | NewUdt (udt, args) -> buildNewUdt udt args // needs to be before CallLikeExpression!
             | CallLikeExpression (op, args) -> buildApply ex.ResolvedType op args
             | MissingExpr -> ident "_" :> ExpressionSyntax
+
         and captureExpression (ex: TypedExpression) =
             match ex.Expression with
             | Identifier (s, _) when ex.InferredInformation.IsMutable ->
@@ -467,6 +468,7 @@ module SimulationCode =
                 | QsTypeKind.ArrayType _ -> invoke (buildId s <|?.|> (ident "Copy")) ``(`` [] ``)``
                 | _ -> buildExpression ex
             | _ -> buildExpression ex
+
         and buildNamedItem ex acc =
             match acc with
             | LocalVariable name ->
@@ -480,16 +482,19 @@ module SimulationCode =
             | _ ->
                 // TODO: Diagnostics
                 failwith "Invalid identifier for named item"
+
         and buildAddExpr (exType: ResolvedType) lhs rhs =
             match exType.Resolution |> QArrayType with
             | Some arrType -> arrType <.> (ident "Add", [ buildExpression lhs; buildExpression rhs ])
             | _ -> ``((`` ((buildExpression lhs) <+> (buildExpression rhs)) ``))``
+
         and buildInterpolatedString (s: string) (exs: ImmutableArray<TypedExpression>) =
             if exs.Length <> 0 then
                 let exprs = exs |> Seq.map buildExpression |> Seq.toList
                 invoke (ident "String.Format") ``(`` (literal s :: exprs) ``)``
             else
                 literal s
+
         and buildId id : ExpressionSyntax =
             match id with
             | LocalVariable n -> n |> ident :> ExpressionSyntax
@@ -497,6 +502,7 @@ module SimulationCode =
             | InvalidIdentifier ->
                 // TODO: Diagnostics
                 failwith "Received InvalidIdentifier"
+
         and buildCopyAndUpdateExpression (lhsEx: TypedExpression, accEx: TypedExpression, rhsEx) =
             match lhsEx.ResolvedType.Resolution |> QArrayType with
             | Some arrayType ->
@@ -554,8 +560,10 @@ module SimulationCode =
                     | _ ->
                         failwith
                             "copy-and-update expressions are currently only supported for arrays and user defined types"
+
         and buildTuple many : ExpressionSyntax =
             many |> Seq.map captureExpression |> Seq.toList |> tuple // captured since we rely on the native C# tuples
+
         and buildPartial (partialType: ResolvedType) typeParamResolutions opEx args =
             let (pIn, pOut) = inAndOutputType partialType // The type of the operation constructed by partial application
             let (oIn, _) = inAndOutputType opEx.ResolvedType // The type of the operation accepting the partial tuples.
@@ -607,10 +615,12 @@ module SimulationCode =
             // If it does, we can't create the PartialMapper at compile time
             // so we just build a partial-tuple and let it be resolved at runtime.
             let op = buildExpression opEx
-            let values = if hasTypeParameters [ pIn; pOut ] then args |> captureExpression else buildPartialMapper ()
+            let values = if hasTypeParameters [ pIn; pOut ] then captureExpression args else buildPartialMapper ()
             op <.> (ident "Partial", [ values ])
+
         and buildNewUdt n args =
             ``new`` (``type`` [ justTheName context n ]) ``(`` [ args |> captureExpression ] ``)``
+
         and buildApply returnType op args =
             // Checks if the expression points to a non-generic user-defined callable.
             // Because these have fully-resolved types in the runtime,
@@ -645,11 +655,13 @@ module SimulationCode =
                     (ident "Apply")
 
             buildExpression op <.> (apply, [ args |> captureExpression ]) // we need to capture to guarantee that the result accurately reflects any indirect binding of arguments
+
         and buildConditional c t f =
             let cond = c |> buildExpression
             let whenTrue = t |> captureExpression
             let whenFalse = f |> captureExpression
             ``?`` cond (whenTrue, whenFalse)
+
         and buildRange lhs rEnd =
             let args =
                 lhs.Expression
@@ -659,17 +671,21 @@ module SimulationCode =
                     | _ -> [ (buildExpression lhs); (buildExpression rEnd) ]
 
             ``new`` (``type`` [ "QRange" ]) ``(`` args ``)``
+
         and buildValueArray at elems =
             match at.Resolution |> QArrayType with
             | Some arrayType -> ``new`` arrayType ``(`` (elems |> Seq.map captureExpression |> Seq.toList) ``)``
             // TODO: diagnostics.
             | _ -> failwith ""
+
         and buildSizedArray value size =
             let supplier = ``() =>`` [] (captureExpression value) :> ExpressionSyntax
             ident "QArray" <.> (ident "Filled", [ supplier; buildExpression size ])
+
         and buildNewArray b count =
             let arrayType = (ArrayType b |> QArrayType).Value
             arrayType <.> (ident "Create", [ count |> buildExpression ])
+
         and buildArrayItem a i =
             match i.ResolvedType.Resolution with
             | Range -> invoke ((buildExpression a) <|.|> (ident "Slice")) ``(`` [ (buildExpression i) ] ``)``
@@ -882,7 +898,7 @@ module SimulationCode =
         override this.OnRepeatStatement rs =
             let buildTest test fixup =
                 let condition = buildExpression test
-                let thens = [ ``break`` ]
+                let thens = [ break ]
                 let elses = buildBlock fixup
                 ``if`` ``(`` condition ``)`` thens (Some(``else`` elses))
 
@@ -1091,8 +1107,8 @@ module SimulationCode =
             // Use the right accessibility for the property depending on the accessibility of the callable.
             // Note: In C#, "private protected" is the intersection of protected and internal.
             match getCallableAccess qualifiedName |> Option.defaultValue Public with
-            | Public -> [ ``protected`` ]
-            | Internal -> [ ``private``; ``protected`` ]
+            | Public -> [ protected ]
+            | Internal -> [ ``private``; protected ]
 
         let buildOne qualifiedName =
             /// eg:
@@ -1464,7 +1480,7 @@ module SimulationCode =
         ``property-arrow_get`` "String" "ICallable.Name" [] get (``=>`` (literal name)) :> MemberDeclarationSyntax
 
     let buildImpl name =
-        propg "IOperationFactory" "Impl" [ ``private``; ``protected`` ] :> MemberDeclarationSyntax
+        propg "IOperationFactory" "Impl" [ ``private``; protected ] :> MemberDeclarationSyntax
 
     let buildFullName (name: QsQualifiedName) =
         let fqn =
@@ -1754,8 +1770,7 @@ module SimulationCode =
             op.Attributes
             |> SymbolResolution.TryFindTestTargets
             |> Seq.filter (String.IsNullOrWhiteSpace >> not)
-            |> Seq.map
-                (function
+            |> Seq.map (function
                 | x when x.Contains(".") ->
                     let indexOfDot = x.LastIndexOf('.')
                     { Namespace = x.Substring(0, indexOfDot); Name = x.Substring(indexOfDot + 1) }
@@ -1972,9 +1987,8 @@ module SimulationCode =
     // Returns only those namespaces and their elements that are defined for the given file.
     let findLocalElements selector (fileName: string) syntaxTree =
         syntaxTree
-        |> Seq.map
-            (fun ns ->
-                (ns.Name, (FilterBySourceFile.Apply(ns, fileName)).Elements |> Seq.choose selector |> Seq.toList))
+        |> Seq.map (fun ns ->
+            (ns.Name, (FilterBySourceFile.Apply(ns, fileName)).Elements |> Seq.choose selector |> Seq.toList))
         |> Seq.sortBy fst
         |> Seq.filter (fun (_, elements) -> not elements.IsEmpty)
         |> Seq.toList
