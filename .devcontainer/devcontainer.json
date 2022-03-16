@@ -4,7 +4,7 @@
         "ms-dotnettools.csharp",
         "Ionide.Ionide-fsharp",
         "ms-vscode.powershell",
-        "quantum.quantum-devkit-vscode-net6",
+        "quantum.quantum-devkit-vscode",
         "ms-vscode.cpptools"
     ],
     "settings": {
