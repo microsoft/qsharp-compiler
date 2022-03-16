@@ -1,6 +1,6 @@
-# Microsoft Quantum Development Kit Preview
+# Microsoft Quantum Development Kit
 
-Thank you for your interest in Microsoft's Quantum Development Kit for Visual Studio Code preview.
+Thank you for your interest in Microsoft's Quantum Development Kit for Visual Studio Code.
 
 The Quantum Development Kit contains the tools you'll need to build your own quantum computing programs and experiments.
 
