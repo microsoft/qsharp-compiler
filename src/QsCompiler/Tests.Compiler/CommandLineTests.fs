@@ -4,6 +4,7 @@
 module Microsoft.Quantum.QsCompiler.Testing.CommandLineTests
 
 open System
+open System.Collections.Immutable
 open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
@@ -166,6 +167,16 @@ let ``execute rewrite steps only if validation passes`` () =
     Assert.Equal(CompilationLoader.Status.Failed, loaded.Validation)
     Assert.Equal(CompilationLoader.Status.NotRun, loaded.FunctorSupport)
     Assert.Equal(CompilationLoader.Status.NotRun, loaded.Monomorphization)
+
+[<Fact>]
+let ``lift lambdas by default`` () =
+    let source = "namespace Test { function Foo() : Unit { let f = x -> x + 1; } }"
+
+    let sourceLoader =
+        CompilationLoader.SourceLoader(fun _ -> ImmutableDictionary.Empty.Add(Uri "file:///Test.qs", source))
+
+    let loader = CompilationLoader(sourceLoader, Seq.empty, CompilationLoader.Configuration())
+    Assert.Equal(CompilationLoader.Status.Succeeded, loader.LiftLambdaExpressions)
 
 [<Fact>]
 let ``find path relative`` () =
