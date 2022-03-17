@@ -21,7 +21,7 @@ if ($Env:ENABLE_VSIX -ne "false") {
     # The language server is only built if either the VS2019 or VS Code extension
     # is enabled.
     $VsixAssemblies = @(
-        ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.QsLanguageServer.dll",
+        ".\src\QsCompiler\LanguageServer\bin\$Env:BUILD_CONFIGURATION\net6.0\Microsoft.Quantum.QsLanguageServer.dll",
         ".\src\VisualStudioExtension\QSharpVsix\bin\$Env:BUILD_CONFIGURATION\Microsoft.Quantum.VisualStudio.Extension.dll"
     );
 }
@@ -55,10 +55,10 @@ $artifacts = @{
         ".\src\QsCompiler\RoslynWrapper\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.RoslynWrapper.dll",
         ".\src\QsCompiler\LlvmBindings\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.LlvmBindings.dll",
         ".\src\QsCompiler\Transformations\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsTransformations.dll",
-        ".\src\QsCompiler\CommandLineTool\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\qsc.dll",
-        ".\src\QsFmt\App\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\qsfmt.dll",
-        ".\src\QuantumSdk\Tools\BuildConfiguration\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.Sdk.BuildConfiguration.dll",
-        ".\src\QuantumSdk\Tools\DefaultEntryPoint\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.Sdk.DefaultEntryPoint.Generation.dll"
+        ".\src\QsCompiler\CommandLineTool\bin\$Env:BUILD_CONFIGURATION\net6.0\qsc.dll",
+        ".\src\QsFmt\App\bin\$Env:BUILD_CONFIGURATION\net6.0\qsfmt.dll",
+        ".\src\QuantumSdk\Tools\BuildConfiguration\bin\$Env:BUILD_CONFIGURATION\net6.0\Microsoft.Quantum.Sdk.BuildConfiguration.dll",
+        ".\src\QuantumSdk\Tools\DefaultEntryPoint\bin\$Env:BUILD_CONFIGURATION\net6.0\Microsoft.Quantum.Sdk.DefaultEntryPoint.Generation.dll"
     ) | ForEach-Object { Join-Path $PSScriptRoot (Join-Path ".." $_) };
 }
 

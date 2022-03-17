@@ -75,7 +75,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         let got =
             diag.Where(fun d -> d.Severity = severity)
             |> Seq.choose (fun d ->
-                match Diagnostics.TryGetCode d.Code with
+                match Diagnostics.TryGetCode d.Code.Value.Second with
                 | true, code -> Some code
                 | false, _ -> None)
 
