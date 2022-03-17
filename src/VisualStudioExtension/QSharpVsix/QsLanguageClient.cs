@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
 {
     [ContentType("Q#")]
     [Export(typeof(ILanguageClient))]
-    public class QsLanguageClient : VisualStudio.Shell.AsyncPackage, ILanguageClient, ILanguageClientCustomMessage
+    public class QsLanguageClient : VisualStudio.Shell.AsyncPackage, ILanguageClient, ILanguageClientCustomMessage2
     {
         private readonly long LaunchTime;
         public readonly string LogFile;
@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             CustomMessageTarget = new CustomServerNotifications();
         }
 
-        // properties and methods required by ILanguageClientCustomMessage
+        // properties and methods required by ILanguageClientCustomMessage2
 
         public object MiddleLayer => null; // we don't need to intercept messages
         public object CustomMessageTarget { get; }
@@ -56,6 +56,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         // properties required by ILanguageClient
 
         public string Name => "Q# Language Extension"; // name as displayed to the user
+        public bool ShowNotificationOnInitializeFailed => true; // Will notify the user if Language Server failed to initialize
         public IEnumerable<string> ConfigurationSections => null; // null is fine if the client does not provide settings
         public IEnumerable<string> FilesToWatch => null; // we use our own watcher rather than the one of the LSP Client
         public object InitializationOptions => JObject.FromObject(new
@@ -101,8 +102,22 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
                 $"Path to the log file: \"{this.LogFile}\"",
                 ex.ToString()
             };
-            customPane.OutputString(String.Join(Environment.NewLine, messages));
+            customPane.OutputStringThreadSafe(String.Join(Environment.NewLine, messages));
             customPane.Activate(); // brings the pane into view
+        }
+
+        public Task<InitializationFailureContext> OnServerInitializeFailedAsync(ILanguageClientInitializationInfo initializationState)
+        {
+            string message = "Q# Language Client failed to activate.";
+            string exception = initializationState.InitializationException?.ToString() ?? string.Empty;
+            message = $"{message}\n {exception}";
+
+            var failureContext = new InitializationFailureContext()
+            {
+                FailureMessage = message,
+            };
+
+            return Task.FromResult<InitializationFailureContext>(failureContext);
         }
 
         /// Invoking the StartAsync event signals that the language server should be started, and triggers a call to this routine.
