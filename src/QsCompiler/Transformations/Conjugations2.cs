@@ -1,0 +1,86 @@
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+using System;
+using System.Collections.Immutable;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
+
+namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
+{
+    /// <summary>
+    /// Syntax tree transformation that inlines all conjugations, thus eliminating them from a given scope.
+    /// All exception thrown during transformation are caught and the action given upon instantiation - if any - is called upon them.
+    /// The syntax tree is left unchanged if an exception occurs. The Success property is true if and only if no exceptions occurred.
+    /// The generation of the adjoint for the outer block is subject to the same limitation as any adjoint auto-generation.
+    /// In particular, it is only guaranteed to be valid if operation calls only occur within expression statements, and
+    /// throws an InvalidOperationException if the outer block contains while-loops.
+    /// </summary>
+    public class InlineConjugations
+    : MonoTransformation
+    {
+        public bool Success { get; internal set; }
+
+        internal Action<Exception>? OnException { get; }
+
+        internal Func<QsScope, QsScope> ResolveNames { get; set; } =
+            new UniqueVariableNames().OnScope;
+
+        public void Reset() =>
+            this.ResolveNames = new UniqueVariableNames().OnScope;
+
+        public InlineConjugations(Action<Exception>? onException = null)
+        : base()
+        {
+            this.Success = true;
+            this.OnException = onException;
+        }
+
+        /* overrides */
+
+        public override QsScope OnScope(QsScope scope)
+        {
+            var statements = ImmutableArray.CreateBuilder<QsStatement>();
+            foreach (var statement in scope.Statements)
+            {
+                if (statement.Statement is QsStatementKind.QsConjugation conj)
+                {
+                    // since we are eliminating scopes,
+                    // we need to make sure that the variables defined within the inlined scopes do not clash with other defined variables.
+                    var outer = this.ResolveNames(this.OnScope(conj.Item.OuterTransformation.Body));
+                    var inner = this.ResolveNames(this.OnScope(conj.Item.InnerTransformation.Body));
+                    var adjOuter = outer.GenerateAdjoint(); // will add a unique name wrapper
+
+                    statements.AddRange(outer.Statements);
+                    statements.AddRange(inner.Statements);
+                    statements.AddRange(adjOuter.Statements);
+                }
+                else
+                {
+                    statements.Add(this.OnStatement(statement));
+                }
+            }
+
+            return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
+        }
+
+        public override Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope> OnProvidedImplementation(
+                QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> argTuple, QsScope body)
+        {
+            this.Reset();
+            try
+            {
+                body = this.OnScope(body);
+            }
+            catch (Exception ex)
+            {
+                this.OnException?.Invoke(ex);
+                this.Success = false;
+            }
+
+            return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>, QsScope>(argTuple, body);
+        }
+    }
+}

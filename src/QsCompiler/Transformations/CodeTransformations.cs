@@ -54,9 +54,9 @@ namespace Microsoft.Quantum.QsCompiler
         public static bool InlineConjugations(this QsCompilation compilation, out QsCompilation inlined, Action<Exception>? onException = null)
         {
             var inline = new InlineConjugations(onException);
-            var namespaces = compilation.Namespaces.Select(inline.Namespaces.OnNamespace).ToImmutableArray();
+            var namespaces = compilation.Namespaces.Select(inline.OnNamespace).ToImmutableArray();
             inlined = new QsCompilation(namespaces, compilation.EntryPoints);
-            return inline.SharedState.Success;
+            return inline.Success;
         }
 
         /// <summary>

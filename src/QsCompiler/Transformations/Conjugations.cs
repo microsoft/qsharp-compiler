@@ -8,7 +8,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
+namespace Microsoft.Quantum.QsCompiler.Transformations.ConjugationsOld
 {
     /// <summary>
     /// Syntax tree transformation that inlines all conjugations, thus eliminating them from a given scope.
