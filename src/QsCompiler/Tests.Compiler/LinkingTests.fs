@@ -23,6 +23,7 @@ open System.Collections.Generic
 open System.Collections.Immutable
 open System.IO
 open Xunit
+open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type LinkingTests() =
     inherit CompilerTests(LinkingTests.Compile())
@@ -348,24 +349,25 @@ type LinkingTests() =
 
         let mutable gotLength, gotIndexRange = false, false
 
-        let onExpr (ex: TypedExpression) =
-            match ex.Expression with
-            | CallLikeExpression (lhs, _) ->
-                if lhs.Expression |> isGlobalCallable ((=) BuiltIn.Length.FullName) then
-                    gotLength <- true
-                    Assert.Equal(1, ex.TypeArguments.Length)
+        let walker =
+            { new MonoTransformation() with
+                override _.OnTypedExpression ex =
+                    match ex.Expression with
+                    | CallLikeExpression (lhs, _) ->
+                        if lhs.Expression |> isGlobalCallable ((=) BuiltIn.Length.FullName) then
+                            gotLength <- true
+                            Assert.Equal(1, ex.TypeArguments.Length)
 
-                    let parent, _, resolution = ex.TypeArguments |> Seq.head
-                    Assert.Equal(BuiltIn.Length.FullName, parent)
-                    Assert.Equal(Int, resolution.Resolution)
-                elif lhs.Expression |> isGlobalCallable (isConcretizationOf BuiltIn.IndexRange.FullName) then
-                    gotIndexRange <- true
-                    Assert.Equal(0, ex.TypeParameterResolutions.Count)
-
-            | _ -> ()
-
-        let walker = TypedExpressionWalker(Action<_> onExpr, ())
-        walker.Transformation.OnCompilation compilation |> ignore
+                            let parent, _, resolution = ex.TypeArguments |> Seq.head
+                            Assert.Equal(BuiltIn.Length.FullName, parent)
+                            Assert.Equal(Int, resolution.Resolution)
+                        elif lhs.Expression |> isGlobalCallable (isConcretizationOf BuiltIn.IndexRange.FullName) then
+                            gotIndexRange <- true
+                            Assert.Equal(0, ex.TypeParameterResolutions.Count)
+                    | _ -> ()
+                    ``base``.OnTypedExpression ex
+            }
+        walker.OnCompilation compilation |> ignore
         Assert.True(gotLength)
         Assert.True(gotIndexRange)
 

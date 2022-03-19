@@ -13,7 +13,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
+namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGenerationOld
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
 
