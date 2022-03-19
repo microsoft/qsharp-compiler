@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations
@@ -17,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// <summary>
     /// Contains tools for building and adding attributes to an existing Q# compilation.
     /// </summary>
-    public static class AttributeUtilsOld
+    public static class AttributeUtils
     {
         private static AttributeId BuildId(QsQualifiedName name) =>
             name != null
@@ -76,20 +77,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// - if the predicate is specified and not null.
         /// </summary>
         public static QsNamespace AddToCallables(QsNamespace ns, QsDeclarationAttribute attribute, CallablePredicate? predicate = null) =>
-            new AddAttributes(new[] { (attribute, predicate) }).Namespaces.OnNamespace(ns);
+            new AddAttributes(new[] { (attribute, predicate) }).OnNamespace(ns);
 
         /// <summary>
         /// Adds the given attribute(s) to all callables in the given namespace that satisfy the given predicate
         /// - if the predicate is specified and not null.
         /// </summary>
         public static QsNamespace AddToCallables(QsNamespace ns, params (QsDeclarationAttribute, CallablePredicate?)[] attributes) =>
-            new AddAttributes(attributes).Namespaces.OnNamespace(ns);
+            new AddAttributes(attributes).OnNamespace(ns);
 
         /// <summary>
         /// Adds the given attribute(s) to all callables in the given namespace.
         /// </summary>
         public static QsNamespace AddToCallables(QsNamespace ns, params QsDeclarationAttribute[] attributes) =>
-            new AddAttributes(attributes.Select(att => (att, (CallablePredicate?)null))).Namespaces.OnNamespace(ns);
+            new AddAttributes(attributes.Select(att => (att, (CallablePredicate?)null))).OnNamespace(ns);
 
         // private transformation class(es)
 
@@ -97,42 +98,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         /// Transformation to add attributes to an existing compilation.
         /// </summary>
         private class AddAttributes
-        : Core.SyntaxTreeTransformation<AddAttributes.TransformationState>
+        : MonoTransformation
         {
-            internal class TransformationState
-            {
-                internal ImmutableArray<(QsDeclarationAttribute, CallablePredicate)> AttributeSelection { get; }
-
-                internal TransformationState(IEnumerable<(QsDeclarationAttribute, CallablePredicate)> selections) =>
-                    this.AttributeSelection = selections.ToImmutableArray();
-            }
+            internal ImmutableArray<(QsDeclarationAttribute, CallablePredicate)> AttributeSelection { get; }
 
             internal AddAttributes(IEnumerable<(QsDeclarationAttribute, CallablePredicate?)> attributes)
-            : base(new TransformationState(attributes.Select(entry => (entry.Item1, entry.Item2 ?? (_ => true)))))
+            : base()
             {
-                this.Namespaces = new NamespaceTransformation(this);
-                this.Statements = new Core.StatementTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
-                this.StatementKinds = new Core.StatementKindTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
-                this.Expressions = new Core.ExpressionTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
-                this.ExpressionKinds = new Core.ExpressionKindTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
-                this.Types = new Core.TypeTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
+                this.AttributeSelection = attributes
+                    .Select(entry => (entry.Item1, entry.Item2 ?? (_ => true)))
+                    .ToImmutableArray();
             }
 
-            /* helper classes */
+            /* overrides */
 
-            private class NamespaceTransformation
-            : Core.NamespaceTransformation<TransformationState>
-            {
-                public NamespaceTransformation(AddAttributes parent)
-                : base(parent)
-                {
-                }
-
-                public override QsCallable OnCallableDeclaration(QsCallable c) =>
-                    c.AddAttributes(this.SharedState.AttributeSelection
+            public override QsCallable OnCallableDeclaration(QsCallable c) =>
+                    c.AddAttributes(this.AttributeSelection
                         .Where(entry => entry.Item2(c))
                         .Select(entry => entry.Item1));
-            }
         }
     }
 }
