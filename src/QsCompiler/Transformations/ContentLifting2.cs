@@ -13,7 +13,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLiftingOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
@@ -947,92 +947,75 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLiftingOld
     /// <see cref="LiftContentUsingContext.TransformationState.LiftBody"/>.
     /// To properly inherit from this transformation, the derived transformation should inherit
     /// this class, its transformation state class should inherit from
-    /// <see cref="LiftContentUsingContext.TransformationState"/>, and new namespace transformation
-    /// and new statement kind transformations are needed, they should inherit from
-    /// <see cref="LiftContentUsingContext{T}.NamespaceTransformation"/> and
-    /// <see cref="LiftContentUsingContext{T}.StatementKindTransformation"/> respectively.
+    /// <see cref="LiftContentUsingContext.TransformationState"/>.
     /// </summary>
-    internal class LiftContentUsingContext<T> : SyntaxTreeTransformation<T>
+    internal class LiftContentUsingContext<T> : MonoTransformation
         where T : LiftContentUsingContext.TransformationState
     {
+        protected T SharedState { get; }
+
         protected LiftContentUsingContext(T state)
-            : base(state)
+            : base()
         {
-            this.Namespaces = new NamespaceTransformation(this);
-            this.StatementKinds = new StatementKindTransformation(this);
-            this.Types = new TypeTransformation<T>(this, TransformationOptions.Disabled);
+            this.SharedState = state;
         }
 
-        protected class NamespaceTransformation : NamespaceTransformation<T>
+        /* overrides */
+
+        /// <inheritdoc/>
+        public override QsCallable OnCallableDeclaration(QsCallable c)
         {
-            public NamespaceTransformation(SyntaxTreeTransformation<T> parent)
-                : base(parent)
-            {
-            }
-
-            /// <inheritdoc/>
-            public override QsCallable OnCallableDeclaration(QsCallable c)
-            {
-                this.SharedState.CurrentCallable = new LiftContentUsingContext.CallableDetails(c);
-                return base.OnCallableDeclaration(c);
-            }
-
-            /// <inheritdoc/>
-            public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
-            {
-                this.SharedState.InBody = true;
-                var rtrn = base.OnBodySpecialization(spec);
-                this.SharedState.InBody = false;
-                return rtrn;
-            }
-
-            /// <inheritdoc/>
-            public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
-            {
-                this.SharedState.InAdjoint = true;
-                var rtrn = base.OnAdjointSpecialization(spec);
-                this.SharedState.InAdjoint = false;
-                return rtrn;
-            }
-
-            /// <inheritdoc/>
-            public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
-            {
-                this.SharedState.InControlled = true;
-                var rtrn = base.OnControlledSpecialization(spec);
-                this.SharedState.InControlled = false;
-                return rtrn;
-            }
-
-            /// <inheritdoc/>
-            public override QsSpecialization OnControlledAdjointSpecialization(QsSpecialization spec)
-            {
-                this.SharedState.InControlledAdjoint = true;
-                var rtrn = base.OnControlledAdjointSpecialization(spec);
-                this.SharedState.InControlledAdjoint = false;
-                return rtrn;
-            }
+            this.SharedState.CurrentCallable = new LiftContentUsingContext.CallableDetails(c);
+            return base.OnCallableDeclaration(c);
         }
 
-        protected class StatementKindTransformation : StatementKindTransformation<T>
+        /// <inheritdoc/>
+        public override QsSpecialization OnBodySpecialization(QsSpecialization spec)
         {
-            public StatementKindTransformation(SyntaxTreeTransformation<T> parent)
-                : base(parent)
-            {
-            }
+            this.SharedState.InBody = true;
+            var rtrn = base.OnBodySpecialization(spec);
+            this.SharedState.InBody = false;
+            return rtrn;
+        }
 
-            /// <inheritdoc/>
-            public override QsStatementKind OnConjugation(QsConjugation stm)
-            {
-                var superInWithinBlock = this.SharedState.InWithinBlock;
-                this.SharedState.InWithinBlock = true;
-                var (_, outer) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
-                this.SharedState.InWithinBlock = superInWithinBlock;
+        /// <inheritdoc/>
+        public override QsSpecialization OnAdjointSpecialization(QsSpecialization spec)
+        {
+            this.SharedState.InAdjoint = true;
+            var rtrn = base.OnAdjointSpecialization(spec);
+            this.SharedState.InAdjoint = false;
+            return rtrn;
+        }
 
-                var (_, inner) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
+        /// <inheritdoc/>
+        public override QsSpecialization OnControlledSpecialization(QsSpecialization spec)
+        {
+            this.SharedState.InControlled = true;
+            var rtrn = base.OnControlledSpecialization(spec);
+            this.SharedState.InControlled = false;
+            return rtrn;
+        }
 
-                return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
-            }
+        /// <inheritdoc/>
+        public override QsSpecialization OnControlledAdjointSpecialization(QsSpecialization spec)
+        {
+            this.SharedState.InControlledAdjoint = true;
+            var rtrn = base.OnControlledAdjointSpecialization(spec);
+            this.SharedState.InControlledAdjoint = false;
+            return rtrn;
+        }
+
+        /// <inheritdoc/>
+        public override QsStatementKind OnConjugation(QsConjugation stm)
+        {
+            var superInWithinBlock = this.SharedState.InWithinBlock;
+            this.SharedState.InWithinBlock = true;
+            var (_, outer) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.OuterTransformation);
+            this.SharedState.InWithinBlock = superInWithinBlock;
+
+            var (_, inner) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.InnerTransformation);
+
+            return QsStatementKind.NewQsConjugation(new QsConjugation(outer, inner));
         }
     }
 }
