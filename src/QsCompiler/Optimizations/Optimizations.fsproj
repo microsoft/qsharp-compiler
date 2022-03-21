@@ -10,8 +10,11 @@
     <Compile Include="Utils\ComputationExpressions.fs" />
     <Compile Include="Utils\HelperFunctions.fs" />
     <Compile Include="Utils\OptimizationTools.fs" />
+    <Compile Include="Utils\OptimizationTools2.fs" />
     <Compile Include="Utils\Evaluation.fs" />
+    <Compile Include="Utils\Evaluation2.fs" />
     <Compile Include="Utils\VariableRenaming.fs" />
+    <Compile Include="Utils\VariableRenaming2.fs" />
     <Compile Include="OptimizingTransformations\TransformationBase.fs" />
     <Compile Include="OptimizingTransformations\VariableRemoving.fs" />
     <Compile Include="OptimizingTransformations\StatementRemoving.fs" />
