@@ -11,7 +11,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using GraphBuilder = CallGraphBuilder<CallGraphNode, CallGraphEdge>;
@@ -46,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
                 var walker = new BuildGraph(graph);
                 foreach (var callable in callables)
                 {
-                    walker.Namespaces.OnCallableDeclaration(callable);
+                    walker.OnCallableDeclaration(callable);
                 }
             }
 
@@ -100,21 +100,39 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
                     // self-references from duplicating on the stack.
                     walker.SharedState.ResolvedNodeSet.Add(currentRequest);
                     walker.SharedState.CurrentNode = currentRequest;
-                    walker.Namespaces.OnCallableDeclaration(currentCallable);
+                    walker.OnCallableDeclaration(currentCallable);
                 }
             }
 
-            private class BuildGraph : SyntaxTreeTransformation<TransformationState>
+            private class BuildGraph : CallGraphWalkerBase<GraphBuilder, CallGraphNode, CallGraphEdge>.WalkerBase<TransformationState>
             {
                 public BuildGraph(GraphBuilder graph)
                     : base(new TransformationState(graph))
                 {
-                    this.Namespaces = new NamespaceWalker(this);
-                    this.Statements = new CallGraphWalkerBase<GraphBuilder, CallGraphNode, CallGraphEdge>.StatementWalker<TransformationState>(this);
-                    this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
-                    this.Expressions = new CallGraphWalkerBase<GraphBuilder, CallGraphNode, CallGraphEdge>.ExpressionWalker<TransformationState>(this);
-                    this.ExpressionKinds = new ExpressionKindWalker(this);
-                    this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                }
+
+                /* overrides */
+
+                public override QsCallable OnCallableDeclaration(QsCallable c)
+                {
+                    if (!this.SharedState.WithTrimming)
+                    {
+                        var node = new CallGraphNode(c.FullName);
+                        this.SharedState.CurrentNode = node;
+                        this.SharedState.Graph.AddNode(node);
+                    }
+
+                    return base.OnCallableDeclaration(c);
+                }
+
+                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+                {
+                    if (sym is Identifier.GlobalCallable global)
+                    {
+                        this.SharedState.AddDependency(global.Item);
+                    }
+
+                    return ExpressionKind.InvalidExpr;
                 }
             }
 
@@ -158,44 +176,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
                     {
                         this.RequestStack.Push(called);
                     }
-                }
-            }
-
-            private class NamespaceWalker : NamespaceTransformation<TransformationState>
-            {
-                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent)
-                    : base(parent, TransformationOptions.NoRebuild)
-                {
-                }
-
-                public override QsCallable OnCallableDeclaration(QsCallable c)
-                {
-                    if (!this.SharedState.WithTrimming)
-                    {
-                        var node = new CallGraphNode(c.FullName);
-                        this.SharedState.CurrentNode = node;
-                        this.SharedState.Graph.AddNode(node);
-                    }
-
-                    return base.OnCallableDeclaration(c);
-                }
-            }
-
-            private class ExpressionKindWalker : ExpressionKindTransformation<TransformationState>
-            {
-                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent)
-                    : base(parent, TransformationOptions.NoRebuild)
-                {
-                }
-
-                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
-                {
-                    if (sym is Identifier.GlobalCallable global)
-                    {
-                        this.SharedState.AddDependency(global.Item);
-                    }
-
-                    return ExpressionKind.InvalidExpr;
                 }
             }
         }

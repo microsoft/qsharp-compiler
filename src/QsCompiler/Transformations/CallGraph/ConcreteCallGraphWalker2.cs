@@ -11,7 +11,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 {
     using ConcreteGraphBuilder = CallGraphBuilder<ConcreteCallGraphNode, ConcreteCallGraphEdge>;
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
                     walker.SharedState.ResolvedNodeSet.Add(currentRequest);
                     walker.SharedState.CurrentNode = currentRequest;
                     walker.SharedState.GetSpecializationKinds = (callableName) => GetSpecializationKinds(globals, callableName);
-                    walker.Namespaces.OnSpecializationImplementation(spec.Implementation);
+                    walker.OnSpecializationImplementation(spec.Implementation);
                 }
             }
 
@@ -168,17 +168,80 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
                 return relevantSpecs.First();
             }
 
-            private class BuildGraph : SyntaxTreeTransformation<TransformationState>
+            private class BuildGraph : CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.WalkerBase<TransformationState>
             {
                 public BuildGraph(ConcreteGraphBuilder graph)
                     : base(new TransformationState(graph))
                 {
-                    this.Namespaces = new NamespaceWalker(this);
-                    this.Statements = new CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.StatementWalker<TransformationState>(this);
-                    this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
-                    this.Expressions = new CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.ExpressionWalker<TransformationState>(this);
-                    this.ExpressionKinds = new ExpressionKindWalker(this);
-                    this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                }
+
+                /* overrides */
+
+                public override QsGeneratorDirective OnGeneratedImplementation(QsGeneratorDirective directive)
+                {
+                    if (directive.IsSelfInverse)
+                    {
+                        if (this.SharedState.CurrentNode is null)
+                        {
+                            throw new ArgumentException("CurrentNode is expected to be non-null when processing self-adjoint specializations.");
+                        }
+
+                        if (this.SharedState.CurrentNode.Kind.IsQsAdjoint)
+                        {
+                            this.SharedState.AddSelfInverseDependency(this.SharedState.CurrentNode.CallableName, QsSpecializationKind.QsBody);
+                        }
+                        else if (this.SharedState.CurrentNode.Kind.IsQsControlledAdjoint)
+                        {
+                            this.SharedState.AddSelfInverseDependency(this.SharedState.CurrentNode.CallableName, QsSpecializationKind.QsControlled);
+                        }
+                        else
+                        {
+                            throw new ArgumentException("\"self\" can only be used on adjoint and controlled adjoint specializations.");
+                        }
+
+                        return directive;
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Encountered unresolved generated specialization while constructing concrete call graph.");
+                    }
+                }
+
+                public override ExpressionKind OnCallLikeExpression(TypedExpression method, TypedExpression arg)
+                {
+                    var contextInCall = this.SharedState.IsInCall;
+                    this.SharedState.IsInCall = true;
+                    this.OnTypedExpression(method);
+                    this.SharedState.IsInCall = contextInCall;
+                    this.OnTypedExpression(arg);
+                    return ExpressionKind.InvalidExpr;
+                }
+
+                public override ExpressionKind OnAdjointApplication(TypedExpression ex)
+                {
+                    this.SharedState.HasAdjointDependency = !this.SharedState.HasAdjointDependency;
+                    var result = base.OnAdjointApplication(ex);
+                    this.SharedState.HasAdjointDependency = !this.SharedState.HasAdjointDependency;
+                    return result;
+                }
+
+                public override ExpressionKind OnControlledApplication(TypedExpression ex)
+                {
+                    var contextControlled = this.SharedState.HasControlledDependency;
+                    this.SharedState.HasControlledDependency = true;
+                    var result = base.OnControlledApplication(ex);
+                    this.SharedState.HasControlledDependency = contextControlled;
+                    return result;
+                }
+
+                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+                {
+                    if (sym is Identifier.GlobalCallable global)
+                    {
+                        this.SharedState.AddDependency(global.Item);
+                    }
+
+                    return ExpressionKind.InvalidExpr;
                 }
             }
 
@@ -293,89 +356,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
                             this.RequestStack.Push(node);
                         }
                     }
-                }
-            }
-
-            private class NamespaceWalker : NamespaceTransformation<TransformationState>
-            {
-                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent)
-                    : base(parent, TransformationOptions.NoRebuild)
-                {
-                }
-
-                public override QsGeneratorDirective OnGeneratedImplementation(QsGeneratorDirective directive)
-                {
-                    if (directive.IsSelfInverse)
-                    {
-                        if (this.SharedState.CurrentNode is null)
-                        {
-                            throw new ArgumentException("CurrentNode is expected to be non-null when processing self-adjoint specializations.");
-                        }
-
-                        if (this.SharedState.CurrentNode.Kind.IsQsAdjoint)
-                        {
-                            this.SharedState.AddSelfInverseDependency(this.SharedState.CurrentNode.CallableName, QsSpecializationKind.QsBody);
-                        }
-                        else if (this.SharedState.CurrentNode.Kind.IsQsControlledAdjoint)
-                        {
-                            this.SharedState.AddSelfInverseDependency(this.SharedState.CurrentNode.CallableName, QsSpecializationKind.QsControlled);
-                        }
-                        else
-                        {
-                            throw new ArgumentException("\"self\" can only be used on adjoint and controlled adjoint specializations.");
-                        }
-
-                        return directive;
-                    }
-                    else
-                    {
-                        throw new ArgumentException("Encountered unresolved generated specialization while constructing concrete call graph.");
-                    }
-                }
-            }
-
-            private class ExpressionKindWalker : ExpressionKindTransformation<TransformationState>
-            {
-                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent)
-                    : base(parent, TransformationOptions.NoRebuild)
-                {
-                }
-
-                public override ExpressionKind OnCallLikeExpression(TypedExpression method, TypedExpression arg)
-                {
-                    var contextInCall = this.SharedState.IsInCall;
-                    this.SharedState.IsInCall = true;
-                    this.Expressions.OnTypedExpression(method);
-                    this.SharedState.IsInCall = contextInCall;
-                    this.Expressions.OnTypedExpression(arg);
-                    return ExpressionKind.InvalidExpr;
-                }
-
-                public override ExpressionKind OnAdjointApplication(TypedExpression ex)
-                {
-                    this.SharedState.HasAdjointDependency = !this.SharedState.HasAdjointDependency;
-                    var result = base.OnAdjointApplication(ex);
-                    this.SharedState.HasAdjointDependency = !this.SharedState.HasAdjointDependency;
-                    return result;
-                }
-
-                public override ExpressionKind OnControlledApplication(TypedExpression ex)
-                {
-                    var contextControlled = this.SharedState.HasControlledDependency;
-                    this.SharedState.HasControlledDependency = true;
-                    var result = base.OnControlledApplication(ex);
-                    this.SharedState.HasControlledDependency = contextControlled;
-                    return result;
-                }
-
-                public override ExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
-                {
-                    if (sym is Identifier.GlobalCallable global)
-                    {
-                        this.SharedState.AddDependency(global.Item);
-                    }
-
-                    return ExpressionKind.InvalidExpr;
                 }
             }
         }

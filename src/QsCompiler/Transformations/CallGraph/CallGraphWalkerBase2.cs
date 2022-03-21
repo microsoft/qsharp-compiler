@@ -10,7 +10,7 @@ using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 {
     using Range = DataTypes.Range;
     using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType>;
@@ -51,12 +51,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
                 internal abstract void AddDependency(QsQualifiedName identifier);
             }
 
-            public class StatementWalker<TState> : StatementTransformation<TState>
+            public class WalkerBase<TState> : MonoTransformation
                 where TState : TransformationState
             {
-                public StatementWalker(SyntaxTreeTransformation<TState> parent)
-                    : base(parent, TransformationOptions.NoRebuild)
+                internal TState SharedState { get; }
+
+                public WalkerBase(TState state)
+                    : base(TransformationOptions.NoRebuild)
                 {
+                    this.SharedState = state;
                 }
 
                 public override QsStatement OnStatement(QsStatement stm)
@@ -66,15 +69,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
                         ? QsNullable<Position>.NewValue(stm.Location.Item.Offset)
                         : QsNullable<Position>.Null;
                     return base.OnStatement(stm);
-                }
-            }
-
-            public class ExpressionWalker<TState> : ExpressionTransformation<TState>
-                where TState : TransformationState
-            {
-                public ExpressionWalker(SyntaxTreeTransformation<TState> parent)
-                    : base(parent, TransformationOptions.NoRebuild)
-                {
                 }
 
                 public override TypedExpression OnTypedExpression(TypedExpression ex)
