@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// may be specified via configuration (or project) file in the future
         /// </summary>
-        public struct Configuration
+        public class Configuration
         {
             /// <summary>
             /// The name of the project. Used as assembly name in the generated dll.
@@ -113,7 +113,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// <summary>
             /// Indicates whether the compiler will remove lambda expressions and replace them with calls to generated callables.
             /// </summary>
-            public bool LiftLambdaExpressions { get; set; }
+            public bool LiftLambdaExpressions { get; set; } = true;
 
             /// <summary>
             /// If the output folder is not null,
@@ -150,27 +150,21 @@ namespace Microsoft.Quantum.QsCompiler
             /// (i.e. classes implementing IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
             /// </summary>
-            [Obsolete("Please use RewriteStepAssemblies instead.")]
-            public IEnumerable<(string, string?)>? RewriteSteps;
-
-            /// <summary>
-            /// Contains a sequence of tuples with the path to a dotnet dll containing one or more rewrite steps
-            /// (i.e. classes implementing IRewriteStep) and the corresponding output folder.
-            /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
-            /// </summary>
-            public IEnumerable<(string, string?)>? RewriteStepAssemblies;
+            public IEnumerable<(string, string?)> RewriteStepAssemblies { get; set; } =
+                Enumerable.Empty<(string, string?)>();
 
             /// <summary>
             /// Contains a sequence of tuples with the types (classes implementing IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
             /// </summary>
-            public IEnumerable<(Type, string?)>? RewriteStepTypes;
+            public IEnumerable<(Type, string?)> RewriteStepTypes { get; set; } = Enumerable.Empty<(Type, string?)>();
 
             /// <summary>
             /// Contains a sequence of tuples with the objects (instances of IRewriteStep) and the corresponding output folder.
             /// The contained rewrite steps will be executed in the defined order and priority at the end of the compilation.
             /// </summary>
-            public IEnumerable<(IRewriteStep, string?)>? RewriteStepInstances;
+            public IEnumerable<(IRewriteStep, string?)> RewriteStepInstances { get; set; } =
+                Enumerable.Empty<(IRewriteStep, string?)>();
 
             /// <summary>
             /// If set to true, the post-condition for loaded rewrite steps is checked if the corresponding verification is implemented.
@@ -506,7 +500,7 @@ namespace Microsoft.Quantum.QsCompiler
             // loading the content to compiler
             this.logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
-            this.config = options ?? default;
+            this.config = options ?? new Configuration();
 
             // When loading references is done through the generated C# a Bond deserializer is not needed.
             if (!this.config.LoadReferencesBasedOnGeneratedCsharp)
