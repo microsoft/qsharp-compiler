@@ -69,7 +69,7 @@ let operator (op: string) notAfter =
     let charByChar p c =
         p ?>> ((eot >>% ()) <|> (pchar c >>% ()))
 
-    let p = Seq.fold charByChar (pstring op.[..numLetters] >>% ()) op.[numLetters + 1..]
+    let p = Seq.fold charByChar (pstring op.[..numLetters] >>% ()) op.[numLetters + 1 ..]
 
     attempt (p ?>> nextCharSatisfiesNot (fun c -> Seq.contains c notAfter)) >>. (emptySpace >>% ())
     >>% []
@@ -179,7 +179,8 @@ let tuple1 p =
 let omittedSymbols = { parse = keyword "..."; id = "..." }
 
 /// Parses the unit value. The right bracket is optional if EOT occurs first.
-let unitValue : Parser<CompletionKind list, _> = term (pchar '(' >>. emptySpace >>. expected (pchar ')')) |>> fst
+let unitValue: Parser<CompletionKind list, _> =
+    term (pchar '(' >>. emptySpace >>. expected (pchar ')')) |>> fst
 
 /// Creates an expression parser using the given prefix operator, infix operator, postfix operator, and term parsers.
 let createExpressionParser prefixOp infixOp postfixOp expTerm =

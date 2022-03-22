@@ -314,7 +314,7 @@ type QsCompilerDiagnostic =
 
 /// interface used to pass anything lock-like to the symbol table (could not find an existing one??)
 type IReaderWriterLock =
-    abstract EnterReadLock : unit -> unit
-    abstract ExitReadLock : unit -> unit
-    abstract EnterWriteLock : unit -> unit
-    abstract ExitWriteLock : unit -> unit
+    abstract EnterReadLock: unit -> unit
+    abstract ExitReadLock: unit -> unit
+    abstract EnterWriteLock: unit -> unit
+    abstract ExitWriteLock: unit -> unit

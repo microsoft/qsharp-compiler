@@ -46,12 +46,12 @@ type InputKind =
     | Project
 
 type internal IArguments =
-    abstract member Backup : bool
-    abstract member Recurse : bool
-    abstract member QdkVersion : string
-    abstract member InputFiles : seq<string>
-    abstract member ProjectFile : string
-    abstract member CommandKind : CommandKind
+    abstract member Backup: bool
+    abstract member Recurse: bool
+    abstract member QdkVersion: string
+    abstract member InputFiles: seq<string>
+    abstract member ProjectFile: string
+    abstract member CommandKind: CommandKind
 
 [<Verb("format", HelpText = "Format the source code in input files.", Hidden = true)>]
 type FormatArguments =

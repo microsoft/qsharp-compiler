@@ -73,11 +73,10 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
         checkedNamespaces
         |> Seq.map (fun checkedNs -> getNs checkedNs)
         |> SyntaxTreeExtensions.Callables
-        |> Seq.map
-            (fun call ->
-                (call.FullName,
-                 StripPositionInfo.Apply call.Signature.ArgumentType,
-                 StripPositionInfo.Apply call.Signature.ReturnType))
+        |> Seq.map (fun call ->
+            (call.FullName,
+             StripPositionInfo.Apply call.Signature.ArgumentType,
+             StripPositionInfo.Apply call.Signature.ReturnType))
 
     let doesCallMatchSig call signature =
         let (call_fullName: QsQualifiedName), call_argType, call_rtrnType = call

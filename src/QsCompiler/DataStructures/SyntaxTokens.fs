@@ -149,7 +149,7 @@ type Lambda<'Expr, 'Type> =
     member lambda.Kind = lambda.kind
 
     /// The symbol tuple for the lambda's parameter.
-    member lambda.ArgumentTuple : QsTuple<LocalVariableDeclaration<QsLocalSymbol, 'Type>> = lambda.paramTuple
+    member lambda.ArgumentTuple = lambda.paramTuple
 
     /// The body of the lambda.
     member lambda.Body = lambda.body
@@ -164,7 +164,7 @@ module Lambda =
             body = body
         }
 
-    let createUnchecked kind (paramTuple: QsSymbol) body =
+    let createUnchecked kind paramTuple body =
         let variableDeclaration =
             {
                 VariableName = InvalidName
@@ -174,7 +174,7 @@ module Lambda =
                 Range = Range.Zero
             }
 
-        let rec mapSymbol (sym: QsSymbol) =
+        let rec mapSymbol sym =
             match sym.Symbol with
             | Symbol name ->
                 let range = sym.Range.ValueOrApply(fun _ -> failwith "missing range information for valid symbol")

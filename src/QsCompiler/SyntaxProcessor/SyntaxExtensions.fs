@@ -294,7 +294,10 @@ let public PrintSignature (header: CallableDeclarationHeader) =
              QsComments.Empty)
 
     let signature = SyntaxTreeToQsharp.DeclarationSignature(callable, new Func<_, _>(TypeName))
-    let annotation = CharacteristicsAnnotation(header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
+
+    let annotation =
+        CharacteristicsAnnotation(header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
+
     sprintf "%s%s" signature annotation
 
 [<Extension>]

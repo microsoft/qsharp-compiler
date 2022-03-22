@@ -31,12 +31,7 @@ namespace Microsoft.Quantum.QsCompiler
             loadedSteps.AddRange(typeRewriteStepLoader.GetLoadedSteps(config.RewriteStepTypes));
 
             var assemblyRewriteStepLoader = new AssemblyRewriteStepsLoader(onDiagnostic, onException);
-
-            // this is for backwards compatibility with RewriteSteps property on the config. Can be removed in the future.
-#pragma warning disable CS0618 // Type or member is obsolete
-            var unifiedAssemblyRewriteSteps = (config.RewriteStepAssemblies ?? Enumerable.Empty<(string, string?)>()).Union(config.RewriteSteps ?? Enumerable.Empty<(string, string?)>());
-#pragma warning restore CS0618 // Type or member is obsolete
-            loadedSteps.AddRange(assemblyRewriteStepLoader.GetLoadedSteps(unifiedAssemblyRewriteSteps));
+            loadedSteps.AddRange(assemblyRewriteStepLoader.GetLoadedSteps(config.RewriteStepAssemblies));
 
             foreach (var loaded in loadedSteps)
             {

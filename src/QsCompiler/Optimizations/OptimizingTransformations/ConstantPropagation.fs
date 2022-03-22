@@ -35,7 +35,7 @@ and private ConstantPropagationNamespaces(parent: ConstantPropagation) =
 
     override __.OnProvidedImplementation(argTuple, body) =
         parent.Constants.Clear()
-        base.OnProvidedImplementation(argTuple, body)
+        ``base``.OnProvidedImplementation(argTuple, body)
 
 /// private helper class for ConstantPropagation
 and private ConstantPropagationStatementKinds(parent: ConstantPropagation, callables) =
@@ -151,21 +151,20 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
         let rhs = this.OnQubitInitializer stm.Binding.Rhs
 
         jointFlatten (lhs, rhs)
-        |> Seq.iter
-            (fun (l, r) ->
-                match l, r.Resolution with
-                | VariableName name, QubitRegisterAllocation { Expression = IntLiteral num } ->
-                    let arrayIden = Identifier(LocalVariable name, Null) |> wrapExpr (ArrayType(ResolvedType.New Qubit))
-                    let elemI = fun i -> ArrayItem(arrayIden, IntLiteral(int64 i) |> wrapExpr Int)
+        |> Seq.iter (fun (l, r) ->
+            match l, r.Resolution with
+            | VariableName name, QubitRegisterAllocation { Expression = IntLiteral num } ->
+                let arrayIden = Identifier(LocalVariable name, Null) |> wrapExpr (ArrayType(ResolvedType.New Qubit))
+                let elemI = fun i -> ArrayItem(arrayIden, IntLiteral(int64 i) |> wrapExpr Int)
 
-                    let expr =
-                        Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit)
-                        |> ImmutableArray.CreateRange
-                        |> ValueArray
-                        |> wrapExpr (ArrayType(ResolvedType.New Qubit))
+                let expr =
+                    Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit)
+                    |> ImmutableArray.CreateRange
+                    |> ValueArray
+                    |> wrapExpr (ArrayType(ResolvedType.New Qubit))
 
-                    defineVar (fun _ -> true) parent.Constants (name, expr)
-                | _ -> ())
+                defineVar (fun _ -> true) parent.Constants (name, expr)
+            | _ -> ())
 
         let body = this.Statements.OnScope stm.Body
         QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope
