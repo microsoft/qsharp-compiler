@@ -1,13 +1,15 @@
 {
     "dockerFile": "./Dockerfile",
     "extensions": [
+        "editorconfig.editorconfig",
+        "ionide.ionide-fsharp",
         "ms-dotnettools.csharp",
-        "Ionide.Ionide-fsharp",
+        "ms-vscode.cpptools",
         "ms-vscode.powershell",
-        "quantum.quantum-devkit-vscode",
-        "ms-vscode.cpptools"
+        "quantum.quantum-devkit-vscode"
     ],
     "settings": {
+        "omnisharp.useModernNet": true,
         "terminal.integrated.shell.linux": "/usr/bin/pwsh"
     }
 }

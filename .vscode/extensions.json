@@ -2,6 +2,9 @@
     "recommendations": [
         "editorconfig.editorconfig",
         "ionide.ionide-fsharp",
-        "ms-dotnettools.csharp"
+        "ms-dotnettools.csharp",
+        "ms-vscode.cpptools",
+        "ms-vscode.powershell",
+        "quantum.quantum-devkit-vscode"
     ]
 }
