@@ -10,25 +10,25 @@
     <Compile Include="Utils\ComputationExpressions.fs" />
     <Compile Include="Utils\HelperFunctions.fs" />
     <Compile Include="Utils\OptimizationTools.fs" />
-    <Compile Include="Utils\OptimizationTools2.fs" />
     <Compile Include="Utils\Evaluation.fs" />
-    <Compile Include="Utils\Evaluation2.fs" />
     <Compile Include="Utils\VariableRenaming.fs" />
-    <Compile Include="Utils\VariableRenaming2.fs" />
+    <Compile Include="Utils\MonoTransformations\OptimizationTools2.fs" />
+    <Compile Include="Utils\MonoTransformations\Evaluation2.fs" />
+    <Compile Include="Utils\MonoTransformations\VariableRenaming2.fs" />
     <Compile Include="OptimizingTransformations\TransformationBase.fs" />
-    <Compile Include="OptimizingTransformations\TransformationBase2.fs" />
+    <Compile Include="OptimizingTransformations\MonoTransformations\TransformationBase2.fs" />
+    <Compile Include="OptimizingTransformations\MonoTransformations\VariableRemoving2.fs" />
+    <Compile Include="OptimizingTransformations\MonoTransformations\StatementRemoving2.fs" />
+    <Compile Include="OptimizingTransformations\MonoTransformations\ConstantPropagation2.fs" />
+    <Compile Include="OptimizingTransformations\MonoTransformations\LoopUnrolling2.fs" />
+    <Compile Include="OptimizingTransformations\MonoTransformations\CallableInlining2.fs" />
+    <Compile Include="OptimizingTransformations\MonoTransformations\StatementGrouping2.fs" />
     <Compile Include="OptimizingTransformations\VariableRemoving.fs" />
-    <Compile Include="OptimizingTransformations\VariableRemoving2.fs" />
     <Compile Include="OptimizingTransformations\StatementRemoving.fs" />
-    <Compile Include="OptimizingTransformations\StatementRemoving2.fs" />
     <Compile Include="OptimizingTransformations\ConstantPropagation.fs" />
-    <Compile Include="OptimizingTransformations\ConstantPropagation2.fs" />
     <Compile Include="OptimizingTransformations\LoopUnrolling.fs" />
-    <Compile Include="OptimizingTransformations\LoopUnrolling2.fs" />
     <Compile Include="OptimizingTransformations\CallableInlining.fs" />
-    <Compile Include="OptimizingTransformations\CallableInlining2.fs" />
     <Compile Include="OptimizingTransformations\StatementGrouping.fs" />
-    <Compile Include="OptimizingTransformations\StatementGrouping2.fs" />
     <Compile Include="PureCircuitAPI.fs" />
     <Compile Include="PureCircuitFinding.fs" />
     <Compile Include="PureCircuitFinding2.fs" />
@@ -43,5 +43,7 @@
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
   </ItemGroup>
+
+  <ItemGroup />
 
 </Project>
