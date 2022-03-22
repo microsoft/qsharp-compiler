@@ -1,13 +1,12 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-module internal Microsoft.Quantum.QsCompiler.Experimental.OptimizationToolsNew
+module internal Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
@@ -88,15 +87,12 @@ type internal ReferenceCounter () =
 /// Should be called at the specialization level, as it's meant to operate on a single implementation.
 /// Does *not* update the type parameter resolution dictionaries.
 type internal ReplaceTypeParams (typeParams: ImmutableDictionary<_, ResolvedType>) =
-    //inherit Core.SyntaxTreeTransformation<ImmutableDictionary<QsQualifiedName * string, ResolvedType>>(typeParams)
     inherit MonoTransformation()
 
-    member val private TypeParams = typeParams
-
-    override this.OnTypeParameter tp =
+    override __.OnTypeParameter tp =
         let key = tp.Origin, tp.TypeName
 
-        match this.TypeParams.TryGetValue key with
+        match typeParams.TryGetValue key with
         | true, t -> t.Resolution
         | _ -> TypeKind.TypeParameter tp
 
@@ -138,25 +134,6 @@ type internal SideEffectChecker () =
     override this.OnFailStatement stm =
         this.HasInterrupts <- true
         base.OnFailStatement stm
-
-/// A ScopeTransformation that replaces one statement with zero or more statements
-[<AbstractClass>]
-type internal StatementCollectorTransformation(parent: Core.SyntaxTreeTransformation) =
-    inherit Core.StatementTransformation(parent)
-
-    abstract CollectStatements: QsStatementKind -> QsStatementKind seq
-
-    override this.OnScope scope =
-        let parentSymbols = scope.KnownSymbols
-
-        let statements =
-            scope.Statements
-            |> Seq.map this.OnStatement
-            |> Seq.map (fun x -> x.Statement)
-            |> Seq.collect this.CollectStatements
-            |> Seq.map wrapStmt
-
-        QsScope.New(statements, parentSymbols)
 
 /// A SyntaxTreeTransformation that removes all known symbols from anywhere in the AST
 type internal StripAllKnownSymbols () =

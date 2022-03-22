@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module internal Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
+module internal Microsoft.Quantum.QsCompiler.Experimental.OptimizationToolsOld
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.Utils

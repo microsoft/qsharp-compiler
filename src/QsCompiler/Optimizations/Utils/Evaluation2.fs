@@ -1,7 +1,7 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-module internal Microsoft.Quantum.QsCompiler.Experimental.EvaluationNew
+module internal Microsoft.Quantum.QsCompiler.Experimental.Evaluation
 
 open System
 open System.Collections.Generic

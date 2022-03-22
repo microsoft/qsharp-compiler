@@ -1,45 +1,33 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
+namespace Microsoft.Quantum.QsCompiler.Experimental
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Experimental.OptimizationToolsOld
+open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to remove useless statements
-type StatementRemoval private (_private_: string) =
+type StatementRemoval (removeFunctions: bool) =
     inherit TransformationBase()
-
-    new(removeFunctions: bool) as this =
-        new StatementRemoval("_private_")
-        then
-            this.Statements <- new VariableRemovalStatements(this, removeFunctions)
-            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
-            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
-
-/// private helper class for StatementRemoval
-and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions) =
-    inherit StatementCollectorTransformation(parent)
 
     /// Given a statement, returns a sequence of statements to replace this statement with.
     /// Removes useless statements, such as variable declarations with discarded values.
     /// Replaces ScopeStatements and empty qubit allocations with the statements they contain.
     /// Splits tuple declaration and updates into single declarations or updates for each variable.
     /// Splits QsQubitScopes by replacing register allocations with single qubit allocations.
-    override __.CollectStatements stmt =
+    member private __.CollectStatements stmt =
 
         let c = SideEffectChecker()
-        c.StatementKinds.OnStatementKind stmt |> ignore
+        c.OnStatementKind stmt |> ignore
 
         let c2 = MutationChecker()
-        c2.StatementKinds.OnStatementKind stmt |> ignore
+        c2.OnStatementKind stmt |> ignore
 
         match stmt with
         | QsVariableDeclaration { Lhs = lhs }
@@ -96,3 +84,15 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
             ->
             Seq.empty
         | a -> Seq.singleton a
+
+    override this.OnScope scope =
+        let parentSymbols = scope.KnownSymbols
+
+        let statements =
+            scope.Statements
+            |> Seq.map this.OnStatement
+            |> Seq.map (fun x -> x.Statement)
+            |> Seq.collect this.CollectStatements
+            |> Seq.map wrapStmt
+
+        QsScope.New(statements, parentSymbols)

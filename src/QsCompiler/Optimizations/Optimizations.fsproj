@@ -16,14 +16,22 @@
     <Compile Include="Utils\VariableRenaming.fs" />
     <Compile Include="Utils\VariableRenaming2.fs" />
     <Compile Include="OptimizingTransformations\TransformationBase.fs" />
+    <Compile Include="OptimizingTransformations\TransformationBase2.fs" />
     <Compile Include="OptimizingTransformations\VariableRemoving.fs" />
+    <Compile Include="OptimizingTransformations\VariableRemoving2.fs" />
     <Compile Include="OptimizingTransformations\StatementRemoving.fs" />
+    <Compile Include="OptimizingTransformations\StatementRemoving2.fs" />
     <Compile Include="OptimizingTransformations\ConstantPropagation.fs" />
+    <Compile Include="OptimizingTransformations\ConstantPropagation2.fs" />
     <Compile Include="OptimizingTransformations\LoopUnrolling.fs" />
+    <Compile Include="OptimizingTransformations\LoopUnrolling2.fs" />
     <Compile Include="OptimizingTransformations\CallableInlining.fs" />
+    <Compile Include="OptimizingTransformations\CallableInlining2.fs" />
     <Compile Include="OptimizingTransformations\StatementGrouping.fs" />
+    <Compile Include="OptimizingTransformations\StatementGrouping2.fs" />
     <Compile Include="PureCircuitAPI.fs" />
     <Compile Include="PureCircuitFinding.fs" />
+    <Compile Include="PureCircuitFinding2.fs" />
     <Compile Include="PreEvaluation.fs" />
   </ItemGroup>
 

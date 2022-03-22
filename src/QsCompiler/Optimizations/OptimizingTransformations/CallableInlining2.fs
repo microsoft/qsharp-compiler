@@ -1,16 +1,15 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
+namespace Microsoft.Quantum.QsCompiler.Experimental
 
 open System.Collections.Generic
 open System.Collections.Immutable
-open Microsoft.Quantum.QsCompiler.Experimental.OptimizationToolsOld
+open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// Represents all the functors applied to an operation call
@@ -91,10 +90,10 @@ type private InliningInfo =
         maybe {
             let! functors, callable, arg = InliningInfo.TrySplitCall callables expr.Expression
             let! specArgs, body = InliningInfo.TryGetProvidedImpl callable functors
-            let body = ReplaceTypeParams(expr.TypeParameterResolutions).Statements.OnScope body
+            let body = ReplaceTypeParams(expr.TypeParameterResolutions).OnScope body
 
             let returnType =
-                ReplaceTypeParams(expr.TypeParameterResolutions).Types.OnType callable.Signature.ReturnType
+                ReplaceTypeParams(expr.TypeParameterResolutions).OnType callable.Signature.ReturnType
 
             return
                 {
@@ -109,39 +108,8 @@ type private InliningInfo =
 
 
 /// The SyntaxTreeTransformation used to inline callables
-type CallableInlining private (_private_: string) =
+type CallableInlining (callables) =
     inherit TransformationBase()
-
-    // The current callable we're in the process of transforming
-    member val CurrentCallable: QsCallable option = None with get, set
-    member val Renamer: VariableRenaming option = None with get, set
-
-    new(callables) as this =
-        new CallableInlining("_private_")
-        then
-            this.Namespaces <- new CallableInliningNamespaces(this)
-            this.Statements <- new CallableInliningStatements(this, callables)
-            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
-            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
-
-/// private helper class for CallableInlining
-and private CallableInliningNamespaces(parent: CallableInlining) =
-    inherit NamespaceTransformationBase(parent)
-
-    override __.OnNamespace x =
-        let x = base.OnNamespace x
-        VariableRenaming().Namespaces.OnNamespace x
-
-    override __.OnCallableDeclaration c =
-        let renamerVal = VariableRenaming()
-        let c = renamerVal.Namespaces.OnCallableDeclaration c
-        parent.CurrentCallable <- Some c
-        parent.Renamer <- Some renamerVal
-        base.OnCallableDeclaration c
-
-/// private helper class for CallableInlining
-and private CallableInliningStatements(parent: CallableInlining, callables: ImmutableDictionary<_, _>) =
-    inherit StatementCollectorTransformation(parent)
 
     /// Recursively finds all the callables that could be inlined into the given scope.
     /// Includes callables that are invoked within the implementation of another call.
@@ -172,34 +140,11 @@ and private CallableInliningStatements(parent: CallableInlining, callables: Immu
         findAllCalls callables scope mySet
         not (mySet.Contains cannotReach)
 
-    let tryInline expr =
-        maybe {
-            let! ii = InliningInfo.TryGetInfo callables expr
-
-            let! currentCallable = parent.CurrentCallable
-            let! renamer = parent.Renamer
-            renamer.RenamingStack <- [ Map.empty ]
-            do! check (cannotReachCallable ii.body currentCallable.FullName)
-            do! check (ii.functors.controlled < 2)
-            // TODO - support multiple Controlled functors
-            do! check (cannotReachCallable ii.body ii.callable.FullName || isLiteral callables ii.arg)
-
-            let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
-
-            let newStatements =
-                ii.body.Statements.Insert(0, newBinding |> QsVariableDeclaration |> wrapStmt)
-                |> Seq.map renamer.Statements.OnStatement
-                |> Seq.map (fun s -> s.Statement)
-                |> ImmutableArray.CreateRange
-
-            return ii, newStatements
-        }
-
     /// Inline an expression representing a callable with no return statements.
     /// Returns None if the expression cannot be safely inlined.
-    let safeInline expr =
+    member private this.SafeInline expr =
         maybe {
-            let! ii, newStatements = tryInline expr
+            let! ii, newStatements = this.TryInline expr
             do! check (countReturnStatements ii.body = 0)
             return newStatements
         }
@@ -208,9 +153,9 @@ and private CallableInliningStatements(parent: CallableInlining, callables: Immu
     /// This single return statement must be at the end of the function body, as otherwise
     /// there's either dead code or an implicit return statement at the end of the body.
     /// Returns None if the expression cannot be safely inlined.
-    let safeInlineReturn expr =
+    member private this.SafeInlineReturn expr =
         maybe {
-            let! ii, newStatements = tryInline expr
+            let! ii, (newStatements: ImmutableArray<QsStatementKind>) = this.TryInline expr
 
             do! check (countReturnStatements ii.body = 1)
             let lastStatement = newStatements.[newStatements.Length - 1]
@@ -225,23 +170,73 @@ and private CallableInliningStatements(parent: CallableInlining, callables: Immu
             return newStatements, returnExpr
         }
 
+    // The current callable we're in the process of transforming
+    member val CurrentCallable: QsCallable option = None with get, set
+    member val Renamer: VariableRenaming option = None with get, set
+
+    member private this.TryInline expr =
+        maybe {
+            let! ii = InliningInfo.TryGetInfo callables expr
+
+            let! currentCallable = this.CurrentCallable
+            let! renamer = this.Renamer
+            renamer.RenamingStack <- [ Map.empty ]
+            do! check (cannotReachCallable ii.body currentCallable.FullName)
+            do! check (ii.functors.controlled < 2)
+            // TODO - support multiple Controlled functors
+            do! check (cannotReachCallable ii.body ii.callable.FullName || isLiteral callables ii.arg)
+
+            let newBinding = QsBinding.New ImmutableBinding (toSymbolTuple ii.specArgs, ii.arg)
+
+            let newStatements =
+                ii.body.Statements.Insert(0, newBinding |> QsVariableDeclaration |> wrapStmt)
+                |> Seq.map renamer.OnStatement
+                |> Seq.map (fun s -> s.Statement)
+                |> ImmutableArray.CreateRange
+
+            return ii, newStatements
+        }
+
     /// Given a statement, returns a sequence of statements to replace this statement with.
     /// Inlines simple calls that have exactly 0 or 1 return statements.
-    override __.CollectStatements stmt =
+    member private this.CollectStatements stmt =
         maybe {
             match stmt with
             | QsExpressionStatement ex ->
-                match safeInline ex with
-                | Some stmts -> return upcast stmts
+                match this.SafeInline ex with
+                | Some stmts -> return stmts :> QsStatementKind seq
                 | None ->
-                    let! stmts, returnExpr = safeInlineReturn ex
+                    let! stmts, returnExpr = this.SafeInlineReturn ex
                     return Seq.append stmts [ QsExpressionStatement returnExpr ]
             | QsVariableDeclaration s ->
-                let! stmts, returnExpr = safeInlineReturn s.Rhs
+                let! stmts, returnExpr = this.SafeInlineReturn s.Rhs
                 return Seq.append stmts [ QsVariableDeclaration { s with Rhs = returnExpr } ]
             | QsValueUpdate s ->
-                let! stmts, returnExpr = safeInlineReturn s.Rhs
+                let! stmts, returnExpr = this.SafeInlineReturn s.Rhs
                 return Seq.append stmts [ QsValueUpdate { s with Rhs = returnExpr } ]
             | _ -> return! None
         }
         |? Seq.singleton stmt
+
+    override __.OnNamespace x =
+        let x = base.OnNamespace x
+        VariableRenaming().OnNamespace x
+
+    override this.OnCallableDeclaration c =
+        let renamerVal = VariableRenaming()
+        let c = renamerVal.OnCallableDeclaration c
+        this.CurrentCallable <- Some c
+        this.Renamer <- Some renamerVal
+        base.OnCallableDeclaration c
+
+    override this.OnScope scope =
+        let parentSymbols = scope.KnownSymbols
+
+        let statements =
+            scope.Statements
+            |> Seq.map this.OnStatement
+            |> Seq.map (fun x -> x.Statement)
+            |> Seq.collect this.CollectStatements
+            |> Seq.map wrapStmt
+
+        QsScope.New(statements, parentSymbols)

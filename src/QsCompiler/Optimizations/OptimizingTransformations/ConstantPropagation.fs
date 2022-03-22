@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.Experimental
+namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
 
 open System.Collections.Generic
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Experimental.Evaluation
+open Microsoft.Quantum.QsCompiler.Experimental.EvaluationOld
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens

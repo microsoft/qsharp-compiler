@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.Experimental
+namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
@@ -30,7 +30,7 @@ and private VariableRemovalNamespaces(parent: VariableRemoval) =
 
     override __.OnProvidedImplementation(argTuple, body) =
         let r = ReferenceCounter()
-        r.Statements.OnScope body |> ignore
+        r.OnScope body |> ignore
         parent.ReferenceCounter <- Some r
         ``base``.OnProvidedImplementation(argTuple, body)
 

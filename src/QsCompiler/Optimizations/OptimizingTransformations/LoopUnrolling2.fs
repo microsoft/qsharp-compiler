@@ -1,44 +1,27 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
+namespace Microsoft.Quantum.QsCompiler.Experimental
 
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to unroll loops
-type LoopUnrolling private (_private_: string) =
+type LoopUnrolling (callables, maxSize) =
     inherit TransformationBase()
-
-    new(callables, maxSize) as this =
-        new LoopUnrolling("_private_")
-        then
-            this.Namespaces <- new LoopUnrollingNamespaces(this)
-            this.StatementKinds <- new LoopUnrollingStatementKinds(this, callables, maxSize)
-            this.Expressions <- new Core.ExpressionTransformation(this, Core.TransformationOptions.Disabled)
-            this.Types <- new Core.TypeTransformation(this, Core.TransformationOptions.Disabled)
-
-/// private helper class for LoopUnrolling
-and private LoopUnrollingNamespaces(parent: LoopUnrolling) =
-    inherit NamespaceTransformationBase(parent)
 
     override __.OnNamespace x =
         let x = base.OnNamespace x
-        VariableRenaming().Namespaces.OnNamespace x
-
-/// private helper class for LoopUnrolling
-and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSize) =
-    inherit Core.StatementKindTransformation(parent)
+        VariableRenaming().OnNamespace x
 
     override this.OnForStatement stm =
         let loopVar = fst stm.LoopItem |> this.OnSymbolTuple
-        let iterVals = this.Expressions.OnTypedExpression stm.IterationValues
-        let loopVarType = this.Expressions.Types.OnType(snd stm.LoopItem)
-        let body = this.Statements.OnScope stm.Body
+        let iterVals = this.OnTypedExpression stm.IterationValues
+        let loopVarType = this.OnType(snd stm.LoopItem)
+        let body = this.OnScope stm.Body
 
         maybe {
             let! iterValsList =
