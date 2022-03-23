@@ -77,4 +77,8 @@ namespace Microsoft.Quantum.Testing.General {
     operation ApplyToEach<'a>(op : 'a => Unit, xs : 'a[]) : Unit {
         body intrinsic;
     }
+
+    function Fold<'state, 'a>(folder : ('state, 'a) -> 'state, state : 'state, array : 'a[]) : 'state {
+        body intrinsic;
+    }
 }
