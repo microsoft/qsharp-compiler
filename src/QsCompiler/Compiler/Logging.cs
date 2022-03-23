@@ -238,7 +238,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// </summary>
         public static string MsBuildFormat(Diagnostic msg)
         {
-            var codeStr = msg.Code == null ? string.Empty : $" {msg.Code}";
+            var codeStr = msg.Code == null || msg.Code?.Second == null ? string.Empty : $" {msg.Code?.Second}";
             var (startLine, startChar) = (msg.Range?.Start?.Line + 1 ?? 0, msg.Range?.Start?.Character + 1 ?? 0);
 
             var level =

@@ -1070,6 +1070,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The explicit ref count increase for all items is necessary for the sake of
                 // consistency such that the reference count adjustment for copy-and-update is correct.
                 this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.ApplyPendingReferences();
                 this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
