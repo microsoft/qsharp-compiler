@@ -3,6 +3,10 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsFmt.Formatter</AssemblyName>
     <RootNamespace>$(AssemblyName)</RootNamespace>
+    <Configurations>Debug;Release;Mono</Configurations>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Mono|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

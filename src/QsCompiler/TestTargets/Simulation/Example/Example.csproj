@@ -12,6 +12,7 @@
       CS0219; <!-- Suppress C# warning for unused variables. -->
     </NoWarn>
     <QscVerbosity>D</QscVerbosity>
+    <Configurations>Debug;Release;Mono</Configurations>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -20,6 +21,10 @@
     <SimulationTarget>../Target/bin/$(Configuration)/netcoreapp3.1/Simulation.dll</SimulationTarget>
     <AdditionalQscArguments>--load $(SimulationTarget)</AdditionalQscArguments>
     <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll"</QscExe>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Mono|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

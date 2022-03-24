@@ -6,6 +6,11 @@
     <AssemblyName>Microsoft.Quantum.QirGeneration</AssemblyName>
     <!-- needed for local development when loading the source code version of the QIR generation as extension -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <Configurations>Debug;Release;Mono</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Mono|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

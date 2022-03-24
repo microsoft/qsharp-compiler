@@ -5,6 +5,11 @@
     <AssemblyName>Tests.Microsoft.Quantum.RoslynWrapper</AssemblyName>
     <IsPackable>false</IsPackable>
     <PlatformTarget>x64</PlatformTarget>
+    <Configurations>Debug;Release;Mono</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Mono|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

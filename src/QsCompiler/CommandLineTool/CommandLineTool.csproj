@@ -5,6 +5,7 @@
     <AssemblyTitle>Microsoft Q# compiler command line tool.</AssemblyTitle>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <OutputType>Exe</OutputType>
+    <Configurations>Debug;Release;Mono</Configurations>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -21,6 +22,10 @@
     <PackageId>Microsoft.Quantum.Compiler.CommandLine</PackageId>
     <ContentTargetFolders>\</ContentTargetFolders>
     <ApplicationIcon />
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Mono|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

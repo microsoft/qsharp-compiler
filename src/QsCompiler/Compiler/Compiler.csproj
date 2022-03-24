@@ -6,6 +6,11 @@
     <AssemblyName>Microsoft.Quantum.QsCompiler</AssemblyName>
     <RootNamespace>Microsoft.Quantum.QsCompiler</RootNamespace>
     <AssemblyTitle>Microsoft Q# compiler library.</AssemblyTitle>
+    <Configurations>Debug;Release;Mono</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Mono|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

@@ -13,10 +13,15 @@
     https://github.com/commandlineparser/commandline/issues/786
     -->
     <NoWarn>MSB3277</NoWarn>
+    <Configurations>Debug;Release;Mono</Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TELEMETRY</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Mono|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

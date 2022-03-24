@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsFmt.Parser</AssemblyName>
     <RootNamespace>$(AssemblyName)</RootNamespace>
     <!--Disable warnings for generated code -->
     <NoWarn>$(NoWarn);CS1584;CS1658</NoWarn>
+    <Configurations>Debug;Release;Mono</Configurations>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -12,6 +13,10 @@
     <AntlrJar>antlr-$(AntlrVersion)-complete.jar</AntlrJar>
     <AntlrJarUrl>https://www.antlr.org/download/$(AntlrJar)</AntlrJarUrl>
     <AntlrPath>$(BaseIntermediateOutputPath)Antlr/</AntlrPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Mono|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

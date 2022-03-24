@@ -5,6 +5,11 @@
     <IsPackable>false</IsPackable>
     <RootNamespace>Microsoft.Quantum.QsCompiler.Documentation.Testing</RootNamespace>
     <AssemblyName>Tests.Microsoft.Quantum.QsDocumentationParser</AssemblyName>
+    <Configurations>Debug;Release;Mono</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Mono|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
