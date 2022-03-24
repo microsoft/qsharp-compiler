@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if !MONO
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -8,7 +10,7 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformationsOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 {
     public class GetSourceFiles
     : SyntaxTreeTransformation<GetSourceFiles.TransformationState>
@@ -390,3 +392,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformationsOld
             base.OnLocalDeclarations(new LocalDeclarations(decl.Variables.AddRange(this.addedVariableDeclarations)));
     }
 }
+
+#endif

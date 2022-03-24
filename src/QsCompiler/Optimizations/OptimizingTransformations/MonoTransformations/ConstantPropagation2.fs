@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+#if MONO
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -476,3 +478,5 @@ type internal ConstantPropagation (callables) as this =
         match expr.Expression with
         | IntLiteral a -> IntLiteral(~~~a)
         | _ -> BNOT expr
+
+#endif

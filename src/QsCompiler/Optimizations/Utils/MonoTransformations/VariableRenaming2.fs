@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+#if MONO
+
 open System
 open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
@@ -109,3 +111,5 @@ type VariableRenaming () =
         let result = base.OnRepeatStatement stm
         this.RenamingStack <- this.ExitScope this.RenamingStack
         result
+
+#endif

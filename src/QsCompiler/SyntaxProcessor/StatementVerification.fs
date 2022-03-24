@@ -286,13 +286,23 @@ let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
 
     let usedInOuter =
         let identifiers = AccumulateIdentifiers()
+#if MONO
         identifiers.OnScope outer.Body |> ignore
         identifiers.UsedLocalVariables
+#else
+        identifiers.Statements.OnScope outer.Body |> ignore
+        identifiers.SharedState.UsedLocalVariables
+#endif
 
     let updatedInInner =
         let identifiers = AccumulateIdentifiers()
+#if MONO
         identifiers.OnScope inner.Body |> ignore
         identifiers.ReassignedVariables
+#else
+        identifiers.Statements.OnScope inner.Body |> ignore
+        identifiers.SharedState.ReassignedVariables
+#endif
 
     let updateErrs =
         updatedInInner

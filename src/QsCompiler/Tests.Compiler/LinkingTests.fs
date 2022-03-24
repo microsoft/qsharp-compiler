@@ -57,11 +57,19 @@ type LinkingTests() =
     /// Counts the number of references to the qualified name in all of the namespaces, including the declaration.
     let countReferences namespaces (name: QsQualifiedName) =
         let references = IdentifierReferences(name, defaultOffset)
+#if MONO
         Seq.iter (references.OnNamespace >> ignore) namespaces
 
         let declaration = if obj.ReferenceEquals(references.DeclarationLocation, null) then 0 else 1
 
         references.Locations.Count + declaration
+#else
+        Seq.iter (references.Namespaces.OnNamespace >> ignore) namespaces
+
+        let declaration = if obj.ReferenceEquals(references.SharedState.DeclarationLocation, null) then 0 else 1
+
+        references.SharedState.Locations.Count + declaration
+#endif
 
     let getCallablesWithSuffix compilation ns (suffix: string) =
         compilation.Namespaces
@@ -349,6 +357,7 @@ type LinkingTests() =
 
         let mutable gotLength, gotIndexRange = false, false
 
+#if MONO
         let walker =
             { new MonoTransformation() with
                 override _.OnTypedExpression ex =
@@ -368,6 +377,26 @@ type LinkingTests() =
                     ``base``.OnTypedExpression ex
             }
         walker.OnCompilation compilation |> ignore
+#else
+        let onExpr (ex: TypedExpression) =
+            match ex.Expression with
+            | CallLikeExpression (lhs, _) ->
+                if lhs.Expression |> isGlobalCallable ((=) BuiltIn.Length.FullName) then
+                    gotLength <- true
+                    Assert.Equal(1, ex.TypeArguments.Length)
+
+                    let parent, _, resolution = ex.TypeArguments |> Seq.head
+                    Assert.Equal(BuiltIn.Length.FullName, parent)
+                    Assert.Equal(Int, resolution.Resolution)
+                elif lhs.Expression |> isGlobalCallable (isConcretizationOf BuiltIn.IndexRange.FullName) then
+                    gotIndexRange <- true
+                    Assert.Equal(0, ex.TypeParameterResolutions.Count)
+
+            | _ -> ()
+
+        let walker = TypedExpressionWalker(Action<_> onExpr, ())
+        walker.Transformation.OnCompilation compilation |> ignore
+#endif
         Assert.True(gotLength)
         Assert.True(gotIndexRange)
 

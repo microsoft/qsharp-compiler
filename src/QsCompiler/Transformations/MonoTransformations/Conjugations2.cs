@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if MONO
+
 using System;
 using System.Collections.Immutable;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -84,3 +86,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
         }
     }
 }
+
+#endif

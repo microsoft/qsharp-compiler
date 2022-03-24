@@ -30,14 +30,23 @@ type PreEvaluation =
         // TODO: this should actually only evaluate everything for each entry point
         let rec evaluate (tree: _ list) =
             let mutable tree = tree
+#if MONO
             tree <- List.map (StripAllKnownSymbols().OnNamespace) tree
             tree <- List.map (VariableRenaming().OnNamespace) tree
+#else
+            tree <- List.map (StripAllKnownSymbols().Namespaces.OnNamespace) tree
+            tree <- List.map (VariableRenaming().Namespaces.OnNamespace) tree
+#endif
 
             let callables = GlobalCallableResolutions tree // needs to be constructed in every iteration
             let optimizers = script.Invoke callables |> Seq.toList
 
             for opt in optimizers do
+#if MONO
                 tree <- List.map opt.OnNamespace tree
+#else
+                tree <- List.map opt.Namespaces.OnNamespace tree
+#endif
 
             if optimizers |> List.exists (fun opt -> opt.CheckChanged()) then evaluate tree else tree
 

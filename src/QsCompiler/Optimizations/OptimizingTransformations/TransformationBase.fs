@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
+namespace Microsoft.Quantum.QsCompiler.Experimental
+
+#if !MONO
 
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -37,3 +39,5 @@ and private NamespaceTransformationBase(parent: TransformationBase) =
         if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then parent.Changed <- true
 
         newX
+
+#endif

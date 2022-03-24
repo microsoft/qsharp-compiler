@@ -1,11 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
+namespace Microsoft.Quantum.QsCompiler.Experimental
+
+#if !MONO
 
 open System.Collections.Generic
 open System.Collections.Immutable
-open Microsoft.Quantum.QsCompiler.Experimental.OptimizationToolsOld
+open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -245,3 +247,5 @@ and private CallableInliningStatements(parent: CallableInlining, callables: Immu
             | _ -> return! None
         }
         |? Seq.singleton stmt
+
+#endif

@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if !MONO
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -13,7 +15,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLiftingOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
@@ -1036,3 +1038,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLiftingOld
         }
     }
 }
+
+#endif

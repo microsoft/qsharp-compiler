@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
+namespace Microsoft.Quantum.QsCompiler.Experimental
+
+#if !MONO
 
 open System.Collections.Immutable
-open Microsoft.Quantum.QsCompiler.Experimental.OptimizationToolsOld
+open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.Experimental.PureCircuitAPI
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -77,3 +79,5 @@ and private PureCircuitFinderStatements(parent: PureCircuitFinder, callables: Im
         finishCircuit ()
 
         QsScope.New(newStatements, scope.KnownSymbols)
+
+#endif

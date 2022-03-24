@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if !MONO
+
 using System;
 using System.Collections.Immutable;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -8,7 +10,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.ConjugationsOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
 {
     /// <summary>
     /// Syntax tree transformation that inlines all conjugations, thus eliminating them from a given scope.
@@ -28,10 +30,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ConjugationsOld
             internal Action<Exception>? OnException { get; }
 
             internal Func<QsScope, QsScope> ResolveNames { get; set; } =
-                new UniqueVariableNames().OnScope;
+                new UniqueVariableNames().Statements.OnScope;
 
             public void Reset() =>
-                this.ResolveNames = new UniqueVariableNames().OnScope;
+                this.ResolveNames = new UniqueVariableNames().Statements.OnScope;
 
             public TransformationState(Action<Exception>? onException = null)
             {
@@ -113,3 +115,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ConjugationsOld
         }
     }
 }
+
+#endif

@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
+namespace Microsoft.Quantum.QsCompiler.Experimental
+
+#if !MONO
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
@@ -30,7 +32,7 @@ and private VariableRemovalNamespaces(parent: VariableRemoval) =
 
     override __.OnProvidedImplementation(argTuple, body) =
         let r = ReferenceCounter()
-        r.OnScope body |> ignore
+        r.Statements.OnScope body |> ignore
         parent.ReferenceCounter <- Some r
         ``base``.OnProvidedImplementation(argTuple, body)
 
@@ -52,3 +54,5 @@ and private VariableRemovalStatementKinds(parent: VariableRemoval) =
             Seq.map stmtKind.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
         | InvalidItem
         | DiscardedItem -> syms
+
+#endif

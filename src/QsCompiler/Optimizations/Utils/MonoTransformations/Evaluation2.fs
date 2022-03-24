@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-module internal Microsoft.Quantum.QsCompiler.Experimental.Evaluation
+namespace Microsoft.Quantum.QsCompiler.Experimental.Evaluation
+
+#if MONO
 
 open System
 open System.Collections.Generic
@@ -509,3 +511,5 @@ and internal ExpressionEvaluator (callables: IDictionary<QsQualifiedName, QsCall
         match expr.Expression with
         | IntLiteral a -> IntLiteral(~~~a)
         | _ -> BNOT expr
+
+#endif

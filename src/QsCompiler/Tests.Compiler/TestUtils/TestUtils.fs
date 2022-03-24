@@ -344,10 +344,18 @@ let getLinesFromSpecialization specialization =
         | Provided (_, body) -> Some body
         | _ -> None
     |> Option.get
+#if MONO
     |> writer.OnScope
+#else
+    |> writer.Statements.OnScope
+#endif
     |> ignore
 
+#if MONO
     writer.StatementOutputHandle
+#else
+    writer.SharedState.StatementOutputHandle
+#endif
     |> Seq.filter (not << String.IsNullOrWhiteSpace)
     |> Seq.toArray
 

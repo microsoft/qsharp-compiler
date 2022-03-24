@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+#if MONO
+
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
@@ -35,3 +37,5 @@ type VariableRemoval() =
             Seq.map this.OnSymbolTuple items |> ImmutableArray.CreateRange |> VariableNameTuple
         | InvalidItem
         | DiscardedItem -> syms
+
+#endif

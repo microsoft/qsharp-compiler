@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if !MONO
+
 using System;
 using System.Collections.Immutable;
 using System.Linq;
@@ -8,7 +10,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationOld.Validation
+namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 {
     /// <summary>
     /// Validates that the monomorphization transformation has removed all references to
@@ -120,3 +122,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.MonomorphizationOld.Valid
         }
     }
 }
+
+#endif

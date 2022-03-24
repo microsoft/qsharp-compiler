@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+#if MONO
+
 open System.Collections.Generic
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
@@ -240,3 +242,5 @@ type CallableInlining (callables) =
             |> Seq.map wrapStmt
 
         QsScope.New(statements, parentSymbols)
+
+#endif

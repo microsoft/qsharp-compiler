@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if MONO
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -1019,3 +1021,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         }
     }
 }
+
+#endif

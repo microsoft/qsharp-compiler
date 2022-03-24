@@ -143,7 +143,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(rename.OnCallableDeclarationHeader);
             var specializations = headers.Specializations.Select(
                 specialization => (rename.OnSpecializationDeclarationHeader(specialization.Item1),
-                                   (SpecializationImplementation?)rename.OnSpecializationImplementation(specialization.Item2)));
+                                    (SpecializationImplementation?)rename
+#if !MONO
+                                    .Namespaces
+#endif
+                                    .OnSpecializationImplementation(specialization.Item2)));
             return new Headers(source, callables, specializations, types);
         }
 
@@ -396,7 +400,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         internal void RegisterDependentLock(ReaderWriterLockSlim depLock)
         {
-            #if DEBUG
+#if DEBUG
             this.syncRoot.EnterWriteLock();
             try
             {
@@ -409,7 +413,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 this.syncRoot.ExitWriteLock();
             }
-            #endif
+#endif
         }
 
         /// <summary>
@@ -417,7 +421,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal void UnregisterDependentLock(ReaderWriterLockSlim depLock)
         {
-            #if DEBUG
+#if DEBUG
             this.syncRoot.EnterWriteLock();
             try
             {
@@ -430,7 +434,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 this.syncRoot.ExitWriteLock();
             }
-            #endif
+#endif
         }
 
         // routines replacing the direct access to the sync root
@@ -441,7 +445,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <exception cref="InvalidOperationException">Any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterReadLock()
         {
-            #if DEBUG
+#if DEBUG
             lock (this.dependentLocks)
             {
                 if (this.dependentLocks.Any(l => l.IsAtLeastReadLockHeld()) && !this.syncRoot.IsAtLeastReadLockHeld())
@@ -449,7 +453,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new InvalidOperationException("cannot enter read lock when a dependent lock is active");
                 }
             }
-            #endif
+#endif
             this.syncRoot.EnterReadLock();
         }
 
@@ -462,7 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <exception cref="InvalidOperationException">Any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterUpgradeableReadLock()
         {
-            #if DEBUG
+#if DEBUG
             lock (this.dependentLocks)
             {
                 if (this.dependentLocks.Any(l => l.IsAtLeastReadLockHeld()) && !this.syncRoot.IsAtLeastReadLockHeld())
@@ -470,7 +474,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new InvalidOperationException("cannot enter upgradeable read lock when a dependent lock is active");
                 }
             }
-            #endif
+#endif
             this.syncRoot.EnterUpgradeableReadLock();
         }
 
@@ -482,7 +486,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <exception cref="InvalidOperationException">Any of the dependent locks is set, but the SyncRoot is not at least read-lock-held.</exception>
         public void EnterWriteLock()
         {
-            #if DEBUG
+#if DEBUG
             lock (this.dependentLocks)
             {
                 if (this.dependentLocks.Any(l => l.IsAtLeastReadLockHeld()) && !this.syncRoot.IsAtLeastReadLockHeld())
@@ -490,7 +494,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new InvalidOperationException("cannot enter write lock when a dependent lock is active");
                 }
             }
-            #endif
+#endif
             this.syncRoot.EnterWriteLock();
         }
 
@@ -1100,10 +1104,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     group => new RenameReferences(GetMappingForSourceGroup(group)));
 
             var taggedCallables = callables.Select(
-                callable => transformations[callable.Source.AssemblyOrCodeFile].OnCallableDeclaration(callable))
+                callable => transformations[callable.Source.AssemblyOrCodeFile]
+#if !MONO
+                .Namespaces
+#endif
+
+                .OnCallableDeclaration(callable))
                 .ToImmutableArray();
             var taggedTypes = types.Select(
-                type => transformations[type.Source.AssemblyOrCodeFile].OnTypeDeclaration(type))
+                type => transformations[type.Source.AssemblyOrCodeFile]
+#if !MONO
+                .Namespaces
+#endif
+                .OnTypeDeclaration(type))
                 .ToImmutableArray();
             return (taggedCallables, taggedTypes);
         }

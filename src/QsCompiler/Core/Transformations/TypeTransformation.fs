@@ -13,7 +13,11 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core.Utils
 
-//type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+#if !MONO
+
+type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+
+#endif
 
 type TypeTransformationBase internal (options, common) =
     let node = if options.Rebuild then Fold else Walk

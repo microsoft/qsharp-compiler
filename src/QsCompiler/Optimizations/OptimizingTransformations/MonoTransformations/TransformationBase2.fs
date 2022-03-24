@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+#if MONO
 
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -29,3 +30,5 @@ type TransformationBase () =
         if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then this.Changed <- true
 
         newX
+
+#endif

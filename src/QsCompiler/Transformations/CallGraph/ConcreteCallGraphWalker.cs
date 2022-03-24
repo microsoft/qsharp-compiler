@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if !MONO
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -11,7 +13,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 {
     using ConcreteGraphBuilder = CallGraphBuilder<ConcreteCallGraphNode, ConcreteCallGraphEdge>;
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
@@ -381,3 +383,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalkerOld
         }
     }
 }
+
+#endif

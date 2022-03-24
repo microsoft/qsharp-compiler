@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
+namespace Microsoft.Quantum.QsCompiler.Experimental
+
+#if !MONO
 
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -62,3 +64,5 @@ and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSiz
             return outerScope |> newScopeStatement |> this.OnStatementKind
         }
         |? (QsForStatement.New((loopVar, loopVarType), iterVals, body) |> QsForStatement)
+
+#endif

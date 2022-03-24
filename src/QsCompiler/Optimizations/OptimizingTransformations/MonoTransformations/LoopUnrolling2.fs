@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+#if MONO
+
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -45,3 +47,5 @@ type LoopUnrolling (callables, maxSize) =
             return outerScope |> newScopeStatement |> this.OnStatementKind
         }
         |? (QsForStatement.New((loopVar, loopVarType), iterVals, body) |> QsForStatement)
+
+#endif

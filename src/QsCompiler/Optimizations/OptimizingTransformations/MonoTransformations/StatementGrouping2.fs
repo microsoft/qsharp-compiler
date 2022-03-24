@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+#if MONO
+
 open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -41,3 +43,5 @@ type StatementGrouping () =
         let parentSymbols = scope.KnownSymbols
         let statements = scope.Statements |> Seq.map this.OnStatement |> List.ofSeq |> reorderStatements
         QsScope.New(statements, parentSymbols)
+
+#endif

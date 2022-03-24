@@ -26,10 +26,17 @@ namespace Microsoft.Quantum.QsCompiler
         {
             // Since we are pulling purely classical statements up, we are potentially changing the order of declarations.
             // We therefore need to generate unique variable names before reordering the statements.
+#if MONO
             scope = new UniqueVariableNames().OnScope(scope);
             scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
             scope = new ExtractNestedOperationCalls().OnScope(scope);
             scope = new ReverseOrderOfOperationCalls().OnScope(scope);
+#else
+            scope = new UniqueVariableNames().Statements.OnScope(scope);
+            scope = ApplyFunctorToOperationCalls.ApplyAdjoint(scope);
+            scope = new ExtractNestedOperationCalls().Statements.OnScope(scope);
+            scope = new ReverseOrderOfOperationCalls().Statements.OnScope(scope);
+#endif
             return StripPositionInfo.Apply(scope);
         }
 
@@ -54,9 +61,15 @@ namespace Microsoft.Quantum.QsCompiler
         public static bool InlineConjugations(this QsCompilation compilation, out QsCompilation inlined, Action<Exception>? onException = null)
         {
             var inline = new InlineConjugations(onException);
+#if MONO
             var namespaces = compilation.Namespaces.Select(inline.OnNamespace).ToImmutableArray();
             inlined = new QsCompilation(namespaces, compilation.EntryPoints);
             return inline.Success;
+#else
+            var namespaces = compilation.Namespaces.Select(inline.Namespaces.OnNamespace).ToImmutableArray();
+            inlined = new QsCompilation(namespaces, compilation.EntryPoints);
+            return inline.SharedState.Success;
+#endif
         }
 
         /// <summary>

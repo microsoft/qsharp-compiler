@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if !MONO
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -12,7 +14,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
@@ -849,6 +851,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledOld
             public LiftContent()
                 : base(new TransformationState())
             {
+                this.Namespaces = new NamespaceTransformation(this);
+                this.StatementKinds = new StatementKindTransformation(this);
             }
 
             private static bool IsConditionValidForLifting(QsConditionalStatement conditionStatement)
@@ -863,169 +867,185 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlledOld
                     && neq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result);
             }
 
-            private bool IsScopeSingleCall(QsScope contents)
+            private new class NamespaceTransformation : ContentLifting.LiftContentUsingContext<TransformationState>.NamespaceTransformation
             {
-                if (contents.Statements.Length != 1)
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
-                    return false;
                 }
 
-                return contents.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr
-                       && expr.Item.Expression is ExpressionKind.CallLikeExpression call
-                       && call.Item1.ResolvedType.Resolution.IsOperation
-                       && call.Item1.Expression is ExpressionKind.Identifier
-                       && !TypedExpression.IsPartialApplication(expr.Item.Expression);
+                /// <inheritdoc/>
+                public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
+
+                /// <inheritdoc/>
+                public override QsNamespace OnNamespace(QsNamespace ns)
+                {
+                    // Generated callables list will be populated in the transform
+                    this.SharedState.GeneratedCallables = new List<QsCallable>();
+                    return base.OnNamespace(ns)
+                        .WithElements(elems => elems.AddRange(this.SharedState.GeneratedCallables.Select(callable => QsNamespaceElement.NewQsCallable(callable))));
+                }
             }
 
-            /* overrides */
-
-            /// <inheritdoc/>
-            public override QsCallable OnFunction(QsCallable c) => c; // Prevent anything in functions from being lifted
-
-            /// <inheritdoc/>
-            public override QsNamespace OnNamespace(QsNamespace ns)
+            private new class StatementKindTransformation : ContentLifting.LiftContentUsingContext<TransformationState>.StatementKindTransformation
             {
-                // Generated callables list will be populated in the transform
-                this.SharedState.GeneratedCallables = new List<QsCallable>();
-                return base.OnNamespace(ns)
-                    .WithElements(elems => elems.AddRange(this.SharedState.GeneratedCallables.Select(callable => QsNamespaceElement.NewQsCallable(callable))));
-            }
-
-            /// <inheritdoc/>
-            public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
-            {
-                // If the conditional is classical, don't lift it.
-                if (!IsConditionValidForLifting(stm))
+                public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent)
                 {
-                    // But still check nested conditionals.
-                    return base.OnConditionalStatement(stm);
                 }
 
-                var contextIsConditionLiftable = this.SharedState.IsConditionLiftable;
-                this.SharedState.IsConditionLiftable = true;
-
-                var newConditionBlocks = new List<Tuple<TypedExpression, QsPositionedBlock>>();
-                var generatedOperations = new List<QsCallable>();
-                foreach (var conditionBlock in stm.ConditionalBlocks)
+                private bool IsScopeSingleCall(QsScope contents)
                 {
-                    var (expr, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.NewValue(conditionBlock.Item1), conditionBlock.Item2);
-
-                    if (block.Body.Statements.Length == 0)
+                    if (contents.Statements.Length != 1)
                     {
-                        // This is an empty scope, so it can just be treated as a call to NoOp.
-                        var (id, args) = GetNoOp();
-                        var callExpression = new TypedExpression(
-                            ExpressionKind.NewCallLikeExpression(id, args),
-                            TypeArgsResolution.Empty,
-                            ResolvedType.New(ResolvedTypeKind.UnitType),
-                            new InferredExpressionInformation(false, true),
-                            QsNullable<Range>.Null);
-                        var callStatement = new QsStatement(
-                            QsStatementKind.NewQsExpressionStatement(callExpression),
-                            LocalDeclarations.Empty,
-                            QsNullable<QsLocation>.Null,
-                            QsComments.Empty);
-                        newConditionBlocks.Add(Tuple.Create(
-                            expr.Item,
-                            new QsPositionedBlock(
-                                new QsScope(
-                                    ImmutableArray.Create(callStatement),
-                                    LocalDeclarations.Empty),
-                                block.Location,
-                                block.Comments)));
-                    }
-                    else if (this.IsScopeSingleCall(block.Body))
-                    {
-                        newConditionBlocks.Add(Tuple.Create(expr.Item, block));
-                    }
-                    else
-                    {
-                        // Lift the scope to its own operation
-                        if (this.SharedState.LiftBody(block.Body, null, false, out var call, out var callable))
-                        {
-                            var callStatement = new QsStatement(
-                                QsStatementKind.NewQsExpressionStatement(call),
-                                LocalDeclarations.Empty,
-                                QsNullable<QsLocation>.Null,
-                                QsComments.Empty);
-                            block = new QsPositionedBlock(
-                                new QsScope(ImmutableArray.Create(callStatement), block.Body.KnownSymbols),
-                                block.Location,
-                                block.Comments);
-                            newConditionBlocks.Add(Tuple.Create(expr.Item, block));
-                            generatedOperations.Add(callable);
-                        }
-                        else
-                        {
-                            this.SharedState.IsConditionLiftable = false;
-                        }
+                        return false;
                     }
 
-                    if (!this.SharedState.IsConditionLiftable)
-                    {
-                        break;
-                    }
+                    return contents.Statements[0].Statement is QsStatementKind.QsExpressionStatement expr
+                           && expr.Item.Expression is ExpressionKind.CallLikeExpression call
+                           && call.Item1.ResolvedType.Resolution.IsOperation
+                           && call.Item1.Expression is ExpressionKind.Identifier
+                           && !TypedExpression.IsPartialApplication(expr.Item.Expression);
                 }
 
-                var newDefault = QsNullable<QsPositionedBlock>.Null;
-                if (this.SharedState.IsConditionLiftable && stm.Default.IsValue)
+                public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
                 {
-                    var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
-
-                    if (this.IsScopeSingleCall(block.Body))
+                    // If the conditional is classical, don't lift it.
+                    if (!IsConditionValidForLifting(stm))
                     {
-                        newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                        // But still check nested conditionals.
+                        return base.OnConditionalStatement(stm);
                     }
 
-                    // ToDo: We may want to prevent empty blocks from getting lifted
-                    // else if (block.Body.Statements.Length > 0)
-                    else
+                    var contextIsConditionLiftable = this.SharedState.IsConditionLiftable;
+                    this.SharedState.IsConditionLiftable = true;
+
+                    var newConditionBlocks = new List<Tuple<TypedExpression, QsPositionedBlock>>();
+                    var generatedOperations = new List<QsCallable>();
+                    foreach (var conditionBlock in stm.ConditionalBlocks)
                     {
-                        // Lift the scope to its own operation
-                        if (this.SharedState.LiftBody(block.Body, null, false, out var call, out var callable))
+                        var (expr, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.NewValue(conditionBlock.Item1), conditionBlock.Item2);
+
+                        if (block.Body.Statements.Length == 0)
                         {
-                            // Make sure the inferred information for the callable has local quantum dependency
-                            call = new TypedExpression(
-                                call.Expression,
-                                call.TypeArguments,
-                                call.ResolvedType,
+                            // This is an empty scope, so it can just be treated as a call to NoOp.
+                            var (id, args) = GetNoOp();
+                            var callExpression = new TypedExpression(
+                                ExpressionKind.NewCallLikeExpression(id, args),
+                                TypeArgsResolution.Empty,
+                                ResolvedType.New(ResolvedTypeKind.UnitType),
                                 new InferredExpressionInformation(false, true),
-                                call.Range);
-
+                                QsNullable<Range>.Null);
                             var callStatement = new QsStatement(
-                                QsStatementKind.NewQsExpressionStatement(call),
+                                QsStatementKind.NewQsExpressionStatement(callExpression),
                                 LocalDeclarations.Empty,
                                 QsNullable<QsLocation>.Null,
                                 QsComments.Empty);
-                            block = new QsPositionedBlock(
-                                new QsScope(ImmutableArray.Create(callStatement), block.Body.KnownSymbols),
-                                block.Location,
-                                block.Comments);
-                            newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
-                            generatedOperations.Add(callable);
+                            newConditionBlocks.Add(Tuple.Create(
+                                expr.Item,
+                                new QsPositionedBlock(
+                                    new QsScope(
+                                        ImmutableArray.Create(callStatement),
+                                        LocalDeclarations.Empty),
+                                    block.Location,
+                                    block.Comments)));
+                        }
+                        else if (this.IsScopeSingleCall(block.Body))
+                        {
+                            newConditionBlocks.Add(Tuple.Create(expr.Item, block));
                         }
                         else
                         {
-                            this.SharedState.IsConditionLiftable = false;
+                            // Lift the scope to its own operation
+                            if (this.SharedState.LiftBody(block.Body, null, false, out var call, out var callable))
+                            {
+                                var callStatement = new QsStatement(
+                                    QsStatementKind.NewQsExpressionStatement(call),
+                                    LocalDeclarations.Empty,
+                                    QsNullable<QsLocation>.Null,
+                                    QsComments.Empty);
+                                block = new QsPositionedBlock(
+                                    new QsScope(ImmutableArray.Create(callStatement), block.Body.KnownSymbols),
+                                    block.Location,
+                                    block.Comments);
+                                newConditionBlocks.Add(Tuple.Create(expr.Item, block));
+                                generatedOperations.Add(callable);
+                            }
+                            else
+                            {
+                                this.SharedState.IsConditionLiftable = false;
+                            }
+                        }
+
+                        if (!this.SharedState.IsConditionLiftable)
+                        {
+                            break;
                         }
                     }
+
+                    var newDefault = QsNullable<QsPositionedBlock>.Null;
+                    if (this.SharedState.IsConditionLiftable && stm.Default.IsValue)
+                    {
+                        var (_, block) = this.OnPositionedBlock(QsNullable<TypedExpression>.Null, stm.Default.Item);
+
+                        if (this.IsScopeSingleCall(block.Body))
+                        {
+                            newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                        }
+
+                        // ToDo: We may want to prevent empty blocks from getting lifted
+                        // else if (block.Body.Statements.Length > 0)
+                        else
+                        {
+                            // Lift the scope to its own operation
+                            if (this.SharedState.LiftBody(block.Body, null, false, out var call, out var callable))
+                            {
+                                // Make sure the inferred information for the callable has local quantum dependency
+                                call = new TypedExpression(
+                                    call.Expression,
+                                    call.TypeArguments,
+                                    call.ResolvedType,
+                                    new InferredExpressionInformation(false, true),
+                                    call.Range);
+
+                                var callStatement = new QsStatement(
+                                    QsStatementKind.NewQsExpressionStatement(call),
+                                    LocalDeclarations.Empty,
+                                    QsNullable<QsLocation>.Null,
+                                    QsComments.Empty);
+                                block = new QsPositionedBlock(
+                                    new QsScope(ImmutableArray.Create(callStatement), block.Body.KnownSymbols),
+                                    block.Location,
+                                    block.Comments);
+                                newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
+                                generatedOperations.Add(callable);
+                            }
+                            else
+                            {
+                                this.SharedState.IsConditionLiftable = false;
+                            }
+                        }
+                    }
+
+                    if (this.SharedState.IsConditionLiftable)
+                    {
+                        this.SharedState.GeneratedCallables!.AddRange(generatedOperations);
+                    }
+
+                    var rtrn = this.SharedState.IsConditionLiftable
+                        ? QsStatementKind.NewQsConditionalStatement(
+                          new QsConditionalStatement(newConditionBlocks.ToImmutableArray(), newDefault))
+                        : QsStatementKind.NewQsConditionalStatement(
+                          new QsConditionalStatement(stm.ConditionalBlocks, stm.Default));
+
+                    this.SharedState.IsConditionLiftable = contextIsConditionLiftable;
+
+                    return rtrn;
                 }
-
-                if (this.SharedState.IsConditionLiftable)
-                {
-                    this.SharedState.GeneratedCallables!.AddRange(generatedOperations);
-                }
-
-                var rtrn = this.SharedState.IsConditionLiftable
-                    ? QsStatementKind.NewQsConditionalStatement(
-                      new QsConditionalStatement(newConditionBlocks.ToImmutableArray(), newDefault))
-                    : QsStatementKind.NewQsConditionalStatement(
-                      new QsConditionalStatement(stm.ConditionalBlocks, stm.Default));
-
-                this.SharedState.IsConditionLiftable = contextIsConditionLiftable;
-
-                return rtrn;
             }
         }
     }
 }
+
+
+#endif

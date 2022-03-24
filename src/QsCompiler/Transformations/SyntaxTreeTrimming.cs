@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if !MONO
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -9,7 +11,7 @@ using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimmingOld
+namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 {
     /// <summary>
     /// Removes unused callables from the syntax tree.
@@ -127,3 +129,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimmingOld
         }
     }
 }
+
+#endif

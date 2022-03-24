@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-module internal Microsoft.Quantum.QsCompiler.Experimental.OptimizationToolsOld
+namespace Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
+
+#if !MONO
 
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.Utils
@@ -237,3 +239,5 @@ and private StripAllKnownSymbolsStatements(parent: StripAllKnownSymbols) =
 
     override this.OnScope scope =
         QsScope.New(scope.Statements |> Seq.map this.OnStatement, LocalDeclarations.Empty)
+
+#endif

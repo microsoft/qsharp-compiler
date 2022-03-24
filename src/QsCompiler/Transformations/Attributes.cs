@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if !MONO
+
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -17,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// <summary>
     /// Contains tools for building and adding attributes to an existing Q# compilation.
     /// </summary>
-    public static class AttributeUtilsOld
+    public static class AttributeUtils
     {
         private static AttributeId BuildId(QsQualifiedName name) =>
             name != null
@@ -136,3 +138,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         }
     }
 }
+
+#endif

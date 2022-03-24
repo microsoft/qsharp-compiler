@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.ExperimentalOld
+namespace Microsoft.Quantum.QsCompiler.Experimental
+
+#if !MONO
 
 open System
 open System.Text.RegularExpressions
@@ -129,3 +131,5 @@ and private VariableRenamingStatementKinds(parent: VariableRenaming) =
         let result = base.OnRepeatStatement stm
         parent.RenamingStack <- parent.ExitScope parent.RenamingStack
         result
+
+#endif

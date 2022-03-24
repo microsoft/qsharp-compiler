@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#if MONO
+
 using System;
 using System.Collections.Immutable;
 using System.Linq;
@@ -82,3 +84,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
             : throw new Exception("Type Parameter types must be resolved");
     }
 }
+
+#endif

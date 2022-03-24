@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+#if MONO
+
 open System
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open System.Numerics
@@ -1111,3 +1113,5 @@ type MonoTransformation(options) =
             else
                 elements |> Seq.iter ignore
                 ns
+
+#endif

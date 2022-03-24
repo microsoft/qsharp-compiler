@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+#if MONO
+
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
 open Microsoft.Quantum.QsCompiler.Experimental.PureCircuitAPI
@@ -10,7 +12,6 @@ open Microsoft.Quantum.QsCompiler.Experimental.Utils
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations
 
 
 /// The SyntaxTreeTransformation used to find and optimize pure circuits
@@ -61,3 +62,5 @@ type PureCircuitFinder (callables) =
         finishCircuit ()
 
         QsScope.New(newStatements, scope.KnownSymbols)
+
+#endif

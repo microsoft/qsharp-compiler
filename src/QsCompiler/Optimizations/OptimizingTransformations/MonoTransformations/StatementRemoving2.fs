@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Experimental
 
+#if MONO
+
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Experimental.OptimizationTools
@@ -96,3 +98,6 @@ type StatementRemoval (removeFunctions: bool) =
             |> Seq.map wrapStmt
 
         QsScope.New(statements, parentSymbols)
+
+
+#endif
