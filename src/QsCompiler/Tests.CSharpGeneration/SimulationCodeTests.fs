@@ -3156,3 +3156,60 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
     [<Fact>]
     let ``one file - UnitTests`` () =
         testOneFile (Path.Combine("Circuits", "UnitTests.qs"))
+
+    [<Fact>]
+    let ``Copies mutable array in sized array`` () =
+        [
+            "var xs = new QArray<Int64>(1L, 2L, 3L);"
+            "#line hidden\nIQArray<Int64> __arg1__ = xs;"
+            "var arrays = (IQArray<IQArray<Int64>>)QArray.Filled(() => __arg1__?.Copy(), 3L);"
+        ]
+        |> testOneBody (findCallable "CopiesMutableArrayInSizedArray" |> applyVisitor)
+
+    [<Fact>]
+    let ``Doesn't copy immutable array in sized array`` () =
+        [
+            "var xs = (IQArray<Int64>)new QArray<Int64>(1L, 2L, 3L);"
+            "#line hidden\nIQArray<Int64> __arg1__ = xs;"
+            "var arrays = (IQArray<IQArray<Int64>>)QArray.Filled(() => __arg1__, 3L);"
+        ]
+        |> testOneBody (findCallable "DoesntCopyImmutableArrayInSizedArray" |> applyVisitor)
+
+    [<Fact>]
+    let ``Doesn't copy anonymous array in sized array`` () =
+        [
+            "#line hidden\nIQArray<Int64> __arg1__ = new QArray<Int64>(1L, 2L, 3L);"
+            "var arrays = (IQArray<IQArray<Int64>>)QArray.Filled(() => __arg1__, 3L);"
+        ]
+        |> testOneBody (findCallable "DoesntCopyAnonymousArrayInSizedArray" |> applyVisitor)
+
+    [<Fact>]
+    let ``Evaluates call once in sized array`` () =
+        [
+            """{
+    var q = Allocate__.Apply();
+    #line hidden
+    bool __arg1__ = true;
+    try
+    {
+        #line hidden
+        QVoid __arg2__ = H__.Apply(q);
+        var units = (IQArray<QVoid>)QArray.Filled(() => __arg2__, 3L);
+    }
+    #line hidden
+    catch
+    {
+        __arg1__ = false;
+        throw;
+    }
+    #line hidden
+    finally
+    {
+        if (__arg1__)
+        {
+            Release__.Apply(q);
+        }
+    }
+}"""
+        ]
+        |> testOneBody (findCallable "EvaluatesCallOnceInSizedArray" |> applyVisitor)
