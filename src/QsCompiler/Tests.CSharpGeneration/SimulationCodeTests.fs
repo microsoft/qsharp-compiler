@@ -3161,7 +3161,7 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
     let ``Copies mutable array in sized array`` () =
         [
             "var xs = new QArray<Int64>(1L, 2L, 3L);"
-            "#line hidden\nIQArray<Int64> __arg1__ = xs;"
+            "#line hidden\nvar __arg1__ = xs;"
             "var arrays = (IQArray<IQArray<Int64>>)QArray.Filled(() => __arg1__?.Copy(), 3L);"
         ]
         |> testOneBody (findCallable "CopiesMutableArrayInSizedArray" |> applyVisitor)
@@ -3170,7 +3170,7 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
     let ``Doesn't copy immutable array in sized array`` () =
         [
             "var xs = (IQArray<Int64>)new QArray<Int64>(1L, 2L, 3L);"
-            "#line hidden\nIQArray<Int64> __arg1__ = xs;"
+            "#line hidden\nvar __arg1__ = xs;"
             "var arrays = (IQArray<IQArray<Int64>>)QArray.Filled(() => __arg1__, 3L);"
         ]
         |> testOneBody (findCallable "DoesntCopyImmutableArrayInSizedArray" |> applyVisitor)
@@ -3178,7 +3178,7 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
     [<Fact>]
     let ``Doesn't copy anonymous array in sized array`` () =
         [
-            "#line hidden\nIQArray<Int64> __arg1__ = new QArray<Int64>(1L, 2L, 3L);"
+            "#line hidden\nvar __arg1__ = new QArray<Int64>(1L, 2L, 3L);"
             "var arrays = (IQArray<IQArray<Int64>>)QArray.Filled(() => __arg1__, 3L);"
         ]
         |> testOneBody (findCallable "DoesntCopyAnonymousArrayInSizedArray" |> applyVisitor)
@@ -3193,7 +3193,7 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
     try
     {
         #line hidden
-        QVoid __arg2__ = H__.Apply(q);
+        var __arg2__ = H__.Apply(q);
         var units = (IQArray<QVoid>)QArray.Filled(() => __arg2__, 3L);
     }
     #line hidden

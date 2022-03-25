@@ -678,12 +678,7 @@ module SimulationCode =
 
         and buildSizedArray value size =
             let valueName = nextArgName ()
-            let valueTypeName = roslynTypeName context value.ResolvedType
-
-            ``typed var`` valueTypeName valueName (``:=`` (buildExpression value) |> Some) |> ``#line hidden``
-            :> StatementSyntax
-            |> addStatement
-
+            var valueName (``:=`` (buildExpression value)) |> ``#line hidden`` |> addStatement
             let valueId = { value with Expression = Identifier(LocalVariable valueName, Null); Range = Null }
             let supplier = ``() =>`` [] (captureExpression valueId) :> ExpressionSyntax
             ident "QArray" <.> (ident "Filled", [ supplier; buildExpression size ])
