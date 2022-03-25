@@ -2445,7 +2445,7 @@ namespace N1
         |> testOneClass genCtrl3 AssemblyConstants.HoneywellProcessor
 
         """
-    [SourceLocation("%%%", OperationFunctor.Body, 1271, 1277)]
+    [SourceLocation("%%%", OperationFunctor.Body, 1290, 1296)]
     public partial class composeImpl<__A__, __B__> : Operation<(ICallable,ICallable,__B__), QVoid>, ICallable
     {
         public composeImpl(IOperationFactory m) : base(m)
@@ -2522,7 +2522,7 @@ namespace N1
     [<Fact>]
     let ``buildOperationClass - access modifiers`` () =
         """
-[SourceLocation("%%%", OperationFunctor.Body, 1319, 1321)]
+[SourceLocation("%%%", OperationFunctor.Body, 1338, 1340)]
 internal partial class EmptyInternalFunction : Function<QVoid, QVoid>, ICallable
 {
     public EmptyInternalFunction(IOperationFactory m) : base(m)
@@ -2556,7 +2556,7 @@ internal partial class EmptyInternalFunction : Function<QVoid, QVoid>, ICallable
         |> testOneClass emptyInternalFunction null
 
         """
-[SourceLocation("%%%", OperationFunctor.Body, 1321, 1323)]
+[SourceLocation("%%%", OperationFunctor.Body, 1340, 1342)]
 internal partial class EmptyInternalOperation : Operation<QVoid, QVoid>, ICallable
 {
     public EmptyInternalOperation(IOperationFactory m) : base(m)
@@ -2675,7 +2675,7 @@ internal partial class EmptyInternalOperation : Operation<QVoid, QVoid>, ICallab
     [<Fact>]
     let ``buildOperationClass - concrete functions`` () =
         """
-    [SourceLocation("%%%", OperationFunctor.Body, 1306,1315)]
+    [SourceLocation("%%%", OperationFunctor.Body, 1325, 1334)]
     public partial class UpdateUdtItems : Function<MyType2, MyType2>, ICallable
     {
         public UpdateUdtItems(IOperationFactorym) : base(m)
