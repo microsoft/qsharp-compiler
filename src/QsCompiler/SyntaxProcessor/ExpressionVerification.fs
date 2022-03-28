@@ -335,7 +335,7 @@ let internal verifyAssignment (inference: InferenceContext) expectedType mismatc
     [
         if inference.Match(expectedType .> rhs.ResolvedType) |> List.isEmpty |> not then
             QsCompilerDiagnostic.Error
-                (mismatchErr, [ showType rhs.ResolvedType; showType expectedType ])
+                (mismatchErr, [ inference.Resolve rhs.ResolvedType |> showType; showType expectedType ])
                 (rangeOrDefault rhs)
     ]
 
