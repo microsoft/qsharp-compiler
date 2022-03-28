@@ -19,9 +19,9 @@ type CharacteristicVisitor(tokens) =
 
     override visitor.VisitCharacteristicGroup context =
         {
-            OpenParen = context.openParen |> Node.toTerminal tokens
-            Characteristic = visitor.Visit context.charExp
-            CloseParen = context.closeParen |> Node.toTerminal tokens
+            OpenParen = context.ParenLeft().Symbol |> Node.toTerminal tokens
+            Characteristic = context.characteristicsExpression () |> visitor.Visit
+            CloseParen = context.ParenRight().Symbol |> Node.toTerminal tokens
         }
         |> Group
 
@@ -44,8 +44,8 @@ type CharacteristicVisitor(tokens) =
 module Type =
     let toCharacteristicSection tokens (context: QSharpParser.CharacteristicsContext) =
         {
-            IsKeyword = context.is |> Node.toTerminal tokens
-            Characteristic = (CharacteristicVisitor tokens).Visit context.charExp
+            IsKeyword = context.Is().Symbol |> Node.toTerminal tokens
+            Characteristic = context.characteristicsExpression () |> (CharacteristicVisitor tokens).Visit
         }
 
 type TypeVisitor(tokens) =
@@ -90,36 +90,37 @@ type TypeVisitor(tokens) =
         context.Unit().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitTypeParameter context =
-        context.typeParameter |> Node.toTerminal tokens |> Parameter
+        context.TypeParameter().Symbol |> Node.toTerminal tokens |> Parameter
 
     override _.VisitUserDefinedType context =
-        { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
-        |> UserDefined
+        let name = context.qualifiedName ()
+        { Prefix = Node.prefix tokens name.Start.TokenIndex; Text = name.GetText() } |> UserDefined
 
     override visitor.VisitTupleType context =
-        let items = context._items |> Seq.map visitor.Visit
-        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+        let items = context.``type`` () |> Seq.map visitor.Visit
+        let commas = context.Comma() |> Seq.map (fun node -> Node.toTerminal tokens node.Symbol)
 
         {
-            OpenParen = context.openParen |> Node.toTerminal tokens
+            OpenParen = context.ParenLeft().Symbol |> Node.toTerminal tokens
             Items = Node.tupleItems items commas
-            CloseParen = context.closeParen |> Node.toTerminal tokens
+            CloseParen = context.ParenRight().Symbol |> Node.toTerminal tokens
         }
         |> Type.Tuple
 
     override visitor.VisitArrayType context =
         {
-            ItemType = visitor.Visit context.itemType
-            OpenBracket = context.openBracket |> Node.toTerminal tokens
-            CloseBracket = context.closeBracket |> Node.toTerminal tokens
+            ItemType = context.``type`` () |> visitor.Visit
+            OpenBracket = context.BracketLeft().Symbol |> Node.toTerminal tokens
+            CloseBracket = context.BracketRight().Symbol |> Node.toTerminal tokens
         }
         |> Array
 
     override visitor.VisitCallableType context =
         {
-            FromType = visitor.Visit context.fromType
+            FromType = visitor.Visit context.from
             Arrow = context.arrow |> Node.toTerminal tokens
-            ToType = visitor.Visit context.toType
-            Characteristics = Option.ofObj context.character |> Option.map (Type.toCharacteristicSection tokens)
+            ToType = visitor.Visit context.``to``
+            Characteristics =
+                context.characteristics () |> Option.ofObj |> Option.map (Type.toCharacteristicSection tokens)
         }
         |> Type.Callable
