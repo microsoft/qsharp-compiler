@@ -12,9 +12,14 @@ open Microsoft.Quantum.QsFmt.Parser
 /// Creates syntax tree <see cref="Statement"/> nodes from a parse tree.
 /// </summary>
 type internal StatementVisitor =
+    inherit Statement QSharpParserBaseVisitor
+
     /// <summary>
     /// Creates a new <see cref="StatementVisitor"/> with the list of <paramref name="tokens"/>.
     /// </summary>
     new: tokens: IToken ImmutableArray -> StatementVisitor
 
-    inherit Statement QSharpParserBaseVisitor
+    /// <summary>
+    /// Creates a <see cref="Block"/> of statements from the <paramref name="scope"/>.
+    /// </summary>
+    member internal CreateBlock: scope: QSharpParser.ScopeContext -> Statement Block
