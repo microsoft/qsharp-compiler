@@ -349,7 +349,7 @@ let ``Range expressions`` =
 }"""
 
 [<FixedPoint>]
-let ``Lambdas`` =
+let ``Lambda expression`` =
     """namespace Foo {
     function Bar() : Unit {
         let l1 = x -> x;
