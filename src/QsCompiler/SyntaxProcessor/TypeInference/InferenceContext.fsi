@@ -71,9 +71,9 @@ type InferenceContext =
     member internal Intersect: type1: ResolvedType * type2: ResolvedType -> ResolvedType * QsCompilerDiagnostic list
 
     /// <summary>
-    /// Constrains the given <paramref name="type_"/> to satisfy the <paramref name="constraint_"/>.
+    /// Adds a constraint to the context.
     /// </summary>
-    member internal Constrain: type_: ResolvedType * constraint_: Constraint -> QsCompilerDiagnostic list
+    member internal Constrain: con: Constraint -> QsCompilerDiagnostic list
 
     /// <summary>
     /// Replaces each placeholder type parameter in the given <paramref name="type_"/> with its substitution if

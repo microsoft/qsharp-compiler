@@ -120,6 +120,7 @@ type LocalVerificationTests() =
             "VariableDeclaration12"
             [
                 Error ErrorCode.ExpectingCallableExpr
+                Error ErrorCode.AmbiguousTypeParameterResolution
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
             ]
 

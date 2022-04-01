@@ -6,7 +6,7 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
-
+open Microsoft.Collections.Extensions
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -24,18 +24,11 @@ type Variable =
     {
         /// The substituted type.
         Substitution: ResolvedType option
-        /// The list of constraints on the type of this variable.
-        Constraints: Constraint list
         /// Whether this variable encountered a type inference error.
         HasError: bool
         /// The source range that this variable originated from.
         Source: Range
     }
-
-module Variable =
-    /// Adds a type constraint to the type of the variable.
-    let constrain typeConstraint variable =
-        { variable with Constraints = typeConstraint :: variable.Constraints }
 
 /// An ordering comparison between types.
 type Ordering =
@@ -311,6 +304,7 @@ open RelationOps
 
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
+    let constraints = MultiValueDictionary()
 
     let mutable rootNodePos = Null
     let mutable relativePos = Null
@@ -334,12 +328,20 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         diagnostics
 
+    let unsolvedVariable (ty: ResolvedType) =
+        match ty.Resolution with
+        | TypeParameter p ->
+            variables.TryGetValue p
+            |> tryOption
+            |> Option.bind (fun v -> if Option.isNone v.Substitution then Some p else None)
+        | _ -> None
+
     member context.AmbiguousDiagnostics =
         let diagnostic param variable =
             let args =
                 [
                     TypeParameter param |> ResolvedType.New |> SyntaxTreeToQsharp.Default.ToCode
-                    variable.Constraints |> List.map Constraint.pretty |> String.concat ", "
+                    constraints.GetValueOrDefault(param, []) |> Seq.map Constraint.pretty |> String.concat ", "
                 ]
 
             QsCompilerDiagnostic.Error(ErrorCode.AmbiguousTypeParameterResolution, args) variable.Source
@@ -377,7 +379,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let variable =
             {
                 Substitution = None
-                Constraints = []
                 HasError = false
                 Source = statementPosition + source
             }
@@ -398,19 +399,17 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         Inference.combine Supertype left right
         |> mapSnd (List.map Diagnostic.toCompilerDiagnostic >> rememberErrorsFor [ left; right ])
 
-    member internal context.Constrain(type_, constraint_) =
-        let type_ = context.Resolve type_
+    member internal context.Constrain con =
+        match Constraint.dependencies con |> List.choose unsolvedVariable with
+        | [] ->
+            context.ApplyConstraint con
+            |> List.map Diagnostic.toCompilerDiagnostic
+            |> rememberErrorsFor (Constraint.types con)
+        | tyParams ->
+            for param in tyParams do
+                constraints.Add(param, con)
 
-        match type_.Resolution with
-        | TypeParameter param ->
-            match variables.TryGetValue param |> tryOption with
-            | Some variable ->
-                variables.[param] <- variable |> Variable.constrain constraint_
-                []
-            | None -> context.ApplyConstraint(constraint_, type_)
-        | _ -> context.ApplyConstraint(constraint_, type_)
-        |> List.map Diagnostic.toCompilerDiagnostic
-        |> rememberErrorsFor (type_ :: Constraint.types constraint_)
+            []
 
     member internal context.Resolve type_ =
         let resolveWithRange type_ =
@@ -445,7 +444,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         let tryBind param substitution =
             match bind param substitution with
-            | Ok () -> context.ApplyConstraints(param, substitution)
+            | Ok () -> context.ApplyConstraints param
             | Result.Error () -> [ InfiniteType typeContext ]
 
         match expected.Resolution, actual.Resolution with
@@ -483,44 +482,40 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ -> [ TypeMismatch typeContext ]
         |> List.map (Diagnostic.withParents expected actual)
 
-    member private context.ApplyConstraint(constraint_, type_) =
+    member private context.ApplyConstraint con =
         let error code args range =
             let range = TypeRange.tryRange range |> QsNullable.defaultValue Range.Zero
             QsCompilerDiagnostic.Error(code, args) range |> CompilerDiagnostic
 
-        let typeString = SyntaxTreeToQsharp.Default.ToCode type_
+        let isInvalidType ty =
+            context.Resolve(ty).Resolution = InvalidType
 
-        match constraint_ with
-        | _ when type_.Resolution = InvalidType -> []
-        | Constraint.Adjointable ->
-            match type_.Resolution with
+        match con with
+        | _ when Constraint.dependencies con |> List.exists isInvalidType -> []
+        | Constraint.Adjointable operation ->
+            let operation = context.Resolve operation
+
+            match operation.Resolution with
             | QsTypeKind.Operation (_, info) when Inference.hasFunctor Adjoint info -> []
-            | _ -> [ error ErrorCode.InvalidAdjointApplication [] type_.Range ]
-        | Callable (input, output) ->
-            match type_.Resolution with
+            | _ -> [ error ErrorCode.InvalidAdjointApplication [] operation.Range ]
+        | Callable (callable, input, output) ->
+            let callable = context.Resolve callable
+
+            match callable.Resolution with
             | QsTypeKind.Operation _ ->
                 let operationType = QsTypeKind.Operation((input, output), CallableInformation.NoInformation)
-                context.MatchImpl(type_ <. ResolvedType.New operationType)
-            | QsTypeKind.Function _ -> context.MatchImpl(type_ <. ResolvedType.New(QsTypeKind.Function(input, output)))
-            | _ -> [ error ErrorCode.ExpectingCallableExpr [ typeString ] type_.Range ]
-        | CanGenerateFunctors functors ->
-            match type_.Resolution with
-            | QsTypeKind.Operation (_, info) ->
-                let supported = info.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
-                let missing = Set.difference functors (Set.ofSeq supported)
-
+                context.MatchImpl(callable <. ResolvedType.New operationType)
+            | QsTypeKind.Function _ ->
+                context.MatchImpl(callable <. ResolvedType.New(QsTypeKind.Function(input, output)))
+            | _ ->
                 [
-                    if not info.Characteristics.AreInvalid && Set.isEmpty missing |> not then
-                        error
-                            ErrorCode.MissingFunctorForAutoGeneration
-                            [ Seq.map string missing |> String.concat "," ]
-                            type_.Range
+                    error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
                 ]
-            | _ -> []
-        | Constraint.Controllable controlled ->
-            let invalidControlled = error ErrorCode.InvalidControlledApplication [] type_.Range
+        | Constraint.Controllable (operation, controlled) ->
+            let operation = context.Resolve operation
+            let invalidControlled = error ErrorCode.InvalidControlledApplication [] operation.Range
 
-            match type_.Resolution with
+            match operation.Resolution with
             | QsTypeKind.Operation ((input, output), info) ->
                 let actualControlled =
                     QsTypeKind.Operation((SyntaxGenerator.AddControlQubits input, output), info) |> ResolvedType.New
@@ -536,68 +531,117 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
                 invalidControlled :: context.MatchImpl(controlled .> actualControlled)
             | _ -> [ invalidControlled ]
-        | Equatable ->
+        | Equatable ty ->
+            let ty = context.Resolve ty
+
             [
-                if Option.isNone type_.supportsEqualityComparison then
-                    error ErrorCode.InvalidTypeInEqualityComparison [ typeString ] type_.Range
+                if Option.isNone ty.supportsEqualityComparison then
+                    error ErrorCode.InvalidTypeInEqualityComparison [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
-        | HasPartialApplication (missing, result) ->
-            match type_.Resolution with
-            | QsTypeKind.Function (_, output) ->
-                context.MatchImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. result)
-            | QsTypeKind.Operation ((_, output), info) ->
-                context.MatchImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. result)
-            | _ -> [ error ErrorCode.ExpectingCallableExpr [ typeString ] type_.Range ]
-        | Indexed (index, item) ->
+        | GenerateFunctors (callable, functors) ->
+            let callable = context.Resolve callable
+
+            match callable.Resolution with
+            | QsTypeKind.Operation (_, info) ->
+                let supported = info.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
+                let missing = Set.difference functors (Set.ofSeq supported)
+
+                [
+                    if not info.Characteristics.AreInvalid && Set.isEmpty missing |> not then
+                        error
+                            ErrorCode.MissingFunctorForAutoGeneration
+                            [ Seq.map string missing |> String.concat "," ]
+                            callable.Range
+                ]
+            | _ -> []
+        | Index (container, index, item) ->
+            let container = context.Resolve container
             let index = context.Resolve index
 
-            match type_.Resolution, index.Resolution with
+            match container.Resolution, index.Resolution with
             | ArrayType actualItem, Int -> context.MatchImpl(item .> actualItem)
-            | ArrayType _, Range -> context.MatchImpl(item .> type_)
+            | ArrayType _, Range -> context.MatchImpl(item .> container)
             | ArrayType _, InvalidType -> []
             | ArrayType _, _ ->
                 [
                     error ErrorCode.InvalidArrayItemIndex [ SyntaxTreeToQsharp.Default.ToCode index ] index.Range
                 ]
-            | _ -> [ error ErrorCode.ItemAccessForNonArray [ typeString ] type_.Range ]
-        | Integral ->
+            | _ ->
+                [
+                    error
+                        ErrorCode.ItemAccessForNonArray
+                        [ SyntaxTreeToQsharp.Default.ToCode container ]
+                        container.Range
+                ]
+        | Integral ty ->
+            let ty = context.Resolve ty
+
             [
-                if type_.Resolution <> Int && type_.Resolution <> BigInt then
-                    error ErrorCode.ExpectingIntegralExpr [ typeString ] type_.Range
+                if ty.Resolution <> Int && ty.Resolution <> BigInt then
+                    error ErrorCode.ExpectingIntegralExpr [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
-        | Iterable item ->
-            match type_.supportsIteration with
+        | Iterable (container, item) ->
+            let container = context.Resolve container
+
+            match container.supportsIteration with
             | Some actualItem -> context.MatchImpl(item .> actualItem)
-            | None -> [ error ErrorCode.ExpectingIterableExpr [ typeString ] type_.Range ]
-        | Numeric ->
+            | None ->
+                [
+                    error
+                        ErrorCode.ExpectingIterableExpr
+                        [ SyntaxTreeToQsharp.Default.ToCode container ]
+                        container.Range
+                ]
+        | Numeric ty ->
+            let ty = context.Resolve ty
+
             [
-                if Option.isNone type_.supportsArithmetic then
-                    error ErrorCode.InvalidTypeInArithmeticExpr [ typeString ] type_.Range
+                if Option.isNone ty.supportsArithmetic then
+                    error ErrorCode.InvalidTypeInArithmeticExpr [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
-        | Semigroup ->
+        | PartialApplication (callable, missing, result) ->
+            let callable = context.Resolve callable
+
+            match callable.Resolution with
+            | QsTypeKind.Function (_, output) ->
+                context.MatchImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. result)
+            | QsTypeKind.Operation ((_, output), info) ->
+                context.MatchImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. result)
+            | _ ->
+                [
+                    error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
+                ]
+        | Semigroup ty ->
+            let ty = context.Resolve ty
+
             [
-                if Option.isNone type_.supportsConcatenation && Option.isNone type_.supportsArithmetic then
-                    error ErrorCode.InvalidTypeForConcatenation [ typeString ] type_.Range
+                if Option.isNone ty.supportsConcatenation && Option.isNone ty.supportsArithmetic then
+                    error ErrorCode.InvalidTypeForConcatenation [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
-        | Wrapped item ->
-            match type_.Resolution with
+        | Unwrap (container, item) ->
+            let container = context.Resolve container
+
+            match container.Resolution with
             | UserDefinedType udt ->
                 let actualItem = symbolTracker.GetUnderlyingType(fun _ -> ()) udt
                 context.MatchImpl(item .> actualItem)
-            | _ -> [ error ErrorCode.ExpectingUserDefinedType [ typeString ] type_.Range ]
+            | _ ->
+                [
+                    error
+                        ErrorCode.ExpectingUserDefinedType
+                        [ SyntaxTreeToQsharp.Default.ToCode container ]
+                        container.Range
+                ]
 
     /// <summary>
-    /// Applies all of the constraints for <paramref name="param"/>, given that it has just been bound to
-    /// <paramref name="resolvedType"/>.
+    /// Applies all of the ready constraints that depend on <paramref name="param"/>.
     /// </summary>
-    member private context.ApplyConstraints(param, resolvedType) =
-        match variables.TryGetValue param |> tryOption with
-        | Some variable ->
-            let diagnostics =
-                variable.Constraints |> List.collect (fun c -> context.ApplyConstraint(c, resolvedType))
-
-            variables.[param] <- { variable with Constraints = [] }
-            diagnostics
+    member private context.ApplyConstraints param =
+        match constraints.TryGetValue param |> tryOption with
+        | Some cs ->
+            constraints.Remove param |> ignore
+            let isReady = Constraint.dependencies >> List.choose unsolvedVariable >> List.isEmpty
+            Seq.filter isReady cs |> Seq.collect context.ApplyConstraint |> Seq.toList
         | None -> []
 
 module InferenceContext =
