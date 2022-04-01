@@ -70,3 +70,38 @@ module internal Constraint =
 
     /// Pretty prints a constraint.
     val pretty: Constraint -> string
+
+/// An ordering comparison between types.
+type internal Ordering =
+    /// The type is a subtype of another type.
+    | Subtype
+    /// The types are equal.
+    | Equal
+    /// The type is a supertype of another type.
+    | Supertype
+
+module internal Ordering =
+    /// Reverses the direction of the ordering.
+    val reverse: Ordering -> Ordering
+
+/// A relationship between two types.
+type internal 'a Relation = Relation of lhs: 'a * ordering: Ordering * rhs: 'a
+
+/// <summary>
+/// Operators for <see cref="Relation"/>.
+/// </summary>
+module internal RelationOps =
+    /// <summary>
+    /// <paramref name="lhs"/> is a subtype of <paramref name="rhs"/>.
+    /// </summary>
+    val (<.): lhs: 'a -> rhs: 'a -> 'a Relation
+
+    /// <summary>
+    /// <paramref name="lhs"/> is equal to <paramref name="rhs"/>.
+    /// </summary>
+    val (.=): lhs: 'a -> rhs: 'a -> 'a Relation
+
+    /// <summary>
+    /// <paramref name="lhs"/> is a supertype of <paramref name="rhs"/>.
+    /// </summary>
+    val (.>): lhs: 'a -> rhs: 'a -> 'a Relation

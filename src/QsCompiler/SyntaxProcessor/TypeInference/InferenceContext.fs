@@ -12,6 +12,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference.RelationOps
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -29,35 +30,6 @@ type Variable =
         /// The source range that this variable originated from.
         Source: Range
     }
-
-/// An ordering comparison between types.
-type Ordering =
-    /// The type is a subtype of another type.
-    | Subtype
-    /// The types are equal.
-    | Equal
-    /// The type is a supertype of another type.
-    | Supertype
-
-module Ordering =
-    /// Reverses the direction of the ordering.
-    let reverse =
-        function
-        | Subtype -> Supertype
-        | Equal -> Equal
-        | Supertype -> Subtype
-
-type 'a Relation = Relation of lhs: 'a * ordering: Ordering * rhs: 'a
-
-module Relation =
-    let map f (Relation (x, ordering, y)) = Relation(f x, ordering, f y)
-
-module RelationOps =
-    let (<.) lhs rhs = Relation(lhs, Subtype, rhs)
-
-    let (.=.) lhs rhs = Relation(lhs, Equal, rhs)
-
-    let (.>) lhs rhs = Relation(lhs, Supertype, rhs)
 
 /// <summary>A type context stores information needed for error reporting of mismatched types.</summary>
 /// <example>
@@ -300,8 +272,6 @@ module Inference =
         transformation.OnType resolvedType |> ignore
         parameters
 
-open RelationOps
-
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
     let constraints = MultiValueDictionary()
@@ -392,7 +362,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         |> rememberErrorsFor [ expected; actual ]
 
     member internal context.Intersect(type1, type2) =
-        context.MatchImpl(type1 .=. type2) |> ignore
+        context.MatchImpl(type1 .= type2) |> ignore
         let left = context.Resolve type1
         let right = context.Resolve type2
 
@@ -451,7 +421,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ when expected = actual -> []
         | TypeParameter param, _ when variables.ContainsKey param -> tryBind param actual
         | _, TypeParameter param when variables.ContainsKey param -> tryBind param expected
-        | ArrayType item1, ArrayType item2 -> context.MatchImpl(item1 .=. item2)
+        | ArrayType item1, ArrayType item2 -> context.MatchImpl(item1 .= item2)
         | TupleType items1, TupleType items2 ->
             [
                 if items1.Length <> items2.Length then TypeMismatch typeContext

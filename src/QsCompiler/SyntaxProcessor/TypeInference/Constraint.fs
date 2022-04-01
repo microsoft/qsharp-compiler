@@ -71,3 +71,24 @@ module Constraint =
             sprintf "PartialApplication<%s, %s, %s>" (p callable) (p missing) (p result)
         | Semigroup ty -> sprintf "Semigroup<%s>" (p ty)
         | Unwrap (container, item) -> sprintf "Unwrap<%s, %s>" (p container) (p item)
+
+type Ordering =
+    | Subtype
+    | Equal
+    | Supertype
+
+module Ordering =
+    let reverse =
+        function
+        | Subtype -> Supertype
+        | Equal -> Equal
+        | Supertype -> Subtype
+
+type 'a Relation = Relation of lhs: 'a * ordering: Ordering * rhs: 'a
+
+module RelationOps =
+    let (<.) lhs rhs = Relation(lhs, Subtype, rhs)
+
+    let (.=) lhs rhs = Relation(lhs, Equal, rhs)
+
+    let (.>) lhs rhs = Relation(lhs, Supertype, rhs)

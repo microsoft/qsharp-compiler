@@ -8,28 +8,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-/// A relationship between two types.
-type internal 'a Relation
-
-/// <summary>
-/// Operators for <see cref="Relation"/>.
-/// </summary>
-module internal RelationOps =
-    /// <summary>
-    /// <paramref name="lhs"/> is a subtype of <paramref name="rhs"/>.
-    /// </summary>
-    val (<.): lhs: 'a -> rhs: 'a -> 'a Relation
-
-    /// <summary>
-    /// <paramref name="lhs"/> is equal to <paramref name="rhs"/>.
-    /// </summary>
-    val (.=.): lhs: 'a -> rhs: 'a -> 'a Relation
-
-    /// <summary>
-    /// <paramref name="lhs"/> is a supertype of <paramref name="rhs"/>.
-    /// </summary>
-    val (.>): lhs: 'a -> rhs: 'a -> 'a Relation
-
 /// The inference context is an implementation of Hindley-Milner type inference. It is a source of fresh type parameters
 /// and can unify types containing them.
 type InferenceContext =
