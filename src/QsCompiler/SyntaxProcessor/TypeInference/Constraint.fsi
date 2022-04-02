@@ -63,9 +63,6 @@ type internal ClassConstraint =
     | Unwrap of container: ResolvedType * item: ResolvedType
 
 module internal ClassConstraint =
-    // TODO
-    val dependencies: ClassConstraint -> ResolvedType list
-
     /// <summary>
     /// Pretty prints a <see cref="ClassConstraint"/>.
     /// </summary>

@@ -22,21 +22,6 @@ type ClassConstraint =
     | Unwrap of container: ResolvedType * item: ResolvedType
 
 module ClassConstraint =
-    let dependencies =
-        function
-        | Adjointable operation -> [ operation ]
-        | Callable (callable, _, _) -> [ callable ]
-        | Controllable (operation, _) -> [ operation ]
-        | Eq ty -> [ ty ]
-        | GenerateFunctors (callable, _) -> [ callable ]
-        | Index (container, index, _) -> [ container; index ]
-        | Integral ty -> [ ty ]
-        | Iterable (container, _) -> [ container ]
-        | Num ty -> [ ty ]
-        | PartialAp (callable, _, _) -> [ callable ] // TODO: missing
-        | Semigroup ty -> [ ty ]
-        | Unwrap (container, _) -> [ container ]
-
     let types =
         function
         | Adjointable operation -> [ operation ]

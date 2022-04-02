@@ -272,6 +272,21 @@ module Inference =
         transformation.OnType resolvedType |> ignore
         parameters
 
+    let classDependencies =
+        function
+        | ClassConstraint.Adjointable operation -> [ operation ]
+        | Callable (callable, _, _) -> [ callable ]
+        | ClassConstraint.Controllable (operation, _) -> [ operation ]
+        | Eq ty -> [ ty ]
+        | GenerateFunctors (callable, _) -> [ callable ]
+        | Index (container, index, _) -> [ container; index ]
+        | Integral ty -> [ ty ]
+        | Iterable (container, _) -> [ container ]
+        | Num ty -> [ ty ]
+        | PartialAp (callable, _, _) -> [ callable ]
+        | Semigroup ty -> [ ty ]
+        | Unwrap (container, _) -> [ container ]
+
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
     let classConstraints = MultiValueDictionary()
@@ -375,7 +390,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.ConstrainImpl con =
         match con with
         | Class cls ->
-            match ClassConstraint.dependencies cls |> List.choose unsolvedVariable with
+            match Inference.classDependencies cls |> List.choose unsolvedVariable with
             | [] -> context.ApplyClassConstraint cls
             | tyParams ->
                 for param in tyParams do
@@ -463,7 +478,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             context.Resolve(ty).Resolution = InvalidType
 
         match con with
-        | _ when ClassConstraint.dependencies con |> List.exists isInvalidType -> []
+        | _ when Inference.classDependencies con |> List.exists isInvalidType -> []
         | ClassConstraint.Adjointable operation ->
             let operation = context.Resolve operation
 
@@ -612,7 +627,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         match classConstraints.TryGetValue param |> tryOption with
         | Some cs ->
             classConstraints.Remove param |> ignore
-            let isReady = ClassConstraint.dependencies >> List.choose unsolvedVariable >> List.isEmpty
+            let isReady = Inference.classDependencies >> List.choose unsolvedVariable >> List.isEmpty
             Seq.filter isReady cs |> Seq.collect context.ApplyClassConstraint |> Seq.toList
         | None -> []
 
