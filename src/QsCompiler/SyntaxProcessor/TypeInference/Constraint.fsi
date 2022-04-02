@@ -7,7 +7,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 /// A type constraint is a set of types satisfying some property.
-type internal Constraint =
+type internal ClassConstraint =
     /// An adjointable operation.
     | Adjointable of operation: ResolvedType
 
@@ -23,7 +23,7 @@ type internal Constraint =
     | Controllable of operation: ResolvedType * controlled: ResolvedType
 
     /// A type that supports equality comparisons.
-    | Equatable of ty: ResolvedType
+    | Eq of ty: ResolvedType
 
     /// <summary>
     /// A type that can be used in an operation that requires auto-generated specializations for the given
@@ -46,13 +46,13 @@ type internal Constraint =
     | Iterable of container: ResolvedType * item: ResolvedType
 
     /// A type that represents a number.
-    | Numeric of ty: ResolvedType
+    | Num of ty: ResolvedType
 
     /// <summary>
     /// A callable that can be partially applied such that, given the remaining inputs as an argument of type
     /// <paramref name="missing"/>, it will yield an output of type <paramref name="result"/>.
     /// </summary>
-    | PartialApplication of callable: ResolvedType * missing: ResolvedType * result: ResolvedType
+    | PartialAp of callable: ResolvedType * missing: ResolvedType * result: ResolvedType
 
     /// A type with the associative semigroup operator +.
     | Semigroup of ty: ResolvedType
@@ -62,14 +62,14 @@ type internal Constraint =
     /// </summary>
     | Unwrap of container: ResolvedType * item: ResolvedType
 
-module internal Constraint =
-    val dependencies: Constraint -> ResolvedType list
+module internal ClassConstraint =
+    // TODO
+    val dependencies: ClassConstraint -> ResolvedType list
 
-    /// The list of types contained in a constraint.
-    val types: Constraint -> ResolvedType list
-
-    /// Pretty prints a constraint.
-    val pretty: Constraint -> string
+    /// <summary>
+    /// Pretty prints a <see cref="ClassConstraint"/>.
+    /// </summary>
+    val pretty: ClassConstraint -> string
 
 /// An ordering comparison between types.
 type internal Ordering =
@@ -84,24 +84,31 @@ module internal Ordering =
     /// Reverses the direction of the ordering.
     val reverse: Ordering -> Ordering
 
-/// A relationship between two types.
-type internal 'a Relation = Relation of lhs: 'a * ordering: Ordering * rhs: 'a
+type internal Constraint =
+    | Class of ClassConstraint
+    | Relation of ResolvedType * Ordering * ResolvedType
+
+module internal Constraint =
+    /// <summary>
+    /// The types referenced by a <see cref="Constraint"/>.
+    /// </summary>
+    val types: Constraint -> ResolvedType list
 
 /// <summary>
 /// Operators for <see cref="Relation"/>.
 /// </summary>
 module internal RelationOps =
     /// <summary>
-    /// <paramref name="lhs"/> is a subtype of <paramref name="rhs"/>.
+    /// lhs is a subtype of rhs.
     /// </summary>
-    val (<.): lhs: 'a -> rhs: 'a -> 'a Relation
+    val (<.): ResolvedType -> ResolvedType -> Constraint
 
     /// <summary>
-    /// <paramref name="lhs"/> is equal to <paramref name="rhs"/>.
+    /// lhs is equal to rhs.
     /// </summary>
-    val (.=): lhs: 'a -> rhs: 'a -> 'a Relation
+    val (.=): ResolvedType -> ResolvedType -> Constraint
 
     /// <summary>
-    /// <paramref name="lhs"/> is a supertype of <paramref name="rhs"/>.
+    /// lhs is a supertype of rhs.
     /// </summary>
-    val (.>): lhs: 'a -> rhs: 'a -> 'a Relation
+    val (.>): ResolvedType -> ResolvedType -> Constraint

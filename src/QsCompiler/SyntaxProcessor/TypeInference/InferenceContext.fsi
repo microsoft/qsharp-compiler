@@ -34,15 +34,6 @@ type InferenceContext =
     member internal Fresh: source: Range -> ResolvedType
 
     /// <summary>
-    /// Matches the types in the <paramref name="relation"/> according to its ordering.
-    /// </summary>
-    /// <returns>
-    /// Diagnostics if the types did not match. For error reporting purposes, the left-hand type is considered the
-    /// expected type.
-    /// </returns>
-    member internal Match: relation: ResolvedType Relation -> QsCompilerDiagnostic list
-
-    /// <summary>
     /// Returns a type that is a supertype of both types <paramref name="type1"/> and <paramref name="type2"/>, and that
     /// has a <see cref="TypeRange.Generated"/> range.
     /// </summary>

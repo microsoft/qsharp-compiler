@@ -274,7 +274,7 @@ module Inference =
 
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
-    let constraints = MultiValueDictionary()
+    let classConstraints = MultiValueDictionary()
 
     let mutable rootNodePos = Null
     let mutable relativePos = Null
@@ -308,13 +308,16 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     member context.AmbiguousDiagnostics =
         let diagnostic param variable =
-            let args =
-                [
-                    TypeParameter param |> ResolvedType.New |> SyntaxTreeToQsharp.Default.ToCode
-                    constraints.GetValueOrDefault(param, []) |> Seq.map Constraint.pretty |> String.concat ", "
-                ]
+            let paramName = TypeParameter param |> ResolvedType.New |> SyntaxTreeToQsharp.Default.ToCode
 
-            QsCompilerDiagnostic.Error(ErrorCode.AmbiguousTypeParameterResolution, args) variable.Source
+            let constraintInfo =
+                classConstraints.GetValueOrDefault(param, [])
+                |> Seq.map ClassConstraint.pretty
+                |> String.concat ", "
+
+            QsCompilerDiagnostic.Error
+                (ErrorCode.AmbiguousTypeParameterResolution, [ paramName; constraintInfo ])
+                variable.Source
 
         variables
         |> Seq.filter (fun item -> not item.Value.HasError && Option.isNone item.Value.Substitution)
@@ -356,13 +359,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         variables.Add(param, variable)
         TypeParameter param |> ResolvedType.create (Inferred source)
 
-    member internal context.Match(Relation (expected, _, actual) as relation) =
-        context.MatchImpl relation
-        |> List.map Diagnostic.toCompilerDiagnostic
-        |> rememberErrorsFor [ expected; actual ]
-
     member internal context.Intersect(type1, type2) =
-        context.MatchImpl(type1 .= type2) |> ignore
+        context.ConstrainImpl(type1 .= type2) |> ignore
         let left = context.Resolve type1
         let right = context.Resolve type2
 
@@ -370,16 +368,21 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         |> mapSnd (List.map Diagnostic.toCompilerDiagnostic >> rememberErrorsFor [ left; right ])
 
     member internal context.Constrain con =
-        match Constraint.dependencies con |> List.choose unsolvedVariable with
-        | [] ->
-            context.ApplyConstraint con
-            |> List.map Diagnostic.toCompilerDiagnostic
-            |> rememberErrorsFor (Constraint.types con)
-        | tyParams ->
-            for param in tyParams do
-                constraints.Add(param, con)
+        context.ConstrainImpl con
+        |> List.map Diagnostic.toCompilerDiagnostic
+        |> rememberErrorsFor (Constraint.types con)
 
-            []
+    member private context.ConstrainImpl con =
+        match con with
+        | Class cls ->
+            match ClassConstraint.dependencies cls |> List.choose unsolvedVariable with
+            | [] -> context.ApplyClassConstraint cls
+            | tyParams ->
+                for param in tyParams do
+                    classConstraints.Add(param, cls)
+
+                []
+        | Relation (expected, ordering, actual) -> context.Relate(expected, ordering, actual)
 
     member internal context.Resolve type_ =
         let resolveWithRange type_ =
@@ -407,26 +410,26 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             |> ResolvedType.withKind (QsTypeKind.Function(context.Resolve inType, context.Resolve outType))
         | _ -> type_
 
-    member private context.MatchImpl(Relation (expected, ordering, actual)) =
+    member private context.Relate(expected, ordering, actual) =
         let expected = context.Resolve expected
         let actual = context.Resolve actual
         let typeContext = TypeContext.createOrphan expected actual
 
         let tryBind param substitution =
             match bind param substitution with
-            | Ok () -> context.ApplyConstraints param
+            | Ok () -> context.ApplyClassConstraints param
             | Result.Error () -> [ InfiniteType typeContext ]
 
         match expected.Resolution, actual.Resolution with
         | _ when expected = actual -> []
         | TypeParameter param, _ when variables.ContainsKey param -> tryBind param actual
         | _, TypeParameter param when variables.ContainsKey param -> tryBind param expected
-        | ArrayType item1, ArrayType item2 -> context.MatchImpl(item1 .= item2)
+        | ArrayType item1, ArrayType item2 -> context.ConstrainImpl(item1 .= item2)
         | TupleType items1, TupleType items2 ->
             [
                 if items1.Length <> items2.Length then TypeMismatch typeContext
                 for item1, item2 in Seq.zip items1 items2 do
-                    yield! Relation(item1, ordering, item2) |> context.MatchImpl
+                    yield! context.Relate(item1, ordering, item2)
             ]
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let charsErrors =
@@ -436,15 +439,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 | Supertype when Inference.charsSubset info1 info2 |> not -> [ TypeMismatch typeContext ]
                 | _ -> []
 
-            context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
-            @ context.MatchImpl(Relation(out1, ordering, out2)) @ charsErrors
+            context.Relate(in1, Ordering.reverse ordering, in2)
+            @ context.Relate(out1, ordering, out2) @ charsErrors
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
-            @ context.MatchImpl(Relation(out1, ordering, out2))
+            context.Relate(in1, Ordering.reverse ordering, in2) @ context.Relate(out1, ordering, out2)
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
-            TypeMismatch typeContext :: context.MatchImpl(Relation(in1, Ordering.reverse ordering, in2))
-            @ context.MatchImpl(Relation(out1, ordering, out2))
+            TypeMismatch typeContext :: context.Relate(in1, Ordering.reverse ordering, in2)
+            @ context.Relate(out1, ordering, out2)
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
@@ -452,7 +454,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ -> [ TypeMismatch typeContext ]
         |> List.map (Diagnostic.withParents expected actual)
 
-    member private context.ApplyConstraint con =
+    member private context.ApplyClassConstraint con =
         let error code args range =
             let range = TypeRange.tryRange range |> QsNullable.defaultValue Range.Zero
             QsCompilerDiagnostic.Error(code, args) range |> CompilerDiagnostic
@@ -461,8 +463,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             context.Resolve(ty).Resolution = InvalidType
 
         match con with
-        | _ when Constraint.dependencies con |> List.exists isInvalidType -> []
-        | Constraint.Adjointable operation ->
+        | _ when ClassConstraint.dependencies con |> List.exists isInvalidType -> []
+        | ClassConstraint.Adjointable operation ->
             let operation = context.Resolve operation
 
             match operation.Resolution with
@@ -474,14 +476,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match callable.Resolution with
             | QsTypeKind.Operation _ ->
                 let operationType = QsTypeKind.Operation((input, output), CallableInformation.NoInformation)
-                context.MatchImpl(callable <. ResolvedType.New operationType)
+                context.ConstrainImpl(callable <. ResolvedType.New operationType)
             | QsTypeKind.Function _ ->
-                context.MatchImpl(callable <. ResolvedType.New(QsTypeKind.Function(input, output)))
+                context.ConstrainImpl(callable <. ResolvedType.New(QsTypeKind.Function(input, output)))
             | _ ->
                 [
                     error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
                 ]
-        | Constraint.Controllable (operation, controlled) ->
+        | ClassConstraint.Controllable (operation, controlled) ->
             let operation = context.Resolve operation
             let invalidControlled = error ErrorCode.InvalidControlledApplication [] operation.Range
 
@@ -492,16 +494,16 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
                 [
                     if info |> Inference.hasFunctor Controlled |> not then invalidControlled
-                    yield! context.MatchImpl(controlled .> actualControlled)
+                    yield! context.ConstrainImpl(controlled .> actualControlled)
                 ]
             | QsTypeKind.Function (input, output) ->
                 let actualControlled =
                     QsTypeKind.Operation((SyntaxGenerator.AddControlQubits input, output), CallableInformation.Invalid)
                     |> ResolvedType.New
 
-                invalidControlled :: context.MatchImpl(controlled .> actualControlled)
+                invalidControlled :: context.ConstrainImpl(controlled .> actualControlled)
             | _ -> [ invalidControlled ]
-        | Equatable ty ->
+        | Eq ty ->
             let ty = context.Resolve ty
 
             [
@@ -529,8 +531,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             let index = context.Resolve index
 
             match container.Resolution, index.Resolution with
-            | ArrayType actualItem, Int -> context.MatchImpl(item .> actualItem)
-            | ArrayType _, Range -> context.MatchImpl(item .> container)
+            | ArrayType actualItem, Int -> context.ConstrainImpl(item .> actualItem)
+            | ArrayType _, Range -> context.ConstrainImpl(item .> container)
             | ArrayType _, InvalidType -> []
             | ArrayType _, _ ->
                 [
@@ -554,7 +556,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             let container = context.Resolve container
 
             match container.supportsIteration with
-            | Some actualItem -> context.MatchImpl(item .> actualItem)
+            | Some actualItem -> context.ConstrainImpl(item .> actualItem)
             | None ->
                 [
                     error
@@ -562,21 +564,21 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                         [ SyntaxTreeToQsharp.Default.ToCode container ]
                         container.Range
                 ]
-        | Numeric ty ->
+        | Num ty ->
             let ty = context.Resolve ty
 
             [
                 if Option.isNone ty.supportsArithmetic then
                     error ErrorCode.InvalidTypeInArithmeticExpr [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
-        | PartialApplication (callable, missing, result) ->
+        | PartialAp (callable, missing, result) ->
             let callable = context.Resolve callable
 
             match callable.Resolution with
             | QsTypeKind.Function (_, output) ->
-                context.MatchImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. result)
+                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. result)
             | QsTypeKind.Operation ((_, output), info) ->
-                context.MatchImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. result)
+                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. result)
             | _ ->
                 [
                     error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
@@ -594,7 +596,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match container.Resolution with
             | UserDefinedType udt ->
                 let actualItem = symbolTracker.GetUnderlyingType(fun _ -> ()) udt
-                context.MatchImpl(item .> actualItem)
+                context.ConstrainImpl(item .> actualItem)
             | _ ->
                 [
                     error
@@ -606,12 +608,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     /// <summary>
     /// Applies all of the ready constraints that depend on <paramref name="param"/>.
     /// </summary>
-    member private context.ApplyConstraints param =
-        match constraints.TryGetValue param |> tryOption with
+    member private context.ApplyClassConstraints param =
+        match classConstraints.TryGetValue param |> tryOption with
         | Some cs ->
-            constraints.Remove param |> ignore
-            let isReady = Constraint.dependencies >> List.choose unsolvedVariable >> List.isEmpty
-            Seq.filter isReady cs |> Seq.collect context.ApplyConstraint |> Seq.toList
+            classConstraints.Remove param |> ignore
+            let isReady = ClassConstraint.dependencies >> List.choose unsolvedVariable >> List.isEmpty
+            Seq.filter isReady cs |> Seq.collect context.ApplyClassConstraint |> Seq.toList
         | None -> []
 
 module InferenceContext =
