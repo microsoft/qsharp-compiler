@@ -11,6 +11,8 @@
     <Content Include="TypeInference\README.md" />
     <Compile Include="TypeInference\Constraint.fsi" />
     <Compile Include="TypeInference\Constraint.fs" />
+    <Compile Include="TypeInference\Diagnostic.fsi" />
+    <Compile Include="TypeInference\Diagnostic.fs" />
     <Compile Include="TypeInference\InferenceContext.fsi" />
     <Compile Include="TypeInference\InferenceContext.fs" />
     <Compile Include="ScopeContext.fs" />
