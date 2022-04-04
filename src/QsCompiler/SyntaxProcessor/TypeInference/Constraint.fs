@@ -33,7 +33,7 @@ module ClassConstraint =
         | Integral ty -> [ ty ]
         | Iterable (container, item) -> [ container; item ]
         | Num ty -> [ ty ]
-        | PartialAp (callable, missing, result) -> [ callable; missing; result ]
+        | PartialAp (callable, missing, callable') -> [ callable; missing; callable' ]
         | Semigroup ty -> [ ty ]
         | Unwrap (container, item) -> [ container; item ]
 
@@ -52,7 +52,8 @@ module ClassConstraint =
         | Integral ty -> sprintf "Integral<%s>" (p ty)
         | Iterable (container, item) -> sprintf "Iterable<%s, %s>" (p container) (p item)
         | Num ty -> sprintf "Num<%s>" (p ty)
-        | PartialAp (callable, missing, result) -> sprintf "PartialAp<%s, %s, %s>" (p callable) (p missing) (p result)
+        | PartialAp (callable, missing, callable') ->
+            sprintf "PartialAp<%s, %s, %s>" (p callable) (p missing) (p callable')
         | Semigroup ty -> sprintf "Semigroup<%s>" (p ty)
         | Unwrap (container, item) -> sprintf "Unwrap<%s, %s>" (p container) (p item)
 

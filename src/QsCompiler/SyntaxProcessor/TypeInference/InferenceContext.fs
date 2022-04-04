@@ -159,8 +159,9 @@ module Inference =
         parameters
 
     /// <summary>
-    /// The types in a class constraint that need to have a substitution before the constraint can be applied with
-    /// <see cref="InferenceContext.ApplyClassConstraint"/>.
+    /// The types in a class constraint that need to be solved to at least depth one before the constraint can be
+    /// applied. In other words, if the type is a fresh variable, then it needs to have a substitution, but the
+    /// substituted type may be unsolved.
     /// </summary>
     let classDependencies =
         function
