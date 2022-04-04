@@ -31,7 +31,7 @@ module TypeContext =
 
 type Diagnostic =
     | TypeMismatch of TypeContext
-    | TypeIntersectionMismatch of ordering: Ordering * context: TypeContext
+    | TypeIntersectionMismatch of Ordering * TypeContext
     | InfiniteType of TypeContext
     | CompilerDiagnostic of QsCompilerDiagnostic
 

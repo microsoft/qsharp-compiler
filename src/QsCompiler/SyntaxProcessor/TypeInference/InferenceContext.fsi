@@ -42,6 +42,11 @@ type InferenceContext =
     /// <summary>
     /// Adds a constraint to the context.
     /// </summary>
+    /// <returns>Diagnostics if the constraint is unsatisfiable.</returns>
+    /// <remarks>
+    /// In a relational constraint, the left-hand type is considered the expected type and the right-hand type is
+    /// considered the actual type for diagnostics.
+    /// </remarks>
     member internal Constrain: con: Constraint -> QsCompilerDiagnostic list
 
     /// <summary>

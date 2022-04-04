@@ -11,14 +11,14 @@ type ClassConstraint =
     | Adjointable of operation: ResolvedType
     | Callable of callable: ResolvedType * input: ResolvedType * output: ResolvedType
     | Controllable of operation: ResolvedType * controlled: ResolvedType
-    | Eq of ty: ResolvedType
+    | Eq of ResolvedType
     | GenerateFunctors of callable: ResolvedType * functors: QsFunctor Set
     | Index of container: ResolvedType * index: ResolvedType * item: ResolvedType
-    | Integral of ty: ResolvedType
+    | Integral of ResolvedType
     | Iterable of container: ResolvedType * item: ResolvedType
-    | Num of ty: ResolvedType
-    | PartialAp of callable: ResolvedType * missing: ResolvedType * result: ResolvedType
-    | Semigroup of ty: ResolvedType
+    | Num of ResolvedType
+    | PartialAp of callable: ResolvedType * missing: ResolvedType * callable': ResolvedType
+    | Semigroup of ResolvedType
     | Unwrap of container: ResolvedType * item: ResolvedType
 
 module ClassConstraint =

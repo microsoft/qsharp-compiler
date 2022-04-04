@@ -158,6 +158,10 @@ module Inference =
         transformation.OnType resolvedType |> ignore
         parameters
 
+    /// <summary>
+    /// The types in a class constraint that need to have a substitution before the constraint can be applied with
+    /// <see cref="InferenceContext.ApplyClassConstraint"/>.
+    /// </summary>
     let classDependencies =
         function
         | ClassConstraint.Adjointable operation -> [ operation ]
@@ -355,7 +359,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ -> [ TypeMismatch typeContext ]
         |> List.map (Diagnostic.withParents expected actual)
 
-    member private context.ApplyClassConstraint con =
+    member private context.ApplyClassConstraint cls =
         let error code args range =
             let range = TypeRange.tryRange range |> QsNullable.defaultValue Range.Zero
             QsCompilerDiagnostic.Error(code, args) range |> CompilerDiagnostic
@@ -363,8 +367,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let isInvalidType ty =
             context.Resolve(ty).Resolution = InvalidType
 
-        match con with
-        | _ when Inference.classDependencies con |> List.exists isInvalidType -> []
+        match cls with
+        | _ when Inference.classDependencies cls |> List.exists isInvalidType -> []
         | ClassConstraint.Adjointable operation ->
             let operation = context.Resolve operation
 
@@ -472,14 +476,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 if Option.isNone ty.supportsArithmetic then
                     error ErrorCode.InvalidTypeInArithmeticExpr [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
-        | PartialAp (callable, missing, result) ->
+        | PartialAp (callable, missing, callable') ->
             let callable = context.Resolve callable
 
             match callable.Resolution with
             | QsTypeKind.Function (_, output) ->
-                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. result)
+                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. callable')
             | QsTypeKind.Operation ((_, output), info) ->
-                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. result)
+                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. callable')
             | _ ->
                 [
                     error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
@@ -507,14 +511,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 ]
 
     /// <summary>
-    /// Applies all of the ready constraints that depend on <paramref name="param"/>.
+    /// Applies all of the ready class constraints that depend on <paramref name="param"/>.
     /// </summary>
     member private context.ApplyClassConstraints param =
         match classConstraints.TryGetValue param |> tryOption with
-        | Some cs ->
-            classConstraints.Remove param |> ignore
+        | Some classes ->
+            if classConstraints.Remove param |> not then failwith "Couldn't remove class constraints."
             let isReady = Inference.classDependencies >> List.choose unsolvedVariable >> List.isEmpty
-            Seq.filter isReady cs |> Seq.collect context.ApplyClassConstraint |> Seq.toList
+            Seq.filter isReady classes |> Seq.collect context.ApplyClassConstraint |> Seq.toList
         | None -> []
 
 module InferenceContext =
