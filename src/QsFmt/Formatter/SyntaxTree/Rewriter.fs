@@ -488,6 +488,7 @@ type 'context Rewriter() as rewriter =
         | Conditional conditional -> rewriter.Conditional(context, conditional) |> Conditional
         | FullOpenRange fullOpenRange -> rewriter.Terminal(context, fullOpenRange) |> FullOpenRange
         | Update update -> rewriter.Update(context, update) |> Update
+        | Lambda lambda -> rewriter.Lambda(context, lambda) |> Lambda
         | Expression.Unknown terminal -> rewriter.Terminal(context, terminal) |> Expression.Unknown
 
     abstract Identifier: context: 'context * identifier: Identifier -> Identifier
@@ -578,6 +579,15 @@ type 'context Rewriter() as rewriter =
             Item = rewriter.Expression(context, update.Item)
             Arrow = rewriter.Terminal(context, update.Arrow)
             Value = rewriter.Expression(context, update.Value)
+        }
+
+    abstract Lambda: context: 'context * lambda: Lambda -> Lambda
+
+    default _.Lambda(context, lambda) =
+        {
+            Binding = rewriter.SymbolBinding(context, lambda.Binding)
+            Arrow = rewriter.Terminal(context, lambda.Arrow)
+            Body = rewriter.Expression(context, lambda.Body)
         }
 
     abstract Block: context: 'context * mapper: ('context * 'a -> 'a) * block: 'a Block -> 'a Block

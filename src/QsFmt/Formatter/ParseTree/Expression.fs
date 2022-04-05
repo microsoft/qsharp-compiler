@@ -17,6 +17,28 @@ module Expression =
             CloseParen = context.Greater().Symbol |> Node.toTerminal tokens
         }
 
+type SymbolBindingVisitor(tokens) =
+    inherit QSharpParserBaseVisitor<SymbolBinding>()
+
+    override _.DefaultResult = failwith "Unknown symbol binding."
+
+    override _.VisitDiscardSymbol context =
+        context.Underscore().Symbol |> Node.toTerminal tokens |> SymbolDeclaration
+
+    override _.VisitSymbolName context =
+        context.Identifier().Symbol |> Node.toTerminal tokens |> SymbolDeclaration
+
+    override visitor.VisitSymbolTuple context =
+        let bindings = context.symbolBinding () |> Seq.map visitor.Visit
+        let commas = context.Comma() |> Seq.map (fun node -> Node.toTerminal tokens node.Symbol)
+
+        {
+            OpenParen = context.ParenLeft().Symbol |> Node.toTerminal tokens
+            Items = Node.tupleItems bindings commas
+            CloseParen = context.ParenRight().Symbol |> Node.toTerminal tokens
+        }
+        |> SymbolTuple
+
 type InterpStringContentVisitor(tokens) =
     inherit QSharpParserBaseVisitor<InterpStringContent>()
 
@@ -38,6 +60,7 @@ and ExpressionVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Expression>()
 
     let typeVisitor = TypeVisitor tokens
+    let symbolBindingVisitor = SymbolBindingVisitor tokens
 
     override _.DefaultResult = failwith "Unknown expression."
 
@@ -321,3 +344,11 @@ and ExpressionVisitor(tokens) =
             Value = visitor.Visit context.value
         }
         |> Update
+
+    override visitor.VisitLambdaExpression context =
+        {
+            Binding = context.symbolBinding () |> symbolBindingVisitor.Visit
+            Arrow = Node.toTerminal tokens context.arrow
+            Body = context.expression () |> visitor.Visit
+        }
+        |> Lambda

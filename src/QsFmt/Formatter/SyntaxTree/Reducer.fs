@@ -484,6 +484,7 @@ type internal 'result Reducer() as reducer =
         | Conditional conditional -> reducer.Conditional conditional
         | FullOpenRange fullOpenRange -> reducer.Terminal fullOpenRange
         | Update update -> reducer.Update update
+        | Lambda lambda -> reducer.Lambda lambda
         | Expression.Unknown terminal -> reducer.Terminal terminal
 
     abstract Identifier: identifier: Identifier -> 'result
@@ -578,6 +579,16 @@ type internal 'result Reducer() as reducer =
             reducer.Expression update.Item
             reducer.Terminal update.Arrow
             reducer.Expression update.Value
+        ]
+        |> reduce
+
+    abstract Lambda: lambda: Lambda -> 'result
+
+    default _.Lambda lambda =
+        [
+            reducer.SymbolBinding lambda.Binding
+            reducer.Terminal lambda.Arrow
+            reducer.Expression lambda.Body
         ]
         |> reduce
 

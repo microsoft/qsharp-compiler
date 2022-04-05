@@ -20,20 +20,6 @@ type internal ParameterBinding =
     /// A declaration for a tuple of new parameters.
     | ParameterTuple of ParameterBinding Tuple
 
-/// A binding for one or more new symbols.
-type internal SymbolBinding =
-    /// A declaration for a new symbols.
-    | SymbolDeclaration of Terminal
-
-    /// A declaration for a tuple of new symbols.
-    | SymbolTuple of SymbolBinding Tuple
-
-module internal SymbolBinding =
-    /// <summary>
-    /// Maps a symbol binding by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
-    /// </summary>
-    val mapPrefix: mapper: (Trivia list -> Trivia list) -> SymbolBinding -> SymbolBinding
-
 /// Initializer for a single qubit.
 type internal SingleQubit =
     {
