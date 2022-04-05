@@ -611,11 +611,10 @@ type QsExpression with
             let ex = resolve context ex
             let itemName = buildItemName acc
             let itemType = inference.Fresh this.RangeOrDefault
-            let quantumDependency = ex.InferredInformation.HasLocalQuantumDependency
             HasField(ex.ResolvedType, itemName, itemType) |> Class |> inference.Constrain |> List.iter diagnose
 
             (NamedItem(ex, itemName), itemType)
-            |> exprWithoutTypeArgs this.Range (inferred false quantumDependency)
+            |> exprWithoutTypeArgs this.Range (inferred false ex.InferredInformation.HasLocalQuantumDependency)
 
         /// Resolves and verifies the given left hand side, access expression, and right hand side of a copy-and-update expression,
         /// and returns the corresponding copy-and-update expression as typed expression.
@@ -623,9 +622,8 @@ type QsExpression with
             let lhs = resolve context lhs
             let rhs = resolve context rhs
 
-            // TODO: Only check local variables.
-            let symbolExists s =
-                (symbols.ResolveIdentifier(fun _ -> ()) s |> fst).VariableName <> InvalidIdentifier
+            let localVarExists name =
+                Seq.exists (fun v -> v.VariableName = name) symbols.CurrentDeclarations.Variables
 
             let resolvedCopyAndUpdateExpr accEx =
                 let localQdependency =
@@ -635,7 +633,7 @@ type QsExpression with
                 |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
 
             match accEx.Expression with
-            | Identifier ({ Symbol = Symbol _ } as symbol, Null) when symbolExists symbol |> not ->
+            | Identifier ({ Symbol = Symbol name } as symbol, Null) when localVarExists name |> not ->
                 let itemName = buildItemName symbol
                 let itemType = inference.Fresh this.RangeOrDefault
                 HasField(lhs.ResolvedType, itemName, itemType) |> Class |> inference.Constrain |> List.iter diagnose
