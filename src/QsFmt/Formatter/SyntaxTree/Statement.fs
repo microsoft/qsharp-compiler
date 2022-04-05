@@ -9,16 +9,6 @@ type ParameterBinding =
     | ParameterDeclaration of ParameterDeclaration
     | ParameterTuple of ParameterBinding Tuple
 
-type SymbolBinding =
-    | SymbolDeclaration of Terminal
-    | SymbolTuple of SymbolBinding Tuple
-
-module SymbolBinding =
-    let mapPrefix mapper =
-        function
-        | SymbolDeclaration terminal -> terminal |> Terminal.mapPrefix mapper |> SymbolDeclaration
-        | SymbolTuple tuple -> tuple |> Tuple.mapPrefix mapper |> SymbolTuple
-
 type SingleQubit =
     {
         Qubit: Terminal

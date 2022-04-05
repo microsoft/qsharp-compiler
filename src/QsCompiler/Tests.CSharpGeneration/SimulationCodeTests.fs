@@ -2445,7 +2445,7 @@ namespace N1
         |> testOneClass genCtrl3 AssemblyConstants.HoneywellProcessor
 
         """
-    [SourceLocation("%%%", OperationFunctor.Body, 1271, 1277)]
+    [SourceLocation("%%%", OperationFunctor.Body, 1290, 1296)]
     public partial class composeImpl<__A__, __B__> : Operation<(ICallable,ICallable,__B__), QVoid>, ICallable
     {
         public composeImpl(IOperationFactory m) : base(m)
@@ -2522,7 +2522,7 @@ namespace N1
     [<Fact>]
     let ``buildOperationClass - access modifiers`` () =
         """
-[SourceLocation("%%%", OperationFunctor.Body, 1319, 1321)]
+[SourceLocation("%%%", OperationFunctor.Body, 1338, 1340)]
 internal partial class EmptyInternalFunction : Function<QVoid, QVoid>, ICallable
 {
     public EmptyInternalFunction(IOperationFactory m) : base(m)
@@ -2556,7 +2556,7 @@ internal partial class EmptyInternalFunction : Function<QVoid, QVoid>, ICallable
         |> testOneClass emptyInternalFunction null
 
         """
-[SourceLocation("%%%", OperationFunctor.Body, 1321, 1323)]
+[SourceLocation("%%%", OperationFunctor.Body, 1340, 1342)]
 internal partial class EmptyInternalOperation : Operation<QVoid, QVoid>, ICallable
 {
     public EmptyInternalOperation(IOperationFactory m) : base(m)
@@ -2675,7 +2675,7 @@ internal partial class EmptyInternalOperation : Operation<QVoid, QVoid>, ICallab
     [<Fact>]
     let ``buildOperationClass - concrete functions`` () =
         """
-    [SourceLocation("%%%", OperationFunctor.Body, 1306,1315)]
+    [SourceLocation("%%%", OperationFunctor.Body, 1325, 1334)]
     public partial class UpdateUdtItems : Function<MyType2, MyType2>, ICallable
     {
         public UpdateUdtItems(IOperationFactorym) : base(m)
@@ -3156,3 +3156,60 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
     [<Fact>]
     let ``one file - UnitTests`` () =
         testOneFile (Path.Combine("Circuits", "UnitTests.qs"))
+
+    [<Fact>]
+    let ``Copies mutable array in sized array`` () =
+        [
+            "var xs = new QArray<Int64>(1L, 2L, 3L);"
+            "#line hidden\nvar __arg1__ = xs;"
+            "var arrays = (IQArray<IQArray<Int64>>)QArray.Filled(() => __arg1__?.Copy(), 3L);"
+        ]
+        |> testOneBody (findCallable "CopiesMutableArrayInSizedArray" |> applyVisitor)
+
+    [<Fact>]
+    let ``Doesn't copy immutable array in sized array`` () =
+        [
+            "var xs = (IQArray<Int64>)new QArray<Int64>(1L, 2L, 3L);"
+            "#line hidden\nvar __arg1__ = xs;"
+            "var arrays = (IQArray<IQArray<Int64>>)QArray.Filled(() => __arg1__, 3L);"
+        ]
+        |> testOneBody (findCallable "DoesntCopyImmutableArrayInSizedArray" |> applyVisitor)
+
+    [<Fact>]
+    let ``Doesn't copy anonymous array in sized array`` () =
+        [
+            "#line hidden\nvar __arg1__ = new QArray<Int64>(1L, 2L, 3L);"
+            "var arrays = (IQArray<IQArray<Int64>>)QArray.Filled(() => __arg1__, 3L);"
+        ]
+        |> testOneBody (findCallable "DoesntCopyAnonymousArrayInSizedArray" |> applyVisitor)
+
+    [<Fact>]
+    let ``Evaluates call once in sized array`` () =
+        [
+            """{
+    var q = Allocate__.Apply();
+    #line hidden
+    bool __arg1__ = true;
+    try
+    {
+        #line hidden
+        var __arg2__ = H__.Apply(q);
+        var units = (IQArray<QVoid>)QArray.Filled(() => __arg2__, 3L);
+    }
+    #line hidden
+    catch
+    {
+        __arg1__ = false;
+        throw;
+    }
+    #line hidden
+    finally
+    {
+        if (__arg1__)
+        {
+            Release__.Apply(q);
+        }
+    }
+}"""
+        ]
+        |> testOneBody (findCallable "EvaluatesCallOnceInSizedArray" |> applyVisitor)
