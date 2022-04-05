@@ -48,7 +48,7 @@ module ClassConstraint =
         | GenerateFunctors (callable, functors) ->
             let functors = Seq.map string functors |> String.concat ", "
             sprintf "GenerateFunctors<%s, {%s}>" (p callable) functors
-        | Index (container, index, item) -> sprintf "Indexed<%s, %s, %s>" (p container) (p index) (p item)
+        | Index (container, index, item) -> sprintf "Index<%s, %s, %s>" (p container) (p index) (p item)
         | Integral ty -> sprintf "Integral<%s>" (p ty)
         | Iterable (container, item) -> sprintf "Iterable<%s, %s>" (p container) (p item)
         | Num ty -> sprintf "Num<%s>" (p ty)
