@@ -119,7 +119,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Supports lambda expressions`` () =
-        allValid "Lambda" 30
+        allValid "Lambda" 31
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
@@ -127,6 +127,8 @@ module TypeCheckingTests =
         expect "LambdaInvalid5" [ Error ErrorCode.MutableClosure; Error ErrorCode.MutableClosure ]
         expect "LambdaInvalid6" [ Error ErrorCode.LocalVariableAlreadyExists ]
         expect "LambdaInvalid7" [ Error ErrorCode.LocalVariableAlreadyExists ]
+        expect "LambdaInvalid8" [ Error ErrorCode.UnknownItemName ]
+        expect "LambdaInvalid9" [ Error ErrorCode.UnknownItemName ]
 
     [<Fact>]
     let ``Operation lambda with non-unit return (1)`` () =
