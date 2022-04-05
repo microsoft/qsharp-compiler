@@ -21,23 +21,7 @@ type ClassConstraint =
     | Semigroup of ResolvedType
     | Unwrap of container: ResolvedType * item: ResolvedType
 
-module ClassConstraint =
-    let types =
-        function
-        | Adjointable operation -> [ operation ]
-        | Callable (callable, input, output) -> [ callable; input; output ]
-        | Controllable (operation, controlled) -> [ operation; controlled ]
-        | Eq ty -> [ ty ]
-        | GenerateFunctors (callable, _) -> [ callable ]
-        | Index (container, index, item) -> [ container; index; item ]
-        | Integral ty -> [ ty ]
-        | Iterable (container, item) -> [ container; item ]
-        | Num ty -> [ ty ]
-        | PartialAp (callable, missing, callable') -> [ callable; missing; callable' ]
-        | Semigroup ty -> [ ty ]
-        | Unwrap (container, item) -> [ container; item ]
-
-    let pretty cls =
+    override cls.ToString() =
         let p: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
         match cls with
@@ -56,6 +40,22 @@ module ClassConstraint =
             sprintf "PartialAp<%s, %s, %s>" (p callable) (p missing) (p callable')
         | Semigroup ty -> sprintf "Semigroup<%s>" (p ty)
         | Unwrap (container, item) -> sprintf "Unwrap<%s, %s>" (p container) (p item)
+
+module ClassConstraint =
+    let types =
+        function
+        | Adjointable operation -> [ operation ]
+        | Callable (callable, input, output) -> [ callable; input; output ]
+        | Controllable (operation, controlled) -> [ operation; controlled ]
+        | Eq ty -> [ ty ]
+        | GenerateFunctors (callable, _) -> [ callable ]
+        | Index (container, index, item) -> [ container; index; item ]
+        | Integral ty -> [ ty ]
+        | Iterable (container, item) -> [ container; item ]
+        | Num ty -> [ ty ]
+        | PartialAp (callable, missing, callable') -> [ callable; missing; callable' ]
+        | Semigroup ty -> [ ty ]
+        | Unwrap (container, item) -> [ container; item ]
 
 type Ordering =
     | Subtype

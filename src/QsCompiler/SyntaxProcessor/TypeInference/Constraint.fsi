@@ -45,12 +45,6 @@ type internal ClassConstraint =
     /// An container type that can be unwrapped to yield a single item type.
     | Unwrap of container: ResolvedType * item: ResolvedType
 
-module internal ClassConstraint =
-    /// <summary>
-    /// Pretty prints a class constraint.
-    /// </summary>
-    val pretty: ClassConstraint -> string
-
 /// An ordering comparison between types.
 type internal Ordering =
     /// The type is a subtype of the other type.

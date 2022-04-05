@@ -214,15 +214,11 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     member context.AmbiguousDiagnostics =
         let diagnostic param variable =
-            let paramName = TypeParameter param |> ResolvedType.New |> SyntaxTreeToQsharp.Default.ToCode
-
-            let constraintInfo =
-                classConstraints.GetValueOrDefault(param, [])
-                |> Seq.map ClassConstraint.pretty
-                |> String.concat ", "
+            let name = TypeParameter param |> ResolvedType.New |> SyntaxTreeToQsharp.Default.ToCode
+            let constraints = classConstraints.GetValueOrDefault(param, []) |> Seq.map string |> String.concat ", "
 
             QsCompilerDiagnostic.Error
-                (ErrorCode.AmbiguousTypeParameterResolution, [ paramName; constraintInfo ])
+                (ErrorCode.AmbiguousTypeParameterResolution, [ name; constraints ])
                 variable.Source
 
         variables
