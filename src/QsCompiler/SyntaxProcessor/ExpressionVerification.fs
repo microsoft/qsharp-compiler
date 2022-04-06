@@ -869,7 +869,7 @@ type QsExpression with
             let argType, partialType = partialArgType inference arg.ResolvedType
 
             if Option.isNone partialType then
-                GenerateFunctors(callable.ResolvedType, Set.ofSeq symbols.RequiredFunctorSupport)
+                HasFunctorsIfOperation(callable.ResolvedType, Set.ofSeq symbols.RequiredFunctorSupport)
                 |> Class
                 |> inference.Constrain
                 |> List.iter diagnose
@@ -896,7 +896,7 @@ type QsExpression with
                 | Some missing ->
                     let result = inference.Fresh this.RangeOrDefault
 
-                    PartialAp(callable.ResolvedType, missing, result)
+                    HasPartialApplication(callable.ResolvedType, missing, result)
                     |> Class
                     |> inference.Constrain
                     |> List.iter diagnose

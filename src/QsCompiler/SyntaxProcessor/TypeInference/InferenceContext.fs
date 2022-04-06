@@ -169,12 +169,12 @@ module Inference =
         | Callable (callable, _, _) -> [ callable ]
         | ClassConstraint.Controllable (operation, _) -> [ operation ]
         | Eq ty -> [ ty ]
-        | GenerateFunctors (callable, _) -> [ callable ]
+        | HasFunctorsIfOperation (callable, _) -> [ callable ]
+        | HasPartialApplication (callable, _, _) -> [ callable ]
         | Index (container, index, _) -> [ container; index ]
         | Integral ty -> [ ty ]
         | Iterable (container, _) -> [ container ]
         | Num ty -> [ ty ]
-        | PartialAp (callable, _, _) -> [ callable ]
         | Semigroup ty -> [ ty ]
         | Unwrap (container, _) -> [ container ]
 
@@ -412,7 +412,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 if Option.isNone ty.supportsEqualityComparison then
                     error ErrorCode.InvalidTypeInEqualityComparison [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
-        | GenerateFunctors (callable, functors) ->
+        | HasFunctorsIfOperation (callable, functors) ->
             let callable = context.Resolve callable
 
             match callable.Resolution with
@@ -428,6 +428,18 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                             callable.Range
                 ]
             | _ -> []
+        | HasPartialApplication (callable, missing, callable') ->
+            let callable = context.Resolve callable
+
+            match callable.Resolution with
+            | QsTypeKind.Function (_, output) ->
+                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. callable')
+            | QsTypeKind.Operation ((_, output), info) ->
+                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. callable')
+            | _ ->
+                [
+                    error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
+                ]
         | Index (container, index, item) ->
             let container = context.Resolve container
             let index = context.Resolve index
@@ -473,18 +485,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 if Option.isNone ty.supportsArithmetic then
                     error ErrorCode.InvalidTypeInArithmeticExpr [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
-        | PartialAp (callable, missing, callable') ->
-            let callable = context.Resolve callable
-
-            match callable.Resolution with
-            | QsTypeKind.Function (_, output) ->
-                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. callable')
-            | QsTypeKind.Operation ((_, output), info) ->
-                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. callable')
-            | _ ->
-                [
-                    error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
-                ]
         | Semigroup ty ->
             let ty = context.Resolve ty
 

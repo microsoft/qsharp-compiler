@@ -12,12 +12,12 @@ type ClassConstraint =
     | Callable of callable: ResolvedType * input: ResolvedType * output: ResolvedType
     | Controllable of operation: ResolvedType * controlled: ResolvedType
     | Eq of ResolvedType
-    | GenerateFunctors of callable: ResolvedType * functors: QsFunctor Set
+    | HasFunctorsIfOperation of callable: ResolvedType * functors: QsFunctor Set
+    | HasPartialApplication of callable: ResolvedType * missing: ResolvedType * callable': ResolvedType
     | Index of container: ResolvedType * index: ResolvedType * item: ResolvedType
     | Integral of ResolvedType
     | Iterable of container: ResolvedType * item: ResolvedType
     | Num of ResolvedType
-    | PartialAp of callable: ResolvedType * missing: ResolvedType * callable': ResolvedType
     | Semigroup of ResolvedType
     | Unwrap of container: ResolvedType * item: ResolvedType
 
@@ -29,15 +29,15 @@ type ClassConstraint =
         | Callable (callable, input, output) -> sprintf "Callable<%s, %s, %s>" (p callable) (p input) (p output)
         | Controllable (operation, controlled) -> sprintf "Controllable<%s, %s>" (p operation) (p controlled)
         | Eq ty -> sprintf "Eq<%s>" (p ty)
-        | GenerateFunctors (callable, functors) ->
+        | HasFunctorsIfOperation (callable, functors) ->
             let functors = Seq.map string functors |> String.concat ", "
-            sprintf "GenerateFunctors<%s, {%s}>" (p callable) functors
+            sprintf "HasFunctorsIfOperation<%s, {%s}>" (p callable) functors
+        | HasPartialApplication (callable, missing, callable') ->
+            sprintf "HasPartialApplication<%s, %s, %s>" (p callable) (p missing) (p callable')
         | Index (container, index, item) -> sprintf "Index<%s, %s, %s>" (p container) (p index) (p item)
         | Integral ty -> sprintf "Integral<%s>" (p ty)
         | Iterable (container, item) -> sprintf "Iterable<%s, %s>" (p container) (p item)
         | Num ty -> sprintf "Num<%s>" (p ty)
-        | PartialAp (callable, missing, callable') ->
-            sprintf "PartialAp<%s, %s, %s>" (p callable) (p missing) (p callable')
         | Semigroup ty -> sprintf "Semigroup<%s>" (p ty)
         | Unwrap (container, item) -> sprintf "Unwrap<%s, %s>" (p container) (p item)
 
@@ -48,12 +48,12 @@ module ClassConstraint =
         | Callable (callable, input, output) -> [ callable; input; output ]
         | Controllable (operation, controlled) -> [ operation; controlled ]
         | Eq ty -> [ ty ]
-        | GenerateFunctors (callable, _) -> [ callable ]
+        | HasFunctorsIfOperation (callable, _) -> [ callable ]
+        | HasPartialApplication (callable, missing, callable') -> [ callable; missing; callable' ]
         | Index (container, index, item) -> [ container; index; item ]
         | Integral ty -> [ ty ]
         | Iterable (container, item) -> [ container; item ]
         | Num ty -> [ ty ]
-        | PartialAp (callable, missing, callable') -> [ callable; missing; callable' ]
         | Semigroup ty -> [ ty ]
         | Unwrap (container, item) -> [ container; item ]
 

@@ -20,8 +20,13 @@ type internal ClassConstraint =
     /// A type that supports equality.
     | Eq of ResolvedType
 
-    /// A type that can be used in an operation that requires auto-generated specializations for the set of functors.
-    | GenerateFunctors of callable: ResolvedType * functors: QsFunctor Set
+    /// If the callable is an operation, then it supports all functors in the set. Types other than operations are
+    /// automatically members of this class.
+    | HasFunctorsIfOperation of callable: ResolvedType * functors: QsFunctor Set
+
+    /// A callable that can be partially applied, yielding a new callable that has the same output type and the missing
+    /// parameters as its input type.
+    | HasPartialApplication of callable: ResolvedType * missing: ResolvedType * callable': ResolvedType
 
     /// A container type that can be indexed, yielding the item type.
     | Index of container: ResolvedType * index: ResolvedType * item: ResolvedType
@@ -34,10 +39,6 @@ type internal ClassConstraint =
 
     /// A type that represents a number.
     | Num of ResolvedType
-
-    /// A callable that can be partially applied, yielding a new callable that has the same output type and the missing
-    /// parameters as its input type.
-    | PartialAp of callable: ResolvedType * missing: ResolvedType * callable': ResolvedType
 
     /// A type with an associative binary operation.
     | Semigroup of ResolvedType
