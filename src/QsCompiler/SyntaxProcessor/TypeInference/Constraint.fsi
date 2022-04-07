@@ -20,6 +20,7 @@ type internal ClassConstraint =
     /// A type that supports equality.
     | Eq of ResolvedType
 
+    /// A record that has a field with the given name and type.
     | HasField of record: ResolvedType * field: Identifier * item: ResolvedType
 
     /// If the callable is an operation, then it supports all functors in the set. Types other than operations are
