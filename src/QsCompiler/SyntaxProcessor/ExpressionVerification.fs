@@ -291,23 +291,6 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
 
         TypedExpression.New(identifier, resolutions, resId.Type, exInfo, symbol.Range), Seq.toList diagnostics
 
-/// Verifies that an expression of the given rhsType, used within the given parent (i.e. specialization declaration),
-/// can be used when an expression of expectedType is expected by callaing TypeMatchArgument.
-/// Generates an error with the given error code mismatchErr for the given range if this is not the case.
-/// Verifies that any internal type parameters are "matched" only with themselves (or with an invalid type),
-/// and generates a ConstrainsTypeParameter error if this is not the case.
-/// If the given rhsEx is Some value, verifies whether it contains an identifier referring to the parent
-/// that is not part of a call-like expression but does not specify all needed type arguments.
-/// Calls the given function addError on all generated errors.
-/// IMPORTANT: ignores any external type parameter occuring in expectedType without raising an error!
-let internal verifyAssignment (inference: InferenceContext) expectedType mismatchErr rhs =
-    [
-        if inference.Constrain(expectedType .> rhs.ResolvedType) |> List.isEmpty |> not then
-            QsCompilerDiagnostic.Error
-                (mismatchErr, [ inference.Resolve rhs.ResolvedType |> showType; showType expectedType ])
-                (rangeOrDefault rhs)
-    ]
-
 /// Given a Q# symbol, as well as the resolved type of the right hand side that is assigned to it,
 /// shape matches the symbol tuple with the type to determine whether the assignment is valid, and
 /// calls the given function tryBuildDeclaration on each symbol item and its matched type.

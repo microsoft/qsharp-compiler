@@ -120,8 +120,8 @@ module TypeCheckingTests =
     [<Fact>]
     let ``Supports lambda expressions`` () =
         allValid "Lambda" 31
-        expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
-        expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
+        expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatch ]
+        expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatch ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
         expect "LambdaInvalid4" [ Error ErrorCode.MutableClosure ]
         expect "LambdaInvalid5" [ Error ErrorCode.MutableClosure; Error ErrorCode.MutableClosure ]
@@ -257,7 +257,7 @@ type TypeCheckingTests() =
         this.Expect
             "CommonBaseType4"
             [
-                Error ErrorCode.TypeMismatchInReturn
+                Error ErrorCode.TypeMismatch
                 Warning WarningCode.DeprecatedNewArray
                 Warning WarningCode.DeprecatedNewArray
             ]
@@ -265,14 +265,14 @@ type TypeCheckingTests() =
         this.Expect "CommonBaseType5" []
         this.Expect "CommonBaseType6" []
         this.Expect "CommonBaseType7" []
-        this.Expect "CommonBaseType8" [ Error ErrorCode.TypeMismatchInReturn ]
+        this.Expect "CommonBaseType8" [ Error ErrorCode.TypeMismatch ]
         this.Expect "CommonBaseType9" []
         this.Expect "CommonBaseType10" []
-        this.Expect "CommonBaseType11" [ Error ErrorCode.TypeMismatchInReturn ]
+        this.Expect "CommonBaseType11" [ Error ErrorCode.TypeMismatch ]
         this.Expect "CommonBaseType12" [ Error ErrorCode.TypeIntersectionMismatch ]
         this.Expect "CommonBaseType13" []
         this.Expect "CommonBaseType14" []
-        this.Expect "CommonBaseType15" [ Error ErrorCode.TypeMismatchInReturn ]
+        this.Expect "CommonBaseType15" [ Error ErrorCode.TypeMismatch ]
         this.Expect "CommonBaseType16" [ Error ErrorCode.TypeIntersectionMismatch ]
         this.Expect "CommonBaseType17" []
         this.Expect "CommonBaseType18" []
@@ -370,7 +370,7 @@ type TypeCheckingTests() =
         this.Expect "MatchArgument7" []
         this.Expect "MatchArgument8" []
         this.Expect "MatchArgument9" [ Error ErrorCode.TypeMismatch ]
-        this.Expect "MatchArgument10" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatchInReturn ]
+        this.Expect "MatchArgument10" (Error ErrorCode.TypeMismatch |> List.replicate 2)
         this.Expect "MatchArgument11" []
         this.Expect "MatchArgument12" []
         this.Expect "MatchArgument13" []
@@ -450,7 +450,7 @@ type TypeCheckingTests() =
                 Error ErrorCode.TypeMismatch
             ]
 
-        this.Expect "PartialApplication28" [ Error ErrorCode.TypeMismatchInReturn ]
+        this.Expect "PartialApplication28" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication29" []
         this.Expect "PartialApplication30" []
 
