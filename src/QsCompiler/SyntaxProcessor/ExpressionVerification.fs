@@ -582,9 +582,9 @@ type QsExpression with
 
         /// Resolves and verifies the given left hand side, access expression, and right hand side of a copy-and-update expression,
         /// and returns the corresponding copy-and-update expression as typed expression.
-        let buildCopyAndUpdate (container, accessor: QsExpression, value) =
+        let buildCopyAndUpdate (container, accessor: QsExpression, item) =
             let container = resolve context container
-            let value = resolve context value
+            let item = resolve context item
             let itemType = inference.Fresh this.RangeOrDefault
 
             let unqualifiedSymbol, isRecordUpdate =
@@ -608,12 +608,10 @@ type QsExpression with
                 | _ -> resolveSlicing container accessor |> arrayUpdate
 
             inference.Constrain(Class cls) |> List.iter diagnose
+            inference.Constrain(itemType .> item.ResolvedType) |> List.iter diagnose
 
-            verifyAssignment inference itemType ErrorCode.TypeMismatchInCopyAndUpdateExpr value
-            |> List.iter diagnose
-
-            (CopyAndUpdate(container, accessor, value), container.ResolvedType)
-            |> exprWithoutTypeArgs this.Range (inferred false ([ container; accessor; value ] |> anyQuantumDep))
+            (CopyAndUpdate(container, accessor, item), container.ResolvedType)
+            |> exprWithoutTypeArgs this.Range (inferred false ([ container; accessor; item ] |> anyQuantumDep))
 
         /// Resolves and verifies the given left hand side and right hand side of a range operator,
         /// and returns the corresponding RANGE expression as typed expression.

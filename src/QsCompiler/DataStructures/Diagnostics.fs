@@ -264,7 +264,8 @@ type ErrorCode =
     // TODO: RELEASE 2021-10: Remove PartialApplicationOfTypeParameter.
     | [<Obsolete "This diagnostic is no longer in use.">] PartialApplicationOfTypeParameter = 6223
     | IndirectlyReferencedExpressionType = 6224
-    | TypeMismatchInCopyAndUpdateExpr = 6225
+    // TODO: RELEASE 2022-11: Remove TypeMismatchInCopyAndUpdateExpr.
+    | [<Obsolete "This diagnostic is no longer in use.">] TypeMismatchInCopyAndUpdateExpr = 6225
     | InterpolatedStringInAttribute = 6226
     | ArgumentOfUserDefinedTypeInAttribute = 6227
     | TypeParameterizedArgumentInAttribute = 6228
