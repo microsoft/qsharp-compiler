@@ -634,10 +634,11 @@ type QsExpression with
                 | _ ->
                     resolveSlicing container accessor |> Option.map arrayUpdate |> Option.defaultWith trivialArrayUpdate
 
+            inference.Constrain(Class cls) |> List.iter diagnose
+
             verifyAssignment inference itemType ErrorCode.TypeMismatchInCopyAndUpdateExpr value
             |> List.iter diagnose
 
-            inference.Constrain(Class cls) |> List.iter diagnose
             expr
 
         /// Resolves and verifies the given left hand side and right hand side of a range operator,
