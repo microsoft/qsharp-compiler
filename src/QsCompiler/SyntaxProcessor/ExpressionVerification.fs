@@ -429,8 +429,7 @@ type QsExpression with
             value
 
         /// Given and expression used for array slicing, as well as the type of the sliced expression,
-        /// generates suitable boundaries for open ended ranges and returns the resolved slicing expression as Some.
-        /// Returns None if the slicing expression is trivial, i.e. if the sliced array does not deviate from the orginal one.
+        /// generates suitable boundaries for open ended ranges and returns the resolved slicing expression.
         /// NOTE: Does *not* generated any diagnostics related to the given type for the array to slice.
         let resolveSlicing array (index: QsExpression) =
             let array = { array with ResolvedType = inference.Resolve array.ResolvedType }
@@ -461,7 +460,7 @@ type QsExpression with
                     conditionalIntExpr (IsNegative step) (SyntaxGenerator.IntLiteral 0L) (LengthMinusOne array)
                 | ex -> if validSlicing ex then LengthMinusOne array else invalidRangeDelimiter
 
-            let resolveSlicingRange start step end' =
+            let resolveSlicingRange start step end_ =
                 let integerExpr ex =
                     let ex = resolve context ex
                     inference.Constrain(ResolvedType.New Int .> ex.ResolvedType) |> List.iter diagnose
@@ -473,7 +472,7 @@ type QsExpression with
                     if ex.isMissing then build resolvedStep else integerExpr ex
 
                 let resolvedStart, resolvedEnd =
-                    start |> resolveWith openStartInSlicing, end' |> resolveWith openEndInSlicing
+                    start |> resolveWith openStartInSlicing, end_ |> resolveWith openEndInSlicing
 
                 match resolvedStep with
                 | Some resolvedStep ->
@@ -481,21 +480,17 @@ type QsExpression with
                 | None -> SyntaxGenerator.RangeLiteral(resolvedStart, resolvedEnd)
 
             match index.Expression with
-            | RangeLiteral (lhs, rhs) when lhs.isMissing && rhs.isMissing ->
-                // case arr[...]
-                None
-            | RangeLiteral (lhs, end') ->
+            | RangeLiteral (lhs, end_) ->
                 match lhs.Expression with
                 | RangeLiteral (start, step) ->
                     // cases arr[...step..ex], arr[ex..step...], arr[ex1..step..ex2], and arr[...ex...]
-                    resolveSlicingRange start (Some step) end'
+                    resolveSlicingRange start (Some step) end_
                 | _ ->
                     // case arr[...ex], arr[ex...] and arr[ex1..ex2]
-                    resolveSlicingRange lhs None end'
-                |> Some
+                    resolveSlicingRange lhs None end_
             | _ ->
                 // case arr[ex]
-                resolve context index |> Some
+                resolve context index
 
         /// Resolves and verifies the interpolated expressions, and returns the StringLiteral as typed expression.
         let buildStringLiteral (literal, interpolated) =
@@ -554,21 +549,14 @@ type QsExpression with
         /// and returns the corresponding ArrayItem expression as typed expression.
         let buildArrayItem (array, index: QsExpression) =
             let array = resolve context array
+            let index = resolveSlicing array index
+            let itemType = inference.Fresh this.RangeOrDefault
 
-            match resolveSlicing array index with
-            | None ->
-                inference.Constrain(HasIndex(array.ResolvedType, ResolvedType.New Range, array.ResolvedType) |> Class)
-                |> List.iter diagnose
+            inference.Constrain(HasIndex(array.ResolvedType, index.ResolvedType, itemType) |> Class)
+            |> List.iter diagnose
 
-                array
-            | Some index ->
-                let itemType = inference.Fresh this.RangeOrDefault
-
-                inference.Constrain(HasIndex(array.ResolvedType, index.ResolvedType, itemType) |> Class)
-                |> List.iter diagnose
-
-                (ArrayItem(array, index), itemType)
-                |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ array; index ]))
+            (ArrayItem(array, index), itemType)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ array; index ]))
 
         /// Given a symbol used to represent an item name in an item access or update expression,
         /// returns the an identifier that can be used to represent the corresponding item name.
@@ -597,6 +585,7 @@ type QsExpression with
         let buildCopyAndUpdate (container, accessor: QsExpression, value) =
             let container = resolve context container
             let value = resolve context value
+            let itemType = inference.Fresh this.RangeOrDefault
 
             let unqualifiedSymbol, isRecordUpdate =
                 match accessor.Expression with
@@ -604,42 +593,27 @@ type QsExpression with
                     Some symbol, Seq.forall (fun v -> v.VariableName <> name) symbols.CurrentDeclarations.Variables
                 | _ -> None, false
 
-            let update accessor =
-                (CopyAndUpdate(container, accessor, value), container.ResolvedType)
-                |> exprWithoutTypeArgs this.Range (inferred false ([ container; accessor; value ] |> anyQuantumDep))
-
             let recordUpdate field =
                 let itemName = buildItemName field
-                let itemType = inference.Fresh this.RangeOrDefault
 
-                let expr =
-                    (Identifier(itemName, Null), itemType)
-                    |> exprWithoutTypeArgs field.Range (inferred false false)
-                    |> update
-
-                expr, itemType, HasField(container.ResolvedType, itemName, itemType)
+                (Identifier(itemName, Null), itemType) |> exprWithoutTypeArgs field.Range (inferred false false),
+                HasField(container.ResolvedType, itemName, itemType)
 
             let arrayUpdate index =
-                let itemType = inference.Fresh(rangeOrDefault container)
-                update index, itemType, HasIndex(container.ResolvedType, index.ResolvedType, itemType)
+                index, HasIndex(container.ResolvedType, index.ResolvedType, itemType)
 
-            let trivialArrayUpdate () =
-                container,
-                container.ResolvedType,
-                HasIndex(container.ResolvedType, ResolvedType.New Range, container.ResolvedType)
-
-            let expr, itemType, cls =
+            let accessor, cls =
                 match unqualifiedSymbol with
                 | Some symbol when isRecordUpdate -> recordUpdate symbol
-                | _ ->
-                    resolveSlicing container accessor |> Option.map arrayUpdate |> Option.defaultWith trivialArrayUpdate
+                | _ -> resolveSlicing container accessor |> arrayUpdate
 
             inference.Constrain(Class cls) |> List.iter diagnose
 
             verifyAssignment inference itemType ErrorCode.TypeMismatchInCopyAndUpdateExpr value
             |> List.iter diagnose
 
-            expr
+            (CopyAndUpdate(container, accessor, value), container.ResolvedType)
+            |> exprWithoutTypeArgs this.Range (inferred false ([ container; accessor; value ] |> anyQuantumDep))
 
         /// Resolves and verifies the given left hand side and right hand side of a range operator,
         /// and returns the corresponding RANGE expression as typed expression.
