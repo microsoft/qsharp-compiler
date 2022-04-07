@@ -6,31 +6,6 @@ namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
 
-/// <summary>
-/// Creates syntax tree <see cref="SymbolBinding"/> nodes from a parse tree and the list of tokens.
-/// </summary>
-type SymbolBindingVisitor(tokens) =
-    inherit QSharpParserBaseVisitor<SymbolBinding>()
-
-    override _.DefaultResult = failwith "Unknown symbol binding."
-
-    override _.VisitDiscardSymbol context =
-        context.Underscore().Symbol |> Node.toTerminal tokens |> SymbolDeclaration
-
-    override _.VisitSymbolName context =
-        context.Identifier().Symbol |> Node.toTerminal tokens |> SymbolDeclaration
-
-    override visitor.VisitSymbolTuple context =
-        let bindings = context.symbolBinding () |> Seq.map visitor.Visit
-        let commas = context.Comma() |> Seq.map (fun node -> Node.toTerminal tokens node.Symbol)
-
-        {
-            OpenParen = context.ParenLeft().Symbol |> Node.toTerminal tokens
-            Items = Node.tupleItems bindings commas
-            CloseParen = context.ParenRight().Symbol |> Node.toTerminal tokens
-        }
-        |> SymbolTuple
-
 type QubitInitializerVisitor(tokens) =
     inherit QSharpParserBaseVisitor<QubitInitializer>()
 

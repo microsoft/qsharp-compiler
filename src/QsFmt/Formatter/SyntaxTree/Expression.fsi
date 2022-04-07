@@ -14,6 +14,20 @@ type internal Identifier =
       /// Optional type arguments
       TypeArgs: Type Tuple Option }
 
+/// A binding for one or more new symbols.
+type internal SymbolBinding =
+    /// A declaration for a new symbols.
+    | SymbolDeclaration of Terminal
+
+    /// A declaration for a tuple of new symbols.
+    | SymbolTuple of SymbolBinding Tuple
+
+module internal SymbolBinding =
+    /// <summary>
+    /// Maps a symbol binding by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// </summary>
+    val mapPrefix: mapper: (Trivia list -> Trivia list) -> SymbolBinding -> SymbolBinding
+
 /// An escaped expression in an interpolated string
 type internal InterpStringExpression =
     {
@@ -193,6 +207,20 @@ and internal Update =
       /// The value to assign to the item.
       Value: Expression }
 
+/// A lambda expression.
+and internal Lambda =
+    {
+      /// The binding for the lambda's parameter.
+      Binding: SymbolBinding
+
+      /// <summary>
+      /// The right arrow symbol (either <c>-&gt;</c> or <c>=&gt;</c>).
+      /// </summary>
+      Arrow: Terminal
+
+      /// The lambda body.
+      Body: Expression }
+
 /// An expression.
 and internal Expression =
     /// An expression that will be provided later.
@@ -242,6 +270,9 @@ and internal Expression =
 
     /// A copy-and-update expression.
     | Update of Update
+
+    /// A lambda expression.
+    | Lambda of Lambda
 
     /// An unknown expression.
     | Unknown of Terminal

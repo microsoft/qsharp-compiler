@@ -119,7 +119,7 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Supports lambda expressions`` () =
-        allValid "Lambda" 23
+        allValid "Lambda" 28
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
