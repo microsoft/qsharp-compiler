@@ -963,6 +963,17 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         let _ = f(2, 0);
     }
 
+    function Lambda29() : Unit {
+        let f = x -> x w/ Im <- 1;
+        let _ = f(NamedItems1(1, 0));
+    }
+
+    function Lambda30() : Unit {
+        let i = 0;
+        let f = xs -> xs w/ i <- 1;
+        let _ = f([1, 0]);
+    }
+
     function LambdaInvalid1() : Qubit => Unit is Adj {
         return q => Operation(q);
     }

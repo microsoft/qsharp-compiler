@@ -102,30 +102,6 @@ let private verifyConditionalExecution (expr: TypedExpression) =
     ]
 
 /// <summary>
-/// Verifies that <paramref name="resolvedType"/> is a user-defined type.
-/// </summary>
-/// <param name="processUdt">
-/// Given a function to add diagnostics, and a user-defined type, extracts a resolved type from the user-defined type.
-/// </param>
-/// <param name="resolvedType">The resolved type to verify.</param>
-/// <param name="range">The diagnostic range.</param>
-/// <returns>The result of applying <paramref name="processUdt"/> to the UDT and the diagnostics.</returns>
-let private verifyUdtWith processUdt (resolvedType: ResolvedType) range =
-    match resolvedType.Resolution with
-    | QsTypeKind.UserDefinedType udt ->
-        let diagnostics = ResizeArray()
-
-        let resultType =
-            udt |> processUdt (fun error -> QsCompilerDiagnostic.Error error range |> diagnostics.Add)
-
-        resultType, Seq.toList diagnostics
-    | _ ->
-        ResolvedType.New InvalidType,
-        [
-            QsCompilerDiagnostic.Error(ErrorCode.ExpectingUserDefinedType, [ showType resolvedType ]) range
-        ]
-
-/// <summary>
 /// Verifies that <paramref name="lhs"/> and <paramref name="rhs"/> have type Bool.
 /// </summary>
 let private verifyAreBooleans (inference: InferenceContext) lhs rhs =
@@ -232,7 +208,7 @@ let private verifyValueArray (inference: InferenceContext) range exprs =
 let private verifyIndexedItem (inference: InferenceContext) container indexType =
     let range = rangeOrDefault container
     let itemType = inference.Fresh range
-    itemType, Index(container.ResolvedType, indexType, itemType) |> Class |> inference.Constrain
+    itemType, HasIndex(container.ResolvedType, indexType, itemType) |> Class |> inference.Constrain
 
 /// <summary>
 /// Verifies that <paramref name="expr"/> has an adjointable type.
@@ -633,47 +609,44 @@ type QsExpression with
         /// and returns the corresponding NamedItem expression as typed expression.
         let buildNamedItem (ex, acc) =
             let ex = resolve context ex
-            let itemName = acc |> buildItemName
-            let udtType = inference.Resolve ex.ResolvedType
-            let exType = verifyUdtWith (symbols.GetItemType itemName) udtType (rangeOrDefault ex) |> takeDiagnostics
-            let localQdependency = ex.InferredInformation.HasLocalQuantumDependency
+            let itemName = buildItemName acc
+            let itemType = inference.Fresh this.RangeOrDefault
+            let quantumDependency = ex.InferredInformation.HasLocalQuantumDependency
+            HasField(ex.ResolvedType, itemName, itemType) |> Class |> inference.Constrain |> List.iter diagnose
 
-            (NamedItem(ex, itemName), exType)
-            |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            (NamedItem(ex, itemName), itemType)
+            |> exprWithoutTypeArgs this.Range (inferred false quantumDependency)
 
         /// Resolves and verifies the given left hand side, access expression, and right hand side of a copy-and-update expression,
         /// and returns the corresponding copy-and-update expression as typed expression.
         let buildCopyAndUpdate (lhs, accEx: QsExpression, rhs) =
             let lhs = resolve context lhs
-            let lhs = { lhs with ResolvedType = inference.Resolve lhs.ResolvedType }
             let rhs = resolve context rhs
+
+            // TODO: Only check local variables.
+            let symbolExists s =
+                (symbols.ResolveIdentifier(fun _ -> ()) s |> fst).VariableName <> InvalidIdentifier
 
             let resolvedCopyAndUpdateExpr accEx =
                 let localQdependency =
-                    [ lhs; accEx; rhs ]
-                    |> Seq.map (fun ex -> ex.InferredInformation.HasLocalQuantumDependency)
-                    |> Seq.contains true
+                    [ lhs; accEx; rhs ] |> List.exists (fun e -> e.InferredInformation.HasLocalQuantumDependency)
 
                 (CopyAndUpdate(lhs, accEx, rhs), lhs.ResolvedType)
                 |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
 
-            match (lhs.ResolvedType.Resolution, accEx.Expression) with
-            | UserDefinedType _, Identifier (sym, Null) ->
-                let itemName = buildItemName sym
-
-                let itemType =
-                    verifyUdtWith (symbols.GetItemType itemName) lhs.ResolvedType (rangeOrDefault lhs)
-                    |> takeDiagnostics
+            match accEx.Expression with
+            | Identifier ({ Symbol = Symbol _ } as symbol, Null) when symbolExists symbol |> not ->
+                let itemName = buildItemName symbol
+                let itemType = inference.Fresh this.RangeOrDefault
+                HasField(lhs.ResolvedType, itemName, itemType) |> Class |> inference.Constrain |> List.iter diagnose
 
                 verifyAssignment inference itemType ErrorCode.TypeMismatchInCopyAndUpdateExpr rhs
                 |> List.iter diagnose
 
-                let resAccEx =
-                    (Identifier(itemName, Null), itemType)
-                    |> exprWithoutTypeArgs sym.Range (inferred false lhs.InferredInformation.HasLocalQuantumDependency)
-
-                resAccEx |> resolvedCopyAndUpdateExpr
-            | _ -> // by default, assume that the update expression is supposed to be for an array
+                (Identifier(itemName, Null), itemType)
+                |> exprWithoutTypeArgs symbol.Range (inferred false lhs.InferredInformation.HasLocalQuantumDependency)
+                |> resolvedCopyAndUpdateExpr
+            | _ ->
                 match resolveSlicing lhs accEx with
                 | None -> // indicates a trivial slicing of the form "..." resulting in a complete replacement
                     let expectedRhs = verifyIndexedItem inference lhs (ResolvedType.New Range) |> takeDiagnostics
