@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -12,6 +11,8 @@
     <Content Include="TypeInference\README.md" />
     <Compile Include="TypeInference\Constraint.fsi" />
     <Compile Include="TypeInference\Constraint.fs" />
+    <Compile Include="TypeInference\Diagnostic.fsi" />
+    <Compile Include="TypeInference\Diagnostic.fs" />
     <Compile Include="TypeInference\InferenceContext.fsi" />
     <Compile Include="TypeInference\InferenceContext.fs" />
     <Compile Include="ScopeContext.fs" />
@@ -35,7 +36,7 @@
 
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
+    <PackageReference Include="Microsoft.Experimental.Collections" Version="1.0.6-e190117-3" />
     <PackageReference Update="System.ValueTuple" Version="4.4.0" />
   </ItemGroup>
-
 </Project>
