@@ -204,7 +204,7 @@ type LocalVerificationTests() =
 
     [<Fact>]
     member this.``Named type item access``() =
-        this.Expect "ItemAccess1" [ Error ErrorCode.ExpectingUserDefinedType ]
+        this.Expect "ItemAccess1" [ Error ErrorCode.UnknownItemName ]
         this.Expect "ItemAccess2" [ Error ErrorCode.UnknownItemName ]
         this.Expect "ItemAccess3" []
         this.Expect "ItemAccess4" []
