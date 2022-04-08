@@ -621,8 +621,7 @@ type DiagnosticItem =
 
             | ErrorCode.InvalidArrayItemIndex ->
                 "Expecting an expression of type Int or Range. Got an expression of type {0}."
-            | ErrorCode.ItemAccessForNonArray ->
-                "The type {0} does not provide item access. Items can only be accessed for values of array type."
+            | ErrorCode.ItemAccessForNonArray -> "The type {0} is not an array type."
             | ErrorCode.InvalidTypeInArithmeticExpr ->
                 "The type {0} does not support arithmetic operators. Expecting an expression of type Int, BigInt or Double."
             | ErrorCode.InvalidTypeForConcatenation -> "The type {0} does not support the + operator."
@@ -697,7 +696,7 @@ type DiagnosticItem =
             | ErrorCode.UnknownTypeInNamespace -> "No type with the name \"{0}\" exists in the namespace {1}."
             | ErrorCode.TypeParameterRedeclaration -> "A type parameter with the name \"{0}\" already exists."
             | ErrorCode.UnknownTypeParameterName -> "No type parameter with the name \"{0}\" exists."
-            | ErrorCode.UnknownItemName -> "The type {0} does not define an item with name \"{1}\"."
+            | ErrorCode.UnknownItemName -> "The type {0} is not a user-defined type with a field \"{1}\"."
             | ErrorCode.NotMarkedAsAttribute ->
                 "The type {0} is not marked as an attribute. Add \"@Attribute()\" above its declaration to indicate that it may be used as attribute."
             | ErrorCode.InaccessibleTypeInNamespace -> "The type {0} in namespace {1} is not accessible from here."

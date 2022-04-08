@@ -427,8 +427,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 let actualItem = symbolTracker.GetItemType field diagnose udt
                 Seq.toList diagnostics @ context.ConstrainImpl(item .> actualItem)
             | _ ->
+                let fieldName = Identifier(field, Null) |> SyntaxTreeToQsharp.Default.ToCode
+
                 [
-                    error ErrorCode.ExpectingUserDefinedType [ SyntaxTreeToQsharp.Default.ToCode record ] record.Range
+                    error ErrorCode.UnknownItemName [ SyntaxTreeToQsharp.Default.ToCode record; fieldName ] record.Range
                 ]
         | HasFunctorsIfOperation (callable, functors) ->
             let callable = context.Resolve callable
