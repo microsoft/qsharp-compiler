@@ -326,7 +326,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         match expected.Resolution, actual.Resolution with
         | _ when expected = actual -> []
         | TypeParameter param, _ when variables.ContainsKey param -> tryBind param actual
-        | _, TypeParameter param when variables.ContainsKey param -> tryBind param expected
+        | _, TypeParameter param when variables.ContainsKey param ->
+            ResolvedType.withAllRanges actual.Range expected |> tryBind param
         | ArrayType item1, ArrayType item2 -> context.ConstrainImpl(item1 .= item2)
         | TupleType items1, TupleType items2 ->
             [
