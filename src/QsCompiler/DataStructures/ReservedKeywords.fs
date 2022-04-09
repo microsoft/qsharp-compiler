@@ -259,6 +259,7 @@ module AssemblyConstants =
     let QsharpExe = "QSharpExe"
     let QsharpLibrary = "QSharpLibrary"
     let ProcessorArchitecture = "ProcessorArchitecture"
+    let TargetedRuntimeCapability = "TargetedRuntimeCapability"
     let HoneywellProcessor = "HoneywellProcessor"
     let IonQProcessor = "IonQProcessor"
     let QCIProcessor = "QCIProcessor"

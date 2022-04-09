@@ -74,8 +74,11 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
+            var runtimeCapability = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.TargetedRuntimeCapability, out var capability) && capability != null
+                ? RuntimeCapability.TryParse(capability).ValueOr(null)
+                : null;
             transformed = compilation;
-            using var generator = new Generator(transformed);
+            using var generator = new Generator(transformed, capability: runtimeCapability);
             generator.Apply();
 
             // write generated QIR to disk

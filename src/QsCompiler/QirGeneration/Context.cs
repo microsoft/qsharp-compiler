@@ -38,6 +38,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             LibContext = Library.InitializeLLVM();
         }
 
+        internal bool IsLibrary { get; }
+
+        internal RuntimeCapability TargetedRuntimeCapability { get; }
+
         #region Member variables
 
         /// <summary>
@@ -164,8 +168,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal bool IsInlined => this.inlineLevels.Any();
 
-        internal bool IsLibrary { get; private set; }
-
         #endregion
 
         /// <summary>
@@ -177,9 +179,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, RuntimeCapability runtimeCapability)
         {
             this.IsLibrary = isLibrary;
+            this.TargetedRuntimeCapability = runtimeCapability;
+
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
             this.globalTypes = syntaxTree.GlobalTypeResolutions();
 

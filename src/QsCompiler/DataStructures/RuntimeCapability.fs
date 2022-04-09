@@ -21,6 +21,9 @@ type RuntimeCapability =
     /// declared outside the block, or return statements.
     | BasicMeasurementFeedback
 
+    /// FIXME: NEED TO RENAME THAT...(currently assumes int and bool to be supported...)
+    | QirProfileExecution
+
     /// No runtime restrictions. Any Q# program can be executed.
     | FullComputation
 
@@ -28,17 +31,21 @@ type RuntimeCapability =
     member x.Implies y =
         match x, y with
         | BasicMeasurementFeedback, BasicQuantumFunctionality
+        | QirProfileExecution, BasicQuantumFunctionality
+        | QirProfileExecution, BasicMeasurementFeedback // FIXME: CHECK (and also check Combine accordingly)
         | FullComputation, _ -> true
         | _ -> x = y
 
     /// Returns a runtime capability that implies both given capabilities.
     static member Combine x y =
         match x, y with
-        | BasicQuantumFunctionality, other
-        | other, BasicQuantumFunctionality -> other
-        | BasicMeasurementFeedback, BasicMeasurementFeedback -> BasicMeasurementFeedback
         | FullComputation, _
         | _, FullComputation -> FullComputation
+        | QirProfileExecution, _
+        | _, QirProfileExecution -> QirProfileExecution
+        | BasicMeasurementFeedback, _
+        | _ , BasicMeasurementFeedback -> BasicMeasurementFeedback
+        | BasicQuantumFunctionality, BasicQuantumFunctionality -> BasicQuantumFunctionality
 
     /// The base runtime capability is the identity element when combined with another capability. It is implied by
     /// every other capability.
@@ -55,6 +62,7 @@ type RuntimeCapability =
         | "QPRGen0" -> Value BasicQuantumFunctionality
         | "BasicMeasurementFeedback"
         | "QPRGen1" -> Value BasicMeasurementFeedback
+        | "QirProfileExecution" -> Value QirProfileExecution
         | "FullComputation"
         | "Unknown" -> Value FullComputation
         | _ -> Null
@@ -63,6 +71,7 @@ type RuntimeCapability =
         match this with
         | BasicQuantumFunctionality -> "BasicQuantumFunctionality"
         | BasicMeasurementFeedback -> "BasicMeasurementFeedback"
+        | QirProfileExecution -> "QirProfileExecution"
         | FullComputation -> "FullComputation"
 
 // TODO: RELEASE 2021-04: Remove RuntimeCapabilitiesExtensions.

@@ -50,6 +50,7 @@ namespace Microsoft.Quantum.QsCompiler
                 var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null;
                 assemblyConstants[AssemblyConstants.OutputPath] = loaded.OutputFolder ?? defaultOutput ?? config.BuildOutputFolder;
                 assemblyConstants.TryAdd(AssemblyConstants.AssemblyName, config.ProjectNameWithoutPathOrExtension);
+                assemblyConstants.TryAdd(AssemblyConstants.TargetedRuntimeCapability, config.RuntimeCapability?.Name);
             }
 
             CompilationLoader.SortRewriteSteps(loadedSteps, step => step.Priority);
