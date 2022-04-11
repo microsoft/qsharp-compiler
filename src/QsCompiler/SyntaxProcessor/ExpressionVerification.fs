@@ -466,13 +466,13 @@ type QsExpression with
             | RangeLiteral (lhs, end_) ->
                 match lhs.Expression with
                 | RangeLiteral (start, step) ->
-                    // cases arr[...step..ex], arr[ex..step...], arr[ex1..step..ex2], and arr[...ex...]
+                    // Cases: xs[...step..end], xs[start..step...], xs[start..step..end], xs[...step...].
                     resolveSlicingRange start (Some step) end_
                 | _ ->
-                    // case arr[...ex], arr[ex...] and arr[ex1..ex2]
+                    // Cases: xs[...end], xs[start...], xs[start..end], xs[...].
                     resolveSlicingRange lhs None end_
             | _ ->
-                // case arr[ex]
+                // Case: xs[i].
                 resolve context index
 
         /// Resolves and verifies the interpolated expressions, and returns the StringLiteral as typed expression.
