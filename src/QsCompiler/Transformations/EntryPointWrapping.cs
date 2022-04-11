@@ -34,7 +34,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
         public static QsCompilation Apply(QsCompilation compilation)
         {
             var filter = new WrapEntryPoints();
-            return filter.OnCompilation(compilation);
+            compilation = filter.OnCompilation(compilation);
+            return new QsCompilation(compilation.Namespaces, filter.SharedState.EntryPointNames.ToImmutableArray());
         }
 
         private class WrapEntryPoints :
@@ -148,6 +149,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                     {
                         return c;
                     }
+                }
+
+                public override QsNamespace OnNamespace(QsNamespace ns)
+                {
+                    this.SharedState.NewEntryPointWrappers.Clear();
+                    ns = base.OnNamespace(ns);
+                    var newElements = this.SharedState.NewEntryPointWrappers.Select(e => QsNamespaceElement.NewQsCallable(e));
+                    return ns.WithElements(elements => elements.AddRange(newElements));
                 }
             }
         }
