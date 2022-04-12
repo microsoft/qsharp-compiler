@@ -632,49 +632,29 @@ namespace Microsoft.Quantum.QsCompiler
             var dependencies = BuiltIn.AllBuiltIns.Select(b => b.FullName);
 #pragma warning restore CS0618 // Type or member is obsolete
 
-            var steps = new List<(bool Enabled, Func<IRewriteStep> Load, Action<Status> SetStatus)>
+            var status = this.compilationStatus;
+            var steps = new (IRewriteStep Step, bool Enabled, Action<Status> SetStatus)[]
             {
                 // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the
                 // old setup of the C# runtime works. With the new setup (interface-based approach for target
                 // packages), it is possible to trim unused intrinsics.
                 (
+                    new SyntaxTreeTrimming(keepAllIntrinsics: true, dependencies),
                     this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming,
-                    () => new SyntaxTreeTrimming(keepAllIntrinsics: true, dependencies),
-                    status => this.compilationStatus.TreeTrimming = status),
+                    s => status.TreeTrimming = s),
 
-                (
-                    this.config.LiftLambdaExpressions,
-                    () => new LiftLambdas(),
-                    status => this.compilationStatus.LiftLambdaExpressions = status),
-                (
-                    this.config.ConvertClassicalControl,
-                    () => new ClassicallyControlled(),
-                    status => this.compilationStatus.ConvertClassicalControl = status),
-                (
-                    this.config.GenerateFunctorSupport,
-                    () => new FunctorGeneration(),
-                    status => this.compilationStatus.FunctorSupport = status),
-                (
-                    !this.config.SkipConjugationInlining,
-                    () => new ConjugationInlining(),
-                    status => this.compilationStatus.ConjugationInlining = status),
-                (
-                    this.config.AttemptFullPreEvaluation,
-                    () => new FullPreEvaluation(),
-                    status => this.compilationStatus.PreEvaluation = status),
-                (
-                    this.config.Monomorphize,
-                    () => new Monomorphization(monomorphizeIntrinsics: false),
-                    status => this.compilationStatus.Monomorphization = status),
-                (
-                    !this.config.IsExecutable,
-                    () => new CapabilityInference(),
-                    status => this.compilationStatus.CapabilityInference = status),
+                (new LiftLambdas(), this.config.LiftLambdaExpressions, s => status.LiftLambdaExpressions = s),
+                (new ClassicallyControlled(), this.config.ConvertClassicalControl, s => status.ConvertClassicalControl = s),
+                (new FunctorGeneration(), this.config.GenerateFunctorSupport, s => status.FunctorSupport = s),
+                (new ConjugationInlining(), !this.config.SkipConjugationInlining, s => status.ConjugationInlining = s),
+                (new FullPreEvaluation(), this.config.AttemptFullPreEvaluation, s => status.PreEvaluation = s),
+                (new Monomorphization(monomorphizeIntrinsics: false), this.config.Monomorphize, s => status.Monomorphization = s),
+                (new CapabilityInference(), !this.config.IsExecutable, s => status.CapabilityInference = s),
             };
 
-            return steps
-                .Where(step => step.Enabled)
-                .Select(step => (new LoadedStep(step.Load(), typeof(IRewriteStep), executingAssembly), step.SetStatus));
+            return from step in steps
+                where step.Enabled
+                select (new LoadedStep(step.Step, typeof(IRewriteStep), executingAssembly), step.SetStatus);
         }
 
         private void RunRewriteSteps(Uri executingAssembly)
