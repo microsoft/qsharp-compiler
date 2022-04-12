@@ -576,7 +576,7 @@ namespace Microsoft.Quantum.QsCompiler
             if (this.Validation == Status.Succeeded && this.config.LoadTargetSpecificDecompositions)
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.ReplaceTargetSpecificImplementations);
-                this.CompilationOutput = this.ReplaceTargetSpecificImplementations(
+                this.ReplaceTargetSpecificImplementations(
                     this.config.TargetPackageAssemblies ?? Enumerable.Empty<string>(),
                     thisDllUri,
                     references.Declarations.Count);
@@ -672,8 +672,7 @@ namespace Microsoft.Quantum.QsCompiler
             foreach (var (step, setStatus) in steps)
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SingleRewriteStep, step.Name);
-                this.CompilationOutput = this.ExecuteAsAtomicTransformation(step, out var status);
-                setStatus(status);
+                setStatus(this.RunRewriteStep(step));
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SingleRewriteStep, step.Name);
             }
 
@@ -817,30 +816,12 @@ namespace Microsoft.Quantum.QsCompiler
         // private helper methods used during construction
 
         /// <summary>
-        /// Executes the given rewrite step on the current CompilationOutput if it is valid, and updates the given
-        /// status accordingly. Sets the CompilationOutput to the transformed compilation if the status indicates
-        /// success.
-        /// </summary>
-        private QsCompilation? ExecuteAsAtomicTransformation(LoadedStep step, out Status status)
-        {
-            QsCompilation? compilation = null;
-
-            status = this.CompilationOutput is null
-                ? Status.NotRun
-                : this.ExecuteRewriteStep(step, this.CompilationOutput, out compilation);
-
-            return status == Status.Succeeded ? compilation : this.CompilationOutput;
-        }
-
-        /// <summary>
         /// Attempts to load the target package assemblies with the given paths, logging diagnostics
         /// when a path is invalid, or loading fails. Logs suitable diagnostics if the loaded dlls
         /// contains conflicting declarations. Updates the compilation status accordingly.
         /// Executes the transformation to replace target specific implementations as atomic rewrite step.
-        /// Returns the transformed compilation if all assemblies have been successfully loaded and combined.
-        /// Returns the unmodified CompilationOutput otherwise.
         /// </summary>
-        private QsCompilation? ReplaceTargetSpecificImplementations(IEnumerable<string> paths, Uri rewriteStepOrigin, int nrReferences)
+        private void ReplaceTargetSpecificImplementations(IEnumerable<string> paths, Uri rewriteStepOrigin, int nrReferences)
         {
             void LogError(ErrorCode errCode, params string[] args) => this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, errCode, args);
             void LogException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, ex);
@@ -874,16 +855,21 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             var targetSpecificDecompositions = new QsCompilation(replacements, ImmutableArray<QsQualifiedName>.Empty);
-            var rewriteStep = new LoadedStep(new IntrinsicResolution(targetSpecificDecompositions), typeof(IRewriteStep), rewriteStepOrigin);
-            return this.ExecuteAsAtomicTransformation(rewriteStep, out this.compilationStatus.TargetSpecificReplacements);
+            var step = new LoadedStep(new IntrinsicResolution(targetSpecificDecompositions), typeof(IRewriteStep), rewriteStepOrigin);
+            this.compilationStatus.TargetSpecificReplacements = this.RunRewriteStep(step);
         }
 
         /// <summary>
-        /// Executes the given rewrite step on the given compilation, returning a transformed compilation as an out parameter.
-        /// Catches and logs any thrown exception. Returns the status of the rewrite step.
+        /// Runs the given rewrite step on the current compilation. Catches and logs any thrown exception.
         /// </summary>
-        private Status ExecuteRewriteStep(LoadedStep rewriteStep, QsCompilation compilation, out QsCompilation? transformed)
+        /// <returns>The status of the rewrite step.</returns>
+        private Status RunRewriteStep(LoadedStep rewriteStep)
         {
+            if (this.CompilationOutput is not { } compilation)
+            {
+                return Status.NotRun;
+            }
+
             string? GetDiagnosticsCode(DiagnosticSeverity severity) =>
                 rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
                 rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.CsharpGenerationGeneratedWarning) :
@@ -910,10 +896,10 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
+            QsCompilation? newCompilation = null;
             var status = Status.Succeeded;
             try
             {
-                transformed = compilation;
                 var preconditionFailed = rewriteStep.ImplementsPreconditionVerification && !rewriteStep.PreconditionVerification(compilation);
                 if (preconditionFailed)
                 {
@@ -929,8 +915,8 @@ namespace Microsoft.Quantum.QsCompiler
                     }
                 }
 
-                var transformationFailed = rewriteStep.ImplementsTransformation && (!rewriteStep.Transformation(compilation, out transformed) || transformed == null);
-                var postconditionFailed = this.config.EnableAdditionalChecks && rewriteStep.ImplementsPostconditionVerification && !rewriteStep.PostconditionVerification(transformed);
+                var transformationFailed = rewriteStep.ImplementsTransformation && (!rewriteStep.Transformation(compilation, out newCompilation) || newCompilation is null);
+                var postconditionFailed = this.config.EnableAdditionalChecks && rewriteStep.ImplementsPostconditionVerification && !rewriteStep.PostconditionVerification(newCompilation);
                 LogDiagnostics(ref status);
 
                 if (transformationFailed)
@@ -955,8 +941,11 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
                 }
+            }
 
-                transformed = null;
+            if (status == Status.Succeeded)
+            {
+                this.CompilationOutput = newCompilation;
             }
 
             return status;
