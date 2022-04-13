@@ -882,8 +882,8 @@ type QsExpression with
                 |> inference.Constrain
                 |> List.iter diagnose
             else
-                let diagnostics =
-                    inference.Constrain(callable.ResolvedType <. ResolvedType.New(QsTypeKind.Function(argType, output)))
+                let functionType = ResolvedType.withKind (QsTypeKind.Function(argType, output)) callable.ResolvedType
+                let diagnostics = inference.Constrain(callable.ResolvedType <. functionType)
 
                 if inference.Resolve callable.ResolvedType |> isOperation then
                     QsCompilerDiagnostic.Error(ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
