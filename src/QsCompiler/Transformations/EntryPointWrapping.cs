@@ -151,9 +151,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                 private static string MakeVariableName(int enumeration) =>
                     $"__{CaptureVariableLabel}{enumeration}__";
 
-                private static (SymbolTuple, Dictionary<string, ResolvedType>) MakeCaptureVariables(ResolvedType returnType)
+                private static (SymbolTuple, Dictionary<string, ResolvedType>) MakeCaptureVariables(ResolvedType returnType, int enumerationStart = 0)
                 {
-                    var enumerator = 0;
                     var newVars = new Dictionary<string, ResolvedType>();
 
                     SymbolTuple MakeCapture(ResolvedType t)
@@ -164,8 +163,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                         }
                         else
                         {
-                            var newName = MakeVariableName(enumerator);
-                            enumerator++;
+                            var newName = MakeVariableName(enumerationStart);
+                            enumerationStart++;
                             newVars.Add(newName, t);
                             return SymbolTuple.NewVariableName(newName);
                         }
@@ -208,36 +207,24 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                 // ToDo
                 private static ImmutableArray<QsStatement> MakeStatements(QsCallable original)
                 {
-                    var (captureVars, captureVarsDict) = MakeCaptureVariables(original.Signature.ReturnType);
-                    var captureStatement = MakeCaptureStatement(
-                        original,
-                        captureVars,
-                        new LocalDeclarations(captureVarsDict
-                            .Select(kvp => new LocalVariableDeclaration<string, ResolvedType>(
-                                kvp.Key,
-                                kvp.Value,
-                                InferredExpressionInformation.ParameterDeclaration,
-                                QsNullable<Position>.Null,
-                                DataTypes.Range.Zero))
-                            .ToImmutableArray()));
-                    var statements = new List<QsStatement>() { captureStatement };
-
-                    void ProcessTuple(SymbolTuple t)
+                    IEnumerable<QsStatement> ProcessCapture(SymbolTuple captureTuple, Dictionary<string, ResolvedType> captureTypes)
                     {
-                        if (t is SymbolTuple.VariableNameTuple tup)
+                        var statements = new List<QsStatement>();
+
+                        if (captureTuple is SymbolTuple.VariableNameTuple tup)
                         {
                             statements.Add(RecordStartTuple());
 
                             foreach (var i in tup.Item)
                             {
-                                ProcessTuple(i);
+                                statements.AddRange(ProcessCapture(i, captureTypes));
                             }
 
                             statements.Add(RecordEndTuple());
                         }
-                        else if (t is SymbolTuple.VariableName name)
+                        else if (captureTuple is SymbolTuple.VariableName name)
                         {
-                            var captureType = captureVarsDict![name.Item];
+                            var captureType = captureTypes[name.Item];
                             if (captureType.Resolution.IsBool)
                             {
                                 statements.Add(RecordBool(name.Item));
@@ -256,20 +243,75 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                             }
                             else if (captureType.Resolution is ResolvedTypeKind.ArrayType arr)
                             {
-                                // ToDo
-                                //var forStatement = new QsStatement(
-                                //    QsStatementKind.NewQsForStatement(new QsForStatement(
-                                //        )),
-                                //    LocalDeclarations.Empty,
-                                //    QsNullable<QsLocation>.Null,
-                                //    QsComments.Empty);
+                                var (forCaptureVars, forCaptureTypes) = MakeCaptureVariables(arr.Item, captureTypes.Count());
+
+                                // Merged dictionary of types for all known variables up to this point.
+                                var merged = new[] { captureTypes, forCaptureTypes }
+                                    .SelectMany(dict => dict)
+                                    .ToDictionary(pair => pair.Key, pair => pair.Value);
+
+                                var forBodyStatements = ProcessCapture(forCaptureVars, merged);
+
+                                var knownSymbols = merged
+                                    .Select(kvp => new LocalVariableDeclaration<string, ResolvedType>(
+                                        kvp.Key,
+                                        kvp.Value,
+                                        InferredExpressionInformation.ParameterDeclaration,
+                                        QsNullable<Position>.Null,
+                                        DataTypes.Range.Zero))
+                                    .Concat(original.ArgumentTuple.FlattenTuple()
+                                        .Select(decl => new LocalVariableDeclaration<string, ResolvedType>(
+                                            ((QsLocalSymbol.ValidName)decl.VariableName).Item,
+                                            decl.Type,
+                                            decl.InferredInformation,
+                                            decl.Position,
+                                            decl.Range)))
+                                    .ToImmutableArray();
+
+                                var forStatement = new QsStatement(
+                                    QsStatementKind.NewQsForStatement(new QsForStatement(
+                                        Tuple.Create(forCaptureVars, arr.Item),
+                                        new TypedExpression(
+                                            ExpressionKind.NewIdentifier(
+                                                Identifier.NewLocalVariable(name.Item),
+                                                QsNullable<ImmutableArray<ResolvedType>>.Null),
+                                            TypeParameterResolution.Empty,
+                                            captureType,
+                                            InferredExpressionInformation.ParameterDeclaration,
+                                            QsNullable<DataTypes.Range>.Null),
+                                        new QsScope(
+                                            forBodyStatements.ToImmutableArray(),
+                                            new LocalDeclarations(knownSymbols.ToImmutableArray())))),
+                                    LocalDeclarations.Empty,
+                                    QsNullable<QsLocation>.Null,
+                                    QsComments.Empty);
+
+                                statements.Add(forStatement);
                             }
                             else
                             {
                                 throw new ArgumentException($"Invalid return type for Entry Point Wrapping: {captureType.Resolution}");
                             }
                         }
+
+                        return statements;
                     }
+
+                    var (captureVars, captureVarsDict) = MakeCaptureVariables(original.Signature.ReturnType);
+                    var captureStatement = MakeCaptureStatement(
+                        original,
+                        captureVars,
+                        new LocalDeclarations(captureVarsDict
+                            .Select(kvp => new LocalVariableDeclaration<string, ResolvedType>(
+                                kvp.Key,
+                                kvp.Value,
+                                InferredExpressionInformation.ParameterDeclaration,
+                                QsNullable<Position>.Null,
+                                DataTypes.Range.Zero))
+                            .ToImmutableArray()));
+                    var statements = new List<QsStatement>() { captureStatement };
+
+                    statements.AddRange(ProcessCapture(captureVars, captureVarsDict));
 
                     return statements.ToImmutableArray();
                 }
