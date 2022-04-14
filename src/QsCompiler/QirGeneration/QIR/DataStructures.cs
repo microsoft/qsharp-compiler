@@ -393,18 +393,30 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public ITypeRef LlvmElementType { get; }
 
-        public uint? Count { get; }
+        public uint? Count =>
+            this.Length is ConstantInt count && count.ZeroExtendedValue < int.MaxValue ? (uint?)count.ZeroExtendedValue : null;
 
-        public Value OpaquePointer { get; }
+        // TODO: CAN WE JUST MOVE TO A SIMILAR STRATEGY AS WITH TUPLES FOR TYPEDPOINTERS VS OPAQUE POINTERS FOR ARRAYS?
+        // just by default use constant arrays whenever possible and let this data structure abstract that?
 
-        public Value Value => this.OpaquePointer;
+        public Value OpaquePointer
+            // fail if the array has not been allocated via the runtime
+            { get; } // FIXME: WHAT TO DO WITH THIS ONE??
 
-        public ITypeRef LlvmType => this.sharedState.Types.Array;
+        public Value Value =>
+            // make this point to either the opaque pointer or to the constant array?
+            this.OpaquePointer;
+
+        public ITypeRef LlvmType =>
+            //this.Value.NativeType
+            this.sharedState.Types.Array; // FIXME: WHAT TO DO WITH THIS ONE??
 
         public ResolvedType QSharpType =>
             ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.QSharpElementType));
 
-        public Value Length => this.length.Load();
+        public Value Length =>
+            // FIXME: if it is a constant array then we should just look at the type to get the length...
+            this.length.Load();
 
         /// <summary>
         /// Creates a new array value.
@@ -418,7 +430,6 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.QSharpElementType = elementType;
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
-            this.Count = count;
             this.length = this.CreateLengthCache(context.Context.CreateConstant((long)count));
             this.OpaquePointer = this.AllocateArray(registerWithScopeManager);
         }

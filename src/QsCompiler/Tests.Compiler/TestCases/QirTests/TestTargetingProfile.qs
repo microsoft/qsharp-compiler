@@ -17,5 +17,6 @@ namespace Microsoft.Quantum.Testing.QIR {
     @EntryPoint()
     operation TestProfileTargeting() : Unit {
         let sum = SumArray([1,2,3]);
+        //let arr = [sum, size = 3];
     }
 }

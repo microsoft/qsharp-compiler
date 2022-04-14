@@ -1420,6 +1420,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("current function is set to null");
             }
 
+            if (this.TargetedRuntimeCapability.IsQirProfileExecution
+                && start is ConstantInt constStart && end is ConstantInt constEnd
+                && (step == null || step is ConstantInt))
+            {
+                var stepSize = (step as ConstantInt)?.SignExtendedValue ?? 1;
+                bool CheckBound(long val) =>
+                    stepSize > 0 ? val <= constEnd.SignExtendedValue :
+                    stepSize < 0 && val >= constEnd.SignExtendedValue;
+
+                for (var item = constStart.SignExtendedValue; CheckBound(item); item += stepSize)
+                {
+                    executeBody(this.Context.CreateConstant(item));
+                }
+            }
+
             // Creates a preheader block to determine the direction of the loop.
             // The returned value evaluates to true if he given increment is positive.
             Value CreatePreheader(Value increment)
@@ -1473,8 +1488,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
         internal Value? IterateThroughArray(ArrayValue array, Value? initialOutputValue, Func<IValue, Value?, Value?> executeBody)
         {
-            var startValue = this.Context.CreateConstant(0L);
-            if (array.Length == startValue)
+            if (array.Count == 0)
             {
                 return initialOutputValue;
             }
@@ -1502,7 +1516,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 Value? ExecuteBody(Value iterationIndex, Value? currentOutputValue) =>
                     executeBody(array.GetArrayElement(iterationIndex), currentOutputValue);
 
-                return this.CreateForLoop(startValue, EvaluateCondition, increment, initialOutputValue, ExecuteBody);
+                return this.CreateForLoop(this.Context.CreateConstant(0L), EvaluateCondition, increment, initialOutputValue, ExecuteBody);
             }
         }
 

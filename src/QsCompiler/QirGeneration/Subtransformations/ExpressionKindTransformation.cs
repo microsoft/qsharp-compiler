@@ -1005,14 +1005,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var size = this.SharedState.EvaluateSubexpression(sizeEx);
             var array = this.SharedState.Values.CreateArray(size.Value, elementType);
             this.SharedState.ValueStack.Push(array);
-            if (array.Length == this.SharedState.Context.CreateConstant(0L))
+            if (array.Count == 0)
             {
                 return ResolvedExpressionKind.InvalidExpr;
             }
 
             // We need to populate the array
             var start = this.SharedState.Context.CreateConstant(0L);
-            var end = this.SharedState.CurrentBuilder.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
+            var end = array.Count != null
+                ? this.SharedState.Context.CreateConstant((long)array.Count - 1L)
+                : this.SharedState.CurrentBuilder.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
             void PopulateItem(Value index)
             {
                 // We need to make sure that the reference count for the built item is increased by 1.
