@@ -4,6 +4,8 @@
 namespace Microsoft.Quantum.Testing.QIR {
     open Microsoft.Quantum.Intrinsic;
 
+    //function TakesTuple()
+
     function SumArray(arr : Int[]) : Int {
         mutable sum = 0;
         for item in arr{

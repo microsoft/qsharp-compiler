@@ -1479,16 +1479,31 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return initialOutputValue;
             }
 
-            var increment = this.Context.CreateConstant(1L);
-            var endValue = this.CurrentBuilder.Sub(array.Length, increment);
+            // FIXME: should we fail if a loop is not unrolled when a QIR profile is targeted?
+            if (array.Count != null && this.TargetedRuntimeCapability.IsQirProfileExecution)
+            {
+                var currentOutputValue = initialOutputValue;
+                for (var idx = 0; idx < array.Count; ++idx)
+                {
+                    array.GetArrayElements(idx); // FIXME: EXAMINE ALL ARRAYS ACCESS
+                    currentOutputValue = executeBody(array.GetArrayElements(idx)[0], currentOutputValue);
+                }
 
-            Value EvaluateCondition(Value loopVariable) =>
-                this.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
+                return currentOutputValue;
+            }
+            else
+            {
+                var increment = this.Context.CreateConstant(1L);
+                var endValue = this.CurrentBuilder.Sub(array.Length, increment);
 
-            Value? ExecuteBody(Value iterationIndex, Value? currentOutputValue) =>
-                executeBody(array.GetArrayElement(iterationIndex), currentOutputValue);
+                Value EvaluateCondition(Value loopVariable) =>
+                    this.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
 
-            return this.CreateForLoop(startValue, EvaluateCondition, increment, initialOutputValue, ExecuteBody);
+                Value? ExecuteBody(Value iterationIndex, Value? currentOutputValue) =>
+                    executeBody(array.GetArrayElement(iterationIndex), currentOutputValue);
+
+                return this.CreateForLoop(startValue, EvaluateCondition, increment, initialOutputValue, ExecuteBody);
+            }
         }
 
         /// <summary>
