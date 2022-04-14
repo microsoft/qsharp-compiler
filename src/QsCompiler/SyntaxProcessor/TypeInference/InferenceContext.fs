@@ -31,6 +31,10 @@ type Variable =
         Source: Range
     }
 
+type ConstraintSource =
+    | Here
+    | There
+
 module Utils =
     let mapFst f (x, y) = (f x, y)
 
@@ -278,7 +282,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         match con with
         | Class cls ->
             match Inference.classDependencies cls |> List.choose unsolvedVariable with
-            | [] -> context.ApplyClassConstraint(cls, delayed = false)
+            | [] -> context.ApplyClassConstraint(cls, Here)
             | tyParams ->
                 for param in tyParams do
                     classConstraints.Add(param, cls)
@@ -362,7 +366,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _, MissingType -> []
         | _ -> [ TypeMismatch typeContext ]
 
-    member private context.ApplyClassConstraint(cls, delayed) =
+    member private context.ApplyClassConstraint(cls, source) =
         let error code args range =
             let range = TypeRange.tryRange range |> QsNullable.defaultValue Range.Zero
             QsCompilerDiagnostic.Error(code, args) range |> CompilerDiagnostic
@@ -388,12 +392,18 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 | QsTypeKind.Function _ -> QsTypeKind.Function(input, output) |> ResolvedType.New |> Some
                 | _ -> None
 
-            // Depending on whether the constraint was applied immediately or delayed until a variable was solved for,
-            // flip the order of the callable types. The constraints are equivalent but affect the diagnostic messages.
-            match requiredCallable with
-            | Some requiredCallable when delayed -> context.ConstrainImpl(requiredCallable .> callable)
-            | Some requiredCallable -> context.ConstrainImpl(callable <. requiredCallable)
-            | None ->
+            // The callable constraint needs special handling for diagnostics:
+            //
+            // - If the source is here, it is assumed to be a call expression. The callable is the "expected" type. A
+            //   type mismatch is the argument's fault.
+            // - If the source is somewhere else, the callable is being provided as a value to a higher-order function.
+            //   The callable is the "actual" value. A type mismatch is the callable's fault.
+            //
+            // The constraints are equivalent. Only the diagnostic messages are different.
+            match requiredCallable, source with
+            | Some requiredCallable, Here -> context.ConstrainImpl(callable <. requiredCallable)
+            | Some requiredCallable, There -> context.ConstrainImpl(requiredCallable .> callable)
+            | None, _ ->
                 [
                     error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
                 ]
@@ -529,7 +539,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             let isReady = Inference.classDependencies >> List.choose unsolvedVariable >> List.isEmpty
 
             Seq.filter isReady classes
-            |> Seq.collect (fun cls -> context.ApplyClassConstraint(cls, delayed = true))
+            |> Seq.collect (fun cls -> context.ApplyClassConstraint(cls, There))
             |> Seq.toList
         | None -> []
 
