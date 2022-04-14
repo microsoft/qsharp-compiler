@@ -872,7 +872,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var targetInstruction = this.SharedState.GetOrCreateTargetInstruction(instructionName);
                 return CallGlobal(targetInstruction, arg, callable.Signature.ReturnType);
             }
-            else if (callable.Attributes.Any(BuiltIn.MarksInlining))
+            else if (callable.Attributes.Any(BuiltIn.MarksInlining) || this.SharedState.TargetedRuntimeCapability.IsQirProfileExecution)
             {
                 // deal with global callables that need to be inlined
                 var inlinedSpec = callable.Specializations.Where(spec => spec.Kind == kind).Single();

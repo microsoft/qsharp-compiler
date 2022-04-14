@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -93,7 +94,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsCallable OnCallableDeclaration(QsCallable c)
         {
-            if (this.SharedState.Functions.IsBuiltIn(c.FullName))
+            if (this.SharedState.Functions.IsBuiltIn(c.FullName) ||
+                (this.SharedState.TargetedRuntimeCapability.IsQirProfileExecution && !c.Attributes.Any(BuiltIn.MarksEntryPoint)))
             {
                 return c;
             }

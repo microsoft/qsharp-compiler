@@ -254,12 +254,25 @@ let ``QIR targeting`` () =
         [
             "--runtime"
             "BasicMeasurementFeedback"
-            "--force-rewrite-step-execution" // to make sure the target specific transformation actually runs
+            "--force-rewrite-step-execution" // to make sure any target specific transformations actually run
         ]
         |> Seq.append (compilerArgs true "TestTargeting")
         |> Seq.toArray
 
     customTest "TestTargeting" compilerArgs [ "TestTargeting" ]
+
+[<Fact>]
+let ``QIR profile targeting`` () =
+    let compilerArgs =
+        [
+            "--runtime"
+            "QirProfileExecution"
+            "--force-rewrite-step-execution" // to make sure any target specific transformations actually run
+        ]
+        |> Seq.append (compilerArgs true "TestTargetingProfile")
+        |> Seq.toArray
+
+    customTest "TestTargetingProfile" compilerArgs [ "TestTargetingProfile" ]
 
 [<Fact>]
 let ``QIR Library generation`` () =
