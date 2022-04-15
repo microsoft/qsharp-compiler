@@ -96,11 +96,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
 
         private static TypedExpression ParameterTupleToValueTuple(ParameterTuple parameters)
         {
-            // ToDo: Check if tuple with single value needs special handling
-
             if (parameters is ParameterTuple.QsTuple tuple)
             {
-                if (tuple.Item.Count() > 0)
+                if (tuple.Item.Count() == 1)
+                {
+                    return ParameterTupleToValueTuple(tuple.Item.First());
+                }
+                else if (tuple.Item.Count() > 1)
                 {
                     var items = tuple.Item.Select(ParameterTupleToValueTuple).ToImmutableArray();
                     return new TypedExpression(
@@ -354,7 +356,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                 new InferredExpressionInformation(false, false),
                 QsNullable<DataTypes.Range>.Null);
 
-            return MakeMessageCall("Bool: {0}", new[] { id }.ToImmutableArray()); // ToDo: Check that "{0}" is correct.
+            return MakeMessageCall("Bool: {0}", new[] { id }.ToImmutableArray());
         }
 
         private static QsStatement RecordInt(string name)
@@ -366,7 +368,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                 new InferredExpressionInformation(false, false),
                 QsNullable<DataTypes.Range>.Null);
 
-            return MakeMessageCall("Int: {0}", new[] { id }.ToImmutableArray()); // ToDo: Check that "{0}" is correct.
+            return MakeMessageCall("Int: {0}", new[] { id }.ToImmutableArray());
         }
 
         private static QsStatement RecordDouble(string name)
@@ -378,7 +380,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                 new InferredExpressionInformation(false, false),
                 QsNullable<DataTypes.Range>.Null);
 
-            return MakeMessageCall("Double: {0}", new[] { id }.ToImmutableArray()); // ToDo: Check that "{0}" is correct.
+            return MakeMessageCall("Double: {0}", new[] { id }.ToImmutableArray());
         }
 
         private static QsStatement RecordResult(string name)
@@ -390,7 +392,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                 new InferredExpressionInformation(false, false),
                 QsNullable<DataTypes.Range>.Null);
 
-            return MakeMessageCall("Result: {0}", new[] { id }.ToImmutableArray()); // ToDo: Check that "{0}" is correct.
+            return MakeMessageCall("Result: {0}", new[] { id }.ToImmutableArray());
         }
 
         private class WrapEntryPoints :
