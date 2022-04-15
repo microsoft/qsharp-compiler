@@ -398,6 +398,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         // TODO: CAN WE JUST MOVE TO A SIMILAR STRATEGY AS WITH TUPLES FOR TYPEDPOINTERS VS OPAQUE POINTERS FOR ARRAYS?
         // just by default use constant arrays whenever possible and let this data structure abstract that?
+        // upon construction pass in whether to allocate a constant array or not
 
         public Value OpaquePointer
             // fail if the array has not been allocated via the runtime
