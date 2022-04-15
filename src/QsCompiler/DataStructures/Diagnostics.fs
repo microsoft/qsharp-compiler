@@ -794,14 +794,14 @@ type DiagnosticItem =
                 "The type of the given argument does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.UnexpectedTupleArgument -> "Unexpected argument tuple. Expecting an argument of type {0}."
             | ErrorCode.AmbiguousTypeParameterResolution ->
-                let note =
-                    if Seq.item 1 args |> String.IsNullOrWhiteSpace then
-                        ""
-                    else
-                        Environment.NewLine + "Note: Relevant unsolved constraints: {1}"
+                [
+                    "The type parameter {0} is ambiguous."
+                    "For more information, see: https://github.com/microsoft/qsharp-language/blob/main/Specifications/Language/4_TypeSystem/TypeInference.md#ambiguous-types"
 
-                "The type parameter {0} is ambiguous. More type annotations or usage context may be necessary."
-                + note
+                    if Seq.item 1 args |> String.IsNullOrWhiteSpace |> not then
+                        "Note: Relevant unsolved constraints: {1}"
+                ]
+                |> String.concat Environment.NewLine
             | ErrorCode.ConstrainsTypeParameter -> "The given expression constrains the type parameter(s) {0}."
             | ErrorCode.GlobalTypeAlreadyExists -> "A type with the name \"{0}\" already exists."
             | ErrorCode.GlobalCallableAlreadyExists -> "A callable with the name \"{0}\" already exists."
