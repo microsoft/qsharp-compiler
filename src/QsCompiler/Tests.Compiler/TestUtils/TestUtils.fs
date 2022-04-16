@@ -297,20 +297,20 @@ let readAndChunkSourceFile fileName =
     let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText
     sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
+let private getManager uri content (compilationManager: CompilationUnitManager) =
+    CompilationUnitManager.InitializeFileManager(
+        uri,
+        content,
+        compilationManager.PublishDiagnostics,
+        compilationManager.LogException
+    )
+
 let buildContent content =
     let compilationManager =
         new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
 
     let fileId = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
-
-    let file =
-        CompilationUnitManager.InitializeFileManager(
-            fileId,
-            content,
-            compilationManager.PublishDiagnostics,
-            compilationManager.LogException
-        )
-
+    let file = getManager fileId content compilationManager
     compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
     let compilationDataStructures = compilationManager.Build()
     compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
@@ -320,6 +320,26 @@ let buildContent content =
 
     compilationDataStructures
 
+let buildContentWithFiles content files =
+    let compilationManager =
+        new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
+
+    for filePath in files do
+        getManager (new Uri(filePath)) (File.ReadAllText filePath) compilationManager
+        |> compilationManager.AddOrUpdateSourceFileAsync
+        |> ignore
+
+    let fileId = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+    let file = getManager fileId content compilationManager
+
+    compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
+    let compilationDataStructures = compilationManager.Build()
+    compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
+
+    compilationDataStructures.Diagnostics() |> Seq.exists (fun d -> d.IsError()) |> Assert.False
+    Assert.NotNull compilationDataStructures.BuiltCompilation
+
+    compilationDataStructures
 
 // utils for getting components from test materials
 

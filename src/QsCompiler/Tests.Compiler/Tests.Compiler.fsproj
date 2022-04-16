@@ -531,6 +531,9 @@
     <None Include="TestCases\LambdaLifting.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\EntryPointWrapping.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\CycleDetection.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -561,6 +564,7 @@
     <Compile Include="CallGraphTests.fs" />
     <Compile Include="ClassicalControlTests.fs" />
     <Compile Include="LambdaLiftingTests.fs" />
+    <Compile Include="EntryPointWrappingTests.fs" />
     <Compile Include="TypeParameterTests.fs" />
     <Compile Include="RegexTests.fs" />
     <Compile Include="SerializationTests.fs" />
