@@ -40,7 +40,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal bool IsLibrary { get; }
 
-        internal RuntimeCapability TargetedRuntimeCapability { get; }
+        private RuntimeCapability TargetedRuntimeCapability { get; }
+
+        internal bool TargetQirProfile =>
+            this.TargetedRuntimeCapability.IsBasicExecution || this.TargetedRuntimeCapability.IsAdaptiveExecution;
 
         #region Member variables
 
@@ -1420,7 +1423,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("current function is set to null");
             }
 
-            if (this.TargetedRuntimeCapability.IsQirProfileExecution
+            if (this.TargetQirProfile
                 && start is ConstantInt constStart && end is ConstantInt constEnd
                 && (step == null || step is ConstantInt))
             {
@@ -1494,7 +1497,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             // FIXME: should we fail if a loop is not unrolled when a QIR profile is targeted?
-            if (array.Count != null && this.TargetedRuntimeCapability.IsQirProfileExecution)
+            if (array.Count != null && this.TargetQirProfile)
             {
                 var currentOutputValue = initialOutputValue;
                 for (var idx = 0; idx < array.Count; ++idx)

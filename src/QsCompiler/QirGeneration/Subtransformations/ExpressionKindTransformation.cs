@@ -637,7 +637,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     UpdateStringRefCount(openParens, 1); // added to avoid dangling pointer in comparison inside loop
                     var outputStr = sharedState.IterateThroughArray(array, openParens, (item, str) =>
                     {
-                        var cond = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, str!, openParens);
+                        var cond = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, str!, openParens); // TODO GET RID OF THIS FOR QIR PROFILE
                         var updatedStr = sharedState.ConditionalEvaluation(
                             cond,
                             onCondTrue: () => CreateStringValue(DoAppend(str!, comma, unreferenceNext: false)),
@@ -872,7 +872,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var targetInstruction = this.SharedState.GetOrCreateTargetInstruction(instructionName);
                 return CallGlobal(targetInstruction, arg, callable.Signature.ReturnType);
             }
-            else if (callable.Attributes.Any(BuiltIn.MarksInlining) || this.SharedState.TargetedRuntimeCapability.IsQirProfileExecution)
+            else if (callable.Attributes.Any(BuiltIn.MarksInlining) || this.SharedState.TargetQirProfile)
             {
                 // deal with global callables that need to be inlined
                 var inlinedSpec = callable.Specializations.Where(spec => spec.Kind == kind).Single();

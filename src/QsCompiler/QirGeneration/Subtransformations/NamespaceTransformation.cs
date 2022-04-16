@@ -95,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsCallable OnCallableDeclaration(QsCallable c)
         {
             if (this.SharedState.Functions.IsBuiltIn(c.FullName) ||
-                (this.SharedState.TargetedRuntimeCapability.IsQirProfileExecution && !c.Attributes.Any(BuiltIn.MarksEntryPoint)))
+                (this.SharedState.TargetQirProfile && !c.Attributes.Any(BuiltIn.MarksEntryPoint)))
             {
                 return c;
             }
