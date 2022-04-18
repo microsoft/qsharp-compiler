@@ -44,13 +44,6 @@ namespace Microsoft.Quantum.QsCompiler
         public static Func<string, Assembly>? LoadAssembly { get; set; }
 
         /// <summary>
-        /// Sorts the given list of step according to their relative priority give by getPriority.
-        /// Throws the corresponding exception if <paramref name="getPriority" /> is <c>null</c>.
-        /// </summary>
-        internal static void SortRewriteSteps<T>(List<T> steps, Func<T, int> getPriority) =>
-            steps?.Sort((fst, snd) => getPriority(snd) - getPriority(fst));
-
-        /// <summary>
         /// may be specified via configuration (or project) file in the future
         /// </summary>
         public class Configuration
