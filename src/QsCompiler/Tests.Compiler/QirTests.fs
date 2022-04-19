@@ -266,10 +266,10 @@ let ``QIR profile targeting`` () =
     let compilerArgs =
         [
             "--runtime"
-            "QirProfileExecution"
+            "AdaptiveExecution"
             "--force-rewrite-step-execution" // to make sure any target specific transformations actually run
         ]
-        |> Seq.append (compilerArgs true "TestTargetingProfile")
+        |> Seq.append (compilerArgs false "TestTargetingProfile")
         |> Seq.toArray
 
     customTest "TestTargetingProfile" compilerArgs [ "TestTargetingProfile" ]

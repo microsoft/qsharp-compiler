@@ -1423,21 +1423,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("current function is set to null");
             }
 
-            if (this.TargetQirProfile
-                && start is ConstantInt constStart && end is ConstantInt constEnd
-                && (step == null || step is ConstantInt))
-            {
-                var stepSize = (step as ConstantInt)?.SignExtendedValue ?? 1;
-                bool CheckBound(long val) =>
-                    stepSize > 0 ? val <= constEnd.SignExtendedValue :
-                    stepSize < 0 && val >= constEnd.SignExtendedValue;
-
-                for (var item = constStart.SignExtendedValue; CheckBound(item); item += stepSize)
-                {
-                    executeBody(this.Context.CreateConstant(item));
-                }
-            }
-
             // Creates a preheader block to determine the direction of the loop.
             // The returned value evaluates to true if he given increment is positive.
             Value CreatePreheader(Value increment)
@@ -1474,9 +1459,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return this.CurrentBuilder.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd);
             }
 
-            Value? loopVarIncreases = step == null ? null : CreatePreheader(step);
-            step ??= this.Context.CreateConstant(1L);
-            this.CreateForLoop(start, loopVar => EvaluateCondition(loopVarIncreases, loopVar), step, executeBody);
+            if (this.TargetQirProfile
+                && start is ConstantInt constStart && end is ConstantInt constEnd
+                && (step == null || step is ConstantInt))
+            {
+                var stepSize = (step as ConstantInt)?.SignExtendedValue ?? 1;
+                bool CheckBound(long val) =>
+                    stepSize > 0 ? val <= constEnd.SignExtendedValue :
+                    stepSize < 0 && val >= constEnd.SignExtendedValue;
+
+                for (var item = constStart.SignExtendedValue; CheckBound(item); item += stepSize)
+                {
+                    executeBody(this.Context.CreateConstant(item));
+                }
+            }
+            else
+            {
+                Value? loopVarIncreases = step == null ? null : CreatePreheader(step);
+                step ??= this.Context.CreateConstant(1L);
+                this.CreateForLoop(start, loopVar => EvaluateCondition(loopVarIncreases, loopVar), step, executeBody);
+            }
         }
 
         /// <summary>
@@ -1502,7 +1504,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var currentOutputValue = initialOutputValue;
                 for (var idx = 0; idx < array.Count; ++idx)
                 {
-                    array.GetArrayElements(idx); // FIXME: EXAMINE ALL ARRAYS ACCESS
+                    array.GetArrayElements(idx);
                     currentOutputValue = executeBody(array.GetArrayElements(idx)[0], currentOutputValue);
                 }
 

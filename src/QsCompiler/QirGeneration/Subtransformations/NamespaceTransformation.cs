@@ -80,6 +80,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.context.GetCurrentCallable().Access.IsPublic;
             this.SharedState.GenerateFunctionHeader(this.context.GetCurrentSpecialization(), argTuple, deconstuctArgument: true, shouldBeExtern);
             this.Transformation.Statements.OnScope(body);
+
             this.SharedState.EndFunction(generatePending: true);
             return Tuple.Create(argTuple, body);
         }

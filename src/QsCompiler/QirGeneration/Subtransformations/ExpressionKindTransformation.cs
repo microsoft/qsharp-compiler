@@ -1003,7 +1003,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 : throw new InvalidOperationException("current expression is expected to be an array");
 
             var size = this.SharedState.EvaluateSubexpression(sizeEx);
-            var array = this.SharedState.Values.CreateArray(size.Value, elementType);
+            var array = this.SharedState.Values.CreateArray(size.Value, elementType, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
             this.SharedState.ValueStack.Push(array);
             if (array.Count == 0)
             {
@@ -2000,7 +2000,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (type.Resolution is ResolvedTypeKind.ArrayType itemType)
                 {
-                    return this.SharedState.Values.CreateArray(itemType.Item);
+                    return this.SharedState.Values.CreateArray(itemType.Item, allocOnStack: this.SharedState.TargetQirProfile);
                 }
                 else if (type.Resolution.IsFunction || type.Resolution.IsOperation)
                 {
@@ -2425,7 +2425,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 ? arrItemType.Item
                 : throw new InvalidOperationException("current expression is not of type array");
 
-            var value = this.SharedState.Values.CreateArray(elementType, vs);
+            var value = this.SharedState.Values.CreateArray(elementType, vs, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }

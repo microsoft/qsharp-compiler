@@ -140,7 +140,7 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class PointerValue : IValue
     {
         private readonly IValue.Cached<IValue> cachedValue;
-        private readonly Value pointer;
+        private readonly Value? accessHandle; // this handle is a pointer for loading the current value or null if a custom store and load is defined
 
         public Value Value => this.LoadValue().Value;
 
@@ -159,17 +159,32 @@ namespace Microsoft.Quantum.QIR.Emission
         internal PointerValue(Value? pointer, ResolvedType type, GenerationContext context)
         {
             void Store(IValue v) =>
-                context.CurrentBuilder.Store(v.Value, this.pointer);
+                context.CurrentBuilder.Store(v.Value, this.accessHandle);
 
             IValue Reload() =>
                 context.Values.From(
-                    context.CurrentBuilder.Load(this.LlvmType, this.pointer),
+                    context.CurrentBuilder.Load(this.LlvmType, this.accessHandle),
                     this.QSharpType);
 
             this.QSharpType = type;
             this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
-            this.pointer = pointer ?? context.CurrentBuilder.Alloca(this.LlvmType);
+            this.accessHandle = pointer ?? context.CurrentBuilder.Alloca(this.LlvmType);
             this.cachedValue = new IValue.Cached<IValue>(context, Reload, Store);
+        }
+
+        /// <summary>
+        /// Creates a pointer that can store a value and provides a caching mechanism for accessing that value
+        /// to avoid unnecessary loads. The given load and store functions are used to access and modify the stored value if necessary.
+        /// </summary>
+        /// <param name="type">The Q# type of the value that the pointer points to</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed</param>
+        /// <param name="load">Function used to access the stored value</param>
+        /// <param name="store">Function used to update the stored value</param>
+        internal PointerValue(ResolvedType type, GenerationContext context, Func<IValue> load, Action<IValue> store)
+        {
+            this.QSharpType = type;
+            this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
+            this.cachedValue = new IValue.Cached<IValue>(context, load, store);
         }
 
         /// <summary>
@@ -197,9 +212,9 @@ namespace Microsoft.Quantum.QIR.Emission
 
         void IValue.RegisterName(string name)
         {
-            if (string.IsNullOrEmpty(this.pointer.Name))
+            if (this.accessHandle != null && string.IsNullOrEmpty(this.accessHandle.Name))
             {
-                this.pointer.RegisterName(name);
+                this.accessHandle.RegisterName(name);
             }
         }
     }
@@ -389,31 +404,29 @@ namespace Microsoft.Quantum.QIR.Emission
         private readonly GenerationContext sharedState;
         private readonly IValue.Cached<Value> length;
 
+        private static uint? AsConstant(Value value) =>
+            value is ConstantInt count && count.ZeroExtendedValue < int.MaxValue ? (uint?)count.ZeroExtendedValue : null;
+
         internal ResolvedType QSharpElementType { get; }
-
-        public ITypeRef LlvmElementType { get; }
-
-        public uint? Count =>
-            this.Length is ConstantInt count && count.ZeroExtendedValue < int.MaxValue ? (uint?)count.ZeroExtendedValue : null;
-
-        // TODO: CAN WE JUST MOVE TO A SIMILAR STRATEGY AS WITH TUPLES FOR TYPEDPOINTERS VS OPAQUE POINTERS FOR ARRAYS?
-        // just by default use constant arrays whenever possible and let this data structure abstract that?
-        // upon construction pass in whether to allocate a constant array or not
-
-        public Value OpaquePointer
-            // fail if the array has not been allocated via the runtime
-            { get; } // FIXME: WHAT TO DO WITH THIS ONE??
-
-        public Value Value =>
-            // make this point to either the opaque pointer or to the constant array?
-            this.OpaquePointer;
-
-        public ITypeRef LlvmType =>
-            //this.Value.NativeType
-            this.sharedState.Types.Array; // FIXME: WHAT TO DO WITH THIS ONE??
 
         public ResolvedType QSharpType =>
             ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.QSharpElementType));
+
+        public ITypeRef LlvmElementType { get; }
+
+        public ITypeRef LlvmType { get; }
+
+        public uint? Count => AsConstant(this.Length);
+
+        // TODO: CAN WE JUST MOVE TO A SIMILAR STRATEGY AS WITH TUPLES FOR TYPEDPOINTERS VS OPAQUE POINTERS FOR ARRAYS?
+        // just by default use constant arrays whenever possible and let this data structure abstract that?
+
+        public Value Value { get; private set; }
+
+        public Value OpaquePointer =>
+            Types.IsArray(this.LlvmType)
+            ? this.Value
+            : throw new InvalidOperationException("cannot get opaque pointer for a constant array allocated on the stack");
 
         public Value Length =>
             // FIXME: if it is a constant array then we should just look at the type to get the length...
@@ -426,13 +439,18 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="count">The number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context, bool registerWithScopeManager = true)
+        internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
         {
             this.sharedState = context;
             this.QSharpElementType = elementType;
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
             this.length = this.CreateLengthCache(context.Context.CreateConstant((long)count));
-            this.OpaquePointer = this.AllocateArray(registerWithScopeManager);
+            this.LlvmType = allocOnStack
+                ? this.LlvmElementType.CreateArrayType(count)
+                : (ITypeRef)this.sharedState.Types.Array;
+            this.Value = allocOnStack
+                ? this.LlvmType.GetNullValue() // fixme: make sure empty arrays are properly handled
+                : this.AllocateArray(registerWithScopeManager);
         }
 
         /// <summary>
@@ -442,13 +460,20 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context, bool registerWithScopeManager = true)
+        internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
         {
             this.sharedState = context;
             this.QSharpElementType = elementType;
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
             this.length = this.CreateLengthCache(length);
-            this.OpaquePointer = this.AllocateArray(registerWithScopeManager);
+            this.LlvmType = allocOnStack
+                ? (this.Count.HasValue
+                    ? this.LlvmElementType.CreateArrayType(this.Count.Value)
+                    : throw new InvalidOperationException("array length is not a constant"))
+                : (ITypeRef)this.sharedState.Types.Array;
+            this.Value = allocOnStack
+                ? this.LlvmType.GetNullValue() // fixme: make sure empty arrays are properly handled
+                : this.AllocateArray(registerWithScopeManager);
         }
 
         /// <summary>
@@ -463,7 +488,8 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.QSharpElementType = elementType;
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
-            this.OpaquePointer = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
+            this.Value = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array"); // FIXME: DOES THIS EVER NEED TO BE STACK ALLOCATED?
+            this.LlvmType = this.sharedState.Types.Array;
             this.length = length == null
                 ? new IValue.Cached<Value>(context, this.GetLength)
                 : this.CreateLengthCache(length);
@@ -471,11 +497,11 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /* private helpers */
 
-        private Value GetLength() => this.sharedState.CurrentBuilder.Call(
+        private Value GetLength() => this.sharedState.CurrentBuilder.Call( // FIXME: THIS NEEDS REVISION
             this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
             this.OpaquePointer);
 
-        private IValue.Cached<Value> CreateLengthCache(Value length) =>
+        private IValue.Cached<Value> CreateLengthCache(Value length) => // FIXME: THIS NEEDS REVISION
             new IValue.Cached<Value>(length, this.sharedState, this.GetLength);
 
         private Value AllocateArray(bool registerWithScopeManager)
@@ -500,10 +526,27 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="index">The element's index into the array.</param>
         internal PointerValue GetArrayElementPointer(Value index)
         {
-            var getElementPointer = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
-            var opaqueElementPointer = this.sharedState.CurrentBuilder.Call(getElementPointer, this.OpaquePointer, index);
-            var typedElementPointer = this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.LlvmElementType.CreatePointerType());
-            return new PointerValue(typedElementPointer, this.QSharpElementType, this.sharedState);
+            if (Types.IsArray(this.LlvmType))
+            {
+                var getElementPointer = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
+                var opaqueElementPointer = this.sharedState.CurrentBuilder.Call(getElementPointer, this.OpaquePointer, index);
+                var typedElementPointer = this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.LlvmElementType.CreatePointerType());
+                return new PointerValue(typedElementPointer, this.QSharpElementType, this.sharedState);
+            }
+            else
+            {
+                var constIndex = AsConstant(index) ?? throw new InvalidOperationException("can only access element at a constant index");
+
+                void Store(IValue v) =>
+                    this.Value = this.sharedState.CurrentBuilder.InsertValue(this.Value, v.Value, constIndex);
+
+                IValue Reload() =>
+                    this.sharedState.Values.From(
+                        this.sharedState.CurrentBuilder.ExtractValue(this.Value, constIndex),
+                        this.QSharpElementType);
+
+                return new PointerValue(this.QSharpElementType, this.sharedState, Reload, Store);
+            }
         }
 
         /// <summary>
