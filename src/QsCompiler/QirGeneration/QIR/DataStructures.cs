@@ -429,8 +429,9 @@ namespace Microsoft.Quantum.QIR.Emission
             : throw new InvalidOperationException("cannot get opaque pointer for a constant array allocated on the stack");
 
         public Value Length =>
-            // FIXME: if it is a constant array then we should just look at the type to get the length...
-            this.length.Load();
+            this.LlvmType is IArrayType arrType
+            ? this.sharedState.Context.CreateConstant(arrType.Length) // fixme: solve this cleaner (length handling is a mess right now)
+            : this.length.Load();
 
         /// <summary>
         /// Creates a new array value.
