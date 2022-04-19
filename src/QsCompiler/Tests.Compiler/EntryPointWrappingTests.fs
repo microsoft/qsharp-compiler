@@ -3,14 +3,11 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System.Collections.Immutable
-open System.Text.RegularExpressions
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
+open System.IO
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
 open Xunit
-open Microsoft.Quantum.QsCompiler
-open System.IO
 
 type EntryPointWrappingTests() =
 
@@ -30,30 +27,25 @@ type EntryPointWrappingTests() =
 
         processedCompilation
 
-    let assertLambdaFunctorsByLine result line parentName expectedFunctors =
-        let regexMatch = Regex.Match(line, sprintf "_[a-z0-9]{32}_%s" parentName)
-        Assert.True(regexMatch.Success, "The original callable did not have the expected content.")
-
-        TestUtils.getCallableWithName result Signatures.LambdaLiftingNS regexMatch.Value
-        |> TestUtils.assertCallSupportsFunctors expectedFunctors
+    let wrapperAPINamespaceName = "Microsoft.Quantum.Core";
 
     let makeVal n = sprintf "__rtrnVal%i__" n;
 
-    let makeRecordInt n = sprintf "Message($\"Int: {%s}\");" (makeVal n)
+    let makeRecordBool n = sprintf "%s.BooleanRecordOutput(%s);" wrapperAPINamespaceName (makeVal n)
 
-    let makeRecordBool n = sprintf "Message($\"Bool: {%s}\");" (makeVal n)
+    let makeRecordInt n = sprintf "%s.IntegerRecordOutput(%s);" wrapperAPINamespaceName (makeVal n)
 
-    let makeRecordDouble n = sprintf "Message($\"Double: {%s}\");" (makeVal n)
+    let makeRecordDouble n = sprintf "%s.DoubleRecordOutput(%s);" wrapperAPINamespaceName (makeVal n)
 
-    let makeRecordResult n = sprintf "Message($\"Result: {%s}\");" (makeVal n)
+    let makeRecordResult n = sprintf "%s.ResultRecordOutput(%s);" wrapperAPINamespaceName (makeVal n)
 
-    let makeRecordStartTuple = "Message($\"Tuple Start\");"
+    let makeRecordStartTuple = sprintf "%s.TupleStartRecordOutput();" wrapperAPINamespaceName
 
-    let makeRecordEndTuple = "Message($\"Tuple End\");"
+    let makeRecordEndTuple = sprintf "%s.TupleEndRecordOutput();" wrapperAPINamespaceName
 
-    let makeRecordStartArray = "Message($\"Array Start\");"
+    let makeRecordStartArray = sprintf "%s.ArrayStartRecordOutput();" wrapperAPINamespaceName
 
-    let makeRecordEndArray = "Message($\"Array End\");"
+    let makeRecordEndArray = sprintf "%s.ArrayEndRecordOutput();" wrapperAPINamespaceName
 
     let makeArrayLoop n1 n2 = sprintf "for %s in %s {" (makeVal n1) (makeVal n2)
 
@@ -71,14 +63,14 @@ type EntryPointWrappingTests() =
             TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Foo"
             |> Seq.exactlyOne
 
-        Assert.True((original.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The entry point wrapper is not an entry point.")
+        Assert.True((generated.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The entry point wrapper is not an entry point.")
 
         let lines =
             generated
             |> TestUtils.getBodyFromCallable
             |> TestUtils.getLinesFromSpecialization
 
-        let captureLine = sprintf "let %s = %s()" (makeVal 0) original.FullName.Name
+        let captureLine = sprintf "let %s = %O();" (makeVal 0) original.FullName
 
         let expectedContent =
             [|

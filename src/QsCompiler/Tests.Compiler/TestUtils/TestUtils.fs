@@ -12,12 +12,12 @@ open FParsec
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.TextProcessing
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
-open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
 // utils for regex testing
@@ -322,7 +322,9 @@ let buildContent content =
 
 let buildContentWithFiles content files =
     let compilationManager =
-        new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
+        let props = ImmutableDictionary.CreateBuilder()
+        props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
+        new CompilationUnitManager(new ProjectProperties(props), (fun ex -> failwith ex.Message))
 
     for filePath in files do
         getManager (new Uri(filePath)) (File.ReadAllText filePath) compilationManager
