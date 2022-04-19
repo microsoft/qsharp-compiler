@@ -8,12 +8,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -59,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
 
         private static readonly string ArrayEndRecordOutputName = "ArrayEndRecordOutput";
 
-        private static QsCallable CreateTypeRecorder(string name, ResolvedTypeKind parameterTypeKind, bool hasParameter = true)
+        private static QsCallable CreateTypeRecorder(string name, ResolvedTypeKind parameterTypeKind, Source source, bool hasParameter = true)
         {
             var qualifiedName = new QsQualifiedName(WrapperAPINamespaceName, name);
             var sig = new ResolvedSignature(
@@ -84,7 +80,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                 qualifiedName,
                 ImmutableArray<QsDeclarationAttribute>.Empty,
                 Access.Public,
-                null, // ToDo
+                source,
                 QsNullable<QsLocation>.Null,
                 sig,
                 parameterTuple,
@@ -94,7 +90,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                         QsSpecializationKind.QsBody,
                         qualifiedName,
                         ImmutableArray<QsDeclarationAttribute>.Empty,
-                        null, // ToDo
+                        source,
                         QsNullable<QsLocation>.Null,
                         QsNullable<ImmutableArray<ResolvedType>>.Null,
                         sig,
@@ -106,43 +102,58 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                 QsComments.Empty);
         }
 
-        private static QsCallable CreateNoParamTypeRecorder(string name) =>
-            CreateTypeRecorder(name, ResolvedTypeKind.UnitType, false);
+        private static QsCallable CreateNoParamTypeRecorder(string name, Source source) =>
+            CreateTypeRecorder(name, ResolvedTypeKind.UnitType, source, false);
 
-        private static IEnumerable<QsNamespaceElement> CreateWrapperAPI()
+        private static IEnumerable<QsNamespaceElement> CreateWrapperAPI(Source source)
         {
             return new[]
             {
-                CreateTypeRecorder(BooleanRecordOutputName, ResolvedTypeKind.Bool),
-                CreateTypeRecorder(IntegerRecordOutputName, ResolvedTypeKind.Int),
-                CreateTypeRecorder(DoubleRecordOutputName, ResolvedTypeKind.Double),
-                CreateTypeRecorder(ResultRecordOutputName, ResolvedTypeKind.Result),
-                CreateNoParamTypeRecorder(TupleStartRecordOutputName),
-                CreateNoParamTypeRecorder(TupleEndRecordOutputName),
-                CreateNoParamTypeRecorder(ArrayStartRecordOutputName),
-                CreateNoParamTypeRecorder(ArrayEndRecordOutputName),
+                CreateTypeRecorder(BooleanRecordOutputName, ResolvedTypeKind.Bool, source),
+                CreateTypeRecorder(IntegerRecordOutputName, ResolvedTypeKind.Int, source),
+                CreateTypeRecorder(DoubleRecordOutputName, ResolvedTypeKind.Double, source),
+                CreateTypeRecorder(ResultRecordOutputName, ResolvedTypeKind.Result, source),
+                CreateNoParamTypeRecorder(TupleStartRecordOutputName, source),
+                CreateNoParamTypeRecorder(TupleEndRecordOutputName, source),
+                CreateNoParamTypeRecorder(ArrayStartRecordOutputName, source),
+                CreateNoParamTypeRecorder(ArrayEndRecordOutputName, source),
             }
             .Select(x => QsNamespaceElement.NewQsCallable(x));
         }
 
+        private static (QsNamespace, Source) GetNamespaceAndSource(QsCompilation compilation)
+        {
+            var modifiedCore =
+                compilation.Namespaces.
+                FirstOrDefault(x => x.Name == WrapperAPINamespaceName) ??
+                    new QsNamespace(
+                        WrapperAPINamespaceName,
+                        ImmutableArray<QsNamespaceElement>.Empty,
+                        Enumerable.Empty<ImmutableArray<string>>().ToLookup(x => default(string)));
+
+            var elementInSource =
+                modifiedCore.Elements.FirstOrDefault() ?? // Get the first element in the existing API namespace, if it exists
+                compilation.Namespaces.First(x => x.Elements.Any()).Elements.First(); // Otherwise get the first element in the first namespace that has elements
+
+            var source = elementInSource is QsNamespaceElement.QsCallable c
+                ? c.Item.Source
+                : ((QsNamespaceElement.QsCustomType)elementInSource).Item.Source;
+
+            return (modifiedCore, source);
+        }
+
         public static QsCompilation Apply(QsCompilation compilation)
         {
-            //QsNamespace modifiedCore =
-            //    compilation.Namespaces.
-            //    FirstOrDefault(x => x.Name == WrapperAPINamespaceName) ??
-            //        new QsNamespace(
-            //            WrapperAPINamespaceName,
-            //            ImmutableArray<QsNamespaceElement>.Empty,
-            //            Enumerable.Empty<ImmutableArray<string>>().ToLookup(x => default(string)));
-            //
-            //modifiedCore = modifiedCore.WithElements(elems => elems.AddRange(CreateWrapperAPI()).ToImmutableArray());
-            //
-            //compilation = new QsCompilation(
-            //    compilation.Namespaces
-            //        .Where(x => x.Name != WrapperAPINamespaceName)
-            //        .Append(modifiedCore)
-            //        .ToImmutableArray(),
-            //    compilation.EntryPoints);
+            var (apiNamespace, apiSource) = GetNamespaceAndSource(compilation);
+
+            apiNamespace = apiNamespace.WithElements(elems => elems.AddRange(CreateWrapperAPI(apiSource)).ToImmutableArray());
+
+            compilation = new QsCompilation(
+                compilation.Namespaces
+                    .Where(x => x.Name != apiNamespace.Name)
+                    .Append(apiNamespace)
+                    .ToImmutableArray(),
+                compilation.EntryPoints);
 
             var filter = new WrapEntryPoints();
             compilation = filter.OnCompilation(compilation);
