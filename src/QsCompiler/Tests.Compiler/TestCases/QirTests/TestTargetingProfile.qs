@@ -14,6 +14,18 @@ namespace Microsoft.Quantum.Testing.QIR {
         return sum;
     }
 
+    operation CNOT(control: Qubit, target: Qubit) : Unit is Adj + Ctl {
+        body intrinsic;
+    }
+
+    operation H(qubit : Qubit) : Unit is Adj + Ctl {
+        body intrinsic;
+    }
+
+    operation M(qubit : Qubit) : Result {
+        body intrinsic;
+    }
+
     @EntryPoint()
     operation TestProfileTargeting() : Result {
         let arr1 = [1,2,3];
@@ -23,7 +35,12 @@ namespace Microsoft.Quantum.Testing.QIR {
         let arr2 = [sum, size = 3];
         DumpMachine(arr2);
 
-        return Zero;
+        use qs = Qubit[2];
+        H(qs[0]);
+        CNOT(qs[0], qs[1]);
+
+        let (m1, m2) = (M(qs[0]), M(qs[1]));
+        return m1; // m1 == m2 ? Zero | One; FIXME: results in a "the target Unspecified does not support comparing measurement results"
     }
 }
 
