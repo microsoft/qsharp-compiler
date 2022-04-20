@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 
     @EntryPoint()
     operation Foo() : (Result, Int[]) {
-        return (0, [1, 3, 5]);
+        return (Zero, [1, 3, 5]);
     }
 }
 
@@ -117,8 +117,8 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 
     @EntryPoint()
-    operation Foo(Int a, Bool b) : Int {
-        return (0, false);
+    operation Foo(a : Int, b : Bool) : Int {
+        return 0;
     }
 }
 
