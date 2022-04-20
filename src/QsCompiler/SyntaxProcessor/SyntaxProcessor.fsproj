@@ -16,7 +16,14 @@
     <Compile Include="TypeInference\InferenceContext.fsi" />
     <Compile Include="TypeInference\InferenceContext.fs" />
     <Compile Include="ScopeContext.fs" />
-    <Compile Include="CapabilityInference.fs" />
+    <Compile Include="CapabilityInference\Pattern.fsi" />
+    <Compile Include="CapabilityInference\Pattern.fs" />
+    <Compile Include="CapabilityInference\Utils.fsi" />
+    <Compile Include="CapabilityInference\Utils.fs" />
+    <Compile Include="CapabilityInference\ResultAnalyzer.fsi" />
+    <Compile Include="CapabilityInference\ResultAnalyzer.fs" />
+    <Compile Include="CapabilityInference\Capabilities.fsi" />
+    <Compile Include="CapabilityInference\Capabilities.fs" />
     <Compile Include="ContextVerification.fs" />
     <Compile Include="ExpressionVerification.fs" />
     <Compile Include="StatementVerification.fs" />

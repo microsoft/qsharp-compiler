@@ -4,9 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
-using static Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = InferCapabilities(compilation);
+            transformed = Capabilities.InferAttributes(compilation);
             return true;
         }
 

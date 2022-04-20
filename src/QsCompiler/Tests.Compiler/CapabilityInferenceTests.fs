@@ -2,8 +2,7 @@
 
 open System.IO
 open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 
@@ -15,7 +14,7 @@ let private callables =
         references = [ (File.ReadAllLines "ReferenceTargets.txt").[2] ]
     )
     |> fun compilation -> compilation.BuiltCompilation
-    |> CapabilityInference.InferCapabilities
+    |> Capabilities.inferAttributes
     |> fun compilation -> compilation.Namespaces
     |> GlobalCallableResolutions
 

@@ -16,6 +16,7 @@ using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
+using Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -1508,7 +1509,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // Verify that all paths return a value if needed (or fail), and that the specialization's required runtime
             // capabilities are supported by the execution target.
             var (allPathsReturn, returnDiagnostics) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
-            var capabilityDiagnostics = CapabilityInference.ScopeDiagnostics(context, implementation);
+            var capabilityDiagnostics = Capabilities.Diagnose(context, implementation);
             var rootPosition = root.Fragment.Range.Start;
             diagnostics.AddRange(returnDiagnostics
                 .Concat(capabilityDiagnostics)
