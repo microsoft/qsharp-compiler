@@ -17,10 +17,14 @@ open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
 
-let analyzers = [ ResultAnalyzer.analyze; StatementAnalyzer.analyze; TypeAnalyzer.analyze ]
-
-let analyzeScope scope (analyzer: Analyzer) =
-    analyzer (fun transformation -> transformation.Statements.OnScope scope |> ignore)
+let analyze scope =
+    [
+        ResultAnalyzer.analyze
+        StatementAnalyzer.analyze
+        TypeAnalyzer.analyze
+        ArrayAnalyzer.analyze
+    ]
+    |> Seq.collect ((|>) (fun transformation -> transformation.Statements.OnScope scope |> ignore))
 
 /// Returns the offset of a nullable location.
 let locationOffset = QsNullable<_>.Map (fun (l: QsLocation) -> l.Offset)
@@ -115,7 +119,7 @@ and referenceDiagnostics includeReasons context (name, range) =
 and diagnoseImpl includeReasons context scope : QsCompilerDiagnostic seq =
     Seq.append
         (globalReferences scope |> Seq.collect (referenceDiagnostics includeReasons context))
-        (Seq.collect (analyzeScope scope) analyzers |> Seq.choose (fun p -> p.Diagnostic context))
+        (analyze scope |> Seq.choose (fun p -> p.Diagnostic context))
 
 [<CompiledName "Diagnose">]
 let diagnose context scope = diagnoseImpl true context scope
@@ -135,10 +139,7 @@ let isDeclaredInSourceFile (callable: QsCallable) =
 /// ignoring callable dependencies.
 let specSourceCapability inOperation spec =
     match spec.Implementation with
-    | Provided (_, scope) ->
-        Seq.collect (analyzeScope scope) analyzers
-        |> Seq.map (fun p -> p.Capability inOperation)
-        |> joinCapabilities
+    | Provided (_, scope) -> analyze scope |> Seq.map (fun p -> p.Capability inOperation) |> joinCapabilities
     | _ -> RuntimeCapability.Base
 
 /// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.

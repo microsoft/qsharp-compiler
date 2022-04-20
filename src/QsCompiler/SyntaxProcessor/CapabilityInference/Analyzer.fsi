@@ -6,6 +6,8 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+type internal Analyzer = (SyntaxTreeTransformation -> unit) -> IPattern seq
+
 /// Tracks the most recently seen statement location.
 type internal LocationTrackingTransformation =
     inherit SyntaxTreeTransformation

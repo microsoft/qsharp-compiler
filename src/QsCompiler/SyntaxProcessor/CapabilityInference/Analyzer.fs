@@ -6,6 +6,8 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+type internal Analyzer = (SyntaxTreeTransformation -> unit) -> IPattern seq
+
 type LocationTrackingTransformation(options) =
     inherit SyntaxTreeTransformation(options)
 
