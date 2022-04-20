@@ -694,7 +694,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
-                var innerTuple = this.Values.CreateTuple(tupleItems);
+                var innerTuple = this.Values.CreateTuple(allocOnStack: this.TargetQirProfile, tupleItems);
                 var name = outerArgItems[0].Item1;
                 if (name != null)
                 {
@@ -762,7 +762,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                var udtTuple = this.Values.CreateTuple(this.Values.Unit);
+                var udtTuple = this.Values.CreateTuple(allocOnStack: this.TargetQirProfile, this.Values.Unit);
                 this.AddReturn(udtTuple, returnsVoid: false);
             }
             else if (this.CurrentFunction != null)
@@ -776,7 +776,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, itemTypes[i])).ToArray();
-                var udtTuple = this.Values.CreateTuple(tupleItems);
+                var udtTuple = this.Values.CreateTuple(allocOnStack: this.TargetQirProfile, tupleItems);
                 this.AddReturn(udtTuple, returnsVoid: false);
             }
         }
@@ -1558,10 +1558,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The kind of the Q# type on top of the expression type stack</returns>
         internal ResolvedType CurrentExpressionType() =>
             this.ExpressionTypeStack.Peek();
-
-        /// <returns>The QIR equivalent for the Q# type that is on top of the expression type stack</returns>
-        internal ITypeRef CurrentLlvmExpressionType() =>
-            this.LlvmTypeFromQsharpType(this.ExpressionTypeStack.Peek());
 
         /// <inheritdoc cref="QirTypeTransformation.LlvmTypeFromQsharpType(ResolvedType)"/>
         internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>

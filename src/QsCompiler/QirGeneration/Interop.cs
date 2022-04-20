@@ -285,7 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (item is ArgumentTuple.QsTuple innerTuple)
                 {
                     var tupleItems = innerTuple.Item.Select(arg => ProcessArgumentTupleItem(arg, nextArgument)).ToArray();
-                    return this.sharedState.Values.CreateTuple(tupleItems);
+                    return this.sharedState.Values.CreateTuple(allocOnStack: false, tupleItems);
                 }
                 else
                 {

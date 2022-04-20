@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             public override IValue BuildItem(TupleValue capture, IValue parArgs)
             {
                 var items = this.Items.Select(item => item.BuildItem(capture, parArgs)).ToArray();
-                var tuple = this.SharedState.Values.CreateTuple(items);
+                var tuple = this.SharedState.Values.CreateTuple(allocOnStack: this.SharedState.TargetQirProfile, items);
                 return tuple;
             }
         }
@@ -901,7 +901,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // If the argument is not already of a type that results in the creation of a tuple,
                 // then we need to create a tuple to store the (single) argument to be able to pass
                 // it to the callable value.
-                argValue = this.SharedState.Values.CreateTuple(argValue);
+                argValue = this.SharedState.Values.CreateTuple(allocOnStack: this.SharedState.TargetQirProfile, argValue);
             }
 
             var callableArg = argValue.QSharpType.Resolution.IsUnitType
@@ -920,7 +920,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var resElementTypes = returnType.Resolution is ResolvedTypeKind.TupleType elementTypes
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
-                TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes);
+                TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
                 this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer);
                 return returnType.Resolution.IsTupleType
                     ? resultTuple
@@ -1984,7 +1984,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution is ResolvedTypeKind.TupleType ts)
                 {
                     var values = ts.Item.Select(DefaultValue).ToArray();
-                    return this.SharedState.Values.CreateTuple(values);
+                    return this.SharedState.Values.CreateTuple(allocOnStack: this.SharedState.TargetQirProfile, values);
                 }
                 else if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
                 {
@@ -1995,7 +1995,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType items ? items.Item : ImmutableArray.Create(udtDecl.Type);
                     var values = elementTypes.Select(DefaultValue).ToArray();
-                    return this.SharedState.Values.CreateCustomType(udt.Item, values);
+                    return this.SharedState.Values.CreateCustomType(udt.Item, allocOnStack: this.SharedState.TargetQirProfile, values);
                 }
 
                 if (type.Resolution is ResolvedTypeKind.ArrayType itemType)
@@ -2181,7 +2181,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         // We then create and populate the complete argument tuple for the controlled specialization of the inner callable.
                         // The tuple consists of the control qubits and the combined tuple of captured values and the arguments given to the partial application.
                         var innerArgs = partialArgs.BuildItem(captureTuple, ctlPaArgItems[1]);
-                        return this.SharedState.Values.CreateTuple(ctlPaArgItems[0], innerArgs);
+                        return this.SharedState.Values.CreateTuple(allocOnStack: this.SharedState.TargetQirProfile, ctlPaArgItems[0], innerArgs);
                     }
 
                     TupleValue innerArg;
@@ -2199,7 +2199,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var typedInnerArg = partialArgs.BuildItem(captureTuple, parArgsTuple);
                         innerArg = typedInnerArg is TupleValue innerArgTuple
                             ? innerArgTuple
-                            : this.SharedState.Values.CreateTuple(typedInnerArg);
+                            : this.SharedState.Values.CreateTuple(allocOnStack: this.SharedState.TargetQirProfile, typedInnerArg);
                     }
 
                     var invokeCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
@@ -2435,7 +2435,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value =
                 vs.Length == 0 ? this.SharedState.Values.Unit :
                 vs.Length == 1 ? this.SharedState.EvaluateSubexpression(vs.Single()) :
-                this.SharedState.Values.CreateTuple(vs);
+                this.SharedState.Values.CreateTuple(vs, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }

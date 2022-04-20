@@ -6,6 +6,10 @@ namespace Microsoft.Quantum.Testing.QIR {
 
     //function TakesTuple()
 
+    function LogPauli(pauli : Pauli) : Unit {
+        body intrinsic;
+    }
+
     function SumArray(arr : Int[]) : Int {
         mutable sum = 0;
         for item in arr{
@@ -27,7 +31,7 @@ namespace Microsoft.Quantum.Testing.QIR {
     }
 
     @EntryPoint()
-    operation TestProfileTargeting() : Result {
+    operation TestProfileTargeting(cond : Bool) : Result {
         let arr1 = [1,2,3];
         DumpMachine(arr1);
 
@@ -38,8 +42,30 @@ namespace Microsoft.Quantum.Testing.QIR {
         use qs = Qubit[2];
         H(qs[0]);
         CNOT(qs[0], qs[1]);
-
         let (m1, m2) = (M(qs[0]), M(qs[1]));
+
+        let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
+        let (pauli, _) = tupleArr[1];
+        LogPauli(pauli);
+
+        // let (a, b) = (1,1);
+        // mutable item = arr1[a + b];
+        // set item = arr1[sum - 5];
+        // 
+        // mutable idx = 0;
+        // if cond {
+        //     set idx = 2;
+        //     DumpMachine(arr1[idx]);
+        // }
+        // //set item = arr1[idx]; // doesn't work, since the cache is outdated and the value is reloaded
+        // 
+        // DumpMachine(arr1[arr1[a]]);
+        // let arr3 = [idx, 5, item];
+        // //DumpMachine(arr3[arr3[0]]); // doesn't work (cond cannot be evaluated, hence the value of idx is unknown)
+        // 
+        // let arr4 = [a, 5, item];
+        // DumpMachine(arr4[arr4[0]]);
+
         return m1; // m1 == m2 ? Zero | One; FIXME: results in a "the target Unspecified does not support comparing measurement results"
     }
 }

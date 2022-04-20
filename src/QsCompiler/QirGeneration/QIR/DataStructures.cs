@@ -173,7 +173,7 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
-        /// Creates a pointer that can store a value and provides a caching mechanism for accessing that value
+        /// Creates a abstraction for storing and retrieving a value, including a caching mechanism for accessing that value
         /// to avoid unnecessary loads. The given load and store functions are used to access and modify the stored value if necessary.
         /// </summary>
         /// <param name="type">The Q# type of the value that the pointer points to</param>
@@ -234,9 +234,16 @@ namespace Microsoft.Quantum.QIR.Emission
         private readonly IValue.Cached<Value> typedPointer;
         private readonly IValue.Cached<PointerValue>[] tupleElementPointers;
 
-        public Value Value => this.TypedPointer;
+        private Value? LlvmNativeValue { get; set; }
 
-        public ITypeRef LlvmType => this.StructType.CreatePointerType();
+        public IStructType StructType { get; } // FIXME: CHECK WHERE THIS IS USED
+
+        public ITypeRef LlvmType =>
+            this.LlvmNativeValue is null
+            ? this.StructType.CreatePointerType()
+            : (ITypeRef)this.StructType;
+
+        internal ImmutableArray<ResolvedType> ElementTypes { get; }
 
         public ResolvedType QSharpType => this.customType != null
             ? ResolvedType.New(QsResolvedTypeKind.NewUserDefinedType(this.customType))
@@ -244,9 +251,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public QsQualifiedName? TypeName => this.customType?.GetFullName();
 
-        internal ImmutableArray<ResolvedType> ElementTypes { get; }
-
-        public IStructType StructType { get; }
+        public Value Value => this.LlvmNativeValue ?? this.TypedPointer;
 
         internal Value OpaquePointer =>
             this.opaquePointer.Load();
@@ -262,13 +267,14 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(UserDefinedType? type, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager = true)
+        internal TupleValue(UserDefinedType? type, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
         {
             this.sharedState = context;
             this.customType = type;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
-            this.opaquePointer = this.CreateOpaquePointerCache(this.AllocateTuple(registerWithScopeManager));
+            this.LlvmNativeValue = allocOnStack ? this.StructType.GetNullValue() : null;
+            this.opaquePointer = this.CreateOpaquePointerCache(allocOnStack ? null : this.AllocateTuple(registerWithScopeManager));
             this.typedPointer = this.CreateTypedPointerCache();
             this.tupleElementPointers = this.CreateTupleElementPointersCaches();
         }
@@ -280,8 +286,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager = true)
-            : this(null, elementTypes, context, registerWithScopeManager)
+        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+            : this(null, elementTypes, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
         {
         }
 
@@ -342,13 +348,29 @@ namespace Microsoft.Quantum.QIR.Emission
         private IValue.Cached<Value> CreateTypedPointerCache(Value? pointer = null) =>
             new IValue.Cached<Value>(pointer, this.sharedState, this.GetTypedPointer);
 
-        private Value GetElementPointer(uint index) =>
-            this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, index);
-
         private IValue.Cached<PointerValue> CreateCachedPointer(ResolvedType type, uint index) =>
             new IValue.Cached<PointerValue>(
                 this.sharedState,
-                () => new PointerValue(this.GetElementPointer(index), type, this.sharedState));
+                () =>
+                {
+                    if (this.LlvmNativeValue == null)
+                    {
+                        var elementPtr = this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, index);
+                        return new PointerValue(elementPtr, type, this.sharedState);
+                    }
+                    else
+                    {
+                        void Store(IValue v) =>
+                            this.LlvmNativeValue = this.sharedState.CurrentBuilder.InsertValue(this.Value, v.Value, index);
+
+                        IValue Reload() =>
+                            this.sharedState.Values.From(
+                                this.sharedState.CurrentBuilder.ExtractValue(this.Value, index),
+                                this.ElementTypes[(int)index]);
+
+                        return new PointerValue(this.ElementTypes[(int)index], this.sharedState, Reload, Store);
+                    }
+                });
 
         private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches() =>
             this.ElementTypes.Select((t, i) => this.CreateCachedPointer(t, (uint)i)).ToArray();
@@ -486,6 +508,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
         internal ArrayValue(Value array, Value? length, ResolvedType elementType, GenerationContext context)
         {
+            // FIXME: DUE TO NEEDING TO KNOW THE LLVM TYPE BASED ON THE QSHARPTYPE I AM NOT SURE WE CAN ACTUALLY HAVE BOTH REPRESENTATIONS CO-EXIST PEACEFULLY.
+            // MIGHT NEED TO MAKE STACKALLOC A GLOBAL CONFIG...
             this.sharedState = context;
             this.QSharpElementType = elementType;
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
@@ -614,7 +638,8 @@ namespace Microsoft.Quantum.QIR.Emission
 
             // The runtime function CallableCreate creates a new value with reference count 1.
             var createCallable = context.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var capture = captured == null || captured.Value.Length == 0 ? null : context.Values.CreateTuple(captured.Value, registerWithScopeManager: false);
+            // FIXME: CAN WE JUST ALWAYS ALLOCATE THE CAPTURE ON THE STACK? -> NEED TO ADJUST THE REFERENCE COUNT HANDLING FOR THAT
+            var capture = captured == null || captured.Value.Length == 0 ? null : context.Values.CreateTuple(captured.Value, allocOnStack: true, registerWithScopeManager: false);
             var memoryManagementTable = context.GetOrCreateCallableMemoryManagementTable(capture);
             this.Value = context.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? context.Constants.UnitValue);
             context.ScopeMgr.RegisterValue(this);
