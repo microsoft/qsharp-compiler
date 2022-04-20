@@ -24,6 +24,8 @@
     <Compile Include="CapabilityInference\ResultAnalyzer.fs" />
     <Compile Include="CapabilityInference\StatementAnalyzer.fsi" />
     <Compile Include="CapabilityInference\StatementAnalyzer.fs" />
+    <Compile Include="CapabilityInference\TypeAnalyzer.fsi" />
+    <Compile Include="CapabilityInference\TypeAnalyzer.fs" />
     <Compile Include="CapabilityInference\Capabilities.fsi" />
     <Compile Include="CapabilityInference\Capabilities.fs" />
     <Compile Include="ContextVerification.fs" />

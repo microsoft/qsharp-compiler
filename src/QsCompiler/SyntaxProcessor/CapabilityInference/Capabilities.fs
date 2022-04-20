@@ -17,7 +17,7 @@ open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
 
-let analyzers = [ ResultAnalyzer.analyze; StatementAnalyzer.analyze ]
+let analyzers = [ ResultAnalyzer.analyze; StatementAnalyzer.analyze; TypeAnalyzer.analyze ]
 
 let analyzeScope scope (analyzer: Analyzer) =
     analyzer (fun transformation -> transformation.Statements.OnScope scope |> ignore)
