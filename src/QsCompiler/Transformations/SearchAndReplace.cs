@@ -454,6 +454,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
     // routines for replacing symbols/identifiers
 
+    internal class NameGenerator
+    {
+        private static readonly Regex GUID =
+            new Regex(@"^__[a-f0-9]{32}__", RegexOptions.IgnoreCase);
+
+        internal static QsQualifiedName GenerateCallableName(QsQualifiedName original) =>
+            new QsQualifiedName(
+                original.Namespace,
+                "__" + Guid.NewGuid().ToString("N") + "__" + original.Name);
+
+        internal static bool IsGeneratedName(QsQualifiedName callableName) =>
+            GUID.IsMatch(callableName.Name);
+
+        internal static QsQualifiedName OriginalNameFromGenerated(QsQualifiedName generated) =>
+            new QsQualifiedName(
+                generated.Namespace,
+                GUID.Replace(generated.Name, string.Empty));
+    }
+
     /// <summary>
     /// Provides simple name decoration (or name mangling) by prefixing names with a label and number.
     /// </summary>
