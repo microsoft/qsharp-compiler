@@ -3,8 +3,15 @@
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.Transformations.Core
+
+type IPattern =
+    abstract Capability: inOperation: bool -> RuntimeCapability
+    abstract Diagnose: context: ScopeContext -> QsCompilerDiagnostic option
+    abstract Explain: context: ScopeContext -> QsCompilerDiagnostic seq
 
 type internal Analyzer = (SyntaxTreeTransformation -> unit) -> IPattern seq
 

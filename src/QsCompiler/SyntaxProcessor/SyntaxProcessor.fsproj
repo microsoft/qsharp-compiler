@@ -16,8 +16,6 @@
     <Compile Include="TypeInference\InferenceContext.fsi" />
     <Compile Include="TypeInference\InferenceContext.fs" />
     <Compile Include="ScopeContext.fs" />
-    <Compile Include="CapabilityInference\Pattern.fsi" />
-    <Compile Include="CapabilityInference\Pattern.fs" />
     <Compile Include="CapabilityInference\Analyzer.fsi" />
     <Compile Include="CapabilityInference\Analyzer.fs" />
     <Compile Include="CapabilityInference\ResultAnalyzer.fsi" />
