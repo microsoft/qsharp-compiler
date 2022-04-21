@@ -30,7 +30,7 @@ type LambdaLiftingTests() =
         processedCompilation
 
     let assertLambdaFunctorsByLine result line parentName expectedFunctors =
-        let regexMatch = Regex.Match(line, sprintf "_[a-z0-9]{32}_%s" parentName)
+        let regexMatch = Regex.Match(line, sprintf "__[a-z0-9]{32}__%s" parentName)
         Assert.True(regexMatch.Success, "The original callable did not have the expected content.")
 
         TestUtils.getCallableWithName result Signatures.LambdaLiftingNS regexMatch.Value

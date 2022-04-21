@@ -91,7 +91,7 @@ entry:
   call void @__quantum__rt__qubit_release(%Qubit* %q1)
   call void @__quantum__rt__qubit_release(%Qubit* %q2)
   %40 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__GetNestedTuple__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
-  call void @Microsoft__Quantum__Testing__QIR_____GUID___InvokeAndIgnore__body(%Callable* %40)
+  call void @Microsoft__Quantum__Testing__QIR______GUID____InvokeAndIgnore__body(%Callable* %40)
   call void @__quantum__qis__diagnose__body()
   %41 = call %String* @__quantum__qis__message()
   call void @__quantum__rt__capture_update_reference_count(%Callable* %40, i32 -1)

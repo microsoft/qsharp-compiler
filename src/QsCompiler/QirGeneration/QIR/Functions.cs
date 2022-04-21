@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QIR
         /// and does not need to be declared within QIR or implemented by the runtime.
         /// </returns>
         public bool IsBuiltIn(QsQualifiedName name) =>
-            this.builtIn.ContainsKey(NameDecorator.OriginalNameFromMonomorphized(name));
+            this.builtIn.ContainsKey(NameGenerator.OriginalCallableFromGenerated(name));
 
         /// <summary>
         /// Gets the function that implements the body of the callable with the given name.
@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.QIR
         /// and does not need to be declared within QIR or implemented by the runtime.
         /// </returns>
         public bool TryGetBuiltInImplementation(QsQualifiedName name, out Func<IValue, IValue> implementation) =>
-            this.builtIn.TryGetValue(NameDecorator.OriginalNameFromMonomorphized(name), out implementation);
+            this.builtIn.TryGetValue(NameGenerator.OriginalCallableFromGenerated(name), out implementation);
 
         /// <returns>
         /// The result of the evaluation if the given name matches one of the recognized runtime functions,
@@ -115,7 +115,7 @@ namespace Microsoft.Quantum.QIR
         /// </returns>
         internal bool TryEvaluate(QsQualifiedName name, TypedExpression arg, [MaybeNullWhen(false)] out IValue evaluated)
         {
-            var unmangledName = NameDecorator.OriginalNameFromMonomorphized(name);
+            var unmangledName = NameGenerator.OriginalCallableFromGenerated(name);
             if (this.optimizableBuiltIn.TryGetValue(unmangledName, out var optFunction))
             {
                 evaluated = optFunction(arg);

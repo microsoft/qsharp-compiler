@@ -2,7 +2,7 @@ define internal void @Microsoft__Quantum__Testing__QIR__Main__body() {
 entry:
   %0 = call { %String*, %Array* }* @Microsoft__Quantum__Testing__QIR__TestPendingRefCountIncreases__body(i1 true)
   call void @Microsoft__Quantum__Testing__QIR__TestRefCountsForItemUpdate__body(i1 true)
-  %id = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR_____GUID___Identity__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %id = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR______GUID____Identity__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %id, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %id, i32 1)
   %1 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i64 }* getelementptr ({ i64, i64 }, { i64, i64 }* null, i32 1) to i64))

@@ -6,10 +6,10 @@ entry:
   %2 = bitcast %Tuple* %1 to { %Callable*, %Tuple* }*
   %3 = getelementptr inbounds { %Callable*, %Tuple* }, { %Callable*, %Tuple* }* %2, i32 0, i32 0
   %4 = getelementptr inbounds { %Callable*, %Tuple* }, { %Callable*, %Tuple* }* %2, i32 0, i32 1
-  %5 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR_____GUID___NoArgs__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %5 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR______GUID____NoArgs__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   store %Callable* %5, %Callable** %3, align 8
   store %Tuple* null, %Tuple** %4, align 8
-  call void @Microsoft__Quantum__ClassicalControl_____GUID___ApplyIfOne__body(%Result* %0, { %Callable*, %Tuple* }* %2)
+  call void @Microsoft__Quantum__ClassicalControl______GUID____ApplyIfOne__body(%Result* %0, { %Callable*, %Tuple* }* %2)
   call void @__quantum__rt__result_update_reference_count(%Result* %0, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %5, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %5, i32 -1)

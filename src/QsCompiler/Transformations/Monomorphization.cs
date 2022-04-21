@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 if (monomorphizeIntrinsics || !originalGlobal.IsIntrinsic)
                 {
                     // Get concrete name
-                    var concreteName = NameDecorator.PrependGuid(node.CallableName);
+                    var concreteName = NameGenerator.GenerateCallableName(node.CallableName);
 
                     // Add to concrete name mapping
                     concreteNamesMap[node] = concreteName;

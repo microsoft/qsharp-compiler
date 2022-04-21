@@ -341,10 +341,8 @@ type LinkingTests() =
 
         let isConcretizationOf (expected: QsQualifiedName) (given: QsQualifiedName) =
             given.Namespace = expected.Namespace
-            && given.Name.Length > 34
-            && given.Name.[0] = '_'
-            && given.Name.[33] = '_'
-            && given.Name.[34..] = expected.Name
+            && NameGenerator.IsGeneratedName(given)
+            && NameGenerator.OriginalCallableFromGenerated(given).Name = expected.Name
 
         let mutable gotLength, gotIndexRange = false, false
 

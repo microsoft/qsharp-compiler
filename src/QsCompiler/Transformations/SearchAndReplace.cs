@@ -454,7 +454,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
     // routines for replacing symbols/identifiers
 
-    internal static class NameGenerator
+    public static class NameGenerator
     {
         private static Regex LabelPattern(string label) =>
             new Regex($"^__{Regex.Escape(label)}_?[0-9]+__", RegexOptions.IgnoreCase);
@@ -476,10 +476,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 original.Namespace,
                 "__" + Guid.NewGuid().ToString("N") + "__" + original.Name);
 
-        internal static bool IsGeneratedName(QsQualifiedName callableName) =>
+        public static bool IsGeneratedName(QsQualifiedName callableName) =>
             GUID.IsMatch(callableName.Name);
 
-        internal static QsQualifiedName OriginalCallableFromGenerated(QsQualifiedName generated) =>
+        public static QsQualifiedName OriginalCallableFromGenerated(QsQualifiedName generated) =>
             new QsQualifiedName(
                 generated.Namespace,
                 GUID.Replace(generated.Name, string.Empty));
@@ -582,7 +582,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             /// </summary>
             internal string GenerateUniqueName(string varName)
             {
-                var unique = Decorator.Decorate(varName, this.variableNr++);
+                var unique = NameGenerator.GenerateVariableName(NameGeneratorLabel, this.variableNr++, varName);
                 this.uniqueNames[varName] = unique;
                 return unique;
             }
@@ -597,9 +597,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         /* static methods for convenience */
 
-        private static readonly NameDecorator Decorator = new NameDecorator("qsVar");
+        private static readonly string NameGeneratorLabel = "qsVar";
 
-        public static string StripUniqueName(string uniqueName) => Decorator.Undecorate(uniqueName) ?? uniqueName;
+        public static string StripUniqueName(string uniqueName) => NameGenerator.OriginalVariableFromGenerated(NameGeneratorLabel, uniqueName);
 
         /* overrides */
 

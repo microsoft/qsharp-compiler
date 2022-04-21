@@ -1087,6 +1087,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .ToImmutableDictionary(
                         item => item.Name,
                         item => decorator.Decorate(item.Name, ids[item.Source]));
+                        //item => NameGenerator.GenerateCallableName(item.Name));
 
             // rename all internal declarations and their usages
             var transformations = callables

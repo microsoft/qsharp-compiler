@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             bool isFunction,
             ResolvedType returnType)
         {
-            var newName = NameDecorator.PrependGuid(callingCallable.FullName);
+            var newName = NameGenerator.GenerateCallableName(callingCallable.FullName);
             var paramTypes = ExtractParamType(parameters);
 
             // Update the scope to have Known Symbols equal to its parameter list

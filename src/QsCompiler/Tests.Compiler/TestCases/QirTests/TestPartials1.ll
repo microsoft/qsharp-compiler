@@ -154,7 +154,7 @@ continue__1:                                      ; preds = %then0__1, %body__1
   %59 = getelementptr inbounds { %Callable*, %Callable*, %Qubit* }, { %Callable*, %Callable*, %Qubit* }* %58, i32 0, i32 0
   %60 = getelementptr inbounds { %Callable*, %Callable*, %Qubit* }, { %Callable*, %Callable*, %Qubit* }* %58, i32 0, i32 1
   %61 = getelementptr inbounds { %Callable*, %Callable*, %Qubit* }, { %Callable*, %Callable*, %Qubit* }* %58, i32 0, i32 2
-  %62 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR_____GUID___Delay__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %62 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR______GUID____Delay__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   %63 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Intrinsic__H__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   store %Callable* %62, %Callable** %59, align 8
   store %Callable* %63, %Callable** %60, align 8
