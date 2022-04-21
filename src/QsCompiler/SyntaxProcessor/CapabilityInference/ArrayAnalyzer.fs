@@ -15,7 +15,9 @@ type ArrayPattern =
     interface IPattern with
         member _.Capability _ = RuntimeCapability.Base // TODO
 
-        member _.Diagnostic _ = None // TODO
+        member _.Diagnose _ = None // TODO
+
+        member _.Explain _ = Seq.empty
 
 let analyze (action: SyntaxTreeTransformation -> _) =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild

@@ -13,4 +13,6 @@ type internal IPattern =
 
     /// Returns a diagnostic for the pattern if the pattern's capability level exceeds the execution target's capability
     /// level.
-    abstract Diagnostic: context: ScopeContext -> QsCompilerDiagnostic option
+    abstract Diagnose: context: ScopeContext -> QsCompilerDiagnostic option
+
+    abstract Explain: context: ScopeContext -> QsCompilerDiagnostic seq

@@ -9,4 +9,5 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 
 type IPattern =
     abstract Capability: inOperation: bool -> RuntimeCapability
-    abstract Diagnostic: context: ScopeContext -> QsCompilerDiagnostic option
+    abstract Diagnose: context: ScopeContext -> QsCompilerDiagnostic option
+    abstract Explain: context: ScopeContext -> QsCompilerDiagnostic seq

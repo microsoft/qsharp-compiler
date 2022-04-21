@@ -6,9 +6,6 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.Capabil
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.DependencyAnalysis
-open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -17,112 +14,10 @@ open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
 
-let analyze scope =
-    [
-        ResultAnalyzer.analyze
-        StatementAnalyzer.analyze
-        TypeAnalyzer.analyze
-        ArrayAnalyzer.analyze
-    ]
-    |> Seq.collect ((|>) (fun transformation -> transformation.Statements.OnScope scope |> ignore))
-
-/// Returns the offset of a nullable location.
-let locationOffset = QsNullable<_>.Map (fun (l: QsLocation) -> l.Offset)
-
-/// Returns the joined capability of the sequence of capabilities, or the default capability if the sequence is empty.
-let joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
-
-/// Returns a list of the names of global callables referenced in the scope, and the range of the reference relative to
-/// the start of the specialization.
-let globalReferences scope =
-    let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
-    let mutable references = []
-
-    transformation.Expressions <-
-        { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
-            override this.OnTypedExpression expression =
-                match expression.Expression with
-                | Identifier (GlobalCallable name, _) ->
-                    let range = QsNullable.Map2(+) transformation.Offset expression.Range
-                    references <- (name, range) :: references
-                | _ -> ()
-
-                base.OnTypedExpression expression
-        }
-
-    transformation.Statements.OnScope scope |> ignore
-    references
-
-/// Returns diagnostic reasons for why a global callable reference is not supported.
-let rec referenceReasons
-    context
-    (name: QsQualifiedName)
-    (range: _ QsNullable)
-    (header: SpecializationDeclarationHeader, impl)
-    =
-    let reason (header: SpecializationDeclarationHeader) diagnostic =
-        match diagnostic.Diagnostic with
-        | Error ErrorCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
-        | Error ErrorCode.ResultComparisonNotInOperationIf -> Some WarningCode.ResultComparisonNotInOperationIf
-        | Error ErrorCode.ReturnInResultConditionedBlock -> Some WarningCode.ReturnInResultConditionedBlock
-        | Error ErrorCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
-        | Error ErrorCode.UnsupportedCallableCapability -> Some WarningCode.UnsupportedCallableCapability
-        | _ -> None
-        |> Option.map (fun code ->
-            let args =
-                Seq.append
-                    [
-                        name.Name
-                        header.Source.CodeFile
-                        string (diagnostic.Range.Start.Line + 1)
-                        string (diagnostic.Range.Start.Column + 1)
-                    ]
-                    diagnostic.Arguments
-
-            range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning(code, args))
-
-    match impl with
-    | Provided (_, scope) ->
-        diagnoseImpl false context scope
-        |> Seq.map (fun diagnostic ->
-            locationOffset header.Location
-            |> QsNullable<_>.Map (fun offset -> { diagnostic with Range = offset + diagnostic.Range })
-            |> QsNullable.defaultValue diagnostic)
-        |> Seq.choose (reason header)
-    | _ -> Seq.empty
-
-/// Returns diagnostics for a reference to a global callable with the given name, based on its capability attribute and
-/// the context's supported runtime capabilities.
-and referenceDiagnostics includeReasons context (name, range) =
-    match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
-    | Found declaration ->
-        let capability =
-            (SymbolResolution.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
-
-        if context.Capability.Implies capability then
-            Seq.empty
-        else
-            let reasons =
-                if includeReasons then
-                    context.Globals.ImportedSpecializations name |> Seq.collect (referenceReasons context name range)
-                else
-                    Seq.empty
-
-            let error =
-                ErrorCode.UnsupportedCallableCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
-
-            let diagnostic = QsCompilerDiagnostic.Error error (range.ValueOr Range.Zero)
-            Seq.append (Seq.singleton diagnostic) reasons
-    | _ -> Seq.empty
-
-/// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
-and diagnoseImpl includeReasons context scope : QsCompilerDiagnostic seq =
-    Seq.append
-        (globalReferences scope |> Seq.collect (referenceDiagnostics includeReasons context))
-        (analyze scope |> Seq.choose (fun p -> p.Diagnostic context))
-
 [<CompiledName "Diagnose">]
-let diagnose context scope = diagnoseImpl true context scope
+let diagnose context scope =
+    CallAnalyzer.analyzeScope scope CallAnalyzer.analyzeAllShallow
+    |> Seq.collect (fun p -> Seq.append (p.Diagnose context |> Option.toList) (p.Explain context))
 
 /// Returns true if the callable is an operation.
 let isOperation callable =
@@ -135,11 +30,17 @@ let isOperation callable =
 let isDeclaredInSourceFile (callable: QsCallable) =
     QsNullable.isNull callable.Source.AssemblyFile
 
+/// Returns the joined capability of the sequence of capabilities, or the default capability if the sequence is empty.
+let joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
+
 /// Given whether the specialization is part of an operation, returns its required capability based on its source code,
 /// ignoring callable dependencies.
 let specSourceCapability inOperation spec =
     match spec.Implementation with
-    | Provided (_, scope) -> analyze scope |> Seq.map (fun p -> p.Capability inOperation) |> joinCapabilities
+    | Provided (_, scope) ->
+        CallAnalyzer.analyzeScope scope CallAnalyzer.analyzeSyntax
+        |> Seq.map (fun p -> p.Capability inOperation)
+        |> joinCapabilities
     | _ -> RuntimeCapability.Base
 
 /// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.

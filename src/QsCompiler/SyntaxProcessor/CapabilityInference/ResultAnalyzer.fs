@@ -39,7 +39,7 @@ type ResultPattern =
             | UnconditionalEquality -> FullComputation
             | ConditionalEquality -> if inOperation then BasicMeasurementFeedback else FullComputation
 
-        member pattern.Diagnostic context =
+        member pattern.Diagnose context =
             let error code args =
                 if context.Capability.Implies((pattern :> IPattern).Capability context.IsInOperation) then
                     None
@@ -65,6 +65,8 @@ type ResultPattern =
                     None
             | ConditionalEquality -> error unsupported [ context.ProcessorArchitecture ]
             | UnconditionalEquality -> error unsupported [ context.ProcessorArchitecture ]
+
+        member _.Explain _ = Seq.empty
 
 type ResultContext = { InCondition: bool; FrozenVars: string Set }
 
