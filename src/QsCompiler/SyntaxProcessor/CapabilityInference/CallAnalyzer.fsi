@@ -3,10 +3,9 @@
 
 module internal Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.CallAnalyzer
 
-open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.DependencyAnalysis
+open Microsoft.Quantum.QsCompiler.SymbolManagement
 
 val analyzeSyntax: Analyzer
 
-val analyzeAllShallow: Analyzer
-
-val analyzeScope: scope: QsScope -> analyzer: Analyzer -> IPattern seq
+val analyzeAllShallow: nsManager: NamespaceManager -> graph: CallGraph -> node: CallGraphNode -> Analyzer

@@ -5,6 +5,7 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.ArrayAn
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -13,13 +14,13 @@ type ArrayPattern =
     | NonLiteralSize of Range QsNullable
 
     interface IPattern with
-        member _.Capability _ = RuntimeCapability.Base // TODO
+        member _.Capability = RuntimeCapability.Base // TODO
 
         member _.Diagnose _ = None // TODO
 
-        member _.Explain _ = Seq.empty
+        member _.Explain(_, _, _) = Seq.empty
 
-let analyze (action: SyntaxTreeTransformation -> _) =
+let analyze (_: AnalyzerEnvironment) (action: AnalyzerAction) =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
 

@@ -101,7 +101,7 @@ let ``Allows unsafe override`` () =
     expect FullComputation "CallBmfOverrideC"
 
 [<Fact>]
-let ``Infers with direction recursion`` () =
+let ``Infers with direct recursion`` () =
     expect BasicMeasurementFeedback "BmfRecursion"
 
 [<Fact>]

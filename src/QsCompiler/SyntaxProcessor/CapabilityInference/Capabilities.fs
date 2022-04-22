@@ -15,15 +15,12 @@ open System.Collections.Immutable
 open System.Linq
 
 [<CompiledName "Diagnose">]
-let diagnose context scope =
-    CallAnalyzer.analyzeScope scope CallAnalyzer.analyzeAllShallow
-    |> Seq.collect (fun p -> Seq.append (p.Diagnose context |> Option.toList) (p.Explain context))
+let diagnose target nsManager graph callable =
+    let env = { CallableKind = callable.Kind }
 
-/// Returns true if the callable is an operation.
-let isOperation callable =
-    match callable.Kind with
-    | Operation -> true
-    | _ -> false
+    fun (t: SyntaxTreeTransformation) -> t.Namespaces.OnCallableDeclaration callable |> ignore
+    |> CallAnalyzer.analyzeAllShallow nsManager graph (CallGraphNode callable.FullName) env
+    |> Seq.collect (fun p -> Seq.append (p.Diagnose target |> Option.toList) (p.Explain(target, nsManager, graph)))
 
 /// Returns true if the callable is declared in a source file in the current compilation, instead of a referenced
 /// library.
@@ -33,20 +30,12 @@ let isDeclaredInSourceFile (callable: QsCallable) =
 /// Returns the joined capability of the sequence of capabilities, or the default capability if the sequence is empty.
 let joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
 
-/// Given whether the specialization is part of an operation, returns its required capability based on its source code,
-/// ignoring callable dependencies.
-let specSourceCapability inOperation spec =
-    match spec.Implementation with
-    | Provided (_, scope) ->
-        CallAnalyzer.analyzeScope scope CallAnalyzer.analyzeSyntax
-        |> Seq.map (fun p -> p.Capability inOperation)
-        |> joinCapabilities
-    | _ -> RuntimeCapability.Base
-
 /// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.
 let callableSourceCapability callable =
-    callable.Specializations
-    |> Seq.map (isOperation callable |> specSourceCapability)
+    let env = { CallableKind = callable.Kind }
+
+    CallAnalyzer.analyzeSyntax env (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
+    |> Seq.map (fun p -> p.Capability)
     |> joinCapabilities
 
 /// A mapping from callable name to runtime capability based on callable source code patterns and cycles the callable

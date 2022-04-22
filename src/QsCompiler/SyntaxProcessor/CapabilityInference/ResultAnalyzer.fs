@@ -12,18 +12,18 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type ResultPatternKind =
+    /// An equality expression inside the condition of an if statement, where the operands are results
+    | ConditionalEqualityInOperation
+
+    /// An equality expression outside the condition of an if statement, where the operands are results.
+    | UnrestrictedEquality
+
     /// A return statement in the block of an if statement whose condition depends on a result.
     | ReturnInDependentBlock
 
     /// A set statement in the block of an if statement whose condition depends on a result, but which is reassigning a
     /// variable declared outside the block.
     | SetInDependentBlock of name: string
-
-    /// An equality expression inside the condition of an if statement, where the operands are results
-    | ConditionalEquality
-
-    /// An equality expression outside the condition of an if statement, where the operands are results.
-    | UnconditionalEquality
 
 type ResultPattern =
     {
@@ -32,41 +32,41 @@ type ResultPattern =
     }
 
     interface IPattern with
-        member pattern.Capability inOperation =
+        member pattern.Capability =
             match pattern.Kind with
+            | ConditionalEqualityInOperation -> BasicMeasurementFeedback
+            | UnrestrictedEquality
             | ReturnInDependentBlock
-            | SetInDependentBlock _
-            | UnconditionalEquality -> FullComputation
-            | ConditionalEquality -> if inOperation then BasicMeasurementFeedback else FullComputation
+            | SetInDependentBlock _ -> FullComputation
 
-        member pattern.Diagnose context =
+        member pattern.Diagnose env =
             let error code args =
-                if context.Capability.Implies((pattern :> IPattern).Capability context.IsInOperation) then
+                if env.Capability.Implies (pattern :> IPattern).Capability then
                     None
                 else
                     QsCompilerDiagnostic.Error(code, args) (pattern.Range.ValueOr Range.Zero) |> Some
 
             let unsupported =
-                if context.Capability = BasicMeasurementFeedback then
+                if env.Capability = BasicMeasurementFeedback then
                     ErrorCode.ResultComparisonNotInOperationIf
                 else
                     ErrorCode.UnsupportedResultComparison
 
             match pattern.Kind with
+            | ConditionalEqualityInOperation
+            | UnrestrictedEquality -> error unsupported [ env.Architecture ]
             | ReturnInDependentBlock ->
-                if context.Capability = BasicMeasurementFeedback then
-                    error ErrorCode.ReturnInResultConditionedBlock [ context.ProcessorArchitecture ]
+                if env.Capability = BasicMeasurementFeedback then
+                    error ErrorCode.ReturnInResultConditionedBlock [ env.Architecture ]
                 else
                     None
             | SetInDependentBlock name ->
-                if context.Capability = BasicMeasurementFeedback then
-                    error ErrorCode.SetInResultConditionedBlock [ name; context.ProcessorArchitecture ]
+                if env.Capability = BasicMeasurementFeedback then
+                    error ErrorCode.SetInResultConditionedBlock [ name; env.Architecture ]
                 else
                     None
-            | ConditionalEquality -> error unsupported [ context.ProcessorArchitecture ]
-            | UnconditionalEquality -> error unsupported [ context.ProcessorArchitecture ]
 
-        member _.Explain _ = Seq.empty
+        member _.Explain(_, _, _) = Seq.empty
 
 type ResultContext = { InCondition: bool; FrozenVars: string Set }
 
@@ -88,7 +88,7 @@ let isResultEquality expression =
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
-let analyze (action: SyntaxTreeTransformation -> _) =
+let analyze env (action: AnalyzerAction) =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable dependsOnResult = false
@@ -105,23 +105,25 @@ let analyze (action: SyntaxTreeTransformation -> _) =
     transformation.Statements <-
         { new StatementTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnStatement statement =
+                base.OnStatement statement |> ignore
+
                 match statement.Statement with
                 | QsReturnStatement _ when dependsOnResult ->
-                    let range = statement.Location |> QsNullable<_>.Map (fun l -> l.Offset + l.Range)
+                    let range = (transformation.Offset, statement.Location) ||> QsNullable.Map2(fun o l -> o + l.Range)
                     patterns.Add { Kind = ReturnInDependentBlock; Range = range }
 
                 | QsValueUpdate update ->
                     update.Lhs.ExtractAll (fun e ->
                         match e.Expression with
                         | Identifier (LocalVariable name, _) when Set.contains name context.FrozenVars ->
-                            let range = (statement.Location, e.Range) ||> QsNullable.Map2(fun l r -> l.Offset + r)
+                            let range = QsNullable.Map2(+) transformation.Offset e.Range
                             [ { Kind = SetInDependentBlock name; Range = range } ]
                         | _ -> [])
                     |> patterns.AddRange
 
                 | _ -> ()
 
-                base.OnStatement statement
+                statement
         }
 
     transformation.StatementKinds <-
@@ -152,11 +154,11 @@ let analyze (action: SyntaxTreeTransformation -> _) =
                 if isResultEquality expression then
                     let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
-                    if context.InCondition then
+                    if env.CallableKind = Operation && context.InCondition then
                         dependsOnResult <- true
-                        patterns.Add { Kind = ConditionalEquality; Range = range }
+                        patterns.Add { Kind = ConditionalEqualityInOperation; Range = range }
                     else
-                        patterns.Add { Kind = UnconditionalEquality; Range = range }
+                        patterns.Add { Kind = UnrestrictedEquality; Range = range }
 
                 base.OnTypedExpression expression
         }

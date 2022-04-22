@@ -6,6 +6,7 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.TypeAna
 open System
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -25,17 +26,17 @@ type TypePattern =
     }
 
     interface IPattern with
-        member _.Capability _ = RuntimeCapability.Base // TODO
+        member _.Capability = RuntimeCapability.Base // TODO
 
         member _.Diagnose _ = None // TODO
 
-        member _.Explain _ = Seq.empty
+        member _.Explain(_, _, _) = Seq.empty
 
 type TypeContext = { StringLiteralsOk: bool }
 
 let isAlwaysSupported (_: ResolvedType) = true // TODO
 
-let analyze (action: SyntaxTreeTransformation -> _) =
+let analyze (_: AnalyzerEnvironment) (action: AnalyzerAction) =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable context = { StringLiteralsOk = false }

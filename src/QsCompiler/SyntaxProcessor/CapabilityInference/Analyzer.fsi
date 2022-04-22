@@ -5,20 +5,30 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing
+open Microsoft.Quantum.QsCompiler.DependencyAnalysis
+open Microsoft.Quantum.QsCompiler.SymbolManagement
+open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+type Target =
+    { Capability: RuntimeCapability
+      Architecture: string }
+
 type internal IPattern =
-    /// Returns the required runtime capability of the pattern, given whether it occurs in an operation.
-    abstract Capability: inOperation: bool -> RuntimeCapability
+    /// The required runtime capability of the pattern.
+    abstract Capability: RuntimeCapability
 
     /// Returns a diagnostic for the pattern if the pattern's capability level exceeds the execution target's capability
     /// level.
-    abstract Diagnose: context: ScopeContext -> QsCompilerDiagnostic option
+    abstract Diagnose: target: Target -> QsCompilerDiagnostic option
 
-    abstract Explain: context: ScopeContext -> QsCompilerDiagnostic seq
+    abstract Explain: target: Target * nsManager: NamespaceManager * graph: CallGraph -> QsCompilerDiagnostic seq
 
-type internal Analyzer = (SyntaxTreeTransformation -> unit) -> IPattern seq
+type internal AnalyzerEnvironment = { CallableKind: QsCallableKind }
+
+type internal AnalyzerAction = SyntaxTreeTransformation -> unit
+
+type internal Analyzer = AnalyzerEnvironment -> AnalyzerAction -> IPattern seq
 
 /// Tracks the most recently seen statement location.
 type internal LocationTrackingTransformation =

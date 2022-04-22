@@ -5,6 +5,7 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.Stateme
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
@@ -12,13 +13,13 @@ type StatementPattern =
     | StatementPattern of Range QsNullable
 
     interface IPattern with
-        member _.Capability _ = RuntimeCapability.Base // TODO
+        member _.Capability = RuntimeCapability.Base // TODO
 
         member _.Diagnose _ = None // TODO
 
-        member _.Explain _ = Seq.empty
+        member _.Explain(_, _, _) = Seq.empty
 
-let analyze action =
+let analyze (_: AnalyzerEnvironment) action =
     let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable numReturns = 0
