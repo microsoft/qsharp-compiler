@@ -6,6 +6,8 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.Capabil
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.DependencyAnalysis
+open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -14,19 +16,66 @@ open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
 
+let analyzeSyntax callableKind action =
+    Seq.collect
+        ((|>) action)
+        [
+            ResultAnalyzer.analyze callableKind
+            StatementAnalyzer.analyze ()
+            TypeAnalyzer.analyze ()
+            ArrayAnalyzer.analyze ()
+        ]
+
+let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
+    let warningCode =
+        match diagnostic.Diagnostic with
+        | Error ErrorCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
+        | Error ErrorCode.ResultComparisonNotInOperationIf -> Some WarningCode.ResultComparisonNotInOperationIf
+        | Error ErrorCode.ReturnInResultConditionedBlock -> Some WarningCode.ReturnInResultConditionedBlock
+        | Error ErrorCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
+        | Error ErrorCode.UnsupportedCallableCapability -> Some WarningCode.UnsupportedCallableCapability
+        | _ -> None
+
+    let args =
+        seq {
+            name
+            codeFile
+            string (diagnostic.Range.Start.Line + 1)
+            string (diagnostic.Range.Start.Column + 1)
+            yield! diagnostic.Arguments
+        }
+
+    Option.map (fun code -> QsCompilerDiagnostic.Warning(code, args) (range.ValueOr Range.Zero)) warningCode
+
+let explainCall (nsManager: NamespaceManager) graph target (pattern: CallPattern) =
+    let node = CallGraphNode pattern.Name
+
+    let analyze callableKind action =
+        Seq.append
+            (analyzeSyntax callableKind action)
+            (CallAnalyzer.analyze (nsManager, graph) node |> Seq.map (fun p -> upcast p))
+
+    match nsManager.TryGetCallable pattern.Name ("", "") with
+    | Found callable when QsNullable.isValue callable.Source.AssemblyFile ->
+        nsManager.ImportedSpecializations pattern.Name
+        |> Seq.collect (fun (_, impl) ->
+            analyze callable.Kind (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
+            |> Seq.choose (fun p -> p.Diagnose target)
+            |> Seq.choose (referenceReasons pattern.Name.Name pattern.Range callable.Source.CodeFile))
+    | _ -> Seq.empty
+
 [<CompiledName "Diagnose">]
 let diagnose target nsManager graph (callable: QsCallable) =
-    let patterns, callPatterns =
-        CallAnalyzer.analyzeAllShallow nsManager graph (CallGraphNode callable.FullName) callable.Kind (fun t ->
-            t.Namespaces.OnCallableDeclaration callable |> ignore)
+    let patterns =
+        analyzeSyntax callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
+
+    let callPatterns = CallAnalyzer.analyze (nsManager, graph) (CallGraphNode callable.FullName)
 
     Seq.append
         (patterns |> Seq.choose (fun p -> p.Diagnose target))
         (callPatterns
          |> Seq.collect (fun p ->
-             Seq.append
-                 ((p :> IPattern).Diagnose target |> Option.toList)
-                 (CallPattern.explain nsManager graph target p)))
+             Seq.append ((p :> IPattern).Diagnose target |> Option.toList) (explainCall nsManager graph target p)))
 
 /// Returns true if the callable is declared in a source file in the current compilation, instead of a referenced
 /// library.
@@ -38,7 +87,7 @@ let joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
 
 /// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.
 let callableSourceCapability callable =
-    CallAnalyzer.analyzeSyntax callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
+    analyzeSyntax callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
     |> Seq.map (fun p -> p.Capability)
     |> joinCapabilities
 
