@@ -86,7 +86,7 @@ let isResultEquality expression =
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
-let analyze env (action: AnalyzerAction) =
+let analyze callableKind (action: SyntaxTreeTransformation -> _) =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable dependsOnResult = false
@@ -152,7 +152,7 @@ let analyze env (action: AnalyzerAction) =
                 if isResultEquality expression then
                     let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
-                    if env.CallableKind = Operation && context.InCondition then
+                    if callableKind = Operation && context.InCondition then
                         dependsOnResult <- true
                         patterns.Add { Kind = ConditionalEqualityInOperation; Range = range }
                     else

@@ -15,11 +15,9 @@ open System.Collections.Immutable
 open System.Linq
 
 [<CompiledName "Diagnose">]
-let diagnose target nsManager graph callable =
-    let env = { CallableKind = callable.Kind }
-
+let diagnose target nsManager graph (callable: QsCallable) =
     let patterns, callPatterns =
-        CallAnalyzer.analyzeAllShallow nsManager graph (CallGraphNode callable.FullName) env (fun t ->
+        CallAnalyzer.analyzeAllShallow nsManager graph (CallGraphNode callable.FullName) callable.Kind (fun t ->
             t.Namespaces.OnCallableDeclaration callable |> ignore)
 
     Seq.append
@@ -40,9 +38,7 @@ let joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
 
 /// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.
 let callableSourceCapability callable =
-    let env = { CallableKind = callable.Kind }
-
-    CallAnalyzer.analyzeSyntax env (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
+    CallAnalyzer.analyzeSyntax callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
     |> Seq.map (fun p -> p.Capability)
     |> joinCapabilities
 

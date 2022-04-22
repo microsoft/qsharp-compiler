@@ -20,11 +20,7 @@ type internal IPattern =
     /// level.
     abstract Diagnose: target: Target -> QsCompilerDiagnostic option
 
-type internal AnalyzerEnvironment = { CallableKind: QsCallableKind }
-
-type internal AnalyzerAction = SyntaxTreeTransformation -> unit
-
-type internal Analyzer = AnalyzerEnvironment -> AnalyzerAction -> IPattern seq
+type internal Analyzer<'env, 'subject, 'pattern> when 'pattern :> IPattern = 'env -> 'subject -> 'pattern seq
 
 /// Tracks the most recently seen statement location.
 type internal LocationTrackingTransformation =

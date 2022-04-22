@@ -3,4 +3,6 @@
 
 module internal Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.TypeAnalyzer
 
-val analyze: Analyzer
+open Microsoft.Quantum.QsCompiler.Transformations.Core
+
+val analyze: Analyzer<unit, SyntaxTreeTransformation -> unit, IPattern>

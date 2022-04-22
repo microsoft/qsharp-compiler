@@ -41,19 +41,19 @@ type CallPattern =
             | Recursive -> None // TODO
 
 module CallPattern =
-    let analyzeSyntax env action =
+    let analyzeSyntax callableKind action =
         Seq.collect
             ((|>) action)
             [
-                ResultAnalyzer.analyze env
-                StatementAnalyzer.analyze env
-                TypeAnalyzer.analyze env
-                ArrayAnalyzer.analyze env
+                ResultAnalyzer.analyze callableKind
+                StatementAnalyzer.analyze ()
+                TypeAnalyzer.analyze ()
+                ArrayAnalyzer.analyze ()
             ]
 
-    /// Returns a list of the names of global callables referenced in the scope, and the range of the reference relative to
-    /// the start of the specialization.
-    let globalReferences action =
+    /// Returns a list of the names of global callables referenced in the scope, and the range of the reference relative
+    /// to the start of the specialization.
+    let globalReferencesFromSyntax action =
         let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
         let references = ResizeArray()
 
@@ -72,16 +72,27 @@ module CallPattern =
         action transformation
         references
 
-    let analyzeShallow (nsManager: NamespaceManager) (graph: CallGraph) node action =
+    let analyzeShallow (nsManager: NamespaceManager) (graph: CallGraph) node =
         let dependencies = graph.GetDirectDependencies node
 
-        let codeFile, offset =
+        let codeFile, isInReference, offset =
             match nsManager.TryGetCallable node.CallableName ("", "") with
-            | Found ({ Position = DeclarationHeader.Defined p } as callable) -> callable.Source.CodeFile, p
+            | Found ({ Position = DeclarationHeader.Defined p } as callable) ->
+                callable.Source.CodeFile, QsNullable.isValue callable.Source.AssemblyFile, p
             | _ -> failwith "Callable not found."
 
+        let references =
+            if isInReference then
+                nsManager.ImportedSpecializations node.CallableName
+                |> Seq.collect (fun (_, spec) ->
+                    globalReferencesFromSyntax (fun t -> t.Namespaces.OnSpecializationImplementation spec |> ignore))
+            else
+                dependencies
+                |> Seq.collect (fun group ->
+                    group |> Seq.map (fun edge -> group.Key.CallableName, offset + edge.ReferenceRange |> Value))
+
         seq {
-            for name, range in globalReferences action do
+            for name, range in references do
                 match nsManager.TryGetCallable name (node.CallableName.Namespace, codeFile) with
                 | Found callable when QsNullable.isValue callable.Source.AssemblyFile ->
                     match SymbolResolution.TryGetRequiredCapability callable.Attributes with
@@ -104,8 +115,8 @@ module CallPattern =
                         }
         }
 
-    let analyzeAllShallow nsManager graph node env action =
-        analyzeSyntax env action, analyzeShallow nsManager graph node action
+    let analyzeAllShallow nsManager graph node callableKind action =
+        analyzeSyntax callableKind action, analyzeShallow nsManager graph node
 
     let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
         let warningCode =
@@ -129,17 +140,15 @@ module CallPattern =
         Option.map (fun code -> QsCompilerDiagnostic.Warning(code, args) (range.ValueOr Range.Zero)) warningCode
 
     let explain nsManager graph target pattern =
-        let analyze env (action: AnalyzerAction) =
+        let analyze env action =
             let patterns, callPatterns = analyzeAllShallow nsManager graph (CallGraphNode pattern.Name) env action
             Seq.append patterns (Seq.map (fun p -> p :> IPattern) callPatterns)
 
         match nsManager.TryGetCallable pattern.Name ("", "") with
         | Found callable when QsNullable.isValue callable.Source.AssemblyFile ->
-            let env = { CallableKind = callable.Kind }
-
             nsManager.ImportedSpecializations pattern.Name
             |> Seq.collect (fun (_, impl) ->
-                analyze env (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
+                analyze callable.Kind (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
                 |> Seq.choose (fun p -> p.Diagnose target)
                 |> Seq.choose (referenceReasons pattern.Name.Name pattern.Range callable.Source.CodeFile))
         | _ -> Seq.empty
@@ -147,5 +156,8 @@ module CallPattern =
 module CallAnalyzer =
     let analyzeSyntax = CallPattern.analyzeSyntax
 
-    let analyzeAllShallow nsManager graph node env action =
-        CallPattern.analyzeAllShallow nsManager graph node env action
+    let analyzeShallow (nsManager, graph) node =
+        CallPattern.analyzeShallow nsManager graph node
+
+    let analyzeAllShallow nsManager graph node callableKind action =
+        CallPattern.analyzeAllShallow nsManager graph node callableKind action
