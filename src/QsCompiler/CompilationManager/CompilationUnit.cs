@@ -280,8 +280,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .WithSource(c.Source.With(assemblyFile: loaded.Item1))
                     .WithSpecializations(specs => specs.Select(s => s.WithSource(s.Source.With(assemblyFile: loaded.Item1))).ToImmutableArray()))),
                 loaded.SelectMany(loaded => loaded.Item2.Types().Select(t => t
-                    .WithSource(t.Source.With(assemblyFile: loaded.Item1)))),
-                additionalAssemblies: additionalAssemblies);
+                    .WithSource(t.Source.With(assemblyFile: loaded.Item1)))));
 
             var conflicting = new List<(string, string)>();
             var callableElems = callables.Select(c => (c.FullName, c.Source.AssemblyOrCodeFile, c.Access));
@@ -1047,8 +1046,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <param name="callables">The callables to rename and update if they are internal.</param>
         /// <param name="types">The types to rename and update if they are internal.</param>
-        /// <param name="additionalAssemblies">The number of additional assemblies included in the compilation
-        /// besides the ones listed as sources in <paramref name="types"/> and <paramref name="callables"/>.</param>
         /// <param name="predicate">If specified, only types and callables from a source for which
         /// this function returns true are renamed.</param>
         /// <returns>The renamed and updated callables and types.</returns>
@@ -1060,34 +1057,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static (IEnumerable<QsCallable>, IEnumerable<QsCustomType>) RenameInternalDeclarations(
             IEnumerable<QsCallable> callables,
             IEnumerable<QsCustomType> types,
-            int additionalAssemblies = 0,
             Func<string, bool>? predicate = null)
         {
-            // Assign a unique ID to each reference.
-            NameDecorator decorator = new NameDecorator($"QsRef");
-            ImmutableDictionary<string, int> ids =
-                callables.Select(callable => callable.Source.AssemblyOrCodeFile)
-                .Concat(types.Select(type => type.Source.AssemblyOrCodeFile))
-                .Distinct()
-                .Where(source => predicate?.Invoke(source) ?? true)
-
-                // this setup will mean that internal declarations won't get replaced with target specific implementations
-                .Select((source, idx) => (source, idx))
-
-                // we need an id here that is uniquely associated with a source name
-                // to ensure that internal names are unique even when this is not called on the entire compilation
-                .ToImmutableDictionary(entry => entry.source, entry => entry.idx + additionalAssemblies);
-
             ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
                 IEnumerable<(QsQualifiedName Name, string Source, Access Access)> group) =>
                 group
                     .Where(item =>
                         !item.Access.IsAccessibleFrom(Proximity.OtherAssembly)
                         && (predicate?.Invoke(item.Source) ?? true))
+                    .GroupBy(x => x.Name)
+                    .Select(g => g.First())
                     .ToImmutableDictionary(
                         item => item.Name,
-                        item => decorator.Decorate(item.Name, ids[item.Source]));
-                        //item => NameGenerator.GenerateCallableName(item.Name));
+                        item => NameGenerator.GenerateCallableName(item.Name));
 
             // rename all internal declarations and their usages
             var transformations = callables
