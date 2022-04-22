@@ -30,8 +30,6 @@ type TypePattern =
 
         member _.Diagnose _ = None // TODO
 
-        member _.Explain(_, _, _) = Seq.empty
-
 type TypeContext = { StringLiteralsOk: bool }
 
 let isAlwaysSupported (_: ResolvedType) = true // TODO

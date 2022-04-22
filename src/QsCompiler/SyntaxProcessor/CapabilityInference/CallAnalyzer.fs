@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.CallAnalyzer
+namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
@@ -11,48 +11,6 @@ open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
-
-/// Returns a list of the names of global callables referenced in the scope, and the range of the reference relative to
-/// the start of the specialization.
-let globalReferences action =
-    let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
-    let references = ResizeArray()
-
-    transformation.Expressions <-
-        { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
-            override this.OnTypedExpression expression =
-                match expression.Expression with
-                | Identifier (GlobalCallable name, _) ->
-                    let range = QsNullable.Map2(+) transformation.Offset expression.Range
-                    references.Add(name, range)
-                | _ -> ()
-
-                base.OnTypedExpression expression
-        }
-
-    action transformation
-    references
-
-let referenceReason (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
-    let warningCode =
-        match diagnostic.Diagnostic with
-        | Error ErrorCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
-        | Error ErrorCode.ResultComparisonNotInOperationIf -> Some WarningCode.ResultComparisonNotInOperationIf
-        | Error ErrorCode.ReturnInResultConditionedBlock -> Some WarningCode.ReturnInResultConditionedBlock
-        | Error ErrorCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
-        | Error ErrorCode.UnsupportedCallableCapability -> Some WarningCode.UnsupportedCallableCapability
-        | _ -> None
-
-    let args =
-        seq {
-            name
-            codeFile
-            string (diagnostic.Range.Start.Line + 1)
-            string (diagnostic.Range.Start.Column + 1)
-            yield! diagnostic.Arguments
-        }
-
-    Option.map (fun code -> QsCompilerDiagnostic.Warning(code, args) (range.ValueOr Range.Zero)) warningCode
 
 type CallKind =
     | External of RuntimeCapability
@@ -82,22 +40,39 @@ type CallPattern =
                     QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
             | Recursive -> None // TODO
 
-        member pattern.Explain(target, nsManager, graph) =
-            let analyze env action =
-                CallPattern.AnalyzeAllShallow(nsManager, graph, CallGraphNode pattern.Name, env, action)
+module CallPattern =
+    let analyzeSyntax env action =
+        Seq.collect
+            ((|>) action)
+            [
+                ResultAnalyzer.analyze env
+                StatementAnalyzer.analyze env
+                TypeAnalyzer.analyze env
+                ArrayAnalyzer.analyze env
+            ]
 
-            match nsManager.TryGetCallable pattern.Name ("", "") with
-            | Found callable when QsNullable.isValue callable.Source.AssemblyFile ->
-                let env = { CallableKind = callable.Kind }
+    /// Returns a list of the names of global callables referenced in the scope, and the range of the reference relative to
+    /// the start of the specialization.
+    let globalReferences action =
+        let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
+        let references = ResizeArray()
 
-                nsManager.ImportedSpecializations pattern.Name
-                |> Seq.collect (fun (_, impl) ->
-                    analyze env (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
-                    |> Seq.choose (fun p -> p.Diagnose target)
-                    |> Seq.choose (referenceReason pattern.Name.Name pattern.Range callable.Source.CodeFile))
-            | _ -> Seq.empty
+        transformation.Expressions <-
+            { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
+                override this.OnTypedExpression expression =
+                    match expression.Expression with
+                    | Identifier (GlobalCallable name, _) ->
+                        let range = QsNullable.Map2(+) transformation.Offset expression.Range
+                        references.Add(name, range)
+                    | _ -> ()
 
-    static member AnalyzeShallow(nsManager: NamespaceManager, graph: CallGraph, node: CallGraphNode, action) =
+                    base.OnTypedExpression expression
+            }
+
+        action transformation
+        references
+
+    let analyzeShallow (nsManager: NamespaceManager) (graph: CallGraph) node action =
         let dependencies = graph.GetDirectDependencies node
 
         let codeFile, offset =
@@ -129,22 +104,48 @@ type CallPattern =
                         }
         }
 
-    static member AnalyzeSyntax env action =
-        Seq.collect
-            ((|>) action)
-            [
-                ResultAnalyzer.analyze env
-                StatementAnalyzer.analyze env
-                TypeAnalyzer.analyze env
-                ArrayAnalyzer.analyze env
-            ]
+    let analyzeAllShallow nsManager graph node env action =
+        analyzeSyntax env action, analyzeShallow nsManager graph node action
 
-    static member AnalyzeAllShallow(nsManager, graph, node: CallGraphNode, env, action) =
-        Seq.append
-            (CallPattern.AnalyzeSyntax env action)
-            (CallPattern.AnalyzeShallow(nsManager, graph, node, action) |> Seq.map (fun p -> p :> IPattern))
+    let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
+        let warningCode =
+            match diagnostic.Diagnostic with
+            | Error ErrorCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
+            | Error ErrorCode.ResultComparisonNotInOperationIf -> Some WarningCode.ResultComparisonNotInOperationIf
+            | Error ErrorCode.ReturnInResultConditionedBlock -> Some WarningCode.ReturnInResultConditionedBlock
+            | Error ErrorCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
+            | Error ErrorCode.UnsupportedCallableCapability -> Some WarningCode.UnsupportedCallableCapability
+            | _ -> None
 
-let analyzeSyntax = CallPattern.AnalyzeSyntax
+        let args =
+            seq {
+                name
+                codeFile
+                string (diagnostic.Range.Start.Line + 1)
+                string (diagnostic.Range.Start.Column + 1)
+                yield! diagnostic.Arguments
+            }
 
-let analyzeAllShallow nsManager graph node env action =
-    CallPattern.AnalyzeAllShallow(nsManager, graph, node, env, action)
+        Option.map (fun code -> QsCompilerDiagnostic.Warning(code, args) (range.ValueOr Range.Zero)) warningCode
+
+    let explain nsManager graph target pattern =
+        let analyze env (action: AnalyzerAction) =
+            let patterns, callPatterns = analyzeAllShallow nsManager graph (CallGraphNode pattern.Name) env action
+            Seq.append patterns (Seq.map (fun p -> p :> IPattern) callPatterns)
+
+        match nsManager.TryGetCallable pattern.Name ("", "") with
+        | Found callable when QsNullable.isValue callable.Source.AssemblyFile ->
+            let env = { CallableKind = callable.Kind }
+
+            nsManager.ImportedSpecializations pattern.Name
+            |> Seq.collect (fun (_, impl) ->
+                analyze env (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
+                |> Seq.choose (fun p -> p.Diagnose target)
+                |> Seq.choose (referenceReasons pattern.Name.Name pattern.Range callable.Source.CodeFile))
+        | _ -> Seq.empty
+
+module CallAnalyzer =
+    let analyzeSyntax = CallPattern.analyzeSyntax
+
+    let analyzeAllShallow nsManager graph node env action =
+        CallPattern.analyzeAllShallow nsManager graph node env action

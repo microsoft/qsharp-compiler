@@ -66,8 +66,6 @@ type ResultPattern =
                 else
                     None
 
-        member _.Explain(_, _, _) = Seq.empty
-
 type ResultContext = { InCondition: bool; FrozenVars: string Set }
 
 /// Returns true if the expression is an equality or inequality comparison between two expressions of type Result.

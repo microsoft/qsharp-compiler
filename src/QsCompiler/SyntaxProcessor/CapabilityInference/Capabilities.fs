@@ -18,9 +18,17 @@ open System.Linq
 let diagnose target nsManager graph callable =
     let env = { CallableKind = callable.Kind }
 
-    fun (t: SyntaxTreeTransformation) -> t.Namespaces.OnCallableDeclaration callable |> ignore
-    |> CallAnalyzer.analyzeAllShallow nsManager graph (CallGraphNode callable.FullName) env
-    |> Seq.collect (fun p -> Seq.append (p.Diagnose target |> Option.toList) (p.Explain(target, nsManager, graph)))
+    let patterns, callPatterns =
+        CallAnalyzer.analyzeAllShallow nsManager graph (CallGraphNode callable.FullName) env (fun t ->
+            t.Namespaces.OnCallableDeclaration callable |> ignore)
+
+    Seq.append
+        (patterns |> Seq.choose (fun p -> p.Diagnose target))
+        (callPatterns
+         |> Seq.collect (fun p ->
+             Seq.append
+                 ((p :> IPattern).Diagnose target |> Option.toList)
+                 (CallPattern.explain nsManager graph target p)))
 
 /// Returns true if the callable is declared in a source file in the current compilation, instead of a referenced
 /// library.

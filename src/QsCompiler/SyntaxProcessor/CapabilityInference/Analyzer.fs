@@ -5,8 +5,6 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.DependencyAnalysis
-open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
@@ -16,8 +14,6 @@ type IPattern =
     abstract Capability: RuntimeCapability
 
     abstract Diagnose: target: Target -> QsCompilerDiagnostic option
-
-    abstract Explain: target: Target * nsManager: NamespaceManager * graph: CallGraph -> QsCompilerDiagnostic seq
 
 type internal AnalyzerEnvironment = { CallableKind: QsCallableKind }
 

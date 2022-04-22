@@ -17,8 +17,6 @@ type StatementPattern =
 
         member _.Diagnose _ = None // TODO
 
-        member _.Explain(_, _, _) = Seq.empty
-
 let analyze (_: AnalyzerEnvironment) action =
     let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()

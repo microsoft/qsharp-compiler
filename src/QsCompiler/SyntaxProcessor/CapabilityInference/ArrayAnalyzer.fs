@@ -18,8 +18,6 @@ type ArrayPattern =
 
         member _.Diagnose _ = None // TODO
 
-        member _.Explain(_, _, _) = Seq.empty
-
 let analyze (_: AnalyzerEnvironment) (action: AnalyzerAction) =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
