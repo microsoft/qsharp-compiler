@@ -485,77 +485,77 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 GUID.Replace(generated.Name, string.Empty));
     }
 
-    /// <summary>
-    /// Provides simple name decoration (or name mangling) by prefixing names with a label and number.
-    /// </summary>
-    public class NameDecorator
-    {
-        private const string Original = "original";
+    ///// <summary>
+    ///// Provides simple name decoration (or name mangling) by prefixing names with a label and number.
+    ///// </summary>
+    //public class NameDecorator
+    //{
+    //    private const string Original = "original";
 
-        private readonly string label;
+    //    private readonly string label;
 
-        private readonly Regex pattern;
+    //    private readonly Regex pattern;
 
-        /// <summary>
-        /// Creates a new name decorator using the label.
-        /// </summary>
-        /// <param name="label">The label to use as the prefix for decorated names.</param>
-        public NameDecorator(string label)
-        {
-            this.label = label;
-            this.pattern = new Regex($"^__{Regex.Escape(label)}_?[0-9]*__(?<{Original}>.*)__$");
-        }
+    //    /// <summary>
+    //    /// Creates a new name decorator using the label.
+    //    /// </summary>
+    //    /// <param name="label">The label to use as the prefix for decorated names.</param>
+    //    public NameDecorator(string label)
+    //    {
+    //        this.label = label;
+    //        this.pattern = new Regex($"^__{Regex.Escape(label)}_?[0-9]*__(?<{Original}>.*)__$");
+    //    }
 
-        /// <summary>
-        /// Decorates the name with the label of this name decorator and the given number.
-        /// </summary>
-        /// <param name="name">The name to decorate.</param>
-        /// <param name="number">The number to use along with the label to decorate the name.</param>
-        /// <returns>The decorated name.</returns>
-        public string Decorate(string name, int number) =>
-            $"__{this.label}{(number < -0 ? "_" : "")}{Math.Abs(number)}__{name}__";
+    //    /// <summary>
+    //    /// Decorates the name with the label of this name decorator and the given number.
+    //    /// </summary>
+    //    /// <param name="name">The name to decorate.</param>
+    //    /// <param name="number">The number to use along with the label to decorate the name.</param>
+    //    /// <returns>The decorated name.</returns>
+    //    public string Decorate(string name, int number) =>
+    //        $"__{this.label}{(number < -0 ? "_" : "")}{Math.Abs(number)}__{name}__";
 
-        /// <summary>
-        /// Decorates the name of the qualified name with the label of this name decorator and the given number.
-        /// </summary>
-        /// <param name="name">The qualified name to decorate.</param>
-        /// <param name="number">The number to use along with the label to decorate the qualified name.</param>
-        /// <returns>The decorated qualified name.</returns>
-        public QsQualifiedName Decorate(QsQualifiedName name, int number) =>
-            new QsQualifiedName(name.Namespace, this.Decorate(name.Name, number));
+    //    /// <summary>
+    //    /// Decorates the name of the qualified name with the label of this name decorator and the given number.
+    //    /// </summary>
+    //    /// <param name="name">The qualified name to decorate.</param>
+    //    /// <param name="number">The number to use along with the label to decorate the qualified name.</param>
+    //    /// <returns>The decorated qualified name.</returns>
+    //    public QsQualifiedName Decorate(QsQualifiedName name, int number) =>
+    //        new QsQualifiedName(name.Namespace, this.Decorate(name.Name, number));
 
-        /// <summary>
-        /// Reverses decoration previously done to the name using the same label as this name decorator.
-        /// </summary>
-        /// <param name="name">The decorated name to undecorate.</param>
-        /// <returns>
-        /// The original name before decoration, if the decorated name uses the same label as this name decorator;
-        /// otherwise, null.
-        /// </returns>
-        public string? Undecorate(string name)
-        {
-            var match = this.pattern.Match(name).Groups[Original];
-            return match.Success ? match.Value : null;
-        }
+    //    /// <summary>
+    //    /// Reverses decoration previously done to the name using the same label as this name decorator.
+    //    /// </summary>
+    //    /// <param name="name">The decorated name to undecorate.</param>
+    //    /// <returns>
+    //    /// The original name before decoration, if the decorated name uses the same label as this name decorator;
+    //    /// otherwise, null.
+    //    /// </returns>
+    //    public string? Undecorate(string name)
+    //    {
+    //        var match = this.pattern.Match(name).Groups[Original];
+    //        return match.Success ? match.Value : null;
+    //    }
 
-        /* static methods for name decorations in general */
+    //    /* static methods for name decorations in general */
 
-        private static readonly Regex GUID =
-            new Regex(@"^_[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?_", RegexOptions.IgnoreCase);
+    //    private static readonly Regex GUID =
+    //        new Regex(@"^_[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?_", RegexOptions.IgnoreCase);
 
-        internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
-            new QsQualifiedName(
-                original.Namespace,
-                "_" + Guid.NewGuid().ToString("N") + "_" + original.Name);
+    //    internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
+    //        new QsQualifiedName(
+    //            original.Namespace,
+    //            "_" + Guid.NewGuid().ToString("N") + "_" + original.Name);
 
-        public static bool IsAutoGeneratedName(QsQualifiedName mangled) =>
-            GUID.IsMatch(mangled.Name);
+    //    public static bool IsAutoGeneratedName(QsQualifiedName mangled) =>
+    //        GUID.IsMatch(mangled.Name);
 
-        public static QsQualifiedName OriginalNameFromMonomorphized(QsQualifiedName mangled) =>
-            new QsQualifiedName(
-                mangled.Namespace,
-                GUID.Replace(mangled.Name, string.Empty));
-    }
+    //    public static QsQualifiedName OriginalNameFromMonomorphized(QsQualifiedName mangled) =>
+    //        new QsQualifiedName(
+    //            mangled.Namespace,
+    //            GUID.Replace(mangled.Name, string.Empty));
+    //}
 
     /// <summary>
     /// Upon transformation, assigns each defined variable a unique name, independent on the scope, and replaces all references to it accordingly.
