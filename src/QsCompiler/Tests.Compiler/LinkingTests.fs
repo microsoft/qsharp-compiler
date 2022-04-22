@@ -186,19 +186,18 @@ type LinkingTests() =
         let countAll namespaces names =
             names |> Seq.map (countReferences namespaces) |> Seq.sum
 
-        let beforeCount =
-            countAll sourceCompilation.Namespaces (Seq.concat [ renamed; notRenamed ])
+        let beforeCount = countAll sourceCompilation.Namespaces (Seq.concat [ renamed; notRenamed ])
 
         let afterCountOriginal = countAll referenceCompilation.Namespaces renamed
+
         let newNames =
             renamed
             |> Seq.map (fun name ->
-                TestUtils.getCallablesWithSuffix referenceCompilation name.Namespace  ("__" + name.Name)
+                TestUtils.getCallablesWithSuffix referenceCompilation name.Namespace ("__" + name.Name)
                 |> Seq.exactlyOne
                 |> (fun callable -> callable.FullName))
 
-        let afterCount =
-            countAll referenceCompilation.Namespaces (Seq.concat [ newNames; notRenamed ])
+        let afterCount = countAll referenceCompilation.Namespaces (Seq.concat [ newNames; notRenamed ])
 
         Assert.NotEqual(0, beforeCount)
         Assert.Equal(0, afterCountOriginal)
@@ -618,7 +617,9 @@ type LinkingTests() =
                                "InternalRenaming2.dll", namespaces ]
 
         let referenceCompilation = this.BuildContent(manager, "", references)
-        let generated = TestUtils.getCallablesWithSuffix referenceCompilation.BuiltCompilation Signatures.InternalRenamingNS "__Foo"
+
+        let generated =
+            TestUtils.getCallablesWithSuffix referenceCompilation.BuiltCompilation Signatures.InternalRenamingNS "__Foo"
 
         Assert.True(2 = Seq.length generated)
 
