@@ -14,7 +14,6 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Utils
 open System.Collections.Generic
 open System.Collections.Immutable
-open System.Linq
 
 let syntaxAnalyzer callableKind =
     Analyzer.concat [ ResultAnalyzer.analyzer callableKind
@@ -92,8 +91,9 @@ let callableSourceCapability callable =
 let sourceCycleCapabilities (callables: ImmutableDictionary<_, _>) (graph: CallGraph) =
     let initialCapabilities =
         callables
-        |> Seq.filter (fun item -> isDeclaredInSourceFile item.Value)
-        |> fun items -> items.ToDictionary((fun item -> item.Key), (fun item -> callableSourceCapability item.Value))
+        |> Seq.filter (fun c -> isDeclaredInSourceFile c.Value)
+        |> Seq.map (fun c -> KeyValuePair(c.Key, callableSourceCapability c.Value))
+        |> Dictionary
 
     let sourceCycles =
         graph.GetCallCycles()
