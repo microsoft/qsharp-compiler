@@ -15,7 +15,10 @@ type IPattern =
 
     abstract Diagnose: target: Target -> QsCompilerDiagnostic option
 
-type internal Analyzer<'env, 'subject, 'pattern> when 'pattern :> IPattern = 'env -> 'subject -> 'pattern seq
+type Analyzer<'subject, 'pattern> when 'pattern :> IPattern = 'subject -> 'pattern seq
+
+module Analyzer =
+    let concat (analyzers: Analyzer<_, _> seq) subject = Seq.collect ((|>) subject) analyzers
 
 type LocationTrackingTransformation(options) =
     inherit SyntaxTreeTransformation(options)

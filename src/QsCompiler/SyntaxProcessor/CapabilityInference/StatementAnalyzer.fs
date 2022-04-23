@@ -17,7 +17,7 @@ type StatementPattern =
 
         member _.Diagnose _ = None // TODO
 
-let analyze () action =
+let analyzer action =
     let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable numReturns = 0

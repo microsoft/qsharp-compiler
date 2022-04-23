@@ -64,7 +64,7 @@ module CallAnalyzer =
         action transformation
         references
 
-    let analyze (nsManager: NamespaceManager, graph: CallGraph) node =
+    let analyzer (nsManager: NamespaceManager) (graph: CallGraph) node =
         let dependencies = graph.GetDirectDependencies node
 
         let codeFile, isInReference, offset =

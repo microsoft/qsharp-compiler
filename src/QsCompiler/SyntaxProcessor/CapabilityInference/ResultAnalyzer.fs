@@ -86,7 +86,7 @@ let isResultEquality expression =
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
-let analyze callableKind (action: SyntaxTreeTransformation -> _) =
+let analyzer callableKind (action: SyntaxTreeTransformation -> _) =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable dependsOnResult = false

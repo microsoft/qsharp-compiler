@@ -34,7 +34,7 @@ type TypeContext = { StringLiteralsOk: bool }
 
 let isAlwaysSupported (_: ResolvedType) = true // TODO
 
-let analyze () (action: SyntaxTreeTransformation -> _) =
+let analyzer (action: SyntaxTreeTransformation -> _) =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable context = { StringLiteralsOk = false }

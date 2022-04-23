@@ -17,4 +17,4 @@ type internal CallPattern =
     member Range: Range QsNullable
 
 module internal CallAnalyzer =
-    val analyze: Analyzer<NamespaceManager * CallGraph, CallGraphNode, CallPattern>
+    val analyzer: nsManager: NamespaceManager -> graph: CallGraph -> Analyzer<CallGraphNode, CallPattern>

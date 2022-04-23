@@ -20,7 +20,10 @@ type internal IPattern =
     /// level.
     abstract Diagnose: target: Target -> QsCompilerDiagnostic option
 
-type internal Analyzer<'env, 'subject, 'pattern> when 'pattern :> IPattern = 'env -> 'subject -> 'pattern seq
+type internal Analyzer<'subject, 'pattern> when 'pattern :> IPattern = 'subject -> 'pattern seq
+
+module internal Analyzer =
+    val concat: analyzers: Analyzer<'subject, 'pattern> seq -> Analyzer<'subject, 'pattern>
 
 /// Tracks the most recently seen statement location.
 type internal LocationTrackingTransformation =

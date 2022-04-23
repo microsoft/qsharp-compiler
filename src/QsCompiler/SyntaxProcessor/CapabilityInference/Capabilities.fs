@@ -16,15 +16,11 @@ open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
 
-let analyzeSyntax callableKind action =
-    Seq.collect
-        ((|>) action)
-        [
-            ResultAnalyzer.analyze callableKind
-            StatementAnalyzer.analyze ()
-            TypeAnalyzer.analyze ()
-            ArrayAnalyzer.analyze ()
-        ]
+let syntaxAnalyzer callableKind =
+    Analyzer.concat [ ResultAnalyzer.analyzer callableKind
+                      StatementAnalyzer.analyzer
+                      TypeAnalyzer.analyzer
+                      ArrayAnalyzer.analyzer ]
 
 let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
     let warningCode =
@@ -50,16 +46,16 @@ let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) dia
 let explainCall (nsManager: NamespaceManager) graph target (pattern: CallPattern) =
     let node = CallGraphNode pattern.Name
 
-    let analyze callableKind action =
+    let analyzer callableKind action =
         Seq.append
-            (analyzeSyntax callableKind action)
-            (CallAnalyzer.analyze (nsManager, graph) node |> Seq.map (fun p -> upcast p))
+            (syntaxAnalyzer callableKind action)
+            (CallAnalyzer.analyzer nsManager graph node |> Seq.map (fun p -> upcast p))
 
     match nsManager.TryGetCallable pattern.Name ("", "") with
     | Found callable when QsNullable.isValue callable.Source.AssemblyFile ->
         nsManager.ImportedSpecializations pattern.Name
         |> Seq.collect (fun (_, impl) ->
-            analyze callable.Kind (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
+            analyzer callable.Kind (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
             |> Seq.choose (fun p -> p.Diagnose target)
             |> Seq.choose (referenceReasons pattern.Name.Name pattern.Range callable.Source.CodeFile))
     | _ -> Seq.empty
@@ -67,9 +63,9 @@ let explainCall (nsManager: NamespaceManager) graph target (pattern: CallPattern
 [<CompiledName "Diagnose">]
 let diagnose target nsManager graph (callable: QsCallable) =
     let patterns =
-        analyzeSyntax callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
+        syntaxAnalyzer callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
 
-    let callPatterns = CallAnalyzer.analyze (nsManager, graph) (CallGraphNode callable.FullName)
+    let callPatterns = CallGraphNode callable.FullName |> CallAnalyzer.analyzer nsManager graph
 
     Seq.append
         (patterns |> Seq.choose (fun p -> p.Diagnose target))
@@ -87,7 +83,7 @@ let joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
 
 /// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.
 let callableSourceCapability callable =
-    analyzeSyntax callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
+    syntaxAnalyzer callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
     |> Seq.map (fun p -> p.Capability)
     |> joinCapabilities
 

@@ -18,7 +18,7 @@ type ArrayPattern =
 
         member _.Diagnose _ = None // TODO
 
-let analyze () (action: SyntaxTreeTransformation -> _) =
+let analyzer (action: SyntaxTreeTransformation -> _) =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
 
