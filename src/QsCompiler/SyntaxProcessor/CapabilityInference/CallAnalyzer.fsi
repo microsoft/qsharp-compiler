@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
+open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.DependencyAnalysis
 open Microsoft.Quantum.QsCompiler.SymbolManagement
@@ -17,4 +18,12 @@ type internal CallPattern =
     member Range: Range QsNullable
 
 module internal CallAnalyzer =
-    val analyzer: nsManager: NamespaceManager -> graph: CallGraph -> Analyzer<CallGraphNode, CallPattern>
+    val shallow: nsManager: NamespaceManager -> graph: CallGraph -> Analyzer<CallGraphNode, CallPattern>
+
+    val deep:
+        callables: ImmutableDictionary<QsQualifiedName, QsCallable> ->
+        graph: CallGraph ->
+        syntaxAnalyzer: Analyzer<QsCallable, IPattern> ->
+            Analyzer<QsCallable, IPattern>
+
+    val declaredInSource: callable: QsCallable -> bool
