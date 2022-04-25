@@ -26,4 +26,4 @@ module internal CallAnalyzer =
         syntaxAnalyzer: Analyzer<QsCallable, IPattern> ->
             Analyzer<QsCallable, IPattern>
 
-    val declaredInSource: callable: QsCallable -> bool
+    val isLocal: source: Source -> bool

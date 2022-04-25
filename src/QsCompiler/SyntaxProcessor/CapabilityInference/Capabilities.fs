@@ -94,7 +94,7 @@ let inferAttributes compilation =
                 let isMissingCapability =
                     SymbolResolution.TryGetRequiredCapability callable.Attributes |> QsNullable.isNull
 
-                if isMissingCapability && CallAnalyzer.declaredInSource callable then
+                if isMissingCapability && CallAnalyzer.isLocal callable.Source then
                     callableCapability callable |> capabilityAttribute |> callable.AddAttribute
                 else
                     callable
