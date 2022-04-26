@@ -23,6 +23,8 @@ type internal 'props Pattern =
 module internal Pattern =
     val discard: 'props Pattern -> unit Pattern
 
+    val max: 'props Pattern seq -> RuntimeCapability
+
 type internal Analyzer<'subject, 'props> = 'subject -> 'props Pattern seq
 
 module internal Analyzer =

@@ -69,7 +69,7 @@ let diagnose target nsManager graph (callable: QsCallable) =
             (fun p -> Seq.append (p.Diagnose target |> Option.toList) (explainCall nsManager graph target p.Properties))
             callPatterns)
 
-let capabilityAttribute capability =
+let capabilityAttribute (capability: RuntimeCapability) =
     let args = AttributeUtils.StringArguments(string capability, "Inferred automatically by the compiler.")
     AttributeUtils.BuildAttribute(BuiltIn.RequiresCapability.FullName, args)
 
@@ -80,13 +80,8 @@ let inferAttributes compilation =
     let graph = CallGraph compilation
 
     let analyzer =
-        fun callable -> syntaxAnalyzer callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
-        |> CallAnalyzer.deep callables graph
-
-    let callableCapability =
-        analyzer
-        >> Seq.map (fun p -> p.Capability)
-        >> Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
+        CallAnalyzer.deep callables graph (fun callable ->
+            syntaxAnalyzer callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore))
 
     transformation.Namespaces <-
         { new NamespaceTransformation(transformation) with
@@ -95,7 +90,7 @@ let inferAttributes compilation =
                     SymbolResolution.TryGetRequiredCapability callable.Attributes |> QsNullable.isNull
 
                 if isMissingCapability && QsNullable.isNull callable.Source.AssemblyFile then
-                    callableCapability callable |> capabilityAttribute |> callable.AddAttribute
+                    analyzer callable |> Pattern.max |> capabilityAttribute |> callable.AddAttribute
                 else
                     callable
         }

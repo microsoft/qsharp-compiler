@@ -42,11 +42,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
 
     do
         for cycle in cycles do
-            let capability =
-                Seq.choose findCallable cycle
-                |> Seq.collect syntaxAnalyzer
-                |> Seq.map (fun p -> p.Capability)
-                |> Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
+            let capability = Seq.choose findCallable cycle |> Seq.collect syntaxAnalyzer |> Pattern.max
 
             for node in cycle do
                 cycleCapabilities[node.CallableName] <- tryOption (cycleCapabilities.TryGetValue node.CallableName)
@@ -63,7 +59,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
 
         callablePatterns.TryGetValue callable.FullName |> tryOption |> Option.defaultWith storePatterns
 
-    member private analyzer.CallablePatterns(callable: QsCallable) =
+    member private analyzer.CallablePatterns callable =
         match SymbolResolution.TryGetRequiredCapability callable.Attributes with
         | Value capability -> [ createPattern capability ]
         | Null when QsNullable.isNull callable.Source.AssemblyFile ->
@@ -82,11 +78,9 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
 
     member private analyzer.DependentCapability name =
         graph.GetDirectDependencies(CallGraphNode name)
-        |> Seq.map (fun group -> group.Key)
-        |> Seq.choose findCallable
+        |> Seq.choose (fun group -> findCallable group.Key)
         |> Seq.collect analyzer.Analyze
-        |> Seq.map (fun p -> p.Capability)
-        |> Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
+        |> Pattern.max
 
 type CallKind =
     | External of RuntimeCapability
