@@ -287,7 +287,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             bool supportsCompletion = !this.ClientNameIs("VisualStudio") || this.ClientVersionIsAtLeast(new Version(16, 3));
             bool useTriggerCharWorkaround = this.ClientNameIs("VisualStudio") && !this.ClientVersionIsAtLeast(new Version(16, 4));
 
+#pragma warning disable CS0618 // Type or member is obsolete
+
+            // InitializeParams.RootPath is obsolete and .RootUri should be used instead.
+            // In the usage below, it's only used if RootUri is not available.
             var rootUri = param?.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out var uri) ? uri : null);
+
+#pragma warning restore CS0618 // Type or member is obsolete
             this.workspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
             this.LogToWindow($"workspace folder: {this.workspaceFolder ?? "(Null)"}", MessageType.Info);
             this.fileWatcher.ListenAsync(this.workspaceFolder, true, dict => this.InitializeWorkspaceAsync(dict), "*.csproj", "*.dll", "*.qs").Wait(); // not strictly necessary to wait but less confusing

@@ -51,7 +51,7 @@ type internal RunResult =
       SyntaxErrors: Errors.SyntaxError list }
 
     /// Returns a RunResult record with default field values.
-    static member Default : RunResult
+    static member Default: RunResult
 
 /// The kind of command used.
 type CommandKind =
@@ -78,22 +78,22 @@ type InputKind =
 type internal IArguments =
 
     /// Flag to indicate if the `--backup` option was specified.
-    abstract member Backup : bool
+    abstract member Backup: bool
 
     /// Flag to indicate if the `--recurse` option was specified.
-    abstract member Recurse : bool
+    abstract member Recurse: bool
 
     /// Optional argument for the `--qsharp-version` option.
-    abstract member QdkVersion : string
+    abstract member QdkVersion: string
 
     /// The input files specified by the `--input` argument.
-    abstract member InputFiles : seq<string>
+    abstract member InputFiles: seq<string>
 
     /// The project file specified by the `--project` argument.
-    abstract member ProjectFile : string
+    abstract member ProjectFile: string
 
     /// The kind of command used.
-    abstract member CommandKind : CommandKind
+    abstract member CommandKind: CommandKind
 
 /// Object for capturing the arguments used with the `format` command.
 type FormatArguments =
@@ -115,7 +115,7 @@ type FormatArguments =
     interface IArguments
 
     /// Provides example usage.
-    static member examples : seq<Example>
+    static member examples: seq<Example>
 
 /// Object for capturing the arguments used with the `update` command.
 type UpdateArguments =
@@ -137,7 +137,7 @@ type UpdateArguments =
     interface IArguments
 
     /// Provides example usage.
-    static member examples : seq<Example>
+    static member examples: seq<Example>
 
 /// Object for capturing the arguments used with the `update-and-format` command.
 type UpdateAndFormatArguments =
@@ -159,7 +159,7 @@ type UpdateAndFormatArguments =
     interface IArguments
 
     /// Provides example usage.
-    static member examples : seq<Example>
+    static member examples: seq<Example>
 
 /// Represents the fully parsed arguments to the tool.
 type internal CommandWithOptions =
@@ -183,9 +183,9 @@ type internal CommandWithOptions =
       Input: string list }
 
     /// Returns a CommandWithOptions record with default field values.
-    static member Default : CommandWithOptions
+    static member Default: CommandWithOptions
 
 module internal CommandWithOptions =
 
     /// Creates an CommandWithOptions object from an IArguments object
-    val fromIArguments : IArguments -> Result<CommandWithOptions, ExitCode>
+    val fromIArguments: IArguments -> Result<CommandWithOptions, ExitCode>

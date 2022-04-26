@@ -12,6 +12,7 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference.RelationOps
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
@@ -56,7 +57,7 @@ let private asStatement comments location vars kind =
 let NewExpressionStatement comments location context expr =
     let expr, diagnostics = resolveExpr context expr
 
-    if context.Inference.Unify(ResolvedType.New UnitType, expr.ResolvedType) |> List.isEmpty |> not then
+    if context.Inference.Constrain(ResolvedType.New UnitType .> expr.ResolvedType) |> List.isEmpty |> not then
         let type_ = context.Inference.Resolve expr.ResolvedType |> SyntaxTreeToQsharp.Default.ToCode
         let range = QsNullable.defaultValue Range.Zero expr.Range
         QsCompilerDiagnostic.Error(ErrorCode.ValueImplicitlyIgnored, [ type_ ]) range |> diagnostics.Add
@@ -69,7 +70,7 @@ let NewExpressionStatement comments location context expr =
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewFailStatement comments location context expr =
     let expr, diagnostics = resolveExpr context expr
-    context.Inference.Unify(ResolvedType.New String, expr.ResolvedType) |> diagnostics.AddRange
+    context.Inference.Constrain(ResolvedType.New String .> expr.ResolvedType) |> diagnostics.AddRange
     onAutoInvertCheckQuantumDependency context.Symbols expr |> diagnostics.AddRange
     QsFailStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
@@ -107,7 +108,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
     verifyAssignment context.Inference lhs.ResolvedType ErrorCode.TypeMismatchInValueUpdate rhs
     |> diagnostics.AddRange
 
-    let rec verifyMutability : TypedExpression -> _ =
+    let rec verifyMutability: TypedExpression -> _ =
         function
         | Tuple exs -> exs |> Seq.iter verifyMutability
         | Item ex when ex.InferredInformation.IsMutable ->
@@ -216,7 +217,7 @@ let NewForStatement comments (location: QsLocation) context (symbol, expr) =
 /// as well as a delegate that given a Q# scope returns the built while-statement with the given scope as the body.
 let NewWhileStatement comments (location: QsLocation) context condition =
     let condition, diagnostics = resolveExpr context condition
-    context.Inference.Unify(ResolvedType.New Bool, condition.ResolvedType) |> diagnostics.AddRange
+    context.Inference.Constrain(ResolvedType.New Bool .> condition.ResolvedType) |> diagnostics.AddRange
 
     let whileLoop body =
         QsWhileStatement.New(condition, body) |> QsWhileStatement
@@ -229,7 +230,7 @@ let NewWhileStatement comments (location: QsLocation) context condition =
 /// as well as a delegate that given a positioned block of Q# statements returns the corresponding conditional block.
 let NewConditionalBlock comments location context condition =
     let condition, diagnostics = resolveExpr context condition
-    context.Inference.Unify(ResolvedType.New Bool, condition.ResolvedType) |> diagnostics.AddRange
+    context.Inference.Constrain(ResolvedType.New Bool .> condition.ResolvedType) |> diagnostics.AddRange
     onAutoInvertCheckQuantumDependency context.Symbols condition |> diagnostics.AddRange
     BlockStatement(fun body -> condition, QsPositionedBlock.New comments (Value location) body), diagnostics.ToArray()
 
@@ -260,7 +261,8 @@ let NewRepeatStatement (symbols: SymbolTracker) (repeatBlock: QsPositionedBlock,
         | Null -> ArgumentException "no location is set for the given repeat-block" |> raise
         | Value loc -> loc
 
-    let autoGenErrs = symbols |> onAutoInvertGenerateError ((ErrorCode.RUSloopWithinAutoInversion, []), location.Range)
+    let autoGenErrs =
+        symbols |> onAutoInvertGenerateError ((ErrorCode.RUSloopWithinAutoInversion, []), location.Range)
 
     QsRepeatStatement.New(repeatBlock, successCondition, fixupBlock)
     |> QsRepeatStatement
@@ -296,9 +298,8 @@ let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
         updatedInInner
         |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key)
         |> Seq.collect id
-        |> Seq.map
-            (fun loc ->
-                loc.Offset + loc.Range |> QsCompilerDiagnostic.Error(ErrorCode.InvalidReassignmentInApplyBlock, []))
+        |> Seq.map (fun loc ->
+            loc.Offset + loc.Range |> QsCompilerDiagnostic.Error(ErrorCode.InvalidReassignmentInApplyBlock, []))
         |> Seq.toArray
 
     QsConjugation.New(outer, inner)
@@ -321,7 +322,7 @@ let private NewBindingScope kind comments (location: QsLocation) context (symbol
             SingleQubitAllocation |> ResolvedInitializer.create (TypeRange.inferred init.Range), Seq.empty
         | QubitRegisterAllocation size ->
             let size, diagnostics = resolveExpr context size
-            context.Inference.Unify(ResolvedType.New Int, size.ResolvedType) |> diagnostics.AddRange
+            context.Inference.Constrain(ResolvedType.New Int .> size.ResolvedType) |> diagnostics.AddRange
             onAutoInvertCheckQuantumDependency context.Symbols size |> diagnostics.AddRange
 
             QubitRegisterAllocation size |> ResolvedInitializer.create (TypeRange.inferred init.Range),

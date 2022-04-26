@@ -55,7 +55,8 @@ let internal isSymbolContinuation c =
         ]
 
 /// Returns the current position in the input stream.
-let internal getPosition = CharParsers.getPosition |>> fun p -> Position.Create(int p.Line - 1) (int p.Column - 1)
+let internal getPosition =
+    CharParsers.getPosition |>> fun p -> Position.Create(int p.Line - 1) (int p.Column - 1)
 
 /// Returns the result of 'p' and the character range that 'p' consumed.
 let internal getRange p =
@@ -93,7 +94,9 @@ let internal opArrow = rwstr "=>"
 let internal fctArrow = rwstr "->"
 
 /// parses a unit value as a term and returnes the corresponding Q# expression
-let internal unitValue = term (pstring "(" >>. emptySpace .>> pstring ")") |>> snd |>> buildQsExpression UnitValue
+let internal unitValue =
+    term (pstring "(" >>. emptySpace .>> pstring ")") |>> snd |>> buildQsExpression UnitValue
+
 /// parses a missing type as term and returns the corresponding Q# type
 let internal missingType = keyword "_" |>> buildQsType MissingType
 /// parses a missing expression as a term and returnes the corresponding Q# expression

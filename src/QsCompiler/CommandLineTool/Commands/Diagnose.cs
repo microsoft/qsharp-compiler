@@ -248,7 +248,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 SkipConjugationInlining = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
                 IsExecutable = options.MakeExecutable,
-                RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
+                RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? Enumerable.Empty<(string, string?)>(),
                 EnableAdditionalChecks = true,
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames,
             };

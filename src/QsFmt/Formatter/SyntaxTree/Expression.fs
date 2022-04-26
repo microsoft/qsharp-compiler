@@ -5,6 +5,16 @@ namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 type Identifier = { Name: Terminal; TypeArgs: Type Tuple Option }
 
+type SymbolBinding =
+    | SymbolDeclaration of Terminal
+    | SymbolTuple of SymbolBinding Tuple
+
+module SymbolBinding =
+    let mapPrefix mapper =
+        function
+        | SymbolDeclaration terminal -> terminal |> Terminal.mapPrefix mapper |> SymbolDeclaration
+        | SymbolTuple tuple -> tuple |> Tuple.mapPrefix mapper |> SymbolTuple
+
 type InterpStringExpression =
     {
         OpenBrace: Terminal
@@ -78,6 +88,13 @@ and Update =
         Value: Expression
     }
 
+and Lambda =
+    {
+        Binding: SymbolBinding
+        Arrow: Terminal
+        Body: Expression
+    }
+
 and Expression =
     | Missing of Terminal
     | Literal of Terminal
@@ -95,6 +112,7 @@ and Expression =
     | Conditional of Conditional
     | FullOpenRange of Terminal
     | Update of Update
+    | Lambda of Lambda
     | Unknown of Terminal
 
 module Expression =
@@ -126,4 +144,5 @@ module Expression =
             { conditional with Condition = conditional.Condition |> mapPrefix mapper } |> Conditional
         | FullOpenRange terminal -> Terminal.mapPrefix mapper terminal |> Unknown
         | Update update -> { update with Record = update.Record |> mapPrefix mapper } |> Update
+        | Lambda lambda -> { lambda with Binding = SymbolBinding.mapPrefix mapper lambda.Binding } |> Lambda
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown

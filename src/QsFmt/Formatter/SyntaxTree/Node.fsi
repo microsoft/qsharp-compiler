@@ -30,24 +30,24 @@ module internal Trivia =
     /// <summary>
     /// A <see cref="Trivia"/> node containing <paramref name="count"/> number of space characters.
     /// </summary>
-    val spaces : count: int -> Trivia
+    val spaces: count: int -> Trivia
 
     /// <summary>
     /// The new line <see cref="Trivia"/> node containing the default new line character for the current platform..
     /// </summary>
-    val newLine : Trivia
+    val newLine: Trivia
 
     /// Determine whether a Trivia is a NewLine
     val isNewLine: Trivia -> bool
 
     /// Replaces each occurrence of more than one whitespace character in a row with a single space.
-    val collapseSpaces : (Trivia -> Trivia)
+    val collapseSpaces: (Trivia -> Trivia)
 
     /// <summary>
     /// Converts a string into a list of <see cref="Trivia"/> nodes.
     /// </summary>
     /// <exception cref="System.Exception">The string contains invalid trivia.</exception>
-    val ofString : string -> Trivia list
+    val ofString: string -> Trivia list
 
 /// A terminal symbol has no child nodes and represents a token in the source code.
 type internal Terminal =
@@ -62,7 +62,7 @@ module internal Terminal =
     /// <summary>
     /// Maps <paramref name="terminal"/> by applying <paramref name="mapper"/> to its trivia prefix.
     /// </summary>
-    val mapPrefix : mapper: (Trivia list -> Trivia list) -> terminal: Terminal -> Terminal
+    val mapPrefix: mapper: (Trivia list -> Trivia list) -> terminal: Terminal -> Terminal
 
 /// An item in a comma-separated sequence.
 type internal 'a SequenceItem =
@@ -89,7 +89,7 @@ module internal Tuple =
     /// <summary>
     /// Maps <paramref name="tuple"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
-    val mapPrefix : mapper: (Trivia list -> Trivia list) -> tuple: 'a Tuple -> 'a Tuple
+    val mapPrefix: mapper: (Trivia list -> Trivia list) -> tuple: 'a Tuple -> 'a Tuple
 
 /// A prefix operator. The operator is in the front of the operand.
 type internal 'a PrefixOperator =
@@ -137,4 +137,4 @@ module internal Block =
     /// <summary>
     /// Maps <paramref name="block"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
-    val mapPrefix : mapper: (Trivia list -> Trivia list) -> block: 'a Block -> 'a Block
+    val mapPrefix: mapper: (Trivia list -> Trivia list) -> block: 'a Block -> 'a Block

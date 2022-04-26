@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;netstandard2.1</TargetFrameworks>
+    <TargetFramework>net6.0</TargetFramework>
     <RootNamespace>Microsoft.Quantum.Telemetry</RootNamespace>
     <AssemblyName>Microsoft.Quantum.Telemetry</AssemblyName>
     <Authors>Microsoft</Authors>
@@ -25,9 +25,8 @@
       <_Parameter1>Microsoft.Quantum.Telemetry.Tests$(PublicKeySuffix)</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-    <PackageReference Include="System.Text.Json" Version="4.7.2" />
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Applications.Events.Client" Version="1.1.1.337" />
   </ItemGroup>
 
   <!-- .NET Standard 2.1 references, compilation flags and build options -->

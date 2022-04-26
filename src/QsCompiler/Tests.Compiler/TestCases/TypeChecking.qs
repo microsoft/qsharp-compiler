@@ -935,6 +935,34 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         let op = q => GenericFunction(Adjointable(q), Controllable(q));
     }
 
+    function Lambda23() : Unit {
+        let numbers = [14, 15, 3, -4, 18];
+        let _ = Fold((x, y) -> x + y, 0, numbers);
+    }
+
+    function Lambda24(xs : Int[]) : Int[] {
+        return Mapped(i -> xs[i], xs);
+    }
+
+    function Lambda25(xs : Int[]) : Int[] {
+        return Mapped(i -> xs[i + 1], xs);
+    }
+
+    function Lambda26(xs : Int[]) : Int[] {
+        let f = i -> xs w/ i <- 0;
+        return f(1);
+    }
+
+    function Lambda27(xs : Int[]) : Int[] {
+        let f = i -> xs w/ i + 1 <- 0;
+        return f(1);
+    }
+
+    function Lambda28() : Unit {
+        let f = (n, i) -> [0, size = n] w/ i <- 1;
+        let _ = f(2, 0);
+    }
+
     function LambdaInvalid1() : Qubit => Unit is Adj {
         return q => Operation(q);
     }

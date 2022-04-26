@@ -52,13 +52,11 @@ and private LoopUnrollingStatementKinds(parent: LoopUnrolling, callables, maxSiz
 
             let iterRange =
                 iterValsList
-                |> List.map
-                    (fun x ->
-                        let variableDecl =
-                            QsBinding.New ImmutableBinding (loopVar, x) |> QsVariableDeclaration |> wrapStmt
+                |> List.map (fun x ->
+                    let variableDecl = QsBinding.New ImmutableBinding (loopVar, x) |> QsVariableDeclaration |> wrapStmt
 
-                        let innerScope = { stm.Body with Statements = stm.Body.Statements.Insert(0, variableDecl) }
-                        innerScope |> newScopeStatement |> wrapStmt)
+                    let innerScope = { stm.Body with Statements = stm.Body.Statements.Insert(0, variableDecl) }
+                    innerScope |> newScopeStatement |> wrapStmt)
 
             let outerScope = QsScope.New(iterRange, stm.Body.KnownSymbols)
             return outerScope |> newScopeStatement |> this.OnStatementKind

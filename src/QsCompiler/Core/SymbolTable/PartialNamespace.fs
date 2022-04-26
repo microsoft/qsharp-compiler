@@ -116,8 +116,8 @@ type private PartialNamespace
     member internal this.GetCallable cName =
         CallableDeclarations.TryGetValue cName
         |> tryOption
-        |> Option.defaultWith
-            (fun () -> SymbolNotFoundException "A callable with the given name was not found." |> raise)
+        |> Option.defaultWith (fun () ->
+            SymbolNotFoundException "A callable with the given name was not found." |> raise)
 
     member internal this.ContainsCallable = CallableDeclarations.ContainsKey
 
@@ -169,7 +169,8 @@ type private PartialNamespace
                 | QsTupleItem (n, t) -> ImmutableArray.Create(replaceAnonymous (n, t)) |> QsTuple
                 | QsTuple _ -> buildItem typeTuple
 
-            let returnType = { Type = UserDefinedType(QualifiedSymbol(this.Name, tName) |> withoutRange); Range = Null }
+            let returnType =
+                { Type = UserDefinedType(QualifiedSymbol(this.Name, tName) |> withoutRange); Range = Null }
 
             {
                 TypeParameters = ImmutableArray.Empty
@@ -291,11 +292,10 @@ type private PartialNamespace
         match CallableSpecializations.TryGetValue cName with
         | true, specs ->
             [| 0 .. specs.Count - 1 |]
-            |> Array.collect
-                (fun index ->
-                    let kind, spec = specs.[index]
-                    let resAttr, attErrs = getResAttributes this.Source spec
-                    let res, errs = computeResolution this.Source (kind, spec)
-                    specs.[index] <- (kind, { spec with Resolved = res; ResolvedAttributes = resAttr })
-                    errs |> Array.append attErrs)
+            |> Array.collect (fun index ->
+                let kind, spec = specs.[index]
+                let resAttr, attErrs = getResAttributes this.Source spec
+                let res, errs = computeResolution this.Source (kind, spec)
+                specs.[index] <- (kind, { spec with Resolved = res; ResolvedAttributes = resAttr })
+                errs |> Array.append attErrs)
         | false, _ -> [||]

@@ -451,7 +451,7 @@ type DiagnosticItem =
     | Information of InformationCode
 
     static member private ApplyArguments (args: IEnumerable<string>) str =
-        let args : obj [] =
+        let args: obj [] =
             if args = null then
                 [||]
             else
@@ -465,23 +465,24 @@ type DiagnosticItem =
         with
         | _ -> str // let's fail silently for now
 
-    static member Message(code: ErrorCode, args: IEnumerable<string>) =
-        let unlines = String.concat Environment.NewLine
+    static member Message(code, args) =
+        let typeMismatch summary expected actual =
+            String.concat Environment.NewLine [ summary; "Expected: " + expected; "  Actual: " + actual ]
 
         let message =
             match code with
             | ErrorCode.TypeMismatch ->
-                unlines [ "The type {0} does not match the type {1}."
-                          "Expected type: {2}"
-                          "Actual type:   {3}" ]
+                match Seq.take 4 args |> Seq.toList with
+                | [ expected; expectedParent; actual; actualParent ] when
+                    expected = expectedParent && actual = actualParent
+                    ->
+                    // Use a simplified message if the parent and child types are the same.
+                    "Expected type {0}, but actual type was {2}."
+                | _ -> typeMismatch "Couldn't match type {2} with type {0}." "{1}" "{3}"
             | ErrorCode.TypeIntersectionMismatch ->
-                unlines [ "The type {1} does not {0} the type {2}."
-                          "Left-hand type:  {3}"
-                          "Right-hand type: {4}" ]
+                typeMismatch "The type {3} doesn't {0} type {2}." "{2} (or a related type)" "{4}"
             | ErrorCode.InfiniteType ->
-                unlines [ "The type {0} cannot be unified with {1} because it would create an infinite type."
-                          "Left-hand type:  {2}"
-                          "Right-hand type: {3}" ]
+                typeMismatch "Couldn't create the infinite type while matching {2} and {0}." "{1}" "{3}"
             | ErrorCode.MutableClosure ->
                 "A lambda expression cannot close over a mutable variable. "
                 + "Declare '{0}' as immutable or remove the reference to '{0}'."
@@ -793,8 +794,14 @@ type DiagnosticItem =
                 "The type of the given argument does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.UnexpectedTupleArgument -> "Unexpected argument tuple. Expecting an argument of type {0}."
             | ErrorCode.AmbiguousTypeParameterResolution ->
+                let note =
+                    if Seq.item 1 args |> String.IsNullOrWhiteSpace then
+                        ""
+                    else
+                        Environment.NewLine + "Note: Relevant unsolved constraints: {1}"
+
                 "The type parameter {0} is ambiguous. More type annotations or usage context may be necessary."
-                + if Seq.item 1 args |> String.IsNullOrWhiteSpace then "" else " Note: {0} has constraints {1}."
+                + note
             | ErrorCode.ConstrainsTypeParameter -> "The given expression constrains the type parameter(s) {0}."
             | ErrorCode.GlobalTypeAlreadyExists -> "A type with the name \"{0}\" already exists."
             | ErrorCode.GlobalCallableAlreadyExists -> "A callable with the name \"{0}\" already exists."

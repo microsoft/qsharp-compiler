@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.CsharpGeneration
 
+#nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -112,12 +114,10 @@ module SimulationCode =
 
     let getTypeParameters types =
         let findAll (t: ResolvedType) =
-            t.ExtractAll
-                (fun item ->
-                    item.Resolution
-                    |> function
-                        | QsTypeKind.TypeParameter tp -> seq { yield tp }
-                        | _ -> Enumerable.Empty())
+            t.ExtractAll (fun item ->
+                match item.Resolution with
+                | QsTypeKind.TypeParameter tp -> seq { tp }
+                | _ -> Seq.empty)
 
         types |> Seq.collect findAll |> Seq.distinctBy (fun tp -> tp.Origin, tp.TypeName) |> Seq.toList
 
@@ -283,19 +283,23 @@ module SimulationCode =
             base.OnBorrowQubits node
 
     /// Used to discover which operations are used by a certain code block.
-    type OperationsSeeker private (_private_) =
-        inherit SyntaxTreeTransformation<HashSet<QsQualifiedName>>(new HashSet<_>(), TransformationOptions.NoRebuild)
+    type OperationsSeeker() as this =
+        inherit SyntaxTreeTransformation<HashSet<QsQualifiedName>>(HashSet(), TransformationOptions.NoRebuild)
 
-        new() as this =
-            new OperationsSeeker("_private_")
-            then
-                this.StatementKinds <- new StatementKindSeeker(this)
-                this.Expressions <- new ExpressionSeeker(this)
-                this.Types <- new TypeTransformation<HashSet<QsQualifiedName>>(this, TransformationOptions.Disabled)
+        do
+            this.StatementKinds <- StatementKindSeeker this
+            this.Expressions <- ExpressionSeeker this
+            this.Types <- TypeTransformation<HashSet<QsQualifiedName>>(this, TransformationOptions.Disabled)
 
-
-    type SyntaxBuilder private (_private_) =
+    type SyntaxBuilder(context) as this =
         inherit SyntaxTreeTransformation(TransformationOptions.NoRebuild)
+
+        do
+            this.Namespaces <- NamespaceBuilder this
+            this.Statements <- StatementBlockBuilder this
+            this.StatementKinds <- StatementBuilder(this, context)
+            this.Expressions <- ExpressionTransformation(this, TransformationOptions.Disabled)
+            this.Types <- TypeTransformation(this, TransformationOptions.Disabled)
 
         member val DeclarationsInStatement = LocalDeclarations.Empty with get, set
         member val DeclarationsInScope = LocalDeclarations.Empty with get, set
@@ -304,15 +308,6 @@ module SimulationCode =
 
         member val StartLine = None with get, set
         member val LineNumber = None with get, set
-
-        new(context: CodegenContext) as this =
-            new SyntaxBuilder("_private_")
-            then
-                this.Namespaces <- new NamespaceBuilder(this)
-                this.Statements <- new StatementBlockBuilder(this)
-                this.StatementKinds <- new StatementBuilder(this, context)
-                this.Expressions <- new ExpressionTransformation(this, TransformationOptions.Disabled)
-                this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
 
     /// Used to generate the list of statements that implement a Q# operation specialization.
     and StatementBlockBuilder(parent: SyntaxBuilder) =
@@ -384,6 +379,9 @@ module SimulationCode =
             match expression with
             | CallLikeExpression (op, args) when TypedExpression.IsPartialApplication expression -> Some(op, args)
             | _ -> None
+
+        let addStatement s =
+            parent.BuiltStatements <- parent.BuiltStatements @ [ withLineNumber s ]
 
         // Builds Roslyn code for a Q# expression
         let rec buildExpression (ex: TypedExpression) =
@@ -460,6 +458,7 @@ module SimulationCode =
             | NewUdt (udt, args) -> buildNewUdt udt args // needs to be before CallLikeExpression!
             | CallLikeExpression (op, args) -> buildApply ex.ResolvedType op args
             | MissingExpr -> ident "_" :> ExpressionSyntax
+
         and captureExpression (ex: TypedExpression) =
             match ex.Expression with
             | Identifier (s, _) when ex.InferredInformation.IsMutable ->
@@ -467,6 +466,7 @@ module SimulationCode =
                 | QsTypeKind.ArrayType _ -> invoke (buildId s <|?.|> (ident "Copy")) ``(`` [] ``)``
                 | _ -> buildExpression ex
             | _ -> buildExpression ex
+
         and buildNamedItem ex acc =
             match acc with
             | LocalVariable name ->
@@ -480,16 +480,19 @@ module SimulationCode =
             | _ ->
                 // TODO: Diagnostics
                 failwith "Invalid identifier for named item"
+
         and buildAddExpr (exType: ResolvedType) lhs rhs =
             match exType.Resolution |> QArrayType with
             | Some arrType -> arrType <.> (ident "Add", [ buildExpression lhs; buildExpression rhs ])
             | _ -> ``((`` ((buildExpression lhs) <+> (buildExpression rhs)) ``))``
+
         and buildInterpolatedString (s: string) (exs: ImmutableArray<TypedExpression>) =
             if exs.Length <> 0 then
                 let exprs = exs |> Seq.map buildExpression |> Seq.toList
                 invoke (ident "String.Format") ``(`` (literal s :: exprs) ``)``
             else
                 literal s
+
         and buildId id : ExpressionSyntax =
             match id with
             | LocalVariable n -> n |> ident :> ExpressionSyntax
@@ -497,6 +500,7 @@ module SimulationCode =
             | InvalidIdentifier ->
                 // TODO: Diagnostics
                 failwith "Received InvalidIdentifier"
+
         and buildCopyAndUpdateExpression (lhsEx: TypedExpression, accEx: TypedExpression, rhsEx) =
             match lhsEx.ResolvedType.Resolution |> QArrayType with
             | Some arrayType ->
@@ -554,8 +558,10 @@ module SimulationCode =
                     | _ ->
                         failwith
                             "copy-and-update expressions are currently only supported for arrays and user defined types"
+
         and buildTuple many : ExpressionSyntax =
             many |> Seq.map captureExpression |> Seq.toList |> tuple // captured since we rely on the native C# tuples
+
         and buildPartial (partialType: ResolvedType) typeParamResolutions opEx args =
             let (pIn, pOut) = inAndOutputType partialType // The type of the operation constructed by partial application
             let (oIn, _) = inAndOutputType opEx.ResolvedType // The type of the operation accepting the partial tuples.
@@ -607,10 +613,12 @@ module SimulationCode =
             // If it does, we can't create the PartialMapper at compile time
             // so we just build a partial-tuple and let it be resolved at runtime.
             let op = buildExpression opEx
-            let values = if hasTypeParameters [ pIn; pOut ] then args |> captureExpression else buildPartialMapper ()
+            let values = if hasTypeParameters [ pIn; pOut ] then captureExpression args else buildPartialMapper ()
             op <.> (ident "Partial", [ values ])
+
         and buildNewUdt n args =
             ``new`` (``type`` [ justTheName context n ]) ``(`` [ args |> captureExpression ] ``)``
+
         and buildApply returnType op args =
             // Checks if the expression points to a non-generic user-defined callable.
             // Because these have fully-resolved types in the runtime,
@@ -645,11 +653,13 @@ module SimulationCode =
                     (ident "Apply")
 
             buildExpression op <.> (apply, [ args |> captureExpression ]) // we need to capture to guarantee that the result accurately reflects any indirect binding of arguments
+
         and buildConditional c t f =
             let cond = c |> buildExpression
             let whenTrue = t |> captureExpression
             let whenFalse = f |> captureExpression
             ``?`` cond (whenTrue, whenFalse)
+
         and buildRange lhs rEnd =
             let args =
                 lhs.Expression
@@ -659,17 +669,24 @@ module SimulationCode =
                     | _ -> [ (buildExpression lhs); (buildExpression rEnd) ]
 
             ``new`` (``type`` [ "QRange" ]) ``(`` args ``)``
+
         and buildValueArray at elems =
             match at.Resolution |> QArrayType with
             | Some arrayType -> ``new`` arrayType ``(`` (elems |> Seq.map captureExpression |> Seq.toList) ``)``
             // TODO: diagnostics.
             | _ -> failwith ""
+
         and buildSizedArray value size =
-            let supplier = ``() =>`` [] (captureExpression value) :> ExpressionSyntax
+            let valueName = nextArgName ()
+            var valueName (``:=`` (buildExpression value)) |> ``#line hidden`` |> addStatement
+            let valueId = { value with Expression = Identifier(LocalVariable valueName, Null); Range = Null }
+            let supplier = ``() =>`` [] (captureExpression valueId) :> ExpressionSyntax
             ident "QArray" <.> (ident "Filled", [ supplier; buildExpression size ])
+
         and buildNewArray b count =
             let arrayType = (ArrayType b |> QArrayType).Value
             arrayType <.> (ident "Create", [ count |> buildExpression ])
+
         and buildArrayItem a i =
             match i.ResolvedType.Resolution with
             | Range -> invoke ((buildExpression a) <|.|> (ident "Slice")) ``(`` [ (buildExpression i) ] ``)``
@@ -717,18 +734,15 @@ module SimulationCode =
             | CONDITIONAL (_, l, r) -> isArrayInit l && isArrayInit r
             | _ -> false
 
-        member this.AddStatement(s: StatementSyntax) =
-            parent.BuiltStatements <- parent.BuiltStatements @ [ s |> withLineNumber ]
-
-        override this.OnExpressionStatement(node: TypedExpression) =
-            buildExpression node |> (statement >> this.AddStatement)
+        override _.OnExpressionStatement(node: TypedExpression) =
+            buildExpression node |> statement |> addStatement
             QsExpressionStatement node
 
-        override this.OnReturnStatement(node: TypedExpression) =
-            buildExpression node |> Some |> ``return`` |> this.AddStatement
+        override _.OnReturnStatement(node: TypedExpression) =
+            buildExpression node |> Some |> ``return`` |> addStatement
             QsReturnStatement node
 
-        override this.OnVariableDeclaration(node: QsBinding<TypedExpression>) =
+        override _.OnVariableDeclaration(node: QsBinding<TypedExpression>) =
             let bindsArrays = node.Rhs.ResolvedType |> containsArrays
             let rhs = node.Rhs |> captureExpression
 
@@ -737,9 +751,9 @@ module SimulationCode =
 
                 if bindsArrays then // we need to cast to the correct type here (in particular to IQArray for arrays)
                     let t = roslynTypeName context node.Rhs.ResolvedType
-                    var lhs (``:=`` <| cast t rhs) |> this.AddStatement
+                    var lhs (``:=`` <| cast t rhs) |> addStatement
                 else
-                    var lhs (``:=`` <| rhs) |> this.AddStatement
+                    var lhs (``:=`` <| rhs) |> addStatement
 
             match node.Kind with
             | MutableBinding ->
@@ -749,10 +763,10 @@ module SimulationCode =
                 | VariableName varName ->
                     match node.Rhs.ResolvedType.Resolution |> QArrayType with
                     | Some _ when isArrayInit node.Rhs -> // avoid unnecessary copies on construction
-                        var varName (``:=`` <| rhs) |> this.AddStatement
+                        var varName (``:=`` <| rhs) |> addStatement
                     | Some arrType -> // we need to make sure to bind to a new QArray instance here
                         let qArray = ``new`` arrType ``(`` [ rhs ] ``)``
-                        var varName (``:=`` <| qArray) |> this.AddStatement
+                        var varName (``:=`` <| qArray) |> addStatement
                     | _ -> buildBinding id
 
                 // we first need to destruct here, and then make sure all QArrays are built
@@ -769,14 +783,14 @@ module SimulationCode =
                         match localVar.Type.Resolution |> QArrayType with
                         | Some arrType ->
                             let qArray = ``new`` arrType ``(`` [ ident (imName varName) ] ``)``
-                            var varName (``:=`` <| qArray) |> this.AddStatement
-                        | _ -> var varName (``:=`` <| ident (imName varName)) |> this.AddStatement
+                            var varName (``:=`` <| qArray) |> addStatement
+                        | _ -> var varName (``:=`` <| ident (imName varName)) |> addStatement
                 | _ -> buildBinding id
             | _ -> buildBinding id
 
             QsVariableDeclaration node
 
-        override this.OnValueUpdate(node: QsValueUpdate) =
+        override _.OnValueUpdate(node: QsValueUpdate) =
             let rec varNames onTuple onItem (ex: TypedExpression) =
                 match ex.Expression with
                 | MissingExpr -> onItem "_"
@@ -788,7 +802,7 @@ module SimulationCode =
             let lhs, rhs = buildExpression node.Lhs, captureExpression node.Rhs
 
             match node.Lhs.Expression with
-            | MissingExpr -> var (nextArgName ()) (``:=`` <| buildExpression node.Rhs) |> this.AddStatement
+            | MissingExpr -> var (nextArgName ()) (``:=`` <| buildExpression node.Rhs) |> addStatement
 
             // no need to insert a destructing statement first
             | Identifier (LocalVariable id, Null) ->
@@ -805,18 +819,18 @@ module SimulationCode =
                 match node.Rhs.Expression with
                 | CopyAndUpdate (l, a, r) when l |> matchesIdentifier && l.ResolvedType.Resolution |> isArray -> // we do an in-place modification in this case
                     let access, rhs = buildExpression a, captureExpression r
-                    (buildExpression l) <.> (ident "Modify", [ access; rhs ]) |> statement |> this.AddStatement
+                    (buildExpression l) <.> (ident "Modify", [ access; rhs ]) |> statement |> addStatement
                 | _ when node.Rhs |> matchesIdentifier -> () // unnecessary statement
                 | _ ->
                     node.Rhs.ResolvedType.Resolution
                     |> QArrayType
                     |> function
                         | Some _ when isArrayInit node.Rhs -> // avoid unnecessary copies here
-                            lhs <-- rhs |> statement |> this.AddStatement
+                            lhs <-- rhs |> statement |> addStatement
                         | Some arrType -> // we need to make sure to bind to a new QArray instance here
                             let qArray = ``new`` arrType ``(`` [ rhs ] ``)``
-                            lhs <-- qArray |> statement |> this.AddStatement
-                        | _ -> lhs <-- rhs |> statement |> this.AddStatement
+                            lhs <-- qArray |> statement |> addStatement
+                        | _ -> lhs <-- rhs |> statement |> addStatement
 
             // we first need to destruct here, and then make sure all QArrays are built
             | _ when containsArrays node.Rhs.ResolvedType ->
@@ -827,7 +841,7 @@ module SimulationCode =
                     if name = "_" then name else sprintf "%s%s__" prefix name
 
                 let tempBinding = varNames (fun ids -> String.Join(",", ids) |> sprintf "(%s)") imName node.Lhs
-                var tempBinding (``:=`` <| rhs) |> this.AddStatement
+                var tempBinding (``:=`` <| rhs) |> addStatement
 
                 // build the actual binding, making sure all necessary QArrays instances are created
                 let ids = varNames (Seq.collect id) (fun id -> seq { if id <> "_" then yield id }) node.Lhs
@@ -838,14 +852,14 @@ module SimulationCode =
                     match decl |> Option.map (fun d -> d.Type.Resolution |> QArrayType) |> Option.flatten with
                     | Some arrType -> // we need to make sure to create a new QArray instance here
                         let qArray = ``new`` arrType ``(`` [ imName id |> ident ] ``)``
-                        (ident id) <-- qArray |> statement |> this.AddStatement
-                    | _ -> (ident id) <-- (imName id |> ident) |> statement |> this.AddStatement
+                        (ident id) <-- qArray |> statement |> addStatement
+                    | _ -> (ident id) <-- (imName id |> ident) |> statement |> addStatement
 
-            | _ -> lhs <-- rhs |> statement |> this.AddStatement
+            | _ -> lhs <-- rhs |> statement |> addStatement
 
             QsValueUpdate node
 
-        override this.OnConditionalStatement(node: QsConditionalStatement) =
+        override _.OnConditionalStatement(node: QsConditionalStatement) =
             let all = node.ConditionalBlocks
             let (cond, thenBlock) = all.[0]
             let cond = cond |> buildExpression
@@ -863,26 +877,26 @@ module SimulationCode =
                 | Null -> None
                 | Value block -> ``else`` (buildBlock block.Body) |> Some
 
-            ``if`` ``(`` cond ``)`` thenBlock (``elif`` others elseBlock) |> this.AddStatement
+            ``if`` ``(`` cond ``)`` thenBlock (``elif`` others elseBlock) |> addStatement
             QsConditionalStatement node
 
-        override this.OnForStatement(node: QsForStatement) =
+        override _.OnForStatement(node: QsForStatement) =
             let sym = node.LoopItem |> fst |> buildSymbolNames id
             let range = node.IterationValues |> captureExpression
             let body = node.Body |> buildBlock
-            foreach ``(`` sym ``in`` range ``)`` body |> this.AddStatement
+            foreach ``(`` sym ``in`` range ``)`` body |> addStatement
             QsForStatement node
 
-        override this.OnWhileStatement(node: QsWhileStatement) =
+        override _.OnWhileStatement(node: QsWhileStatement) =
             let cond = node.Condition |> buildExpression
             let body = node.Body |> buildBlock
-            ``while`` ``(`` cond ``)`` body |> this.AddStatement
+            ``while`` ``(`` cond ``)`` body |> addStatement
             QsWhileStatement node
 
-        override this.OnRepeatStatement rs =
+        override _.OnRepeatStatement rs =
             let buildTest test fixup =
                 let condition = buildExpression test
-                let thens = [ ``break`` ]
+                let thens = [ break ]
                 let elses = buildBlock fixup
                 ``if`` ``(`` condition ``)`` thens (Some(``else`` elses))
 
@@ -891,11 +905,11 @@ module SimulationCode =
                 ``true``
                 ``)``
                 ((buildBlock rs.RepeatBlock.Body) @ [ buildTest rs.SuccessCondition rs.FixupBlock.Body ])
-            |> this.AddStatement
+            |> addStatement
 
             QsRepeatStatement rs
 
-        override this.OnQubitScope(using: QsQubitScope) =
+        override _.OnQubitScope(using: QsQubitScope) =
             let (alloc, release) =
                 match using.Kind with
                 | Allocate -> "Allocate__", "Release__"
@@ -983,13 +997,13 @@ module SimulationCode =
             // Make sure the brackets get #line hidden:
             let currentLine = parent.LineNumber
             parent.LineNumber <- parent.LineNumber |> Option.map (fun _ -> 0)
-            ``{{`` statements ``}}`` |> this.AddStatement
+            ``{{`` statements ``}}`` |> addStatement
             parent.LineNumber <- currentLine
             QsQubitScope using
 
-        override this.OnFailStatement fs =
+        override _.OnFailStatement fs =
             let failException = ``new`` (``type`` [ "ExecutionFailException" ]) ``(`` [ (buildExpression fs) ] ``)``
-            this.AddStatement(throw <| Some failException)
+            addStatement (throw <| Some failException)
             QsFailStatement fs
 
     and NamespaceBuilder(parent: SyntaxBuilder) =
@@ -1091,8 +1105,8 @@ module SimulationCode =
             // Use the right accessibility for the property depending on the accessibility of the callable.
             // Note: In C#, "private protected" is the intersection of protected and internal.
             match getCallableAccess qualifiedName |> Option.defaultValue Public with
-            | Public -> [ ``protected`` ]
-            | Internal -> [ ``private``; ``protected`` ]
+            | Public -> [ protected ]
+            | Internal -> [ ``private``; protected ]
 
         let buildOne qualifiedName =
             /// eg:
@@ -1114,6 +1128,8 @@ module SimulationCode =
                 sprintf "IonQEntryPointInfo<%s, %s>" operationInput operationOutput
             | target when target = AssemblyConstants.QCIProcessor ->
                 sprintf "QCIEntryPointInfo<%s, %s>" operationInput operationOutput
+            | target when target = AssemblyConstants.QuantinuumProcessor ->
+                sprintf "QuantinuumEntryPointInfo<%s, %s>" operationInput operationOutput
             | _ -> sprintf "EntryPointInfo<%s, %s>" operationInput operationOutput
 
         let operationType = simpleBase operationName
@@ -1462,7 +1478,7 @@ module SimulationCode =
         ``property-arrow_get`` "String" "ICallable.Name" [] get (``=>`` (literal name)) :> MemberDeclarationSyntax
 
     let buildImpl name =
-        propg "IOperationFactory" "Impl" [ ``private``; ``protected`` ] :> MemberDeclarationSyntax
+        propg "IOperationFactory" "Impl" [ ``private``; protected ] :> MemberDeclarationSyntax
 
     let buildFullName (name: QsQualifiedName) =
         let fqn =
@@ -1752,8 +1768,7 @@ module SimulationCode =
             op.Attributes
             |> SymbolResolution.TryFindTestTargets
             |> Seq.filter (String.IsNullOrWhiteSpace >> not)
-            |> Seq.map
-                (function
+            |> Seq.map (function
                 | x when x.Contains(".") ->
                     let indexOfDot = x.LastIndexOf('.')
                     { Namespace = x.Substring(0, indexOfDot); Name = x.Substring(indexOfDot + 1) }
@@ -1970,9 +1985,8 @@ module SimulationCode =
     // Returns only those namespaces and their elements that are defined for the given file.
     let findLocalElements selector (fileName: string) syntaxTree =
         syntaxTree
-        |> Seq.map
-            (fun ns ->
-                (ns.Name, (FilterBySourceFile.Apply(ns, fileName)).Elements |> Seq.choose selector |> Seq.toList))
+        |> Seq.map (fun ns ->
+            (ns.Name, (FilterBySourceFile.Apply(ns, fileName)).Elements |> Seq.choose selector |> Seq.toList))
         |> Seq.sortBy fst
         |> Seq.filter (fun (_, elements) -> not elements.IsEmpty)
         |> Seq.toList

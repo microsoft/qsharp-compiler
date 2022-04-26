@@ -160,8 +160,7 @@ module internal ResolutionResult =
     let internal TryAtMostOne<'T> (nsGetter: 'T -> string) (results: seq<ResolutionResult<'T>>) : ResolutionResult<'T> =
         let found =
             results
-            |> Seq.filter
-                (function
+            |> Seq.filter (function
                 | Found _ -> true
                 | _ -> false)
 
@@ -306,7 +305,8 @@ module SymbolResolution =
         let getTarget (att: QsDeclarationAttribute) =
             if att |> BuiltIn.MarksTestOperation then Some att.Argument else None
 
-        let validTargets = CommandLineArguments.BuiltInSimulators.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
+        let validTargets =
+            CommandLineArguments.BuiltInSimulators.ToImmutableDictionary(fun t -> t.ToLowerInvariant())
 
         let targetName (target: string) =
             if target = null then
@@ -548,8 +548,7 @@ module SymbolResolution =
                 ImmutableArray.Create udtTuple |> QsTuple |> ResolveArgumentTuple(resolveItem, resolveType)
 
         let underlyingType =
-            argTuple.ResolveWith
-                (function
+            argTuple.ResolveWith (function
                 | Anonymous t -> t.WithoutRangeInfo
                 | Named x -> x.Type.WithoutRangeInfo)
 
@@ -1148,7 +1147,7 @@ module SymbolResolution =
         (properties: ImmutableDictionary<_, _>)
         (kind, spec: Resolution<QsSpecializationGenerator, ResolvedGenerator>)
         =
-        let bundle : SpecializationBundleProperties = properties.[SpecializationBundleProperties.BundleId spec]
+        let bundle = properties.[SpecializationBundleProperties.BundleId spec]
 
         let impl, err =
             match kind with
