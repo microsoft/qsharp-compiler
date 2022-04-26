@@ -3,12 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
-#nowarn "44" // RuntimeCapabilities is deprecated.
-
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
-open System
-open System.Runtime.CompilerServices
 
 /// The runtime capabilities supported by a quantum processor.
 [<NoComparison>]
@@ -49,14 +44,10 @@ type RuntimeCapability =
 
     /// Parses the string as a runtime capability.
     static member TryParse value =
-        // TODO: RELEASE 2021-04: Remove parsing for "QPRGen0", "QPRGen1", and "Unknown".
         match value with
-        | "BasicQuantumFunctionality"
-        | "QPRGen0" -> Value BasicQuantumFunctionality
-        | "BasicMeasurementFeedback"
-        | "QPRGen1" -> Value BasicMeasurementFeedback
-        | "FullComputation"
-        | "Unknown" -> Value FullComputation
+        | "BasicQuantumFunctionality" -> Value BasicQuantumFunctionality
+        | "BasicMeasurementFeedback" -> Value BasicMeasurementFeedback
+        | "FullComputation" -> Value FullComputation
         | _ -> Null
 
     member this.Name =
@@ -64,15 +55,3 @@ type RuntimeCapability =
         | BasicQuantumFunctionality -> "BasicQuantumFunctionality"
         | BasicMeasurementFeedback -> "BasicMeasurementFeedback"
         | FullComputation -> "FullComputation"
-
-// TODO: RELEASE 2021-04: Remove RuntimeCapabilitiesExtensions.
-[<Extension>]
-[<Obsolete "Use Microsoft.Quantum.QsCompiler.RuntimeCapability.">]
-module RuntimeCapabilitiesExtensions =
-    [<Extension>]
-    [<Obsolete "Use Microsoft.Quantum.QsCompiler.RuntimeCapability.">]
-    let ToCapability capabilities =
-        match capabilities with
-        | RuntimeCapabilities.QPRGen0 -> BasicQuantumFunctionality
-        | RuntimeCapabilities.QPRGen1 -> BasicMeasurementFeedback
-        | _ -> FullComputation

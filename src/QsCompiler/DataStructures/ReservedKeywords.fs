@@ -276,22 +276,6 @@ module AssemblyConstants =
     let DocsPackageId = "DocsPackageId"
     let GenerateConcreteIntrinsic = "GenerateConcreteIntrinsic"
 
-    /// The runtime capabilities supported by an execution target. The names of the capabilities here match the ones
-    /// defined by the SDK.
-    // TODO: RELEASE 2021-04: Remove RuntimeCapabilities.
-    [<Obsolete "Replaced by Microsoft.Quantum.QsCompiler.RuntimeCapability.">]
-    type RuntimeCapabilities =
-        /// No known runtime restrictions. Any Q# program can be executed.
-        | Unknown = 0
-
-        /// Measurement results cannot be compared for equality.
-        | QPRGen0 = 1
-
-        /// Measurement results can be compared for equality only in if-statement conditional expressions in operations.
-        /// The block of an if-statement that depends on a result cannot contain set statements for mutable variables
-        /// declared outside the block, or return statements.
-        | QPRGen1 = 2
-
 /// contains reserved names for command line arguments of Q# projects
 module CommandLineArguments =
     let SimulatorOption = ("simulator", "s")
