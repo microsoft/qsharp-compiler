@@ -1,4 +1,7 @@
-﻿module Microsoft.Quantum.QsCompiler.Testing.CapabilityInferenceTests
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.Testing.CapabilityInferenceTests
 
 open System.IO
 open Microsoft.Quantum.QsCompiler
@@ -8,15 +11,14 @@ open Xunit
 
 /// A mapping of all callables in the capability verification tests, after inferring capabilities.
 let private callables =
-    CompilerTests.Compile(
-        "TestCases",
-        [ "CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs" ],
-        references = [ (File.ReadAllLines "ReferenceTargets.txt").[2] ]
-    )
-    |> fun compilation -> compilation.BuiltCompilation
-    |> Capabilities.inferAttributes
-    |> fun compilation -> compilation.Namespaces
-    |> GlobalCallableResolutions
+    let compilation =
+        CompilerTests.Compile(
+            "TestCases",
+            [ "CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs" ],
+            references = [ File.ReadAllLines "ReferenceTargets.txt" |> Array.item 2 ]
+        )
+
+    GlobalCallableResolutions (Capabilities.infer compilation.BuiltCompilation).Namespaces
 
 /// Asserts that the inferred capability of the callable with the given name matches the expected capability.
 let private expect capability name =

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference;
@@ -31,19 +30,19 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool PreconditionVerification(QsCompilation compilation)
         {
-            var targetingNamespace = compilation.Namespaces.FirstOrDefault(ns =>
-                ns.Name.Equals(BuiltIn.TargetingNamespace));
-            var hasCapabilityAttribute = targetingNamespace?.Elements.Any(element =>
-                element.GetFullName().Equals(BuiltIn.RequiresCapability.FullName)) ?? false;
-            return hasCapabilityAttribute && !this.AssemblyConstants.ContainsKey(ExecutionTarget);
+            var targeting = compilation.Namespaces.FirstOrDefault(ns => ns.Name == BuiltIn.TargetingNamespace);
+            var requiresCapability = targeting?.Elements.FirstOrDefault(e =>
+                e.GetFullName().Equals(BuiltIn.RequiresCapability.FullName));
+
+            return requiresCapability is not null && !this.AssemblyConstants.ContainsKey(ExecutionTarget);
         }
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = Capabilities.InferAttributes(compilation);
+            transformed = Capabilities.Infer(compilation);
             return true;
         }
 
-        public bool PostconditionVerification(QsCompilation compilation) => throw new NotSupportedException();
+        public bool PostconditionVerification(QsCompilation compilation) => true;
     }
 }

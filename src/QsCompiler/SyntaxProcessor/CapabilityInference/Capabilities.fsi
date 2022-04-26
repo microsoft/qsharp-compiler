@@ -17,7 +17,6 @@ val diagnose:
     callable: QsCallable ->
         QsCompilerDiagnostic seq
 
-/// Infers the capability of all callables in the compilation, adding the built-in Capability attribute to each
-/// callable.
-[<CompiledName "InferAttributes">]
-val inferAttributes: compilation: QsCompilation -> QsCompilation
+/// Infers the capability of all callables in the compilation and adds the corresponding attribute to each one.
+[<CompiledName "Infer">]
+val infer: compilation: QsCompilation -> QsCompilation

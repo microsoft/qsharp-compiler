@@ -73,8 +73,8 @@ let capabilityAttribute (capability: RuntimeCapability) =
     let args = AttributeUtils.StringArguments(string capability, "Inferred automatically by the compiler.")
     AttributeUtils.BuildAttribute(BuiltIn.RequiresCapability.FullName, args)
 
-[<CompiledName "InferAttributes">]
-let inferAttributes compilation =
+[<CompiledName "Infer">]
+let infer compilation =
     let transformation = SyntaxTreeTransformation()
     let callables = GlobalCallableResolutions compilation.Namespaces
     let graph = CallGraph compilation
