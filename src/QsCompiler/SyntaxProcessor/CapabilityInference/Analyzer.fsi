@@ -5,7 +5,6 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type Target =

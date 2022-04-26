@@ -25,5 +25,3 @@ module internal CallAnalyzer =
         graph: CallGraph ->
         syntaxAnalyzer: Analyzer<QsCallable, IPattern> ->
             Analyzer<QsCallable, IPattern>
-
-    val isLocal: source: Source -> bool

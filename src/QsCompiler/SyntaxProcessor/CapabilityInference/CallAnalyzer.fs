@@ -65,6 +65,72 @@ type TransitiveCallPattern =
 
         member _.Diagnose _ = None
 
+type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: CallGraph, syntaxAnalyzer: Analyzer<_, _>) =
+    let findCallable (node: CallGraphNode) =
+        callables.TryGetValue node.CallableName |> tryOption
+
+    let syntaxPatterns =
+        callables
+        |> Seq.filter (fun c -> QsNullable.isNull c.Value.Source.AssemblyFile)
+        |> Seq.map (fun c -> c.Key, syntaxAnalyzer c.Value |> Seq.toList)
+        |> readOnlyDict
+
+    let cycles =
+        graph.GetCallCycles()
+        |> Seq.filter (findCallable >> Option.exists (fun c -> QsNullable.isNull c.Source.AssemblyFile) |> Seq.exists)
+
+    let cycleCapabilities = Dictionary()
+    let callablePatterns = Dictionary()
+    let visitedCallables = HashSet()
+
+    do
+        for cycle in cycles do
+            let capability =
+                Seq.choose findCallable cycle
+                |> Seq.collect syntaxAnalyzer
+                |> Seq.map (fun p -> p.Capability)
+                |> Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
+
+            for node in cycle do
+                cycleCapabilities[node.CallableName] <- tryOption (cycleCapabilities.TryGetValue node.CallableName)
+                                                        |> Option.fold RuntimeCapability.Combine capability
+
+    member analyzer.Analyze(callable: QsCallable) =
+        let storePatterns () =
+            if visitedCallables.Add callable.FullName then
+                let patterns = analyzer.CallablePatterns callable
+                callablePatterns[callable.FullName] <- patterns
+                patterns
+            else
+                []
+
+        callablePatterns.TryGetValue callable.FullName |> tryOption |> Option.defaultWith storePatterns
+
+    member private analyzer.CallablePatterns(callable: QsCallable) : IPattern list =
+        match SymbolResolution.TryGetRequiredCapability callable.Attributes with
+        | Value capability -> [ TransitiveCallPattern capability ]
+        | Null when QsNullable.isNull callable.Source.AssemblyFile ->
+            [
+                match syntaxPatterns.TryGetValue callable.FullName with
+                | true, patterns -> yield! patterns
+                | false, _ -> ()
+
+                match cycleCapabilities.TryGetValue callable.FullName with
+                | true, capability -> TransitiveCallPattern capability
+                | false, _ -> ()
+
+                analyzer.DependentCapability callable.FullName |> TransitiveCallPattern
+            ]
+        | Null -> []
+
+    member private analyzer.DependentCapability name =
+        graph.GetDirectDependencies(CallGraphNode name)
+        |> Seq.map (fun group -> group.Key)
+        |> Seq.choose findCallable
+        |> Seq.collect analyzer.Analyze
+        |> Seq.map (fun p -> p.Capability)
+        |> Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
+
 module CallAnalyzer =
     let globalCallableIds action =
         let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
@@ -85,8 +151,6 @@ module CallAnalyzer =
         action transformation
         references
 
-    let isLocal source = QsNullable.isNull source.AssemblyFile
-
     let shallow (nsManager: NamespaceManager) (graph: CallGraph) (node: CallGraphNode) =
         let offset, source =
             match nsManager.TryGetCallable node.CallableName ("", "") with
@@ -94,7 +158,7 @@ module CallAnalyzer =
             | _ -> failwith "Callable not found."
 
         let dependencies =
-            if isLocal source then
+            if QsNullable.isNull source.AssemblyFile then
                 graph.GetDirectDependencies node
                 |> Seq.collect (fun group ->
                     group |> Seq.map (fun edge -> group.Key.CallableName, offset + edge.ReferenceRange |> Value))
@@ -120,68 +184,6 @@ module CallAnalyzer =
                 if Set.contains name callablesInCycle then CallPattern.create Recursive node.CallableName range
         }
 
-    let deep (callables: ImmutableDictionary<_, QsCallable>) (graph: CallGraph) (syntaxAnalyzer: Analyzer<_, _>) =
-        let findCallable (node: CallGraphNode) =
-            callables.TryGetValue node.CallableName |> tryOption
-
-        let syntaxPatterns =
-            callables
-            |> Seq.filter (fun c -> isLocal c.Value.Source)
-            |> Seq.map (fun c -> c.Key, syntaxAnalyzer c.Value |> Seq.toList)
-            |> readOnlyDict
-
-        let cycles =
-            graph.GetCallCycles()
-            |> Seq.filter (findCallable >> Option.exists (fun c -> isLocal c.Source) |> Seq.exists)
-
-        let cycleCapabilities = Dictionary()
-
-        for cycle in cycles do
-            let capability =
-                Seq.choose findCallable cycle
-                |> Seq.collect syntaxAnalyzer
-                |> Seq.map (fun p -> p.Capability)
-                |> Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
-
-            for node in cycle do
-                cycleCapabilities[node.CallableName] <- tryOption (cycleCapabilities.TryGetValue node.CallableName)
-                                                        |> Option.fold RuntimeCapability.Combine capability
-
-        let cache = Dictionary()
-
-        let rec dependentCapability visited name =
-            let visited = Set.add name visited
-
-            graph.GetDirectDependencies(CallGraphNode name)
-            |> Seq.map (fun group -> group.Key)
-            |> Seq.filter (fun node -> Set.contains node.CallableName visited |> not)
-            |> Seq.choose findCallable
-            |> Seq.collect (callablePatterns visited)
-            |> Seq.map (fun p -> p.Capability)
-            |> Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
-
-        and callablePatterns visited callable : IPattern seq =
-            match cache.TryGetValue callable.FullName with
-            | true, patterns -> patterns
-            | false, _ ->
-                let patterns: IPattern seq =
-                    match SymbolResolution.TryGetRequiredCapability callable.Attributes with
-                    | Value capability -> seq { TransitiveCallPattern capability }
-                    | Null when isLocal callable.Source ->
-                        seq {
-                            match syntaxPatterns.TryGetValue callable.FullName with
-                            | true, patterns -> yield! patterns
-                            | false, _ -> ()
-
-                            match cycleCapabilities.TryGetValue callable.FullName with
-                            | true, capability -> TransitiveCallPattern capability
-                            | false, _ -> ()
-
-                            dependentCapability visited callable.FullName |> TransitiveCallPattern
-                        }
-                    | Null -> Seq.empty
-
-                cache[callable.FullName] <- patterns
-                patterns
-
-        callablePatterns Set.empty
+    let deep callables graph syntaxAnalyzer : Analyzer<_, _> =
+        let analyzer = DeepCallAnalyzer(callables, graph, syntaxAnalyzer)
+        fun callable -> analyzer.Analyze callable
