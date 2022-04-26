@@ -9,15 +9,14 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-type StatementPattern =
-    | StatementPattern of Range QsNullable
+let createPattern _range =
+    {
+        Capability = RuntimeCapability.Base // TODO
+        Diagnose = fun _ -> None // TODO
+        Properties = ()
+    }
 
-    interface IPattern with
-        member _.Capability = RuntimeCapability.Base // TODO
-
-        member _.Diagnose _ = None // TODO
-
-let analyzer action =
+let analyzer action : _ seq =
     let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable numReturns = 0
@@ -31,14 +30,14 @@ let analyzer action =
                 | QsFailStatement _
                 | QsRepeatStatement _
                 | QsValueUpdate _ // TODO: Update-and-reassign only?
-                | QsWhileStatement _ -> StatementPattern range |> patterns.Add
+                | QsWhileStatement _ -> createPattern range |> patterns.Add
                 | QsReturnStatement _ ->
                     numReturns <- numReturns + 1
-                    if numReturns > 1 then StatementPattern range |> patterns.Add
+                    if numReturns > 1 then createPattern range |> patterns.Add
                 | _ -> ()
 
                 base.OnStatement statement
         }
 
     action transformation
-    Seq.map (fun p -> p :> IPattern) patterns
+    patterns

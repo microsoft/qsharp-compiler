@@ -15,57 +15,14 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Utils
 
-type CallKind =
-    | External of RuntimeCapability
-    | Recursive
-
-type CallPattern =
-    {
-        kind: CallKind
-        name: QsQualifiedName
-        range: Range QsNullable
-    }
-
-    interface IPattern with
-        member pattern.Capability =
-            match pattern.kind with
-            | External capability -> capability
-            | Recursive -> RuntimeCapability.Base // TODO
-
-        member pattern.Diagnose target =
-            match pattern.kind with
-            | External capability ->
-                if target.Capability.Implies capability then
-                    None
-                else
-                    let args = [ pattern.Name.Name; string capability; target.Architecture ]
-                    let range = pattern.Range.ValueOr Range.Zero
-                    QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
-            | Recursive -> None // TODO
-
-    member pattern.Name = pattern.name
-
-    member pattern.Range = pattern.range
-
-module CallPattern =
-    let create kind name range =
+type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: CallGraph, syntaxAnalyzer: Analyzer<_, _>) =
+    static let createPattern capability =
         {
-            kind = kind
-            name = name
-            range = range
+            Capability = capability
+            Diagnose = fun _ -> None
+            Properties = ()
         }
 
-type TransitiveCallPattern =
-    | TransitiveCallPattern of RuntimeCapability
-
-    interface IPattern with
-        member pattern.Capability =
-            let (TransitiveCallPattern capability) = pattern
-            capability
-
-        member _.Diagnose _ = None
-
-type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: CallGraph, syntaxAnalyzer: Analyzer<_, _>) =
     let findCallable (node: CallGraphNode) =
         callables.TryGetValue node.CallableName |> tryOption
 
@@ -106,9 +63,9 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
 
         callablePatterns.TryGetValue callable.FullName |> tryOption |> Option.defaultWith storePatterns
 
-    member private analyzer.CallablePatterns(callable: QsCallable) : IPattern list =
+    member private analyzer.CallablePatterns(callable: QsCallable) =
         match SymbolResolution.TryGetRequiredCapability callable.Attributes with
-        | Value capability -> [ TransitiveCallPattern capability ]
+        | Value capability -> [ createPattern capability ]
         | Null when QsNullable.isNull callable.Source.AssemblyFile ->
             [
                 match syntaxPatterns.TryGetValue callable.FullName with
@@ -116,10 +73,10 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
                 | false, _ -> ()
 
                 match cycleCapabilities.TryGetValue callable.FullName with
-                | true, capability -> TransitiveCallPattern capability
+                | true, capability -> createPattern capability
                 | false, _ -> ()
 
-                analyzer.DependentCapability callable.FullName |> TransitiveCallPattern
+                analyzer.DependentCapability callable.FullName |> createPattern
             ]
         | Null -> []
 
@@ -131,7 +88,36 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
         |> Seq.map (fun p -> p.Capability)
         |> Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
 
+type CallKind =
+    | External of RuntimeCapability
+    | Recursive
+
+type Call = { Name: QsQualifiedName; Range: Range QsNullable }
+
 module CallAnalyzer =
+    let createPattern kind (name: QsQualifiedName) range =
+        let capability =
+            match kind with
+            | External capability -> capability
+            | Recursive -> RuntimeCapability.Base // TODO
+
+        let diagnose (target: Target) =
+            match kind with
+            | External capability ->
+                if target.Capability.Implies capability then
+                    None
+                else
+                    let args = [ name.Name; string capability; target.Architecture ]
+                    let range = QsNullable.defaultValue Range.Zero range
+                    QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
+            | Recursive -> None // TODO
+
+        {
+            Capability = capability
+            Diagnose = diagnose
+            Properties = { Name = name; Range = range }
+        }
+
     let globalCallableIds action =
         let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
         let references = ResizeArray()
@@ -178,10 +164,10 @@ module CallAnalyzer =
         seq {
             for name, range in dependencies do
                 match capabilityAttribute name with
-                | Value capability -> CallPattern.create (External capability) name range
+                | Value capability -> createPattern (External capability) name range
                 | Null -> ()
 
-                if Set.contains name callablesInCycle then CallPattern.create Recursive node.CallableName range
+                if Set.contains name callablesInCycle then createPattern Recursive node.CallableName range
         }
 
     let deep callables graph syntaxAnalyzer : Analyzer<_, _> =

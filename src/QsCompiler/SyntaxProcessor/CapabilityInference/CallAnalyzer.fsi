@@ -9,19 +9,15 @@ open Microsoft.Quantum.QsCompiler.DependencyAnalysis
 open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-[<Sealed>]
-type internal CallPattern =
-    interface IPattern
-
-    member Name: QsQualifiedName
-
-    member Range: Range QsNullable
+type internal Call =
+    { Name: QsQualifiedName
+      Range: Range QsNullable }
 
 module internal CallAnalyzer =
-    val shallow: nsManager: NamespaceManager -> graph: CallGraph -> Analyzer<CallGraphNode, CallPattern>
+    val shallow: nsManager: NamespaceManager -> graph: CallGraph -> Analyzer<CallGraphNode, Call>
 
     val deep:
         callables: ImmutableDictionary<QsQualifiedName, QsCallable> ->
         graph: CallGraph ->
-        syntaxAnalyzer: Analyzer<QsCallable, IPattern> ->
-            Analyzer<QsCallable, IPattern>
+        syntaxAnalyzer: Analyzer<QsCallable, unit> ->
+            Analyzer<QsCallable, unit>

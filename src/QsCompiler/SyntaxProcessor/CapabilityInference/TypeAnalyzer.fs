@@ -11,30 +11,29 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-type TypePatternKind =
+type TypeUsage =
     | Conditional
     | Literal
     | Mutable of name: string
     | Expression
     | Return
 
-type TypePattern =
-    {
-        Kind: TypePatternKind
-        Type: ResolvedType
-        Range: Range QsNullable
-    }
+type Context = { StringLiteralsOk: bool }
 
-    interface IPattern with
-        member _.Capability = RuntimeCapability.Base // TODO
+let isAlwaysSupported _type = true // TODO
 
-        member _.Diagnose _ = None // TODO
+let createPattern _usage ty _range =
+    if isAlwaysSupported ty then
+        None
+    else
+        Some
+            {
+                Capability = RuntimeCapability.Base // TODO
+                Diagnose = fun _ -> None // TODO
+                Properties = ()
+            }
 
-type TypeContext = { StringLiteralsOk: bool }
-
-let isAlwaysSupported (_: ResolvedType) = true // TODO
-
-let analyzer (action: SyntaxTreeTransformation -> _) =
+let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable context = { StringLiteralsOk = false }
@@ -54,20 +53,10 @@ let analyzer (action: SyntaxTreeTransformation -> _) =
 
                 match statement.Statement with
                 | QsReturnStatement expression ->
-                    patterns.Add
-                        {
-                            Kind = Return
-                            Type = expression.ResolvedType
-                            Range = range
-                        }
+                    createPattern Return expression.ResolvedType range |> Option.iter patterns.Add
                 | QsVariableDeclaration binding when binding.Kind = MutableBinding ->
                     for var in statement.SymbolDeclarations.Variables do
-                        patterns.Add
-                            {
-                                Kind = Mutable var.VariableName
-                                Type = var.Type
-                                Range = range
-                            }
+                        createPattern (Mutable var.VariableName) var.Type range |> Option.iter patterns.Add
                 | _ -> ()
 
                 base.OnStatement statement
@@ -80,23 +69,12 @@ let analyzer (action: SyntaxTreeTransformation -> _) =
 
                 match expression.Expression, expression.ResolvedType.Resolution with
                 | CONDITIONAL _, _ ->
-                    patterns.Add
-                        {
-                            Kind = Conditional
-                            Type = expression.ResolvedType
-                            Range = range
-                        }
+                    createPattern Conditional expression.ResolvedType range |> Option.iter patterns.Add
                 | StringLiteral _, _ when context.StringLiteralsOk -> ()
                 | RangeLiteral _, _ -> ()
                 | _, BigInt
                 | _, String
-                | _, Range ->
-                    patterns.Add
-                        {
-                            Kind = Expression
-                            Type = expression.ResolvedType
-                            Range = range
-                        }
+                | _, Range -> createPattern Expression expression.ResolvedType range |> Option.iter patterns.Add
                 | _ -> ()
 
                 base.OnTypedExpression expression
@@ -114,4 +92,4 @@ let analyzer (action: SyntaxTreeTransformation -> _) =
         }
 
     action transformation
-    Seq.choose (fun p -> if isAlwaysSupported p.Type then None else p :> IPattern |> Some) patterns
+    patterns

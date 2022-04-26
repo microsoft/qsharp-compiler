@@ -10,15 +10,16 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-type ArrayPattern =
-    | NonLiteralSize of Range QsNullable
+type ArrayUsage = NonLiteralSize
 
-    interface IPattern with
-        member _.Capability = RuntimeCapability.Base // TODO
+let createPattern _usage _range =
+    {
+        Capability = RuntimeCapability.Base // TODO
+        Diagnose = fun _ -> None // TODO
+        Properties = ()
+    }
 
-        member _.Diagnose _ = None // TODO
-
-let analyzer (action: SyntaxTreeTransformation -> _) =
+let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
 
@@ -27,7 +28,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) =
         | IntLiteral _ -> ()
         | _ ->
             let range = QsNullable.Map2(+) transformation.Offset size.Range
-            NonLiteralSize range |> patterns.Add
+            createPattern NonLiteralSize range |> patterns.Add
 
     transformation.StatementKinds <-
         { new StatementKindTransformation(transformation, TransformationOptions.NoRebuild) with
@@ -51,4 +52,4 @@ let analyzer (action: SyntaxTreeTransformation -> _) =
         }
 
     action transformation
-    Seq.map (fun p -> p :> IPattern) patterns
+    patterns

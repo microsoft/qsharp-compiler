@@ -39,21 +39,21 @@ let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) dia
 
     Option.map (fun code -> QsCompilerDiagnostic.Warning(code, args) (range.ValueOr Range.Zero)) warningCode
 
-let explainCall (nsManager: NamespaceManager) graph target (pattern: CallPattern) =
-    let node = CallGraphNode pattern.Name
+let explainCall (nsManager: NamespaceManager) graph target (call: Call) =
+    let node = CallGraphNode call.Name
 
     let analyzer callableKind action =
         Seq.append
             (syntaxAnalyzer callableKind action)
-            (CallAnalyzer.shallow nsManager graph node |> Seq.map (fun p -> upcast p))
+            (CallAnalyzer.shallow nsManager graph node |> Seq.map Pattern.discard)
 
-    match nsManager.TryGetCallable pattern.Name ("", "") with
+    match nsManager.TryGetCallable call.Name ("", "") with
     | Found callable when QsNullable.isValue callable.Source.AssemblyFile ->
-        nsManager.ImportedSpecializations pattern.Name
+        nsManager.ImportedSpecializations call.Name
         |> Seq.collect (fun (_, impl) ->
             analyzer callable.Kind (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
             |> Seq.choose (fun p -> p.Diagnose target)
-            |> Seq.choose (referenceReasons pattern.Name.Name pattern.Range callable.Source.CodeFile))
+            |> Seq.choose (referenceReasons call.Name.Name call.Range callable.Source.CodeFile))
     | _ -> Seq.empty
 
 [<CompiledName "Diagnose">]
@@ -64,10 +64,10 @@ let diagnose target nsManager graph (callable: QsCallable) =
     let callPatterns = CallGraphNode callable.FullName |> CallAnalyzer.shallow nsManager graph
 
     Seq.append
-        (patterns |> Seq.choose (fun p -> p.Diagnose target))
-        (callPatterns
-         |> Seq.collect (fun p ->
-             Seq.append ((p :> IPattern).Diagnose target |> Option.toList) (explainCall nsManager graph target p)))
+        (Seq.choose (fun p -> p.Diagnose target) patterns)
+        (Seq.collect
+            (fun p -> Seq.append (p.Diagnose target |> Option.toList) (explainCall nsManager graph target p.Properties))
+            callPatterns)
 
 let capabilityAttribute capability =
     let args = AttributeUtils.StringArguments(string capability, "Inferred automatically by the compiler.")

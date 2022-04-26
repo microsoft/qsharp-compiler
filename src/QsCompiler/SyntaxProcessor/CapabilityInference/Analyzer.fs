@@ -10,12 +10,22 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type Target = { Capability: RuntimeCapability; Architecture: string }
 
-type IPattern =
-    abstract Capability: RuntimeCapability
+type 'props Pattern =
+    {
+        Capability: RuntimeCapability
+        Diagnose: Target -> QsCompilerDiagnostic option
+        Properties: 'props
+    }
 
-    abstract Diagnose: target: Target -> QsCompilerDiagnostic option
+module Pattern =
+    let discard pattern =
+        {
+            Capability = pattern.Capability
+            Diagnose = pattern.Diagnose
+            Properties = ()
+        }
 
-type Analyzer<'subject, 'pattern> when 'pattern :> IPattern = 'subject -> 'pattern seq
+type Analyzer<'subject, 'props> = 'subject -> 'props Pattern seq
 
 module Analyzer =
     let concat (analyzers: Analyzer<_, _> seq) subject = Seq.collect ((|>) subject) analyzers

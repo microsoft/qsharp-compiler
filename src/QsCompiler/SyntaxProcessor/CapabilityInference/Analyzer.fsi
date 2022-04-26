@@ -11,18 +11,22 @@ type Target =
     { Capability: RuntimeCapability
       Architecture: string }
 
-type internal IPattern =
-    /// The required runtime capability of the pattern.
-    abstract Capability: RuntimeCapability
+type internal 'props Pattern =
+    { /// The required runtime capability of the pattern.
+      Capability: RuntimeCapability
+      /// A diagnostic for the pattern if the pattern's capability level exceeds the execution target's capability
+      /// level.
+      Diagnose: Target -> QsCompilerDiagnostic option
+      /// Additional properties for the pattern.
+      Properties: 'props }
 
-    /// Returns a diagnostic for the pattern if the pattern's capability level exceeds the execution target's capability
-    /// level.
-    abstract Diagnose: target: Target -> QsCompilerDiagnostic option
+module internal Pattern =
+    val discard: 'props Pattern -> unit Pattern
 
-type internal Analyzer<'subject, 'pattern> when 'pattern :> IPattern = 'subject -> 'pattern seq
+type internal Analyzer<'subject, 'props> = 'subject -> 'props Pattern seq
 
 module internal Analyzer =
-    val concat: analyzers: Analyzer<'subject, 'pattern> seq -> Analyzer<'subject, 'pattern>
+    val concat: analyzers: Analyzer<'subject, 'props> seq -> Analyzer<'subject, 'props>
 
 /// Tracks the most recently seen statement location.
 type internal LocationTrackingTransformation =
