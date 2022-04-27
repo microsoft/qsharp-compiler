@@ -224,7 +224,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
     internal static class DotNetSdkHelper
     {
-        private static readonly Regex DotNet31Regex = new Regex(@"^6\.0\.\d+", RegexOptions.Multiline | RegexOptions.Compiled);
+        private static readonly Regex DotNetVersionRegex = new Regex(@"^6\.0\.\d+", RegexOptions.Multiline | RegexOptions.Compiled);
 
         public static bool? IsDotNet6Installed()
         {
@@ -240,7 +240,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             var sdks = process.StandardOutput.ReadToEnd();
-            return DotNet31Regex.IsMatch(sdks);
+            return DotNetVersionRegex.IsMatch(sdks);
         }
     }
 }
