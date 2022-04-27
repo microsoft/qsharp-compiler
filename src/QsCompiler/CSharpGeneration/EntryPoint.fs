@@ -399,6 +399,11 @@ let private driverSettings context =
         |> (fun (_, value) -> if value = null then "" else value)
         |> literal
 
+    let defaultTargetCapability =
+        context.assemblyConstants.TryGetValue AssemblyConstants.TargetCapability
+        |> (fun (_, value) -> if value = null then "" else value)
+        |> literal
+
     [
         namedArg "simulatorOptionAliases" simulatorOptionAliases
         namedArg "quantumSimulatorName" <| literal AssemblyConstants.QuantumSimulator
@@ -407,6 +412,7 @@ let private driverSettings context =
         namedArg "resourcesEstimatorName" <| literal AssemblyConstants.ResourcesEstimator
         namedArg "defaultSimulatorName" <| literal defaultSimulator
         namedArg "defaultExecutionTarget" <| defaultExecutionTarget
+        namedArg "defaultTargetCapability" <| defaultTargetCapability
         namedArg "createDefaultCustomSimulator" <| customSimulatorFactory defaultSimulator
     ]
     |> SyntaxFactory.SeparatedList
