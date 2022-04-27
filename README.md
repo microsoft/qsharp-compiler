@@ -31,14 +31,9 @@ You may also visit our [Quantum](https://github.com/microsoft/quantum) repositor
 
 ## Building from Source ##
 
-Before you can build the source code on this repository and start contributing to the Q# compiler and extensions you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) and a few more commands to set up your environment.
+Before you can build the source code on this repository and start contributing to the Q# compiler and extensions you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) to set up your environment.
 We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell.
 The script in particular generates the files that are needed for building based on the templates in this repository.
-```
-pwsh ./bootstrap.ps1
-git submodule init
-git submodule update
-```
 
 The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). Building the [QsCompiler.sln](./QsCompiler.sln) (`dotnet build QsCompiler.sln`) builds the Q# compiler and language server. To test your changes to the compiler, open the project file of a Q# project that uses the latest version of the [Microsoft.Quantum.Sdk](https://www.nuget.org/packages/Microsoft.Quantum.Sdk/) in a text editor. You can confirm the Sdk version that the project is using by looking at the first line in the project file. You may need to edit that line to update to the latest version, and adjust your project as needed. Confirm that the project is building correctly using that version by executing the command
 ```
