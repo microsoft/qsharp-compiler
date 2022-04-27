@@ -31,11 +31,16 @@ You may also visit our [Quantum](https://github.com/microsoft/quantum) repositor
 
 ## Building from Source ##
 
-Before you can build the source code on this repository and start contributing to the Q# compiler and extensions you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) to set up your environment.
+Before you can build the source code on this repository and start contributing to the Q# compiler and extensions you need to run the PowerShell script [bootstrap.ps1](./bootstrap.ps1) and a few more commands to set up your environment.
 We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell.
 The script in particular generates the files that are needed for building based on the templates in this repository.
+```
+pwsh ./bootstrap.ps1
+git submodule init
+git submodule update
+```
 
-The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). Building the [QsCompiler.sln](./QsCompiler.sln) builds the Q# compiler and language server. To test your changes to the compiler, open the project file of a Q# project that uses the latest version of the [Microsoft.Quantum.Sdk](https://www.nuget.org/packages/Microsoft.Quantum.Sdk/) in a text editor. You can confirm the Sdk version that the project is using by looking at the first line in the project file. You may need to edit that line to update to the latest version, and adjust your project as needed. Confirm that the project is building correctly using that version by executing the command
+The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). Building the [QsCompiler.sln](./QsCompiler.sln) (`dotnet build QsCompiler.sln`) builds the Q# compiler and language server. To test your changes to the compiler, open the project file of a Q# project that uses the latest version of the [Microsoft.Quantum.Sdk](https://www.nuget.org/packages/Microsoft.Quantum.Sdk/) in a text editor. You can confirm the Sdk version that the project is using by looking at the first line in the project file. You may need to edit that line to update to the latest version, and adjust your project as needed. Confirm that the project is building correctly using that version by executing the command
 ```
 dotnet build MyProject.csproj
 ```
@@ -45,7 +50,7 @@ If your project builds successfully, edit the project file in the text editor to
     <QscExe>dotnet $(MSBuildThisFileDirectory)src/QsCompiler/CommandLineTool/bin/$(Configuration)/net6.0/qsc.dll</QscExe>
   </PropertyGroup>
 ```
-To confirm that indeed the locally built compiler version is used, you can edit `Run<T>` in your local [Project.cs](./src/QsCompiler/CommandLineTool/Program.cs) file to include the following line:
+To confirm that indeed the locally built compiler version is used, you can edit `Run<T>` in your local [Program.cs](./src/QsCompiler/CommandLineTool/Program.cs) file to include the following line:
 ```csharp
 private static int Run<T>(Func<T, ConsoleLogger, int> compile, T options)
 where T : Options
