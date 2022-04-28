@@ -172,6 +172,7 @@ type ErrorCode =
     | ReturnInResultConditionedBlock = 5025
     | SetInResultConditionedBlock = 5026
     | UnsupportedCallableCapability = 5027
+    | UnsupportedClassicalCapability = 5028
 
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
@@ -651,6 +652,8 @@ type DiagnosticItem =
                 + "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
             | ErrorCode.UnsupportedCallableCapability ->
                 "The callable {0} requires the {1} runtime capability, which is not supported by the target {2}."
+            | ErrorCode.UnsupportedClassicalCapability ->
+                "This construct is not supported by the classical runtime capabilities of the target {0}."
 
             | ErrorCode.CallableRedefinition ->
                 "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."

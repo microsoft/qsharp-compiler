@@ -1,9 +1,8 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 module Microsoft.Quantum.QsCompiler.Testing.CapabilityVerificationTests
 
-open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open System.IO
@@ -19,16 +18,15 @@ let private compile capability =
     )
 
 /// The FullComputation capability tester.
-let private fullComputation =
-    RuntimeCapability.ofString "FullComputation" |> Option.get |> compile |> CompilerTests
+let private fullComputation = compile "FullComputation" |> CompilerTests
 
 /// The BasicMeasurementFeedback capability tester.
-let private basicMeasurementFeedback =
-    RuntimeCapability.ofString "BasicMeasurementFeedback" |> Option.get |> compile |> CompilerTests
+let private basicMeasurementFeedback = compile "BasicMeasurementFeedback" |> CompilerTests
 
 /// The BasicQuantumFunctionality capability tester.
-let private basicQuantumFunctionality =
-    RuntimeCapability.ofString "BasicQuantumFunctionality" |> Option.get |> compile |> CompilerTests
+let private basicQuantumFunctionality = compile "BasicQuantumFunctionality" |> CompilerTests
+
+let private basicExecution = compile "BasicExecution" |> CompilerTests
 
 /// The qualified name for the test case name.
 let internal testName name =
@@ -161,6 +159,11 @@ let ``BasicMeasurementFeedback allows empty Result if operation`` () =
 let ``BasicMeasurementFeedback allows operation call from Result if`` () =
     [ "Reset"; "ResetNeq"; "OverrideBmfToFull"; "OverrideBmfToBqf"; "ExplicitBmf" ]
     |> List.iter (expect basicMeasurementFeedback [])
+
+[<Fact>]
+let ``BasicExecution restricts language constructs`` () =
+    [ "Recursion1"; "Recursion2A"; "Recursion2B" ]
+    |> List.iter (expect basicExecution [ Error ErrorCode.UnsupportedClassicalCapability ])
 
 [<Fact>]
 let ``FullComputation allows all library calls and references`` () =

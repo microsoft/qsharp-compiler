@@ -187,6 +187,18 @@ namespace Microsoft.Quantum.Testing.Capability {
         }
     }
 
+    function Recursion1() : Unit {
+        Recursion1();
+    }
+
+    function Recursion2A() : Unit {
+        Recursion2B();
+    }
+
+    function Recursion2B() : Unit {
+        Recursion2A();
+    }
+
     // Tuples and arrays currently don't support equality comparison, but result comparison should still be prevented if
     // they do.
 

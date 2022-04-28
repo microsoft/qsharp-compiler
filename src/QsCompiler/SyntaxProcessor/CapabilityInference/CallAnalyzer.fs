@@ -93,18 +93,20 @@ module CallAnalyzer =
         let capability =
             match kind with
             | External capability -> capability
-            | Recursive -> RuntimeCapability.bottom // TODO
+            | Recursive -> RuntimeCapability.withClassical ClassicalCapability.unlimited RuntimeCapability.bottom
 
         let diagnose (target: Target) =
+            let range = QsNullable.defaultValue Range.Zero range
+
             match kind with
+            | _ when target.Capability >= capability -> None
             | External capability ->
-                if target.Capability >= capability then
-                    None
-                else
-                    let args = [ name.Name; string capability; target.Architecture ]
-                    let range = QsNullable.defaultValue Range.Zero range
-                    QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
-            | Recursive -> None // TODO
+                let capabilityName = RuntimeCapability.name capability |> Option.defaultValue "Unknown"
+                let args = [ name.Name; capabilityName; target.Architecture ]
+                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
+            | Recursive ->
+                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
+                |> Some
 
         {
             Capability = capability
@@ -161,6 +163,7 @@ module CallAnalyzer =
                 | Value capability -> createPattern (External capability) name range
                 | Null -> ()
 
+                // TODO: Need to detect recursion in the deep analyzer too.
                 if Set.contains name callablesInCycle then createPattern Recursive node.CallableName range
         }
 

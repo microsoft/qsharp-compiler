@@ -26,11 +26,12 @@ let private expect capability name =
     let actual = SymbolResolution.TryGetRequiredCapability callables[fullName].Attributes
     Assert.Contains(capability, actual)
 
-let private createCapability opacity =
+let private createCapability opacity classical =
     RuntimeCapability.withResultOpacity opacity RuntimeCapability.bottom
+    |> RuntimeCapability.withClassical classical
 
 [<Fact>]
-let ``Infers BasicQuantumFunctionality by source code`` () =
+let ``Infers BasicQuantumFunctionality from syntax`` () =
     [
         "NoOp"
 
@@ -39,15 +40,15 @@ let ``Infers BasicQuantumFunctionality by source code`` () =
         "ResultTuple"
         "ResultArray"
     ]
-    |> List.iter (createCapability ResultOpacity.opaque |> expect)
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.limited |> expect)
 
 [<Fact>]
-let ``Infers BasicMeasurementFeedback by source code`` () =
+let ``Infers BasicMeasurementFeedback from syntax`` () =
     [ "SetLocal"; "EmptyIfOp"; "EmptyIfNeqOp"; "Reset"; "ResetNeq" ]
-    |> List.iter (createCapability ResultOpacity.controlled |> expect)
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.limited |> expect)
 
 [<Fact>]
-let ``Infers FullComputation by source code`` () =
+let ``Infers FullComputation from syntax`` () =
     [
         "ResultAsBool"
         "ResultAsBoolNeq"
@@ -68,57 +69,65 @@ let ``Infers FullComputation by source code`` () =
         "EmptyIf"
         "EmptyIfNeq"
     ]
-    |> List.iter (createCapability ResultOpacity.transparent |> expect)
+    |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.limited |> expect)
+
+[<Fact>]
+let ``Infers unlimited classical capability from syntax`` () =
+    [ "Recursion1"; "Recursion2A"; "Recursion2B" ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.unlimited |> expect)
 
 [<Fact>]
 let ``Allows overriding capabilities with attribute`` () =
-    expect (createCapability ResultOpacity.opaque) "OverrideBmfToBqf"
+    expect (createCapability ResultOpacity.opaque ClassicalCapability.limited) "OverrideBmfToBqf"
 
     [ "OverrideBqfToBmf"; "OverrideFullToBmf"; "ExplicitBmf" ]
-    |> List.iter (createCapability ResultOpacity.controlled |> expect)
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.limited |> expect)
 
-    expect (createCapability ResultOpacity.transparent) "OverrideBmfToFull"
+    expect (createCapability ResultOpacity.transparent ClassicalCapability.limited) "OverrideBmfToFull"
 
 [<Fact>]
 let ``Infers single dependency`` () =
-    [ "CallBmfA"; "CallBmfB" ] |> List.iter (createCapability ResultOpacity.controlled |> expect)
+    [ "CallBmfA"; "CallBmfB" ]
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.limited |> expect)
 
 [<Fact>]
 let ``Infers two side-by-side dependencies`` () =
-    expect (createCapability ResultOpacity.controlled) "CallBmfFullB"
+    expect (createCapability ResultOpacity.controlled ClassicalCapability.limited) "CallBmfFullB"
 
     [ "CallBmfFullA"; "CallBmfFullC" ]
-    |> List.iter (createCapability ResultOpacity.transparent |> expect)
+    |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.limited |> expect)
 
 [<Fact>]
 let ``Infers two chained dependencies`` () =
-    [ "CallFullA"; "CallFullB" ] |> List.iter (createCapability ResultOpacity.transparent |> expect)
-    expect (createCapability ResultOpacity.controlled) "CallFullC"
+    [ "CallFullA"; "CallFullB" ]
+    |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.limited |> expect)
+
+    expect (createCapability ResultOpacity.controlled ClassicalCapability.limited) "CallFullC"
 
 [<Fact>]
 let ``Allows safe override`` () =
     [ "CallFullOverrideA"; "CallFullOverrideB" ]
-    |> List.iter (createCapability ResultOpacity.transparent |> expect)
+    |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.limited |> expect)
 
-    expect (createCapability ResultOpacity.controlled) "CallFullOverrideC"
+    expect (createCapability ResultOpacity.controlled ClassicalCapability.limited) "CallFullOverrideC"
 
 [<Fact>]
 let ``Allows unsafe override`` () =
     [ "CallBmfOverrideA"; "CallBmfOverrideB" ]
-    |> List.iter (createCapability ResultOpacity.controlled |> expect)
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.limited |> expect)
 
-    expect (createCapability ResultOpacity.transparent) "CallBmfOverrideC"
+    expect (createCapability ResultOpacity.transparent ClassicalCapability.limited) "CallBmfOverrideC"
 
 [<Fact>]
 let ``Infers with direct recursion`` () =
-    expect (createCapability ResultOpacity.controlled) "BmfRecursion"
+    expect (createCapability ResultOpacity.controlled ClassicalCapability.limited) "BmfRecursion"
 
 [<Fact>]
 let ``Infers with indirect recursion`` () =
     [ "BmfRecursion3A"; "BmfRecursion3B"; "BmfRecursion3C" ]
-    |> List.iter (createCapability ResultOpacity.controlled |> expect)
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.limited |> expect)
 
 [<Fact>]
 let ``Infers with uncalled reference`` () =
     [ "ReferenceBmfA"; "ReferenceBmfB" ]
-    |> List.iter (createCapability ResultOpacity.controlled |> expect)
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.limited |> expect)
