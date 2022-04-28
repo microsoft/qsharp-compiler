@@ -139,21 +139,21 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         internal async Task CheckDotNetSdkVersionAsync()
         {
-            var isDotNet31Installed = DotNetSdkHelper.IsDotNet31Installed();
-            if (isDotNet31Installed == null)
+            var isDotNet6Installed = DotNetSdkHelper.IsDotNet6Installed();
+            if (isDotNet6Installed == null)
             {
                 this.LogToWindow("Unable to detect .NET SDK versions", MessageType.Error);
             }
             else
             {
-                if (isDotNet31Installed != true)
+                if (isDotNet6Installed != true)
                 {
-                    const string dotnet31Url = "https://dotnet.microsoft.com/download/dotnet-core/3.1";
-                    this.LogToWindow($".NET Core SDK 3.1 not found. Quantum Development Kit Extension requires .NET Core SDK 3.1 to work properly ({dotnet31Url}).", MessageType.Error);
+                    const string dotnet6Url = "https://dotnet.microsoft.com/download/dotnet/6.0";
+                    this.LogToWindow($".NET SDK 6.0 not found. Quantum Development Kit Extension requires .NET SDK 6.0 to work properly ({dotnet6Url}).", MessageType.Error);
                     var downloadAction = new MessageActionItem { Title = "Download" };
                     var cancelAction = new MessageActionItem { Title = "No, thanks" };
                     var selectedAction = await this.ShowDialogInWindowAsync(
-                        "Quantum Development Kit Extension requires .NET Core SDK 3.1 to work properly. Please install .NET Core SDK 3.1 and restart Visual Studio.",
+                        "Quantum Development Kit Extension requires .NET SDK 6.0 to work properly. Please install .NET SDK 6.0 and restart Visual Studio.",
                         MessageType.Error,
                         new[] { downloadAction, cancelAction });
                     if (selectedAction != null
@@ -161,7 +161,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     {
                         Process.Start(new ProcessStartInfo
                         {
-                            FileName = dotnet31Url,
+                            FileName = dotnet6Url,
                             UseShellExecute = true,
                             CreateNoWindow = true,
                         });
