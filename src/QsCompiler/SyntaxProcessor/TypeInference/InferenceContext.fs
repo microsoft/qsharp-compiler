@@ -169,9 +169,10 @@ module Inference =
         | Callable (callable, _, _) -> [ callable ]
         | ClassConstraint.Controllable (operation, _) -> [ operation ]
         | Eq ty -> [ ty ]
+        | HasField (record, _, _) -> [ record ]
         | HasFunctorsIfOperation (callable, _) -> [ callable ]
+        | HasIndex (container, index, _) -> [ container; index ]
         | HasPartialApplication (callable, _, _) -> [ callable ]
-        | Index (container, index, _) -> [ container; index ]
         | Integral ty -> [ ty ]
         | Iterable (container, _) -> [ container ]
         | Num ty -> [ ty ]
@@ -325,7 +326,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         match expected.Resolution, actual.Resolution with
         | _ when expected = actual -> []
         | TypeParameter param, _ when variables.ContainsKey param -> tryBind param actual
-        | _, TypeParameter param when variables.ContainsKey param -> tryBind param expected
+        | _, TypeParameter param when variables.ContainsKey param ->
+            ResolvedType.withAllRanges actual.Range expected |> tryBind param
         | ArrayType item1, ArrayType item2 -> context.ConstrainImpl(item1 .= item2)
         | TupleType items1, TupleType items2 ->
             [
@@ -412,6 +414,24 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 if Option.isNone ty.supportsEqualityComparison then
                     error ErrorCode.InvalidTypeInEqualityComparison [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
+        | HasField (record, field, item) ->
+            let record = context.Resolve record
+
+            match record.Resolution with
+            | QsTypeKind.UserDefinedType udt ->
+                let diagnostics = ResizeArray()
+
+                let diagnose (code, args) =
+                    error code args record.Range |> diagnostics.Add
+
+                let actualItem = symbolTracker.GetItemType field diagnose udt
+                Seq.toList diagnostics @ context.ConstrainImpl(item .> actualItem)
+            | _ ->
+                let fieldName = Identifier(field, Null) |> SyntaxTreeToQsharp.Default.ToCode
+
+                [
+                    error ErrorCode.UnknownItemName [ SyntaxTreeToQsharp.Default.ToCode record; fieldName ] record.Range
+                ]
         | HasFunctorsIfOperation (callable, functors) ->
             let callable = context.Resolve callable
 
@@ -428,19 +448,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                             callable.Range
                 ]
             | _ -> []
-        | HasPartialApplication (callable, missing, callable') ->
-            let callable = context.Resolve callable
-
-            match callable.Resolution with
-            | QsTypeKind.Function (_, output) ->
-                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. callable')
-            | QsTypeKind.Operation ((_, output), info) ->
-                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. callable')
-            | _ ->
-                [
-                    error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
-                ]
-        | Index (container, index, item) ->
+        | HasIndex (container, index, item) ->
             let container = context.Resolve container
             let index = context.Resolve index
 
@@ -458,6 +466,18 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                         ErrorCode.ItemAccessForNonArray
                         [ SyntaxTreeToQsharp.Default.ToCode container ]
                         container.Range
+                ]
+        | HasPartialApplication (callable, missing, callable') ->
+            let callable = context.Resolve callable
+
+            match callable.Resolution with
+            | QsTypeKind.Function (_, output) ->
+                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Function(missing, output)) <. callable')
+            | QsTypeKind.Operation ((_, output), info) ->
+                context.ConstrainImpl(ResolvedType.New(QsTypeKind.Operation((missing, output), info)) <. callable')
+            | _ ->
+                [
+                    error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
                 ]
         | Integral ty ->
             let ty = context.Resolve ty
