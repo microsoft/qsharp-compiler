@@ -127,7 +127,7 @@ export class LanguageServer {
 
         // If lsPath is still undefined or null, then we didn't have a manual
         // path set up above.
-        if (lsPath === undefined || lsPath === null) {
+        if (lsPath === undefined || lsPath === null || (lsPath.trim() === "")) {
             // Look at the global storage path for the context to try and find the
             // language server executable.
             let exeName = CommonPaths.executableNames[os.platform()];
