@@ -28,22 +28,24 @@ type ResultDependency =
 type Context = { InCondition: bool; FrozenVars: string Set }
 
 let createPattern kind range =
-    let capability =
+    let opacity =
         match kind with
-        | ConditionalEqualityInOperation -> BasicMeasurementFeedback
+        | ConditionalEqualityInOperation -> ResultOpacity.controlled
         | UnrestrictedEquality
         | ReturnInDependentBranch
-        | SetInDependentBranch _ -> FullComputation
+        | SetInDependentBranch _ -> ResultOpacity.transparent
+
+    let capability = RuntimeCapability.withResultOpacity opacity RuntimeCapability.bottom
 
     let diagnose (target: Target) =
         let error code args =
-            if target.Capability.Implies capability then
+            if target.Capability >= capability then
                 None
             else
                 QsCompilerDiagnostic.Error(code, args) (QsNullable.defaultValue Range.Zero range) |> Some
 
         let unsupported =
-            if target.Capability = BasicMeasurementFeedback then
+            if target.Capability.ResultOpacity >= ResultOpacity.controlled then
                 ErrorCode.ResultComparisonNotInOperationIf
             else
                 ErrorCode.UnsupportedResultComparison
@@ -52,12 +54,12 @@ let createPattern kind range =
         | ConditionalEqualityInOperation
         | UnrestrictedEquality -> error unsupported [ target.Architecture ]
         | ReturnInDependentBranch ->
-            if target.Capability = BasicMeasurementFeedback then
+            if target.Capability.ResultOpacity >= ResultOpacity.controlled then
                 error ErrorCode.ReturnInResultConditionedBlock [ target.Architecture ]
             else
                 None
         | SetInDependentBranch name ->
-            if target.Capability = BasicMeasurementFeedback then
+            if target.Capability.ResultOpacity >= ResultOpacity.controlled then
                 error ErrorCode.SetInResultConditionedBlock [ name; target.Architecture ]
             else
                 None

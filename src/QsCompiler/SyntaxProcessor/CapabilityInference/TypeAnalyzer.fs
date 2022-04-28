@@ -28,7 +28,7 @@ let createPattern _usage ty _range =
     else
         Some
             {
-                Capability = RuntimeCapability.Base // TODO
+                Capability = RuntimeCapability.bottom // TODO
                 Diagnose = fun _ -> None // TODO
                 Properties = ()
             }

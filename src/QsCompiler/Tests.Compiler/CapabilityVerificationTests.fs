@@ -19,13 +19,16 @@ let private compile capability =
     )
 
 /// The FullComputation capability tester.
-let private fullComputation = compile FullComputation |> CompilerTests
-
-/// The BasicQuantumFunctionality capability tester.
-let private basicQuantumFunctionality = compile BasicQuantumFunctionality |> CompilerTests
+let private fullComputation =
+    RuntimeCapability.ofString "FullComputation" |> Option.get |> compile |> CompilerTests
 
 /// The BasicMeasurementFeedback capability tester.
-let private basicMeasurementFeedback = compile BasicMeasurementFeedback |> CompilerTests
+let private basicMeasurementFeedback =
+    RuntimeCapability.ofString "BasicMeasurementFeedback" |> Option.get |> compile |> CompilerTests
+
+/// The BasicQuantumFunctionality capability tester.
+let private basicQuantumFunctionality =
+    RuntimeCapability.ofString "BasicQuantumFunctionality" |> Option.get |> compile |> CompilerTests
 
 /// The qualified name for the test case name.
 let internal testName name =

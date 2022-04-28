@@ -144,7 +144,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
     static member Compile(srcFolder, fileNames, ?references, ?capability) =
         let references = defaultArg references []
-        let capability = defaultArg capability FullComputation
+        let capability = defaultArg capability RuntimeCapability.top
         let paths = fileNames |> Seq.map (fun file -> Path.Combine(srcFolder, file) |> Path.GetFullPath)
         let props = ImmutableDictionary.CreateBuilder()
         props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, capability.Name)

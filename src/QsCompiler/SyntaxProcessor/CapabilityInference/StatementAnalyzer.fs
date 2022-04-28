@@ -11,7 +11,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 let createPattern _range =
     {
-        Capability = RuntimeCapability.Base // TODO
+        Capability = RuntimeCapability.bottom // TODO
         Diagnose = fun _ -> None // TODO
         Properties = ()
     }

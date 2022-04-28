@@ -46,7 +46,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
 
             for node in cycle do
                 cycleCapabilities[node.CallableName] <- tryOption (cycleCapabilities.TryGetValue node.CallableName)
-                                                        |> Option.fold RuntimeCapability.Combine capability
+                                                        |> Option.fold RuntimeCapability.merge capability
 
     member analyzer.Analyze(callable: QsCallable) =
         let storePatterns () =
@@ -93,12 +93,12 @@ module CallAnalyzer =
         let capability =
             match kind with
             | External capability -> capability
-            | Recursive -> RuntimeCapability.Base // TODO
+            | Recursive -> RuntimeCapability.bottom // TODO
 
         let diagnose (target: Target) =
             match kind with
             | External capability ->
-                if target.Capability.Implies capability then
+                if target.Capability >= capability then
                     None
                 else
                     let args = [ name.Name; string capability; target.Architecture ]

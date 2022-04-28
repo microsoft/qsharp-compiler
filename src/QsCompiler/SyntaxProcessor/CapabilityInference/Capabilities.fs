@@ -70,7 +70,13 @@ let diagnose target nsManager graph (callable: QsCallable) =
             callPatterns)
 
 let capabilityAttribute (capability: RuntimeCapability) =
-    let args = AttributeUtils.StringArguments(string capability, "Inferred automatically by the compiler.")
+    let args =
+        AttributeUtils.StringArguments(
+            string capability.ResultOpacity,
+            string capability.Classical,
+            "Inferred automatically by the compiler."
+        )
+
     AttributeUtils.BuildAttribute(BuiltIn.RequiresCapability.FullName, args)
 
 [<CompiledName "Infer">]

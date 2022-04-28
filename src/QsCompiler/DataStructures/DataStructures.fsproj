@@ -16,6 +16,7 @@
     <Compile Include="ReservedKeywords.fs" />
     <Compile Include="Diagnostics.fs" />
     <Compile Include="DataTypes.fs" />
+    <Compile Include="RuntimeCapability.fsi" />
     <Compile Include="RuntimeCapability.fs" />
     <Compile Include="SymbolInformation.fs" />
     <Compile Include="SyntaxTokens.fs" />

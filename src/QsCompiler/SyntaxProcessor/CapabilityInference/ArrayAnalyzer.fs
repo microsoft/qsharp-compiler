@@ -14,7 +14,7 @@ type ArrayUsage = NonLiteralSize
 
 let createPattern _usage _range =
     {
-        Capability = RuntimeCapability.Base // TODO
+        Capability = RuntimeCapability.bottom // TODO
         Diagnose = fun _ -> None // TODO
         Properties = ()
     }

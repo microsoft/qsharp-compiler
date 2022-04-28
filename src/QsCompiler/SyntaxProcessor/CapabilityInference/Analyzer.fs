@@ -27,8 +27,8 @@ module Pattern =
 
     let max patterns =
         Seq.fold
-            (fun capability pattern -> RuntimeCapability.Combine pattern.Capability capability)
-            RuntimeCapability.Base
+            (fun capability pattern -> RuntimeCapability.merge pattern.Capability capability)
+            RuntimeCapability.bottom
             patterns
 
 type Analyzer<'subject, 'props> = 'subject -> 'props Pattern seq

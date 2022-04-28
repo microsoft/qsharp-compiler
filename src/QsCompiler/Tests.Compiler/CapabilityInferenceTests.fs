@@ -23,8 +23,11 @@ let private callables =
 /// Asserts that the inferred capability of the callable with the given name matches the expected capability.
 let private expect capability name =
     let fullName = CapabilityVerificationTests.testName name
-    let actual = SymbolResolution.TryGetRequiredCapability callables.[fullName].Attributes
+    let actual = SymbolResolution.TryGetRequiredCapability callables[fullName].Attributes
     Assert.Contains(capability, actual)
+
+let private createCapability opacity =
+    RuntimeCapability.withResultOpacity opacity RuntimeCapability.bottom
 
 [<Fact>]
 let ``Infers BasicQuantumFunctionality by source code`` () =
@@ -36,12 +39,12 @@ let ``Infers BasicQuantumFunctionality by source code`` () =
         "ResultTuple"
         "ResultArray"
     ]
-    |> List.iter (expect BasicQuantumFunctionality)
+    |> List.iter (createCapability ResultOpacity.opaque |> expect)
 
 [<Fact>]
 let ``Infers BasicMeasurementFeedback by source code`` () =
     [ "SetLocal"; "EmptyIfOp"; "EmptyIfNeqOp"; "Reset"; "ResetNeq" ]
-    |> List.iter (expect BasicMeasurementFeedback)
+    |> List.iter (createCapability ResultOpacity.controlled |> expect)
 
 [<Fact>]
 let ``Infers FullComputation by source code`` () =
@@ -65,52 +68,57 @@ let ``Infers FullComputation by source code`` () =
         "EmptyIf"
         "EmptyIfNeq"
     ]
-    |> List.iter (expect FullComputation)
+    |> List.iter (createCapability ResultOpacity.transparent |> expect)
 
 [<Fact>]
 let ``Allows overriding capabilities with attribute`` () =
-    expect BasicQuantumFunctionality "OverrideBmfToBqf"
+    expect (createCapability ResultOpacity.opaque) "OverrideBmfToBqf"
 
     [ "OverrideBqfToBmf"; "OverrideFullToBmf"; "ExplicitBmf" ]
-    |> List.iter (expect BasicMeasurementFeedback)
+    |> List.iter (createCapability ResultOpacity.controlled |> expect)
 
-    expect FullComputation "OverrideBmfToFull"
+    expect (createCapability ResultOpacity.transparent) "OverrideBmfToFull"
 
 [<Fact>]
 let ``Infers single dependency`` () =
-    [ "CallBmfA"; "CallBmfB" ] |> List.iter (expect BasicMeasurementFeedback)
+    [ "CallBmfA"; "CallBmfB" ] |> List.iter (createCapability ResultOpacity.controlled |> expect)
 
 [<Fact>]
 let ``Infers two side-by-side dependencies`` () =
-    expect BasicMeasurementFeedback "CallBmfFullB"
-    [ "CallBmfFullA"; "CallBmfFullC" ] |> List.iter (expect FullComputation)
+    expect (createCapability ResultOpacity.controlled) "CallBmfFullB"
+
+    [ "CallBmfFullA"; "CallBmfFullC" ]
+    |> List.iter (createCapability ResultOpacity.transparent |> expect)
 
 [<Fact>]
 let ``Infers two chained dependencies`` () =
-    [ "CallFullA"; "CallFullB" ] |> List.iter (expect FullComputation)
-    expect BasicMeasurementFeedback "CallFullC"
+    [ "CallFullA"; "CallFullB" ] |> List.iter (createCapability ResultOpacity.transparent |> expect)
+    expect (createCapability ResultOpacity.controlled) "CallFullC"
 
 [<Fact>]
 let ``Allows safe override`` () =
-    [ "CallFullOverrideA"; "CallFullOverrideB" ] |> List.iter (expect FullComputation)
+    [ "CallFullOverrideA"; "CallFullOverrideB" ]
+    |> List.iter (createCapability ResultOpacity.transparent |> expect)
 
-    expect BasicMeasurementFeedback "CallFullOverrideC"
+    expect (createCapability ResultOpacity.controlled) "CallFullOverrideC"
 
 [<Fact>]
 let ``Allows unsafe override`` () =
-    [ "CallBmfOverrideA"; "CallBmfOverrideB" ] |> List.iter (expect BasicMeasurementFeedback)
+    [ "CallBmfOverrideA"; "CallBmfOverrideB" ]
+    |> List.iter (createCapability ResultOpacity.controlled |> expect)
 
-    expect FullComputation "CallBmfOverrideC"
+    expect (createCapability ResultOpacity.transparent) "CallBmfOverrideC"
 
 [<Fact>]
 let ``Infers with direct recursion`` () =
-    expect BasicMeasurementFeedback "BmfRecursion"
+    expect (createCapability ResultOpacity.controlled) "BmfRecursion"
 
 [<Fact>]
 let ``Infers with indirect recursion`` () =
     [ "BmfRecursion3A"; "BmfRecursion3B"; "BmfRecursion3C" ]
-    |> List.iter (expect BasicMeasurementFeedback)
+    |> List.iter (createCapability ResultOpacity.controlled |> expect)
 
 [<Fact>]
 let ``Infers with uncalled reference`` () =
-    [ "ReferenceBmfA"; "ReferenceBmfB" ] |> List.iter (expect BasicMeasurementFeedback)
+    [ "ReferenceBmfA"; "ReferenceBmfB" ]
+    |> List.iter (createCapability ResultOpacity.controlled |> expect)

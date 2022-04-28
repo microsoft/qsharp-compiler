@@ -3,55 +3,90 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
-open Microsoft.Quantum.QsCompiler.DataTypes
+type ResultOpacity =
+    | Opaque
+    | Controlled
+    | Transparent
 
-/// The runtime capabilities supported by a quantum processor.
-[<NoComparison>]
+module ResultOpacity =
+    [<CompiledName "Opaque">]
+    let opaque = Opaque
+
+    [<CompiledName "Controlled">]
+    let controlled = Controlled
+
+    [<CompiledName "Transparent">]
+    let transparent = Transparent
+
+    let ofString name =
+        match name with
+        | "Opaque" -> Some Opaque
+        | "Controlled" -> Some Controlled
+        | "Transparent" -> Some Transparent
+        | _ -> None
+
+type ClassicalCapability =
+    | Limited
+    | Unlimited
+
+module ClassicalCapability =
+    [<CompiledName "Limited">]
+    let limited = Limited
+
+    [<CompiledName "Unlimited">]
+    let unlimited = Unlimited
+
+    let ofString name =
+        match name with
+        | "Limited" -> Some Limited
+        | "Unlimited" -> Some Unlimited
+        | _ -> None
+
 type RuntimeCapability =
-    /// Measurement results cannot be compared for equality.
-    | BasicQuantumFunctionality
+    {
+        resultOpacity: ResultOpacity
+        classical: ClassicalCapability
+    }
 
-    /// Measurement results can be compared for equality only in if-statement conditional expressions in operations.
-    /// The block of an if-statement that depends on a result cannot contain set statements for mutable variables
-    /// declared outside the block, or return statements.
-    | BasicMeasurementFeedback
+    member capability.ResultOpacity = capability.resultOpacity
 
-    /// No runtime restrictions. Any Q# program can be executed.
-    | FullComputation
+    member capability.Classical = capability.classical
 
-    /// Returns true if having this runtime capability also implies having the given runtime capability.
-    member x.Implies y =
-        match x, y with
-        | BasicMeasurementFeedback, BasicQuantumFunctionality
-        | FullComputation, _ -> true
-        | _ -> x = y
+module RuntimeCapability =
+    [<CompiledName "Top">]
+    let top = { resultOpacity = Transparent; classical = Unlimited }
 
-    /// Returns a runtime capability that implies both given capabilities.
-    static member Combine x y =
-        match x, y with
-        | BasicQuantumFunctionality, other
-        | other, BasicQuantumFunctionality -> other
-        | BasicMeasurementFeedback, BasicMeasurementFeedback -> BasicMeasurementFeedback
-        | FullComputation, _
-        | _, FullComputation -> FullComputation
+    [<CompiledName "Bottom">]
+    let bottom = { resultOpacity = Opaque; classical = Limited }
 
-    /// The base runtime capability is the identity element when combined with another capability. It is implied by
-    /// every other capability.
-    static member Base = BasicQuantumFunctionality
+    [<CompiledName "Merge">]
+    let merge c1 c2 =
+        { resultOpacity = max c1.resultOpacity c2.resultOpacity; classical = max c1.classical c2.classical }
 
-    /// Returns true if both runtime capabilities are equal.
-    static member op_Equality(a: RuntimeCapability, b: RuntimeCapability) = a = b
+    [<CompiledName "WithResultOpacity">]
+    let withResultOpacity opacity capability =
+        { capability with resultOpacity = opacity }
 
-    /// Parses the string as a runtime capability.
-    static member TryParse value =
-        match value with
-        | "BasicQuantumFunctionality" -> Value BasicQuantumFunctionality
-        | "BasicMeasurementFeedback" -> Value BasicMeasurementFeedback
-        | "FullComputation" -> Value FullComputation
-        | _ -> Null
+    [<CompiledName "WithClassical">]
+    let withClassical classical capability =
+        { capability with classical = classical }
 
-    member this.Name =
-        match this with
-        | BasicQuantumFunctionality -> "BasicQuantumFunctionality"
-        | BasicMeasurementFeedback -> "BasicMeasurementFeedback"
-        | FullComputation -> "FullComputation"
+    let names =
+        Map [ "BasicExecution", { resultOpacity = Opaque; classical = Limited }
+              "BasicQuantumFunctionality", { resultOpacity = Opaque; classical = Unlimited }
+              "AdaptiveExecution", { resultOpacity = Controlled; classical = Limited }
+              "BasicMeasurementFeedback", { resultOpacity = Controlled; classical = Unlimited }
+              "FullComputation", { resultOpacity = Transparent; classical = Unlimited } ]
+
+    [<CompiledName "Name">]
+    let name capability =
+        Map.tryFindKey (fun _ -> (=) capability) names
+
+    [<CompiledName "FromString">]
+    let ofString name = Map.tryFind name names
+
+type RuntimeCapability with
+    member capability.Name = RuntimeCapability.name capability |> Option.toObj
+
+    static member Parse name =
+        RuntimeCapability.ofString name |> Option.defaultValue Unchecked.defaultof<_>
