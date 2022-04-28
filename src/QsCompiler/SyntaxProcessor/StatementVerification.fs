@@ -83,9 +83,7 @@ let NewFailStatement comments location context expr =
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics.
 let NewReturnStatement comments (location: QsLocation) context expr =
     let expr, diagnostics = resolveExpr context expr
-
-    verifyAssignment context.Inference context.ReturnType ErrorCode.TypeMismatchInReturn expr
-    |> diagnostics.AddRange
+    context.Inference.Constrain(context.ReturnType .> expr.ResolvedType) |> diagnostics.AddRange
 
     onAutoInvertGenerateError ((ErrorCode.ReturnStatementWithinAutoInversion, []), location.Range) context.Symbols
     |> diagnostics.AddRange
@@ -104,9 +102,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
     let rhs, rhsDiagnostics = resolveExpr context rhs
     let localQdep = rhs.InferredInformation.HasLocalQuantumDependency
     diagnostics.AddRange rhsDiagnostics
-
-    verifyAssignment context.Inference lhs.ResolvedType ErrorCode.TypeMismatchInValueUpdate rhs
-    |> diagnostics.AddRange
+    context.Inference.Constrain(lhs.ResolvedType .> rhs.ResolvedType) |> diagnostics.AddRange
 
     let rec verifyMutability: TypedExpression -> _ =
         function
