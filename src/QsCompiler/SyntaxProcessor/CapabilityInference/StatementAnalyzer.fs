@@ -5,31 +5,40 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.Stateme
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-let createPattern _range =
+let createPattern range =
+    let range = QsNullable.defaultValue Range.Zero range
+    let capability = RuntimeCapability.withClassical ClassicalCapability.unlimited RuntimeCapability.bottom
+
+    let diagnose target =
+        QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
+        |> Some
+        |> Option.filter (fun _ -> target.Capability < capability)
+
     {
-        Capability = RuntimeCapability.bottom // TODO
-        Diagnose = fun _ -> None // TODO
+        Capability = capability
+        Diagnose = diagnose
         Properties = ()
     }
 
-let analyzer action : _ seq =
-    let transformation = SyntaxTreeTransformation TransformationOptions.NoRebuild
+let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
+    let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable numReturns = 0
 
     transformation.Statements <-
         { new StatementTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnStatement statement =
-                let range = statement.Location |> QsNullable<_>.Map (fun l -> l.Offset + l.Range)
+                let offset = QsNullable.defaultValue Position.Zero transformation.Offset
+                let range = statement.Location |> QsNullable<_>.Map (fun l -> offset + l.Offset + l.Range)
 
                 match statement.Statement with
                 | QsFailStatement _
                 | QsRepeatStatement _
-                | QsValueUpdate _ // TODO: Update-and-reassign only?
                 | QsWhileStatement _ -> createPattern range |> patterns.Add
                 | QsReturnStatement _ ->
                     numReturns <- numReturns + 1

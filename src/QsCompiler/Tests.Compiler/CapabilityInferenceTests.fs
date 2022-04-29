@@ -54,13 +54,9 @@ let ``Infers FullComputation from syntax`` () =
         "ResultAsBoolNeq"
         "ResultAsBoolOp"
         "ResultAsBoolNeqOp"
-        "ResultAsBoolOpReturnIf"
-        "ResultAsBoolNeqOpReturnIf"
-        "ResultAsBoolOpReturnIfNested"
         "ResultAsBoolOpSetIf"
         "ResultAsBoolNeqOpSetIf"
         "ResultAsBoolOpElseSet"
-        "NestedResultIfReturn"
         "ElifSet"
         "ElifElifSet"
         "ElifElseSet"
@@ -71,9 +67,25 @@ let ``Infers FullComputation from syntax`` () =
     ]
     |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.limited |> expect)
 
+    [
+        "ResultAsBoolOpReturnIf"
+        "ResultAsBoolNeqOpReturnIf"
+        "ResultAsBoolOpReturnIfNested"
+        "NestedResultIfReturn"
+    ]
+    |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.unlimited |> expect)
+
 [<Fact>]
 let ``Infers unlimited classical capability from syntax`` () =
-    [ "Recursion1"; "Recursion2A"; "Recursion2B" ]
+    [
+        "Recursion1"
+        "Recursion2A"
+        "Recursion2B"
+        "Fail"
+        "Repeat"
+        "While"
+        "TwoReturns"
+    ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.unlimited |> expect)
 
 [<Fact>]

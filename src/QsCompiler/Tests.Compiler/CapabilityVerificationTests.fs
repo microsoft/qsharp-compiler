@@ -162,7 +162,15 @@ let ``BasicMeasurementFeedback allows operation call from Result if`` () =
 
 [<Fact>]
 let ``BasicExecution restricts language constructs`` () =
-    [ "Recursion1"; "Recursion2A"; "Recursion2B" ]
+    [
+        "Recursion1"
+        "Recursion2A"
+        "Recursion2B"
+        "Fail"
+        "Repeat"
+        "While"
+        "TwoReturns"
+    ]
     |> List.iter (expect basicExecution [ Error ErrorCode.UnsupportedClassicalCapability ])
 
 [<Fact>]

@@ -199,6 +199,26 @@ namespace Microsoft.Quantum.Testing.Capability {
         Recursion2A();
     }
 
+    function Fail() : Unit {
+        fail "test";
+    }
+
+    operation Repeat() : Unit {
+        repeat {} until false;
+    }
+
+    function While() : Unit {
+        while false {}
+    }
+
+    function TwoReturns() : Bool {
+        if true {
+            return true;
+        }
+
+        return false;
+    }
+
     // Tuples and arrays currently don't support equality comparison, but result comparison should still be prevented if
     // they do.
 
