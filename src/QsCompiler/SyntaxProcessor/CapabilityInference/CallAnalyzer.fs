@@ -15,6 +15,12 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Utils
 
+module Recursion =
+    let capability = RuntimeCapability.withClassical ClassicalCapability.unlimited RuntimeCapability.bottom
+
+    let callableSet (cycles: #(CallGraphNode seq) seq) =
+        Seq.collect id cycles |> Seq.map (fun n -> n.CallableName) |> Set.ofSeq
+
 type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: CallGraph, syntaxAnalyzer: Analyzer<_, _>) =
     static let createPattern capability =
         {
@@ -36,6 +42,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
         graph.GetCallCycles()
         |> Seq.filter (findCallable >> Option.exists (fun c -> QsNullable.isNull c.Source.AssemblyFile) |> Seq.exists)
 
+    let recursiveCallables = Recursion.callableSet cycles
     let cycleCapabilities = Dictionary()
     let callablePatterns = Dictionary()
     let visitedCallables = HashSet()
@@ -73,6 +80,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
                 | false, _ -> ()
 
                 analyzer.DependentCapability callable.FullName |> createPattern
+                if Set.contains callable.FullName recursiveCallables then createPattern Recursion.capability
             ]
         | Null -> []
 
@@ -93,7 +101,7 @@ module CallAnalyzer =
         let capability =
             match kind with
             | External capability -> capability
-            | Recursive -> RuntimeCapability.withClassical ClassicalCapability.unlimited RuntimeCapability.bottom
+            | Recursive -> Recursion.capability
 
         let diagnose (target: Target) =
             let range = QsNullable.defaultValue Range.Zero range
@@ -154,8 +162,7 @@ module CallAnalyzer =
             | Found callable -> SymbolResolution.TryGetRequiredCapability callable.Attributes
             | _ -> Null
 
-        let callablesInCycle =
-            graph.GetCallCycles() |> Seq.collect id |> Seq.map (fun n -> n.CallableName) |> Set.ofSeq
+        let recursiveCallables = graph.GetCallCycles() |> Recursion.callableSet
 
         seq {
             for name, range in dependencies do
@@ -163,8 +170,7 @@ module CallAnalyzer =
                 | Value capability -> createPattern (External capability) name range
                 | Null -> ()
 
-                // TODO: Need to detect recursion in the deep analyzer too.
-                if Set.contains name callablesInCycle then createPattern Recursive node.CallableName range
+                if Set.contains name recursiveCallables then createPattern Recursive node.CallableName range
         }
 
     let deep callables graph syntaxAnalyzer : Analyzer<_, _> =
