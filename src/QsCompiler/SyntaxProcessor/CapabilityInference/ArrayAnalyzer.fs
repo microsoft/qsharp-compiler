@@ -20,7 +20,7 @@ let createPattern _usage _range =
     }
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
-    let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
+    let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
 
     let checkSize (size: TypedExpression) =

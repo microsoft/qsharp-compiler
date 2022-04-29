@@ -26,9 +26,9 @@ type internal Analyzer<'subject, 'props> = 'subject -> 'props Pattern seq
 module internal Analyzer =
     val concat: analyzers: Analyzer<'subject, 'props> seq -> Analyzer<'subject, 'props>
 
-type internal LocationTrackingTransformation =
+type internal LocatingTransformation =
     inherit SyntaxTreeTransformation
 
-    new: options: TransformationOptions -> LocationTrackingTransformation
+    new: options: TransformationOptions -> LocatingTransformation
 
     member Offset: Position QsNullable

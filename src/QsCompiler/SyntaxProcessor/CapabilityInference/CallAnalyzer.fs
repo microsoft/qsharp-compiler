@@ -123,7 +123,7 @@ module CallAnalyzer =
         }
 
     let globalCallableIds action =
-        let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
+        let transformation = LocatingTransformation TransformationOptions.NoRebuild
         let references = ResizeArray()
 
         transformation.Expressions <-

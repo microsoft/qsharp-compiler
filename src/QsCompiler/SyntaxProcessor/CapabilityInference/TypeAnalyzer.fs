@@ -34,7 +34,7 @@ let createPattern _usage ty _range =
             }
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
-    let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
+    let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable context = { StringLiteralsOk = false }
 

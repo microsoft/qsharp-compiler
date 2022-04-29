@@ -89,7 +89,7 @@ let isResultEquality expression =
     | _ -> false
 
 let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
-    let transformation = LocationTrackingTransformation TransformationOptions.NoRebuild
+    let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable dependsOnResult = false
     let mutable context = { InCondition = false; FrozenVars = Set.empty }

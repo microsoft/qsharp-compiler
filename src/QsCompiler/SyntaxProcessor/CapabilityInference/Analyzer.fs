@@ -36,7 +36,7 @@ type Analyzer<'subject, 'props> = 'subject -> 'props Pattern seq
 module Analyzer =
     let concat (analyzers: Analyzer<_, _> seq) subject = Seq.collect ((|>) subject) analyzers
 
-type LocationTrackingTransformation(options) =
+type LocatingTransformation(options) =
     inherit SyntaxTreeTransformation(options)
 
     let mutable absolute = Null
