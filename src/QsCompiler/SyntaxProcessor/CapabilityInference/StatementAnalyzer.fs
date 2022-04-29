@@ -12,7 +12,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 let createPattern range =
     let range = QsNullable.defaultValue Range.Zero range
-    let capability = RuntimeCapability.withClassical ClassicalCapability.unlimited RuntimeCapability.bottom
+    let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
 
     let diagnose target =
         QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range

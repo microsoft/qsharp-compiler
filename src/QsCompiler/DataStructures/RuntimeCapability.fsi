@@ -30,11 +30,14 @@ module ResultOpacity =
 type ClassicalCapability
 
 module ClassicalCapability =
-    [<CompiledName "Limited">]
-    val limited: ClassicalCapability
+    [<CompiledName "Empty">]
+    val empty: ClassicalCapability
 
-    [<CompiledName "Unlimited">]
-    val unlimited: ClassicalCapability
+    [<CompiledName "Integral">]
+    val integral: ClassicalCapability
+
+    [<CompiledName "Full">]
+    val full: ClassicalCapability
 
     val internal ofString: name: string -> ClassicalCapability option
 

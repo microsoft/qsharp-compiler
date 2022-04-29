@@ -26,20 +26,25 @@ module ResultOpacity =
         | _ -> None
 
 type ClassicalCapability =
-    | Limited
-    | Unlimited
+    | Empty
+    | Integral
+    | Full
 
 module ClassicalCapability =
-    [<CompiledName "Limited">]
-    let limited = Limited
+    [<CompiledName "Empty">]
+    let empty = Empty
 
-    [<CompiledName "Unlimited">]
-    let unlimited = Unlimited
+    [<CompiledName "Integral">]
+    let integral = Integral
+
+    [<CompiledName "Full">]
+    let full = Full
 
     let ofString name =
         match name with
-        | "Limited" -> Some Limited
-        | "Unlimited" -> Some Unlimited
+        | "Empty" -> Some Empty
+        | "Integral" -> Some Integral
+        | "Full" -> Some Full
         | _ -> None
 
 type RuntimeCapability =
@@ -54,10 +59,10 @@ type RuntimeCapability =
 
 module RuntimeCapability =
     [<CompiledName "Top">]
-    let top = { resultOpacity = Transparent; classical = Unlimited }
+    let top = { resultOpacity = Transparent; classical = Full }
 
     [<CompiledName "Bottom">]
-    let bottom = { resultOpacity = Opaque; classical = Limited }
+    let bottom = { resultOpacity = Opaque; classical = Empty }
 
     [<CompiledName "Merge">]
     let merge c1 c2 =
@@ -71,12 +76,13 @@ module RuntimeCapability =
     let withClassical classical capability =
         { capability with classical = classical }
 
+    // TODO: Need to know the target architecture to choose between Empty and Integral.
     let names =
-        Map [ "BasicExecution", { resultOpacity = Opaque; classical = Limited }
-              "BasicQuantumFunctionality", { resultOpacity = Opaque; classical = Unlimited }
-              "AdaptiveExecution", { resultOpacity = Controlled; classical = Limited }
-              "BasicMeasurementFeedback", { resultOpacity = Controlled; classical = Unlimited }
-              "FullComputation", { resultOpacity = Transparent; classical = Unlimited } ]
+        Map [ "BasicExecution", { resultOpacity = Opaque; classical = Empty }
+              "BasicQuantumFunctionality", { resultOpacity = Opaque; classical = Full }
+              "AdaptiveExecution", { resultOpacity = Controlled; classical = Empty }
+              "BasicMeasurementFeedback", { resultOpacity = Controlled; classical = Full }
+              "FullComputation", { resultOpacity = Transparent; classical = Full } ]
 
     [<CompiledName "Name">]
     let name capability =

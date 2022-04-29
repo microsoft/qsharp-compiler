@@ -16,7 +16,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Utils
 
 module Recursion =
-    let capability = RuntimeCapability.withClassical ClassicalCapability.unlimited RuntimeCapability.bottom
+    let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
 
     let callableSet (cycles: #(CallGraphNode seq) seq) =
         Seq.collect id cycles |> Seq.map (fun n -> n.CallableName) |> Set.ofSeq
