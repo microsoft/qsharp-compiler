@@ -452,31 +452,57 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
     }
 
+    /// <summary>
+    /// Static class for generating new names for local symbols and callables.
+    /// </summary>
     public static class NameGenerator
     {
         private static Regex LabelPattern(string label) =>
             new Regex($"^__{Regex.Escape(label)}_?[0-9]+__", RegexOptions.IgnoreCase);
 
+        /// <summary>
+        /// Generates a new variable name with a given label and number from an original variable name.
+        /// </summary>
         internal static string GenerateVariableName(string label, int number, string original) =>
             GenerateVariableName(label, number) + original;
 
+        /// <summary>
+        /// Generates a new variable name with a given label and number.
+        /// </summary>
         internal static string GenerateVariableName(string label, int number) =>
             $"__{label}{(number < -0 ? "_" : "")}{Math.Abs(number)}__";
 
+        /// <summary>
+        /// Gets the original variable name from a given name generated using <see cref="GenerateVariableName"/>.
+        /// If given a generated name that had no original name, this will return and empty string.
+        /// If given a non-generated name or a name generated with a different label, this will
+        /// return the given name unchanged.
+        /// </summary>
         internal static string OriginalVariableFromGenerated(string label, string generated) =>
             LabelPattern(label).Replace(generated, string.Empty);
 
         private static readonly Regex GUID =
             new Regex(@"^__[a-f0-9]{32}__", RegexOptions.IgnoreCase);
 
+        /// <summary>
+        /// Generates a new callable name from an original callable name.
+        /// </summary>
         internal static QsQualifiedName GenerateCallableName(QsQualifiedName original) =>
             new QsQualifiedName(
                 original.Namespace,
                 "__" + Guid.NewGuid().ToString("N") + "__" + original.Name);
 
+        /// <summary>
+        /// Returns <c>true</c> if the given name fits the format of names generated from calling <see cref="GenerateCallableName"/>.
+        /// Otherwise, returns false.
+        /// </summary>
         public static bool IsGeneratedName(QsQualifiedName callableName) =>
             GUID.IsMatch(callableName.Name);
 
+        /// <summary>
+        /// Gets the original callable name from a given name generated using <see cref="GenerateCallableName"/>.
+        /// If given a non-generated name, this will return the given name unchanged.
+        /// </summary>
         public static QsQualifiedName OriginalCallableFromGenerated(QsQualifiedName generated) =>
             new QsQualifiedName(
                 generated.Namespace,
