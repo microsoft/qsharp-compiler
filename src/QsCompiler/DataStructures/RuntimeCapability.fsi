@@ -27,7 +27,9 @@ module ResultOpacity =
 
     val internal ofString: name: string -> ResultOpacity option
 
-type ClassicalCapability
+[<Sealed>]
+type ClassicalCapability =
+    interface IComparable
 
 module ClassicalCapability =
     [<CompiledName "Empty">]

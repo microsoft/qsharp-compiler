@@ -572,7 +572,7 @@
     <Compile Include="CompilationTrackerTests.fs" />
     <Compile Include="QirTests.fs" />
     <Compile Include="ExecutionTests.fs" />
-</ItemGroup>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.201332" ExcludeAssets="compile" GeneratePathProperty="true" />
@@ -592,11 +592,6 @@
     <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Update="System.ValueTuple" Version="4.4.0" />
-    <PackageReference Update="FSharp.Core" Version="4.7.0" />
   </ItemGroup>
 
   <Target Name="PrepareReferenceTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">

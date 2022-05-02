@@ -6,37 +6,66 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.TypeAna
 open System
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-type TypeUsage =
-    | Conditional
+type Usage =
     | Literal
-    | Mutable of name: string
-    | Expression
+    | Conditional
+    | Mutable
     | Return
+    | Expression
 
-type Context = { StringLiteralsOk: bool }
+type Context = { IsEntryPoint: bool; StringLiteralsOk: bool }
 
-let isAlwaysSupported _type = true // TODO
+let rec requiredCapability context usage (ty: ResolvedType) =
+    match usage with
+    | Conditional
+    | Mutable _ ->
+        match ty.Resolution with
+        | Bool
+        | Int -> ClassicalCapability.integral
+        | _ -> ClassicalCapability.full
+    | Return when context.IsEntryPoint ->
+        match ty.Resolution with
+        | Bool
+        | Int -> ClassicalCapability.integral
+        | ArrayType t -> requiredCapability context usage t
+        | TupleType ts when not ts.IsEmpty -> Seq.map (requiredCapability context usage) ts |> Seq.max
+        | _ -> ClassicalCapability.full
+    | _ ->
+        match usage, ty.Resolution with
+        | Literal, Range -> ClassicalCapability.empty
+        | Literal, String when context.StringLiteralsOk -> ClassicalCapability.empty
+        | _, BigInt
+        | _, Range
+        | _, String -> ClassicalCapability.full
+        | _ -> ClassicalCapability.empty
 
-let createPattern _usage ty _range =
-    if isAlwaysSupported ty then
-        None
-    else
-        Some
-            {
-                Capability = RuntimeCapability.bottom // TODO
-                Diagnose = fun _ -> None // TODO
-                Properties = ()
-            }
+let createPattern range classical =
+    let range = QsNullable.defaultValue Range.Zero range
+    let capability = RuntimeCapability.withClassical classical RuntimeCapability.bottom
+
+    let diagnose target =
+        QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
+        |> Some
+        |> Option.filter (fun _ -> target.Capability < capability)
+
+    Some
+        {
+            Capability = capability
+            Diagnose = diagnose
+            Properties = ()
+        }
+    |> Option.filter (fun _ -> capability > RuntimeCapability.bottom)
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
-    let mutable context = { StringLiteralsOk = false }
+    let mutable context = { IsEntryPoint = false; StringLiteralsOk = false }
 
     let local context' =
         let oldContext = context
@@ -52,14 +81,21 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let range = statement.Location |> QsNullable<_>.Map (fun l -> l.Offset + l.Range)
 
                 match statement.Statement with
-                | QsReturnStatement expression ->
-                    createPattern Return expression.ResolvedType range |> Option.iter patterns.Add
+                | QsFailStatement _ ->
+                    use _ = local { context with StringLiteralsOk = true }
+                    base.OnStatement statement
+                | QsReturnStatement value ->
+                    requiredCapability context Return value.ResolvedType
+                    |> createPattern range
+                    |> Option.iter patterns.Add
+
+                    base.OnStatement statement
                 | QsVariableDeclaration binding when binding.Kind = MutableBinding ->
                     for var in statement.SymbolDeclarations.Variables do
-                        createPattern (Mutable var.VariableName) var.Type range |> Option.iter patterns.Add
-                | _ -> ()
+                        requiredCapability context Mutable var.Type |> createPattern range |> Option.iter patterns.Add
 
-                base.OnStatement statement
+                    base.OnStatement statement
+                | _ -> base.OnStatement statement
         }
 
     transformation.Expressions <-
@@ -69,12 +105,17 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
 
                 match expression.Expression, expression.ResolvedType.Resolution with
                 | CONDITIONAL _, _ ->
-                    createPattern Conditional expression.ResolvedType range |> Option.iter patterns.Add
+                    requiredCapability context Conditional expression.ResolvedType
+                    |> createPattern range
+                    |> Option.iter patterns.Add
                 | StringLiteral _, _ when context.StringLiteralsOk -> ()
                 | RangeLiteral _, _ -> ()
                 | _, BigInt
                 | _, String
-                | _, Range -> createPattern Expression expression.ResolvedType range |> Option.iter patterns.Add
+                | _, Range ->
+                    requiredCapability context Expression expression.ResolvedType
+                    |> createPattern range
+                    |> Option.iter patterns.Add
                 | _ -> ()
 
                 base.OnTypedExpression expression
@@ -84,7 +125,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
         { new ExpressionKindTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnCallLikeExpression(callable, args) =
                 match callable.Expression with
-                | Identifier (GlobalCallable { Namespace = "Microsoft.Quantum.Intrinsic"; Name = "Message" }, _) ->
+                | Identifier (GlobalCallable name, _) when name = BuiltIn.Message.FullName ->
                     let callable = transformation.Expressions.OnTypedExpression callable
                     use _ = local { context with StringLiteralsOk = true }
                     CallLikeExpression(callable, transformation.Expressions.OnTypedExpression args)
