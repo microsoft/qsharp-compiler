@@ -48,6 +48,10 @@ namespace Microsoft.Quantum.Testing.QIR {
         let (pauli, _) = tupleArr[1];
         LogPauli(pauli);
 
+        let arrArr = [[PauliX, PauliZ], [PauliY], [PauliI]];
+        let pauliI = arrArr[2][0];
+        LogPauli(pauliI);
+
         // let (a, b) = (1,1);
         // mutable item = arr1[a + b];
         // set item = arr1[sum - 5];

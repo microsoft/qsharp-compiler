@@ -29,6 +29,9 @@
     <Content Include="TestCases\QirTests\ExecutionTests.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TargetedExecutionTests.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestAliasCounts.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
