@@ -23,15 +23,15 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         internal static ImmutableArray<LoadedStep> Load(CompilationLoader.Configuration config, Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null)
         {
-            var loadedSteps = new List<LoadedStep>();
             var instanceRewriteStepLoader = new InstanceRewriteStepsLoader(onDiagnostic, onException);
-            loadedSteps.AddRange(instanceRewriteStepLoader.GetLoadedSteps(config.RewriteStepInstances));
-
             var typeRewriteStepLoader = new TypeRewriteStepsLoader(onDiagnostic, onException);
-            loadedSteps.AddRange(typeRewriteStepLoader.GetLoadedSteps(config.RewriteStepTypes));
-
             var assemblyRewriteStepLoader = new AssemblyRewriteStepsLoader(onDiagnostic, onException);
-            loadedSteps.AddRange(assemblyRewriteStepLoader.GetLoadedSteps(config.RewriteStepAssemblies));
+
+            var loadedSteps = instanceRewriteStepLoader.GetLoadedSteps(config.RewriteStepInstances)
+                .Concat(typeRewriteStepLoader.GetLoadedSteps(config.RewriteStepTypes))
+                .Concat(assemblyRewriteStepLoader.GetLoadedSteps(config.RewriteStepAssemblies))
+                .OrderByDescending(step => step.Priority)
+                .ToImmutableArray();
 
             foreach (var loaded in loadedSteps)
             {
@@ -52,8 +52,7 @@ namespace Microsoft.Quantum.QsCompiler
                 assemblyConstants.TryAdd(AssemblyConstants.AssemblyName, config.ProjectNameWithoutPathOrExtension);
             }
 
-            CompilationLoader.SortRewriteSteps(loadedSteps, step => step.Priority);
-            return loadedSteps.ToImmutableArray();
+            return loadedSteps;
         }
     }
 }
