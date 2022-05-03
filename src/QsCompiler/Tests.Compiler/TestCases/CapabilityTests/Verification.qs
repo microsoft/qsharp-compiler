@@ -219,6 +219,57 @@ namespace Microsoft.Quantum.Testing.Capability {
         return false;
     }
 
+    function UseBigInt() : Unit {
+        let x = 0L;
+    }
+
+    function ReturnBigInt() : BigInt {
+        return 0L;
+    }
+
+    function ConditionalBigInt(b : Bool) : Unit {
+        let x = b ? 0L | 1L;
+    }
+
+    function MessageStringVar() : Unit {
+        let x = "foo";
+        Message(x);
+    }
+
+    function ReturnString() : Unit {
+        return "foo";
+    }
+
+    function ConditionalString(b : Bool) : Unit {
+        let x = b ? "foo" | "bar";
+    }
+
+    function TakeString(s : String) : Unit {
+        body intrinsic;
+    }
+
+    function UseStringArg() : Unit {
+        TakeString("foo");
+    }
+
+    function MessageStringLit() : Unit {
+        Message("foo");
+    }
+
+    function MessageInterpStringLit() : Unit {
+        let x = 0;
+        Message($"x = {x}");
+    }
+
+    function UseRangeVar() : Unit {
+        let xs = 0..10;
+        for x in xs {}
+    }
+
+    function UseRangeLit() : Unit {
+        for x in 0..10 {}
+    }
+
     // Tuples and arrays currently don't support equality comparison, but result comparison should still be prevented if
     // they do.
 
@@ -274,6 +325,10 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     operation M(q : Qubit) : Result {
+        body intrinsic;
+    }
+
+    operation Message(message : String) : Unit {
         body intrinsic;
     }
 }

@@ -147,3 +147,20 @@ let ``Infers with indirect recursion`` () =
 let ``Infers with uncalled reference`` () =
     [ "ReferenceBmfA"; "ReferenceBmfB" ]
     |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.empty |> expect)
+
+[<Fact>]
+let ``Restricts BigInt, Range, and String`` () =
+    [ "MessageStringLit"; "MessageInterpStringLit"; "UseRangeLit" ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
+
+    [
+        "UseBigInt"
+        "ReturnBigInt"
+        "ConditionalBigInt"
+        "UseStringArg"
+        "MessageStringVar"
+        "ReturnString"
+        "ConditionalString"
+        "UseRangeVar"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)

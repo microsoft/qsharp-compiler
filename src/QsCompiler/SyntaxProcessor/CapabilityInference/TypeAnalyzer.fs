@@ -13,10 +13,10 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type Usage =
-    | Literal
-    | Conditional
     | Mutable
     | Return
+    | Conditional
+    | Literal
     | Expression
 
 type Context = { IsEntryPoint: bool; StringLiteralsOk: bool }
@@ -36,13 +36,17 @@ let rec requiredCapability context usage (ty: ResolvedType) =
         | ArrayType t -> requiredCapability context usage t
         | TupleType ts when not ts.IsEmpty -> Seq.map (requiredCapability context usage) ts |> Seq.max
         | _ -> ClassicalCapability.full
-    | _ ->
-        match usage, ty.Resolution with
-        | Literal, Range -> ClassicalCapability.empty
-        | Literal, String when context.StringLiteralsOk -> ClassicalCapability.empty
-        | _, BigInt
-        | _, Range
-        | _, String -> ClassicalCapability.full
+    | Return -> ClassicalCapability.empty
+    | Literal ->
+        match ty.Resolution with
+        | BigInt -> ClassicalCapability.full
+        | String -> if context.StringLiteralsOk then ClassicalCapability.empty else ClassicalCapability.full
+        | _ -> ClassicalCapability.empty
+    | Expression ->
+        match ty.Resolution with
+        | BigInt
+        | Range
+        | String -> ClassicalCapability.full
         | _ -> ClassicalCapability.empty
 
 let createPattern range classical =
@@ -101,22 +105,24 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
+                let usage =
+                    match expression.Expression, expression.ResolvedType.Resolution with
+                    | CONDITIONAL _, _ -> Conditional
+                    | IntLiteral _, _
+                    | BigIntLiteral _, _
+                    | DoubleLiteral _, _
+                    | BoolLiteral _, _
+                    | StringLiteral _, _
+                    | ResultLiteral _, _
+                    | PauliLiteral _, _
+                    | RangeLiteral _, _ -> Literal
+                    | _ -> Expression
+
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
-                match expression.Expression, expression.ResolvedType.Resolution with
-                | CONDITIONAL _, _ ->
-                    requiredCapability context Conditional expression.ResolvedType
-                    |> createPattern range
-                    |> Option.iter patterns.Add
-                | StringLiteral _, _ when context.StringLiteralsOk -> ()
-                | RangeLiteral _, _ -> ()
-                | _, BigInt
-                | _, String
-                | _, Range ->
-                    requiredCapability context Expression expression.ResolvedType
-                    |> createPattern range
-                    |> Option.iter patterns.Add
-                | _ -> ()
+                requiredCapability context usage expression.ResolvedType
+                |> createPattern range
+                |> Option.iter patterns.Add
 
                 base.OnTypedExpression expression
         }
