@@ -473,7 +473,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             $"__{label}{(number < -0 ? "_" : "")}{Math.Abs(number)}__";
 
         /// <summary>
-        /// Gets the original variable name from a given name generated using <see cref="GenerateVariableName"/>.
+        /// Gets the original variable name from a given name generated using <see cref="GenerateVariableName(string, int, string)"/>.
         /// If given a generated name that had no original name, this will return and empty string.
         /// If given a non-generated name or a name generated with a different label, this will
         /// return the given name unchanged.
