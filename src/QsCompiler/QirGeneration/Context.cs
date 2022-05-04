@@ -382,7 +382,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         : this.LlvmTypeFromQsharpType(c.Signature.ReturnType);
                     var argTypeKind = c.Signature.ArgumentType.Resolution;
                     var argTypeArray =
-                        argTypeKind is ResolvedTypeKind.TupleType tuple ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
+                        argTypeKind is ResolvedTypeKind.TupleType tuple ? tuple.Item.Select(t => this.LlvmTypeFromQsharpType(t)).ToArray() :
                         argTypeKind.IsUnitType ? new ITypeRef[0] :
                         new ITypeRef[] { this.LlvmTypeFromQsharpType(c.Signature.ArgumentType) };
                     this.quantumInstructionSet.AddFunction(name, returnType, argTypeArray);
@@ -625,7 +625,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
             var argTypeRefs =
                 spec.Signature.ArgumentType.Resolution.IsUnitType ? new ITypeRef[0] :
-                spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
+                spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(t => this.LlvmTypeFromQsharpType(t)).ToArray() :
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
@@ -1559,9 +1559,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal ResolvedType CurrentExpressionType() =>
             this.ExpressionTypeStack.Peek();
 
-        /// <inheritdoc cref="QirTypeTransformation.LlvmTypeFromQsharpType(ResolvedType)"/>
-        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
-            this.Types.Transform.LlvmTypeFromQsharpType(resolvedType);
+        /// <inheritdoc cref="QirTypeTransformation.LlvmTypeFromQsharpType(ResolvedType, bool)"/>
+        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType, bool asNativeLlvmType = false) =>
+            this.Types.Transform.LlvmTypeFromQsharpType(resolvedType, asNativeLlvmType: asNativeLlvmType);
 
         /// <summary>
         /// Computes the size in bytes of an LLVM type as an LLVM value.

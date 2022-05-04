@@ -172,10 +172,6 @@ namespace Microsoft.Quantum.QIR
         internal IPointerType BytePointer =>
             this.context.Int8Type.CreatePointerType();
 
-        /// <inheritdoc cref="Interop.MapToInteropType(Context, ITypeRef)"/>
-        internal ITypeRef? InteropType(ResolvedType type) =>
-            Interop.MapToInteropType(this.context, this.Transform.LlvmTypeFromQsharpType(type));
-
         // public members
 
         /// <summary>

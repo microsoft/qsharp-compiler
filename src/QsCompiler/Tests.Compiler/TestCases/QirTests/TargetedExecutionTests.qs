@@ -19,6 +19,10 @@
         let arr2 = [sum, size = 3];
         Message($"{arr2}");
 
+        for i in 0 .. Length(arr1)-1 {
+            Message($"item {i} is {arr1[i]}");
+        }
+
         //let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)]; // FIXME INCORRECT TYPES...
         //let (pauli, _) = tupleArr[1];
         //Message($"{pauli}");

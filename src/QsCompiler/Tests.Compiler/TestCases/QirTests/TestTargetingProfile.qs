@@ -39,6 +39,10 @@ namespace Microsoft.Quantum.Testing.QIR {
         let arr2 = [sum, size = 3];
         DumpMachine(arr2);
 
+        for i in 0 .. Length(arr1)-1 {
+            DumpMachine(arr1[i]);
+        }
+
         use qs = Qubit[2];
         H(qs[0]);
         CNOT(qs[0], qs[1]);

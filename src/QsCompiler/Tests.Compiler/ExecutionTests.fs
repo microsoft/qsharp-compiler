@@ -246,6 +246,9 @@ type ExecutionTests(output: ITestOutputHelper) =
             """
             [1, 2, 3]
             [6, 6, 6]
+            item 0 is 1
+            item 1 is 2
+            item 2 is 3
             Zero
             """
 

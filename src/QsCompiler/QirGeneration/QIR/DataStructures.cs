@@ -156,7 +156,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="pointer">Optional parameter to provide an existing pointer to use</param>
         /// <param name="type">The Q# type of the value that the pointer points to</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal PointerValue(Value? pointer, ResolvedType type, GenerationContext context)
+        internal PointerValue(Value? pointer, ResolvedType type, ITypeRef llvmType, GenerationContext context)
         {
             void Store(IValue v) =>
                 context.CurrentBuilder.Store(v.Value, this.accessHandle);
@@ -167,7 +167,7 @@ namespace Microsoft.Quantum.QIR.Emission
                     this.QSharpType);
 
             this.QSharpType = type;
-            this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
+            this.LlvmType = llvmType;
             this.accessHandle = pointer ?? context.CurrentBuilder.Alloca(this.LlvmType);
             this.cachedValue = new IValue.Cached<IValue>(context, Reload, Store);
         }
@@ -180,10 +180,10 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
         /// <param name="load">Function used to access the stored value</param>
         /// <param name="store">Function used to update the stored value</param>
-        internal PointerValue(ResolvedType type, GenerationContext context, Func<IValue> load, Action<IValue> store)
+        internal PointerValue(ResolvedType type, ITypeRef llvmType, GenerationContext context, Func<IValue> load, Action<IValue> store)
         {
             this.QSharpType = type;
-            this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
+            this.LlvmType = llvmType;
             this.cachedValue = new IValue.Cached<IValue>(context, load, store);
         }
 
@@ -193,10 +193,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="value">The value to store</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
         internal PointerValue(IValue value, GenerationContext context)
-        : this(null, value.QSharpType, context)
-        {
+        : this(null, value.QSharpType, value.LlvmType, context) =>
             this.cachedValue.Store(value);
-        }
 
         /// <summary>
         /// Loads and returns the current value of the mutable variable.
@@ -272,7 +270,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.customType = type;
             this.ElementTypes = elementTypes;
-            this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
+            this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(t => context.LlvmTypeFromQsharpType(t, asNativeLlvmType: allocOnStack)));
             this.LlvmNativeValue = allocOnStack ? this.StructType.GetNullValue() : null;
             this.opaquePointer = this.CreateOpaquePointerCache(allocOnStack ? null : this.AllocateTuple(registerWithScopeManager));
             this.typedPointer = this.CreateTypedPointerCache();
@@ -312,7 +310,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.sharedState = context;
             this.customType = type;
             this.ElementTypes = elementTypes;
-            this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(context.LlvmTypeFromQsharpType));
+            this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(t => context.LlvmTypeFromQsharpType(t, asNativeLlvmType: false)));
             this.opaquePointer = this.CreateOpaquePointerCache(isOpaqueTuple ? tuple : null);
             this.typedPointer = this.CreateTypedPointerCache(isTypedTuple ? tuple : null);
             this.tupleElementPointers = this.CreateTupleElementPointersCaches();
@@ -356,7 +354,8 @@ namespace Microsoft.Quantum.QIR.Emission
                     if (this.LlvmNativeValue == null)
                     {
                         var elementPtr = this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, index);
-                        return new PointerValue(elementPtr, type, this.sharedState);
+                        var llvmType = this.sharedState.LlvmTypeFromQsharpType(type, asNativeLlvmType: false);
+                        return new PointerValue(elementPtr, type, llvmType, this.sharedState);
                     }
                     else
                     {
@@ -366,9 +365,10 @@ namespace Microsoft.Quantum.QIR.Emission
                         IValue Reload() =>
                             this.sharedState.Values.From(
                                 this.sharedState.CurrentBuilder.ExtractValue(this.Value, index),
-                                this.ElementTypes[(int)index]);
+                                type);
 
-                        return new PointerValue(this.ElementTypes[(int)index], this.sharedState, Reload, Store);
+                        var llvmType = this.sharedState.LlvmTypeFromQsharpType(type, asNativeLlvmType: true);
+                        return new PointerValue(type, llvmType, this.sharedState, Reload, Store);
                     }
                 });
 
@@ -452,7 +452,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public Value Length =>
             this.LlvmType is IArrayType arrType
-            ? this.sharedState.Context.CreateConstant(arrType.Length) // fixme: solve this cleaner (length handling is a mess right now)
+            ? this.sharedState.Context.CreateConstant((long)arrType.Length) // fixme: solve this cleaner (length handling is a mess right now)
             : this.length.Load();
 
         /// <summary>
@@ -466,7 +466,7 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             this.sharedState = context;
             this.QSharpElementType = elementType;
-            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
+            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: allocOnStack);
             this.length = this.CreateLengthCache(context.Context.CreateConstant((long)count));
             this.LlvmType = allocOnStack
                 ? this.LlvmElementType.CreateArrayType(count)
@@ -487,7 +487,7 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             this.sharedState = context;
             this.QSharpElementType = elementType;
-            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
+            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: allocOnStack);
             this.length = this.CreateLengthCache(length);
             this.LlvmType = allocOnStack
                 ? (this.Count.HasValue
@@ -512,7 +512,7 @@ namespace Microsoft.Quantum.QIR.Emission
             // MIGHT NEED TO MAKE STACKALLOC A GLOBAL CONFIG...
             this.sharedState = context;
             this.QSharpElementType = elementType;
-            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
+            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
             this.Value = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array"); // FIXME: DOES THIS EVER NEED TO BE STACK ALLOCATED?
             this.LlvmType = this.sharedState.Types.Array;
             this.length = length == null
@@ -556,7 +556,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 var getElementPointer = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
                 var opaqueElementPointer = this.sharedState.CurrentBuilder.Call(getElementPointer, this.OpaquePointer, index);
                 var typedElementPointer = this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.LlvmElementType.CreatePointerType());
-                return new PointerValue(typedElementPointer, this.QSharpElementType, this.sharedState);
+                return new PointerValue(typedElementPointer, this.QSharpElementType, this.LlvmElementType, this.sharedState);
             }
             else
             {
@@ -570,7 +570,7 @@ namespace Microsoft.Quantum.QIR.Emission
                         this.sharedState.CurrentBuilder.ExtractValue(this.Value, constIndex),
                         this.QSharpElementType);
 
-                return new PointerValue(this.QSharpElementType, this.sharedState, Reload, Store);
+                return new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store);
             }
         }
 
