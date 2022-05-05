@@ -45,6 +45,11 @@ namespace Microsoft.Quantum.Testing.QIR {
 
         let concatenated = arr1 + arr2;
         DumpMachine(concatenated);
+        //let slice = concatenated[arr1[0]..arr1[1]...]; // bug in type inference
+        let slice1 = concatenated[arr2[2]-1..-arr1[1]..arr1[0]];
+        let slice2 = concatenated[arr1[0]..arr1[2]];
+        DumpMachine(slice1);
+        DumpMachine(slice2);
 
         use qs = Qubit[2];
         H(qs[0]);

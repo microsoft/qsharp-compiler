@@ -25,6 +25,9 @@
 
         let concatenated = arr1 + arr2;
         Message($"{concatenated}");
+        let slice1 = concatenated[arr2[2]-1..-arr1[1]..arr1[0]];
+        let slice2 = concatenated[arr1[0]..arr1[2]];
+        Message($"{slice1}, {slice2}");
 
         let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
         let (pauli, _) = tupleArr[1];

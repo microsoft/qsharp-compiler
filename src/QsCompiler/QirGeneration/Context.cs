@@ -1277,6 +1277,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return this.Values.From(constant, ResolvedType.New(ResolvedTypeKind.Range));
         }
 
+        internal IEnumerable<long> EvaluateRange(ConstantInt start, ConstantInt step, ConstantInt end)
+        {
+            var stepSize = step.SignExtendedValue;
+            bool CheckBound(long val) =>
+                stepSize > 0 ? val <= end.SignExtendedValue :
+                stepSize < 0 && val >= end.SignExtendedValue;
+
+            for (var item = start.SignExtendedValue; CheckBound(item); item += stepSize)
+            {
+                yield return item;
+            }
+        }
+
         /// <summary>
         /// <inheritdoc cref="CreateForLoop(Value, Func{Value, Value}, Value, Action{Value})"/>
         /// The loop may optionally compute an output value. If an <paramref name="initialOutputValue"/> is given,
@@ -1463,12 +1476,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 && start is ConstantInt constStart && end is ConstantInt constEnd
                 && (step == null || step is ConstantInt))
             {
-                var stepSize = (step as ConstantInt)?.SignExtendedValue ?? 1;
-                bool CheckBound(long val) =>
-                    stepSize > 0 ? val <= constEnd.SignExtendedValue :
-                    stepSize < 0 && val >= constEnd.SignExtendedValue;
-
-                for (var item = constStart.SignExtendedValue; CheckBound(item); item += stepSize)
+                var constStep = step as ConstantInt ?? this.Context.CreateConstant(1L);
+                foreach (var item in this.EvaluateRange(constStart, constStep, constEnd))
                 {
                     executeBody(this.Context.CreateConstant(item));
                 }

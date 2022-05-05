@@ -1086,7 +1086,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // TODO: handle multi-dimensional arrays
             var array = (ArrayValue)this.SharedState.EvaluateSubexpression(arr);
-            var index = this.SharedState.EvaluateSubexpression(idx);
             var elementType = arr.ResolvedType.Resolution is ResolvedTypeKind.ArrayType arrElementType
                 ? arrElementType.Item
                 : throw new InvalidOperationException("expecting an array in array item access");
@@ -1094,29 +1093,43 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (idx.ResolvedType.Resolution.IsInt)
             {
+                var index = this.SharedState.EvaluateSubexpression(idx);
                 value = array.GetArrayElement(index.Value);
             }
             else if (idx.ResolvedType.Resolution.IsRange)
             {
-                // Unless we force that memory is copied when a new slice is created,
-                // array sliceing creates a new array only if the current alias count is larger than zero.
-                // The created array is instantiated with reference count 1 and alias count 0.
-                // otherwise, if the current alias count is zero, then the array may be modified in place.
-                // In this case, its reference count is increased by 1.
-                // Even though we keep track of alias counts for arrays, we force a copy here to simplify
-                // the logic we do to avoid alias count increases when possible, while also ensuring that
-                // the additional reference count compensation for copy-and-update as explained in the
-                // the comment there is exactly one.
-                var forceCopy = this.SharedState.Context.CreateConstant(true);
-                var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
-                var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.OpaquePointer, index.Value, forceCopy);
-                value = this.SharedState.Values.FromArray(slice, elementType);
+                if (this.SharedState.TargetQirProfile)
+                {
+                    var (getStart, getStep, getEnd) = this.SharedState.Functions.RangeItems(idx);
+                    var (start, step, end) = (getStart(), getStep() ?? this.SharedState.Context.CreateConstant(1L), getEnd());
+                    var elements = array.GetArrayElements(
+                        this.SharedState.EvaluateRange((ConstantInt)start, (ConstantInt)step, (ConstantInt)end)
+                        .Select(item => (int)item).ToArray());
+                    value = this.SharedState.Values.CreateArray(array.QSharpElementType, allocOnStack: true, elements);
+                }
+                else
+                {
+                    // Unless we force that memory is copied when a new slice is created,
+                    // array slicing creates a new array only if the current alias count is larger than zero.
+                    // The created array is instantiated with reference count 1 and alias count 0.
+                    // otherwise, if the current alias count is zero, then the array may be modified in place.
+                    // In this case, its reference count is increased by 1.
+                    // Even though we keep track of alias counts for arrays, we force a copy here to simplify
+                    // the logic we do to avoid alias count increases when possible, while also ensuring that
+                    // the additional reference count compensation for copy-and-update as explained in the
+                    // the comment there is exactly one.
+                    var forceCopy = this.SharedState.Context.CreateConstant(true);
+                    var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
+                    var range = this.SharedState.EvaluateSubexpression(idx).Value;
+                    var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.OpaquePointer, range, forceCopy);
+                    value = this.SharedState.Values.FromArray(slice, elementType);
 
-                // The explicit ref count increase for all items is necessary for the sake of
-                // consistency such that the reference count adjustment for copy-and-update is correct.
-                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
-                this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
-                this.SharedState.ScopeMgr.RegisterValue(value);
+                    // The explicit ref count increase for all items is necessary for the sake of
+                    // consistency such that the reference count adjustment for copy-and-update is correct.
+                    this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
+                    this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
+                    this.SharedState.ScopeMgr.RegisterValue(value);
+                }
             }
             else
             {
