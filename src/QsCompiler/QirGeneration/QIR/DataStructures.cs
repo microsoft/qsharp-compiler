@@ -642,8 +642,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
             // The runtime function CallableCreate creates a new value with reference count 1.
             var createCallable = context.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            // FIXME: CAN WE JUST ALWAYS ALLOCATE THE CAPTURE ON THE STACK? -> NEED TO ADJUST THE REFERENCE COUNT HANDLING FOR THAT
-            var capture = captured == null || captured.Value.Length == 0 ? null : context.Values.CreateTuple(captured.Value, allocOnStack: true, registerWithScopeManager: false);
+            var capture = captured == null || captured.Value.Length == 0 ? null : context.Values.CreateTuple(captured.Value, allocOnStack: false, registerWithScopeManager: false);
             var memoryManagementTable = context.GetOrCreateCallableMemoryManagementTable(capture);
             this.Value = context.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? context.Constants.UnitValue);
             context.ScopeMgr.RegisterValue(this);
