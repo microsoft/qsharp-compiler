@@ -244,13 +244,45 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
-        /// Builds an array that containsthe given array elements.
+        /// Builds an array that contains the given array elements.
         /// Registers the value with the scope manager.
         /// Increases the reference count for the array elements.
         /// </summary>
         /// <param name="arrayElements">The elements in the array</param>
         internal ArrayValue CreateArray(ResolvedType elementType, bool allocOnStack, params IValue[] arrayElements) =>
             this.CreateArray(elementType, allocOnStack: allocOnStack, registerWithScopeManager: true, arrayElements);
+
+        /// <summary>
+        /// Creates an array of the given size and populates each element with the value returned by <paramref name="getElement"/>,
+        /// increasing its reference count accordingly. The function <paramref name="getElement"/> is invoked with the respective index.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// </summary>
+        /// <param name="elementType">The Q# type of the array elements</param>
+        /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
+        /// <param name="getElement">Given an index into the array, returns the value to populate that element with</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
+        internal ArrayValue CreateArray(ResolvedType elementType, Value length, Func<Value, IValue> getElement, bool allocOnStack, bool registerWithScopeManager)
+        {
+            var array = new ArrayValue(length, elementType, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+            if (array.Count != 0)
+            {
+                // We need to populate the array
+                var start = this.sharedState.Context.CreateConstant(0L);
+                var end = array.Count != null
+                    ? this.sharedState.Context.CreateConstant((long)array.Count - 1L)
+                    : this.sharedState.CurrentBuilder.Sub(array.Length, this.sharedState.Context.CreateConstant(1L));
+                this.sharedState.IterateThroughRange(start, null, end, index =>
+                {
+                    // We need to make sure that the reference count for the item is increased by 1.
+                    this.sharedState.ScopeMgr.OpenScope();
+                    var itemValue = getElement(index);
+                    array.GetArrayElementPointer(index).StoreValue(itemValue);
+                    this.sharedState.ScopeMgr.CloseScope(itemValue);
+                });
+            }
+
+            return array;
+        }
 
         /// <summary>
         /// Creates a callable value of the given type and registers it with the scope manager.

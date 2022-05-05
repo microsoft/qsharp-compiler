@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using LlvmBindings.Values;
@@ -146,14 +147,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
             {
                 ResolvedType qubitType = ResolvedType.New(ResolvedTypeKind.Qubit);
-                IValue AllocateQubit()
+                IrFunction allocateQubit = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
+                IrFunction allocateQubitArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
+
+                IValue AllocateQubit(Action<IValue> afterAlloc)
                 {
-                    IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
-                    var qubit =
-                        this.SharedState.Values.From(
-                            this.SharedState.CurrentBuilder.Call(allocateOne),
-                            qubitType);
-                    this.SharedState.ScopeMgr.RegisterAllocatedQubits(qubit);
+                    var qubit = this.SharedState.Values.From(
+                        this.SharedState.CurrentBuilder.Call(allocateQubit),
+                        qubitType);
+                    afterAlloc(qubit);
                     return qubit;
                 }
 
@@ -161,30 +163,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     if (init.Resolution.IsSingleQubitAllocation)
                     {
-                        return AllocateQubit();
+                        return AllocateQubit(this.SharedState.ScopeMgr.RegisterAllocatedQubits);
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                     {
                         Value size = this.SharedState.EvaluateSubexpression(reg.Item).Value;
-                        /////
-                        // FIXME: USE CREATEANDPOPULATEARRAY INSTEAD
-                        var array = this.SharedState.Values.CreateArray(size, qubitType, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
-                        this.SharedState.ValueStack.Push(array);
-
-                        var start = this.SharedState.Context.CreateConstant(0L);
-                        var end = array.Count != null
-                            ? this.SharedState.Context.CreateConstant((long)array.Count - 1L)
-                            : this.SharedState.CurrentBuilder.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
-                        void PopulateItem(Value index)
+                        if (this.SharedState.TargetQirProfile)
                         {
-                            var qubit = AllocateQubit();
-                            array.GetArrayElementPointer(index).StoreValue(qubit);
+                            var qubits = new List<IValue>();
+                            var array = this.SharedState.Values.CreateArray(qubitType, size, _ => AllocateQubit(qubits.Add), allocOnStack: true, registerWithScopeManager: true);
+                            foreach (var qubit in qubits)
+                            {
+                                this.SharedState.ScopeMgr.RegisterAllocatedQubits(qubit);
+                            }
+
+                            return array;
                         }
-
-                        this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
-
-                        /////
-                        return array;
+                        else
+                        {
+                            Value allocation = this.SharedState.CurrentBuilder.Call(allocateQubitArray, size);
+                            var array = this.SharedState.Values.From(allocation, init.Type);
+                            this.SharedState.ScopeMgr.RegisterAllocatedQubits(array);
+                            return array;
+                        }
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
                     {

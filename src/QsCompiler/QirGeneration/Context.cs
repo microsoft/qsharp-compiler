@@ -351,9 +351,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // qubit library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocate, this.Types.Qubit);
-            //this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocateArray, this.Types.Array, this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocateArray, this.Types.Array, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitRelease, this.Context.VoidType, this.Types.Qubit);
-            //this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitReleaseArray, this.Context.VoidType, this.Types.Array);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitReleaseArray, this.Context.VoidType, this.Types.Array);
 
             // diagnostic library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.Fail, this.Context.VoidType, this.Types.String);
@@ -1028,7 +1028,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var resultTupleItemTypes = signature.ReturnType.Resolution is ResolvedTypeKind.TupleType ts
                     ? ts.Item
                     : ImmutableArray.Create(signature.ReturnType);
-                var outputTuple = this.Values.FromTuple(parameters[2], resultTupleItemTypes, allocOnStack: false);
+                var outputTuple = this.Values.FromTuple(parameters[2], resultTupleItemTypes, allocOnStack: false); // output tuple is necessarily a pointer
                 PopulateResultTuple(result, outputTuple);
             });
         }
@@ -1498,7 +1498,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return initialOutputValue;
             }
 
-            // FIXME: should we fail if a loop is not unrolled when a QIR profile is targeted?
             if (array.Count != null && this.TargetQirProfile)
             {
                 var currentOutputValue = initialOutputValue;
