@@ -348,7 +348,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // at the beginning of the body and instead directly register the iteration value under that name.
                     // We don't need to register a name if e.g. the loop variable is discarded.
                     string? loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name ? name.Item : null;
-                    var variableValue = this.SharedState.Values.From(loopVariable, ResolvedType.New(ResolvedTypeKind.Int));
+                    var variableValue = this.SharedState.Values.FromSimpleValue(loopVariable, ResolvedType.New(ResolvedTypeKind.Int));
                     if (loopVarName != null)
                     {
                         this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue, fromLocalId: accessedViaLocal);

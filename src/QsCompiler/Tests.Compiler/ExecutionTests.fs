@@ -249,6 +249,7 @@ type ExecutionTests(output: ITestOutputHelper) =
             item 0 is 1
             item 1 is 2
             item 2 is 3
+            PauliZ
             Zero
             """
 

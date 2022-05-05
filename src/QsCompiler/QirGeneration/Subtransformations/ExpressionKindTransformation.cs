@@ -387,8 +387,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var forceCopy = sharedState.Context.CreateConstant(false);
                     var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
                     return original.TypeName == null
-                        ? sharedState.Values.FromTuple(copy, original.ElementTypes)
-                        : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
+                        ? sharedState.Values.FromTuple(copy, original.ElementTypes, allocOnStack: false) // FIXME: NEED TO UPDATE THIS (SAME BELOW)
+                        : sharedState.Values.FromCustomType(
+                            copy,
+                            new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null),
+                            allocOnStack: false); // FIXME
                 }
 
                 var udtName = originalTuple.TypeName;
@@ -2175,7 +2178,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         // as well as a tuple with the remaining arguments for the partial application.
                         // We need to cast the corresponding function parameter to the appropriate type and load both of these items.
                         var ctlPaArgsTypes = ImmutableArray.Create(SyntaxGenerator.QubitArrayType, paArgsType);
-                        var ctlPaArgsTuple = this.SharedState.Values.FromTuple(parameters[1], ctlPaArgsTypes);
+                        var ctlPaArgsTuple = this.SharedState.Values.FromTuple(parameters[1], ctlPaArgsTypes, allocOnStack: false);
                         var ctlPaArgItems = ctlPaArgsTuple.GetTupleElements();
 
                         // We then create and populate the complete argument tuple for the controlled specialization of the inner callable.

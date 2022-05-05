@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="value">The typed tuple representing a value of user defined type</param>
         /// <param name="udt">The Q# type of the value</param>
-        internal TupleValue FromCustomType(Value value, UserDefinedType udt)
+        internal TupleValue FromCustomType(Value value, UserDefinedType udt, bool allocOnStack)
         {
             if (!this.sharedState.TryGetCustomType(udt.GetFullName(), out var udtDecl))
             {
@@ -50,7 +50,7 @@ namespace Microsoft.Quantum.QIR.Emission
             }
 
             var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item : ImmutableArray.Create(udtDecl.Type);
-            return new TupleValue(udt, value, elementTypes, this.sharedState);
+            return new TupleValue(udt, value, elementTypes, this.sharedState, allocOnStack);
         }
 
         /// <summary>
@@ -59,8 +59,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="tuple">Either an opaque or a typed pointer to the tuple data structure</param>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
-        internal TupleValue FromTuple(Value tuple, ImmutableArray<ResolvedType> elementTypes) =>
-            new TupleValue(tuple, elementTypes, this.sharedState);
+        internal TupleValue FromTuple(Value tuple, ImmutableArray<ResolvedType> elementTypes, bool allocOnStack) =>
+            new TupleValue(tuple, elementTypes, this.sharedState, allocOnStack);
 
         /// <summary>
         /// Creates a new array value from the given opaque array of elements of the given type.
@@ -82,10 +82,10 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="value">The LLVM value to store</param>
         /// <param name="type">The Q# of the value</param>
-        internal IValue From(Value value, ResolvedType type) =>
+        internal IValue From(Value value, ResolvedType type, bool allocOnStack = false) =>
             type.Resolution is ResolvedTypeKind.ArrayType it ? this.sharedState.Values.FromArray(value, it.Item) :
-            type.Resolution is ResolvedTypeKind.TupleType ts ? this.sharedState.Values.FromTuple(value, ts.Item) :
-            type.Resolution is ResolvedTypeKind.UserDefinedType udt ? this.sharedState.Values.FromCustomType(value, udt.Item) :
+            type.Resolution is ResolvedTypeKind.TupleType ts ? this.sharedState.Values.FromTuple(value, ts.Item, allocOnStack) :
+            type.Resolution is ResolvedTypeKind.UserDefinedType udt ? this.sharedState.Values.FromCustomType(value, udt.Item, allocOnStack) :
             (type.Resolution.IsOperation || type.Resolution.IsFunction) ? this.sharedState.Values.FromCallable(value, type) :
             (IValue)new SimpleValue(value, type);
 

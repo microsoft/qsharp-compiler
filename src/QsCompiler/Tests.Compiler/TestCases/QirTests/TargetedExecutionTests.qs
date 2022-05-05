@@ -23,9 +23,9 @@
             Message($"item {i} is {arr1[i]}");
         }
 
-        //let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)]; // FIXME INCORRECT TYPES...
-        //let (pauli, _) = tupleArr[1];
-        //Message($"{pauli}");
+        let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
+        let (pauli, _) = tupleArr[1];
+        Message($"{pauli}");
 
         return Zero;
     }

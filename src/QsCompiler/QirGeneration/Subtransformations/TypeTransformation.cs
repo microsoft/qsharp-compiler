@@ -199,9 +199,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             public override QsResolvedTypeKind OnArrayType(ResolvedType b)
             {
-                var elementType = this.LlvmTypeFromQsharpType(b);
-                this.BuiltType = elementType.CreateArrayType(0); // FIXME: ARRAYS OF ARRAYS WON'T WORK... CAST??
-                return QsResolvedTypeKind.InvalidType;
+                // FIXME...
+                throw new NotImplementedException("no native llvm representation for array type implemented");
             }
 
             public override QsResolvedTypeKind OnBigInt() =>
