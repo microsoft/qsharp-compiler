@@ -52,6 +52,10 @@ namespace Microsoft.Quantum.Testing.QIR {
         let (pauli, _) = tupleArr[1];
         LogPauli(pauli);
 
+        //let arrTuple = ([1,2], true); // FIXME: CORRECT TYPE NOT IMPLEMENTED
+        //let (vals, _) = arrTuple;
+        //DumpMachine(vals[1]);
+
         //let arrArr = [[PauliX, PauliZ], [PauliY], [PauliI]];
         //let pauliI = arrArr[2][0];
         //LogPauli(pauliI);
