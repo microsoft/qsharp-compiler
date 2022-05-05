@@ -1409,7 +1409,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Iterates through the range defined by start, step, and end, and executes the given action on each iteration value.
-        /// Note that <paramref name="executeBody"/> is expected takes care of all necessary scope/memory management itself.
+        /// Note that <paramref name="executeBody"/> is expected to take care of all necessary scope/memory management itself.
         /// </summary>
         /// <param name="start">The start of the range and first iteration value.</param>
         /// <param name="step">The optional step of the range that will be added to the iteration value in each iteration, where the default value is 1L.</param>

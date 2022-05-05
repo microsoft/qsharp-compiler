@@ -23,6 +23,9 @@
             Message($"item {i} is {arr1[i]}");
         }
 
+        let concatenated = arr1 + arr2;
+        Message($"{concatenated}");
+
         let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
         let (pauli, _) = tupleArr[1];
         Message($"{pauli}");

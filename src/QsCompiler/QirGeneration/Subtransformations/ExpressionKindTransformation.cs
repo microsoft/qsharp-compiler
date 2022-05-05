@@ -1049,17 +1049,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (exType.Resolution is ResolvedTypeKind.ArrayType elementType)
             {
-                // The runtime function ArrayConcatenate creates a new value with reference count 1 and alias count 0.
-                var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
-                var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
-                value = this.SharedState.Values.FromArray(res, elementType.Item);
+                if (this.SharedState.TargetQirProfile)
+                {
+                    var (arr1, arr2) = ((ArrayValue)lhs, (ArrayValue)rhs);
+                    var elements = arr1.GetArrayElements().Concat(arr2.GetArrayElements()).ToArray();
+                    value = this.SharedState.Values.CreateArray(elementType.Item, allocOnStack: true, elements);
+                }
+                else
+                {
+                    // The runtime function ArrayConcatenate creates a new value with reference count 1 and alias count 0.
+                    var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
+                    var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
+                    value = this.SharedState.Values.FromArray(res, elementType.Item);
 
-                // The explicit ref count increase for all items is necessary for the sake of
-                // consistency such that the reference count adjustment for copy-and-update is correct.
-                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
-                this.SharedState.ScopeMgr.ApplyPendingReferences();
-                this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
-                this.SharedState.ScopeMgr.RegisterValue(value);
+                    // The explicit ref count increase for all items is necessary for the sake of
+                    // consistency such that the reference count adjustment for copy-and-update is correct.
+                    this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
+                    this.SharedState.ScopeMgr.ApplyPendingReferences();
+                    this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
+                    this.SharedState.ScopeMgr.RegisterValue(value);
+                }
             }
             else
             {

@@ -43,6 +43,9 @@ namespace Microsoft.Quantum.Testing.QIR {
             DumpMachine(arr1[i]);
         }
 
+        let concatenated = arr1 + arr2;
+        DumpMachine(concatenated);
+
         use qs = Qubit[2];
         H(qs[0]);
         CNOT(qs[0], qs[1]);

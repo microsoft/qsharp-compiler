@@ -273,7 +273,8 @@ namespace Microsoft.Quantum.QIR.Emission
                     : this.sharedState.CurrentBuilder.Sub(array.Length, this.sharedState.Context.CreateConstant(1L));
                 this.sharedState.IterateThroughRange(start, null, end, index =>
                 {
-                    // We need to make sure that the reference count for the item is increased by 1.
+                    // We need to make sure that the reference count for the item is increased by 1,
+                    // and the iteration loop expects that the body handles its own reference counting.
                     this.sharedState.ScopeMgr.OpenScope();
                     var itemValue = getElement(index);
                     array.GetArrayElementPointer(index).StoreValue(itemValue);
