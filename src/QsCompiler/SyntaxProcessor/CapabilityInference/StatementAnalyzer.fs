@@ -30,13 +30,6 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let patterns = ResizeArray()
     let mutable numReturns = 0
 
-    transformation.Namespaces <-
-        { new NamespaceTransformation(transformation, TransformationOptions.NoRebuild) with
-            override _.OnSpecializationDeclaration spec =
-                numReturns <- 0
-                base.OnSpecializationDeclaration spec
-        }
-
     transformation.Statements <-
         { new StatementTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnStatement statement =
