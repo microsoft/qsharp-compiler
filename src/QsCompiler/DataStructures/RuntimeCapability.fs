@@ -40,6 +40,8 @@ type RuntimeCapability =
         | BasicMeasurementFeedback, BasicExecution
         | BasicMeasurementFeedback, BasicQuantumFunctionality
         | AdaptiveExecution, BasicExecution
+        | AdaptiveExecution, BasicMeasurementFeedback // FIXME: REMOVE
+        | AdaptiveExecution, BasicQuantumFunctionality // FIXME: REMOVE
         | FullComputation, _ -> true
         | _ -> x = y
 
