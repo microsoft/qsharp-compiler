@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         {
             // We need to set the current directory to the same directory of
             // the LanguageServer executable so that it will pick the global.json file
-            // and force the MSBuildLocator to use .NET Core SDK 3.1
+            // and force the MSBuildLocator to use .NET Core SDK 6.0
             Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
 
             var parser = new Parser(parser => parser.HelpWriter = null); // we want our own custom format for the version info

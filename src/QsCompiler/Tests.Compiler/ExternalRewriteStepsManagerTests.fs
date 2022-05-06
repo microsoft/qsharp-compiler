@@ -55,12 +55,6 @@ type ExternalRewriteStepsManagerTests() =
         Assert.Empty loadedSteps
 
     [<Fact>]
-    member this.``Loading Assembly based steps (legacy)``() =
-        let config = CompilationLoader.Configuration(RewriteSteps = [ (this.GetType().Assembly.Location, "") ])
-        let loadedSteps = GetSteps config
-        VerifyStep loadedSteps
-
-    [<Fact>]
     member this.``Loading Assembly based steps``() =
         let config =
             new CompilationLoader.Configuration(RewriteStepAssemblies = [ (this.GetType().Assembly.Location, "") ])

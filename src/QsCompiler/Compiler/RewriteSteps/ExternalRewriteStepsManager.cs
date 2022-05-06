@@ -23,20 +23,15 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         internal static ImmutableArray<LoadedStep> Load(CompilationLoader.Configuration config, Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null)
         {
-            var loadedSteps = new List<LoadedStep>();
             var instanceRewriteStepLoader = new InstanceRewriteStepsLoader(onDiagnostic, onException);
-            loadedSteps.AddRange(instanceRewriteStepLoader.GetLoadedSteps(config.RewriteStepInstances));
-
             var typeRewriteStepLoader = new TypeRewriteStepsLoader(onDiagnostic, onException);
-            loadedSteps.AddRange(typeRewriteStepLoader.GetLoadedSteps(config.RewriteStepTypes));
-
             var assemblyRewriteStepLoader = new AssemblyRewriteStepsLoader(onDiagnostic, onException);
 
-            // this is for backwards compatibility with RewriteSteps property on the config. Can be removed in the future.
-#pragma warning disable CS0618 // Type or member is obsolete
-            var unifiedAssemblyRewriteSteps = (config.RewriteStepAssemblies ?? Enumerable.Empty<(string, string?)>()).Union(config.RewriteSteps ?? Enumerable.Empty<(string, string?)>());
-#pragma warning restore CS0618 // Type or member is obsolete
-            loadedSteps.AddRange(assemblyRewriteStepLoader.GetLoadedSteps(unifiedAssemblyRewriteSteps));
+            var loadedSteps = instanceRewriteStepLoader.GetLoadedSteps(config.RewriteStepInstances)
+                .Concat(typeRewriteStepLoader.GetLoadedSteps(config.RewriteStepTypes))
+                .Concat(assemblyRewriteStepLoader.GetLoadedSteps(config.RewriteStepAssemblies))
+                .OrderByDescending(step => step.Priority)
+                .ToImmutableArray();
 
             foreach (var loaded in loadedSteps)
             {
@@ -57,8 +52,7 @@ namespace Microsoft.Quantum.QsCompiler
                 assemblyConstants.TryAdd(AssemblyConstants.AssemblyName, config.ProjectNameWithoutPathOrExtension);
             }
 
-            CompilationLoader.SortRewriteSteps(loadedSteps, step => step.Priority);
-            return loadedSteps.ToImmutableArray();
+            return loadedSteps;
         }
     }
 }

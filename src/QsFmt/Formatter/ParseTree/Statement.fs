@@ -6,61 +6,36 @@ namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
 
-/// <summary>
-/// Creates syntax tree <see cref="SymbolBinding"/> nodes from a parse tree and the list of tokens.
-/// </summary>
-type SymbolBindingVisitor(tokens) =
-    inherit QSharpParserBaseVisitor<SymbolBinding>()
-
-    override _.DefaultResult = failwith "Unknown symbol binding."
-
-    override _.VisitDiscardSymbol context =
-        context.discard |> Node.toTerminal tokens |> SymbolDeclaration
-
-    override _.VisitSymbolName context =
-        context.name |> Node.toTerminal tokens |> SymbolDeclaration
-
-    override visitor.VisitSymbolTuple context =
-        let bindings = context._bindings |> Seq.map visitor.Visit
-        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
-
-        {
-            OpenParen = context.openParen |> Node.toTerminal tokens
-            Items = Node.tupleItems bindings commas
-            CloseParen = context.closeParen |> Node.toTerminal tokens
-        }
-        |> SymbolTuple
-
-type QubitInitializerVistor(tokens) =
+type QubitInitializerVisitor(tokens) =
     inherit QSharpParserBaseVisitor<QubitInitializer>()
 
     let expressionVisitor = ExpressionVisitor tokens
 
     override _.VisitSingleQubit context =
         {
-            Qubit = context.qubit |> Node.toTerminal tokens
-            OpenParen = context.openParen |> Node.toTerminal tokens
-            CloseParen = context.closeParen |> Node.toTerminal tokens
+            Qubit = context.Qubit().Symbol |> Node.toTerminal tokens
+            OpenParen = context.ParenLeft().Symbol |> Node.toTerminal tokens
+            CloseParen = context.ParenRight().Symbol |> Node.toTerminal tokens
         }
         |> SingleQubit
 
     override _.VisitQubitArray context =
         {
-            Qubit = context.qubit |> Node.toTerminal tokens
-            OpenBracket = context.openBracket |> Node.toTerminal tokens
-            Length = context.length |> expressionVisitor.Visit
-            CloseBracket = context.closeBracket |> Node.toTerminal tokens
+            Qubit = context.Qubit().Symbol |> Node.toTerminal tokens
+            OpenBracket = context.BracketLeft().Symbol |> Node.toTerminal tokens
+            Length = expressionVisitor.Visit context.length
+            CloseBracket = context.BracketRight().Symbol |> Node.toTerminal tokens
         }
         |> QubitArray
 
     override visitor.VisitQubitTuple(context: QSharpParser.QubitTupleContext) =
-        let initializers = context._initializers |> Seq.map visitor.Visit
-        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+        let initializers = context.qubitInitializer () |> Seq.map visitor.Visit
+        let commas = context.Comma() |> Seq.map (fun node -> Node.toTerminal tokens node.Symbol)
 
         {
-            OpenParen = context.openParen |> Node.toTerminal tokens
+            OpenParen = context.ParenLeft().Symbol |> Node.toTerminal tokens
             Items = Node.tupleItems initializers commas
-            CloseParen = context.closeParen |> Node.toTerminal tokens
+            CloseParen = context.ParenRight().Symbol |> Node.toTerminal tokens
         }
         |> QubitTuple
 
@@ -68,13 +43,13 @@ type QubitBindingVisitor(tokens) =
     inherit QSharpParserBaseVisitor<QubitBinding>()
 
     let symbolBindingVisitor = SymbolBindingVisitor tokens
-    let qubitInitializerVistor = QubitInitializerVistor tokens
+    let qubitInitializerVisitor = QubitInitializerVisitor tokens
 
     override _.VisitQubitBinding context =
         {
-            Name = context.binding |> symbolBindingVisitor.Visit
-            Equals = context.equals |> Node.toTerminal tokens
-            Initializer = context.value |> qubitInitializerVistor.Visit
+            Name = context.symbolBinding () |> symbolBindingVisitor.Visit
+            Equals = context.Equal().Symbol |> Node.toTerminal tokens
+            Initializer = context.qubitInitializer () |> qubitInitializerVisitor.Visit
         }
 
 type ForBindingVisitor(tokens) =
@@ -85,9 +60,9 @@ type ForBindingVisitor(tokens) =
 
     override _.VisitForBinding context =
         {
-            Name = context.binding |> symbolBindingVisitor.Visit
-            In = context.``in`` |> Node.toTerminal tokens
-            Value = context.value |> expressionVisitor.Visit
+            Name = context.symbolBinding () |> symbolBindingVisitor.Visit
+            In = context.In().Symbol |> Node.toTerminal tokens
+            Value = context.expression () |> expressionVisitor.Visit
         }
 
 type StatementVisitor(tokens) =
@@ -106,204 +81,159 @@ type StatementVisitor(tokens) =
 
     override _.VisitExpressionStatement context =
         {
-            Expression = context.value |> expressionVisitor.Visit
-            Semicolon = context.semicolon |> Node.toTerminal tokens
+            Expression = context.expression () |> expressionVisitor.Visit
+            Semicolon = context.Semicolon().Symbol |> Node.toTerminal tokens
         }
         |> ExpressionStatement
 
     override _.VisitReturnStatement context =
         {
-            Keyword = context.``return`` |> Node.toTerminal tokens
-            Expression = expressionVisitor.Visit context.value
-            Semicolon = context.semicolon |> Node.toTerminal tokens
+            Keyword = context.Return().Symbol |> Node.toTerminal tokens
+            Expression = context.expression () |> expressionVisitor.Visit
+            Semicolon = context.Semicolon().Symbol |> Node.toTerminal tokens
         }
         |> ReturnStatement
 
     override _.VisitFailStatement context =
         {
-            Keyword = context.fail |> Node.toTerminal tokens
-            Expression = expressionVisitor.Visit context.value
-            Semicolon = context.semicolon |> Node.toTerminal tokens
+            Keyword = context.Fail().Symbol |> Node.toTerminal tokens
+            Expression = context.expression () |> expressionVisitor.Visit
+            Semicolon = context.Semicolon().Symbol |> Node.toTerminal tokens
         }
         |> FailStatement
 
     override _.VisitLetStatement context =
         {
-            Keyword = context.``let`` |> Node.toTerminal tokens
-            Binding = symbolBindingVisitor.Visit context.binding
-            Equals = context.equals |> Node.toTerminal tokens
-            Value = expressionVisitor.Visit context.value
-            Semicolon = context.semicolon |> Node.toTerminal tokens
+            Keyword = context.Let().Symbol |> Node.toTerminal tokens
+            Binding = context.symbolBinding () |> symbolBindingVisitor.Visit
+            Equals = context.Equal().Symbol |> Node.toTerminal tokens
+            Value = context.expression () |> expressionVisitor.Visit
+            Semicolon = context.Semicolon().Symbol |> Node.toTerminal tokens
         }
         |> LetStatement
 
     override _.VisitMutableStatement context =
         {
-            Keyword = context.``mutable`` |> Node.toTerminal tokens
-            Binding = symbolBindingVisitor.Visit context.binding
-            Equals = context.equals |> Node.toTerminal tokens
-            Value = expressionVisitor.Visit context.value
-            Semicolon = context.semicolon |> Node.toTerminal tokens
+            Keyword = context.Mutable().Symbol |> Node.toTerminal tokens
+            Binding = context.symbolBinding () |> symbolBindingVisitor.Visit
+            Equals = context.Equal().Symbol |> Node.toTerminal tokens
+            Value = context.expression () |> expressionVisitor.Visit
+            Semicolon = context.Semicolon().Symbol |> Node.toTerminal tokens
         }
         |> MutableStatement
 
     override _.VisitSetStatement context =
         {
-            Keyword = context.set |> Node.toTerminal tokens
-            Binding = symbolBindingVisitor.Visit context.binding
-            Equals = context.equals |> Node.toTerminal tokens
-            Value = expressionVisitor.Visit context.value
-            Semicolon = context.semicolon |> Node.toTerminal tokens
+            Keyword = context.Set().Symbol |> Node.toTerminal tokens
+            Binding = context.symbolBinding () |> symbolBindingVisitor.Visit
+            Equals = context.Equal().Symbol |> Node.toTerminal tokens
+            Value = context.expression () |> expressionVisitor.Visit
+            Semicolon = context.Semicolon().Symbol |> Node.toTerminal tokens
         }
         |> SetStatement
 
     override _.VisitUpdateStatement context =
+        let operator = context.updateOperator ()
+
         {
-            SetKeyword = context.set |> Node.toTerminal tokens
-            Name = context.name |> Node.toTerminal tokens
-            Operator =
-                { Prefix = Node.prefix tokens context.operator.Start.TokenIndex; Text = context.operator.GetText() }
-            Value = expressionVisitor.Visit context.value
-            Semicolon = context.semicolon |> Node.toTerminal tokens
+            SetKeyword = context.Set().Symbol |> Node.toTerminal tokens
+            Name = context.Identifier().Symbol |> Node.toTerminal tokens
+            Operator = { Prefix = Node.prefix tokens operator.Start.TokenIndex; Text = operator.GetText() }
+            Value = context.expression () |> expressionVisitor.Visit
+            Semicolon = context.Semicolon().Symbol |> Node.toTerminal tokens
         }
         |> UpdateStatement
 
     override _.VisitUpdateWithStatement context =
         {
-            SetKeyword = context.set |> Node.toTerminal tokens
-            Name = context.name |> Node.toTerminal tokens
-            With = context.``with`` |> Node.toTerminal tokens
+            SetKeyword = context.Set().Symbol |> Node.toTerminal tokens
+            Name = context.Identifier().Symbol |> Node.toTerminal tokens
+            With = context.WithEqual().Symbol |> Node.toTerminal tokens
             Item = expressionVisitor.Visit context.index
-            Arrow = context.arrow |> Node.toTerminal tokens
+            Arrow = context.ArrowLeft().Symbol |> Node.toTerminal tokens
             Value = expressionVisitor.Visit context.value
-            Semicolon = context.semicolon |> Node.toTerminal tokens
+            Semicolon = context.Semicolon().Symbol |> Node.toTerminal tokens
         }
         |> UpdateWithStatement
 
     override visitor.VisitIfStatement context =
         {
-            Keyword = context.``if`` |> Node.toTerminal tokens
-            Condition = expressionVisitor.Visit context.condition
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
+            Keyword = context.If().Symbol |> Node.toTerminal tokens
+            Condition = context.expression () |> expressionVisitor.Visit
+            Block = context.scope () |> visitor.CreateBlock
         }
         |> IfStatement
 
     override visitor.VisitElifStatement context =
         {
-            Keyword = context.``elif`` |> Node.toTerminal tokens
-            Condition = expressionVisitor.Visit context.condition
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
+            Keyword = context.Elif().Symbol |> Node.toTerminal tokens
+            Condition = context.expression () |> expressionVisitor.Visit
+            Block = context.scope () |> visitor.CreateBlock
         }
         |> ElifStatement
 
     override visitor.VisitElseStatement context =
-        {
-            Keyword = context.``else`` |> Node.toTerminal tokens
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
-        }
+        { Keyword = context.Else().Symbol |> Node.toTerminal tokens; Block = context.scope () |> visitor.CreateBlock }
         |> ElseStatement
 
     override visitor.VisitForStatement context =
         {
-            ForKeyword = context.``for`` |> Node.toTerminal tokens
-            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
-            Binding = context.binding |> forBindingVisitor.Visit
-            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
+            ForKeyword = context.For().Symbol |> Node.toTerminal tokens
+            OpenParen =
+                context.ParenLeft() |> Option.ofObj |> Option.map (fun node -> Node.toTerminal tokens node.Symbol)
+            Binding = context.forBinding () |> forBindingVisitor.Visit
+            CloseParen =
+                context.ParenRight() |> Option.ofObj |> Option.map (fun node -> Node.toTerminal tokens node.Symbol)
+            Block = context.scope () |> visitor.CreateBlock
         }
         |> ForStatement
 
     override visitor.VisitWhileStatement context =
         {
-            Keyword = context.``while`` |> Node.toTerminal tokens
-            Condition = expressionVisitor.Visit context.condition
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
+            Keyword = context.While().Symbol |> Node.toTerminal tokens
+            Condition = context.expression () |> expressionVisitor.Visit
+            Block = context.scope () |> visitor.CreateBlock
         }
         |> WhileStatement
 
     override visitor.VisitRepeatStatement context =
-        {
-            Keyword = context.repeat |> Node.toTerminal tokens
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
-        }
+        { Keyword = context.Repeat().Symbol |> Node.toTerminal tokens; Block = context.scope () |> visitor.CreateBlock }
         |> RepeatStatement
 
     override visitor.VisitUntilStatement context =
+        let scope = context.scope ()
+
+        let coda =
+            if isNull scope then
+                context.Semicolon().Symbol |> Node.toTerminal tokens |> UntilStatementCoda.Semicolon
+            else
+                { Keyword = context.Fixup().Symbol |> Node.toTerminal tokens; Block = visitor.CreateBlock scope }
+                |> Fixup
+
         {
-            UntilKeyword = context.until |> Node.toTerminal tokens
-            Condition = expressionVisitor.Visit context.condition
-            Coda =
-                if context.body <> null then
-                    {
-                        Keyword = context.fixup |> Node.toTerminal tokens
-                        Block =
-                            {
-                                OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                                Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                                CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                            }
-                    }
-                    |> Fixup
-                else
-                    context.semicolon |> Node.toTerminal tokens |> UntilStatementCoda.Semicolon
+            UntilKeyword = context.Until().Symbol |> Node.toTerminal tokens
+            Condition = context.expression () |> expressionVisitor.Visit
+            Coda = coda
         }
         |> UntilStatement
 
     override visitor.VisitWithinStatement context =
-        {
-            Keyword = context.within |> Node.toTerminal tokens
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
-        }
+        { Keyword = context.Within().Symbol |> Node.toTerminal tokens; Block = context.scope () |> visitor.CreateBlock }
         |> WithinStatement
 
     override visitor.VisitApplyStatement context =
-        {
-            Keyword = context.apply |> Node.toTerminal tokens
-            Block =
-                {
-                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                }
-        }
+        { Keyword = context.Apply().Symbol |> Node.toTerminal tokens; Block = context.scope () |> visitor.CreateBlock }
         |> ApplyStatement
 
     override visitor.VisitQubitDeclaration context =
+        let scope = context.scope ()
+
+        let coda =
+            if isNull scope then
+                context.Semicolon().Symbol |> Node.toTerminal tokens |> Semicolon
+            else
+                visitor.CreateBlock scope |> Block
+
         {
             Kind =
                 match context.keyword.Text with
@@ -311,18 +241,18 @@ type StatementVisitor(tokens) =
                 | "using" -> Use
                 | _ -> Borrow
             Keyword = context.keyword |> Node.toTerminal tokens
-            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
-            Binding = context.binding |> qubitBindingVisitor.Visit
-            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
-            Coda =
-                if context.body <> null then
-                    {
-                        OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                        Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                        CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                    }
-                    |> Block
-                else
-                    context.semicolon |> Node.toTerminal tokens |> Semicolon
+            OpenParen =
+                context.ParenLeft() |> Option.ofObj |> Option.map (fun node -> Node.toTerminal tokens node.Symbol)
+            Binding = context.qubitBinding () |> qubitBindingVisitor.Visit
+            CloseParen =
+                context.ParenRight() |> Option.ofObj |> Option.map (fun node -> Node.toTerminal tokens node.Symbol)
+            Coda = coda
         }
         |> QubitDeclarationStatement
+
+    member internal visitor.CreateBlock(scope: QSharpParser.ScopeContext) =
+        {
+            OpenBrace = scope.BraceLeft().Symbol |> Node.toTerminal tokens
+            Items = scope.statement () |> Seq.map visitor.Visit |> List.ofSeq
+            CloseBrace = scope.BraceRight().Symbol |> Node.toTerminal tokens
+        }

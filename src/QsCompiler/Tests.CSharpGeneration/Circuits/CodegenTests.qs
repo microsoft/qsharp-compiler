@@ -1109,6 +1109,25 @@ namespace Microsoft.Quantum.Testing {
     function testLengthDependency() : Unit {
         iter(Length<Result>, [[One], [Zero, One]]);
     }
+
+    function CopiesMutableArrayInSizedArray() : Unit {
+        mutable xs = [1, 2, 3];
+        let arrays = [xs, size = 3];
+    }
+
+    function DoesntCopyImmutableArrayInSizedArray() : Unit {
+        let xs = [1, 2, 3];
+        let arrays = [xs, size = 3];
+    }
+
+    function DoesntCopyAnonymousArrayInSizedArray() : Unit {
+        let arrays = [[1, 2, 3], size = 3];
+    }
+
+    operation EvaluatesCallOnceInSizedArray() : Unit {
+        use q = Qubit();
+        let units = [H(q), size = 3];
+    }
 }
 
 // Notice most Intrinsics are defined in Intrinsic.qs

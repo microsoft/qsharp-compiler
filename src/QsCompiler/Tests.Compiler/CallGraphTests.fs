@@ -99,7 +99,7 @@ type CallGraphTests(output: ITestOutputHelper) =
             compilationDataStructures.Diagnostics()
             |> Seq.filter (fun d -> d.Severity = Nullable DiagnosticSeverity.Error)
             |> Seq.choose (fun d ->
-                match Diagnostics.TryGetCode d.Code with
+                match Diagnostics.TryGetCode d.Code.Value.Second with
                 | true, code -> Some code
                 | false, _ -> None)
 

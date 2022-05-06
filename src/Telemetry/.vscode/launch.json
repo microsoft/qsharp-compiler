@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/Samples/CSharp/bin/Debug/netcoreapp3.1/sampleTelAppCs.dll",
+            "program": "${workspaceFolder}/Samples/CSharp/bin/Debug/net6.0/sampleTelAppCs.dll",
             "args": [],
             "console": "internalConsole",
             "stopAtEntry": false
@@ -19,7 +19,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/Samples/FSharp/bin/Debug/netcoreapp3.1/sampleTelAppFs.dll",
+            "program": "${workspaceFolder}/Samples/FSharp/bin/Debug/net6.0/sampleTelAppFs.dll",
             "args": [],
             "console": "internalConsole",
             "stopAtEntry": false
@@ -29,7 +29,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/Tests.OutOfProcessExe/bin/Debug/netcoreapp3.1/outofprocess.dll",
+            "program": "${workspaceFolder}/Tests.OutOfProcessExe/bin/Debug/net6.0/outofprocess.dll",
             "args": ["--OUT_OF_PROCESS_TELEMETRY_UPLOAD", "--TELEMETRY_TEST_MODE"],
             "console": "integratedTerminal",
             "stopAtEntry": false
