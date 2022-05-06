@@ -16,7 +16,7 @@ let syntaxAnalyzer callableKind =
     Analyzer.concat [ ResultAnalyzer.analyzer callableKind
                       StatementAnalyzer.analyzer
                       TypeAnalyzer.analyzer
-                      ArrayAnalyzer.analyzer ]
+                      ConstAnalyzer.analyzer ]
 
 let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
     let warningCode =

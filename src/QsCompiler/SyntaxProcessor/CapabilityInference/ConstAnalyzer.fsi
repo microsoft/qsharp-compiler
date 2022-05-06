@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-module internal Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.ArrayAnalyzer
+module internal Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.ConstAnalyzer
 
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 

@@ -69,6 +69,7 @@ let createPattern range classical =
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
+    // TODO: Set IsEntryPoint.
     let mutable context = { IsEntryPoint = false; StringLiteralsOk = false }
 
     let local context' =
