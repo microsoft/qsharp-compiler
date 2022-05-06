@@ -4,31 +4,31 @@
 
     // Inferred capabilities can be overridden or given explicitly.
 
-    @RequiresCapability("Controlled", "Limited", "Test case.")
+    @RequiresCapability("Controlled", "Empty", "Test case.")
     operation OverrideBqfToBmf(q : Qubit) : Unit {
         X(q);
     }
 
-    @RequiresCapability("Transparent", "Limited", "Test case.")
+    @RequiresCapability("Transparent", "Empty", "Test case.")
     operation OverrideBmfToFull(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
-    @RequiresCapability("Opaque", "Limited", "Test case.")
+    @RequiresCapability("Opaque", "Empty", "Test case.")
     operation OverrideBmfToBqf(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
         }
     }
 
-    @RequiresCapability("Controlled", "Limited", "Test case.")
+    @RequiresCapability("Controlled", "Empty", "Test case.")
     operation OverrideFullToBmf(q : Qubit) : Bool {
         return M(q) == One ? true | false;
     }
 
-    @RequiresCapability("Controlled", "Limited", "Test case.")
+    @RequiresCapability("Controlled", "Empty", "Test case.")
     operation ExplicitBmf(q : Qubit) : Unit {
         if (M(q) == One) {
             X(q);
@@ -90,7 +90,7 @@
         CallFullOverrideB(q);
     }
 
-    @RequiresCapability("Transparent", "Limited", "Test case.")
+    @RequiresCapability("Transparent", "Empty", "Test case.")
     operation CallFullOverrideB(q : Qubit) : Unit {
         CallFullOverrideC(q);
     }
@@ -107,7 +107,7 @@
         return CallBmfOverrideB(q);
     }
 
-    @RequiresCapability("Controlled", "Limited", "Test case.")
+    @RequiresCapability("Controlled", "Empty", "Test case.")
     operation CallBmfOverrideB(q : Qubit) : Bool {
         return CallBmfOverrideC(q);
     }

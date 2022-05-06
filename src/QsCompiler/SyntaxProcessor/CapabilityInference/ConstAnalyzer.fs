@@ -98,7 +98,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 | _ -> base.OnQubitInitializer init
 
             override _.OnReturnStatement value =
-                use _ = local { context with IsConstRequired = true }
+                use _ = local { context with IsConstRequired = not context.IsEntryPoint }
                 let value = transformation.Expressions.OnTypedExpression value
                 QsReturnStatement value
 
