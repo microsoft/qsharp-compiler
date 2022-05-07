@@ -942,7 +942,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (argType.Resolution is ResolvedTypeKind.UserDefinedType udt)
             {
-                return this.Values.FromCustomType(argTuple, udt.Item.GetFullName(), allocOnStack: false);
+                return this.Values.FromCustomType(argTuple, udt.Item.GetFullName());
             }
             else
             {
@@ -950,7 +950,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     argType.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
                     argType.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
                     ImmutableArray.Create(argType);
-                return this.Values.FromTuple(argTuple, itemTypes, allocOnStack: false);
+                return this.Values.FromTuple(argTuple, itemTypes);
             }
         }
 
@@ -1028,7 +1028,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var resultTupleItemTypes = signature.ReturnType.Resolution is ResolvedTypeKind.TupleType ts
                     ? ts.Item
                     : ImmutableArray.Create(signature.ReturnType);
-                var outputTuple = this.Values.FromTuple(parameters[2], resultTupleItemTypes, allocOnStack: false); // output tuple is necessarily a pointer
+                var outputTuple = this.Values.FromTuple(parameters[2], resultTupleItemTypes);
                 PopulateResultTuple(result, outputTuple);
             });
         }

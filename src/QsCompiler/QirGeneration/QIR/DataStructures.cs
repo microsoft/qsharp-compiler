@@ -165,8 +165,7 @@ namespace Microsoft.Quantum.QIR.Emission
             IValue Reload() =>
                 context.Values.From(
                     context.CurrentBuilder.Load(this.LlvmType, this.accessHandle),
-                    this.QSharpType,
-                    allocOnStack: false);
+                    this.QSharpType);
 
             this.QSharpType = type;
             this.LlvmType = llvmType;
@@ -300,23 +299,26 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="tuple">Either an opaque or a typed pointer to the tuple data structure</param>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(QsQualifiedName? type, Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool allocatedOnStack)
+        internal TupleValue(QsQualifiedName? type, Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context)
         {
-            var isTypedTuple = Types.IsTypedTuple(tuple.NativeType);
-            var isOpaqueTuple = !tuple.IsNull && Types.IsTupleOrUnit(tuple.NativeType);
-            if (!allocatedOnStack && !isTypedTuple && !isOpaqueTuple)
-            {
-                throw new ArgumentException("expecting either an opaque or a typed tuple");
-            }
-
             this.sharedState = context;
             this.TypeName = type;
             this.ElementTypes = elementTypes;
-            this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(t => context.LlvmTypeFromQsharpType(t, asNativeLlvmType: allocatedOnStack)));
-            this.LlvmNativeValue = allocatedOnStack ? tuple : null;
-            this.opaquePointer = this.CreateOpaquePointerCache(isOpaqueTuple ? tuple : null);
-            this.typedPointer = this.CreateTypedPointerCache(isTypedTuple ? tuple : null);
-            this.tupleElementPointers = this.CreateTupleElementPointersCaches();
+
+            this.typedPointer = this.CreateTypedPointerCache(Types.IsTypedTuple(tuple.NativeType) ? tuple : null);
+            this.opaquePointer = this.CreateOpaquePointerCache(Types.IsTupleOrUnit(tuple.NativeType) && !tuple.IsNull ? tuple : null);
+
+            if (tuple.NativeType is IStructType llvmType)
+            {
+                this.StructType = llvmType;
+                this.LlvmNativeValue = tuple;
+                this.tupleElementPointers = this.CreateTupleElementPointersCaches();
+            }
+            else
+            {
+                this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(t => context.LlvmTypeFromQsharpType(t, asNativeLlvmType: false)));
+                this.tupleElementPointers = this.CreateTupleElementPointersCaches();
+            }
         }
 
         /// <summary>
@@ -326,8 +328,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="tuple">Either an opaque or a typed pointer to the tuple data structure</param>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool allocatedOnStack)
-        : this(null, tuple, elementTypes, context, allocatedOnStack)
+        internal TupleValue(Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context)
+        : this(null, tuple, elementTypes, context)
         {
         }
 
@@ -368,8 +370,7 @@ namespace Microsoft.Quantum.QIR.Emission
                         IValue Reload() =>
                             this.sharedState.Values.From(
                                 this.sharedState.CurrentBuilder.ExtractValue(this.Value, index),
-                                type,
-                                allocOnStack: true);
+                                type);
 
                         var llvmType = this.sharedState.LlvmTypeFromQsharpType(type, asNativeLlvmType: true);
                         return new PointerValue(type, llvmType, this.sharedState, Reload, Store);
@@ -569,8 +570,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 IValue Reload() =>
                     this.sharedState.Values.From(
                         this.sharedState.CurrentBuilder.ExtractValue(this.Value, constIndex),
-                        this.QSharpElementType,
-                        allocOnStack: true);
+                        this.QSharpElementType);
 
                 return new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store);
             }
