@@ -1,13 +1,13 @@
 define internal void @Microsoft__Quantum__Testing__QIR__Main__body() {
 entry:
-  %0 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i2, i64 }* getelementptr ({ i2, i64 }, { i2, i64 }* null, i32 1) to i64))
-  %1 = bitcast %Tuple* %0 to { i2, i64 }*
-  %2 = getelementptr inbounds { i2, i64 }, { i2, i64 }* %1, i32 0, i32 0
-  %3 = getelementptr inbounds { i2, i64 }, { i2, i64 }* %1, i32 0, i32 1
-  %4 = load i2, i2* @PauliI, align 1
-  store i2 %4, i2* %2, align 1
-  store i64 0, i64* %3, align 4
-  %5 = call { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestType__body({ i2, i64 }* %1, double 0.000000e+00)
+  %0 = load i2, i2* @PauliI, align 1
+  %1 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i2, i64 }* getelementptr ({ i2, i64 }, { i2, i64 }* null, i32 1) to i64))
+  %2 = bitcast %Tuple* %1 to { i2, i64 }*
+  %3 = getelementptr inbounds { i2, i64 }, { i2, i64 }* %2, i32 0, i32 0
+  %4 = getelementptr inbounds { i2, i64 }, { i2, i64 }* %2, i32 0, i32 1
+  store i2 %0, i2* %3, align 1
+  store i64 0, i64* %4, align 4
+  %5 = call { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestType__body({ i2, i64 }* %2, double 0.000000e+00)
   %6 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
   %7 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %6, i64 0)
   %8 = bitcast i8* %7 to { %Tuple* }**
@@ -20,7 +20,7 @@ entry:
   store { i64 }* %13, { i64 }** %12, align 8
   %14 = getelementptr inbounds { { i2, i64 }*, double }, { { i2, i64 }*, double }* %5, i32 0, i32 0
   %15 = load { i2, i64 }*, { i2, i64 }** %14, align 8
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %1, i32 -1)
   %16 = bitcast { i2, i64 }* %15 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i32 -1)
   %17 = bitcast { { i2, i64 }*, double }* %5 to %Tuple*

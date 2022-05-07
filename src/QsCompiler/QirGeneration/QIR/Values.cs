@@ -113,11 +113,12 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="tupleElements">The tuple elements</param>
         private TupleValue CreateTuple(QsQualifiedName? typeName, ImmutableArray<TypedExpression> tupleElements, bool allocOnStack, bool registerWithScopeManager)
         {
+            var elements = tupleElements.Select(this.sharedState.BuildSubitem).ToArray();
             var elementTypes = tupleElements.Select(v => v.ResolvedType).ToImmutableArray();
+
             TupleValue tuple = new TupleValue(typeName, elementTypes, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
             PointerValue[] itemPointers = tuple.GetTupleElementPointers();
 
-            var elements = tupleElements.Select(this.sharedState.BuildSubitem).ToArray();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 itemPointers[i].StoreValue(elements[i]);

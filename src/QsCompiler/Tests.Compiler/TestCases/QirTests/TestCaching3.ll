@@ -9,26 +9,26 @@ entry:
   br i1 %4, label %condTrue__1, label %condFalse__1
 
 condTrue__1:                                      ; preds = %entry
-  %5 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, double }* getelementptr ({ double, double }, { double, double }* null, i32 1) to i64))
-  %6 = bitcast %Tuple* %5 to { double, double }*
-  %7 = getelementptr inbounds { double, double }, { double, double }* %6, i32 0, i32 0
-  %8 = getelementptr inbounds { double, double }, { double, double }* %6, i32 0, i32 1
-  %9 = fsub double %x, 5.000000e-01
-  store double %9, double* %7, align 8
-  store double %y, double* %8, align 8
+  %5 = fsub double %x, 5.000000e-01
+  %6 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, double }* getelementptr ({ double, double }, { double, double }* null, i32 1) to i64))
+  %7 = bitcast %Tuple* %6 to { double, double }*
+  %8 = getelementptr inbounds { double, double }, { double, double }* %7, i32 0, i32 0
+  %9 = getelementptr inbounds { double, double }, { double, double }* %7, i32 0, i32 1
+  store double %5, double* %8, align 8
+  store double %y, double* %9, align 8
   br label %condContinue__1
 
 condFalse__1:                                     ; preds = %entry
-  %10 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, double }* getelementptr ({ double, double }, { double, double }* null, i32 1) to i64))
-  %11 = bitcast %Tuple* %10 to { double, double }*
-  %12 = getelementptr inbounds { double, double }, { double, double }* %11, i32 0, i32 0
-  %13 = getelementptr inbounds { double, double }, { double, double }* %11, i32 0, i32 1
-  %14 = fadd double %y, 5.000000e-01
-  store double %x, double* %12, align 8
-  store double %14, double* %13, align 8
+  %10 = fadd double %y, 5.000000e-01
+  %11 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, double }* getelementptr ({ double, double }, { double, double }* null, i32 1) to i64))
+  %12 = bitcast %Tuple* %11 to { double, double }*
+  %13 = getelementptr inbounds { double, double }, { double, double }* %12, i32 0, i32 0
+  %14 = getelementptr inbounds { double, double }, { double, double }* %12, i32 0, i32 1
+  store double %x, double* %13, align 8
+  store double %10, double* %14, align 8
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condFalse__1, %condTrue__1
-  %15 = phi { double, double }* [ %6, %condTrue__1 ], [ %11, %condFalse__1 ]
+  %15 = phi { double, double }* [ %7, %condTrue__1 ], [ %12, %condFalse__1 ]
   ret { double, double }* %15
 }

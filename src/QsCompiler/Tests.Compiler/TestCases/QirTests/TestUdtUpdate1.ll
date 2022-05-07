@@ -1,10 +1,10 @@
 define internal { { double, %String* }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestUdtUpdate1__body(%String* %a, i64 %b) {
 entry:
+  call void @__quantum__rt__string_update_reference_count(%String* %a, i32 1)
   %0 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, %String* }* getelementptr ({ double, %String* }, { double, %String* }* null, i32 1) to i64))
   %1 = bitcast %Tuple* %0 to { double, %String* }*
   %2 = getelementptr inbounds { double, %String* }, { double, %String* }* %1, i32 0, i32 0
   %3 = getelementptr inbounds { double, %String* }, { double, %String* }* %1, i32 0, i32 1
-  call void @__quantum__rt__string_update_reference_count(%String* %a, i32 1)
   store double 1.000000e+00, double* %2, align 8
   store %String* %a, %String** %3, align 8
   %4 = call { { double, %String* }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestType__body({ double, %String* }* %1, i64 %b)

@@ -106,21 +106,21 @@ body__4:                                          ; preds = %header__4
   %35 = load %Array*, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %35, i32 -1)
   %36 = call %Array* @__quantum__rt__array_copy(%Array* %35, i1 false)
-  %37 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i64 }* getelementptr ({ i64, i64 }, { i64, i64 }* null, i32 1) to i64))
-  %38 = bitcast %Tuple* %37 to { i64, i64 }*
-  %39 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %38, i32 0, i32 0
-  %40 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %38, i32 0, i32 1
-  %41 = add i64 %i, 1
-  store i64 %i, i64* %39, align 4
-  store i64 %41, i64* %40, align 4
+  %37 = add i64 %i, 1
+  %38 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i64 }* getelementptr ({ i64, i64 }, { i64, i64 }* null, i32 1) to i64))
+  %39 = bitcast %Tuple* %38 to { i64, i64 }*
+  %40 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %39, i32 0, i32 0
+  %41 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %39, i32 0, i32 1
+  store i64 %i, i64* %40, align 4
+  store i64 %37, i64* %41, align 4
   %42 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %36, i64 %i)
   %43 = bitcast i8* %42 to { i64, i64 }**
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %37, i32 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %38, i32 1)
   %44 = load { i64, i64 }*, { i64, i64 }** %43, align 8
   %45 = bitcast { i64, i64 }* %44 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %45, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %45, i32 -1)
-  store { i64, i64 }* %38, { i64, i64 }** %43, align 8
+  store { i64, i64 }* %39, { i64, i64 }** %43, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %36, i32 1)
   store %Array* %36, %Array** %arr, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %35, i32 -1)

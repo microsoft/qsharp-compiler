@@ -20,13 +20,13 @@ entry:
   %12 = insertvalue %Range %11, i64 %9, 0
   %13 = insertvalue %Range %12, i64 %10, 1
   %rev = insertvalue %Range %13, i64 %3, 2
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %bi, i32 1)
   %14 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, i64, %BigInt*, i64 }* getelementptr ({ double, i64, %BigInt*, i64 }, { double, i64, %BigInt*, i64 }* null, i32 1) to i64))
   %15 = bitcast %Tuple* %14 to { double, i64, %BigInt*, i64 }*
   %16 = getelementptr inbounds { double, i64, %BigInt*, i64 }, { double, i64, %BigInt*, i64 }* %15, i32 0, i32 0
   %17 = getelementptr inbounds { double, i64, %BigInt*, i64 }, { double, i64, %BigInt*, i64 }* %15, i32 0, i32 1
   %18 = getelementptr inbounds { double, i64, %BigInt*, i64 }, { double, i64, %BigInt*, i64 }* %15, i32 0, i32 2
   %19 = getelementptr inbounds { double, i64, %BigInt*, i64 }, { double, i64, %BigInt*, i64 }* %15, i32 0, i32 3
-  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %bi, i32 1)
   store double %d, double* %16, align 8
   store i64 %i, i64* %17, align 4
   store %BigInt* %bi, %BigInt** %18, align 8
