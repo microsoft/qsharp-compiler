@@ -6,6 +6,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using LlvmBindings.Types;
 using LlvmBindings.Values;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -224,7 +225,6 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class TupleValue : IValue
     {
         private readonly GenerationContext sharedState;
-        private readonly UserDefinedType? customType;
 
         // IMPORTANT:
         // The constructors need to ensure that either the typed pointer
@@ -244,11 +244,12 @@ namespace Microsoft.Quantum.QIR.Emission
 
         internal ImmutableArray<ResolvedType> ElementTypes { get; }
 
-        public ResolvedType QSharpType => this.customType != null
-            ? ResolvedType.New(QsResolvedTypeKind.NewUserDefinedType(this.customType))
-            : ResolvedType.New(QsResolvedTypeKind.NewTupleType(ImmutableArray.CreateRange(this.ElementTypes)));
+        public ResolvedType QSharpType => this.TypeName != null
+                ? ResolvedType.New(QsResolvedTypeKind.NewUserDefinedType(
+                    new UserDefinedType(this.TypeName.Namespace, this.TypeName.Name, QsNullable<QsCompiler.DataTypes.Range>.Null)))
+                : ResolvedType.New(QsResolvedTypeKind.NewTupleType(ImmutableArray.CreateRange(this.ElementTypes)));
 
-        public QsQualifiedName? TypeName => this.customType?.GetFullName();
+        public QsQualifiedName? TypeName { get; }
 
         public Value Value => this.LlvmNativeValue ?? this.TypedPointer;
 
@@ -266,10 +267,10 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(UserDefinedType? type, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+        internal TupleValue(QsQualifiedName? type, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
         {
             this.sharedState = context;
-            this.customType = type;
+            this.TypeName = type;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(t => context.LlvmTypeFromQsharpType(t, asNativeLlvmType: allocOnStack)));
             this.LlvmNativeValue = allocOnStack ? this.StructType.GetNullValue() : null;
@@ -299,7 +300,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="tuple">Either an opaque or a typed pointer to the tuple data structure</param>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(UserDefinedType? type, Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool allocatedOnStack)
+        internal TupleValue(QsQualifiedName? type, Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool allocatedOnStack)
         {
             var isTypedTuple = Types.IsTypedTuple(tuple.NativeType);
             var isOpaqueTuple = !tuple.IsNull && Types.IsTupleOrUnit(tuple.NativeType);
@@ -309,7 +310,7 @@ namespace Microsoft.Quantum.QIR.Emission
             }
 
             this.sharedState = context;
-            this.customType = type;
+            this.TypeName = type;
             this.ElementTypes = elementTypes;
             this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(t => context.LlvmTypeFromQsharpType(t, asNativeLlvmType: allocatedOnStack)));
             this.LlvmNativeValue = allocatedOnStack ? tuple : null;
@@ -429,7 +430,7 @@ namespace Microsoft.Quantum.QIR.Emission
         private readonly GenerationContext sharedState;
         private readonly IValue.Cached<Value> length;
 
-        private static uint? AsConstant(Value value) =>
+        private static uint? AsConstant(Value? value) =>
             value is ConstantInt count && count.ZeroExtendedValue < int.MaxValue ? (uint?)count.ZeroExtendedValue : null;
 
         internal ResolvedType QSharpElementType { get; }
@@ -459,27 +460,6 @@ namespace Microsoft.Quantum.QIR.Emission
             : this.length.Load();
 
         /// <summary>
-        /// Creates a new array value.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
-        /// </summary>
-        /// <param name="count">The number of elements in the array</param>
-        /// <param name="elementType">Q# type of the array elements</param>
-        /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-        {
-            this.sharedState = context;
-            this.QSharpElementType = elementType;
-            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: allocOnStack);
-            this.length = this.CreateLengthCache(context.Context.CreateConstant((long)count));
-            this.LlvmType = allocOnStack
-                ? this.LlvmElementType.CreateArrayType(count)
-                : (ITypeRef)this.sharedState.Types.Array;
-            this.Value = allocOnStack
-                ? this.LlvmType.GetNullValue() // fixme: make sure empty arrays are properly handled
-                : this.AllocateArray(registerWithScopeManager);
-        }
-
-        /// <summary>
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
@@ -493,8 +473,8 @@ namespace Microsoft.Quantum.QIR.Emission
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: allocOnStack);
             this.length = this.CreateLengthCache(length);
             this.LlvmType = allocOnStack
-                ? (this.Count.HasValue
-                    ? this.LlvmElementType.CreateArrayType(this.Count.Value)
+                ? (AsConstant(length) is uint count
+                    ? this.LlvmElementType.CreateArrayType(count)
                     : throw new InvalidOperationException("array length is not a constant"))
                 : (ITypeRef)this.sharedState.Types.Array;
             this.Value = allocOnStack
@@ -503,24 +483,42 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
+        /// Creates a new array value.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// </summary>
+        /// <param name="count">The number of elements in the array</param>
+        /// <param name="elementType">Q# type of the array elements</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed</param>
+        internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+            : this(context.Context.CreateConstant((long)count), elementType, context, allocOnStack, registerWithScopeManager)
+        {
+        }
+
+        /// <summary>
         /// Creates a new array value from the given opaque array of elements of the given type.
         /// </summary>
         /// <param name="array">The opaque pointer to the array data structure</param>
-        /// <param name="length">Value of type i64 indicating the number of elements in the array; will be computed on demand if the given value is null</param>
+        /// <param name="count">The number of elements in the array; will be computed on demand if the given value is null</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(Value array, Value? length, ResolvedType elementType, GenerationContext context)
+        internal ArrayValue(Value array, uint? count, ResolvedType elementType, GenerationContext context, bool allocOnStack)
         {
             // FIXME: DUE TO NEEDING TO KNOW THE LLVM TYPE BASED ON THE QSHARPTYPE I AM NOT SURE WE CAN ACTUALLY HAVE BOTH REPRESENTATIONS CO-EXIST PEACEFULLY.
             // MIGHT NEED TO MAKE STACKALLOC A GLOBAL CONFIG...
             this.sharedState = context;
             this.QSharpElementType = elementType;
-            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
-            this.Value = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array"); // FIXME: DOES THIS EVER NEED TO BE STACK ALLOCATED?
-            this.LlvmType = this.sharedState.Types.Array;
-            this.length = length == null
-                ? new IValue.Cached<Value>(context, this.GetLength)
-                : this.CreateLengthCache(length);
+            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: allocOnStack);
+            this.LlvmType = allocOnStack
+                ? (count.HasValue
+                    ? this.LlvmElementType.CreateArrayType(count.Value)
+                    : throw new InvalidOperationException("array length is not a constant"))
+                : (ITypeRef)this.sharedState.Types.Array;
+            this.Value = allocOnStack
+                ? array.NativeType is IArrayType ? array : throw new ArgumentException("expecting an llvm constant array")
+                : Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
+            this.length = count.HasValue
+                ? this.CreateLengthCache(context.Context.CreateConstant((long)count.Value))
+                : new IValue.Cached<Value>(context, this.GetLength);
         }
 
         /* private helpers */

@@ -23,16 +23,16 @@ entry:
   %12 = load { double, %String* }*, { double, %String* }** %11, align 8
   %13 = bitcast { double, %String* }* %12 to %Tuple*
   %14 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %13, i1 false)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i32 1)
   %15 = bitcast %Tuple* %14 to { double, %String* }*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %14, i32 1)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %13, i32 -1)
-  store { double, %String* }* %15, { double, %String* }** %11, align 8
   %16 = getelementptr inbounds { double, %String* }, { double, %String* }* %15, i32 0, i32 1
   %17 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i32 0, i32 0))
   %18 = load %String*, %String** %16, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %18, i32 -1)
   store %String* %17, %String** %16, align 8
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i32 1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %14, i32 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %13, i32 -1)
+  store { double, %String* }* %15, { double, %String* }** %11, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %9, i32 1)
   store { { double, %String* }*, i64 }* %10, { { double, %String* }*, i64 }** %x, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i32 -1)

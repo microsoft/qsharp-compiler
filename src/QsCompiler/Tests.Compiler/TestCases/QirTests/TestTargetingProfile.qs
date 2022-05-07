@@ -4,6 +4,10 @@
 namespace Microsoft.Quantum.Testing.QIR {
     open Microsoft.Quantum.Diagnostics;
 
+    newtype MyUnit = Unit;
+    newtype MyTuple = (Item1 : Int, Item2 : Double);
+    newtype MyNestedTuple = ((Item1 : Int, Item2 : Double), Item3 : Double);
+
     //function TakesTuple()
 
     function LogPauli(pauli : Pauli) : Unit {
@@ -50,6 +54,20 @@ namespace Microsoft.Quantum.Testing.QIR {
         let slice2 = concatenated[arr1[0]..arr1[2]];
         DumpMachine(slice1);
         DumpMachine(slice2);
+
+        let updated = arr1 w/ 0 <- 4;
+        DumpMachine(updated);
+
+        let udt1 = MyTuple(1, 1.);
+        DumpMachine((udt1, udt1 w/ Item1 <- 5));
+        DumpMachine(udt1 w/ Item2 <- 2.);
+        DumpMachine(MyUnit());
+
+        let udt2 = MyNestedTuple(udt1!, 0.);
+        let udt2update = udt2 w/ Item2 <- 3.;
+        DumpMachine(udt2);
+        DumpMachine(udt2update);
+        DumpMachine(udt2update::Item2);
 
         use qs = Qubit[2];
         H(qs[0]);

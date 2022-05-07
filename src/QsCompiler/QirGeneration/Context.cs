@@ -942,7 +942,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (argType.Resolution is ResolvedTypeKind.UserDefinedType udt)
             {
-                return this.Values.FromCustomType(argTuple, udt.Item, allocOnStack: false);
+                return this.Values.FromCustomType(argTuple, udt.Item.GetFullName(), allocOnStack: false);
             }
             else
             {

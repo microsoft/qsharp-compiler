@@ -2,6 +2,10 @@
 
     open Microsoft.Quantum.Intrinsic;
 
+    newtype MyUnit = Unit;
+    newtype MyTuple = (Item1 : Int, Item2 : Double);
+    newtype MyNestedTuple = ((Item1 : Int, Item2 : Double), Item3 : Double);
+
     function SumArray(arr : Int[]) : Int {
         mutable sum = 0;
         for item in arr{
@@ -28,6 +32,16 @@
         let slice1 = concatenated[arr2[2]-1..-arr1[1]..arr1[0]];
         let slice2 = concatenated[arr1[0]..arr1[2]];
         Message($"{slice1}, {slice2}");
+
+        let updated = arr1 w/ 0 <- 4;
+        Message($"{arr1}, {updated}");
+
+        let udt1 = MyTuple(1, 1.);
+        let udt2 = MyNestedTuple(udt1!, 0.);
+        Message($"{MyUnit()}");
+        Message($"{udt1 w/ Item1 <- 5}, {udt1 w/ Item2 <- 2.}, {udt1}");
+        Message($"{udt2}");
+        Message($"{udt2 w/ Item2 <- 3.}");
 
         let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
         let (pauli, _) = tupleArr[1];
