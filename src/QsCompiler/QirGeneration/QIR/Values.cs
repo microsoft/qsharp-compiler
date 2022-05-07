@@ -130,8 +130,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Increases the reference count for the tuple elements.
         /// </summary>
         /// <param name="typeName">The name of the user defined typed that the tuple represents</param>
-        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         /// <param name="tupleElements">The tuple elements</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         private TupleValue CreateTuple(QsQualifiedName? typeName, IReadOnlyList<IValue> tupleElements, bool allocOnStack, bool registerWithScopeManager) =>
             new TupleValue(typeName, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
@@ -140,8 +140,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// Increases the reference count for the tuple elements.
         /// </summary>
-        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         /// <param name="tupleElements">The tuple elements</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         internal TupleValue CreateTuple(IReadOnlyList<IValue> tupleElements, bool allocOnStack, bool registerWithScopeManager) =>
             this.CreateTuple(null, tupleElements, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
@@ -152,9 +152,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="tupleElements">The tuple elements</param>
         internal TupleValue CreateTuple(IReadOnlyList<IValue> tupleElements, bool allocOnStack) =>
-            // even if the tuple is stack allocated, its items may not be and the tuple is hence registerd with the scope manager
-            // FIXME: ENSURE THAT TUPLE ITEMS ARE STILL PROPERLY MANAGED WHEN TUPLE IS NOT MANAGED BY THE SCOPE MANAGER...
-            // SAME FOR ARRAYS...
+            // FIXME: ENFORCE THAT STACKALLOC IS ONLY TRUE WHEN ALL ELEMENTS ARE STACK ALLOC?
             this.CreateTuple(null, tupleElements, allocOnStack: allocOnStack, true);
 
         /// <summary>
@@ -163,8 +161,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Increases the reference count for the tuple elements.
         /// </summary>
         /// <param name="typeName">The name of the user defined type</param>
-        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         /// <param name="tupleElements">The tuple elements</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         internal TupleValue CreateCustomType(QsQualifiedName typeName, IReadOnlyList<IValue> tupleElements, bool allocOnStack, bool registerWithScopeManager) =>
             this.CreateTuple(typeName, tupleElements, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
@@ -202,10 +200,11 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="arrayElements">The elements in the array</param>
         internal ArrayValue CreateArray(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, bool allocOnStack, bool registerWithScopeManager)
         {
+            var elements = arrayElements.Select(this.sharedState.BuildSubitem).ToArray();
+
             var array = new ArrayValue((uint)arrayElements.Length, elementType, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
             var itemPointers = array.GetArrayElementPointers();
 
-            var elements = arrayElements.Select(this.sharedState.BuildSubitem).ToArray();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 itemPointers[i].StoreValue(elements[i]);
@@ -254,29 +253,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="getElement">Given an index into the array, returns the value to populate that element with</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
-        internal ArrayValue CreateArray(ResolvedType elementType, Value length, Func<Value, IValue> getElement, bool allocOnStack, bool registerWithScopeManager)
-        {
-            var array = new ArrayValue(length, elementType, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
-            if (array.Count != 0)
-            {
-                // We need to populate the array
-                var start = this.sharedState.Context.CreateConstant(0L);
-                var end = array.Count != null
-                    ? this.sharedState.Context.CreateConstant((long)array.Count - 1L)
-                    : this.sharedState.CurrentBuilder.Sub(array.Length, this.sharedState.Context.CreateConstant(1L));
-                this.sharedState.IterateThroughRange(start, null, end, index =>
-                {
-                    // We need to make sure that the reference count for the item is increased by 1,
-                    // and the iteration loop expects that the body handles its own reference counting.
-                    this.sharedState.ScopeMgr.OpenScope();
-                    var itemValue = getElement(index);
-                    array.GetArrayElementPointer(index).StoreValue(itemValue);
-                    this.sharedState.ScopeMgr.CloseScope(itemValue);
-                });
-            }
-
-            return array;
-        }
+        internal ArrayValue CreateArray(ResolvedType elementType, Value length, Func<Value, IValue> getElement, bool allocOnStack, bool registerWithScopeManager) =>
+            new ArrayValue(elementType, length, getElement, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Creates a callable value of the given type and registers it with the scope manager.

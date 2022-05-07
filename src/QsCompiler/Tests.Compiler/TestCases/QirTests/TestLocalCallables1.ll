@@ -1,10 +1,10 @@
 ﻿define internal { %String*, double }* @Microsoft__Quantum__Testing__QIR__TestLocalCallables__body() {
 entry:
+  %0 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__DoNothing__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   %arr = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
-  %1 = bitcast i8* %0 to %Callable**
-  %2 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__DoNothing__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
-  store %Callable* %2, %Callable** %1, align 8
+  %1 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
+  %2 = bitcast i8* %1 to %Callable**
+  store %Callable* %0, %Callable** %2, align 8
   br label %header__1
 
 header__1:                                        ; preds = %exiting__1, %entry

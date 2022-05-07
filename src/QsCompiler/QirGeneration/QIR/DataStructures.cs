@@ -450,9 +450,6 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public uint? Count => AsConstant(this.Length); // FIXME: Switch length and count or set on instantion
 
-        // TODO: CAN WE JUST MOVE TO A SIMILAR STRATEGY AS WITH TUPLES FOR TYPEDPOINTERS VS OPAQUE POINTERS FOR ARRAYS?
-        // just by default use constant arrays whenever possible and let this data structure abstract that?
-
         public Value Value { get; private set; }
 
         public Value OpaquePointer =>
@@ -486,6 +483,28 @@ namespace Microsoft.Quantum.QIR.Emission
             this.Value = allocOnStack
                 ? this.LlvmType.GetNullValue() // fixme: make sure empty arrays are properly handled
                 : this.AllocateArray(registerWithScopeManager);
+        }
+
+        internal ArrayValue(ResolvedType elementType, Value length, Func<Value, IValue> getElement, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+            : this(length, elementType, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
+        {
+            if (this.Count != 0)
+            {
+                // We need to populate the array
+                var start = this.sharedState.Context.CreateConstant(0L);
+                var end = this.Count != null
+                    ? this.sharedState.Context.CreateConstant((long)this.Count - 1L)
+                    : this.sharedState.CurrentBuilder.Sub(this.Length, this.sharedState.Context.CreateConstant(1L));
+                this.sharedState.IterateThroughRange(start, null, end, index =>
+                {
+                    // We need to make sure that the reference count for the item is increased by 1,
+                    // and the iteration loop expects that the body handles its own reference counting.
+                    this.sharedState.ScopeMgr.OpenScope();
+                    var itemValue = getElement(index);
+                    this.GetArrayElementPointer(index).StoreValue(itemValue);
+                    this.sharedState.ScopeMgr.CloseScope(itemValue);
+                });
+            }
         }
 
         /// <summary>
@@ -523,18 +542,17 @@ namespace Microsoft.Quantum.QIR.Emission
                 this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
                 this.LlvmType = this.sharedState.Types.Array;
                 this.Value = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
-                this.length = new IValue.Cached<Value>(context, this.GetLength);
+                this.length = this.CreateLengthCache();
             }
         }
 
         /* private helpers */
 
-        private Value GetLength() => this.sharedState.CurrentBuilder.Call( // FIXME: THIS NEEDS REVISION
-            this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
-            this.OpaquePointer);
-
-        private IValue.Cached<Value> CreateLengthCache(Value length) => // FIXME: THIS NEEDS REVISION
-            new IValue.Cached<Value>(length, this.sharedState, this.GetLength);
+        private IValue.Cached<Value> CreateLengthCache(Value? length = null) =>
+            new IValue.Cached<Value>(length, this.sharedState, () =>
+                this.sharedState.CurrentBuilder.Call(
+                    this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
+                    this.OpaquePointer));
 
         private Value AllocateArray(bool registerWithScopeManager)
         {
@@ -621,10 +639,7 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         public Value Value { get; }
 
-        /// <summary>
-        /// The LLVM type by which the value is passed across function bounaries,
-        /// i.e. the LLVM native type of the stored value.
-        /// </summary>
+        /// <inheritdoc cref="IValue.LlvmType" />
         public ITypeRef LlvmType { get; }
 
         public ResolvedType QSharpType { get; }
@@ -640,8 +655,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="captured">All captured values.</param>
         internal CallableValue(ResolvedType callableType, GlobalVariable table, GenerationContext context, ImmutableArray<TypedExpression>? captured = null)
         {
-            this.LlvmType = context.Types.Callable;
             this.QSharpType = callableType;
+            this.LlvmType = context.Types.Callable;
 
             // The runtime function CallableCreate creates a new value with reference count 1.
             var createCallable = context.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
@@ -659,9 +674,9 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="context">Generation context where constants are defined and generated if needed.</param>
         internal CallableValue(Value value, ResolvedType type, GenerationContext context)
         {
-            this.Value = value;
-            this.LlvmType = context.Types.Callable;
             this.QSharpType = type;
+            this.LlvmType = context.Types.Callable;
+            this.Value = value;
         }
     }
 }
