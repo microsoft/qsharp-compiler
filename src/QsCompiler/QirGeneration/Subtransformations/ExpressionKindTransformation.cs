@@ -956,7 +956,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var resElementTypes = returnType.Resolution is ResolvedTypeKind.TupleType elementTypes
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
-                TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
+                TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes, registerWithScopeManager: true);
                 this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer);
                 return returnType.Resolution.IsTupleType
                     ? resultTuple

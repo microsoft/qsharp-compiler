@@ -103,8 +103,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
-        internal TupleValue CreateTuple(ImmutableArray<ResolvedType> elementTypes, bool allocOnStack, bool registerWithScopeManager) =>
-            new TupleValue(elementTypes, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+        internal TupleValue CreateTuple(ImmutableArray<ResolvedType> elementTypes, bool registerWithScopeManager) =>
+            new TupleValue(elementTypes, this.sharedState, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.
