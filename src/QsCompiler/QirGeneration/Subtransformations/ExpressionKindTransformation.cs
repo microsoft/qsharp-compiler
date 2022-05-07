@@ -1086,7 +1086,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     var (arr1, arr2) = ((ArrayValue)lhs, (ArrayValue)rhs);
                     var elements = arr1.GetArrayElements().Concat(arr2.GetArrayElements()).ToArray();
-                    value = this.SharedState.Values.CreateArray(elementType.Item, allocOnStack: true, elements);
+                    value = this.SharedState.Values.CreateArray(elementType.Item, elements, allocOnStack: true);
                 }
                 else
                 {
@@ -1138,7 +1138,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var elements = array.GetArrayElements(
                         this.SharedState.EvaluateRange((ConstantInt)start, (ConstantInt)step, (ConstantInt)end)
                         .Select(item => (int)item).ToArray());
-                    value = this.SharedState.Values.CreateArray(array.QSharpElementType, allocOnStack: true, elements);
+                    value = this.SharedState.Values.CreateArray(array.QSharpElementType, elements, allocOnStack: true);
                 }
                 else
                 {
@@ -2040,7 +2040,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 if (type.Resolution is ResolvedTypeKind.ArrayType itemType)
                 {
-                    return this.SharedState.Values.CreateArray(itemType.Item, allocOnStack: this.SharedState.TargetQirProfile);
+                    return this.SharedState.Values.CreateArray(itemType.Item, Array.Empty<IValue>(), allocOnStack: this.SharedState.TargetQirProfile);
                 }
                 else if (type.Resolution.IsFunction || type.Resolution.IsOperation)
                 {

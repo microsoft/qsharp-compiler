@@ -433,6 +433,8 @@ namespace Microsoft.Quantum.QIR.Emission
     /// </summary>
     internal class ArrayValue : IValue
     {
+        // FIXME: ENFORCE THAT STACKALLOC IS ONLY TRUE WHEN ALL ELEMENTS ARE STACK ALLOC?
+
         private readonly GenerationContext sharedState;
         private readonly IValue.Cached<Value> length;
 
@@ -514,8 +516,27 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="count">The number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(uint count, ResolvedType elementType, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+        private ArrayValue(uint count, ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager, bool increaseItemRefCount)
             : this(context.Context.CreateConstant((long)count), elementType, context, allocOnStack, registerWithScopeManager)
+        {
+            var itemPointers = this.GetArrayElementPointers();
+            for (var i = 0; i < itemPointers.Length; ++i)
+            {
+                itemPointers[i].StoreValue(arrayElements[i]);
+                if (increaseItemRefCount)
+                {
+                    this.sharedState.ScopeMgr.IncreaseReferenceCount(arrayElements[i]);
+                }
+            }
+        }
+
+        internal ArrayValue(uint count, ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+            : this(count, elementType, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: false)
+        {
+        }
+
+        internal ArrayValue(uint count, ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+            : this(count, elementType, arrayElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: true)
         {
         }
 
