@@ -270,7 +270,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     if (sharedState.TargetQirProfile)
                     {
-                        return sharedState.Values.FromArray(originalArray.Value, originalArray.Count, originalArray.QSharpElementType, allocOnStack: true);
+                        return sharedState.Values.FromArray(originalArray.Value, originalArray.QSharpElementType);
                     }
                     else
                     {
@@ -280,7 +280,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
                         var forceCopy = sharedState.Context.CreateConstant(needsToBeCopied);
                         var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
-                        return sharedState.Values.FromArray(copy, originalArray.Count, originalArray.QSharpElementType, allocOnStack: false);
+                        return sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
                     }
                 }
 
@@ -1093,7 +1093,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // The runtime function ArrayConcatenate creates a new value with reference count 1 and alias count 0.
                     var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                     var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
-                    value = this.SharedState.Values.FromArray(res, null, elementType.Item, allocOnStack: false);
+                    value = this.SharedState.Values.FromArray(res, elementType.Item);
 
                     // The explicit ref count increase for all items is necessary for the sake of
                     // consistency such that the reference count adjustment for copy-and-update is correct.
@@ -1155,7 +1155,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                     var range = this.SharedState.EvaluateSubexpression(idx).Value;
                     var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.OpaquePointer, range, forceCopy);
-                    value = this.SharedState.Values.FromArray(slice, null, elementType, allocOnStack: false);
+                    value = this.SharedState.Values.FromArray(slice, elementType);
 
                     // The explicit ref count increase for all items is necessary for the sake of
                     // consistency such that the reference count adjustment for copy-and-update is correct.

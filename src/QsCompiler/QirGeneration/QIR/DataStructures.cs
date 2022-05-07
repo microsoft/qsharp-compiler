@@ -442,7 +442,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public ITypeRef LlvmType { get; }
 
-        public uint? Count => AsConstant(this.Length);
+        public uint? Count => AsConstant(this.Length); // FIXME: Switch length and count or set on instantion
 
         // TODO: CAN WE JUST MOVE TO A SIMILAR STRATEGY AS WITH TUPLES FOR TYPEDPOINTERS VS OPAQUE POINTERS FOR ARRAYS?
         // just by default use constant arrays whenever possible and let this data structure abstract that?
@@ -498,27 +498,27 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Creates a new array value from the given opaque array of elements of the given type.
         /// </summary>
         /// <param name="array">The opaque pointer to the array data structure</param>
-        /// <param name="count">The number of elements in the array; will be computed on demand if the given value is null</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(Value array, uint? count, ResolvedType elementType, GenerationContext context, bool allocOnStack)
+        internal ArrayValue(Value array, ResolvedType elementType, GenerationContext context)
         {
-            // FIXME: DUE TO NEEDING TO KNOW THE LLVM TYPE BASED ON THE QSHARPTYPE I AM NOT SURE WE CAN ACTUALLY HAVE BOTH REPRESENTATIONS CO-EXIST PEACEFULLY.
-            // MIGHT NEED TO MAKE STACKALLOC A GLOBAL CONFIG...
             this.sharedState = context;
             this.QSharpElementType = elementType;
-            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: allocOnStack);
-            this.LlvmType = allocOnStack
-                ? (count.HasValue
-                    ? this.LlvmElementType.CreateArrayType(count.Value)
-                    : throw new InvalidOperationException("array length is not a constant"))
-                : (ITypeRef)this.sharedState.Types.Array;
-            this.Value = allocOnStack
-                ? array.NativeType is IArrayType ? array : throw new ArgumentException("expecting an llvm constant array")
-                : Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
-            this.length = count.HasValue
-                ? this.CreateLengthCache(context.Context.CreateConstant((long)count.Value))
-                : new IValue.Cached<Value>(context, this.GetLength);
+
+            if (array.NativeType is IArrayType llvmType)
+            {
+                this.LlvmElementType = llvmType.ElementType;
+                this.LlvmType = llvmType;
+                this.Value = array;
+                this.length = this.CreateLengthCache(context.Context.CreateConstant((long)llvmType.Length));
+            }
+            else
+            {
+                this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
+                this.LlvmType = this.sharedState.Types.Array;
+                this.Value = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
+                this.length = new IValue.Cached<Value>(context, this.GetLength);
+            }
         }
 
         /* private helpers */
