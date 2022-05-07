@@ -158,7 +158,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="arrayElements">The elements in the array</param>
         internal ArrayValue CreateArray(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new ArrayValue((uint)arrayElements.Length, elementType, arrayElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+            new ArrayValue(elementType, arrayElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds an array that containsthe given array elements.
@@ -169,7 +169,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="arrayElements">The elements in the array</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         internal ArrayValue CreateArray(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new ArrayValue((uint)arrayElements.Count, elementType, arrayElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+            new ArrayValue(elementType, arrayElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Creates an array of the given size and populates each element with the value returned by <paramref name="getElement"/>,

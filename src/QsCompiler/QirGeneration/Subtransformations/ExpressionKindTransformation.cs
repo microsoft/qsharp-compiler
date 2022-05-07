@@ -1034,12 +1034,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The type of the current expression is not an array type.</exception>
         private ResolvedExpressionKind CreateAndPopulateArray(TypedExpression sizeEx, IValue itemValue)
         {
-            var elementType = this.SharedState.CurrentExpressionType().Resolution is ResolvedTypeKind.ArrayType et
-                ? et.Item
-                : throw new InvalidOperationException("current expression is expected to be an array");
-
             var size = this.SharedState.EvaluateSubexpression(sizeEx);
-            var array = this.SharedState.Values.CreateArray(elementType, size.Value, _ => itemValue, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
+            var array = this.SharedState.Values.CreateArray(itemValue.QSharpType, size.Value, _ => itemValue, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
 
             this.SharedState.ValueStack.Push(array);
             return ResolvedExpressionKind.InvalidExpr;

@@ -487,56 +487,37 @@ namespace Microsoft.Quantum.QIR.Emission
                 : this.AllocateArray(registerWithScopeManager);
         }
 
-        internal ArrayValue(ResolvedType elementType, Value length, Func<Value, IValue> getElement, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(length, elementType, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
-        {
-            if (this.Count != 0)
-            {
-                // We need to populate the array
-                var start = this.sharedState.Context.CreateConstant(0L);
-                var end = this.Count != null
-                    ? this.sharedState.Context.CreateConstant((long)this.Count - 1L)
-                    : this.sharedState.CurrentBuilder.Sub(this.Length, this.sharedState.Context.CreateConstant(1L));
-                this.sharedState.IterateThroughRange(start, null, end, index =>
-                {
-                    // We need to make sure that the reference count for the item is increased by 1,
-                    // and the iteration loop expects that the body handles its own reference counting.
-                    this.sharedState.ScopeMgr.OpenScope();
-                    var itemValue = getElement(index);
-                    this.GetArrayElementPointer(index).StoreValue(itemValue);
-                    this.sharedState.ScopeMgr.CloseScope(itemValue);
-                });
-            }
-        }
-
         /// <summary>
         /// Creates a new array value.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
-        /// <param name="count">The number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        private ArrayValue(uint count, ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager, bool increaseItemRefCount)
-            : this(context.Context.CreateConstant((long)count), elementType, context, allocOnStack, registerWithScopeManager)
+        private ArrayValue(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager, bool increaseItemRefCount)
+            : this(context.Context.CreateConstant((long)arrayElements.Count), elementType, context, allocOnStack, registerWithScopeManager)
         {
             var itemPointers = this.GetArrayElementPointers();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 itemPointers[i].StoreValue(arrayElements[i]);
-                if (increaseItemRefCount)
+            }
+
+            if (increaseItemRefCount)
+            {
+                for (var i = 0; i < itemPointers.Length; ++i)
                 {
                     this.sharedState.ScopeMgr.IncreaseReferenceCount(arrayElements[i]);
                 }
             }
         }
 
-        internal ArrayValue(uint count, ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(count, elementType, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: false)
+        internal ArrayValue(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+            : this(elementType, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: false)
         {
         }
 
-        internal ArrayValue(uint count, ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(count, elementType, arrayElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: true)
+        internal ArrayValue(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+            : this(elementType, arrayElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: true)
         {
         }
 
@@ -564,6 +545,28 @@ namespace Microsoft.Quantum.QIR.Emission
                 this.LlvmType = this.sharedState.Types.Array;
                 this.Value = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
                 this.length = this.CreateLengthCache();
+            }
+        }
+
+        internal ArrayValue(ResolvedType elementType, Value length, Func<Value, IValue> getElement, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+            : this(length, elementType, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
+        {
+            if (this.Count != 0)
+            {
+                // We need to populate the array
+                var start = this.sharedState.Context.CreateConstant(0L);
+                var end = this.Count != null
+                    ? this.sharedState.Context.CreateConstant((long)this.Count - 1L)
+                    : this.sharedState.CurrentBuilder.Sub(this.Length, this.sharedState.Context.CreateConstant(1L));
+                this.sharedState.IterateThroughRange(start, null, end, index =>
+                {
+                    // We need to make sure that the reference count for the item is increased by 1,
+                    // and the iteration loop expects that the body handles its own reference counting.
+                    this.sharedState.ScopeMgr.OpenScope();
+                    var itemValue = getElement(index);
+                    this.GetArrayElementPointer(index).StoreValue(itemValue);
+                    this.sharedState.ScopeMgr.CloseScope(itemValue);
+                });
             }
         }
 
