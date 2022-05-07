@@ -93,6 +93,14 @@ entry:
   %44 = extractvalue [3 x { i2, i64 }] %tupleArr, 1
   %pauli = extractvalue { i2, i64 } %44, 0
   call void @__quantum__qis__logpauli__body(i2 %pauli)
+  %45 = alloca i64, align 8
+  store i64 2, i64* %45, align 4
+  %46 = bitcast i64* %45 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %46)
+  %47 = alloca [2 x i64], align 8
+  store [2 x i64] [i64 1, i64 2], [2 x i64]* %47, align 4
+  %48 = bitcast [2 x i64]* %47 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %48)
   call void @__quantum__rt__result_update_reference_count(%Result* %m2, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %30)
   call void @__quantum__rt__qubit_release(%Qubit* %32)

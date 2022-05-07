@@ -694,7 +694,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
-                var innerTuple = this.Values.CreateTuple(allocOnStack: this.TargetQirProfile, tupleItems);
+                var innerTuple = this.Values.CreateTuple(tupleItems, allocOnStack: this.TargetQirProfile);
                 var name = outerArgItems[0].Item1;
                 if (name != null)
                 {
@@ -762,7 +762,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                var udtTuple = this.Values.CreateTuple(allocOnStack: this.TargetQirProfile, this.Values.Unit);
+                var udtTuple = this.Values.CreateTuple(ImmutableArray.Create(this.Values.Unit), allocOnStack: this.TargetQirProfile);
                 this.AddReturn(udtTuple, returnsVoid: false);
             }
             else if (this.CurrentFunction != null)
@@ -776,7 +776,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, itemTypes[i])).ToArray();
-                var udtTuple = this.Values.CreateTuple(allocOnStack: this.TargetQirProfile, tupleItems);
+                var udtTuple = this.Values.CreateTuple(tupleItems, allocOnStack: this.TargetQirProfile);
                 this.AddReturn(udtTuple, returnsVoid: false);
             }
         }

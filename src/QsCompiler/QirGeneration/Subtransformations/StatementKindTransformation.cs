@@ -190,7 +190,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
                     {
                         var items = inits.Item.Select(Allocate).ToArray();
-                        return this.SharedState.Values.CreateTuple(allocOnStack: this.SharedState.TargetQirProfile, items);
+                        return this.SharedState.Values.CreateTuple(items, allocOnStack: this.SharedState.TargetQirProfile);
                     }
                     else
                     {

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using LlvmBindings.Types;
@@ -262,18 +263,47 @@ namespace Microsoft.Quantum.QIR.Emission
         /// the instructions are emitted using the current builder.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
-        /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(QsQualifiedName? type, ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+        private TupleValue(QsQualifiedName? type, IReadOnlyList<IValue> tupleElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager, bool increaseItemRefCount)
         {
             this.sharedState = context;
             this.TypeName = type;
-            this.ElementTypes = elementTypes;
-            this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(t => context.LlvmTypeFromQsharpType(t, asNativeLlvmType: allocOnStack)));
+            this.ElementTypes = tupleElements.Select(v => v.QSharpType).ToImmutableArray();
+            this.StructType = this.sharedState.Types.TypedTuple(tupleElements.Select(t => t.LlvmType));
             this.LlvmNativeValue = allocOnStack ? this.StructType.GetNullValue() : null;
             this.opaquePointer = this.CreateOpaquePointerCache(allocOnStack ? null : this.AllocateTuple(registerWithScopeManager));
             this.typedPointer = this.CreateTypedPointerCache();
+            this.tupleElementPointers = this.CreateTupleElementPointersCaches(tupleElements);
+
+            PointerValue[] itemPointers = this.GetTupleElementPointers();
+            for (var i = 0; i < itemPointers.Length; ++i)
+            {
+                itemPointers[i].StoreValue(tupleElements[i]);
+                if (increaseItemRefCount)
+                {
+                    this.sharedState.ScopeMgr.IncreaseReferenceCount(tupleElements[i]);
+                }
+            }
+        }
+
+        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager)
+        {
+            this.sharedState = context;
+            this.ElementTypes = elementTypes;
+            this.StructType = this.sharedState.Types.TypedTuple(elementTypes.Select(t => this.sharedState.LlvmTypeFromQsharpType(t, asNativeLlvmType: false)).ToArray());
+            this.opaquePointer = this.CreateOpaquePointerCache(this.AllocateTuple(registerWithScopeManager));
+            this.typedPointer = this.CreateTypedPointerCache();
             this.tupleElementPointers = this.CreateTupleElementPointersCaches();
+        }
+
+        internal TupleValue(QsQualifiedName? type, IReadOnlyList<IValue> tupleElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+            : this(type, tupleElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: true)
+        {
+        }
+
+        internal TupleValue(QsQualifiedName? type, ImmutableArray<TypedExpression> tupleElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+            : this(type, tupleElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: false)
+        {
         }
 
         /// <summary>
@@ -281,10 +311,9 @@ namespace Microsoft.Quantum.QIR.Emission
         /// respectively are executed lazily. When needed, the instructions are emitted using the current builder.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
-        /// <param name="elementTypes">The Q# types of the tuple items</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager)
-            : this(null, elementTypes, context, allocOnStack: false, registerWithScopeManager: registerWithScopeManager)
+        internal TupleValue(IReadOnlyList<IValue> tupleElements, GenerationContext context, bool registerWithScopeManager)
+            : this(null, tupleElements, context, allocOnStack: false, registerWithScopeManager: registerWithScopeManager)
         {
         }
 
@@ -345,30 +374,36 @@ namespace Microsoft.Quantum.QIR.Emission
                 ? this.sharedState.CurrentBuilder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType())
                 : throw new InvalidOperationException("tuple pointer is undefined"));
 
-        private IValue.Cached<PointerValue> CreateCachedPointer(ResolvedType type, uint index) =>
-            new IValue.Cached<PointerValue>(this.sharedState, () =>
+        private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches(IReadOnlyList<IValue>? tupleElements = null)
+        {
+            var elementTypes = tupleElements == null
+                ? this.ElementTypes.Select(t => (t, this.sharedState.LlvmTypeFromQsharpType(t, asNativeLlvmType: false))).ToArray()
+                : tupleElements.Select(element => (element.QSharpType, element.LlvmType)).ToArray();
+
+            if (this.LlvmNativeValue is null)
             {
-                if (this.LlvmNativeValue is null)
+                return elementTypes.Select((type, index) => new IValue.Cached<PointerValue>(this.sharedState, () =>
                 {
-                    var elementPtr = this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, index);
-                    var llvmType = this.sharedState.LlvmTypeFromQsharpType(type, asNativeLlvmType: false);
-                    return new PointerValue(elementPtr, type, llvmType, this.sharedState);
+                    var elementPtr = this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, (uint)index);
+                    return new PointerValue(elementPtr, type.Item1, type.Item2, this.sharedState);
                 }
-                else
+                )).ToArray();
+            }
+            else
+            {
+                return elementTypes.Select((type, index) => new IValue.Cached<PointerValue>(this.sharedState, () =>
                 {
                     void Store(IValue v) =>
-                        this.LlvmNativeValue = this.sharedState.CurrentBuilder.InsertValue(this.Value, v.Value, index);
+                        this.LlvmNativeValue = this.sharedState.CurrentBuilder.InsertValue(this.Value, v.Value, (uint)index);
 
                     IValue Reload() =>
-                        this.sharedState.Values.From(this.sharedState.CurrentBuilder.ExtractValue(this.Value, index), type);
+                        this.sharedState.Values.From(this.sharedState.CurrentBuilder.ExtractValue(this.Value, (uint)index), type.Item1);
 
-                    var llvmType = this.sharedState.LlvmTypeFromQsharpType(type, asNativeLlvmType: true);
-                    return new PointerValue(type, llvmType, this.sharedState, Reload, Store);
+                    return new PointerValue(type.Item1, type.Item2, this.sharedState, Reload, Store);
                 }
-            });
-
-        private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches() =>
-            this.ElementTypes.Select((t, i) => this.CreateCachedPointer(t, (uint)i)).ToArray();
+                )).ToArray();
+            }
+        }
 
         private Value AllocateTuple(bool registerWithScopeManager)
         {

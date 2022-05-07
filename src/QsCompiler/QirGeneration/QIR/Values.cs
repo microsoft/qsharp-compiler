@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using LlvmBindings.Values;
@@ -111,21 +112,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
         /// <param name="tupleElements">The tuple elements</param>
-        private TupleValue CreateTuple(QsQualifiedName? typeName, ImmutableArray<TypedExpression> tupleElements, bool allocOnStack, bool registerWithScopeManager)
-        {
-            var elements = tupleElements.Select(this.sharedState.BuildSubitem).ToArray();
-            var elementTypes = tupleElements.Select(v => v.ResolvedType).ToImmutableArray();
-
-            TupleValue tuple = new TupleValue(typeName, elementTypes, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
-            PointerValue[] itemPointers = tuple.GetTupleElementPointers();
-
-            for (var i = 0; i < itemPointers.Length; ++i)
-            {
-                itemPointers[i].StoreValue(elements[i]);
-            }
-
-            return tuple;
-        }
+        private TupleValue CreateTuple(QsQualifiedName? typeName, ImmutableArray<TypedExpression> tupleElements, bool allocOnStack, bool registerWithScopeManager) =>
+            new TupleValue(typeName, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.
@@ -144,20 +132,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="typeName">The name of the user defined typed that the tuple represents</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         /// <param name="tupleElements">The tuple elements</param>
-        private TupleValue CreateTuple(QsQualifiedName? typeName, bool allocOnStack, bool registerWithScopeManager, params IValue[] tupleElements)
-        {
-            var elementTypes = tupleElements.Select(v => v.QSharpType).ToImmutableArray();
-            TupleValue tuple = new TupleValue(typeName, elementTypes, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
-            PointerValue[] itemPointers = tuple.GetTupleElementPointers();
-
-            for (var i = 0; i < itemPointers.Length; ++i)
-            {
-                itemPointers[i].StoreValue(tupleElements[i]);
-                this.sharedState.ScopeMgr.IncreaseReferenceCount(tupleElements[i]);
-            }
-
-            return tuple;
-        }
+        private TupleValue CreateTuple(QsQualifiedName? typeName, IReadOnlyList<IValue> tupleElements, bool allocOnStack, bool registerWithScopeManager) =>
+            new TupleValue(typeName, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.
@@ -166,8 +142,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         /// <param name="tupleElements">The tuple elements</param>
-        internal TupleValue CreateTuple(bool allocOnStack, bool registerWithScopeManager, params IValue[] tupleElements) =>
-            this.CreateTuple(null, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, tupleElements);
+        internal TupleValue CreateTuple(IReadOnlyList<IValue> tupleElements, bool allocOnStack, bool registerWithScopeManager) =>
+            this.CreateTuple(null, tupleElements, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.
@@ -175,11 +151,11 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Increases the reference count for the tuple elements.
         /// </summary>
         /// <param name="tupleElements">The tuple elements</param>
-        internal TupleValue CreateTuple(bool allocOnStack, params IValue[] tupleElements) =>
+        internal TupleValue CreateTuple(IReadOnlyList<IValue> tupleElements, bool allocOnStack) =>
             // even if the tuple is stack allocated, its items may not be and the tuple is hence registerd with the scope manager
             // FIXME: ENSURE THAT TUPLE ITEMS ARE STILL PROPERLY MANAGED WHEN TUPLE IS NOT MANAGED BY THE SCOPE MANAGER...
             // SAME FOR ARRAYS...
-            this.CreateTuple(null, allocOnStack: allocOnStack, true, tupleElements);
+            this.CreateTuple(null, tupleElements, allocOnStack: allocOnStack, true);
 
         /// <summary>
         /// Builds a tuple representing a Q# value of user defined type with the items set to the given elements.
@@ -189,8 +165,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="typeName">The name of the user defined type</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         /// <param name="tupleElements">The tuple elements</param>
-        internal TupleValue CreateCustomType(QsQualifiedName typeName, bool allocOnStack, bool registerWithScopeManager, params IValue[] tupleElements) =>
-            this.CreateTuple(typeName, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, tupleElements);
+        internal TupleValue CreateCustomType(QsQualifiedName typeName, IReadOnlyList<IValue> tupleElements, bool allocOnStack, bool registerWithScopeManager) =>
+            this.CreateTuple(typeName, tupleElements, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds a tuple representing a Q# value of user defined type with the items set to the given elements.
@@ -199,8 +175,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="typeName">The name of the user defined type</param>
         /// <param name="tupleElements">The tuple elements</param>
-        internal TupleValue CreateCustomType(QsQualifiedName typeName, bool allocOnStack, params IValue[] tupleElements) =>
-            this.CreateTuple(typeName, allocOnStack: allocOnStack, registerWithScopeManager: true, tupleElements);
+        internal TupleValue CreateCustomType(QsQualifiedName typeName, IReadOnlyList<IValue> tupleElements, bool allocOnStack) =>
+            this.CreateTuple(typeName, tupleElements, allocOnStack: allocOnStack, registerWithScopeManager: true);
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.

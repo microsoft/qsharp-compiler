@@ -47,9 +47,9 @@
         let (pauli, _) = tupleArr[1];
         Message($"{pauli}");
 
-        //let arrTuple = ([1,2], true); // FIXME: CORRECT TYPE NOT IMPLEMENTED
-        //let (vals, _) = arrTuple;
-        //Message($"{vals[1]}");
+        let arrTuple = ([1,2], true);
+        let (vals, _) = arrTuple;
+        Message($"{vals[1]}, {vals}");
 
         return Zero;
     }
