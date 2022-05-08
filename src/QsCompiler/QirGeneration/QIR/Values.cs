@@ -153,7 +153,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         internal ArrayValue CreateArray(ResolvedType elementType, Value length, bool registerWithScopeManager = true) =>
-            new ArrayValue(length, elementType, this.sharedState, allocOnStack: false, registerWithScopeManager: registerWithScopeManager);
+            new ArrayValue(length, elementType, this.sharedState, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds an array that contains the given array elements.

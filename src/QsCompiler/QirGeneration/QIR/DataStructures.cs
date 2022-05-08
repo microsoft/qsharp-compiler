@@ -468,8 +468,29 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+        internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context, bool registerWithScopeManager)
         {
+            this.sharedState = context;
+            this.QSharpElementType = elementType;
+            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
+            this.length = this.CreateLengthCache(length);
+            this.LlvmType = this.sharedState.Types.Array;
+            this.Value = this.AllocateArray(registerWithScopeManager);
+        }
+
+        /// <summary>
+        /// Creates a new array value.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// IMPORTANT:
+        /// Does *not* increase the reference count of the given tupleElements.
+        /// This constructor should remain private.
+        /// </summary>
+        /// <param name="elementType">Q# type of the array elements</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed</param>
+        private ArrayValue(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager, int increaseItemRefCount)
+        {
+            var length = context.Context.CreateConstant((long)arrayElements.Count);
+
             this.sharedState = context;
             this.QSharpElementType = elementType;
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: allocOnStack);
@@ -482,48 +503,34 @@ namespace Microsoft.Quantum.QIR.Emission
             this.Value = allocOnStack
                 ? this.LlvmType.GetNullValue() // fixme: make sure empty arrays are properly handled
                 : this.AllocateArray(registerWithScopeManager);
-        }
 
-        /// <summary>
-        /// Creates a new array value.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
-        /// </summary>
-        /// <param name="elementType">Q# type of the array elements</param>
-        /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        private ArrayValue(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager, bool increaseItemRefCount)
-            : this(context.Context.CreateConstant((long)arrayElements.Count), elementType, context, allocOnStack, registerWithScopeManager)
-        {
             var itemPointers = this.GetArrayElementPointers();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 itemPointers[i].StoreValue(arrayElements[i]);
             }
-
-            if (increaseItemRefCount)
-            {
-                foreach (var element in arrayElements)
-                {
-                    // We need to make sure the reference count increase is applied here;
-                    // In contrast to tuples and custom types, it is possible for the same item
-                    // to be assigned to multiple items in an array without binding the item to
-                    // a variable first. If we applied the reference count increase lazily here,
-                    // then it would be possible that copy-and-update expressions of the array
-                    // would lead to a reference count decrease of that item before the pending
-                    // increases have been applied, resulting in a memory error.
-                    this.sharedState.ScopeMgr.OpenScope();
-                    this.sharedState.ScopeMgr.CloseScope(element);
-                }
-            }
         }
 
         internal ArrayValue(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(elementType, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: false)
+            : this(elementType, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: 0)
         {
         }
 
         internal ArrayValue(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(elementType, arrayElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: true)
+            : this(elementType, arrayElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: 1)
         {
+            foreach (var element in arrayElements)
+            {
+                // We need to make sure the reference count increase is applied here;
+                // In contrast to tuples and custom types, it is possible for the same item
+                // to be assigned to multiple items in an array without binding the item to
+                // a variable first. If we applied the reference count increase lazily here,
+                // then it would be possible that copy-and-update expressions of the array
+                // would lead to a reference count decrease of that item before the pending
+                // increases have been applied, resulting in a memory error.
+                this.sharedState.ScopeMgr.OpenScope();
+                this.sharedState.ScopeMgr.CloseScope(element);
+            }
         }
 
         /// <summary>
@@ -554,7 +561,7 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         internal ArrayValue(ResolvedType elementType, Value length, Func<Value, IValue> getElement, GenerationContext context, bool registerWithScopeManager)
-            : this(length, elementType, context, allocOnStack: false, registerWithScopeManager: registerWithScopeManager)
+            : this(length, elementType, context, registerWithScopeManager: registerWithScopeManager)
         {
             if (this.Count != 0)
             {
@@ -627,6 +634,9 @@ namespace Microsoft.Quantum.QIR.Emission
                 return new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store);
             }
         }
+
+        private IValue GetArrayElement(uint index) =>
+            this.GetArrayElementPointer(this.sharedState.Context.CreateConstant((long)index)).LoadValue();
 
         /// <summary>
         /// Returns the array element at the given index.
