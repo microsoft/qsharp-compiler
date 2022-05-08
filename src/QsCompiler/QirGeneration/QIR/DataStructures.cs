@@ -458,42 +458,6 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public Value Length => this.length.Load();
 
-        // If we stack allocate the array we need to rebuild the array elements such that they all have the same (sized) type.
-        //IReadOnlyList<IValue> RebuildArrayElements(ResolvedType eltype, params IValue[] elements)
-        //{
-        //    if (eltype.Resolution is QsResolvedTypeKind.ArrayType it)
-        //    {
-        //        var innerArrSize = elements.Max(e => ((IArrayType)e.LlvmType).Length);
-        //        var arrs = elements.Select(e => (ArrayValue)e);
-        //        var newElements = new List<IReadOnlyList<IValue>>();
-        //        for (var innerItemIdx = 0u; innerItemIdx < innerArrSize; ++innerItemIdx)
-        //        {
-        //            var innerElements = Enumerable.ToArray<IValue>(arrs.Select(
-        //                arr => innerItemIdx < arr.Count
-        //                    ? arr.GetArrayElement(innerItemIdx)
-        //                    : arr.LlvmElementType.GetNullValue() // FIXME: NEED AN IVALUE...
-        //                ));
-        //            var rebuiltElements = RebuildArrayElements(it.Item, innerElements);
-        //            newElements.Add(rebuiltElements);
-        //        }
-        //
-        //        return Enumerable.ToArray(Enumerable.Range(0, elements.Length).Select(idx =>
-        //            new ArrayValue(it.Item, newElements.Select(e => e[idx]).ToArray(), context, allocOnStack, //registerWithScopeManager, increaseItemRefCount))); // FIXME: WE GOT SOME EMPTYS IN BETWEEN...
-        //    }
-        //    else if (eltype.Resolution is QsResolvedTypeKind.TupleType ts)
-        //    {
-        //
-        //    }
-        //    else if (eltype.Resolution is QsResolvedTypeKind.UserDefinedType udt)
-        //    {
-        //
-        //    }
-        //    else
-        //    {
-        //        return elements;
-        //    }
-        //}
-
         /// <summary>
         /// Creates a new array value.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
@@ -503,16 +467,81 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        private ArrayValue(ResolvedType elementType, Func<ArrayValue, Value> createValue, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack)
+        private ArrayValue(ResolvedType elementType, Func<ArrayValue, Value> createValue, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, uint? maxCount = null)
         {
             this.sharedState = context;
-            this.Count = (uint)arrayElements.Count;
+            this.Count = maxCount < arrayElements.Count ? maxCount.Value : (uint)arrayElements.Count;
             this.length = this.CreateLengthCache();
             this.QSharpElementType = elementType;
 
             if (allocOnStack)
             {
-                this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: true);
+                // If we stack allocate the array we need to rebuild the array elements
+                // such that they all have the same (sized) type.
+                IReadOnlyList<IValue> RebuildArrayElements(ResolvedType eltype, IReadOnlyList<IValue> elements)
+                {
+                    if (eltype.Resolution is QsResolvedTypeKind.ArrayType it)
+                    {
+                        var innerArrSize = elements.Max(e => ((IArrayType)e.LlvmType).Length);
+                        var arrs = elements.Select(e => (ArrayValue)e).ToArray();
+                        var newElements = new List<IReadOnlyList<IValue>>();
+                        for (var innerItemIdx = 0u; innerItemIdx < innerArrSize; ++innerItemIdx)
+                        {
+                            var innerElements = Enumerable.ToArray(arrs.Select(
+                                arr => innerItemIdx < arr.Count
+                                    ? arr.GetArrayElement(innerItemIdx)
+                                    : context.Values.From(arr.LlvmElementType.GetNullValue(), arr.QSharpElementType))); // arr.QSharpElementType is it.Item
+                            var rebuiltElements = RebuildArrayElements(it.Item, innerElements);
+                            newElements.Add(rebuiltElements);
+                        }
+
+                        return Enumerable.ToArray(Enumerable.Range(0, elements.Count).Select(idx =>
+                            new ArrayValue(it.Item, self => self.LlvmType.GetNullValue(), newElements.Select(e => e[idx]).ToArray(), context, allocOnStack: true, maxCount: arrs[idx].Count)));
+                    }
+                    else if (eltype.Resolution is QsResolvedTypeKind.TupleType ts)
+                    {
+                        var tuples = elements.Select(e => (TupleValue)e);
+                        var newElements = new List<IReadOnlyList<IValue>>();
+                        for (var innerItemIdx = 0; innerItemIdx < ts.Item.Length; ++innerItemIdx)
+                        {
+                            var innerElements = Enumerable.ToArray(tuples.Select(
+                                tuple => tuple.GetTupleElement(innerItemIdx)));
+                            var rebuiltElements = RebuildArrayElements(ts.Item[innerItemIdx], innerElements);
+                            newElements.Add(rebuiltElements);
+                        }
+
+                        return Enumerable.ToArray(Enumerable.Range(0, elements.Count).Select(idx =>
+                            new TupleValue(null, newElements.Select(e => e[idx]).ToArray(), context, allocOnStack: true, registerWithScopeManager: false)));
+                    }
+                    else if (eltype.Resolution is QsResolvedTypeKind.UserDefinedType udt)
+                    {
+                        if (!this.sharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl))
+                        {
+                            throw new ArgumentException("type declaration not found");
+                        }
+
+                        var uts = udtDecl.Type.Resolution is QsResolvedTypeKind.TupleType its ? its.Item : ImmutableArray.Create(udtDecl.Type);
+                        var tuples = elements.Select(e => (TupleValue)e);
+                        var newElements = new List<IReadOnlyList<IValue>>();
+                        for (var innerItemIdx = 0; innerItemIdx < uts.Length; ++innerItemIdx)
+                        {
+                            var innerElements = Enumerable.ToArray(tuples.Select(
+                                tuple => tuple.GetTupleElement(innerItemIdx)));
+                            var rebuiltElements = RebuildArrayElements(uts[innerItemIdx], innerElements);
+                            newElements.Add(rebuiltElements);
+                        }
+
+                        return Enumerable.ToArray(Enumerable.Range(0, elements.Count).Select(idx =>
+                            new TupleValue(udtDecl.FullName, newElements.Select(e => e[idx]).ToArray(), context, allocOnStack: true, registerWithScopeManager: false)));
+                    }
+                    else
+                    {
+                        return elements;
+                    }
+                }
+
+                arrayElements = RebuildArrayElements(elementType, arrayElements);
+                this.LlvmElementType = arrayElements.Select(e => e.LlvmType).Distinct().Single(); // FIXME: MAKE THIS WORK WHEN ELEMENTS ARE EMPTY LIST
                 this.LlvmType = this.LlvmElementType.CreateArrayType((uint)arrayElements.Count());
             }
             else

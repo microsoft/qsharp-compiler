@@ -51,6 +51,11 @@
         let (vals, _) = arrTuple;
         Message($"{vals[1]}, {vals}");
 
+        let arrArr = [[PauliX, PauliZ], [PauliY], [PauliI]];
+        let pauliI = arrArr[2][0];
+        Message($"{arrArr}");
+        Message($"{arrArr[1]}, {pauliI}");
+
         return Zero;
     }
 
