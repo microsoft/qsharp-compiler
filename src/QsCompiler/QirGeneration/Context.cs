@@ -1567,9 +1567,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal ResolvedType CurrentExpressionType() =>
             this.ExpressionTypeStack.Peek();
 
-        /// <inheritdoc cref="QirTypeTransformation.LlvmTypeFromQsharpType(ResolvedType, bool)"/>
-        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType, bool asNativeLlvmType = false) =>
-            this.Types.Transform.LlvmTypeFromQsharpType(resolvedType, asNativeLlvmType: asNativeLlvmType);
+        /// <inheritdoc cref="QirTypeTransformation.LlvmTypeFromQsharpType(ResolvedType)"/>
+        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
+            this.Types.Transform.LlvmTypeFromQsharpType(resolvedType);
 
         /// <summary>
         /// Computes the size in bytes of an LLVM type as an LLVM value.

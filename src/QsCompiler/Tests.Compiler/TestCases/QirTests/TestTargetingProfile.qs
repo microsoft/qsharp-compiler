@@ -83,9 +83,9 @@ namespace Microsoft.Quantum.Testing.QIR {
         DumpMachine(vals[1]);
         DumpMachine(vals);
 
-        //let arrArr = [[PauliX, PauliZ], [PauliY], [PauliI]];
-        //let pauliI = arrArr[2][0];
-        //LogPauli(pauliI);
+        let arrArr = [[PauliX, PauliZ], [PauliY], [PauliI]];
+        let pauliI = arrArr[2][0];
+        LogPauli(pauliI);
 
         // let (a, b) = (1,1);
         // mutable item = arr1[a + b];

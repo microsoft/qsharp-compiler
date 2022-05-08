@@ -51,10 +51,12 @@
         let (vals, _) = arrTuple;
         Message($"{vals[1]}, {vals}");
 
-        let arrArr = [[PauliX, PauliZ], [PauliY], [PauliI]];
-        let pauliI = arrArr[2][0];
+        let arrArr = [[PauliX, PauliZ], [], [PauliY], [PauliI]];
+        let pauliY = arrArr[2][0];
         Message($"{arrArr}");
-        Message($"{arrArr[1]}, {pauliI}");
+        Message($"{arrArr[1]}, {arrArr[3]}, {pauliY}");
+
+        // TODO: write tests for array of array of array
 
         return Zero;
     }

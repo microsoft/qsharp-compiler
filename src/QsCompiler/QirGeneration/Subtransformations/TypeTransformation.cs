@@ -19,18 +19,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     internal class QirTypeTransformation
     {
         private readonly QirGlobalType globalType;
-        private readonly NativeLlvmType nativeType;
 
-        public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
-        {
+        public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl) =>
             this.globalType = new QirGlobalType(types, getTypeDecl);
-            this.nativeType = new NativeLlvmType(types, getTypeDecl);
-        }
 
-        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType, bool asNativeLlvmType = false) =>
-            asNativeLlvmType
-            ? this.nativeType.LlvmTypeFromQsharpType(resolvedType)
-            : this.globalType.LlvmTypeFromQsharpType(resolvedType);
+        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
+            this.globalType.LlvmTypeFromQsharpType(resolvedType);
 
         private class QirGlobalType : TypeTransformation
         {
@@ -178,49 +172,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             public override QsResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
             {
                 this.BuiltType = this.QirTypes.BytePointer;
-                return QsResolvedTypeKind.InvalidType;
-            }
-        }
-
-        private class NativeLlvmType : QirGlobalType
-        {
-            public NativeLlvmType(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
-            : base(types, getTypeDecl)
-            {
-            }
-
-            /// <summary>
-            /// Creates the concrete (struct) type of a QIR tuple value that contains items of the given types.
-            /// </summary>
-            private protected override ITypeRef CreateConcreteTupleType(IEnumerable<ResolvedType> items) =>
-                this.QirTypes.TypedTuple(items.Select(this.LlvmTypeFromQsharpType));
-
-            /* public overrides */
-
-            public override QsResolvedTypeKind OnArrayType(ResolvedType b)
-            {
-                // FIXME...
-                throw new NotImplementedException("no native llvm representation for array type implemented");
-            }
-
-            public override QsResolvedTypeKind OnBigInt() =>
-                throw new InvalidOperationException("no native llvm representation for bigint type available");
-
-            public override QsResolvedTypeKind OnFunction(ResolvedType it, ResolvedType ot) =>
-                throw new InvalidOperationException("no native llvm representation for function type available");
-
-            public override QsResolvedTypeKind OnOperation(Tuple<ResolvedType, ResolvedType> _arg1, CallableInformation info) =>
-                throw new InvalidOperationException("no native llvm representation for operation type available");
-
-            public override QsResolvedTypeKind OnResult()
-            {
-                this.BuiltType = this.QirTypes.Result;
-                return QsResolvedTypeKind.InvalidType;
-            }
-
-            public override QsResolvedTypeKind OnString()
-            {
-                this.BuiltType = this.QirTypes.String;
                 return QsResolvedTypeKind.InvalidType;
             }
         }

@@ -259,6 +259,8 @@ type ExecutionTests(output: ITestOutputHelper) =
             Microsoft.Quantum.Testing.ExecutionTests.MyNestedTuple((1, 3.0), 0.0)
             PauliZ
             2, [1, 2]
+            [[PauliX, PauliZ], [], [PauliY], [PauliI]]
+            [], [PauliI], PauliY
             Zero
             """
 

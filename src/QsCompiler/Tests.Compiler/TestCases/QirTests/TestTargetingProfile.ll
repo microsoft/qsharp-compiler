@@ -87,20 +87,48 @@ entry:
   %39 = load i2, i2* @PauliY, align 1
   %40 = insertvalue { i2, i64 } zeroinitializer, i2 %39, 0
   %41 = insertvalue { i2, i64 } %40, i64 2, 1
-  %42 = insertvalue [3 x { i2, i64 }] zeroinitializer, { i2, i64 } %35, 0
-  %43 = insertvalue [3 x { i2, i64 }] %42, { i2, i64 } %38, 1
-  %tupleArr = insertvalue [3 x { i2, i64 }] %43, { i2, i64 } %41, 2
-  %44 = extractvalue [3 x { i2, i64 }] %tupleArr, 1
-  %pauli = extractvalue { i2, i64 } %44, 0
+  %42 = insertvalue { i2, i64 } zeroinitializer, i2 %33, 0
+  %43 = insertvalue { i2, i64 } %42, i64 0, 1
+  %44 = insertvalue { i2, i64 } zeroinitializer, i2 %36, 0
+  %45 = insertvalue { i2, i64 } %44, i64 1, 1
+  %46 = insertvalue { i2, i64 } zeroinitializer, i2 %39, 0
+  %47 = insertvalue { i2, i64 } %46, i64 2, 1
+  %48 = insertvalue [3 x { i2, i64 }] zeroinitializer, { i2, i64 } %43, 0
+  %49 = insertvalue [3 x { i2, i64 }] %48, { i2, i64 } %45, 1
+  %tupleArr = insertvalue [3 x { i2, i64 }] %49, { i2, i64 } %47, 2
+  %50 = extractvalue [3 x { i2, i64 }] %tupleArr, 1
+  %pauli = extractvalue { i2, i64 } %50, 0
   call void @__quantum__qis__logpauli__body(i2 %pauli)
-  %45 = alloca i64, align 8
-  store i64 2, i64* %45, align 4
-  %46 = bitcast i64* %45 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %46)
-  %47 = alloca [2 x i64], align 8
-  store [2 x i64] [i64 1, i64 2], [2 x i64]* %47, align 4
-  %48 = bitcast [2 x i64]* %47 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %48)
+  %51 = alloca i64, align 8
+  store i64 2, i64* %51, align 4
+  %52 = bitcast i64* %51 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %52)
+  %53 = alloca [2 x i64], align 8
+  store [2 x i64] [i64 1, i64 2], [2 x i64]* %53, align 4
+  %54 = bitcast [2 x i64]* %53 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %54)
+  %55 = load i2, i2* @PauliX, align 1
+  %56 = load i2, i2* @PauliZ, align 1
+  %57 = insertvalue [2 x i2] zeroinitializer, i2 %55, 0
+  %58 = insertvalue [2 x i2] %57, i2 %56, 1
+  %59 = load i2, i2* @PauliY, align 1
+  %60 = insertvalue [1 x i2] zeroinitializer, i2 %59, 0
+  %61 = load i2, i2* @PauliI, align 1
+  %62 = insertvalue [1 x i2] zeroinitializer, i2 %61, 0
+  %63 = extractvalue [2 x i2] %58, 0
+  %64 = extractvalue [1 x i2] %60, 0
+  %65 = extractvalue [1 x i2] %62, 0
+  %66 = extractvalue [2 x i2] %58, 1
+  %67 = insertvalue [2 x i2] zeroinitializer, i2 %63, 0
+  %68 = insertvalue [2 x i2] %67, i2 %66, 1
+  %69 = insertvalue [2 x i2] zeroinitializer, i2 %64, 0
+  %70 = insertvalue [2 x i2] zeroinitializer, i2 %65, 0
+  %71 = insertvalue [3 x [2 x i2]] zeroinitializer, [2 x i2] %68, 0
+  %72 = insertvalue [3 x [2 x i2]] %71, [2 x i2] %69, 1
+  %arrArr = insertvalue [3 x [2 x i2]] %72, [2 x i2] %70, 2
+  %73 = extractvalue [3 x [2 x i2]] %arrArr, 2
+  %pauliI = extractvalue [2 x i2] %73, 0
+  call void @__quantum__qis__logpauli__body(i2 %pauliI)
   call void @__quantum__rt__result_update_reference_count(%Result* %m2, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %30)
   call void @__quantum__rt__qubit_release(%Qubit* %31)

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using LlvmBindings.Values;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -21,15 +22,120 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         private readonly GenerationContext sharedState;
 
-        public static uint? AsConstantInt(Value? value) =>
-            value is ConstantInt count && count.ZeroExtendedValue < int.MaxValue ? (uint?)count.ZeroExtendedValue : null;
-
         internal IValue Unit { get; }
 
         internal QirValues(GenerationContext context, Constants constants)
         {
             this.sharedState = context;
             this.Unit = new SimpleValue(constants.UnitValue, ResolvedType.New(ResolvedTypeKind.UnitType));
+        }
+
+        public static uint? AsConstantInt(Value? value) =>
+            value is ConstantInt count && count.ZeroExtendedValue < int.MaxValue ? (uint?)count.ZeroExtendedValue : null;
+
+        internal IValue DefaultValue(ResolvedType type)
+        {
+            if (type.Resolution.IsInt)
+            {
+                var value = this.sharedState.Context.CreateConstant(0L);
+                return this.sharedState.Values.FromSimpleValue(value, type);
+            }
+            else if (type.Resolution.IsDouble)
+            {
+                var value = this.sharedState.Context.CreateConstant(0.0);
+                return this.sharedState.Values.FromSimpleValue(value, type);
+            }
+            else if (type.Resolution.IsBool)
+            {
+                var value = this.sharedState.Context.CreateConstant(false);
+                return this.sharedState.Values.FromSimpleValue(value, type);
+            }
+            else if (type.Resolution.IsPauli)
+            {
+                var pointer = this.sharedState.Constants.PauliI;
+                var constant = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Pauli, pointer);
+                return this.sharedState.Values.From(constant, type);
+            }
+            else if (type.Resolution.IsResult)
+            {
+                var getZero = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
+                var constant = this.sharedState.CurrentBuilder.Call(getZero);
+                return this.sharedState.Values.From(constant, type);
+            }
+            else if (type.Resolution.IsQubit)
+            {
+                var value = Constant.ConstPointerToNullFor(this.sharedState.Types.Qubit);
+                return this.sharedState.Values.From(value, type);
+            }
+            else if (type.Resolution.IsRange)
+            {
+                var pointer = this.sharedState.Constants.EmptyRange;
+                var constant = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Range, pointer);
+                return this.sharedState.Values.From(constant, type);
+            }
+            else if (type.Resolution is ResolvedTypeKind.TupleType ts)
+            {
+                var values = ts.Item.Select(this.DefaultValue).ToArray();
+                return this.sharedState.Values.CreateTuple(values, allocOnStack: this.sharedState.TargetQirProfile);
+            }
+            else if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
+            {
+                if (!this.sharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl))
+                {
+                    throw new ArgumentException("type declaration not found");
+                }
+
+                var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType items ? items.Item : ImmutableArray.Create(udtDecl.Type);
+                var values = elementTypes.Select(this.DefaultValue).ToArray();
+                return this.sharedState.Values.CreateCustomType(udt.Item.GetFullName(), values, allocOnStack: this.sharedState.TargetQirProfile);
+            }
+
+            if (type.Resolution is ResolvedTypeKind.ArrayType itemType)
+            {
+                return this.sharedState.Values.CreateArray(itemType.Item, Array.Empty<IValue>(), allocOnStack: this.sharedState.TargetQirProfile);
+            }
+            else if (type.Resolution.IsFunction || type.Resolution.IsOperation)
+            {
+                // We can't simply set this to null, unless the reference and alias counting functions
+                // in the runtime accept null values as arguments.
+                var nullTableName = $"DefaultCallable__NullFunctionTable";
+                var nullTable = this.sharedState.Module.GetNamedGlobal(nullTableName);
+                if (nullTable == null)
+                {
+                    var fctType = this.sharedState.Types.FunctionSignature.CreatePointerType();
+                    var funcs = Enumerable.Repeat(Constant.ConstPointerToNullFor(fctType), 4);
+                    var array = ConstantArray.From(fctType, funcs.ToArray());
+                    nullTable = this.sharedState.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, nullTableName);
+                }
+
+                var createCallable = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
+                var memoryManagementTable = this.sharedState.GetOrCreateCallableMemoryManagementTable(null);
+                var value = this.sharedState.CurrentBuilder.Call(createCallable, nullTable, memoryManagementTable, this.sharedState.Constants.UnitValue);
+                var built = this.sharedState.Values.FromCallable(value, type);
+                this.sharedState.ScopeMgr.RegisterValue(built);
+                return built;
+            }
+            else if (type.Resolution.IsString)
+            {
+                return QirExpressionKindTransformation.CreateStringLiteral(this.sharedState, "");
+            }
+            else if (type.Resolution.IsBigInt)
+            {
+                var value = this.sharedState.CurrentBuilder.Call(
+                    this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64),
+                    this.sharedState.Context.CreateConstant(0L));
+                var built = this.sharedState.Values.From(value, type);
+                this.sharedState.ScopeMgr.RegisterValue(built);
+                return built;
+            }
+            else if (type.Resolution.IsUnitType)
+            {
+                return this.sharedState.Values.Unit;
+            }
+            else
+            {
+                throw new NotSupportedException("no known default value for the given type");
+            }
         }
 
         /// <summary>
