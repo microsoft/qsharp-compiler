@@ -445,9 +445,9 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public ITypeRef LlvmElementType { get; }
 
-        public ITypeRef LlvmType { get; }
+        public ITypeRef LlvmType { get; } // llvm type doesn't necessary match length/count (zero padding)
 
-        public uint? Count => QirValues.AsConstantInt(this.Length); // FIXME: Switch length and count or set on instantion
+        public uint? Count { get; }
 
         public Value Value { get; private set; }
 
@@ -456,10 +456,7 @@ namespace Microsoft.Quantum.QIR.Emission
             ? this.Value
             : throw new InvalidOperationException("cannot get opaque pointer for a constant array allocated on the stack");
 
-        public Value Length =>
-            this.LlvmType is IArrayType arrType
-            ? this.sharedState.Context.CreateConstant((long)arrType.Length) // fixme: solve this cleaner (length handling is a mess right now)
-            : this.length.Load();
+        public Value Length => this.length.Load();
 
         // If we stack allocate the array we need to rebuild the array elements such that they all have the same (sized) type.
         //IReadOnlyList<IValue> RebuildArrayElements(ResolvedType eltype, params IValue[] elements)
@@ -506,23 +503,25 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        private ArrayValue(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager, int increaseItemRefCount)
+        private ArrayValue(ResolvedType elementType, Func<ArrayValue, Value> createValue, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack)
         {
-            var length = context.Context.CreateConstant((long)arrayElements.Count);
-
             this.sharedState = context;
+            this.Count = (uint)arrayElements.Count;
+            this.length = this.CreateLengthCache();
             this.QSharpElementType = elementType;
-            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: allocOnStack);
-            this.length = this.CreateLengthCache(length);
-            this.LlvmType = allocOnStack
-                ? (QirValues.AsConstantInt(length) is uint count
-                    ? this.LlvmElementType.CreateArrayType(count)
-                    : throw new InvalidOperationException("array length is not a constant"))
-                : (ITypeRef)this.sharedState.Types.Array;
-            this.Value = allocOnStack
-                ? this.LlvmType.GetNullValue() // fixme: make sure empty arrays are properly handled
-                : this.AllocateArray(registerWithScopeManager);
 
+            if (allocOnStack)
+            {
+                this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: true);
+                this.LlvmType = this.LlvmElementType.CreateArrayType((uint)arrayElements.Count());
+            }
+            else
+            {
+                this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
+                this.LlvmType = this.sharedState.Types.Array;
+            }
+
+            this.Value = createValue(this);  // fixme: make sure empty arrays are properly handled
             var itemPointers = this.GetArrayElementPointers();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
@@ -531,12 +530,12 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         internal ArrayValue(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(elementType, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: 0)
+            : this(elementType, self => allocOnStack ? self.LlvmType.GetNullValue() : self.AllocateArray(registerWithScopeManager), arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack)
         {
         }
 
         internal ArrayValue(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(elementType, arrayElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager, increaseItemRefCount: 1)
+            : this(elementType, self => allocOnStack ? self.LlvmType.GetNullValue() : self.AllocateArray(registerWithScopeManager), arrayElements, context, allocOnStack: allocOnStack)
         {
             foreach (var element in arrayElements)
             {
@@ -562,9 +561,11 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue(ResolvedType elementType, Value length, GenerationContext context, bool registerWithScopeManager)
         {
             this.sharedState = context;
-            this.QSharpElementType = elementType;
-            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
+            this.Count = QirValues.AsConstantInt(length);
             this.length = this.CreateLengthCache(length);
+            this.QSharpElementType = elementType;
+
+            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
             this.LlvmType = this.sharedState.Types.Array;
             this.Value = this.AllocateArray(registerWithScopeManager);
         }
@@ -600,21 +601,21 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue(Value array, ResolvedType elementType, GenerationContext context)
         {
             this.sharedState = context;
+            this.length = this.CreateLengthCache();
             this.QSharpElementType = elementType;
 
             if (array.NativeType is IArrayType llvmType)
             {
+                this.Count = llvmType.Length;
                 this.LlvmElementType = llvmType.ElementType;
                 this.LlvmType = llvmType;
                 this.Value = array;
-                this.length = this.CreateLengthCache(context.Context.CreateConstant((long)llvmType.Length));
             }
             else
             {
                 this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
                 this.LlvmType = this.sharedState.Types.Array;
                 this.Value = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
-                this.length = this.CreateLengthCache();
             }
         }
 
@@ -622,7 +623,9 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private IValue.Cached<Value> CreateLengthCache(Value? length = null) =>
             new IValue.Cached<Value>(length, this.sharedState, () =>
-                this.sharedState.CurrentBuilder.Call(
+                this.Count is uint count
+                ? (Value)this.sharedState.Context.CreateConstant((long)count)
+                : this.sharedState.CurrentBuilder.Call(
                     this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
                     this.OpaquePointer));
 
