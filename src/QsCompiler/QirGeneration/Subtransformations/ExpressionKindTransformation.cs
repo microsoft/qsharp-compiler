@@ -1035,7 +1035,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private ResolvedExpressionKind CreateAndPopulateArray(TypedExpression sizeEx, IValue itemValue)
         {
             var size = this.SharedState.EvaluateSubexpression(sizeEx);
-            var array = this.SharedState.Values.CreateArray(itemValue.QSharpType, size.Value, _ => itemValue, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
+            var array = QirValues.AsConstantInt(size.Value) is uint count
+                ? this.SharedState.Values.CreateArray(
+                    itemValue.QSharpType,
+                    Enumerable.Repeat(itemValue, (int)count).ToArray(),
+                    allocOnStack: this.SharedState.TargetQirProfile)
+                : this.SharedState.Values.CreateArray(
+                    itemValue.QSharpType, size.Value, _ => itemValue); // FIXME: fail if qir generation is enabled?
 
             this.SharedState.ValueStack.Push(array);
             return ResolvedExpressionKind.InvalidExpr;

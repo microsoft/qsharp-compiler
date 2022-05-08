@@ -66,9 +66,9 @@ entry:
   %29 = bitcast double* %28 to i8*
   call void @__quantum__qis__dumpmachine__body(i8* %29)
   %30 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %31 = insertvalue [2 x %Qubit*] zeroinitializer, %Qubit* %30, 0
-  %32 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %qs = insertvalue [2 x %Qubit*] %31, %Qubit* %32, 1
+  %31 = call %Qubit* @__quantum__rt__qubit_allocate()
+  %32 = insertvalue [2 x %Qubit*] zeroinitializer, %Qubit* %30, 0
+  %qs = insertvalue [2 x %Qubit*] %32, %Qubit* %31, 1
   %qubit = extractvalue [2 x %Qubit*] %qs, 0
   call void @__quantum__qis__h__body(%Qubit* %qubit)
   %control = extractvalue [2 x %Qubit*] %qs, 0
@@ -103,6 +103,6 @@ entry:
   call void @__quantum__qis__dumpmachine__body(i8* %48)
   call void @__quantum__rt__result_update_reference_count(%Result* %m2, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %30)
-  call void @__quantum__rt__qubit_release(%Qubit* %32)
+  call void @__quantum__rt__qubit_release(%Qubit* %31)
   ret %Result* %m1
 }

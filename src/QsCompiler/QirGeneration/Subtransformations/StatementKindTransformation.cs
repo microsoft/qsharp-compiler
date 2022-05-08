@@ -168,16 +168,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                     {
                         Value size = this.SharedState.EvaluateSubexpression(reg.Item).Value;
-                        if (this.SharedState.TargetQirProfile)
+                        if (this.SharedState.TargetQirProfile && QirValues.AsConstantInt(size) is uint count)
                         {
-                            var qubits = new List<IValue>();
-                            var array = this.SharedState.Values.CreateArray(qubitType, size, _ => AllocateQubit(qubits.Add), allocOnStack: true, registerWithScopeManager: true);
-                            foreach (var qubit in qubits)
-                            {
-                                this.SharedState.ScopeMgr.RegisterAllocatedQubits(qubit);
-                            }
-
-                            return array;
+                            var qubits = Enumerable.Repeat<Action<IValue>>(
+                                this.SharedState.ScopeMgr.RegisterAllocatedQubits,
+                                (int)count).Select(AllocateQubit).ToArray();
+                            return this.SharedState.Values.CreateArray(qubitType, qubits, allocOnStack: true);
                         }
                         else
                         {

@@ -1714,6 +1714,9 @@
     @EntryPoint()
     operation TestArraySlicing() : Range {
 
+        let sizedArr = [3, size = "a" == "b" ? 1 | 3]; // test for size depending on runtime info
+        Message($"{sizedArr}");
+
         mutable arr = [1,2,3,4];
         Message($"{arr}, {arr[...-1...]}");
         mutable value = arr;
@@ -2125,8 +2128,26 @@
         TestArrayConcatenation3();
         TestArrayConcatenation4();
 
+        TestFoo();
+
         Message("Executed successfully!");
     }
+
+    newtype MyTuple = (Item1 : Foo, Item2 : Foo, Item3 : Foo);
+
+    function TestFoo () : Unit {
+        let foo = Foo(-1);
+        mutable coeffs = MyTuple(foo, foo, foo); //  [Foo(-1), size = 3];
+
+        if Zero != One {
+            set coeffs w/= Item1 <- Foo(2);
+            set coeffs w/= Item2 <- Foo(3);
+            set coeffs w/= Item3 <- Foo(4);
+        }
+
+        Message($"{coeffs}");
+    }
+
 
     @EntryPoint()
     function CheckFail() : Unit {

@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (type.Resolution is ResolvedTypeKind.ArrayType arrItemType)
                 {
                     var (length, dataArr) = LoadSizedArray(givenValue);
-                    ArrayValue array = this.sharedState.Values.CreateArray(length, arrItemType.Item, registerWithScopeManager: false);
+                    ArrayValue array = this.sharedState.Values.CreateArray(arrItemType.Item, length, registerWithScopeManager: false);
                     if (registerWithScopeManager)
                     {
                         this.sharedState.ScopeMgr.RegisterValue(array);

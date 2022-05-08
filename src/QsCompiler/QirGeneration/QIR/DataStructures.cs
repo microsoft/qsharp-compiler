@@ -438,9 +438,6 @@ namespace Microsoft.Quantum.QIR.Emission
         private readonly GenerationContext sharedState;
         private readonly IValue.Cached<Value> length;
 
-        private static uint? AsConstant(Value? value) =>
-            value is ConstantInt count && count.ZeroExtendedValue < int.MaxValue ? (uint?)count.ZeroExtendedValue : null;
-
         internal ResolvedType QSharpElementType { get; }
 
         public ResolvedType QSharpType =>
@@ -450,7 +447,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public ITypeRef LlvmType { get; }
 
-        public uint? Count => AsConstant(this.Length); // FIXME: Switch length and count or set on instantion
+        public uint? Count => QirValues.AsConstantInt(this.Length); // FIXME: Switch length and count or set on instantion
 
         public Value Value { get; private set; }
 
@@ -478,7 +475,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: allocOnStack);
             this.length = this.CreateLengthCache(length);
             this.LlvmType = allocOnStack
-                ? (AsConstant(length) is uint count
+                ? (QirValues.AsConstantInt(length) is uint count
                     ? this.LlvmElementType.CreateArrayType(count)
                     : throw new InvalidOperationException("array length is not a constant"))
                 : (ITypeRef)this.sharedState.Types.Array;
@@ -504,9 +501,17 @@ namespace Microsoft.Quantum.QIR.Emission
 
             if (increaseItemRefCount)
             {
-                for (var i = 0; i < itemPointers.Length; ++i)
+                foreach (var element in arrayElements)
                 {
-                    this.sharedState.ScopeMgr.IncreaseReferenceCount(arrayElements[i]);
+                    // We need to make sure the reference count increase is applied here;
+                    // In contrast to tuples and custom types, it is possible for the same item
+                    // to be assigned to multiple items in an array without binding the item to
+                    // a variable first. If we applied the reference count increase lazily here,
+                    // then it would be possible that copy-and-update expressions of the array
+                    // would lead to a reference count decrease of that item before the pending
+                    // increases have been applied, resulting in a memory error.
+                    this.sharedState.ScopeMgr.OpenScope();
+                    this.sharedState.ScopeMgr.CloseScope(element);
                 }
             }
         }
@@ -609,7 +614,7 @@ namespace Microsoft.Quantum.QIR.Emission
             }
             else
             {
-                var constIndex = AsConstant(index) ?? throw new InvalidOperationException("can only access element at a constant index");
+                var constIndex = QirValues.AsConstantInt(index) ?? throw new InvalidOperationException("can only access element at a constant index");
 
                 void Store(IValue v) =>
                     this.Value = this.sharedState.CurrentBuilder.InsertValue(this.Value, v.Value, constIndex);

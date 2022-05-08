@@ -21,6 +21,9 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         private readonly GenerationContext sharedState;
 
+        public static uint? AsConstantInt(Value? value) =>
+            value is ConstantInt count && count.ZeroExtendedValue < int.MaxValue ? (uint?)count.ZeroExtendedValue : null;
+
         internal IValue Unit { get; }
 
         internal QirValues(GenerationContext context, Constants constants)
@@ -147,9 +150,9 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// </summary>
-        /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="elementType">Q# type of the array elements</param>
-        internal ArrayValue CreateArray(Value length, ResolvedType elementType, bool registerWithScopeManager = true) =>
+        /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
+        internal ArrayValue CreateArray(ResolvedType elementType, Value length, bool registerWithScopeManager = true) =>
             new ArrayValue(length, elementType, this.sharedState, allocOnStack: false, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
@@ -180,8 +183,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         /// <param name="getElement">Given an index into the array, returns the value to populate that element with</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
-        internal ArrayValue CreateArray(ResolvedType elementType, Value length, Func<Value, IValue> getElement, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new ArrayValue(elementType, length, getElement, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+        internal ArrayValue CreateArray(ResolvedType elementType, Value length, Func<Value, IValue> getElement, bool registerWithScopeManager = true) =>
+            new ArrayValue(elementType, length, getElement, this.sharedState, allocOnStack: false, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Creates a callable value of the given type and registers it with the scope manager.
