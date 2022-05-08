@@ -461,22 +461,41 @@ namespace Microsoft.Quantum.QIR.Emission
             ? this.sharedState.Context.CreateConstant((long)arrType.Length) // fixme: solve this cleaner (length handling is a mess right now)
             : this.length.Load();
 
-        /// <summary>
-        /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
-        /// </summary>
-        /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
-        /// <param name="elementType">Q# type of the array elements</param>
-        /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(Value length, ResolvedType elementType, GenerationContext context, bool registerWithScopeManager)
-        {
-            this.sharedState = context;
-            this.QSharpElementType = elementType;
-            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
-            this.length = this.CreateLengthCache(length);
-            this.LlvmType = this.sharedState.Types.Array;
-            this.Value = this.AllocateArray(registerWithScopeManager);
-        }
+        // If we stack allocate the array we need to rebuild the array elements such that they all have the same (sized) type.
+        //IReadOnlyList<IValue> RebuildArrayElements(ResolvedType eltype, params IValue[] elements)
+        //{
+        //    if (eltype.Resolution is QsResolvedTypeKind.ArrayType it)
+        //    {
+        //        var innerArrSize = elements.Max(e => ((IArrayType)e.LlvmType).Length);
+        //        var arrs = elements.Select(e => (ArrayValue)e);
+        //        var newElements = new List<IReadOnlyList<IValue>>();
+        //        for (var innerItemIdx = 0u; innerItemIdx < innerArrSize; ++innerItemIdx)
+        //        {
+        //            var innerElements = Enumerable.ToArray<IValue>(arrs.Select(
+        //                arr => innerItemIdx < arr.Count
+        //                    ? arr.GetArrayElement(innerItemIdx)
+        //                    : arr.LlvmElementType.GetNullValue() // FIXME: NEED AN IVALUE...
+        //                ));
+        //            var rebuiltElements = RebuildArrayElements(it.Item, innerElements);
+        //            newElements.Add(rebuiltElements);
+        //        }
+        //
+        //        return Enumerable.ToArray(Enumerable.Range(0, elements.Length).Select(idx =>
+        //            new ArrayValue(it.Item, newElements.Select(e => e[idx]).ToArray(), context, allocOnStack, //registerWithScopeManager, increaseItemRefCount))); // FIXME: WE GOT SOME EMPTYS IN BETWEEN...
+        //    }
+        //    else if (eltype.Resolution is QsResolvedTypeKind.TupleType ts)
+        //    {
+        //
+        //    }
+        //    else if (eltype.Resolution is QsResolvedTypeKind.UserDefinedType udt)
+        //    {
+        //
+        //    }
+        //    else
+        //    {
+        //        return elements;
+        //    }
+        //}
 
         /// <summary>
         /// Creates a new array value.
@@ -534,6 +553,45 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
+        /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
+        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// </summary>
+        /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
+        /// <param name="elementType">Q# type of the array elements</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed</param>
+        internal ArrayValue(ResolvedType elementType, Value length, GenerationContext context, bool registerWithScopeManager)
+        {
+            this.sharedState = context;
+            this.QSharpElementType = elementType;
+            this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType, asNativeLlvmType: false);
+            this.length = this.CreateLengthCache(length);
+            this.LlvmType = this.sharedState.Types.Array;
+            this.Value = this.AllocateArray(registerWithScopeManager);
+        }
+
+        internal ArrayValue(ResolvedType elementType, Value length, Func<Value, IValue> getElement, GenerationContext context, bool registerWithScopeManager)
+            : this(elementType, length, context, registerWithScopeManager: registerWithScopeManager)
+        {
+            if (this.Count != 0)
+            {
+                // We need to populate the array
+                var start = this.sharedState.Context.CreateConstant(0L);
+                var end = this.Count != null
+                    ? this.sharedState.Context.CreateConstant((long)this.Count - 1L)
+                    : this.sharedState.CurrentBuilder.Sub(this.Length, this.sharedState.Context.CreateConstant(1L));
+                this.sharedState.IterateThroughRange(start, null, end, index =>
+                {
+                    // We need to make sure that the reference count for the item is increased by 1,
+                    // and the iteration loop expects that the body handles its own reference counting.
+                    this.sharedState.ScopeMgr.OpenScope();
+                    var itemValue = getElement(index);
+                    this.GetArrayElementPointer(index).StoreValue(itemValue);
+                    this.sharedState.ScopeMgr.CloseScope(itemValue);
+                });
+            }
+        }
+
+        /// <summary>
         /// Creates a new array value from the given opaque array of elements of the given type.
         /// </summary>
         /// <param name="array">The opaque pointer to the array data structure</param>
@@ -557,28 +615,6 @@ namespace Microsoft.Quantum.QIR.Emission
                 this.LlvmType = this.sharedState.Types.Array;
                 this.Value = Types.IsArray(array.NativeType) ? array : throw new ArgumentException("expecting an opaque array");
                 this.length = this.CreateLengthCache();
-            }
-        }
-
-        internal ArrayValue(ResolvedType elementType, Value length, Func<Value, IValue> getElement, GenerationContext context, bool registerWithScopeManager)
-            : this(length, elementType, context, registerWithScopeManager: registerWithScopeManager)
-        {
-            if (this.Count != 0)
-            {
-                // We need to populate the array
-                var start = this.sharedState.Context.CreateConstant(0L);
-                var end = this.Count != null
-                    ? this.sharedState.Context.CreateConstant((long)this.Count - 1L)
-                    : this.sharedState.CurrentBuilder.Sub(this.Length, this.sharedState.Context.CreateConstant(1L));
-                this.sharedState.IterateThroughRange(start, null, end, index =>
-                {
-                    // We need to make sure that the reference count for the item is increased by 1,
-                    // and the iteration loop expects that the body handles its own reference counting.
-                    this.sharedState.ScopeMgr.OpenScope();
-                    var itemValue = getElement(index);
-                    this.GetArrayElementPointer(index).StoreValue(itemValue);
-                    this.sharedState.ScopeMgr.CloseScope(itemValue);
-                });
             }
         }
 
