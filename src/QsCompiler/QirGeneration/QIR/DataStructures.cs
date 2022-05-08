@@ -553,8 +553,8 @@ namespace Microsoft.Quantum.QIR.Emission
             }
         }
 
-        internal ArrayValue(ResolvedType elementType, Value length, Func<Value, IValue> getElement, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(length, elementType, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
+        internal ArrayValue(ResolvedType elementType, Value length, Func<Value, IValue> getElement, GenerationContext context, bool registerWithScopeManager)
+            : this(length, elementType, context, allocOnStack: false, registerWithScopeManager: registerWithScopeManager)
         {
             if (this.Count != 0)
             {

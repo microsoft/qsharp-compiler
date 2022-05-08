@@ -184,7 +184,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="getElement">Given an index into the array, returns the value to populate that element with</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         internal ArrayValue CreateArray(ResolvedType elementType, Value length, Func<Value, IValue> getElement, bool registerWithScopeManager = true) =>
-            new ArrayValue(elementType, length, getElement, this.sharedState, allocOnStack: false, registerWithScopeManager: registerWithScopeManager);
+            new ArrayValue(elementType, length, getElement, this.sharedState, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Creates a callable value of the given type and registers it with the scope manager.
