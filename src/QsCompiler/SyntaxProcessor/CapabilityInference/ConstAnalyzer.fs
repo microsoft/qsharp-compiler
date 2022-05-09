@@ -49,7 +49,6 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable variables = Map.empty
-    // TODO: Set IsEntryPoint.
     let mutable context = { IsEntryPoint = false; IsConstRequired = false }
 
     let local context' =
@@ -62,6 +61,10 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
 
     transformation.Namespaces <-
         { new NamespaceTransformation(transformation, TransformationOptions.NoRebuild) with
+            override _.OnCallableDeclaration callable =
+                use _ = local { context with IsEntryPoint = Seq.exists BuiltIn.MarksEntryPoint callable.Attributes }
+                base.OnCallableDeclaration callable
+
             override _.OnProvidedImplementation(arg, body) =
                 variables <-
                     flattenTuple arg
@@ -125,7 +128,6 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 | CONDITIONAL _ -> if context.IsConstRequired then createPattern expression.Range |> patterns.Add
                 | Identifier (LocalVariable name, _) ->
                     let isMutable = Map.tryFind name variables |> Option.exists id
-
                     if context.IsConstRequired && isMutable then createPattern expression.Range |> patterns.Add
                 | _ -> ()
 

@@ -18,6 +18,7 @@ let syntaxAnalyzer callableKind =
                       TypeAnalyzer.analyzer
                       ConstAnalyzer.analyzer ]
 
+// TODO: This should be removed in the future.
 let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
     let warningCode =
         match diagnostic.Diagnostic with
@@ -39,6 +40,7 @@ let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) dia
 
     Option.map (fun code -> QsCompilerDiagnostic.Warning(code, args) (range.ValueOr Range.Zero)) warningCode
 
+// TODO: This should be removed in the future.
 let explainCall (nsManager: NamespaceManager) graph target (call: Call) =
     let node = CallGraphNode call.Name
 
@@ -51,16 +53,14 @@ let explainCall (nsManager: NamespaceManager) graph target (call: Call) =
     | Found callable when QsNullable.isValue callable.Source.AssemblyFile ->
         nsManager.ImportedSpecializations call.Name
         |> Seq.collect (fun (_, impl) ->
-            analyzer callable.Kind (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
+            analyzer (Some callable.Kind) (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
             |> Seq.choose (fun p -> p.Diagnose target)
             |> Seq.choose (referenceReasons call.Name.Name call.Range callable.Source.CodeFile))
     | _ -> Seq.empty
 
 [<CompiledName "Diagnose">]
 let diagnose target nsManager graph (callable: QsCallable) =
-    let patterns =
-        syntaxAnalyzer callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
-
+    let patterns = syntaxAnalyzer None (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
     let callPatterns = CallGraphNode callable.FullName |> CallAnalyzer.shallow nsManager graph
 
     Seq.append
@@ -84,10 +84,11 @@ let infer compilation =
     let transformation = SyntaxTreeTransformation()
     let callables = GlobalCallableResolutions compilation.Namespaces
     let graph = CallGraph compilation
+    let syntaxAnalyzer = syntaxAnalyzer None
 
     let analyzer =
         CallAnalyzer.deep callables graph (fun callable ->
-            syntaxAnalyzer callable.Kind (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore))
+            syntaxAnalyzer (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore))
 
     transformation.Namespaces <-
         { new NamespaceTransformation(transformation) with

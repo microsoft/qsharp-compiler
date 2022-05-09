@@ -69,7 +69,6 @@ let createPattern range classical =
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
-    // TODO: Set IsEntryPoint.
     let mutable context = { IsEntryPoint = false; StringLiteralsOk = false }
 
     let local context' =
@@ -78,6 +77,13 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
 
         { new IDisposable with
             member _.Dispose() = context <- oldContext
+        }
+
+    transformation.Namespaces <-
+        { new NamespaceTransformation(transformation, TransformationOptions.NoRebuild) with
+            override _.OnCallableDeclaration callable =
+                use _ = local { context with IsEntryPoint = Seq.exists BuiltIn.MarksEntryPoint callable.Attributes }
+                base.OnCallableDeclaration callable
         }
 
     transformation.Statements <-

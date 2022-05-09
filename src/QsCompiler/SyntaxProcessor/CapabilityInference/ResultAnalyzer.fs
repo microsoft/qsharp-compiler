@@ -25,7 +25,12 @@ type ResultDependency =
     /// variable declared outside the block.
     | SetInDependentBranch of name: string
 
-type Context = { InCondition: bool; FrozenVars: string Set }
+type Context =
+    {
+        CallableKind: QsCallableKind
+        InCondition: bool
+        FrozenVars: string Set
+    }
 
 let createPattern kind range =
     let opacity =
@@ -88,12 +93,18 @@ let isResultEquality expression =
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
-// TODO: Move callableKind to context.
+// TODO: Remove the callableKind parameter.
 let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable dependsOnResult = false
-    let mutable context = { InCondition = false; FrozenVars = Set.empty }
+
+    let mutable context =
+        {
+            CallableKind = Option.defaultValue Function callableKind
+            InCondition = false
+            FrozenVars = Set.empty
+        }
 
     let local context' =
         let oldContext = context
@@ -101,6 +112,13 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
 
         { new IDisposable with
             member _.Dispose() = context <- oldContext
+        }
+
+    transformation.Namespaces <-
+        { new NamespaceTransformation(transformation, TransformationOptions.NoRebuild) with
+            override _.OnCallableDeclaration callable =
+                use _ = local { context with CallableKind = callable.Kind }
+                base.OnCallableDeclaration callable
         }
 
     transformation.Statements <-
@@ -155,7 +173,7 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
                 if isResultEquality expression then
                     let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
-                    if callableKind = Operation && context.InCondition then
+                    if context.CallableKind = Operation && context.InCondition then
                         dependsOnResult <- true
                         createPattern ConditionalEqualityInOperation range |> patterns.Add
                     else

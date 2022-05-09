@@ -14,6 +14,7 @@ type 'props Pattern =
     {
         Capability: RuntimeCapability
         Diagnose: Target -> QsCompilerDiagnostic option
+        // TODO: This should be removed in the future.
         Properties: 'props
     }
 
