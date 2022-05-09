@@ -76,11 +76,10 @@ module RuntimeCapability =
     let withClassical classical capability =
         { capability with classical = classical }
 
-    // TODO: Need to know the target architecture to choose between Empty and Integral.
     let names =
         Map [ "BasicExecution", { resultOpacity = Opaque; classical = Empty }
               "BasicQuantumFunctionality", { resultOpacity = Opaque; classical = Full }
-              "AdaptiveExecution", { resultOpacity = Controlled; classical = Empty }
+              "AdaptiveExecution", { resultOpacity = Transparent; classical = Integral }
               "BasicMeasurementFeedback", { resultOpacity = Controlled; classical = Full }
               "FullComputation", { resultOpacity = Transparent; classical = Full } ]
 
