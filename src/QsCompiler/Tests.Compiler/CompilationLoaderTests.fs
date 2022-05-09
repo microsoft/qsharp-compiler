@@ -24,11 +24,10 @@ type CompilationLoaderTests(output: ITestOutputHelper) =
     /// after "// ---" until the end of the line is the name of the test case.
     /// </remarks>
     let testCases =
-        File.ReadAllText testFile
-        |> fun text -> Environment.NewLine + "// ---" |> text.Split
+        File.ReadAllText(testFile).Split([| "\r\n// ---"; "\n// ---" |], StringSplitOptions.None)
         |> Seq.map (fun case ->
-            let parts = case.Split(Environment.NewLine, 2)
-            parts.[0].Trim(), parts.[1])
+            let parts = case.Split([| "\r\n"; "\n" |], 2, StringSplitOptions.None)
+            parts[0].Trim(), parts[1])
         |> Map.ofSeq
 
     /// <summary>
