@@ -80,12 +80,7 @@ namespace Microsoft.Quantum.QIR.Emission
             }
             else if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
             {
-                if (!this.sharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl))
-                {
-                    throw new ArgumentException("type declaration not found");
-                }
-
-                var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType items ? items.Item : ImmutableArray.Create(udtDecl.Type);
+                var elementTypes = this.sharedState.GetItemTypes(udt.Item.GetFullName());
                 var values = elementTypes.Select(this.DefaultValue).ToArray();
                 return this.sharedState.Values.CreateCustomType(udt.Item.GetFullName(), values, allocOnStack: this.sharedState.TargetQirProfile);
             }
@@ -151,16 +146,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="value">The typed tuple representing a value of user defined type</param>
         /// <param name="typeName">The Q# type name of the value</param>
-        internal TupleValue FromCustomType(Value value, QsQualifiedName typeName)
-        {
-            if (!this.sharedState.TryGetCustomType(typeName, out var udtDecl))
-            {
-                throw new ArgumentException("type declaration not found");
-            }
-
-            var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item : ImmutableArray.Create(udtDecl.Type);
-            return new TupleValue(typeName, value, elementTypes, this.sharedState);
-        }
+        internal TupleValue FromCustomType(Value value, QsQualifiedName typeName) =>
+            new TupleValue(typeName, value, this.sharedState.GetItemTypes(typeName), this.sharedState);
 
         /// <summary>
         /// Creates a new tuple value from the given tuple pointer. The casts to get the opaque and typed pointer

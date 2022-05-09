@@ -518,6 +518,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
             this.globalTypes.TryGetValue(fullName, out udt);
 
+        internal ImmutableArray<ResolvedType> GetItemTypes(QsQualifiedName udtName) =>
+            this.TryGetCustomType(udtName, out var udtDecl)
+                ? udtDecl.Type.Resolution is ResolvedTypeKind.TupleType its ? its.Item : ImmutableArray.Create(udtDecl.Type)
+                : throw new ArgumentException("type declaration not found");
+
         #endregion
 
         #region Function management

@@ -701,16 +701,11 @@ namespace Microsoft.Quantum.QIR.Emission
             }
             else if (eltype.Resolution is QsResolvedTypeKind.UserDefinedType udt)
             {
-                if (!this.sharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl))
-                {
-                    throw new ArgumentException("type declaration not found");
-                }
-
-                var uts = udtDecl.Type.Resolution is QsResolvedTypeKind.TupleType its ? its.Item : ImmutableArray.Create(udtDecl.Type);
+                var uts = this.sharedState.GetItemTypes(udt.Item.GetFullName());
                 var tuples = elements.Select(e => (TupleValue)e).ToArray();
                 return NormalizeItems(
                     (uint)uts.Length, tuples, (idx, tuple) => tuple.GetTupleElement(idx), idx => uts[idx], (idx, newElements) =>
-                    new TupleValue(udtDecl.FullName, newElements, this.sharedState, allocOnStack: true, registerWithScopeManager: registerWithScopeManager));
+                    new TupleValue(udt.Item.GetFullName(), newElements, this.sharedState, allocOnStack: true, registerWithScopeManager: registerWithScopeManager));
             }
             else
             {
