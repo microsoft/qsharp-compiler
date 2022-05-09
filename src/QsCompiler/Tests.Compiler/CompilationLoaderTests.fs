@@ -27,7 +27,7 @@ type CompilationLoaderTests(output: ITestOutputHelper) =
         File.ReadAllText(testFile).Split([| "\r\n// ---"; "\n// ---" |], StringSplitOptions.None)
         |> Seq.map (fun case ->
             let parts = case.Split([| "\r\n"; "\n" |], 2, StringSplitOptions.None)
-            parts[ 0 ].Trim(), parts[1])
+            parts[0].Trim(), parts[1])
         |> Map.ofSeq
 
     /// <summary>
