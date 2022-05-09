@@ -11,13 +11,15 @@ open Xunit
 
 /// A mapping of all callables in the capability verification tests, after inferring capabilities.
 let private callables =
-    let compilation =
-        CompilerTests.Compile(
-            "TestCases",
-            [ "CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs" ],
-            references = [ File.ReadAllLines "ReferenceTargets.txt" |> Array.item 2 ]
-        )
+    let files =
+        [
+            "LinkingTests/Core.qs"
+            "CapabilityTests/Verification.qs"
+            "CapabilityTests/Inference.qs"
+        ]
 
+    let references = [ File.ReadAllLines "ReferenceTargets.txt" |> Array.item 2 ]
+    let compilation = CompilerTests.Compile("TestCases", files, references)
     GlobalCallableResolutions (Capabilities.infer compilation.BuiltCompilation).Namespaces
 
 /// Asserts that the inferred capability of the callable with the given name matches the expected capability.
@@ -182,5 +184,29 @@ let ``Restricts mutability`` () =
         "MutableToFor"
         "MutableToArraySize"
         "MutableToNewArraySize"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
+
+[<Fact>]
+let ``Restricts entry point return type`` () =
+    [
+        "EntryPointReturnResult"
+        "EntryPointReturnResultArray"
+        "EntryPointReturnResultTuple"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
+
+    [
+        "EntryPointReturnBool"
+        "EntryPointReturnInt"
+        "EntryPointReturnBoolArray"
+        "EntryPointReturnResultBoolTuple"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.integral |> expect)
+
+    [
+        "EntryPointReturnString"
+        "EntryPointReturnStringArray"
+        "EntryPointReturnResultStringTuple"
     ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)

@@ -236,7 +236,7 @@ namespace Microsoft.Quantum.Testing.Capability {
         Message(x);
     }
 
-    function ReturnString() : Unit {
+    function ReturnString() : String {
         return "foo";
     }
 
@@ -334,6 +334,56 @@ namespace Microsoft.Quantum.Testing.Capability {
     function LetToNewArraySize() : Unit {
         let x = 3;
         let _ = new Int[x];
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnResult() : Result {
+        return Zero;
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnBool() : Bool {
+        return false;
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnInt() : Int {
+        return 0;
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnString() : String {
+        return "";
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnResultArray() : Result[] {
+        return [];
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnBoolArray() : Bool[] {
+        return [];
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnStringArray() : String[] {
+        return [];
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnResultTuple() : (Result, Result) {
+        return (Zero, Zero);
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnResultBoolTuple() : (Result, Bool) {
+        return (Zero, false);
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnResultStringTuple() : (Result, String) {
+        return (Zero, "");
     }
 
     // Tuples and arrays currently don't support equality comparison, but result comparison should still be prevented if

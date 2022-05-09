@@ -406,21 +406,13 @@ type NamespaceManager
 
             simplifiedArgNames |> List.iteri verifyArgument
 
-            // check that there is no more than one entry point, and no entry point if the project is not executable
-            if signatureErrs.Any() then
-                false, errs
-            elif not isExecutable then
-                errs.Add(
-                    offset,
-                    range |> orDefault |> QsCompilerDiagnostic.Warning(WarningCode.EntryPointInLibrary, [])
-                )
+            if not isExecutable then
+                errs.Add(offset, QsCompilerDiagnostic.Warning(WarningCode.EntryPointInLibrary, []) (orDefault range))
 
-                false, errs
-            else
-                isExecutable, errs
+            errs
         | _ ->
             errs.Add(offset, range |> orDefault |> QsCompilerDiagnostic.Error(ErrorCode.InvalidEntryPointPlacement, []))
-            false, errs
+            errs
 
 
     /// <summary>
@@ -511,13 +503,8 @@ type NamespaceManager
 
                 // the attribute marks an entry point
                 elif tId |> isBuiltIn BuiltIn.EntryPoint then
-                    let register, msgs = validateEntryPoint parent (att.Offset, att.TypeIdRange) decl
-                    errs.AddRange msgs
-
-                    if register then
-                        attributeHash :: alreadyDefined, att :: resAttr
-                    else
-                        alreadyDefined, { att with TypeId = Null } :: resAttr
+                    validateEntryPoint parent (att.Offset, att.TypeIdRange) decl |> errs.AddRange
+                    attributeHash :: alreadyDefined, att :: resAttr
 
                 // the attribute marks a unit test
                 elif tId |> isBuiltIn BuiltIn.Test then
