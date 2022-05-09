@@ -86,20 +86,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
         public string? RuntimeCapabilityName { get; set; }
 
-        [Option(
-            "runtime-override",
-            Required = false,
-            SetName = CodeMode,
-            HelpText = "Overrides the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
-        public string? RuntimeCapabilityOverride { get; set; }
-
         /// <summary>
         /// The parsed <see cref="RuntimeCapabilityName"/>.
         /// </summary>
         internal RuntimeCapability RuntimeCapability =>
-            RuntimeCapability.TryParse(this.RuntimeCapabilityOverride)
-            .ValueOr(RuntimeCapability.TryParse(this.RuntimeCapabilityName)
-                .ValueOr(RuntimeCapability.FullComputation));
+            RuntimeCapability.TryParse(this.RuntimeCapabilityName).ValueOr(RuntimeCapability.FullComputation);
 
         [Option(
             "build-exe",
