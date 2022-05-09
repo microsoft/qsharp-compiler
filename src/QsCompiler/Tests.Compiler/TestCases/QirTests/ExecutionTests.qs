@@ -6,6 +6,21 @@
     newtype Register = (Data : Int[], Foo : Foo);
     newtype Tuple = (Item1 : String, Item2 : String);
     newtype MyUdt = ((Item1: String, (Item2 : String, Item3 : Tuple)), Item4 : String);
+    newtype MyUdtTuple = (Item1 : Foo, Item2 : Foo, Item3 : Foo);
+
+
+    function TestUdtUpdate () : Unit {
+        let foo = Foo(-1);
+        mutable coeffs = MyUdtTuple(foo, foo, foo);
+
+        if Zero != One {
+            set coeffs w/= Item1 <- Foo(2);
+            set coeffs w/= Item2 <- Foo(3);
+            set coeffs w/= Item3 <- Foo(4);
+        }
+
+        Message($"{coeffs}");
+    }
 
     function TestUdtUpdate1 () : Unit {
 
@@ -1819,7 +1834,8 @@
     operation RunExample() : Unit {
 
         PrintSection(1, "");
-        
+
+        TestUdtUpdate();
         TestUdtUpdate1();
         TestUdtUpdate2();
         TestUdtUpdate3();
@@ -2128,26 +2144,8 @@
         TestArrayConcatenation3();
         TestArrayConcatenation4();
 
-        TestFoo();
-
         Message("Executed successfully!");
     }
-
-    newtype MyTuple = (Item1 : Foo, Item2 : Foo, Item3 : Foo);
-
-    function TestFoo () : Unit {
-        let foo = Foo(-1);
-        mutable coeffs = MyTuple(foo, foo, foo); //  [Foo(-1), size = 3];
-
-        if Zero != One {
-            set coeffs w/= Item1 <- Foo(2);
-            set coeffs w/= Item2 <- Foo(3);
-            set coeffs w/= Item3 <- Foo(4);
-        }
-
-        Message($"{coeffs}");
-    }
-
 
     @EntryPoint()
     function CheckFail() : Unit {

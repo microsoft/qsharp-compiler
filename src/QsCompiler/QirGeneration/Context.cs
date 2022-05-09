@@ -382,7 +382,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         : this.LlvmTypeFromQsharpType(c.Signature.ReturnType);
                     var argTypeKind = c.Signature.ArgumentType.Resolution;
                     var argTypeArray =
-                        argTypeKind is ResolvedTypeKind.TupleType tuple ? tuple.Item.Select(t => this.LlvmTypeFromQsharpType(t)).ToArray() :
+                        argTypeKind is ResolvedTypeKind.TupleType tuple ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
                         argTypeKind.IsUnitType ? new ITypeRef[0] :
                         new ITypeRef[] { this.LlvmTypeFromQsharpType(c.Signature.ArgumentType) };
                     this.quantumInstructionSet.AddFunction(name, returnType, argTypeArray);
@@ -630,7 +630,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
             var argTypeRefs =
                 spec.Signature.ArgumentType.Resolution.IsUnitType ? new ITypeRef[0] :
-                spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(t => this.LlvmTypeFromQsharpType(t)).ToArray() :
+                spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
