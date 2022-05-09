@@ -74,38 +74,35 @@ namespace Microsoft.Quantum.Testing.QIR {
         CNOT(qs[0], qs[1]);
         let (m1, m2) = (M(qs[0]), M(qs[1]));
 
-        let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
+        let tupleArr = [(2, 0.), (1, 1.), (3, 2.)];
         let (pauli, _) = tupleArr[1];
-        LogPauli(pauli);
+        DumpMachine(pauli);
 
         let arrTuple = ([1,2], true);
         let (vals, _) = arrTuple;
         DumpMachine(vals[1]);
         DumpMachine(vals);
 
-        let arrArr = [[PauliX, PauliZ], [PauliY], [PauliI]];
-        let pauliI = arrArr[2][0];
-        LogPauli(pauliI);
+        let arrArr = [[2, 1], [], [3], [0]];
+        let pauliY = arrArr[2][0];
+        DumpMachine(pauliY);
+        DumpMachine((arrArr[1], arrArr[3]));
+        DumpMachine(arrArr);
 
-        // let (a, b) = (1,1);
-        // mutable item = arr1[a + b];
-        // set item = arr1[sum - 5];
-        // 
-        // mutable idx = 0;
-        // if cond {
-        //     set idx = 2;
-        //     DumpMachine(arr1[idx]);
-        // }
-        // //set item = arr1[idx]; // doesn't work, since the cache is outdated and the value is reloaded
-        // 
-        // DumpMachine(arr1[arr1[a]]);
-        // let arr3 = [idx, 5, item];
-        // //DumpMachine(arr3[arr3[0]]); // doesn't work (cond cannot be evaluated, hence the value of idx is unknown)
-        // 
-        // let arr4 = [a, 5, item];
-        // DumpMachine(arr4[arr4[0]]);
+        //let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
+        //let (pauli, _) = tupleArr[1];
+        //LogPauli(pauli);
+        //
+        //let arrTuple = ([1,2], true);
+        //let (vals, _) = arrTuple;
+        //DumpMachine(vals[1]);
+        //DumpMachine(vals);
+        //
+        //let arrArr = [[PauliX, PauliZ], [PauliY], [PauliI]];
+        //let pauliI = arrArr[2][0];
+        //LogPauli(pauliI);
 
-        return m1; // m1 == m2 ? Zero | One; FIXME: results in a "the target Unspecified does not support comparing measurement results"
+        return m1; // m1 == m2 ? Zero | One; // branching requires Sarah's changes
     }
 }
 
