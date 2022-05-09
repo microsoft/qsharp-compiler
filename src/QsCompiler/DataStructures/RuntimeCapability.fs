@@ -3,6 +3,32 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
+open System
+
+[<CustomComparison>]
+[<CustomEquality>]
+type CaseInsensitive =
+    | CaseInsensitive of string
+
+    member ci.Original =
+        let (CaseInsensitive s) = ci
+        s
+
+    override ci.Equals obj = (ci :> IComparable).CompareTo obj = 0
+
+    override ci.GetHashCode() =
+        StringComparer.InvariantCultureIgnoreCase.GetHashCode ci.Original
+
+    interface IComparable with
+        member ci.CompareTo obj =
+            match obj with
+            | :? CaseInsensitive as other ->
+                String.Compare(ci.Original, other.Original, StringComparison.InvariantCultureIgnoreCase)
+            | _ -> nameof obj |> ArgumentException |> raise
+
+module CaseInsensitive =
+    let original (CaseInsensitive s) = s
+
 type ResultOpacity =
     | Opaque
     | Controlled
@@ -18,12 +44,13 @@ module ResultOpacity =
     [<CompiledName "Transparent">]
     let transparent = Transparent
 
-    let ofString name =
-        match name with
-        | "Opaque" -> Some Opaque
-        | "Controlled" -> Some Controlled
-        | "Transparent" -> Some Transparent
-        | _ -> None
+    let names =
+        Map [ CaseInsensitive "Opaque", Opaque
+              CaseInsensitive "Controlled", Controlled
+              CaseInsensitive "Transparent", Transparent ]
+
+    let ofName name =
+        Map.tryFind (CaseInsensitive name) names
 
 type ClassicalCapability =
     | Empty
@@ -40,12 +67,13 @@ module ClassicalCapability =
     [<CompiledName "Full">]
     let full = Full
 
-    let ofString name =
-        match name with
-        | "Empty" -> Some Empty
-        | "Integral" -> Some Integral
-        | "Full" -> Some Full
-        | _ -> None
+    let names =
+        Map [ CaseInsensitive "Empty", Empty
+              CaseInsensitive "Integral", Integral
+              CaseInsensitive "Full", Full ]
+
+    let ofName name =
+        Map.tryFind (CaseInsensitive name) names
 
 type RuntimeCapability =
     {
@@ -77,21 +105,22 @@ module RuntimeCapability =
         { capability with classical = classical }
 
     let names =
-        Map [ "BasicExecution", { resultOpacity = Opaque; classical = Empty }
-              "BasicQuantumFunctionality", { resultOpacity = Opaque; classical = Full }
-              "AdaptiveExecution", { resultOpacity = Transparent; classical = Integral }
-              "BasicMeasurementFeedback", { resultOpacity = Controlled; classical = Full }
-              "FullComputation", { resultOpacity = Transparent; classical = Full } ]
+        Map [ CaseInsensitive "BasicExecution", { resultOpacity = Opaque; classical = Empty }
+              CaseInsensitive "BasicQuantumFunctionality", { resultOpacity = Opaque; classical = Full }
+              CaseInsensitive "AdaptiveExecution", { resultOpacity = Transparent; classical = Integral }
+              CaseInsensitive "BasicMeasurementFeedback", { resultOpacity = Controlled; classical = Full }
+              CaseInsensitive "FullComputation", { resultOpacity = Transparent; classical = Full } ]
 
     [<CompiledName "Name">]
     let name capability =
-        Map.tryFindKey (fun _ -> (=) capability) names
+        Map.tryFindKey (fun _ -> (=) capability) names |> Option.map CaseInsensitive.original
 
-    [<CompiledName "FromString">]
-    let ofString name = Map.tryFind name names
+    [<CompiledName "FromName">]
+    let ofName name =
+        Map.tryFind (CaseInsensitive name) names
 
 type RuntimeCapability with
     member capability.Name = RuntimeCapability.name capability |> Option.toObj
 
     static member Parse name =
-        RuntimeCapability.ofString name |> Option.defaultValue Unchecked.defaultof<_>
+        RuntimeCapability.ofName name |> Option.defaultValue Unchecked.defaultof<_>

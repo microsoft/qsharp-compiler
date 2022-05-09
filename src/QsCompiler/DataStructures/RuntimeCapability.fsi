@@ -25,7 +25,7 @@ module ResultOpacity =
     [<CompiledName "Transparent">]
     val transparent: ResultOpacity
 
-    val internal ofString: name: string -> ResultOpacity option
+    val internal ofName: name: string -> ResultOpacity option
 
 [<Sealed>]
 type ClassicalCapability =
@@ -41,7 +41,7 @@ module ClassicalCapability =
     [<CompiledName "Full">]
     val full: ClassicalCapability
 
-    val internal ofString: name: string -> ClassicalCapability option
+    val internal ofName: name: string -> ClassicalCapability option
 
 [<Sealed>]
 type RuntimeCapability =
@@ -76,5 +76,5 @@ module RuntimeCapability =
     [<CompiledName "Name">]
     val name: capability: RuntimeCapability -> string option
 
-    [<CompiledName "FromString">]
-    val ofString: name: string -> RuntimeCapability option
+    [<CompiledName "FromName">]
+    val ofName: name: string -> RuntimeCapability option

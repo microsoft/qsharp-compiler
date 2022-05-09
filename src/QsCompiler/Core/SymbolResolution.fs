@@ -332,8 +332,8 @@ module SymbolResolution =
 
         let builders =
             [
-                ResultOpacity.ofString >> Option.map RuntimeCapability.withResultOpacity
-                ClassicalCapability.ofString >> Option.map RuntimeCapability.withClassical
+                ResultOpacity.ofName >> Option.map RuntimeCapability.withResultOpacity
+                ClassicalCapability.ofName >> Option.map RuntimeCapability.withClassical
             ]
 
         let applyBuilder capability arg builder =
