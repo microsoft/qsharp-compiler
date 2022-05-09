@@ -270,6 +270,72 @@ namespace Microsoft.Quantum.Testing.Capability {
         for x in 0..10 {}
     }
 
+    function MutableToLet() : Unit {
+        mutable x = 0;
+        let y = x;
+    }
+
+    function LetToLet() : Unit {
+        let x = 0;
+        let y = x;
+    }
+
+    function ParamToLet(x : Int) : Unit {
+        let y = x;
+    }
+
+    function MutableToMutable() : Unit {
+        mutable x = 0;
+        mutable y = x;
+    }
+
+    function LetToMutable() : Unit {
+        let x = 0;
+        mutable y = x;
+    }
+
+    function TakeBool(b : Bool) : Unit {}
+
+    function MutableToCall() : Unit {
+        mutable x = true;
+        TakeBool(x);
+    }
+
+    function LetToCall() : Unit {
+        let x = true;
+        TakeBool(x);
+    }
+
+    function MutableToFor() : Unit {
+        mutable x = 0;
+        for y in [x] {}
+    }
+
+    function LetToFor() : Unit {
+        let x = 0;
+        for y in [x] {}
+    }
+
+    function MutableToArraySize() : Unit {
+        mutable x = 3;
+        let _ = [0, size = x];
+    }
+
+    function LetToArraySize () : Unit {
+        let x = 3;
+        let _ = [0, size = x];
+    }
+
+    function MutableToNewArraySize() : Unit {
+        mutable x = 3;
+        let _ = new Int[x];
+    }
+
+    function LetToNewArraySize() : Unit {
+        let x = 3;
+        let _ = new Int[x];
+    }
+
     // Tuples and arrays currently don't support equality comparison, but result comparison should still be prevented if
     // they do.
 
