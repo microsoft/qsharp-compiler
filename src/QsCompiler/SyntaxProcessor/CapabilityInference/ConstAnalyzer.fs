@@ -12,7 +12,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-type Context = { IsEntryPoint: bool; IsConstRequired: bool }
+type Context = { IsEntryPoint: bool; IsConstSensitive: bool }
 
 let createPattern range =
     let range = QsNullable.defaultValue Range.Zero range
@@ -49,7 +49,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable variables = Map.empty
-    let mutable context = { IsEntryPoint = false; IsConstRequired = false }
+    let mutable context = { IsEntryPoint = false; IsConstSensitive = false }
 
     let local context' =
         let oldContext = context
@@ -92,23 +92,40 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
 
     transformation.StatementKinds <-
         { new StatementKindTransformation(transformation, TransformationOptions.NoRebuild) with
+            override _.OnForStatement forS =
+                let item = fst forS.LoopItem |> transformation.StatementKinds.OnSymbolTuple
+                let itemType = snd forS.LoopItem |> transformation.Types.OnType
+
+                let values =
+                    using (local { context with IsConstSensitive = true }) (fun _ ->
+                        transformation.Expressions.OnTypedExpression forS.IterationValues)
+
+                let body = transformation.Statements.OnScope forS.Body
+
+                QsForStatement
+                    {
+                        LoopItem = item, itemType
+                        IterationValues = values
+                        Body = body
+                    }
+
             override _.OnQubitInitializer init =
                 match init.Resolution with
                 | QubitRegisterAllocation size ->
-                    use _ = local { context with IsConstRequired = true }
+                    use _ = local { context with IsConstSensitive = true }
                     let size = transformation.Expressions.OnTypedExpression size
                     QubitRegisterAllocation size |> ResolvedInitializer.create init.Type.Range
                 | _ -> base.OnQubitInitializer init
 
             override _.OnReturnStatement value =
-                use _ = local { context with IsConstRequired = not context.IsEntryPoint }
+                use _ = local { context with IsConstSensitive = not context.IsEntryPoint }
                 let value = transformation.Expressions.OnTypedExpression value
                 QsReturnStatement value
 
             override _.OnVariableDeclaration binding =
                 if binding.Kind = ImmutableBinding then
                     let lhs = transformation.StatementKinds.OnSymbolTuple binding.Lhs
-                    use _ = local { context with IsConstRequired = true }
+                    use _ = local { context with IsConstSensitive = true }
                     let rhs = transformation.Expressions.OnTypedExpression binding.Rhs
 
                     QsVariableDeclaration
@@ -125,10 +142,10 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
                 match expression.Expression with
-                | CONDITIONAL _ -> if context.IsConstRequired then createPattern expression.Range |> patterns.Add
+                | CONDITIONAL _ -> if context.IsConstSensitive then createPattern expression.Range |> patterns.Add
                 | Identifier (LocalVariable name, _) ->
                     let isMutable = Map.tryFind name variables |> Option.exists id
-                    if context.IsConstRequired && isMutable then createPattern expression.Range |> patterns.Add
+                    if context.IsConstSensitive && isMutable then createPattern expression.Range |> patterns.Add
                 | _ -> ()
 
                 base.OnTypedExpression expression
@@ -138,19 +155,19 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
         { new ExpressionKindTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnCallLikeExpression(callable, arg) =
                 let callable = transformation.Expressions.OnTypedExpression callable
-                use _ = local { context with IsConstRequired = true }
+                use _ = local { context with IsConstSensitive = true }
                 let arg = transformation.Expressions.OnTypedExpression arg
                 CallLikeExpression(callable, arg)
 
             override _.OnNewArray(ty, size) =
                 let ty = transformation.Types.OnType ty
-                use _ = local { context with IsConstRequired = true }
+                use _ = local { context with IsConstSensitive = true }
                 let size = transformation.Expressions.OnTypedExpression size
                 NewArray(ty, size)
 
             override _.OnSizedArray(value, size) =
                 let value = transformation.Expressions.OnTypedExpression value
-                use _ = local { context with IsConstRequired = true }
+                use _ = local { context with IsConstSensitive = true }
                 let size = transformation.Expressions.OnTypedExpression size
                 SizedArray(value, size)
         }
