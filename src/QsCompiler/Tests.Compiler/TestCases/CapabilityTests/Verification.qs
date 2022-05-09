@@ -433,6 +433,10 @@ namespace Microsoft.Quantum.Testing.Capability {
         let f = LibraryFull;
         return f;
     }
+
+    operation ReferenceLibraryOverride(q : Qubit) : Unit {
+        LibraryOverride(q);
+    }
 }
 
 namespace Microsoft.Quantum.Intrinsic {

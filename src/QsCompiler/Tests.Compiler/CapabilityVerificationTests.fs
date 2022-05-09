@@ -184,12 +184,18 @@ let ``FullComputation allows all library calls and references`` () =
         "CallLibraryFull"
         "CallLibraryFullWithNestedCall"
         "ReferenceLibraryFull"
+        "ReferenceLibraryOverride"
     ]
     |> List.iter (expect fullComputation [])
 
 [<Fact>]
 let ``BasicMeasurementFeedback restricts library calls and references`` () =
-    [ "CallLibraryBqf"; "CallLibraryBmf"; "CallLibraryBmfWithNestedCall" ]
+    [
+        "CallLibraryBqf"
+        "CallLibraryBmf"
+        "CallLibraryBmfWithNestedCall"
+        "ReferenceLibraryOverride"
+    ]
     |> List.iter (expect basicMeasurementFeedback [])
 
     [ "CallLibraryFull"; "ReferenceLibraryFull" ]
@@ -215,7 +221,8 @@ let ``BasicMeasurementFeedback restricts library calls and references`` () =
 
 [<Fact>]
 let ``BasicQuantumFunctionality restricts library calls and references`` () =
-    [ "CallLibraryBqf"; "ReferenceLibraryBqf" ] |> List.iter (expect basicQuantumFunctionality [])
+    [ "CallLibraryBqf"; "ReferenceLibraryBqf"; "ReferenceLibraryOverride" ]
+    |> List.iter (expect basicQuantumFunctionality [])
 
     [ "CallLibraryBmf"; "ReferenceLibraryBmf" ]
     |> List.iter (

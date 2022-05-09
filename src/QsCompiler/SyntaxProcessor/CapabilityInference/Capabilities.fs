@@ -58,16 +58,18 @@ let explainCall (nsManager: NamespaceManager) graph target (call: Call) =
             |> Seq.choose (referenceReasons call.Name.Name call.Range callable.Source.CodeFile))
     | _ -> Seq.empty
 
+// TODO: This should be removed in the future.
+let diagnoseCall target nsManager graph pattern =
+    match pattern.Diagnose target with
+    | Some d -> Seq.append (Seq.singleton d) (explainCall nsManager graph target pattern.Properties)
+    | None -> Seq.empty
+
 [<CompiledName "Diagnose">]
 let diagnose target nsManager graph (callable: QsCallable) =
     let patterns = syntaxAnalyzer None (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
     let callPatterns = CallGraphNode callable.FullName |> CallAnalyzer.shallow nsManager graph
-
-    Seq.append
-        (Seq.choose (fun p -> p.Diagnose target) patterns)
-        (Seq.collect
-            (fun p -> Seq.append (p.Diagnose target |> Option.toList) (explainCall nsManager graph target p.Properties))
-            callPatterns)
+    let callDiagnostics = Seq.collect (diagnoseCall target nsManager graph) callPatterns
+    Seq.append (Seq.choose (fun p -> p.Diagnose target) patterns) callDiagnostics
 
 let capabilityAttribute (capability: RuntimeCapability) =
     let args =
