@@ -434,8 +434,6 @@ namespace Microsoft.Quantum.QIR.Emission
     /// </summary>
     internal class ArrayValue : IValue
     {
-        // FIXME: ENFORCE THAT STACKALLOC IS ONLY TRUE WHEN ALL ELEMENTS ARE STACK ALLOC?
-
         private readonly GenerationContext sharedState;
         private readonly IValue.Cached<Value> length;
 
