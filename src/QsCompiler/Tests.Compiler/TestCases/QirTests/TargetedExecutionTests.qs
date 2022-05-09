@@ -45,7 +45,9 @@
 
         let tupleArr = [(2, 0.), (1, 1.), (3, 2.)];
         let (pauli, _) = tupleArr[1];
-        Message($"{pauli}");
+        let tupleArr2 = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
+        let (pauli2, _) = tupleArr2[1];
+        Message($"{pauli}, {pauli2}");
 
         let arrTuple = ([1,2], true);
         let (vals, _) = arrTuple;
@@ -61,19 +63,11 @@
         // TODO: we need to change how paulis work here, too.
         // The load of the global constant makes it that the constant folding
         // doesn't recognize the array length as constant.
-
-        //let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
-        //let (pauli, _) = tupleArr[1];
-        //Message($"{pauli}");
-        //
-        //let arrTuple = ([1,2], true);
-        //let (vals, _) = arrTuple;
-        //Message($"{vals[1]}, {vals}");
-        //
-        //let arrArr = [[PauliX, PauliZ], [], [PauliY], [PauliI]];
-        //let pauliY = arrArr[2][0];
-        //Message($"{arrArr}");
-        //Message($"{arrArr[1]}, {arrArr[3]}, {pauliY}");
+        
+        //let arrArr2 = [[PauliX, PauliZ], [], [PauliY], [PauliI]];
+        //let pauliY2 = arrArr2[2][0];
+        //Message($"{arrArr2}");
+        //Message($"{arrArr2[1]}, {arrArr2[3]}, {pauliY2}");
 
         return Zero;
     }

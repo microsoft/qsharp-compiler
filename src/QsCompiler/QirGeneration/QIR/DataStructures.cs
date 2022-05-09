@@ -480,7 +480,7 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 // If we stack allocate the array we need to rebuild the array elements
                 // such that they all have the same (sized) type.
-                arrayElements = this.RebuildArrayElements(elementType, arrayElements, registerWithScopeManager);
+                arrayElements = this.NormalizeArrayElements(elementType, arrayElements, registerWithScopeManager);
                 var elementTypes = arrayElements.Select(e => e.LlvmType).Distinct();
                 this.LlvmElementType = elementTypes.SingleOrDefault() ?? context.Values.DefaultValue(elementType).LlvmType;
                 this.Value = CreateNativeValue(this.LlvmElementType, (uint)arrayElements.Count(), this.Count.Value, context);
@@ -637,8 +637,8 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private IValue.Cached<Value> CreateLengthCache(Value? length = null) =>
             new IValue.Cached<Value>(length, this.sharedState, () =>
-                this.Count is uint count
-                ? (Value)this.sharedState.Context.CreateConstant((long)count)
+                this.Count is uint count ? this.sharedState.Context.CreateConstant((long)count)
+                : this.IsNativeValue(out var _, out var length) ? length
                 : this.sharedState.CurrentBuilder.Call(
                     this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
                     this.OpaquePointer));
@@ -657,8 +657,24 @@ namespace Microsoft.Quantum.QIR.Emission
             return pointer;
         }
 
-        private IReadOnlyList<IValue> RebuildArrayElements(ResolvedType eltype, IReadOnlyList<IValue> elements, bool registerWithScopeManager)
+        private IReadOnlyList<IValue> NormalizeArrayElements(ResolvedType eltype, IReadOnlyList<IValue> elements, bool registerWithScopeManager)
         {
+            IReadOnlyList<IValue> NormalizeItems<T>(
+                uint normalizedCount, IReadOnlyList<T> elements, Func<int, T, IValue> getInnerElements, Func<int, ResolvedType> elementType, Func<int, IReadOnlyList<IValue>, IValue> buildElement)
+            where T : IValue
+            {
+                var newElements = new List<IReadOnlyList<IValue>>();
+                for (var innerItemIdx = 0; innerItemIdx < normalizedCount; ++innerItemIdx)
+                {
+                    var innerElements = Enumerable.ToArray(elements.Select(e => getInnerElements(innerItemIdx, e)));
+                    var rebuiltElements = this.NormalizeArrayElements(elementType(innerItemIdx), innerElements, registerWithScopeManager);
+                    newElements.Add(rebuiltElements);
+                }
+
+                return Enumerable.ToArray(Enumerable.Range(0, elements.Count)
+                    .Select(idx => buildElement(idx, newElements.Select(e => e[idx]).ToArray())));
+            }
+
             if (eltype.Resolution is QsResolvedTypeKind.ArrayType it)
             {
                 var arrs = elements.Select(e => (ArrayValue)e).ToArray();
@@ -667,34 +683,21 @@ namespace Microsoft.Quantum.QIR.Emission
                     ? iat.Length
                     : throw new InvalidOperationException("expecting a constant array as inner element"));
 
-                var newElements = new List<IReadOnlyList<IValue>>();
-                for (var innerItemIdx = 0; innerItemIdx < innerArrSize; ++innerItemIdx)
-                {
-                    var innerElements = Enumerable.ToArray(arrs.Select(
-                        arr => innerItemIdx < arr.Count
-                            ? arr.GetArrayElement(innerItemIdx)
-                            : this.sharedState.Values.From(arr.LlvmElementType.GetNullValue(), arr.QSharpElementType))); // arr.QSharpElementType is it.Item
-                    var rebuiltElements = this.RebuildArrayElements(it.Item, innerElements, registerWithScopeManager);
-                    newElements.Add(rebuiltElements);
-                }
+                IValue GetInnerElements(int idx, ArrayValue array) =>
+                    idx < array.Count
+                            ? array.GetArrayElement(idx)
+                            : this.sharedState.Values.From(array.LlvmElementType.GetNullValue(), array.QSharpElementType);
 
-                return Enumerable.ToArray(Enumerable.Range(0, elements.Count).Select(idx =>
-                    new ArrayValue(it.Item, arrs[idx].Count, newElements.Select(e => e[idx]).ToArray(), this.sharedState, allocOnStack: true, registerWithScopeManager: registerWithScopeManager)));
+                return NormalizeItems(
+                    innerArrSize, arrs, GetInnerElements, _ => it.Item, (idx, newElements) =>
+                    new ArrayValue(it.Item, arrs[idx].Count, newElements, this.sharedState, allocOnStack: true, registerWithScopeManager: registerWithScopeManager));
             }
             else if (eltype.Resolution is QsResolvedTypeKind.TupleType ts)
             {
-                var tuples = elements.Select(e => (TupleValue)e);
-                var newElements = new List<IReadOnlyList<IValue>>();
-                for (var innerItemIdx = 0; innerItemIdx < ts.Item.Length; ++innerItemIdx)
-                {
-                    var innerElements = Enumerable.ToArray(tuples.Select(
-                        tuple => tuple.GetTupleElement(innerItemIdx)));
-                    var rebuiltElements = this.RebuildArrayElements(ts.Item[innerItemIdx], innerElements, registerWithScopeManager);
-                    newElements.Add(rebuiltElements);
-                }
-
-                return Enumerable.ToArray(Enumerable.Range(0, elements.Count).Select(idx =>
-                    new TupleValue(null, newElements.Select(e => e[idx]).ToArray(), this.sharedState, allocOnStack: true, registerWithScopeManager: false)));
+                var tuples = elements.Select(e => (TupleValue)e).ToArray();
+                return NormalizeItems(
+                    (uint)ts.Item.Length, tuples, (idx, tuple) => tuple.GetTupleElement(idx), idx => ts.Item[idx], (idx, newElements) =>
+                    new TupleValue(null, newElements, this.sharedState, allocOnStack: true, registerWithScopeManager: registerWithScopeManager));
             }
             else if (eltype.Resolution is QsResolvedTypeKind.UserDefinedType udt)
             {
@@ -704,18 +707,10 @@ namespace Microsoft.Quantum.QIR.Emission
                 }
 
                 var uts = udtDecl.Type.Resolution is QsResolvedTypeKind.TupleType its ? its.Item : ImmutableArray.Create(udtDecl.Type);
-                var tuples = elements.Select(e => (TupleValue)e);
-                var newElements = new List<IReadOnlyList<IValue>>();
-                for (var innerItemIdx = 0; innerItemIdx < uts.Length; ++innerItemIdx)
-                {
-                    var innerElements = Enumerable.ToArray(tuples.Select(
-                        tuple => tuple.GetTupleElement(innerItemIdx)));
-                    var rebuiltElements = this.RebuildArrayElements(uts[innerItemIdx], innerElements, registerWithScopeManager);
-                    newElements.Add(rebuiltElements);
-                }
-
-                return Enumerable.ToArray(Enumerable.Range(0, elements.Count).Select(idx =>
-                    new TupleValue(udtDecl.FullName, newElements.Select(e => e[idx]).ToArray(), this.sharedState, allocOnStack: true, registerWithScopeManager: false)));
+                var tuples = elements.Select(e => (TupleValue)e).ToArray();
+                return NormalizeItems(
+                    (uint)uts.Length, tuples, (idx, tuple) => tuple.GetTupleElement(idx), idx => uts[idx], (idx, newElements) =>
+                    new TupleValue(udtDecl.FullName, newElements, this.sharedState, allocOnStack: true, registerWithScopeManager: registerWithScopeManager));
             }
             else
             {
@@ -740,7 +735,8 @@ namespace Microsoft.Quantum.QIR.Emission
             }
             else
             {
-                var constIndex = QirValues.AsConstantInt(index) ?? throw new InvalidOperationException("can only access element at a constant index");
+                var constIndex = QirValues.AsConstantInt(index)
+                    ?? throw new InvalidOperationException("can only access element at a constant index");
 
                 void Store(IValue v) =>
                     this.Value = this.UpdateNativeValue(constArr => this.sharedState.CurrentBuilder.InsertValue(constArr, v.Value, constIndex));
