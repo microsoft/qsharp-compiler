@@ -393,16 +393,17 @@ let private driverSettings context =
     let assemblyConstant defaultValue name =
         context.assemblyConstants.TryGetValue name
         |> (fun (_, value) -> if String.IsNullOrWhiteSpace value then defaultValue else value)
-        |> literal
 
     let defaultSimulator =
         assemblyConstant AssemblyConstants.QuantumSimulator AssemblyConstants.DefaultSimulator
 
     let defaultExecutionTarget =
         assemblyConstant "" AssemblyConstants.ExecutionTarget
+        |> literal
 
-    let defaultTargetCapability =
+    let targetCapability =
         assemblyConstant "" AssemblyConstants.TargetCapability
+        |> literal
 
     [
         namedArg "simulatorOptionAliases" simulatorOptionAliases
