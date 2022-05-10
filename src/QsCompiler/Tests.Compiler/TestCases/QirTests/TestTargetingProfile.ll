@@ -118,6 +118,14 @@ entry:
   store { [4 x { [2 x i64], i64 }], i64 } { [4 x { [2 x i64], i64 }] [{ [2 x i64], i64 } { [2 x i64] [i64 2, i64 1], i64 2 }, { [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } { [2 x i64] [i64 3, i64 0], i64 1 }, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [2 x i64], i64 }], i64 }* %59, align 4
   %60 = bitcast { [4 x { [2 x i64], i64 }], i64 }* %59 to i8*
   call void @__quantum__qis__dumpmachine__body(i8* %60)
+  %61 = alloca { [4 x { [2 x i64], i64 }], i64 }, align 8
+  store { [4 x { [2 x i64], i64 }], i64 } { [4 x { [2 x i64], i64 }] [{ [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } { [2 x i64] [i64 3, i64 0], i64 1 }, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [2 x i64], i64 }], i64 }* %61, align 4
+  %62 = bitcast { [4 x { [2 x i64], i64 }], i64 }* %61 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %62)
+  %63 = alloca { [4 x { [2 x i64], i64 }], i64 }, align 8
+  store { [4 x { [2 x i64], i64 }], i64 } { [4 x { [2 x i64], i64 }] [{ [2 x i64], i64 } { [2 x i64] [i64 2, i64 1], i64 2 }, { [2 x i64], i64 } { [3 x i64] [i64 1, i64 2, i64 3], i64 3 }, { [2 x i64], i64 } { [2 x i64] [i64 3, i64 0], i64 1 }, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [2 x i64], i64 }], i64 }* %63, align 4
+  %64 = bitcast { [4 x { [2 x i64], i64 }], i64 }* %63 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %64)
   call void @__quantum__rt__result_update_reference_count(%Result* %m2, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %30)
   call void @__quantum__rt__qubit_release(%Qubit* %31)

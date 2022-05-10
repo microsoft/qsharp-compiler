@@ -89,6 +89,11 @@ namespace Microsoft.Quantum.Testing.QIR {
         DumpMachine((arrArr[1], arrArr[3]));
         DumpMachine(arrArr);
 
+        let updatedArrArr1 = arrArr w/ 0 <- [];
+        let updatedArrArr2 = arrArr w/ 1 <- [1,2,3];
+        DumpMachine(updatedArrArr1);
+        DumpMachine(updatedArrArr2);
+
         //let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
         //let (pauli, _) = tupleArr[1];
         //LogPauli(pauli);

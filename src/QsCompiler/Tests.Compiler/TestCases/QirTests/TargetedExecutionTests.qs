@@ -64,7 +64,7 @@
         Message($"{arrArr2[1]}, {arrArr2[3]}, {pauliY2}");
 
         let updatedArrArr1 = arrArr w/ 0 <- [];
-        let updatedArrArr2 = updatedArrArr1 w/ 1 <- [1,2,3];
+        let updatedArrArr2 = arrArr w/ 1 <- [-1,-2,-3];
         Message($"{updatedArrArr1}");
         Message($"{updatedArrArr2}");
 
