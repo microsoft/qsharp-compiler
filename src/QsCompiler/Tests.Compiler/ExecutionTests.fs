@@ -263,6 +263,8 @@ type ExecutionTests(output: ITestOutputHelper) =
             [], [0], 3
             [[PauliX, PauliZ], [], [PauliY], [PauliI]]
             [], [PauliI], PauliY
+            [[], [], [3], [0]]
+            [[], [1, 2, 3], [3], [0]]
             Zero
             """
 
