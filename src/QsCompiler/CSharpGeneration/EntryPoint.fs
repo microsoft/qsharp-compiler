@@ -397,13 +397,9 @@ let private driverSettings context =
     let defaultSimulator =
         assemblyConstant AssemblyConstants.QuantumSimulator AssemblyConstants.DefaultSimulator
 
-    let defaultExecutionTarget =
-        assemblyConstant "" AssemblyConstants.ExecutionTarget
-        |> literal
+    let defaultExecutionTarget = assemblyConstant "" AssemblyConstants.ExecutionTarget |> literal
 
-    let targetCapability =
-        assemblyConstant "" AssemblyConstants.TargetCapability
-        |> literal
+    let targetCapability = assemblyConstant "" AssemblyConstants.TargetCapability |> literal
 
     [
         namedArg "simulatorOptionAliases" simulatorOptionAliases
