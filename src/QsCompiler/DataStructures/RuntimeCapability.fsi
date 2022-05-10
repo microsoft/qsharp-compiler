@@ -57,6 +57,18 @@ type RuntimeCapability =
     [<return: MaybeNull>]
     static member Parse: name: string -> RuntimeCapability
 
+    // TODO: Remove this.
+    [<Obsolete>]
+    static member FullComputation: RuntimeCapability
+
+    // TODO: Remove this.
+    [<Obsolete>]
+    static member BasicMeasurementFeedback: RuntimeCapability
+
+    // TODO: Remove this.
+    [<Obsolete>]
+    static member BasicQuantumFunctionality: RuntimeCapability
+
 module RuntimeCapability =
     [<CompiledName "Top">]
     val top: RuntimeCapability

@@ -24,7 +24,7 @@ type CaseInsensitive =
             match obj with
             | :? CaseInsensitive as other ->
                 String.Compare(ci.Original, other.Original, StringComparison.InvariantCultureIgnoreCase)
-            | _ -> nameof obj |> ArgumentException |> raise
+            | _ -> ArgumentException("Type mismatch.", nameof obj) |> raise
 
 module CaseInsensitive =
     let original (CaseInsensitive s) = s
@@ -124,3 +124,9 @@ type RuntimeCapability with
 
     static member Parse name =
         RuntimeCapability.ofName name |> Option.defaultValue Unchecked.defaultof<_>
+
+    static member FullComputation = RuntimeCapability.ofName "FullComputation" |> Option.get
+
+    static member BasicMeasurementFeedback = RuntimeCapability.ofName "BasicMeasurementFeedback" |> Option.get
+
+    static member BasicQuantumFunctionality = RuntimeCapability.ofName "BasicQuantumFunctionality" |> Option.get
