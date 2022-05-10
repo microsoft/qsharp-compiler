@@ -57,17 +57,13 @@
         let pauliY = arrArr[2][0];
         Message($"{arrArr}");
         Message($"{arrArr[1]}, {arrArr[3]}, {pauliY}");
+        
+        let arrArr2 = [[PauliX, PauliZ], [], [PauliY], [PauliI]];
+        let pauliY2 = arrArr2[2][0];
+        Message($"{arrArr2}");
+        Message($"{arrArr2[1]}, {arrArr2[3]}, {pauliY2}");
 
         // TODO: write tests for array of array of array
-
-        // TODO: we need to change how paulis work here, too.
-        // The load of the global constant makes it that the constant folding
-        // doesn't recognize the array length as constant.
-        
-        //let arrArr2 = [[PauliX, PauliZ], [], [PauliY], [PauliI]];
-        //let pauliY2 = arrArr2[2][0];
-        //Message($"{arrArr2}");
-        //Message($"{arrArr2[1]}, {arrArr2[3]}, {pauliY2}");
 
         return Zero;
     }

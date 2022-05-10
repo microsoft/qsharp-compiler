@@ -728,13 +728,10 @@ namespace Microsoft.Quantum.QIR.Emission
                 var typedElementPointer = this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.LlvmElementType.CreatePointerType());
                 return new PointerValue(typedElementPointer, this.QSharpElementType, this.LlvmElementType, this.sharedState);
             }
-            else
+            else if (QirValues.AsConstantInt(index) is uint constIndex)
             {
-                var constIndex = QirValues.AsConstantInt(index)
-                    ?? throw new InvalidOperationException("can only access element at a constant index");
-
                 void Store(IValue v) =>
-                    this.Value = this.UpdateNativeValue(constArr => this.sharedState.CurrentBuilder.InsertValue(constArr, v.Value, constIndex));
+                    this.Value = this.UpdateNativeValue(constArr => this.sharedState.CurrentBuilder.InsertValue(constArr, v.Value, constIndex)); // FIXME NEED TO RENORMALIZE WHEN WE STORE??
 
                 IValue Reload() =>
                     this.IsNativeValue(out var constArr, out var count)
@@ -742,6 +739,37 @@ namespace Microsoft.Quantum.QIR.Emission
                         this.sharedState.CurrentBuilder.ExtractValue(constArr, constIndex),
                         this.QSharpElementType)
                     : throw new InvalidOperationException("invalid pointer access in array");
+
+                return new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store);
+            }
+            else
+            {
+                (Value ConstArrPtr, Value ElementPtr) GetElementPointer(Value constArr, Value index)
+                {
+                    var constArrPtr = this.sharedState.CurrentBuilder.Alloca(constArr.NativeType); // may there is a better way?
+                    this.sharedState.CurrentBuilder.Store(constArr, constArrPtr);
+                    var elementPtr = this.sharedState.CurrentBuilder.GetElementPtr(
+                        constArr.NativeType, constArrPtr, new[] { this.sharedState.Context.CreateConstant(0), index });
+                    return (constArrPtr, elementPtr);
+                }
+
+                void Store(IValue v) =>
+                    this.Value = this.UpdateNativeValue(constArr =>
+                    {
+                        var (constArrPtr, elementPtr) = GetElementPointer(constArr, index);
+                        this.sharedState.CurrentBuilder.Store(v.Value, elementPtr);
+                        return this.sharedState.CurrentBuilder.Load(constArr.NativeType, constArrPtr); // FIXME ... (same as above)
+                    });
+
+                IValue Reload()
+                {
+                    // Since the native value may be replaced as part of "updating" other items,
+                    // it is important that we reload the constant array every time!
+                    this.IsNativeValue(out var constArr, out var _);
+                    var (constArrPtr, elementPtr) = GetElementPointer(constArr!, index);
+                    var element = this.sharedState.CurrentBuilder.Load(this.LlvmElementType, elementPtr);
+                    return this.sharedState.Values.From(element, this.QSharpElementType);
+                }
 
                 return new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store);
             }
