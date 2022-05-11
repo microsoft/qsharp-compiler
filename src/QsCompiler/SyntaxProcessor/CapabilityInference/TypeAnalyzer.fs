@@ -59,7 +59,7 @@ let createPattern range classical =
     let diagnose target =
         QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
         |> Some
-        |> Option.filter (fun _ -> target.Capability < capability)
+        |> Option.filter (fun _ -> RuntimeCapability.subsumes target.Capability capability |> not)
 
     Some
         {
@@ -67,7 +67,7 @@ let createPattern range classical =
             Diagnose = diagnose
             Properties = ()
         }
-    |> Option.filter (fun _ -> capability > RuntimeCapability.bottom)
+    |> Option.filter (fun _ -> capability <> RuntimeCapability.bottom)
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild

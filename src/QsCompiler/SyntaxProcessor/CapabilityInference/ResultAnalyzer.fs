@@ -44,7 +44,7 @@ let createPattern kind range =
 
     let diagnose (target: Target) =
         let error code args =
-            if target.Capability >= capability then
+            if RuntimeCapability.subsumes target.Capability capability then
                 None
             else
                 QsCompilerDiagnostic.Error(code, args) (QsNullable.defaultValue Range.Zero range) |> Some

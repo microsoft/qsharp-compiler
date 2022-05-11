@@ -17,7 +17,7 @@ let createPattern range =
     let diagnose target =
         QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
         |> Some
-        |> Option.filter (fun _ -> target.Capability < capability)
+        |> Option.filter (fun _ -> RuntimeCapability.subsumes target.Capability capability |> not)
 
     {
         Capability = capability

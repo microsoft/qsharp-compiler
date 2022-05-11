@@ -43,10 +43,9 @@ module ClassicalCapability =
 
     val internal ofName: name: string -> ClassicalCapability option
 
+[<NoComparison>]
 [<Sealed>]
 type RuntimeCapability =
-    interface IComparable
-
     member ResultOpacity: ResultOpacity
 
     member Classical: ClassicalCapability
@@ -75,6 +74,9 @@ module RuntimeCapability =
 
     [<CompiledName "Bottom">]
     val bottom: RuntimeCapability
+
+    [<CompiledName "Subsumes">]
+    val subsumes: c1: RuntimeCapability -> c2: RuntimeCapability -> bool
 
     [<CompiledName "Merge">]
     val merge: c1: RuntimeCapability -> c2: RuntimeCapability -> RuntimeCapability

@@ -75,6 +75,7 @@ module ClassicalCapability =
     let ofName name =
         Map.tryFind (CaseInsensitive name) names
 
+[<NoComparison>]
 type RuntimeCapability =
     {
         resultOpacity: ResultOpacity
@@ -91,6 +92,10 @@ module RuntimeCapability =
 
     [<CompiledName "Bottom">]
     let bottom = { resultOpacity = Opaque; classical = Empty }
+
+    [<CompiledName "Subsumes">]
+    let subsumes c1 c2 =
+        c1.resultOpacity >= c2.resultOpacity && c1.classical >= c2.classical
 
     [<CompiledName "Merge">]
     let merge c1 c2 =

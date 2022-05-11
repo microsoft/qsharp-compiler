@@ -107,7 +107,7 @@ module CallAnalyzer =
             let range = QsNullable.defaultValue Range.Zero range
 
             match kind with
-            | _ when target.Capability >= capability -> None
+            | _ when RuntimeCapability.subsumes target.Capability capability -> None
             | External capability ->
                 let capabilityName = RuntimeCapability.name capability |> Option.defaultValue "Unknown"
                 let args = [ name.Name; capabilityName; target.Architecture ]

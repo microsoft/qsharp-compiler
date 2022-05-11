@@ -356,7 +356,7 @@ type NamespaceManager
             errs.AddRange signatureErrs
 
             // currently, only return values of type Result, Result[], and tuples thereof are supported on quantum processors
-            if runtimeCapability < RuntimeCapability.top then
+            if runtimeCapability <> RuntimeCapability.top then
                 let invalid =
                     signature.ReturnType.ExtractAll (fun t ->
                         match t.Type with
@@ -406,13 +406,21 @@ type NamespaceManager
 
             simplifiedArgNames |> List.iteri verifyArgument
 
-            if not isExecutable then
-                errs.Add(offset, QsCompilerDiagnostic.Warning(WarningCode.EntryPointInLibrary, []) (orDefault range))
+            // check that there is no more than one entry point, and no entry point if the project is not executable
+            if signatureErrs.Any() then
+                false, errs
+            elif not isExecutable then
+                errs.Add(
+                    offset,
+                    range |> orDefault |> QsCompilerDiagnostic.Warning(WarningCode.EntryPointInLibrary, [])
+                )
 
-            errs
+                false, errs
+            else
+                isExecutable, errs
         | _ ->
             errs.Add(offset, range |> orDefault |> QsCompilerDiagnostic.Error(ErrorCode.InvalidEntryPointPlacement, []))
-            errs
+            false, errs
 
 
     /// <summary>
@@ -503,8 +511,13 @@ type NamespaceManager
 
                 // the attribute marks an entry point
                 elif tId |> isBuiltIn BuiltIn.EntryPoint then
-                    validateEntryPoint parent (att.Offset, att.TypeIdRange) decl |> errs.AddRange
-                    attributeHash :: alreadyDefined, att :: resAttr
+                    let register, msgs = validateEntryPoint parent (att.Offset, att.TypeIdRange) decl
+                    errs.AddRange msgs
+
+                    if register then
+                        attributeHash :: alreadyDefined, att :: resAttr
+                    else
+                        alreadyDefined, { att with TypeId = Null } :: resAttr
 
                 // the attribute marks a unit test
                 elif tId |> isBuiltIn BuiltIn.Test then

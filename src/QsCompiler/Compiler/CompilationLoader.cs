@@ -551,7 +551,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && this.CompilationOutput?.EntryPoints.Length == 0)
             {
-                if (this.config.RuntimeCapability?.CompareTo(RuntimeCapabilityModule.Top) < 0)
+                if (!Equals(this.config.RuntimeCapability, RuntimeCapabilityModule.Top))
                 {
                     this.LogAndUpdate(ref this.compilationStatus.Validation, ErrorCode.MissingEntryPoint);
                 }
