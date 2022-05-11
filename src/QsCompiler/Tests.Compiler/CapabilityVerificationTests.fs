@@ -10,21 +10,23 @@ open Xunit
 
 /// Compiles the capability verification test cases using the given capability.
 let private compile capability =
-    CompilerTests.Compile(
-        "TestCases",
-        [ "CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs" ],
-        references = [ File.ReadAllLines("ReferenceTargets.txt").[2] ],
-        capability = capability
-    )
+    let files =
+        [
+            "LinkingTests/Core.qs"
+            "CapabilityTests/Verification.qs"
+            "CapabilityTests/Inference.qs"
+        ]
 
-/// The FullComputation capability tester.
+    let references = [ File.ReadAllLines("ReferenceTargets.txt").[2] ]
+    CompilerTests.Compile("TestCases", files, references, capability, isExecutable = true)
+
 let private fullComputation = compile "FullComputation" |> CompilerTests
 
-/// The BasicMeasurementFeedback capability tester.
 let private basicMeasurementFeedback = compile "BasicMeasurementFeedback" |> CompilerTests
 
-/// The BasicQuantumFunctionality capability tester.
 let private basicQuantumFunctionality = compile "BasicQuantumFunctionality" |> CompilerTests
+
+let private adaptiveExecution = compile "AdaptiveExecution" |> CompilerTests
 
 let private basicExecution = compile "BasicExecution" |> CompilerTests
 
@@ -253,3 +255,79 @@ let ``BasicQuantumFunctionality restricts library calls and references`` () =
             Warning WarningCode.UnsupportedResultComparison
             Warning WarningCode.UnsupportedCallableCapability
         ]
+
+[<Fact>]
+let ``Allows returning results from entry point`` () =
+    let names =
+        [
+            "EntryPointReturnResult"
+            "EntryPointReturnResultArray"
+            "EntryPointReturnResultTuple"
+        ]
+
+    let compilations =
+        [
+            basicQuantumFunctionality
+            basicExecution
+            adaptiveExecution
+            basicMeasurementFeedback
+            fullComputation
+        ]
+
+    List.allPairs names compilations
+    |> List.iter (fun (name, compilation) -> expect compilation [] name)
+
+[<Fact>]
+let ``Restricts returning integral types from entry point`` () =
+    let names =
+        [
+            "EntryPointReturnBool"
+            "EntryPointReturnInt"
+            "EntryPointReturnBoolArray"
+            "EntryPointReturnResultBoolTuple"
+        ]
+
+    let expectations =
+        [
+            basicQuantumFunctionality, [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
+            basicExecution,
+            [
+                Error ErrorCode.UnsupportedClassicalCapability
+                Warning WarningCode.NonResultTypeReturnedInEntryPoint
+            ]
+            adaptiveExecution, [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
+            basicMeasurementFeedback, [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
+            fullComputation, []
+        ]
+
+    List.allPairs names expectations
+    |> List.iter (fun (name, (compilation, diagnostics)) -> expect compilation diagnostics name)
+
+[<Fact>]
+let ``Restricts returning Double from entry point`` () =
+    let names =
+        [
+            "EntryPointReturnDouble"
+            "EntryPointReturnDoubleArray"
+            "EntryPointReturnResultDoubleTuple"
+        ]
+
+    let expectations =
+        [
+            basicQuantumFunctionality, [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
+            basicExecution,
+            [
+                Error ErrorCode.UnsupportedClassicalCapability
+                Warning WarningCode.NonResultTypeReturnedInEntryPoint
+            ]
+            adaptiveExecution,
+            [
+                Error ErrorCode.UnsupportedClassicalCapability
+                Warning WarningCode.NonResultTypeReturnedInEntryPoint
+            ]
+            basicMeasurementFeedback, [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
+            fullComputation, []
+        ]
+
+    List.allPairs names expectations
+    |> List.iter (fun (name, (compilation, diagnostics)) -> expect compilation diagnostics name)

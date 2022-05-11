@@ -92,23 +92,27 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Statements <-
         { new StatementTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnStatement statement =
-                let range = statement.Location |> QsNullable<_>.Map (fun l -> l.Offset + l.Range)
-
                 match statement.Statement with
                 | QsFailStatement _ ->
                     use _ = local { context with StringLiteralsOk = true }
                     base.OnStatement statement
                 | QsReturnStatement value ->
+                    let statement = base.OnStatement statement
+                    let range = (transformation.Offset, statement.Location) ||> QsNullable.Map2(fun o l -> o + l.Range)
+
                     requiredCapability context Return value.ResolvedType
                     |> createPattern range
                     |> Option.iter patterns.Add
 
-                    base.OnStatement statement
+                    statement
                 | QsVariableDeclaration binding when binding.Kind = MutableBinding ->
+                    let statement = base.OnStatement statement
+                    let range = (transformation.Offset, statement.Location) ||> QsNullable.Map2(fun o l -> o + l.Range)
+
                     for var in statement.SymbolDeclarations.Variables do
                         requiredCapability context Mutable var.Type |> createPattern range |> Option.iter patterns.Add
 
-                    base.OnStatement statement
+                    statement
                 | _ -> base.OnStatement statement
         }
 
@@ -128,13 +132,14 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                     | RangeLiteral _, _ -> Literal
                     | _ -> Expression
 
+                let expression = base.OnTypedExpression expression
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
                 requiredCapability context usage expression.ResolvedType
                 |> createPattern range
                 |> Option.iter patterns.Add
 
-                base.OnTypedExpression expression
+                expression
         }
 
     transformation.ExpressionKinds <-

@@ -141,9 +141,10 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
-    static member Compile(srcFolder, fileNames, ?references, ?capability) =
+    static member Compile(srcFolder, fileNames, ?references, ?capability, ?isExecutable) =
         let references = defaultArg references []
         let capability = defaultArg capability "FullComputation"
+        let isExecutable = defaultArg isExecutable false
 
         let files =
             fileNames
@@ -152,7 +153,10 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                 Uri path, File.ReadAllText path)
             |> dict
 
-        let props = dict [ MSBuildProperties.ResolvedRuntimeCapabilities, capability ] |> ProjectProperties
+        let props =
+            dict [ MSBuildProperties.ResolvedRuntimeCapabilities, capability
+                   if isExecutable then MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe ]
+            |> ProjectProperties
 
         let mutable exceptions = []
         use manager = new CompilationUnitManager(props, (fun e -> exceptions <- e :: exceptions))
