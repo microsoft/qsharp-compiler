@@ -43,7 +43,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private RuntimeCapability TargetedRuntimeCapability { get; }
 
         internal bool TargetQirProfile =>
-            this.TargetedRuntimeCapability.IsBasicExecution || this.TargetedRuntimeCapability.IsAdaptiveExecution;
+            this.TargetedRuntimeCapability.Classical == ClassicalCapabilityModule.Empty ||
+            this.TargetedRuntimeCapability.Classical == ClassicalCapabilityModule.Integral;
 
         #region Member variables
 

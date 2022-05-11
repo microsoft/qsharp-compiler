@@ -1,49 +1,64 @@
-﻿module Microsoft.Quantum.QsCompiler.Testing.CapabilityInferenceTests
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+module Microsoft.Quantum.QsCompiler.Testing.CapabilityInferenceTests
 
 open System.IO
 open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 
 /// A mapping of all callables in the capability verification tests, after inferring capabilities.
 let private callables =
-    CompilerTests.Compile(
-        "TestCases",
-        [ "CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs" ],
-        references = [ (File.ReadAllLines "ReferenceTargets.txt").[2] ]
-    )
-    |> fun compilation -> compilation.BuiltCompilation
-    |> CapabilityInference.InferCapabilities
-    |> fun compilation -> compilation.Namespaces
-    |> GlobalCallableResolutions
+    let files =
+        [
+            "LinkingTests/Core.qs"
+            "CapabilityTests/Verification.qs"
+            "CapabilityTests/Inference.qs"
+        ]
+
+    let references = [ File.ReadAllLines "ReferenceTargets.txt" |> Array.item 2 ]
+    let compilation = CompilerTests.Compile("TestCases", files, references)
+    GlobalCallableResolutions (Capabilities.infer compilation.BuiltCompilation).Namespaces
 
 /// Asserts that the inferred capability of the callable with the given name matches the expected capability.
 let private expect capability name =
     let fullName = CapabilityVerificationTests.testName name
-    let actual = SymbolResolution.TryGetRequiredCapability callables.[fullName].Attributes
-    Assert.Contains(capability, actual)
+    let actual = SymbolResolution.TryGetRequiredCapability callables[fullName].Attributes
+
+    Assert.True(
+        Seq.contains capability actual,
+        $"Capability for {name} didn't match expected value.\nExpected: %A{capability}\nActual: %A{actual}"
+    )
+
+let private createCapability opacity classical =
+    RuntimeCapability.withResultOpacity opacity RuntimeCapability.bottom
+    |> RuntimeCapability.withClassical classical
 
 [<Fact>]
-let ``Infers BasicQuantumFunctionality by source code`` () =
-    [
-        "NoOp"
+let ``Infers BasicQuantumFunctionality from syntax`` () =
+    expect (createCapability ResultOpacity.opaque ClassicalCapability.empty) "NoOp"
 
-        // Tuples and arrays don't support equality, so they are inferred as BasicQuantumFunctionality for now. If tuple
-        // and array equality is supported, ResultTuple and ResultArray should be inferred as FullComputation instead.
-        "ResultTuple"
-        "ResultArray"
-    ]
-    |> List.iter (expect BasicQuantumFunctionality)
+    // Tuples and arrays don't support equality, so they are inferred as BasicQuantumFunctionality for now. If tuple
+    // and array equality is supported, ResultTuple and ResultArray should be inferred as FullComputation instead.
+    [ "ResultTuple"; "ResultArray" ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
 
 [<Fact>]
-let ``Infers BasicMeasurementFeedback by source code`` () =
-    [ "SetLocal"; "EmptyIfOp"; "EmptyIfNeqOp"; "Reset"; "ResetNeq" ]
-    |> List.iter (expect BasicMeasurementFeedback)
+let ``Infers BasicMeasurementFeedback from syntax`` () =
+    expect (createCapability ResultOpacity.controlled ClassicalCapability.integral) "SetLocal"
+
+    [ "EmptyIfOp"; "EmptyIfNeqOp"; "Reset"; "ResetNeq" ]
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.empty |> expect)
 
 [<Fact>]
-let ``Infers FullComputation by source code`` () =
+let ``Infers FullComputation from syntax`` () =
+    [ "EmptyIf"; "EmptyIfNeq" ]
+    |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.empty |> expect)
+
+    expect (createCapability ResultOpacity.transparent ClassicalCapability.integral) "SetReusedName"
+
     [
         "ResultAsBool"
         "ResultAsBoolNeq"
@@ -59,57 +74,139 @@ let ``Infers FullComputation by source code`` () =
         "ElifSet"
         "ElifElifSet"
         "ElifElseSet"
-        "SetReusedName"
         "SetTuple"
-        "EmptyIf"
-        "EmptyIfNeq"
     ]
-    |> List.iter (expect FullComputation)
+    |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.full |> expect)
+
+[<Fact>]
+let ``Infers full classical capability from syntax`` () =
+    [
+        "Recursion1"
+        "Recursion2A"
+        "Recursion2B"
+        "Fail"
+        "Repeat"
+        "While"
+        "TwoReturns"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
 
 [<Fact>]
 let ``Allows overriding capabilities with attribute`` () =
-    expect BasicQuantumFunctionality "OverrideBmfToBqf"
+    expect (createCapability ResultOpacity.opaque ClassicalCapability.empty) "OverrideBmfToBqf"
 
     [ "OverrideBqfToBmf"; "OverrideFullToBmf"; "ExplicitBmf" ]
-    |> List.iter (expect BasicMeasurementFeedback)
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.empty |> expect)
 
-    expect FullComputation "OverrideBmfToFull"
+    expect (createCapability ResultOpacity.transparent ClassicalCapability.empty) "OverrideBmfToFull"
 
 [<Fact>]
 let ``Infers single dependency`` () =
-    [ "CallBmfA"; "CallBmfB" ] |> List.iter (expect BasicMeasurementFeedback)
+    [ "CallBmfA"; "CallBmfB" ]
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.empty |> expect)
 
 [<Fact>]
 let ``Infers two side-by-side dependencies`` () =
-    expect BasicMeasurementFeedback "CallBmfFullB"
-    [ "CallBmfFullA"; "CallBmfFullC" ] |> List.iter (expect FullComputation)
+    expect (createCapability ResultOpacity.controlled ClassicalCapability.empty) "CallBmfFullB"
+
+    [ "CallBmfFullA"; "CallBmfFullC" ]
+    |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.full |> expect)
 
 [<Fact>]
 let ``Infers two chained dependencies`` () =
-    [ "CallFullA"; "CallFullB" ] |> List.iter (expect FullComputation)
-    expect BasicMeasurementFeedback "CallFullC"
+    [ "CallFullA"; "CallFullB" ]
+    |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.full |> expect)
+
+    expect (createCapability ResultOpacity.controlled ClassicalCapability.empty) "CallFullC"
 
 [<Fact>]
 let ``Allows safe override`` () =
-    [ "CallFullOverrideA"; "CallFullOverrideB" ] |> List.iter (expect FullComputation)
+    [ "CallFullOverrideA"; "CallFullOverrideB" ]
+    |> List.iter (createCapability ResultOpacity.transparent ClassicalCapability.empty |> expect)
 
-    expect BasicMeasurementFeedback "CallFullOverrideC"
+    expect (createCapability ResultOpacity.controlled ClassicalCapability.empty) "CallFullOverrideC"
 
 [<Fact>]
 let ``Allows unsafe override`` () =
-    [ "CallBmfOverrideA"; "CallBmfOverrideB" ] |> List.iter (expect BasicMeasurementFeedback)
+    [ "CallBmfOverrideA"; "CallBmfOverrideB" ]
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.empty |> expect)
 
-    expect FullComputation "CallBmfOverrideC"
+    expect (createCapability ResultOpacity.transparent ClassicalCapability.full) "CallBmfOverrideC"
 
 [<Fact>]
-let ``Infers with direction recursion`` () =
-    expect BasicMeasurementFeedback "BmfRecursion"
+let ``Infers with direct recursion`` () =
+    expect (createCapability ResultOpacity.controlled ClassicalCapability.full) "BmfRecursion"
 
 [<Fact>]
 let ``Infers with indirect recursion`` () =
     [ "BmfRecursion3A"; "BmfRecursion3B"; "BmfRecursion3C" ]
-    |> List.iter (expect BasicMeasurementFeedback)
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.full |> expect)
 
 [<Fact>]
 let ``Infers with uncalled reference`` () =
-    [ "ReferenceBmfA"; "ReferenceBmfB" ] |> List.iter (expect BasicMeasurementFeedback)
+    [ "ReferenceBmfA"; "ReferenceBmfB" ]
+    |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.empty |> expect)
+
+[<Fact>]
+let ``Restricts BigInt, Range, and String`` () =
+    [ "MessageStringLit"; "MessageInterpStringLit"; "UseRangeLit" ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
+
+    [
+        "UseBigInt"
+        "ReturnBigInt"
+        "ConditionalBigInt"
+        "UseStringArg"
+        "MessageStringVar"
+        "ReturnString"
+        "ConditionalString"
+        "UseRangeVar"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
+
+[<Fact>]
+let ``Restricts mutability`` () =
+    [
+        "LetToLet"
+        "LetToCall"
+        "ParamToLet"
+        "LetToFor"
+        "LetToArraySize"
+        "LetToNewArraySize"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
+
+    expect (createCapability ResultOpacity.opaque ClassicalCapability.integral) "LetToMutable"
+
+    [
+        "MutableToLet"
+        "MutableToCall"
+        "MutableToFor"
+        "MutableToArraySize"
+        "MutableToNewArraySize"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
+
+[<Fact>]
+let ``Restricts entry point return type`` () =
+    [
+        "EntryPointReturnResult"
+        "EntryPointReturnResultArray"
+        "EntryPointReturnResultTuple"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
+
+    [
+        "EntryPointReturnBool"
+        "EntryPointReturnInt"
+        "EntryPointReturnBoolArray"
+        "EntryPointReturnResultBoolTuple"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.integral |> expect)
+
+    [
+        "EntryPointReturnString"
+        "EntryPointReturnStringArray"
+        "EntryPointReturnResultStringTuple"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)

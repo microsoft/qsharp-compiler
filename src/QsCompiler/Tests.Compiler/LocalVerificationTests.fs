@@ -159,18 +159,18 @@ type LocalVerificationTests() =
         this.Expect "CopyAndUpdateArray2" []
         this.Expect "CopyAndUpdateArray3" []
         this.Expect "CopyAndUpdateArray4" [ Warning WarningCode.DeprecatedNewArray ]
-        this.Expect "CopyAndUpdateArray5" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "CopyAndUpdateArray6" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "CopyAndUpdateArray7" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "CopyAndUpdateArray8" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
+        this.Expect "CopyAndUpdateArray5" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "CopyAndUpdateArray6" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "CopyAndUpdateArray7" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "CopyAndUpdateArray8" [ Error ErrorCode.TypeMismatch ]
         this.Expect "CopyAndUpdateArray9" []
         this.Expect "CopyAndUpdateArray10" []
         this.Expect "CopyAndUpdateArray11" []
         this.Expect "CopyAndUpdateArray12" []
         this.Expect "CopyAndUpdateArray13" []
         this.Expect "CopyAndUpdateArray14" []
-        this.Expect "CopyAndUpdateArray15" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "CopyAndUpdateArray16" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
+        this.Expect "CopyAndUpdateArray15" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "CopyAndUpdateArray16" [ Error ErrorCode.TypeMismatch ]
 
 
     [<Fact>]
@@ -178,25 +178,13 @@ type LocalVerificationTests() =
         this.Expect "UpdateAndReassign1" []
         this.Expect "UpdateAndReassign2" []
         this.Expect "UpdateAndReassign3" []
-        this.Expect "UpdateAndReassign4" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "UpdateAndReassign5" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
+        this.Expect "UpdateAndReassign4" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "UpdateAndReassign5" [ Error ErrorCode.TypeMismatch ]
         this.Expect "UpdateAndReassign6" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "UpdateAndReassign7" [ Warning WarningCode.DeprecatedNewArray ]
         this.Expect "UpdateAndReassign8" [ Warning WarningCode.DeprecatedNewArray ]
-
-        this.Expect
-            "UpdateAndReassign9"
-            [
-                Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
-                Warning WarningCode.DeprecatedNewArray
-            ]
-
-        this.Expect
-            "UpdateAndReassign10"
-            [
-                Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
-                Warning WarningCode.DeprecatedNewArray
-            ]
+        this.Expect "UpdateAndReassign9" [ Error ErrorCode.TypeMismatch; Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "UpdateAndReassign10" [ Error ErrorCode.TypeMismatch; Warning WarningCode.DeprecatedNewArray ]
 
 
     [<Fact>]
@@ -216,7 +204,7 @@ type LocalVerificationTests() =
 
     [<Fact>]
     member this.``Named type item access``() =
-        this.Expect "ItemAccess1" [ Error ErrorCode.ExpectingUserDefinedType ]
+        this.Expect "ItemAccess1" [ Error ErrorCode.UnknownItemName ]
         this.Expect "ItemAccess2" [ Error ErrorCode.UnknownItemName ]
         this.Expect "ItemAccess3" []
         this.Expect "ItemAccess4" []
@@ -254,20 +242,13 @@ type LocalVerificationTests() =
     [<Fact>]
     member this.``Named type item update``() =
         this.Expect "ItemUpdate1" []
-        this.Expect "ItemUpdate2" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "ItemUpdate3" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
+        this.Expect "ItemUpdate2" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "ItemUpdate3" [ Error ErrorCode.TypeMismatch ]
         this.Expect "ItemUpdate4" []
         this.Expect "ItemUpdate5" [ Error ErrorCode.UpdateOfImmutableIdentifier ]
-        this.Expect "ItemUpdate6" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "ItemUpdate7" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-
-        this.Expect
-            "ItemUpdate8"
-            [
-                Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
-                Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
-            ]
-
+        this.Expect "ItemUpdate6" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "ItemUpdate7" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "ItemUpdate8" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
         this.Expect "ItemUpdate9" [ Warning WarningCode.DeprecatedNewArray ]
 
         this.Expect
@@ -288,14 +269,14 @@ type LocalVerificationTests() =
         this.Expect
             "ItemUpdate12"
             [
-                Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
-                Error ErrorCode.TypeMismatchInCopyAndUpdateExpr
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
                 Warning WarningCode.DeprecatedNewArray
             ]
 
         this.Expect "ItemUpdate13" []
-        this.Expect "ItemUpdate14" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "ItemUpdate15" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
+        this.Expect "ItemUpdate14" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "ItemUpdate15" [ Error ErrorCode.TypeMismatch ]
 
         this.Expect
             "ItemUpdate16"

@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             var runtimeCapability = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.TargetedRuntimeCapability, out var capability) && capability != null
-                ? RuntimeCapability.TryParse(capability).ValueOr(null)
+                ? RuntimeCapability.Parse(capability) // null if parsing fails
                 : null;
             transformed = compilation;
             using var generator = new Generator(transformed, capability: runtimeCapability);

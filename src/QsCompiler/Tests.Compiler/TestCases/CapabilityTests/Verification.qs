@@ -187,6 +187,205 @@ namespace Microsoft.Quantum.Testing.Capability {
         }
     }
 
+    function Recursion1() : Unit {
+        Recursion1();
+    }
+
+    function Recursion2A() : Unit {
+        Recursion2B();
+    }
+
+    function Recursion2B() : Unit {
+        Recursion2A();
+    }
+
+    function Fail() : Unit {
+        fail "test";
+    }
+
+    operation Repeat() : Unit {
+        repeat {} until false;
+    }
+
+    function While() : Unit {
+        while false {}
+    }
+
+    function TwoReturns() : Bool {
+        if true {
+            return true;
+        }
+
+        return false;
+    }
+
+    function UseBigInt() : Unit {
+        let x = 0L;
+    }
+
+    function ReturnBigInt() : BigInt {
+        return 0L;
+    }
+
+    function ConditionalBigInt(b : Bool) : Unit {
+        let x = b ? 0L | 1L;
+    }
+
+    function MessageStringVar() : Unit {
+        let x = "foo";
+        Message(x);
+    }
+
+    function ReturnString() : String {
+        return "foo";
+    }
+
+    function ConditionalString(b : Bool) : Unit {
+        let x = b ? "foo" | "bar";
+    }
+
+    function TakeString(s : String) : Unit {
+        body intrinsic;
+    }
+
+    function UseStringArg() : Unit {
+        TakeString("foo");
+    }
+
+    function MessageStringLit() : Unit {
+        Message("foo");
+    }
+
+    function MessageInterpStringLit() : Unit {
+        let x = 0;
+        Message($"x = {x}");
+    }
+
+    function UseRangeVar() : Unit {
+        let xs = 0..10;
+        for x in xs {}
+    }
+
+    function UseRangeLit() : Unit {
+        for x in 0..10 {}
+    }
+
+    function MutableToLet() : Unit {
+        mutable x = 0;
+        let y = x;
+    }
+
+    function LetToLet() : Unit {
+        let x = 0;
+        let y = x;
+    }
+
+    function ParamToLet(x : Int) : Unit {
+        let y = x;
+    }
+
+    function MutableToMutable() : Unit {
+        mutable x = 0;
+        mutable y = x;
+    }
+
+    function LetToMutable() : Unit {
+        let x = 0;
+        mutable y = x;
+    }
+
+    function TakeBool(b : Bool) : Unit {}
+
+    function MutableToCall() : Unit {
+        mutable x = true;
+        TakeBool(x);
+    }
+
+    function LetToCall() : Unit {
+        let x = true;
+        TakeBool(x);
+    }
+
+    function MutableToFor() : Unit {
+        mutable x = 0;
+        for y in [x] {}
+    }
+
+    function LetToFor() : Unit {
+        let x = 0;
+        for y in [x] {}
+    }
+
+    function MutableToArraySize() : Unit {
+        mutable x = 3;
+        let _ = [0, size = x];
+    }
+
+    function LetToArraySize () : Unit {
+        let x = 3;
+        let _ = [0, size = x];
+    }
+
+    function MutableToNewArraySize() : Unit {
+        mutable x = 3;
+        let _ = new Int[x];
+    }
+
+    function LetToNewArraySize() : Unit {
+        let x = 3;
+        let _ = new Int[x];
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnResult() : Result {
+        return Zero;
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnBool() : Bool {
+        return false;
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnInt() : Int {
+        return 0;
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnString() : String {
+        return "";
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnResultArray() : Result[] {
+        return [];
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnBoolArray() : Bool[] {
+        return [];
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnStringArray() : String[] {
+        return [];
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnResultTuple() : (Result, Result) {
+        return (Zero, Zero);
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnResultBoolTuple() : (Result, Bool) {
+        return (Zero, false);
+    }
+
+    @EntryPoint()
+    operation EntryPointReturnResultStringTuple() : (Result, String) {
+        return (Zero, "");
+    }
+
     // Tuples and arrays currently don't support equality comparison, but result comparison should still be prevented if
     // they do.
 
@@ -234,6 +433,10 @@ namespace Microsoft.Quantum.Testing.Capability {
         let f = LibraryFull;
         return f;
     }
+
+    operation ReferenceLibraryOverride(q : Qubit) : Unit {
+        LibraryOverride(q);
+    }
 }
 
 namespace Microsoft.Quantum.Intrinsic {
@@ -242,6 +445,10 @@ namespace Microsoft.Quantum.Intrinsic {
     }
 
     operation M(q : Qubit) : Result {
+        body intrinsic;
+    }
+
+    operation Message(message : String) : Unit {
         body intrinsic;
     }
 }

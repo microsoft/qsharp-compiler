@@ -141,31 +141,26 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
-
     static member Compile(srcFolder, fileNames, ?references, ?capability) =
         let references = defaultArg references []
-        let capability = defaultArg capability FullComputation
-        let paths = fileNames |> Seq.map (fun file -> Path.Combine(srcFolder, file) |> Path.GetFullPath)
-        let props = ImmutableDictionary.CreateBuilder()
-        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, capability.Name)
+        let capability = defaultArg capability "FullComputation"
+
+        let files =
+            fileNames
+            |> Seq.map (fun name ->
+                let path = Path.Combine(srcFolder, name) |> Path.GetFullPath
+                Uri path, File.ReadAllText path)
+            |> dict
+
+        let props = dict [ MSBuildProperties.ResolvedRuntimeCapabilities, capability ] |> ProjectProperties
+
         let mutable exceptions = []
+        use manager = new CompilationUnitManager(props, (fun e -> exceptions <- e :: exceptions))
+        manager.AddOrUpdateSourceFilesAsync(CompilationUnitManager.InitializeFileManagers files) |> ignore
 
-        use manager =
-            new CompilationUnitManager(new ProjectProperties(props), (fun e -> exceptions <- e :: exceptions))
-
-        paths.ToImmutableDictionary(Uri, File.ReadAllText)
-        |> CompilationUnitManager.InitializeFileManagers
-        |> manager.AddOrUpdateSourceFilesAsync
-        |> ignore
-
-        references
-        |> ProjectManager.LoadReferencedAssemblies
-        |> References
-        |> manager.UpdateReferencesAsync
+        manager.UpdateReferencesAsync(ProjectManager.LoadReferencedAssemblies references |> References)
         |> ignore
 
         let compilation = manager.Build()
-
         if not <| List.isEmpty exceptions then exceptions |> List.rev |> AggregateException |> raise
-
         compilation

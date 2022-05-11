@@ -90,7 +90,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// The parsed <see cref="RuntimeCapabilityName"/>.
         /// </summary>
         internal RuntimeCapability RuntimeCapability =>
-            RuntimeCapability.TryParse(this.RuntimeCapabilityName).ValueOr(RuntimeCapability.FullComputation);
+            RuntimeCapability.Parse(this.RuntimeCapabilityName) ?? RuntimeCapabilityModule.Top;
 
         [Option(
             "build-exe",

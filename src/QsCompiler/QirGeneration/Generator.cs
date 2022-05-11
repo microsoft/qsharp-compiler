@@ -41,7 +41,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             new GenerationContext(
                 compilation.Namespaces,
                 compilation.EntryPoints.Length == 0,
-                capability ?? RuntimeCapability.FullComputation),
+                capability ?? RuntimeCapabilityModule.Top),
             TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;

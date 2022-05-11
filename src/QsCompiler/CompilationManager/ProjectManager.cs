@@ -66,13 +66,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : string.Empty;
 
         /// <summary>
-        /// Returns the value specified by <see cref="MSBuildProperties.ResolvedRuntimeCapabilities"/>,
-        /// or <see cref="RuntimeCapability.FullComputation"/> if no valid value is specified.
+        /// Returns the value specified by <see cref="MSBuildProperties.ResolvedRuntimeCapabilities"/>, or
+        /// <see cref="RuntimeCapabilityModule.Top"/> if no valid value is specified.
         /// </summary>
         public RuntimeCapability RuntimeCapability =>
             this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedRuntimeCapabilities, out var capability)
-                ? RuntimeCapability.TryParse(capability).ValueOr(RuntimeCapability.FullComputation)
-                : RuntimeCapability.FullComputation;
+                ? RuntimeCapability.Parse(capability) ?? RuntimeCapabilityModule.Top
+                : RuntimeCapabilityModule.Top;
 
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,

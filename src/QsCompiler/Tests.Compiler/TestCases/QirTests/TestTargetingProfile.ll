@@ -1,4 +1,4 @@
-define internal %Result* @Microsoft__Quantum__Testing__QIR__TestProfileTargeting__body(i1 %cond) {
+define internal i64 @Microsoft__Quantum__Testing__QIR__TestProfileTargeting__body() {
 entry:
   %0 = alloca { [3 x i64], i64 }, align 8
   store { [3 x i64], i64 } { [3 x i64] [i64 1, i64 2, i64 3], i64 3 }, { [3 x i64], i64 }* %0, align 4
@@ -126,8 +126,9 @@ entry:
   store { [4 x { [3 x i64], i64 }], i64 } { [4 x { [3 x i64], i64 }] [{ [3 x i64], i64 } { [3 x i64] [i64 2, i64 1, i64 0], i64 2 }, { [3 x i64], i64 } { [3 x i64] [i64 1, i64 2, i64 3], i64 3 }, { [3 x i64], i64 } { [3 x i64] [i64 3, i64 0, i64 0], i64 1 }, { [3 x i64], i64 } { [3 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [3 x i64], i64 }], i64 }* %63, align 4
   %64 = bitcast { [4 x { [3 x i64], i64 }], i64 }* %63 to i8*
   call void @__quantum__qis__dumpmachine__body(i8* %64)
+  call void @__quantum__rt__result_update_reference_count(%Result* %m1, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %m2, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %30)
   call void @__quantum__rt__qubit_release(%Qubit* %31)
-  ret %Result* %m1
+  ret i64 6
 }
