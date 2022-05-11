@@ -43,31 +43,30 @@ let createPattern kind range =
     let capability = RuntimeCapability.withResultOpacity opacity RuntimeCapability.bottom
 
     let diagnose (target: Target) =
-        let error code args =
-            if RuntimeCapability.subsumes target.Capability capability then
-                None
-            else
-                QsCompilerDiagnostic.Error(code, args) (QsNullable.defaultValue Range.Zero range) |> Some
-
-        let unsupported =
-            if target.Capability.ResultOpacity >= ResultOpacity.controlled then
-                ErrorCode.ResultComparisonNotInOperationIf
-            else
-                ErrorCode.UnsupportedResultComparison
+        let range = QsNullable.defaultValue Range.Zero range
 
         match kind with
+        | _ when RuntimeCapability.subsumes target.Capability capability -> None
         | ConditionalEqualityInOperation
-        | UnrestrictedEquality -> error unsupported [ target.Architecture ]
+        | UnrestrictedEquality ->
+            let code =
+                if target.Capability.ResultOpacity >= ResultOpacity.controlled then
+                    ErrorCode.ResultComparisonNotInOperationIf
+                else
+                    ErrorCode.UnsupportedResultComparison
+
+            Some(code, [ target.Architecture ])
         | ReturnInDependentBranch ->
             if target.Capability.ResultOpacity >= ResultOpacity.controlled then
-                error ErrorCode.ReturnInResultConditionedBlock [ target.Architecture ]
+                Some(ErrorCode.ReturnInResultConditionedBlock, [ target.Architecture ])
             else
                 None
         | SetInDependentBranch name ->
             if target.Capability.ResultOpacity >= ResultOpacity.controlled then
-                error ErrorCode.SetInResultConditionedBlock [ name; target.Architecture ]
+                Some(ErrorCode.SetInResultConditionedBlock, [ name; target.Architecture ])
             else
                 None
+        |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Error(code, args) range)
 
     {
         Capability = capability

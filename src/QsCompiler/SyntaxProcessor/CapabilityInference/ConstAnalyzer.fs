@@ -15,13 +15,16 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 type Context = { IsEntryPoint: bool; IsConstSensitive: bool }
 
 let createPattern range =
-    let range = QsNullable.defaultValue Range.Zero range
     let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
 
-    let diagnose target =
-        QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
-        |> Some
-        |> Option.filter (fun _ -> RuntimeCapability.subsumes target.Capability capability |> not)
+    let diagnose (target: Target) =
+        let range = QsNullable.defaultValue Range.Zero range
+
+        if RuntimeCapability.subsumes target.Capability capability then
+            None
+        else
+            QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
+            |> Some
 
     {
         Capability = capability

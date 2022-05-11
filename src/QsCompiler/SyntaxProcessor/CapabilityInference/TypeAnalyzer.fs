@@ -53,21 +53,26 @@ let rec requiredCapability context usage (ty: ResolvedType) =
         | _ -> ClassicalCapability.empty
 
 let createPattern range classical =
-    let range = QsNullable.defaultValue Range.Zero range
     let capability = RuntimeCapability.withClassical classical RuntimeCapability.bottom
 
-    let diagnose target =
-        QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
-        |> Some
-        |> Option.filter (fun _ -> RuntimeCapability.subsumes target.Capability capability |> not)
+    if capability = RuntimeCapability.bottom then
+        None
+    else
+        let diagnose (target: Target) =
+            let range = QsNullable.defaultValue Range.Zero range
 
-    Some
-        {
-            Capability = capability
-            Diagnose = diagnose
-            Properties = ()
-        }
-    |> Option.filter (fun _ -> capability <> RuntimeCapability.bottom)
+            if RuntimeCapability.subsumes target.Capability capability then
+                None
+            else
+                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
+                |> Some
+
+        Some
+            {
+                Capability = capability
+                Diagnose = diagnose
+                Properties = ()
+            }
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild

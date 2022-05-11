@@ -1912,8 +1912,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<Diagnostic> CapabilityDiagnostics(
             CompilationUnit compilation, CallGraph graph, IEnumerable<QsQualifiedName> delta)
         {
-            var target = new Target(
-                compilation.BuildProperties.RuntimeCapability, compilation.BuildProperties.ProcessorArchitecture);
+            var properties = compilation.BuildProperties;
+            var target = TargetModule.Create(properties.RuntimeCapability, properties.ProcessorArchitecture);
 
             foreach (var name in delta)
             {
