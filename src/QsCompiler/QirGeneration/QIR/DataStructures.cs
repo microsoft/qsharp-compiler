@@ -444,9 +444,9 @@ namespace Microsoft.Quantum.QIR.Emission
         public ResolvedType QSharpType =>
             ResolvedType.New(QsResolvedTypeKind.NewArrayType(this.QSharpElementType));
 
-        public ITypeRef LlvmElementType { get; }
+        public ITypeRef LlvmElementType { get; private set; }
 
-        public ITypeRef LlvmType { get; }
+        public ITypeRef LlvmType { get; private set; }
 
         public uint? Count { get; }
 
@@ -469,10 +469,10 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        private ArrayValue(ResolvedType elementType, uint? count, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+        private ArrayValue(ResolvedType elementType, uint count, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
         {
             this.sharedState = context;
-            this.Count = count < arrayElements.Count ? count.Value : (uint)arrayElements.Count;
+            this.Count = count < arrayElements.Count ? count : (uint)arrayElements.Count;
             this.length = this.CreateLengthCache();
             this.QSharpElementType = elementType;
 
@@ -501,12 +501,12 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         internal ArrayValue(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(elementType, null, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
+            : this(elementType, (uint)arrayElements.Length, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
         {
         }
 
         internal ArrayValue(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(elementType, null, arrayElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
+            : this(elementType, (uint)arrayElements.Count, arrayElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
         {
             foreach (var element in arrayElements)
             {
@@ -659,16 +659,22 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private IReadOnlyList<IValue> NormalizeArrayElements(ResolvedType eltype, IReadOnlyList<IValue> elements, bool registerWithScopeManager)
         {
-            IReadOnlyList<IValue> NormalizeItems<T>(
-                uint normalizedCount, IReadOnlyList<T> elements, Func<int, T, IValue> getInnerElements, Func<int, ResolvedType> elementType, Func<int, IReadOnlyList<IValue>, IValue> buildElement)
+            IReadOnlyList<T> NormalizeItems<T>(
+                uint normalizedCount, IReadOnlyList<T> elements, Func<int, T, IValue> getInnerElements, Func<int, ResolvedType> elementType, Func<int, IReadOnlyList<IValue>, T> buildElement)
             where T : IValue
             {
+                if (elements.Select(e => e.LlvmType).Distinct().Count() <= 1)
+                {
+                    return elements;
+                }
+
                 var newElements = new List<IReadOnlyList<IValue>>();
                 for (var innerItemIdx = 0; innerItemIdx < normalizedCount; ++innerItemIdx)
                 {
                     var innerElements = Enumerable.ToArray(elements.Select(e => getInnerElements(innerItemIdx, e)));
                     var rebuiltElements = this.NormalizeArrayElements(elementType(innerItemIdx), innerElements, registerWithScopeManager);
-                    newElements.Add(rebuiltElements);
+                    newElements.Add(rebuiltElements.Select((built, idx) =>
+                        built.LlvmType == innerElements[idx].LlvmType ? innerElements[idx] : built).ToArray());
                 }
 
                 return Enumerable.ToArray(Enumerable.Range(0, elements.Count)
@@ -685,12 +691,13 @@ namespace Microsoft.Quantum.QIR.Emission
 
                 IValue GetInnerElements(int idx, ArrayValue array) =>
                     idx < array.Count
-                            ? array.GetArrayElement(idx)
-                            : this.sharedState.Values.From(array.LlvmElementType.GetNullValue(), array.QSharpElementType);
+                    ? array.GetArrayElement(idx)
+                    : this.sharedState.Values.From(array.LlvmElementType.GetNullValue(), array.QSharpElementType);
 
-                return NormalizeItems(
-                    innerArrSize, arrs, GetInnerElements, _ => it.Item, (idx, newElements) =>
-                    new ArrayValue(it.Item, arrs[idx].Count, newElements, this.sharedState, allocOnStack: true, registerWithScopeManager: registerWithScopeManager));
+                return NormalizeItems(innerArrSize, arrs, GetInnerElements, _ => it.Item, (idx, newElements) =>
+                    arrs[idx].Count is uint count
+                    ? new ArrayValue(it.Item, count, newElements, this.sharedState, allocOnStack: true, registerWithScopeManager: registerWithScopeManager)
+                    : throw new InvalidOperationException("cannot resize array of unknown length to match the size of a new item"));
             }
             else if (eltype.Resolution is QsResolvedTypeKind.TupleType ts)
             {
@@ -713,6 +720,27 @@ namespace Microsoft.Quantum.QIR.Emission
             }
         }
 
+        private (Value, IValue) NormalizeIfNecessary(Value constArr, IValue newElement)
+        {
+            if (newElement.LlvmType == this.LlvmElementType)
+            {
+                return (constArr, newElement);
+            }
+            else
+            {
+                var currentElements = this.GetArrayElements().Prepend(newElement).ToArray();
+                var newElements = this.NormalizeArrayElements(this.QSharpElementType, currentElements, false);
+                this.LlvmElementType = newElements.Select(e => e.LlvmType).Distinct().Single();
+                this.LlvmType = this.LlvmElementType.CreateArrayType(((IArrayType)constArr.NativeType).Length);
+
+                var rebuiltArr = newElements.Skip(1).Select((element, idx) => (element, idx)).Aggregate(
+                    (Value)this.LlvmType.GetNullValue(),
+                    (current, next) => this.sharedState.CurrentBuilder.InsertValue(current, next.element.Value, (uint)next.idx));
+
+                return (rebuiltArr, newElements[0]);
+            }
+        }
+
         // methods for item access
 
         /// <summary>
@@ -730,11 +758,17 @@ namespace Microsoft.Quantum.QIR.Emission
             }
             else if (QirValues.AsConstantInt(index) is uint constIndex)
             {
-                void Store(IValue v) =>
-                    this.Value = this.UpdateNativeValue(constArr => this.sharedState.CurrentBuilder.InsertValue(constArr, v.Value, constIndex)); // FIXME NEED TO RENORMALIZE WHEN WE STORE??
+                void Store(IValue v)
+                {
+                    this.Value = this.UpdateNativeValue(constArr =>
+                    {
+                        (constArr, v) = this.NormalizeIfNecessary(constArr, v);
+                        return this.sharedState.CurrentBuilder.InsertValue(constArr, v.Value, constIndex);
+                    });
+                }
 
                 IValue Reload() =>
-                    this.IsNativeValue(out var constArr, out var count)
+                    this.IsNativeValue(out var constArr, out var _)
                     ? this.sharedState.Values.From(
                         this.sharedState.CurrentBuilder.ExtractValue(constArr, constIndex),
                         this.QSharpElementType)
@@ -756,9 +790,10 @@ namespace Microsoft.Quantum.QIR.Emission
                 void Store(IValue v) =>
                     this.Value = this.UpdateNativeValue(constArr =>
                     {
+                        (constArr, v) = this.NormalizeIfNecessary(constArr, v);
                         var (constArrPtr, elementPtr) = GetElementPointer(constArr, index);
                         this.sharedState.CurrentBuilder.Store(v.Value, elementPtr);
-                        return this.sharedState.CurrentBuilder.Load(constArr.NativeType, constArrPtr); // FIXME ... (same as above)
+                        return this.sharedState.CurrentBuilder.Load(constArr.NativeType, constArrPtr);
                     });
 
                 IValue Reload()
@@ -790,7 +825,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// If no indices are specified, returns all element pointers if the length of the array is known,
         /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
         /// </summary>
-        internal PointerValue[] GetArrayElementPointers(params int[] indices)
+        internal PointerValue[] GetArrayElementPointers(params int[] indices) // FIXME: WON'T WORK IF COUNT IS NOT SET
         {
             var enumerable = indices.Length != 0 ? indices :
                 this.Count != null && this.Count <= int.MaxValue ? Enumerable.Range(0, (int)this.Count) :
