@@ -124,7 +124,7 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Statements <-
         { new StatementTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnStatement statement =
-                base.OnStatement statement |> ignore
+                let statement = base.OnStatement statement
 
                 match statement.Statement with
                 | QsReturnStatement _ when dependsOnResult ->
@@ -149,27 +149,36 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
         { new StatementKindTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnConditionalStatement statement =
                 let oldDependsOnResult = dependsOnResult
-                base.OnConditionalStatement statement |> ignore
+                let kind = base.OnConditionalStatement statement
                 dependsOnResult <- oldDependsOnResult
-                QsConditionalStatement statement
+                kind
 
             override _.OnPositionedBlock(condition, block) =
-                transformation.OnRelativeLocation block.Location |> ignore
+                let location = transformation.OnRelativeLocation block.Location
 
-                for c in condition do
-                    use _ = local { context with InCondition = true }
-                    transformation.Expressions.OnTypedExpression c |> ignore
+                let condition =
+                    QsNullable<_>.Map
+                        (fun c ->
+                            use _ = local { context with InCondition = true }
+                            transformation.Expressions.OnTypedExpression c) condition
 
                 let knownVars = Seq.map (fun v -> v.VariableName) block.Body.KnownSymbols.Variables |> Set.ofSeq
                 use _ = local (if dependsOnResult then { context with FrozenVars = knownVars } else context)
-                transformation.Statements.OnScope block.Body |> ignore
+                let body = transformation.Statements.OnScope block.Body
 
-                condition, block
+                condition,
+                {
+                    Body = body
+                    Location = location
+                    Comments = block.Comments
+                }
         }
 
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
+                let expression = base.OnTypedExpression expression
+
                 if isResultEquality expression then
                     let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
@@ -179,7 +188,7 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
                     else
                         createPattern UnrestrictedEquality range |> patterns.Add
 
-                base.OnTypedExpression expression
+                expression
         }
 
     action transformation

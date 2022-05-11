@@ -33,8 +33,8 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Statements <-
         { new StatementTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnStatement statement =
-                let offset = QsNullable.defaultValue Position.Zero transformation.Offset
-                let range = statement.Location |> QsNullable<_>.Map (fun l -> offset + l.Offset + l.Range)
+                let statement = base.OnStatement statement
+                let range = (transformation.Offset, statement.Location) ||> QsNullable.Map2(fun o l -> o + l.Range)
 
                 match statement.Statement with
                 | QsFailStatement _
@@ -45,7 +45,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                     if numReturns > 1 then createPattern range |> patterns.Add
                 | _ -> ()
 
-                base.OnStatement statement
+                statement
         }
 
     action transformation
