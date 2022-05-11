@@ -91,7 +91,14 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
         { new NamespaceTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnCallableDeclaration callable =
                 use _ = local { context with IsEntryPoint = Seq.exists BuiltIn.MarksEntryPoint callable.Attributes }
-                base.OnCallableDeclaration callable
+                let callable = base.OnCallableDeclaration callable
+
+                let returnType = callable.Signature.ReturnType
+                let returnRange = TypeRange.tryRange returnType.Range
+                let range = (callable.Location, returnRange) ||> QsNullable.Map2(fun l r -> l.Offset + r)
+                requiredCapability context Return returnType |> createPattern range |> Option.iter patterns.Add
+
+                callable
         }
 
     transformation.Statements <-
@@ -101,15 +108,6 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 | QsFailStatement _ ->
                     use _ = local { context with StringLiteralsOk = true }
                     base.OnStatement statement
-                | QsReturnStatement value ->
-                    let statement = base.OnStatement statement
-                    let range = (transformation.Offset, statement.Location) ||> QsNullable.Map2(fun o l -> o + l.Range)
-
-                    requiredCapability context Return value.ResolvedType
-                    |> createPattern range
-                    |> Option.iter patterns.Add
-
-                    statement
                 | QsVariableDeclaration binding when binding.Kind = MutableBinding ->
                     let statement = base.OnStatement statement
 
