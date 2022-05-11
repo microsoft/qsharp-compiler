@@ -1083,9 +1083,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (exType.Resolution is ResolvedTypeKind.ArrayType elementType)
             {
+                var (arr1, arr2) = ((ArrayValue)lhs, (ArrayValue)rhs);
                 if (this.SharedState.TargetQirProfile)
                 {
-                    var (arr1, arr2) = ((ArrayValue)lhs, (ArrayValue)rhs);
                     var elements = arr1.GetArrayElements().Concat(arr2.GetArrayElements()).ToArray();
                     value = this.SharedState.Values.CreateArray(elementType.Item, elements, allocOnStack: true);
                 }
@@ -1093,8 +1093,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     // The runtime function ArrayConcatenate creates a new value with reference count 1 and alias count 0.
                     var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
-                    var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
-                    value = this.SharedState.Values.FromArray(res, elementType.Item, (lhs as ArrayValue)?.Count + (rhs as ArrayValue)?.Count);
+                    var res = this.SharedState.CurrentBuilder.Call(adder, arr1.Value, arr2.Value);
+                    value = this.SharedState.Values.FromArray(res, elementType.Item, arr1.Count + arr2.Count);
 
                     // The explicit ref count increase for all items is necessary for the sake of
                     // consistency such that the reference count adjustment for copy-and-update is correct.

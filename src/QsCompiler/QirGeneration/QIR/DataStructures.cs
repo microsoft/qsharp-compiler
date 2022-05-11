@@ -435,6 +435,8 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class ArrayValue : IValue
     {
         // FIXME: ENFORCE THAT STACKALLOC IS ONLY TRUE WHEN ALL ELEMENTS ARE STACK ALLOC?
+        // TODO: add caching for array element pointers if count is known
+        // TODO: make Paulis i2s rather than loading them.
         private readonly GenerationContext sharedState;
         private readonly IValue.Cached<Value> length;
 
@@ -827,7 +829,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// If no indices are specified, returns all element pointers if the length of the array is known,
         /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
         /// </summary>
-        internal PointerValue[] GetArrayElementPointers(params int[] indices) // FIXME: WON'T WORK IF COUNT IS NOT SET
+        internal PointerValue[] GetArrayElementPointers(params int[] indices)
         {
             var enumerable = indices.Length != 0 ? indices :
                 this.Count != null && this.Count <= int.MaxValue ? Enumerable.Range(0, (int)this.Count) :

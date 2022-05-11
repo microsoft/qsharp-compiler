@@ -74,7 +74,7 @@ entry:
   %36 = extractvalue { [2 x %Qubit*], i64 } %34, 1
   %37 = insertvalue [2 x %Qubit*] %35, %Qubit* %31, 1
   %38 = insertvalue { [2 x %Qubit*], i64 } zeroinitializer, [2 x %Qubit*] %37, 0
-  %qs = insertvalue { [2 x %Qubit*], i64 } %38, i64 %36, 1
+  %qs = insertvalue { [2 x %Qubit*], i64 } %38, i64 2, 1
   %39 = extractvalue { [2 x %Qubit*], i64 } %qs, 0
   %40 = extractvalue { [2 x %Qubit*], i64 } %qs, 1
   %qubit = extractvalue [2 x %Qubit*] %39, 0
@@ -122,9 +122,9 @@ entry:
   store { [4 x { [2 x i64], i64 }], i64 } { [4 x { [2 x i64], i64 }] [{ [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } { [2 x i64] [i64 3, i64 0], i64 1 }, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [2 x i64], i64 }], i64 }* %61, align 4
   %62 = bitcast { [4 x { [2 x i64], i64 }], i64 }* %61 to i8*
   call void @__quantum__qis__dumpmachine__body(i8* %62)
-  %63 = alloca { [4 x { [2 x i64], i64 }], i64 }, align 8
-  store { [4 x { [2 x i64], i64 }], i64 } { [4 x { [2 x i64], i64 }] [{ [2 x i64], i64 } { [2 x i64] [i64 2, i64 1], i64 2 }, { [2 x i64], i64 } { [3 x i64] [i64 1, i64 2, i64 3], i64 3 }, { [2 x i64], i64 } { [2 x i64] [i64 3, i64 0], i64 1 }, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [2 x i64], i64 }], i64 }* %63, align 4
-  %64 = bitcast { [4 x { [2 x i64], i64 }], i64 }* %63 to i8*
+  %63 = alloca { [4 x { [3 x i64], i64 }], i64 }, align 8
+  store { [4 x { [3 x i64], i64 }], i64 } { [4 x { [3 x i64], i64 }] [{ [3 x i64], i64 } { [3 x i64] [i64 2, i64 1, i64 0], i64 2 }, { [3 x i64], i64 } { [3 x i64] [i64 1, i64 2, i64 3], i64 3 }, { [3 x i64], i64 } { [3 x i64] [i64 3, i64 0, i64 0], i64 1 }, { [3 x i64], i64 } { [3 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [3 x i64], i64 }], i64 }* %63, align 4
+  %64 = bitcast { [4 x { [3 x i64], i64 }], i64 }* %63 to i8*
   call void @__quantum__qis__dumpmachine__body(i8* %64)
   call void @__quantum__rt__result_update_reference_count(%Result* %m2, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %30)
