@@ -107,9 +107,9 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                     statement
                 | QsVariableDeclaration binding when binding.Kind = MutableBinding ->
                     let statement = base.OnStatement statement
-                    let range = (transformation.Offset, statement.Location) ||> QsNullable.Map2(fun o l -> o + l.Range)
 
                     for var in statement.SymbolDeclarations.Variables do
+                        let range = QsNullable<_>.Map (fun o -> o + var.Range) transformation.Offset
                         requiredCapability context Mutable var.Type |> createPattern range |> Option.iter patterns.Add
 
                     statement
