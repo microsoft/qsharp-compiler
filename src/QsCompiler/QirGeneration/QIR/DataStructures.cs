@@ -435,7 +435,6 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class ArrayValue : IValue
     {
         // FIXME: ENFORCE THAT STACKALLOC IS ONLY TRUE WHEN ALL ELEMENTS ARE STACK ALLOC?
-
         private readonly GenerationContext sharedState;
         private readonly IValue.Cached<Value> length;
 
@@ -528,16 +527,16 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="value">The opaque pointer to the array data structure</param>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
-        internal ArrayValue(Value value, ResolvedType elementType, GenerationContext context)
+        internal ArrayValue(Value value, ResolvedType elementType, uint? count, GenerationContext context)
         {
             this.sharedState = context;
             this.length = this.CreateLengthCache();
             this.QSharpElementType = elementType;
             this.LlvmType = value.NativeType;
 
-            if (this.IsNativeValue(out var constArr, out var count, value: value))
+            if (this.IsNativeValue(out var constArr, out var length, value: value))
             {
-                this.Count = QirValues.AsConstantInt(count);
+                this.Count = count ?? QirValues.AsConstantInt(length);
                 this.LlvmElementType = ((IArrayType)constArr.NativeType).ElementType;
                 this.Value = value;
             }
@@ -614,8 +613,11 @@ namespace Microsoft.Quantum.QIR.Emission
             CreateNativeValue(elementType.CreateArrayType(nrElements).GetNullValue(), count, context);
 
         private Value UpdateNativeValue(Func<Value, Value>? transformConstArr = null) =>
-            this.IsNativeValue(out var constArr, out var count)
-                ? CreateNativeValue(transformConstArr?.Invoke(constArr) ?? constArr, count, this.sharedState)
+            this.IsNativeValue(out var constArr, out var length)
+                ? CreateNativeValue(
+                    transformConstArr?.Invoke(constArr) ?? constArr,
+                    this.Count != null ? this.sharedState.Context.CreateConstant((long)this.Count) : length,
+                    this.sharedState)
                 : throw new InvalidOperationException("no native llvm represenation available");
 
         private bool IsNativeValue([MaybeNullWhen(false)] out Value constArr, [MaybeNullWhen(false)] out Value length, Value? value = null)

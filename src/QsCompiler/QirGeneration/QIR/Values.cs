@@ -162,8 +162,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Creates a new array value from the given opaque array of elements of the given type.
         /// </summary>
         /// <param name="elementType">Q# type of the array elements</param>
-        internal ArrayValue FromArray(Value value, ResolvedType elementType) =>
-            new ArrayValue(value, elementType, this.sharedState);
+        internal ArrayValue FromArray(Value value, ResolvedType elementType, uint? count) =>
+            new ArrayValue(value, elementType, count, this.sharedState);
 
         /// <summary>
         /// Creates a callable value that stores the given LLVM value representing a Q# callable.
@@ -179,7 +179,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="value">The LLVM value to store</param>
         /// <param name="type">The Q# of the value</param>
         internal IValue From(Value value, ResolvedType type) =>
-            type.Resolution is ResolvedTypeKind.ArrayType it ? this.sharedState.Values.FromArray(value, it.Item) :
+            type.Resolution is ResolvedTypeKind.ArrayType it ? this.sharedState.Values.FromArray(value, it.Item, null) :
             type.Resolution is ResolvedTypeKind.TupleType ts ? this.sharedState.Values.FromTuple(value, ts.Item) :
             type.Resolution is ResolvedTypeKind.UserDefinedType udt ? this.sharedState.Values.FromCustomType(value, udt.Item.GetFullName()) :
             (type.Resolution.IsOperation || type.Resolution.IsFunction) ? this.sharedState.Values.FromCallable(value, type) :

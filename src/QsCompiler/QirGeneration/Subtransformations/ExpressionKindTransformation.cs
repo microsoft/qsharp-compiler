@@ -19,7 +19,6 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using ArgumentTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
     using ResolvedExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
@@ -270,7 +269,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     if (sharedState.TargetQirProfile)
                     {
-                        return sharedState.Values.FromArray(originalArray.Value, originalArray.QSharpElementType);
+                        return sharedState.Values.FromArray(originalArray.Value, originalArray.QSharpElementType, originalArray.Count);
                     }
                     else
                     {
@@ -280,7 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
                         var forceCopy = sharedState.Context.CreateConstant(needsToBeCopied);
                         var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
-                        return sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
+                        return sharedState.Values.FromArray(copy, originalArray.QSharpElementType, originalArray.Count);
                     }
                 }
 
@@ -1095,7 +1094,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // The runtime function ArrayConcatenate creates a new value with reference count 1 and alias count 0.
                     var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                     var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
-                    value = this.SharedState.Values.FromArray(res, elementType.Item);
+                    value = this.SharedState.Values.FromArray(res, elementType.Item, (lhs as ArrayValue)?.Count + (rhs as ArrayValue)?.Count);
 
                     // The explicit ref count increase for all items is necessary for the sake of
                     // consistency such that the reference count adjustment for copy-and-update is correct.
@@ -1157,7 +1156,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                     var range = this.SharedState.EvaluateSubexpression(idx).Value;
                     var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.OpaquePointer, range, forceCopy);
-                    value = this.SharedState.Values.FromArray(slice, elementType);
+                    value = this.SharedState.Values.FromArray(slice, elementType, null);
 
                     // The explicit ref count increase for all items is necessary for the sake of
                     // consistency such that the reference count adjustment for copy-and-update is correct.
