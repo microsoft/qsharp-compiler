@@ -65,70 +65,55 @@ entry:
   store double 3.000000e+00, double* %28, align 8
   %29 = bitcast double* %28 to i8*
   call void @__quantum__qis__dumpmachine__body(i8* %29)
-  %30 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %31 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %32 = insertvalue [2 x %Qubit*] zeroinitializer, %Qubit* %30, 0
-  %33 = insertvalue { [2 x %Qubit*], i64 } zeroinitializer, [2 x %Qubit*] %32, 0
-  %34 = insertvalue { [2 x %Qubit*], i64 } %33, i64 2, 1
-  %35 = extractvalue { [2 x %Qubit*], i64 } %34, 0
-  %36 = extractvalue { [2 x %Qubit*], i64 } %34, 1
-  %37 = insertvalue [2 x %Qubit*] %35, %Qubit* %31, 1
-  %38 = insertvalue { [2 x %Qubit*], i64 } zeroinitializer, [2 x %Qubit*] %37, 0
-  %qs = insertvalue { [2 x %Qubit*], i64 } %38, i64 2, 1
-  %39 = extractvalue { [2 x %Qubit*], i64 } %qs, 0
-  %40 = extractvalue { [2 x %Qubit*], i64 } %qs, 1
-  %qubit = extractvalue [2 x %Qubit*] %39, 0
+  %qubit = call %Qubit* @__quantum__rt__qubit_allocate()
+  %target = call %Qubit* @__quantum__rt__qubit_allocate()
+  %30 = insertvalue [2 x %Qubit*] zeroinitializer, %Qubit* %qubit, 0
+  %31 = insertvalue { [2 x %Qubit*], i64 } zeroinitializer, [2 x %Qubit*] %30, 0
+  %32 = insertvalue { [2 x %Qubit*], i64 } %31, i64 2, 1
+  %33 = extractvalue { [2 x %Qubit*], i64 } %32, 0
+  %34 = extractvalue { [2 x %Qubit*], i64 } %32, 1
+  %35 = insertvalue [2 x %Qubit*] %33, %Qubit* %target, 1
+  %36 = insertvalue { [2 x %Qubit*], i64 } zeroinitializer, [2 x %Qubit*] %35, 0
+  %qs = insertvalue { [2 x %Qubit*], i64 } %36, i64 2, 1
   call void @__quantum__qis__h__body(%Qubit* %qubit)
-  %41 = extractvalue { [2 x %Qubit*], i64 } %qs, 0
-  %42 = extractvalue { [2 x %Qubit*], i64 } %qs, 1
-  %control = extractvalue [2 x %Qubit*] %41, 0
-  %43 = extractvalue { [2 x %Qubit*], i64 } %qs, 0
-  %44 = extractvalue { [2 x %Qubit*], i64 } %qs, 1
-  %target = extractvalue [2 x %Qubit*] %43, 1
-  call void @__quantum__qis__cnot__body(%Qubit* %control, %Qubit* %target)
-  %45 = extractvalue { [2 x %Qubit*], i64 } %qs, 0
-  %46 = extractvalue { [2 x %Qubit*], i64 } %qs, 1
-  %qubit__1 = extractvalue [2 x %Qubit*] %45, 0
-  %m1 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit__1)
-  %47 = extractvalue { [2 x %Qubit*], i64 } %qs, 0
-  %48 = extractvalue { [2 x %Qubit*], i64 } %qs, 1
-  %qubit__2 = extractvalue [2 x %Qubit*] %47, 1
-  %m2 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit__2)
-  %49 = alloca i64, align 8
-  store i64 1, i64* %49, align 4
-  %50 = bitcast i64* %49 to i8*
+  call void @__quantum__qis__cnot__body(%Qubit* %qubit, %Qubit* %target)
+  %m1 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit)
+  %m2 = call %Result* @__quantum__qis__m__body(%Qubit* %target)
+  %37 = alloca i64, align 8
+  store i64 1, i64* %37, align 4
+  %38 = bitcast i64* %37 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %38)
+  %39 = alloca i64, align 8
+  store i64 2, i64* %39, align 4
+  %40 = bitcast i64* %39 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %40)
+  %41 = alloca { [2 x i64], i64 }, align 8
+  store { [2 x i64], i64 } { [2 x i64] [i64 1, i64 2], i64 2 }, { [2 x i64], i64 }* %41, align 4
+  %42 = bitcast { [2 x i64], i64 }* %41 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %42)
+  %43 = alloca i64, align 8
+  store i64 3, i64* %43, align 4
+  %44 = bitcast i64* %43 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %44)
+  %45 = alloca { { [2 x i64], i64 }, { [2 x i64], i64 } }, align 8
+  store { { [2 x i64], i64 }, { [2 x i64], i64 } } { { [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 } }, { { [2 x i64], i64 }, { [2 x i64], i64 } }* %45, align 4
+  %46 = bitcast { { [2 x i64], i64 }, { [2 x i64], i64 } }* %45 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %46)
+  %47 = alloca { [4 x { [2 x i64], i64 }], i64 }, align 8
+  store { [4 x { [2 x i64], i64 }], i64 } { [4 x { [2 x i64], i64 }] [{ [2 x i64], i64 } { [2 x i64] [i64 2, i64 1], i64 2 }, { [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } { [2 x i64] [i64 3, i64 0], i64 1 }, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [2 x i64], i64 }], i64 }* %47, align 4
+  %48 = bitcast { [4 x { [2 x i64], i64 }], i64 }* %47 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %48)
+  %49 = alloca { [4 x { [2 x i64], i64 }], i64 }, align 8
+  store { [4 x { [2 x i64], i64 }], i64 } { [4 x { [2 x i64], i64 }] [{ [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } { [2 x i64] [i64 3, i64 0], i64 1 }, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [2 x i64], i64 }], i64 }* %49, align 4
+  %50 = bitcast { [4 x { [2 x i64], i64 }], i64 }* %49 to i8*
   call void @__quantum__qis__dumpmachine__body(i8* %50)
-  %51 = alloca i64, align 8
-  store i64 2, i64* %51, align 4
-  %52 = bitcast i64* %51 to i8*
+  %51 = alloca { [4 x { [3 x i64], i64 }], i64 }, align 8
+  store { [4 x { [3 x i64], i64 }], i64 } { [4 x { [3 x i64], i64 }] [{ [3 x i64], i64 } { [3 x i64] [i64 2, i64 1, i64 0], i64 2 }, { [3 x i64], i64 } { [3 x i64] [i64 1, i64 2, i64 3], i64 3 }, { [3 x i64], i64 } { [3 x i64] [i64 3, i64 0, i64 0], i64 1 }, { [3 x i64], i64 } { [3 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [3 x i64], i64 }], i64 }* %51, align 4
+  %52 = bitcast { [4 x { [3 x i64], i64 }], i64 }* %51 to i8*
   call void @__quantum__qis__dumpmachine__body(i8* %52)
-  %53 = alloca { [2 x i64], i64 }, align 8
-  store { [2 x i64], i64 } { [2 x i64] [i64 1, i64 2], i64 2 }, { [2 x i64], i64 }* %53, align 4
-  %54 = bitcast { [2 x i64], i64 }* %53 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %54)
-  %55 = alloca i64, align 8
-  store i64 3, i64* %55, align 4
-  %56 = bitcast i64* %55 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %56)
-  %57 = alloca { { [2 x i64], i64 }, { [2 x i64], i64 } }, align 8
-  store { { [2 x i64], i64 }, { [2 x i64], i64 } } { { [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 } }, { { [2 x i64], i64 }, { [2 x i64], i64 } }* %57, align 4
-  %58 = bitcast { { [2 x i64], i64 }, { [2 x i64], i64 } }* %57 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %58)
-  %59 = alloca { [4 x { [2 x i64], i64 }], i64 }, align 8
-  store { [4 x { [2 x i64], i64 }], i64 } { [4 x { [2 x i64], i64 }] [{ [2 x i64], i64 } { [2 x i64] [i64 2, i64 1], i64 2 }, { [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } { [2 x i64] [i64 3, i64 0], i64 1 }, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [2 x i64], i64 }], i64 }* %59, align 4
-  %60 = bitcast { [4 x { [2 x i64], i64 }], i64 }* %59 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %60)
-  %61 = alloca { [4 x { [2 x i64], i64 }], i64 }, align 8
-  store { [4 x { [2 x i64], i64 }], i64 } { [4 x { [2 x i64], i64 }] [{ [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } zeroinitializer, { [2 x i64], i64 } { [2 x i64] [i64 3, i64 0], i64 1 }, { [2 x i64], i64 } { [2 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [2 x i64], i64 }], i64 }* %61, align 4
-  %62 = bitcast { [4 x { [2 x i64], i64 }], i64 }* %61 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %62)
-  %63 = alloca { [4 x { [3 x i64], i64 }], i64 }, align 8
-  store { [4 x { [3 x i64], i64 }], i64 } { [4 x { [3 x i64], i64 }] [{ [3 x i64], i64 } { [3 x i64] [i64 2, i64 1, i64 0], i64 2 }, { [3 x i64], i64 } { [3 x i64] [i64 1, i64 2, i64 3], i64 3 }, { [3 x i64], i64 } { [3 x i64] [i64 3, i64 0, i64 0], i64 1 }, { [3 x i64], i64 } { [3 x i64] zeroinitializer, i64 1 }], i64 4 }, { [4 x { [3 x i64], i64 }], i64 }* %63, align 4
-  %64 = bitcast { [4 x { [3 x i64], i64 }], i64 }* %63 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %64)
   call void @__quantum__rt__result_update_reference_count(%Result* %m1, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %m2, i32 -1)
-  call void @__quantum__rt__qubit_release(%Qubit* %30)
-  call void @__quantum__rt__qubit_release(%Qubit* %31)
+  call void @__quantum__rt__qubit_release(%Qubit* %qubit)
+  call void @__quantum__rt__qubit_release(%Qubit* %target)
   ret i64 6
 }
