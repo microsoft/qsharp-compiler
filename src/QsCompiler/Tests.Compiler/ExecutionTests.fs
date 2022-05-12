@@ -73,6 +73,7 @@ type ExecutionTests(output: ITestOutputHelper) =
 
                 yield "--assembly-properties"
                 yield "QirOutputPath:qir"
+                yield $"TargetCapability:{runtimeCapability}"
             }
 
         let result = Program.Main(compilerArgs |> Seq.toArray)

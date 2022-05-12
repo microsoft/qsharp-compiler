@@ -28,42 +28,49 @@
     <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
   </PropertyGroup>
 
-  <!-- Initializing the ResolvedProcessorArchitecture to either HoneywellProcessor, IonQProcessor, QCIProcessor, QuantinuumProcessor, MicrosoftSimulator or Unspecified.-->
+  <!-- Initializing the ResolvedProcessorArchitecture to either HoneywellProcessor, IonQProcessor, QCIProcessor, QuantinuumProcessor, RigettiProcessor, MicrosoftSimulator or Unspecified.-->
   <PropertyGroup>
     <!-- These architectures are in production and available for public use. -->
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('honeywell'))">HoneywellProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('ionq'))">IonQProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('qci'))">QCIProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('quantinuum'))">QuantinuumProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('microsoft.simulator'))">MicrosoftSimulator</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('honeywell'))">HoneywellProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('ionq'))">IonQProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('qci'))">QCIProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('quantinuum'))">QuantinuumProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('rigetti'))">RigettiProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('microsoft.simulator'))">MicrosoftSimulator</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.Equals('Any', StringComparison.InvariantCultureIgnoreCase))">Unspecified</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor' And '$(ResolvedProcessorArchitecture)' != 'QuantinuumProcessor' And '$(ResolvedProcessorArchitecture)' != 'Unspecified' And '$(ResolvedProcessorArchitecture)' != 'MicrosoftSimulator'"></ResolvedProcessorArchitecture>
-    <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values must match 'ionq*', 'honeywell*', 'qci*', 'quantinuum*', 'microsoft.simulator*', or 'Any'.</ValidExecutionTargets>
+    <ResolvedProcessorArchitecture Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor' And '$(ResolvedProcessorArchitecture)' != 'QuantinuumProcessor' And '$(ResolvedProcessorArchitecture)' != 'RigettiProcessor' And '$(ResolvedProcessorArchitecture)' != 'MicrosoftSimulator' And '$(ResolvedProcessorArchitecture)' != 'Unspecified'"></ResolvedProcessorArchitecture>
+    <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values must match 'ionq*', 'honeywell*', 'qci*', 'quantinuum*', 'rigetti*', 'microsoft.simulator*', or 'Any'.</ValidExecutionTargets>
     <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
-    <!-- 
-      These architectures are currently under active development and not available for public use yet. 
-      Targeting is disabled since the code will be targeted by the QIR compiler, and Q# diagnostics are not yet enabled for these architectures. 
-    -->
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('honeywell.qir'))">HoneywellQirProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().StartsWith('qci.qir'))">QCIQirProcessor</ResolvedProcessorArchitecture>
   </PropertyGroup>
 
-  <!-- Resolving the QuantumIntrinsics to either Type1, Type2, Type3, or Default.-->
+  <!-- Resolving the QuantumIntrinsics to either Type1, Type2, Type3, Type4 or Default.-->
   <PropertyGroup>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'HoneywellQirProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">Type1</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">Type1</ResolvedQuantumIntrinsics>
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Type2</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QCIQirProcessor'">Type3</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Type3</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">Type4</ResolvedQuantumIntrinsics>
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">Default</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'And '$(ResolvedProcessorArchitecture)' != 'QuantinuumProcessor'">Default</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'Unspecified'">Default</ResolvedQuantumIntrinsics>
   </PropertyGroup>
 
-  <!-- Resolving the RuntimeCapabilites to either BasicQuantumFunctionality, BasicMeasurementFeedback, or FullComputation.-->
+  <!-- Resolving the TargetCapability to either BasicExecution, AdaptiveExecution, BasicQuantumFunctionality, BasicMeasurementFeedback, or FullComputation.-->
   <PropertyGroup>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">BasicMeasurementFeedback</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">BasicQuantumFunctionality</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">BasicMeasurementFeedback</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">FullComputation</ResolvedRuntimeCapabilities>
-    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor' And '$(ResolvedProcessorArchitecture)' != 'QuantinuumProcessor'">FullComputation</ResolvedRuntimeCapabilities>
+    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'AdaptiveExecution' And '$(TargetCapability)' != 'BasicExecution' And ('$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor')">Invalid</TargetCapability>
+    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Invalid</TargetCapability>
+    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'AdaptiveExecution' And '$(TargetCapability)' != 'BasicExecution' And '$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Invalid</TargetCapability>
+    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'BasicExecution' And '$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">Invalid</TargetCapability>
+    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">Invalid</TargetCapability>
+    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'AdaptiveExecution' And '$(TargetCapability)' != 'BasicExecution' And '$(ResolvedProcessorArchitecture)' == 'Unspecified'">Invalid</TargetCapability>
+    <TargetCapability Condition="'$(TargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">AdaptiveExecution</TargetCapability>
+    <TargetCapability Condition="'$(TargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">BasicExecution</TargetCapability>
+    <ResolvedTargetCapability Condition="'$(TargetCapability)' != 'Invalid'">$(TargetCapability)</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And ('$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor')">BasicMeasurementFeedback</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">BasicQuantumFunctionality</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">BasicMeasurementFeedback</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">BasicQuantumFunctionality</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">FullComputation</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'Unspecified'">FullComputation</ResolvedTargetCapability>
+    <ValidTargetCapabilities>The specified target capability is invalid or not supported by the execution target.</ValidTargetCapabilities>
   </PropertyGroup>
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
@@ -79,7 +86,7 @@
     <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' != '' And '$(QSharpDocsGeneration)' == 'default'">true</QSharpDocsGeneration>
     <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' == '' And '$(QSharpDocsGeneration)' == 'default'">false</QSharpDocsGeneration>
     <CSharpGeneration Condition="$(QirGeneration)">false</CSharpGeneration>
-    <EnableQirSubmission Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' Or $(ResolvedProcessorArchitecture.Contains('QirProcessor'))">true</EnableQirSubmission>
+    <EnableQirSubmission Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' Or '$(ResolvedTargetCapability)' == 'AdaptiveExecution' Or '$(ResolvedTargetCapability)' == 'BasicExecution')">true</EnableQirSubmission>
     <!-- path compatible assembly name -->
     <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
     <!-- output path for files generated during compilation -->
