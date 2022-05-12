@@ -73,7 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             foreach (var epName in this.Compilation.EntryPoints)
             {
-                this.SharedState.CreateInteropFriendlyWrapper(epName);
+                // this.SharedState.CreateInteropFriendlyWrapper(epName);
                 this.SharedState.CreateEntryPoint(epName);
             }
 
