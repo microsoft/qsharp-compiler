@@ -27,9 +27,10 @@
     <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.24.209330-beta" />
     <!-- Provider packages included for specific execution targets. -->
     <PackageReference Condition="$(EnableQirSubmission) And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Core" Version="0.24.209330-beta" />
-    <PackageReference Condition="!$(EnableQirSubmission) And ('$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor') And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.24.209330-beta" />
-    <PackageReference Condition="!$(EnableQirSubmission) And '$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.24.209330-beta" />
-    <PackageReference Condition="!$(EnableQirSubmission) And '$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.24.209330-beta" />
+    <PackageReference Condition="('$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor') And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.24.209330-beta" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.24.209330-beta" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.24.209330-beta" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Rigetti" Version="0.24.209330-beta" />
     <!-- Target packages included for specific execution targets. -->
     <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type1' And $(EnableQirSubmission)" Include="Microsoft.Quantum.Type1.Core" Version="0.24.209330-beta" IsTargetPackage='true' />
     <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type2' And $(EnableQirSubmission)" Include="Microsoft.Quantum.Type2.Core" Version="0.24.209330-beta" IsTargetPackage='true' />
