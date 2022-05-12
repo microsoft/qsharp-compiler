@@ -265,6 +265,7 @@ let ``QIR targeting`` () =
 let ``QIR profile targeting`` () =
     let compilerArgs =
         [
+            "TargetCapability:AdaptiveExecution"
             "--runtime"
             "AdaptiveExecution"
             "--force-rewrite-step-execution" // to make sure any target specific transformations actually run
