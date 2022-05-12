@@ -58,11 +58,11 @@
     <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'AdaptiveExecution' And '$(TargetCapability)' != 'BasicExecution' And ('$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor')">Invalid</TargetCapability>
     <TargetCapability Condition="'$(TargetCapability)' != '' And '$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Invalid</TargetCapability>
     <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'AdaptiveExecution' And '$(TargetCapability)' != 'BasicExecution' And '$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Invalid</TargetCapability>
-    <TargetCapability Condition="'$(TargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">AdaptiveExecution</TargetCapability>
     <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'BasicExecution' And '$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">Invalid</TargetCapability>
-    <TargetCapability Condition="'$(TargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">BasicExecution</TargetCapability>
     <TargetCapability Condition="'$(TargetCapability)' != '' And '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">Invalid</TargetCapability>
     <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'AdaptiveExecution' And '$(TargetCapability)' != 'BasicExecution' And '$(ResolvedProcessorArchitecture)' == 'Unspecified'">Invalid</TargetCapability>
+    <TargetCapability Condition="'$(TargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">AdaptiveExecution</TargetCapability>
+    <TargetCapability Condition="'$(TargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">BasicExecution</TargetCapability>
     <ResolvedTargetCapability Condition="'$(TargetCapability)' != 'Invalid'">$(TargetCapability)</ResolvedTargetCapability>
     <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And ('$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor')">BasicMeasurementFeedback</ResolvedTargetCapability>
     <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">BasicQuantumFunctionality</ResolvedTargetCapability>
