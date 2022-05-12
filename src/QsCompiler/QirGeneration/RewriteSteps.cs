@@ -74,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            var runtimeCapability = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.TargetedRuntimeCapability, out var capability) && capability != null
+            var runtimeCapability = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.TargetCapability, out var capability) && capability != null
                 ? RuntimeCapability.Parse(capability) // null if parsing fails
                 : null;
             transformed = compilation;
