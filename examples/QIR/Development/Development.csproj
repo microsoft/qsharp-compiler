@@ -11,6 +11,8 @@
     <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="13.0.0-CI-20220129-005156" PrivateAssets="All" GeneratePathProperty="true"/>
     <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.24.210350-alpha" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.210350-beta" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.QSharp.Core" Version="0.24.210350-beta" />
+    <PackageReference Include="Microsoft.Quantum.Type3.Core" Version="0.24.210350-beta" IsTargetPackage="true" />
   </ItemGroup>
 
   <PropertyGroup>
