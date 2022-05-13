@@ -934,7 +934,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (returnType.Resolution.IsUnitType)
             {
-                Value resultTuple = this.SharedState.Constants.UnitValue;
+                Value resultTuple = this.SharedState.Values.Unit.Value;
                 this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple);
                 return this.SharedState.Values.Unit;
             }
@@ -2191,29 +2191,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnPauliLiteral(QsPauli p)
         {
-            IValue LoadPauli(Value pauli)
-            {
-                var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pauli);
-                var exType = this.SharedState.CurrentExpressionType();
-                return this.SharedState.Values.From(constant, exType);
-            }
-
             IValue value;
             if (p.IsPauliI)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliI);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliI);
             }
             else if (p.IsPauliX)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliX);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliX);
             }
             else if (p.IsPauliY)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliY);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliY);
             }
             else if (p.IsPauliZ)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliZ);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliZ);
             }
             else
             {

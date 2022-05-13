@@ -937,7 +937,7 @@ namespace Microsoft.Quantum.QIR.Emission
             var createCallable = context.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
             var capture = captured == null || captured.Value.Length == 0 ? null : context.Values.CreateTuple(captured.Value, allocOnStack: false, registerWithScopeManager: false);
             var memoryManagementTable = context.GetOrCreateCallableMemoryManagementTable(capture);
-            this.Value = context.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? context.Constants.UnitValue);
+            this.Value = context.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? context.Values.Unit.Value);
             context.ScopeMgr.RegisterValue(this);
         }
 

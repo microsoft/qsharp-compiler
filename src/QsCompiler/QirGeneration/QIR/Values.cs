@@ -24,10 +24,10 @@ namespace Microsoft.Quantum.QIR.Emission
 
         internal IValue Unit { get; }
 
-        internal QirValues(GenerationContext context, Constants constants)
+        internal QirValues(GenerationContext context)
         {
             this.sharedState = context;
-            this.Unit = new SimpleValue(constants.UnitValue, ResolvedType.New(ResolvedTypeKind.UnitType));
+            this.Unit = new SimpleValue(context.Types.Tuple.GetNullValue(), ResolvedType.New(ResolvedTypeKind.UnitType));
         }
 
         public static uint? AsConstantInt(Value? value) =>
@@ -52,9 +52,7 @@ namespace Microsoft.Quantum.QIR.Emission
             }
             else if (type.Resolution.IsPauli)
             {
-                var pointer = this.sharedState.Constants.PauliI;
-                var constant = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Pauli, pointer);
-                return this.sharedState.Values.From(constant, type);
+                return this.CreatePauli(QsPauli.PauliI);
             }
             else if (type.Resolution.IsResult)
             {
@@ -106,7 +104,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
                 var createCallable = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
                 var memoryManagementTable = this.sharedState.GetOrCreateCallableMemoryManagementTable(null);
-                var value = this.sharedState.CurrentBuilder.Call(createCallable, nullTable, memoryManagementTable, this.sharedState.Constants.UnitValue);
+                var value = this.sharedState.CurrentBuilder.Call(createCallable, nullTable, memoryManagementTable, this.Unit.Value);
                 var built = this.sharedState.Values.FromCallable(value, type);
                 this.sharedState.ScopeMgr.RegisterValue(built);
                 return built;
@@ -187,6 +185,18 @@ namespace Microsoft.Quantum.QIR.Emission
             type.Resolution is ResolvedTypeKind.UserDefinedType udt ? this.sharedState.Values.FromCustomType(value, udt.Item.GetFullName()) :
             (type.Resolution.IsOperation || type.Resolution.IsFunction) ? this.sharedState.Values.FromCallable(value, type) :
             (IValue)new SimpleValue(value, type);
+
+        internal SimpleValue CreatePauli(QsPauli pauli) =>
+            new SimpleValue(
+                this.sharedState.Context.CreateConstant(
+                    this.sharedState.Types.Pauli,
+                    pauli.IsPauliI ? 0ul :
+                    pauli.IsPauliX ? 1ul :
+                    pauli.IsPauliZ ? 2ul :
+                    pauli.IsPauliY ? 3ul :
+                    throw new NotImplementedException("unknown Pauli"),
+                    false),
+                ResolvedType.New(ResolvedTypeKind.Pauli));
 
         /// <summary>
         /// Creates a pointer to the given value.

@@ -67,11 +67,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public Types Types { get; }
 
         /// <summary>
-        /// The used QIR constants.
-        /// </summary>
-        public Constants Constants { get; }
-
-        /// <summary>
         /// Tools to construct and handle values throughout QIR emission.
         /// </summary>
         internal QirValues Values { get; }
@@ -195,8 +190,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Module = this.Context.CreateBitcodeModule();
 
             this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
-            this.Constants = new Constants(this.Context, this.Module, this.Types);
-            this.Values = new QirValues(this, this.Constants);
+            this.Values = new QirValues(this);
             this.Functions = new Functions(this);
             this.transformation = null; // needs to be set by the instantiating transformation
 
@@ -607,7 +601,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else if (!returnsVoid)
             {
                 var current = this.inlineLevels.Pop();
-                if (current.Value != this.Constants.UnitValue)
+                if (current != this.Values.Unit)
                 {
                     throw new InvalidOperationException("return value for current inline level already defined");
                 }
