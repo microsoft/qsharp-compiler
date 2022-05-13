@@ -10,15 +10,12 @@ entry:
   %1 = bitcast i8* %0 to %Qubit**
   %x = load %Qubit*, %Qubit** %1, align 8
   %z = call %Qubit* @__quantum__rt__qubit_allocate()
-  %2 = load %Range, %Range* @EmptyRange, align 4
-  %3 = insertvalue %Range %2, i64 0, 0
-  %4 = insertvalue %Range %3, i64 2, 1
-  %5 = insertvalue %Range %4, i64 %max, 2
-  %y = call %Array* @__quantum__rt__array_slice_1d(%Array* %b, %Range %5, i1 true)
+  %2 = insertvalue %Range { i64 0, i64 2, i64 0 }, i64 %max, 2
+  %y = call %Array* @__quantum__rt__array_slice_1d(%Array* %b, %Range %2, i1 true)
   call void @__quantum__rt__array_update_alias_count(%Array* %y, i32 1)
-  %6 = call i64 @__quantum__rt__array_get_size_1d(%Array* %y)
-  %7 = icmp eq i64 %6, %max
-  br i1 %7, label %then0__1, label %continue__1
+  %3 = call i64 @__quantum__rt__array_get_size_1d(%Array* %y)
+  %4 = icmp eq i64 %3, %max
+  br i1 %4, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %entry
   call void @__quantum__rt__array_update_alias_count(%Array* %y, i32 -1)

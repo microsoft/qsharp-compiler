@@ -25,13 +25,12 @@ condFalse__2:                                     ; preds = %condContinue__1
 
 condContinue__2:                                  ; preds = %condFalse__2, %condTrue__2
   %5 = phi i64 [ 0, %condTrue__2 ], [ %4, %condFalse__2 ]
-  %6 = load %Range, %Range* @EmptyRange, align 4
-  %7 = insertvalue %Range %6, i64 %2, 0
-  %8 = insertvalue %Range %7, i64 2, 1
-  %9 = insertvalue %Range %8, i64 %5, 2
-  %10 = call %Array* @__quantum__rt__array_slice_1d(%Array* %vals, %Range %9, i1 true)
-  call void @__quantum__rt__array_update_reference_count(%Array* %10, i32 1)
+  %6 = insertvalue %Range zeroinitializer, i64 %2, 0
+  %7 = insertvalue %Range %6, i64 2, 1
+  %8 = insertvalue %Range %7, i64 %5, 2
+  %9 = call %Array* @__quantum__rt__array_slice_1d(%Array* %vals, %Range %8, i1 true)
+  call void @__quantum__rt__array_update_reference_count(%Array* %9, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %vals, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %10, i32 -1)
-  ret %Array* %10
+  call void @__quantum__rt__array_update_reference_count(%Array* %9, i32 -1)
+  ret %Array* %9
 }

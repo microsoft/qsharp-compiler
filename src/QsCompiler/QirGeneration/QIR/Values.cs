@@ -69,9 +69,10 @@ namespace Microsoft.Quantum.QIR.Emission
             }
             else if (type.Resolution.IsRange)
             {
-                var pointer = this.sharedState.Constants.EmptyRange;
-                var constant = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Range, pointer);
-                return this.sharedState.Values.From(constant, type);
+                return this.sharedState.CreateRange(
+                    this.sharedState.Context.CreateConstant(0L),
+                    this.sharedState.Context.CreateConstant(1L),
+                    this.sharedState.Context.CreateConstant(-1L));
             }
             else if (type.Resolution is ResolvedTypeKind.TupleType ts)
             {

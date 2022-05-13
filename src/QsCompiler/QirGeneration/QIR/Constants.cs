@@ -22,8 +22,6 @@ namespace Microsoft.Quantum.QIR
 
         public Value PauliZ { get; }
 
-        public Value EmptyRange { get; }
-
         internal Constants(Context context, BitcodeModule module, Types types)
         {
             Value CreatePauli(string name, ulong idx) =>
@@ -34,16 +32,6 @@ namespace Microsoft.Quantum.QIR
             this.PauliX = CreatePauli("PauliX", 1);
             this.PauliY = CreatePauli("PauliY", 3);
             this.PauliZ = CreatePauli("PauliZ", 2);
-            this.EmptyRange = module.AddGlobal(
-                types.Range,
-                true,
-                Linkage.Internal,
-                context.CreateNamedConstantStruct(
-                    types.Range,
-                    context.CreateConstant(0L),
-                    context.CreateConstant(1L),
-                    context.CreateConstant(-1L)),
-                "EmptyRange");
         }
     }
 }

@@ -1276,7 +1276,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>A range with the given start, step and end.</returns>
         internal IValue CreateRange(Value start, Value step, Value end)
         {
-            Value constant = this.CurrentBuilder.Load(this.Types.Range, this.Constants.EmptyRange);
+            Value constant = this.Types.Range.GetNullValue();
             constant = this.CurrentBuilder.InsertValue(constant, start, 0u);
             constant = this.CurrentBuilder.InsertValue(constant, step, 1u);
             constant = this.CurrentBuilder.InsertValue(constant, end, 2u);
