@@ -41,191 +41,187 @@ exit__1:                                          ; preds = %header__1
   %25 = load i64, i64* %24, align 4
   %26 = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %range, i64 0, i32 2
   %27 = load i64, i64* %26, align 4
-  %28 = load %Range, %Range* @EmptyRange, align 4
-  %29 = insertvalue %Range %28, i64 %23, 0
-  %30 = insertvalue %Range %29, i64 %25, 1
-  %31 = insertvalue %Range %30, i64 %27, 2
-  %32 = trunc i8 %b to i1
-  %33 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i1 }* getelementptr ({ i64, i1 }, { i64, i1 }* null, i32 1) to i64))
-  %34 = bitcast %Tuple* %33 to { i64, i1 }*
-  %35 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %34, i32 0, i32 0
-  %36 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %34, i32 0, i32 1
-  store i64 %cnt, i64* %35, align 4
-  store i1 %32, i1* %36, align 1
-  %37 = call { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* @Microsoft__Quantum__Testing__QIR__TestEntryPoint__body(%Array* %4, %String* %17, %Result* %21, %Range %31, { i64, i1 }* %34)
-  %38 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @0, i32 0, i32 0))
-  %39 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %37, i32 0, i32 0
-  %40 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %37, i32 0, i32 1
-  %41 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %37, i32 0, i32 2
-  %42 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %37, i32 0, i32 3
-  %43 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %37, i32 0, i32 4
-  %44 = load %Array*, %Array** %39, align 8
-  %45 = load %String*, %String** %40, align 8
-  %46 = load %Result*, %Result** %41, align 8
-  %47 = load %Range, %Range* %42, align 4
-  %48 = load { i64, i1 }*, { i64, i1 }** %43, align 8
-  %49 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @1, i32 0, i32 0))
-  %50 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @2, i32 0, i32 0))
-  call void @__quantum__rt__string_update_reference_count(%String* %50, i32 1)
-  %51 = call i64 @__quantum__rt__array_get_size_1d(%Array* %44)
-  %52 = sub i64 %51, 1
+  %28 = insertvalue %Range zeroinitializer, i64 %23, 0
+  %29 = insertvalue %Range %28, i64 %25, 1
+  %30 = insertvalue %Range %29, i64 %27, 2
+  %31 = trunc i8 %b to i1
+  %32 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i1 }* getelementptr ({ i64, i1 }, { i64, i1 }* null, i32 1) to i64))
+  %33 = bitcast %Tuple* %32 to { i64, i1 }*
+  %34 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %33, i32 0, i32 0
+  %35 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %33, i32 0, i32 1
+  store i64 %cnt, i64* %34, align 4
+  store i1 %31, i1* %35, align 1
+  %36 = call { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* @Microsoft__Quantum__Testing__QIR__TestEntryPoint__body(%Array* %4, %String* %17, %Result* %21, %Range %30, { i64, i1 }* %33)
+  %37 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @0, i32 0, i32 0))
+  %38 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36, i32 0, i32 0
+  %39 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36, i32 0, i32 1
+  %40 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36, i32 0, i32 2
+  %41 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36, i32 0, i32 3
+  %42 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36, i32 0, i32 4
+  %43 = load %Array*, %Array** %38, align 8
+  %44 = load %String*, %String** %39, align 8
+  %45 = load %Result*, %Result** %40, align 8
+  %46 = load %Range, %Range* %41, align 4
+  %47 = load { i64, i1 }*, { i64, i1 }** %42, align 8
+  %48 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @1, i32 0, i32 0))
+  %49 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @2, i32 0, i32 0))
+  call void @__quantum__rt__string_update_reference_count(%String* %49, i32 1)
+  %50 = call i64 @__quantum__rt__array_get_size_1d(%Array* %43)
+  %51 = sub i64 %50, 1
   br label %header__2
 
 header__2:                                        ; preds = %exiting__2, %exit__1
-  %53 = phi %String* [ %50, %exit__1 ], [ %75, %exiting__2 ]
-  %54 = phi i64 [ 0, %exit__1 ], [ %76, %exiting__2 ]
-  %55 = icmp sle i64 %54, %52
-  br i1 %55, label %body__2, label %exit__2
+  %52 = phi %String* [ %49, %exit__1 ], [ %71, %exiting__2 ]
+  %53 = phi i64 [ 0, %exit__1 ], [ %72, %exiting__2 ]
+  %54 = icmp sle i64 %53, %51
+  br i1 %54, label %body__2, label %exit__2
 
 body__2:                                          ; preds = %header__2
-  %56 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %44, i64 %54)
-  %57 = bitcast i8* %56 to i2*
-  %58 = load i2, i2* %57, align 1
-  %59 = icmp ne %String* %53, %50
-  br i1 %59, label %condTrue__1, label %condContinue__1
+  %55 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %43, i64 %53)
+  %56 = bitcast i8* %55 to i2*
+  %57 = load i2, i2* %56, align 1
+  %58 = icmp ne %String* %52, %49
+  br i1 %58, label %condTrue__1, label %condContinue__1
 
 condTrue__1:                                      ; preds = %body__2
-  %60 = call %String* @__quantum__rt__string_concatenate(%String* %53, %String* %49)
-  call void @__quantum__rt__string_update_reference_count(%String* %53, i32 -1)
+  %59 = call %String* @__quantum__rt__string_concatenate(%String* %52, %String* %48)
+  call void @__quantum__rt__string_update_reference_count(%String* %52, i32 -1)
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condTrue__1, %body__2
-  %61 = phi %String* [ %60, %condTrue__1 ], [ %53, %body__2 ]
-  %62 = load i2, i2* @PauliX, align 1
-  %63 = icmp eq i2 %62, %58
-  br i1 %63, label %condTrue__2, label %condFalse__1
+  %60 = phi %String* [ %59, %condTrue__1 ], [ %52, %body__2 ]
+  %61 = icmp eq i2 1, %57
+  br i1 %61, label %condTrue__2, label %condFalse__1
 
 condTrue__2:                                      ; preds = %condContinue__1
-  %64 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @3, i32 0, i32 0))
+  %62 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @3, i32 0, i32 0))
   br label %condContinue__2
 
 condFalse__1:                                     ; preds = %condContinue__1
-  %65 = load i2, i2* @PauliY, align 1
-  %66 = icmp eq i2 %65, %58
-  br i1 %66, label %condTrue__3, label %condFalse__2
+  %63 = icmp eq i2 -1, %57
+  br i1 %63, label %condTrue__3, label %condFalse__2
 
 condTrue__3:                                      ; preds = %condFalse__1
-  %67 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @4, i32 0, i32 0))
+  %64 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @4, i32 0, i32 0))
   br label %condContinue__3
 
 condFalse__2:                                     ; preds = %condFalse__1
-  %68 = load i2, i2* @PauliZ, align 1
-  %69 = icmp eq i2 %68, %58
-  br i1 %69, label %condTrue__4, label %condFalse__3
+  %65 = icmp eq i2 -2, %57
+  br i1 %65, label %condTrue__4, label %condFalse__3
 
 condTrue__4:                                      ; preds = %condFalse__2
-  %70 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @5, i32 0, i32 0))
+  %66 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @5, i32 0, i32 0))
   br label %condContinue__4
 
 condFalse__3:                                     ; preds = %condFalse__2
-  %71 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @6, i32 0, i32 0))
+  %67 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @6, i32 0, i32 0))
   br label %condContinue__4
 
 condContinue__4:                                  ; preds = %condFalse__3, %condTrue__4
-  %72 = phi %String* [ %70, %condTrue__4 ], [ %71, %condFalse__3 ]
+  %68 = phi %String* [ %66, %condTrue__4 ], [ %67, %condFalse__3 ]
   br label %condContinue__3
 
 condContinue__3:                                  ; preds = %condContinue__4, %condTrue__3
-  %73 = phi %String* [ %67, %condTrue__3 ], [ %72, %condContinue__4 ]
+  %69 = phi %String* [ %64, %condTrue__3 ], [ %68, %condContinue__4 ]
   br label %condContinue__2
 
 condContinue__2:                                  ; preds = %condContinue__3, %condTrue__2
-  %74 = phi %String* [ %64, %condTrue__2 ], [ %73, %condContinue__3 ]
-  %75 = call %String* @__quantum__rt__string_concatenate(%String* %61, %String* %74)
-  call void @__quantum__rt__string_update_reference_count(%String* %61, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %74, i32 -1)
+  %70 = phi %String* [ %62, %condTrue__2 ], [ %69, %condContinue__3 ]
+  %71 = call %String* @__quantum__rt__string_concatenate(%String* %60, %String* %70)
+  call void @__quantum__rt__string_update_reference_count(%String* %60, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %70, i32 -1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %condContinue__2
-  %76 = add i64 %54, 1
+  %72 = add i64 %53, 1
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  %77 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @7, i32 0, i32 0))
-  %78 = call %String* @__quantum__rt__string_concatenate(%String* %53, %String* %77)
-  call void @__quantum__rt__string_update_reference_count(%String* %53, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %77, i32 -1)
+  %73 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @7, i32 0, i32 0))
+  %74 = call %String* @__quantum__rt__string_concatenate(%String* %52, %String* %73)
+  call void @__quantum__rt__string_update_reference_count(%String* %52, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %73, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %48, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %49, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %50, i32 -1)
-  %79 = call %String* @__quantum__rt__string_concatenate(%String* %38, %String* %78)
-  call void @__quantum__rt__string_update_reference_count(%String* %38, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %78, i32 -1)
-  %80 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @1, i32 0, i32 0))
-  %81 = call %String* @__quantum__rt__string_concatenate(%String* %79, %String* %80)
+  %75 = call %String* @__quantum__rt__string_concatenate(%String* %37, %String* %74)
+  call void @__quantum__rt__string_update_reference_count(%String* %37, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %74, i32 -1)
+  %76 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @1, i32 0, i32 0))
+  %77 = call %String* @__quantum__rt__string_concatenate(%String* %75, %String* %76)
+  call void @__quantum__rt__string_update_reference_count(%String* %75, i32 -1)
+  %78 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @8, i32 0, i32 0))
+  %79 = call %String* @__quantum__rt__string_concatenate(%String* %78, %String* %44)
+  %80 = call %String* @__quantum__rt__string_concatenate(%String* %79, %String* %78)
   call void @__quantum__rt__string_update_reference_count(%String* %79, i32 -1)
-  %82 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @8, i32 0, i32 0))
-  %83 = call %String* @__quantum__rt__string_concatenate(%String* %82, %String* %45)
-  %84 = call %String* @__quantum__rt__string_concatenate(%String* %83, %String* %82)
-  call void @__quantum__rt__string_update_reference_count(%String* %83, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %82, i32 -1)
-  %85 = call %String* @__quantum__rt__string_concatenate(%String* %81, %String* %84)
+  call void @__quantum__rt__string_update_reference_count(%String* %78, i32 -1)
+  %81 = call %String* @__quantum__rt__string_concatenate(%String* %77, %String* %80)
+  call void @__quantum__rt__string_update_reference_count(%String* %77, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %80, i32 -1)
+  %82 = call %String* @__quantum__rt__string_concatenate(%String* %81, %String* %76)
   call void @__quantum__rt__string_update_reference_count(%String* %81, i32 -1)
+  %83 = call %String* @__quantum__rt__result_to_string(%Result* %45)
+  %84 = call %String* @__quantum__rt__string_concatenate(%String* %82, %String* %83)
+  call void @__quantum__rt__string_update_reference_count(%String* %82, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %83, i32 -1)
+  %85 = call %String* @__quantum__rt__string_concatenate(%String* %84, %String* %76)
   call void @__quantum__rt__string_update_reference_count(%String* %84, i32 -1)
-  %86 = call %String* @__quantum__rt__string_concatenate(%String* %85, %String* %80)
+  %86 = call %String* @__quantum__rt__range_to_string(%Range %46)
+  %87 = call %String* @__quantum__rt__string_concatenate(%String* %85, %String* %86)
   call void @__quantum__rt__string_update_reference_count(%String* %85, i32 -1)
-  %87 = call %String* @__quantum__rt__result_to_string(%Result* %46)
-  %88 = call %String* @__quantum__rt__string_concatenate(%String* %86, %String* %87)
   call void @__quantum__rt__string_update_reference_count(%String* %86, i32 -1)
+  %88 = call %String* @__quantum__rt__string_concatenate(%String* %87, %String* %76)
   call void @__quantum__rt__string_update_reference_count(%String* %87, i32 -1)
-  %89 = call %String* @__quantum__rt__string_concatenate(%String* %88, %String* %80)
-  call void @__quantum__rt__string_update_reference_count(%String* %88, i32 -1)
-  %90 = call %String* @__quantum__rt__range_to_string(%Range %47)
-  %91 = call %String* @__quantum__rt__string_concatenate(%String* %89, %String* %90)
+  %89 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @0, i32 0, i32 0))
+  %90 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %47, i32 0, i32 0
+  %91 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %47, i32 0, i32 1
+  %92 = load i64, i64* %90, align 4
+  %93 = load i1, i1* %91, align 1
+  %94 = call %String* @__quantum__rt__int_to_string(i64 %92)
+  %95 = call %String* @__quantum__rt__string_concatenate(%String* %89, %String* %94)
   call void @__quantum__rt__string_update_reference_count(%String* %89, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %90, i32 -1)
-  %92 = call %String* @__quantum__rt__string_concatenate(%String* %91, %String* %80)
-  call void @__quantum__rt__string_update_reference_count(%String* %91, i32 -1)
-  %93 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @0, i32 0, i32 0))
-  %94 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %48, i32 0, i32 0
-  %95 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %48, i32 0, i32 1
-  %96 = load i64, i64* %94, align 4
-  %97 = load i1, i1* %95, align 1
-  %98 = call %String* @__quantum__rt__int_to_string(i64 %96)
-  %99 = call %String* @__quantum__rt__string_concatenate(%String* %93, %String* %98)
-  call void @__quantum__rt__string_update_reference_count(%String* %93, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %98, i32 -1)
-  %100 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @1, i32 0, i32 0))
-  %101 = call %String* @__quantum__rt__string_concatenate(%String* %99, %String* %100)
-  call void @__quantum__rt__string_update_reference_count(%String* %99, i32 -1)
-  br i1 %97, label %condTrue__5, label %condFalse__4
+  call void @__quantum__rt__string_update_reference_count(%String* %94, i32 -1)
+  %96 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @1, i32 0, i32 0))
+  %97 = call %String* @__quantum__rt__string_concatenate(%String* %95, %String* %96)
+  call void @__quantum__rt__string_update_reference_count(%String* %95, i32 -1)
+  br i1 %93, label %condTrue__5, label %condFalse__4
 
 condTrue__5:                                      ; preds = %exit__2
-  %102 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @9, i32 0, i32 0))
+  %98 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @9, i32 0, i32 0))
   br label %condContinue__5
 
 condFalse__4:                                     ; preds = %exit__2
-  %103 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @10, i32 0, i32 0))
+  %99 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @10, i32 0, i32 0))
   br label %condContinue__5
 
 condContinue__5:                                  ; preds = %condFalse__4, %condTrue__5
-  %104 = phi %String* [ %102, %condTrue__5 ], [ %103, %condFalse__4 ]
-  %105 = call %String* @__quantum__rt__string_concatenate(%String* %101, %String* %104)
-  call void @__quantum__rt__string_update_reference_count(%String* %101, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %104, i32 -1)
-  %106 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @11, i32 0, i32 0))
-  %107 = call %String* @__quantum__rt__string_concatenate(%String* %105, %String* %106)
-  call void @__quantum__rt__string_update_reference_count(%String* %105, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %106, i32 -1)
+  %100 = phi %String* [ %98, %condTrue__5 ], [ %99, %condFalse__4 ]
+  %101 = call %String* @__quantum__rt__string_concatenate(%String* %97, %String* %100)
+  call void @__quantum__rt__string_update_reference_count(%String* %97, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %100, i32 -1)
-  %108 = call %String* @__quantum__rt__string_concatenate(%String* %92, %String* %107)
-  call void @__quantum__rt__string_update_reference_count(%String* %92, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %107, i32 -1)
-  %109 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @11, i32 0, i32 0))
-  %110 = call %String* @__quantum__rt__string_concatenate(%String* %108, %String* %109)
-  call void @__quantum__rt__string_update_reference_count(%String* %108, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %109, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %80, i32 -1)
-  call void @__quantum__rt__message(%String* %110)
+  %102 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @11, i32 0, i32 0))
+  %103 = call %String* @__quantum__rt__string_concatenate(%String* %101, %String* %102)
+  call void @__quantum__rt__string_update_reference_count(%String* %101, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %102, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %96, i32 -1)
+  %104 = call %String* @__quantum__rt__string_concatenate(%String* %88, %String* %103)
+  call void @__quantum__rt__string_update_reference_count(%String* %88, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %103, i32 -1)
+  %105 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @11, i32 0, i32 0))
+  %106 = call %String* @__quantum__rt__string_concatenate(%String* %104, %String* %105)
+  call void @__quantum__rt__string_update_reference_count(%String* %104, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %105, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %76, i32 -1)
+  call void @__quantum__rt__message(%String* %106)
   call void @__quantum__rt__array_update_reference_count(%Array* %4, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %17, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %33, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %44, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %45, i32 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %46, i32 -1)
-  %111 = bitcast { i64, i1 }* %48 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %111, i32 -1)
-  %112 = bitcast { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %37 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %112, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %110, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %32, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %43, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %44, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %45, i32 -1)
+  %107 = bitcast { i64, i1 }* %47 to %Tuple*
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %107, i32 -1)
+  %108 = bitcast { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36 to %Tuple*
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %108, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %106, i32 -1)
   ret void
 }

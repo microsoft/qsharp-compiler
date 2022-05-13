@@ -265,23 +265,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateArray(ArrayValue originalArray)
             {
-                ArrayValue GetArrayCopy(bool needsToBeCopied)
-                {
-                    if (sharedState.TargetQirProfile)
-                    {
-                        return sharedState.Values.FromArray(originalArray.Value, originalArray.QSharpElementType, originalArray.Count);
-                    }
-                    else
-                    {
-                        // Since we keep track of alias counts for arrays we always ask the runtime to create a shallow copy
-                        // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
-                        // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
-                        var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
-                        var forceCopy = sharedState.Context.CreateConstant(needsToBeCopied);
-                        var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
-                        return sharedState.Values.FromArray(copy, originalArray.QSharpElementType, originalArray.Count);
-                    }
-                }
+                // Since we keep track of alias counts for arrays we always ask the runtime to create a shallow copy
+                // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
+                // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
+                ArrayValue GetArrayCopy(bool needsToBeCopied) =>
+                    sharedState.Values.FromArray(originalArray, needsToBeCopied);
 
                 void UpdateElement(Func<IValue> getNewItemForIndex, PointerValue itemToUpdate)
                 {
@@ -946,7 +934,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (returnType.Resolution.IsUnitType)
             {
-                Value resultTuple = this.SharedState.Constants.UnitValue;
+                Value resultTuple = this.SharedState.Values.Unit.Value;
                 this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple);
                 return this.SharedState.Values.Unit;
             }
@@ -2203,29 +2191,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnPauliLiteral(QsPauli p)
         {
-            IValue LoadPauli(Value pauli)
-            {
-                var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pauli);
-                var exType = this.SharedState.CurrentExpressionType();
-                return this.SharedState.Values.From(constant, exType);
-            }
-
             IValue value;
             if (p.IsPauliI)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliI);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliI);
             }
             else if (p.IsPauliX)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliX);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliX);
             }
             else if (p.IsPauliY)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliY);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliY);
             }
             else if (p.IsPauliZ)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliZ);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliZ);
             }
             else
             {
