@@ -61,12 +61,17 @@
         
         let updatedArrArr1 = arrArr w/ 0 <- [];
         let updatedArrArr2 = arrArr w/ 1 <- [-1,-2,-3];
-        //let updatedArrArr3 = arrArr2 w/ 0 <- [];
-        //let updatedArrArr4 = arrArr2 w/ 1 <- [PauliX, PauliX, PauliX]; // fixme: won't work
+        let updatedArrArr3 = arrArr2 w/ 0 <- [];
+        let updatedArrArr4 = arrArr2 w/ 1 <- [PauliX, PauliX, PauliX];
         Message($"{updatedArrArr1}");
         Message($"{updatedArrArr2}");
-        //Message($"{updatedArrArr3}");
-        //Message($"{updatedArrArr4}");
+        Message($"{updatedArrArr3}");
+        Message($"{updatedArrArr4}");
+
+        use (qs1, qs2, q) = (Qubit[2], Qubit[1], Qubit());
+        let qubitArrArr = [qs1, [], qs2, [q]];
+        Message($"{qubitArrArr w/ 0 <- []}");
+        Message($"{qubitArrArr w/ 1 <- [q, q, q]}");
 
         // TODO: write tests for array of array of array
 

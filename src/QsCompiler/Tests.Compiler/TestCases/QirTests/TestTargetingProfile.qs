@@ -99,6 +99,11 @@ namespace Microsoft.Quantum.Testing.QIR {
         DumpMachine(updatedArrArr1);
         DumpMachine(updatedArrArr2);
 
+        use (qs1, qs2, q) = (Qubit[2], Qubit[1], Qubit());
+        let qubitArrArr = [qs1, [], qs2, [q]];
+        DumpMachine(qubitArrArr w/ 0 <- []);
+        DumpMachine(qubitArrArr w/ 1 <- [q, q, q]);
+
         //let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
         //let (pauli, _) = tupleArr[1];
         //LogPauli(pauli);
@@ -106,6 +111,8 @@ namespace Microsoft.Quantum.Testing.QIR {
         //let arrArr = [[PauliX, PauliZ], [PauliY], [PauliI]];
         //let pauliI = arrArr[2][0];
         //LogPauli(pauliI);
+
+
 
         return sum; // m1 == m2 ? sum | 0; // TODO: check branching
     }

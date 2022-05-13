@@ -190,6 +190,13 @@ namespace Microsoft.Quantum.QIR.Emission
             this.cachedValue = new IValue.Cached<IValue>(context, load, store);
         }
 
+        internal PointerValue(IValue initialContent, GenerationContext context, Func<IValue> load, Action<IValue> store)
+        {
+            this.QSharpType = initialContent.QSharpType;
+            this.LlvmType = initialContent.LlvmType;
+            this.cachedValue = new IValue.Cached<IValue>(initialContent, context, load, store);
+        }
+
         /// <summary>
         /// Creates a pointer that represents a mutable variable.
         /// </summary>
@@ -204,6 +211,9 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         public IValue LoadValue() =>
             this.cachedValue.Load();
+
+        internal IValue? CurrentCache() =>
+            this.cachedValue.IsCached ? this.cachedValue.Load() : null;
 
         /// <summary>
         /// Sets the mutable variable to the given value.
@@ -524,6 +534,27 @@ namespace Microsoft.Quantum.QIR.Emission
             }
         }
 
+        internal ArrayValue(ArrayValue value, bool alwaysCopy = false)
+        {
+            this.sharedState = value.sharedState;
+            this.Count = value.Count;
+            this.length = this.CreateLengthCache(value.length.IsCached ? value.length.Load() : null);
+            this.QSharpElementType = value.QSharpElementType;
+            this.LlvmType = value.LlvmType;
+            this.LlvmElementType = value.LlvmElementType;
+            this.Value = value.Value;
+
+            if (Types.IsArray(value.LlvmType))
+            {
+                var createShallowCopy = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
+                var forceCopy = this.sharedState.Context.CreateConstant(alwaysCopy);
+                this.Value = this.sharedState.CurrentBuilder.Call(createShallowCopy, value.OpaquePointer, forceCopy);
+            }
+
+            this.arrayElementPointers = value.arrayElementPointers?.Select((cache, idx) =>
+                this.CreateArrayElementPointersCache(idx, cache.IsCached ? cache.Load() : null)).ToArray();
+        }
+
         /// <summary>
         /// Creates a new array value from the given opaque array of elements of the given type.
         /// </summary>
@@ -652,10 +683,14 @@ namespace Microsoft.Quantum.QIR.Emission
                     this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
                     this.OpaquePointer));
 
+        private IValue.Cached<PointerValue> CreateArrayElementPointersCache(int index, PointerValue? pointer = null) =>
+            new IValue.Cached<PointerValue>(
+                pointer is null || Types.IsArray(this.LlvmType) ? null : this.CreateArrayElementPointer(index, pointer.CurrentCache()),
+                this.sharedState,
+                () => this.CreateArrayElementPointer(index));
+
         private IValue.Cached<PointerValue>[] CreateArrayElementPointersCaches() =>
-            Enumerable.ToArray(Enumerable.Range(0, (int)this.Count!).Select(index =>
-            new IValue.Cached<PointerValue>(this.sharedState, () =>
-                this.CreateArrayElementPointer(this.sharedState.Context.CreateConstant((long)index)))));
+            Enumerable.ToArray(Enumerable.Range(0, (int)this.Count!).Select(idx => this.CreateArrayElementPointersCache(idx)));
 
         private Value AllocateArray(bool registerWithScopeManager)
         {
@@ -761,7 +796,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Returns a pointer to the array element at the given index.
         /// </summary>
         /// <param name="index">The element's index into the array.</param>
-        internal PointerValue CreateArrayElementPointer(Value index)
+        private PointerValue CreateArrayElementPointer(Value index, IValue? element = null)
         {
             if (Types.IsArray(this.LlvmType))
             {
@@ -788,7 +823,9 @@ namespace Microsoft.Quantum.QIR.Emission
                         this.QSharpElementType)
                     : throw new InvalidOperationException("invalid pointer access in array");
 
-                return new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store);
+                return element is null
+                    ? new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store)
+                    : new PointerValue(element, this.sharedState, Reload, Store);
             }
             else
             {
@@ -820,9 +857,14 @@ namespace Microsoft.Quantum.QIR.Emission
                     return this.sharedState.Values.From(element, this.QSharpElementType);
                 }
 
-                return new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store);
+                return element is null
+                    ? new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store)
+                    : new PointerValue(element, this.sharedState, Reload, Store);
             }
         }
+
+        private PointerValue CreateArrayElementPointer(int index, IValue? element = null) =>
+            this.CreateArrayElementPointer(this.sharedState.Context.CreateConstant((long)index), element);
 
         internal PointerValue GetArrayElementPointer(Value index) =>
             this.arrayElementPointers != null && QirValues.AsConstantInt(index) is uint idx

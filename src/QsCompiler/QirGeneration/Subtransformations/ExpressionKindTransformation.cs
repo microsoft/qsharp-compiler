@@ -265,23 +265,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateArray(ArrayValue originalArray)
             {
-                ArrayValue GetArrayCopy(bool needsToBeCopied)
-                {
-                    if (sharedState.TargetQirProfile)
-                    {
-                        return sharedState.Values.FromArray(originalArray.Value, originalArray.QSharpElementType, originalArray.Count);
-                    }
-                    else
-                    {
-                        // Since we keep track of alias counts for arrays we always ask the runtime to create a shallow copy
-                        // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
-                        // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
-                        var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
-                        var forceCopy = sharedState.Context.CreateConstant(needsToBeCopied);
-                        var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
-                        return sharedState.Values.FromArray(copy, originalArray.QSharpElementType, originalArray.Count);
-                    }
-                }
+                // Since we keep track of alias counts for arrays we always ask the runtime to create a shallow copy
+                // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
+                // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
+                ArrayValue GetArrayCopy(bool needsToBeCopied) =>
+                    sharedState.Values.FromArray(originalArray, needsToBeCopied);
 
                 void UpdateElement(Func<IValue> getNewItemForIndex, PointerValue itemToUpdate)
                 {

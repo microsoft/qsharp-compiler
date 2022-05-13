@@ -165,6 +165,8 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue FromArray(Value value, ResolvedType elementType, uint? count) =>
             new ArrayValue(value, elementType, count, this.sharedState);
 
+        internal ArrayValue FromArray(ArrayValue value, bool alwaysCopy) => new ArrayValue(value, alwaysCopy);
+
         /// <summary>
         /// Creates a callable value that stores the given LLVM value representing a Q# callable.
         /// </summary>
