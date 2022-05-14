@@ -311,12 +311,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnFailStatement(TypedExpression ex)
         {
-            var message = this.SharedState.EvaluateSubexpression(ex);
-
             // Release any resources (qubits or memory) before we fail.
-            this.SharedState.ScopeMgr.ExitFunction(message);
-            var fail = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail);
-            this.SharedState.CurrentBuilder.Call(fail, message.Value);
+            if (!this.SharedState.TargetQirProfile)
+            {
+                var message = this.SharedState.EvaluateSubexpression(ex);
+                this.SharedState.ScopeMgr.ExitFunction(message);
+                var fail = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail);
+                this.SharedState.CurrentBuilder.Call(fail, message.Value);
+            }
+
             this.SharedState.CurrentBuilder.Unreachable();
 
             return QsStatementKind.EmptyStatement;
