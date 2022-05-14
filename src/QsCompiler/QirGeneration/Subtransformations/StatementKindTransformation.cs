@@ -292,13 +292,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.EndBranch();
             }
 
-            // Finally, set the continuation block as current and prune it if it is unused.
-            this.SharedState.SetCurrentBlock(contBlock);
-            if (!contBlockUsed)
+            if (contBlockUsed)
             {
-                // This is the savest option to deal with this case from a code rubustness perspective.
-                // The additional code blocks that don't have any predecessors are better trimmed in a separate pass over the generated ir.
-                this.OnFailStatement(SyntaxGenerator.StringLiteral("reached unreachable code...", ImmutableArray<TypedExpression>.Empty));
+                this.SharedState.SetCurrentBlock(contBlock);
             }
 
             return QsStatementKind.EmptyStatement;

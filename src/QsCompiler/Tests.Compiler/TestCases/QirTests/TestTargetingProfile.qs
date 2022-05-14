@@ -34,6 +34,13 @@ namespace Microsoft.Quantum.Testing.QIR {
         body intrinsic;
     }
 
+    operation CheckLength (bases : Pauli[], qubits : Qubit[]) : Result {
+        if Length(bases) != Length(qubits) {
+            DumpMachine(bases);
+        }
+        return One;
+    }
+
     @EntryPoint()
     operation TestProfileTargeting() : Int {
         let arr1 = [1,2,3];
@@ -121,7 +128,17 @@ namespace Microsoft.Quantum.Testing.QIR {
         TestIfClauses3();
         TestIfClauses4(m2);
 
-        return sum; // m1 == m2 ? sum | 0; // TODO: check branching
+        mutable rand = 0;
+        for item in qs {
+            set rand <<<= 1;
+            if CheckLength([PauliX], [item]) == One {
+                set rand += 1;
+            }
+        }
+
+        //mutable foo = m1 == m2 ? sum | 0; // TODO: check branching
+
+        return sum; //(sum, rand); TODO: requires output transformation
     }
 
 
