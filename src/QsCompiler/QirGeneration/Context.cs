@@ -413,6 +413,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
+        internal void AttachAttributes(QsQualifiedName qualifiedName, QsSpecializationKind specKind, params string[] attributeNames) =>
+            this.CreateBridgeFunction(qualifiedName, specKind, (_, func) => func, attributeNames);
+
         /// <summary>
         /// <inheritdoc cref="Interop.GenerateWrapper(GenerationContext, string, ArgumentTuple, ResolvedType, IrFunction)"/>
         /// <br/>

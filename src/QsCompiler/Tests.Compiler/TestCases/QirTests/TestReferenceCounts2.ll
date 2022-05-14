@@ -49,20 +49,5 @@ else__1:                                          ; preds = %entry
   ret { %String*, %Array* }* %s
 
 continue__1:                                      ; No predecessors!
-  %14 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @1, i32 0, i32 0))
-  %15 = getelementptr inbounds { %String*, %Array* }, { %String*, %Array* }* %s, i32 0, i32 0
-  %16 = load %String*, %String** %15, align 8
-  call void @__quantum__rt__array_update_alias_count(%Array* %5, i32 -1)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %6, i32 -1)
-  call void @__quantum__rt__array_update_alias_count(%Array* %9, i32 -1)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %7, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %1, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %16, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %5, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %6, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %9, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %7, i32 -1)
-  call void @__quantum__rt__fail(%String* %14)
   unreachable
 }

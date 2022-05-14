@@ -241,7 +241,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             var clauses = stm.ConditionalBlocks;
             var contBlock = this.SharedState.AddBlockAfterCurrent("continue");
-            var contBlockUsed = false;
+            var (contBlockUsed, skipRest) = (false, false);
 
             // if/then/elif...else
             // The first test goes in the current block. If it succeeds, we go to the "then0" block.
@@ -249,22 +249,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // If the second test succeeds, we go to the "then1" block, otherwise to the "test2" block, etc.
             // If all tests fail, we go to the "else" block if there's a default block, or to the
             // continuation block if not.
-            for (int n = 0; n < clauses.Length; n++)
+            for (int n = 0; n < clauses.Length && !skipRest; n++)
             {
-                // If this is an intermediate clause, then the next block if the test fails
-                // is the next clause's test block.
-                // If this is the last clause, then the next block is the default clause's block
-                // if there is one, or the continue block if not.
-                var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
-                            this.SharedState.BlockName($"then{n}"), contBlock);
-                var nextConditional = n < clauses.Length - 1
-                    ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
-                    : (stm.Default.IsNull
-                        ? contBlock
-                        : this.SharedState.CurrentFunction.InsertBasicBlock(
-                                this.SharedState.BlockName($"else"), contBlock));
-                contBlockUsed = contBlockUsed || nextConditional == contBlock;
-
                 // Evaluate the test, which should be a Boolean at this point, and create the branch.
                 // Note that we need to start the branching and create a scope for the condition
                 // to ensure that anything created as part of the condition is released as part of the condition,
@@ -273,27 +259,45 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ScopeMgr.OpenScope();
                 var testValue = this.SharedState.EvaluateSubexpression(clauses[n].Item1).Value;
                 this.SharedState.ScopeMgr.CloseScope(false);
-                this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
-                contBlockUsed = this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock) || contBlockUsed;
+
+                if (!(QirValues.AsConstantInt(testValue) == 0))
+                {
+                    // If this is an intermediate clause, then the next block if the test fails
+                    // is the next clause's test block.
+                    // If this is the last clause, then the next block is the default clause's block
+                    // if there is one, or the continue block if not.
+                    var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
+                                this.SharedState.BlockName($"then{n}"), contBlock);
+                    skipRest = (QirValues.AsConstantInt(testValue) & 1) == 1;
+                    var nextConditional = n < clauses.Length - 1 && !skipRest
+                        ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
+                        : (stm.Default.IsNull || skipRest
+                            ? contBlock
+                            : this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"else"), contBlock));
+                    contBlockUsed = contBlockUsed || nextConditional == contBlock;
+
+                    this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
+                    contBlockUsed = this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock) || contBlockUsed;
+                    this.SharedState.SetCurrentBlock(nextConditional);
+                }
+
                 this.SharedState.EndBranch();
-                this.SharedState.SetCurrentBlock(nextConditional);
             }
 
             // Deal with the default, if there is any
-            if (stm.Default.IsValue)
+            if (stm.Default.IsValue && !skipRest)
             {
                 this.SharedState.StartBranch();
                 contBlockUsed = this.ProcessBlock(this.SharedState.CurrentBlock, stm.Default.Item.Body, contBlock) || contBlockUsed;
                 this.SharedState.EndBranch();
             }
 
-            // Finally, set the continuation block as current and prune it if it is unused.
+            var currentBlock = this.SharedState.CurrentBlock;
             this.SharedState.SetCurrentBlock(contBlock);
             if (!contBlockUsed)
             {
-                // This is the savest option to deal with this case from a code rubustness perspective.
-                // The additional code blocks that don't have any predecessors are better trimmed in a separate pass over the generated ir.
-                this.OnFailStatement(SyntaxGenerator.StringLiteral("reached unreachable code...", ImmutableArray<TypedExpression>.Empty));
+                this.SharedState.CurrentBuilder.Unreachable();
+                this.SharedState.SetCurrentBlock(currentBlock);
             }
 
             return QsStatementKind.EmptyStatement;
