@@ -3,6 +3,7 @@
 
 using System;
 using System.Linq;
+using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -104,6 +105,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.context.SetCurrentCallable(c);
             c = base.OnCallableDeclaration(c);
             this.context.SetCurrentCallable(null);
+
+            if (this.SharedState.TargetQirProfile && c.Attributes.Any(BuiltIn.MarksEntryPoint))
+            {
+                this.SharedState.AttachAttributes(c.FullName, QsSpecializationKind.QsBody, AttributeNames.EntryPoint);
+            }
+
             return c;
         }
 

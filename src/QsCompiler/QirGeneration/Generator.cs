@@ -71,10 +71,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.Namespaces.OnNamespace(ns);
             }
 
-            foreach (var epName in this.Compilation.EntryPoints)
+            // TODO: get rid of entry point and interop wrappers
+            if (!this.SharedState.TargetQirProfile)
             {
-                this.SharedState.CreateInteropFriendlyWrapper(epName);
-                this.SharedState.CreateEntryPoint(epName);
+                foreach (var epName in this.Compilation.EntryPoints)
+                {
+                    this.SharedState.CreateInteropFriendlyWrapper(epName);
+                    this.SharedState.CreateEntryPoint(epName);
+                }
             }
 
             this.SharedState.GenerateRequiredFunctions();
