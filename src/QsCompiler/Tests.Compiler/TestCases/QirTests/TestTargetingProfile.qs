@@ -80,8 +80,12 @@ namespace Microsoft.Quantum.Testing.QIR {
         let (m1, m2) = (M(qs[0]), M(qs[1]));
         
         let tupleArr = [(2, 0.), (1, 1.), (3, 2.)];
-        let (pauli, _) = tupleArr[1];
-        DumpMachine(pauli);
+        let (intValue, _) = tupleArr[1];
+        DumpMachine(intValue);
+
+        let tupleArr2 = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
+        let (pauli, _) = tupleArr2[1];
+        LogPauli(pauli);
         
         let arrTuple = ([1,2], true);
         let (vals, _) = arrTuple;
@@ -93,28 +97,110 @@ namespace Microsoft.Quantum.Testing.QIR {
         DumpMachine(pauliY);
         DumpMachine((arrArr[1], arrArr[3]));
         DumpMachine(arrArr);
+
+        let arrArr2 = [[PauliX, PauliZ], [PauliY], [PauliI]];
+        let pauliI = arrArr2[2][0];
+        LogPauli(pauliI);
         
         let updatedArrArr1 = arrArr w/ 0 <- [];
         let updatedArrArr2 = arrArr w/ 1 <- [1,2,3];
+        let updatedArrArr3 = arrArr2 w/ 0 <- [];
+        let updatedArrArr4 = arrArr2 w/ 1 <- [PauliX, PauliX, PauliX];
         DumpMachine(updatedArrArr1);
         DumpMachine(updatedArrArr2);
+        DumpMachine(updatedArrArr3);
+        DumpMachine(updatedArrArr4);
 
         use (qs1, qs2, q) = (Qubit[2], Qubit[1], Qubit());
         let qubitArrArr = [qs1, [], qs2, [q]];
         DumpMachine(qubitArrArr w/ 0 <- []);
         DumpMachine(qubitArrArr w/ 1 <- [q, q, q]);
 
-        //let tupleArr = [(PauliX, 0), (PauliZ, 1), (PauliY, 2)];
-        //let (pauli, _) = tupleArr[1];
-        //LogPauli(pauli);
-
-        //let arrArr = [[PauliX, PauliZ], [PauliY], [PauliI]];
-        //let pauliI = arrArr[2][0];
-        //LogPauli(pauliI);
-
-
+        TestIfClauses1(m1);
+        TestIfClauses2();
+        TestIfClauses3();
+        TestIfClauses4(m2);
 
         return sum; // m1 == m2 ? sum | 0; // TODO: check branching
+    }
+
+
+    operation TestIfClauses1(m : Result) : Unit {
+
+        if (false) {
+            use q = Qubit();
+            DumpMachine((1, M(q)));
+        }
+        elif (m == Zero) {
+            use q = Qubit();
+            DumpMachine((2, M(q)));
+        }
+        elif (false) {
+            use q = Qubit();
+            DumpMachine((3, M(q)));
+        }
+        else {
+            use q = Qubit();
+            DumpMachine((4, M(q)));
+        }
+    }
+
+    operation TestIfClauses2() : Unit {
+
+        if (false)
+        {
+            use q = Qubit();
+            DumpMachine((5, M(q)));
+        }
+        elif (true)
+        {
+            use q = Qubit();
+            DumpMachine((6, M(q)));
+        }
+        elif (true)
+        {
+            use q = Qubit();
+            DumpMachine((7, M(q)));
+        }
+        else
+        {
+            use q = Qubit();
+            DumpMachine((8, M(q)));
+        }
+    }
+
+    operation TestIfClauses3() : Unit {
+
+        use q2 = Qubit();
+        if (true)
+        {
+            use q = Qubit();
+            DumpMachine((9, M(q)));
+        }
+        elif (M(q2) == Zero)
+        {
+            use q = Qubit();
+            DumpMachine((10, M(q)));
+        }
+        else
+        {
+            use q = Qubit();
+            DumpMachine((11, M(q)));
+        }
+    }
+
+    operation TestIfClauses4(m : Result) : Unit {
+
+        if (m == Zero)
+        {
+            use q = Qubit();
+            DumpMachine((12, M(q)));
+        }
+        else
+        {
+            use q = Qubit();
+            DumpMachine((13, M(q)));
+        }
     }
 }
 

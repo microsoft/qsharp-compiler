@@ -823,6 +823,8 @@ namespace Microsoft.Quantum.QIR.Emission
                         this.QSharpElementType)
                     : throw new InvalidOperationException("invalid pointer access in array");
 
+                // TODO: emit poison value if access is out of bounds
+                // -> requires update to at least llvm 13 across all consumers of this IR (preferably even newer).
                 return element is null
                     ? new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store)
                     : new PointerValue(element, this.sharedState, Reload, Store);
