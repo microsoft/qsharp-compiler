@@ -491,6 +491,12 @@ let GetResolvedType (argTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>)
     | QsTuple elements -> buildTuple elements
     | _ -> ArgumentException "the argument tuple needs to be a QsTuple" |> raise
 
+[<Extension>]
+let rec FlattenTuple<'T> (tuple: QsTuple<'T>) : IEnumerable<'T> =
+    match tuple with
+    | QsTupleItem item -> [item]
+    | QsTuple t -> t.SelectMany(FlattenTuple)
+
 // look-up for udt and global callables
 
 [<Extension>]
