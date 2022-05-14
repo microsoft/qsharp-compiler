@@ -166,7 +166,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             // Update the scope to have Known Symbols equal to its parameter list
             var newContents = new QsScope(
                 contents.Statements,
-                new LocalDeclarations(parameters.FlattenTuple()
+                new LocalDeclarations(SyntaxGenerator.ExtractItems(parameters)
                     .Select(decl => new LocalVariableDeclaration<string, ResolvedType>(
                         ((QsLocalSymbol.ValidName)decl.VariableName).Item,
                         decl.Type,
@@ -453,7 +453,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
                 public TransformationState(ParameterTuple parameters, QsQualifiedName oldName, QsQualifiedName newName)
                 {
-                    this.ParameterNames = parameters.FlattenTuple()
+                    this.ParameterNames = SyntaxGenerator.ExtractItems(parameters)
                         .Where(x => x.VariableName.IsValidName)
                         .Select(x => ((QsLocalSymbol.ValidName)x.VariableName).Item)
                         .ToImmutableHashSet();

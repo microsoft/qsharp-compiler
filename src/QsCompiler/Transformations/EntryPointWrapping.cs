@@ -198,7 +198,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                     wrapper.ArgumentTuple,
                     new QsScope(
                         MakeStatements(original),
-                        new LocalDeclarations(wrapper.ArgumentTuple.FlattenTuple()
+                        new LocalDeclarations(SyntaxGenerator.ExtractItems(wrapper.ArgumentTuple)
                             .Select(decl => new LocalVariableDeclaration<string, ResolvedType>(
                                 ((QsLocalSymbol.ValidName)decl.VariableName).Item,
                                 decl.Type,
@@ -363,7 +363,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
                                 InferredExpressionInformation.ParameterDeclaration,
                                 QsNullable<Position>.Null,
                                 DataTypes.Range.Zero))
-                            .Concat(original.ArgumentTuple.FlattenTuple()
+                            .Concat(SyntaxGenerator.ExtractItems(original.ArgumentTuple)
                                 .Select(decl => new LocalVariableDeclaration<string, ResolvedType>(
                                     ((QsLocalSymbol.ValidName)decl.VariableName).Item,
                                     decl.Type,
