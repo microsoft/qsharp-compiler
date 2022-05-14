@@ -155,30 +155,12 @@ type ErrorCode =
     | ControlledAdjointGenArgMismatch = 4114
     | MisplacedDeclarationAttribute = 4115
 
-    // TODO: RELEASE 2021-10: Remove MissingExprInArray.
-    | [<Obsolete "This diagnostic is no longer in use.">] MissingExprInArray = 5001
-    // TODO: RELEASE 2021-10: Remove MultipleTypesInArray.
-    | [<Obsolete "This diagnostic is no longer in use.">] MultipleTypesInArray = 5002
     | InvalidArrayItemIndex = 5003
     | ItemAccessForNonArray = 5004
     | InvalidTypeInArithmeticExpr = 5005
     | InvalidTypeForConcatenation = 5006
     | InvalidTypeInEqualityComparison = 5007
-    // TODO: RELEASE 2021-10: Remove ArgumentMismatchInBinaryOp.
-    | [<Obsolete "This diagnostic is no longer in use.">] ArgumentMismatchInBinaryOp = 5008
-    // TODO: RELEASE 2021-10: Remove TypeMismatchInConditional.
-    | [<Obsolete "This diagnostic is no longer in use.">] TypeMismatchInConditional = 5009
-    // TODO: RELEASE 2021-10: Remove ExpressionOfUnknownType.
-    | [<Obsolete "This diagnostic is no longer in use.">] ExpressionOfUnknownType = 5010
-    // TODO: RELEASE 2021-10: Remove ExpectingUnitExpr.
-    | [<Obsolete "This diagnostic is no longer in use.">] ExpectingUnitExpr = 5011
-    // TODO: RELEASE 2021-10: Remove ExpectingIntExpr.
-    | [<Obsolete "This diagnostic is no longer in use.">] ExpectingIntExpr = 5012
     | ExpectingIntegralExpr = 5013
-    // TODO: RELEASE 2021-10: Remove ExpectingBoolExpr.
-    | [<Obsolete "This diagnostic is no longer in use.">] ExpectingBoolExpr = 5014
-    // TODO: RELEASE 2021-10: Remove ExpectingStringExpr.
-    | [<Obsolete "This diagnostic is no longer in use.">] ExpectingStringExpr = 5015
     | ExpectingUserDefinedType = 5016
     | InvalidAdjointApplication = 5017
     | InvalidControlledApplication = 5018
@@ -190,8 +172,6 @@ type ErrorCode =
     | ReturnInResultConditionedBlock = 5025
     | SetInResultConditionedBlock = 5026
     | UnsupportedCallableCapability = 5027
-    // TODO: RELEASE 2021-07: Remove ErrorCode.UnsupportedCapability.
-    | [<Obsolete "Renamed to UnsupportedCallableCapability.">] UnsupportedCapability = 5027
 
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
@@ -229,42 +209,17 @@ type ErrorCode =
     | InaccessibleTypeInNamespace = 6110
     | InaccessibleCallableInNamespace = 6111
 
-    // TODO: RELEASE 2021-10: Remove ArgumentTupleShapeMismatch.
-    | [<Obsolete "This diagnostic is no longer in use.">] ArgumentTupleShapeMismatch = 6201
-    // TODO: RELEASE 2021-10: Remove ArgumentTupleMismatch.
-    | [<Obsolete "This diagnostic is no longer in use.">] ArgumentTupleMismatch = 6202
     | ArrayBaseTypeMismatch = 6203
-    // TODO: RELEASE 2021-10: Remove UserDefinedTypeMismatch.
-    | [<Obsolete "This diagnostic is no longer in use.">] UserDefinedTypeMismatch = 6204
-    // TODO: RELEASE 2021-10: Remove CallableTypeInputTypeMismatch.
-    | [<Obsolete "This diagnostic is no longer in use.">] CallableTypeInputTypeMismatch = 6205
-    // TODO: RELEASE 2021-10: Remove CallableTypeOutputTypeMismatch.
-    | [<Obsolete "This diagnostic is no longer in use.">] CallableTypeOutputTypeMismatch = 6206
-    // TODO: RELEASE 2021-10: Remove MissingFunctorSupport.
-    | [<Obsolete "This diagnostic is no longer in use.">] MissingFunctorSupport = 6207
-    // TODO: RELEASE 2021-10: Remove ExcessFunctorSupport.
-    | [<Obsolete "This diagnostic is no longer in use.">] ExcessFunctorSupport = 6208
-    // TODO: RELEASE 2021-10: Remove FunctorSupportMismatch.
-    | [<Obsolete "This diagnostic is no longer in use.">] FunctorSupportMismatch = 6209
-    // TODO: RELEASE 2021-10: Remove ArgumentTypeMismatch.
-    | [<Obsolete "This diagnostic is no longer in use.">] ArgumentTypeMismatch = 6210
-    // TODO: RELEASE 2021-10: Remove UnexpectedTupleArgument.
-    | [<Obsolete "This diagnostic is no longer in use.">] UnexpectedTupleArgument = 6211
     | AmbiguousTypeParameterResolution = 6212
-    // TODO: RELEASE 2021-10: Remove ConstrainsTypeParameter.
-    | [<Obsolete "This diagnostic is no longer in use.">] ConstrainsTypeParameter = 6213
     | GlobalTypeAlreadyExists = 6215
     | GlobalCallableAlreadyExists = 6216
     | LocalVariableAlreadyExists = 6217
     | NamedItemAlreadyExists = 6219
     | IdentifierCannotHaveTypeArguments = 6220
     | WrongNumberOfTypeArguments = 6221
-    // TODO: RELEASE 2021-10: Remove InvalidUseOfTypeParameterizedObject.
-    | [<Obsolete "This diagnostic is no longer in use.">] InvalidUseOfTypeParameterizedObject = 6222
-    // TODO: RELEASE 2021-10: Remove PartialApplicationOfTypeParameter.
-    | [<Obsolete "This diagnostic is no longer in use.">] PartialApplicationOfTypeParameter = 6223
     | IndirectlyReferencedExpressionType = 6224
-    | TypeMismatchInCopyAndUpdateExpr = 6225
+    // TODO: RELEASE 2022-11: Remove TypeMismatchInCopyAndUpdateExpr.
+    | [<Obsolete "This diagnostic is no longer in use.">] TypeMismatchInCopyAndUpdateExpr = 6225
     | InterpolatedStringInAttribute = 6226
     | ArgumentOfUserDefinedTypeInAttribute = 6227
     | TypeParameterizedArgumentInAttribute = 6228
@@ -275,27 +230,22 @@ type ErrorCode =
     | UserDefinedTypeInEntryPointSignature = 6233
     | InnerTupleInEntryPointArgument = 6234
     | ArrayOfArrayInEntryPointArgument = 6235
-    | [<Obsolete("This diagnostic is no longer in use. Multiple entry points are now allowed.")>] OtherEntryPointExists = 6236
-    | [<Obsolete("This diagnostic is no longer in use. Multiple entry points are now allowed.")>] MultipleEntryPoints = 6237
     | MissingEntryPoint = 6238
     | InvalidEntryPointSpecialization = 6239
     | DuplicateEntryPointArgumentName = 6240
-    | [<Obsolete("This diagnostic is no longer in use. The warning EntryPointInLibrary is given instead.")>] EntryPointInLibrary = 6241
     | InvalidTestAttributePlacement = 6242
     | InvalidExecutionTargetForTest = 6243
     | ExpectingFullNameAsAttributeArgument = 6244
     | AttributeInvalidOnSpecialization = 6245
     | AttributeInvalidOnCallable = 6246
-    // TODO: RELEASE 2021-10: Remove UnresolvedTypeParameterForRecursiveCall.
-    | [<Obsolete "This diagnostic is no longer in use.">] UnresolvedTypeParameterForRecursiveCall = 6247
-    // TODO: RELEASE 2021-10: Remove TypeParameterResConflictWithTypeArgument.
-    | [<Obsolete "This diagnostic is no longer in use.">] TypeParameterResConflictWithTypeArgument = 6248
     | FullNameConflictsWithNamespace = 6249
     | InvalidCyclicTypeParameterResolution = 6250
     | InvalidCharacterInInterpolatedArgument = 6251
 
-    | TypeMismatchInReturn = 6301
-    | TypeMismatchInValueUpdate = 6302
+    // TODO: RELEASE 2022-11: Remove TypeMismatchInReturn.
+    | [<Obsolete "This diagnostic is no longer in use.">] TypeMismatchInReturn = 6301
+    // TODO: RELEASE 2022-11: Remove TypeMismatchInValueUpdate.
+    | [<Obsolete "This diagnostic is no longer in use.">] TypeMismatchInValueUpdate = 6302
     | UpdateOfImmutableIdentifier = 6303
     | SymbolTupleShapeMismatch = 6305
     | OperationCallOutsideOfOperation = 6306
@@ -369,7 +319,6 @@ type WarningCode =
     | DeprecatedANDoperator = 3302
     | DeprecatedORoperator = 3303
     | UseOfFutureReservedKeyword = 3304
-    | [<Obsolete("This diagnostic is no longer in use. The error InvalidUseOfUnderscorePattern is given instead.")>] UseOfUnderscorePattern = 3305
     | DeprecatedTupleBrackets = 3306
     | DeprecatedQubitBindingKeyword = 3307
     | DeprecatedNewArray = 3308
@@ -385,10 +334,6 @@ type WarningCode =
     | SetInResultConditionedBlock = 5026
     | UnsupportedCallableCapability = 5027
 
-    // TODO: RELEASE 2021-10: Remove TypeParameterNotResolvedByArgument.
-    | [<Obsolete "This diagnostic is no longer in use.">] TypeParameterNotResolvedByArgument = 6001
-    // TODO: RELEASE 2021-10: Remove ReturnTypeNotResolvedByArgument.
-    | [<Obsolete "This diagnostic is no longer in use.">] ReturnTypeNotResolvedByArgument = 6002
     | NamespaceAleadyOpen = 6003
     | NamespaceAliasIsAlreadyDefined = 6004
     | MissingBodyDeclaration = 6005
@@ -674,31 +619,15 @@ type DiagnosticItem =
             | ErrorCode.MisplacedDeclarationAttribute ->
                 "An attribute must be followed by a callable declaration, a type declaration, or by another attribute."
 
-            | ErrorCode.MissingExprInArray -> "Underscores cannot be used to denote missing array elements."
-            | ErrorCode.MultipleTypesInArray -> "Array items must have a common base type."
             | ErrorCode.InvalidArrayItemIndex ->
                 "Expecting an expression of type Int or Range. Got an expression of type {0}."
-            | ErrorCode.ItemAccessForNonArray ->
-                "The type {0} does not provide item access. Items can only be accessed for values of array type."
+            | ErrorCode.ItemAccessForNonArray -> "The type {0} is not an array type."
             | ErrorCode.InvalidTypeInArithmeticExpr ->
                 "The type {0} does not support arithmetic operators. Expecting an expression of type Int, BigInt or Double."
             | ErrorCode.InvalidTypeForConcatenation -> "The type {0} does not support the + operator."
             | ErrorCode.InvalidTypeInEqualityComparison -> "The type {0} does not support equality comparison."
-            | ErrorCode.ArgumentMismatchInBinaryOp ->
-                "The given arguments of type {0} and {1} do not have a common base type."
-            | ErrorCode.TypeMismatchInConditional ->
-                "The returned values of type {0} and {1} in the conditional expression do not have a common base type."
-            | ErrorCode.ExpressionOfUnknownType -> "Expression of unknown type."
-            | ErrorCode.ExpectingUnitExpr ->
-                "Expecting expression of type Unit. Only expressions of type Unit can be used as expression statements."
-            | ErrorCode.ExpectingIntExpr ->
-                "Expecting an expression of type Int. Got an expression of type {0} instead."
             | ErrorCode.ExpectingIntegralExpr ->
                 "Expecting an expression of type Int or BigInt. Got an expression of type {0} instead."
-            | ErrorCode.ExpectingBoolExpr ->
-                "Expecting an expression of type Bool. Got an expression of type {0} instead."
-            | ErrorCode.ExpectingStringExpr ->
-                "Expecting an expression of type String. Got an expression of type {0} instead."
             | ErrorCode.ExpectingUserDefinedType ->
                 "The type of the expression needs to be a user defined type. The given expression is of type {0}."
             | ErrorCode.InvalidAdjointApplication -> "No suitable adjoint specialization exists."
@@ -767,32 +696,14 @@ type DiagnosticItem =
             | ErrorCode.UnknownTypeInNamespace -> "No type with the name \"{0}\" exists in the namespace {1}."
             | ErrorCode.TypeParameterRedeclaration -> "A type parameter with the name \"{0}\" already exists."
             | ErrorCode.UnknownTypeParameterName -> "No type parameter with the name \"{0}\" exists."
-            | ErrorCode.UnknownItemName -> "The type {0} does not define an item with name \"{1}\"."
+            | ErrorCode.UnknownItemName -> "The type {0} is not a user-defined type with a field \"{1}\"."
             | ErrorCode.NotMarkedAsAttribute ->
                 "The type {0} is not marked as an attribute. Add \"@Attribute()\" above its declaration to indicate that it may be used as attribute."
             | ErrorCode.InaccessibleTypeInNamespace -> "The type {0} in namespace {1} is not accessible from here."
             | ErrorCode.InaccessibleCallableInNamespace ->
                 "The callable {0} in namespace {1} is not accessible from here."
 
-            | ErrorCode.ArgumentTupleShapeMismatch ->
-                "The shape of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
-            | ErrorCode.ArgumentTupleMismatch ->
-                "The type of the given tuple does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.ArrayBaseTypeMismatch -> "The array item type {0} does not match the expected type {1}."
-            | ErrorCode.UserDefinedTypeMismatch -> "The type {0} does not match the expected user defined type {1}."
-            | ErrorCode.CallableTypeInputTypeMismatch ->
-                "The argument type {0} of the given callable does not match the expected type {1}."
-            | ErrorCode.CallableTypeOutputTypeMismatch ->
-                "The return type {0} of the given callable does not match the expected type {1}."
-            | ErrorCode.MissingFunctorSupport ->
-                "The given argument does not support the required functor(s). Missing support for the functor(s) {0}."
-            | ErrorCode.ExcessFunctorSupport ->
-                "The given argument is less general than the expected one due to requiring additional support for the functor(s) {0}."
-            | ErrorCode.FunctorSupportMismatch ->
-                "The set of supported functors does not match the expected type. Expecting support for the functor(s) {0}."
-            | ErrorCode.ArgumentTypeMismatch ->
-                "The type of the given argument does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
-            | ErrorCode.UnexpectedTupleArgument -> "Unexpected argument tuple. Expecting an argument of type {0}."
             | ErrorCode.AmbiguousTypeParameterResolution ->
                 let note =
                     if Seq.item 1 args |> String.IsNullOrWhiteSpace then
@@ -802,7 +713,6 @@ type DiagnosticItem =
 
                 "The type parameter {0} is ambiguous. More type annotations or usage context may be necessary."
                 + note
-            | ErrorCode.ConstrainsTypeParameter -> "The given expression constrains the type parameter(s) {0}."
             | ErrorCode.GlobalTypeAlreadyExists -> "A type with the name \"{0}\" already exists."
             | ErrorCode.GlobalCallableAlreadyExists -> "A callable with the name \"{0}\" already exists."
             | ErrorCode.LocalVariableAlreadyExists -> "A variable with the name \"{0}\" already exists."
@@ -810,9 +720,6 @@ type DiagnosticItem =
             | ErrorCode.IdentifierCannotHaveTypeArguments -> "The given identifier cannot have type arguments."
             | ErrorCode.WrongNumberOfTypeArguments ->
                 "The number of type arguments does not match the number of type parameters for this identifier. Expecting {0} type argument(s)."
-            | ErrorCode.InvalidUseOfTypeParameterizedObject ->
-                "The type of the given expression cannot be determined. Provide explicit type arguments (\"identifier<commaSeparatedTypeArguments>\")."
-            | ErrorCode.PartialApplicationOfTypeParameter -> "Generic type parameters cannot be partially resolved."
             | ErrorCode.IndirectlyReferencedExpressionType ->
                 "The type {0} of the expression is defined in an assembly that is not referenced."
             | ErrorCode.TypeMismatchInCopyAndUpdateExpr ->
@@ -836,15 +743,12 @@ type DiagnosticItem =
                 "Anonymous tuple items or arrays of tuples are not supported in entry point arguments. All items need to be named."
             | ErrorCode.ArrayOfArrayInEntryPointArgument ->
                 "Multi-dimensional arrays are not supported in entry point arguments."
-            | ErrorCode.OtherEntryPointExists -> "Invalid entry point. An entry point {0} already exists in {1}."
-            | ErrorCode.MultipleEntryPoints -> "The project contains more than one entry point."
             | ErrorCode.MissingEntryPoint ->
                 "Missing entry point. Execution on a quantum processor requires that a Q# entry point is defined using the @EntryPoint() attribute. Any C# driver code should be defined in a separate project."
             | ErrorCode.InvalidEntryPointSpecialization ->
                 "Entry points cannot have any other specializations besides the default body."
             | ErrorCode.DuplicateEntryPointArgumentName ->
                 "Invalid name for entry point argument. A similar argument name is already in use."
-            | ErrorCode.EntryPointInLibrary -> "Invalid entry point. Only executable Q# projects can have entry points."
             | ErrorCode.InvalidTestAttributePlacement ->
                 "Invalid test attribute. Test attributes may only occur on callables that have no arguments and return Unit."
             | ErrorCode.InvalidExecutionTargetForTest ->
@@ -855,10 +759,6 @@ type DiagnosticItem =
                 "Invalid attribute placement. The attribute {0} cannot be attached to a specialization declaration."
             | ErrorCode.AttributeInvalidOnCallable ->
                 "Invalid attribute placement. The attribute {0} cannot be attached to a callable declaration."
-            | ErrorCode.UnresolvedTypeParameterForRecursiveCall ->
-                "The type argument(s) for the recursive call could not be inferred. Please provide explicit type arguments, e.g. Op<Int, Double>(arg)."
-            | ErrorCode.TypeParameterResConflictWithTypeArgument ->
-                "The type of the expression needs to match the defined type argument. Expecting an expression of type {0}."
             | ErrorCode.FullNameConflictsWithNamespace -> "The name {0} conflicts with a namespace name."
             | ErrorCode.InvalidCyclicTypeParameterResolution ->
                 "The call cycle results in an ambiguous or conflicting type parameter resolution."
@@ -974,8 +874,6 @@ type DiagnosticItem =
             | WarningCode.DeprecatedANDoperator -> "Deprecated syntax. Use \"and\" to denote the logical AND operator."
             | WarningCode.DeprecatedORoperator -> "Deprecated syntax. Use \"or\" to denote the logical OR operator."
             | WarningCode.UseOfFutureReservedKeyword -> "The symbol will be reserved for internal use in the future."
-            | WarningCode.UseOfUnderscorePattern ->
-                "Double underscores as well as underscores before a dot or at the end of a namespace name will be reserved for internal use in the future."
             | WarningCode.DeprecatedTupleBrackets ->
                 "Deprecated syntax. Parentheses here are no longer required and will not be supported in the future."
             | WarningCode.DeprecatedQubitBindingKeyword ->
@@ -1013,10 +911,6 @@ type DiagnosticItem =
                 + DiagnosticItem.Message(ErrorCode.UnsupportedCallableCapability, args |> Seq.skip 4)
                 + " [{1}: ln {2}, cn {3}]"
 
-            | WarningCode.TypeParameterNotResolvedByArgument ->
-                "The value of the type parameter is not determined by the argument type. It will always have to be explicitly specified by passing type arguments."
-            | WarningCode.ReturnTypeNotResolvedByArgument ->
-                "The return type is not fully determined by the argument type. It will always have to be explicitly specified by passing type arguments."
             | WarningCode.NamespaceAleadyOpen -> "The namespace is already open."
             | WarningCode.NamespaceAliasIsAlreadyDefined -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration ->
