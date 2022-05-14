@@ -239,7 +239,7 @@ type ExecutionTests(output: ITestOutputHelper) =
     [<Fact>]
     member this.``QIR native llvm type handling``() =
 
-        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling"
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling__body"
         let exitCode, out, err = QirExecutionTest true functionName
         AssertEqual String.Empty err
         Assert.Equal(0, exitCode)
@@ -270,7 +270,6 @@ type ExecutionTests(output: ITestOutputHelper) =
             [[PauliX, PauliZ], [PauliX, PauliX, PauliX], [PauliY], [PauliI]]
             [[], [], [2], [3]]
             [[0, 1], [3, 3, 3], [2], [3]]
-            Zero
             """
 
         AssertEqual expected out

@@ -292,9 +292,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.EndBranch();
             }
 
-            if (contBlockUsed)
+            var currentBlock = this.SharedState.CurrentBlock;
+            this.SharedState.SetCurrentBlock(contBlock);
+            if (!contBlockUsed)
             {
-                this.SharedState.SetCurrentBlock(contBlock);
+                this.SharedState.CurrentBuilder.Unreachable();
+                this.SharedState.SetCurrentBlock(currentBlock);
             }
 
             return QsStatementKind.EmptyStatement;

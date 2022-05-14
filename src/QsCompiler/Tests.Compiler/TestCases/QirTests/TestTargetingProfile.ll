@@ -369,6 +369,7 @@ continue__4:                                      ; preds = %else__1, %then0__2
   br i1 %231, label %then0__3, label %continue__5
 
 continue__6:                                      ; No predecessors!
+  unreachable
 
 then0__3:                                         ; preds = %continue__4
   store i64 1, i64* %rand, align 4
@@ -389,6 +390,7 @@ continue__5:                                      ; preds = %then0__3, %continue
   br i1 %238, label %then0__4, label %continue__7
 
 continue__8:                                      ; No predecessors!
+  unreachable
 
 then0__4:                                         ; preds = %continue__5
   %239 = add i64 %233, 1
