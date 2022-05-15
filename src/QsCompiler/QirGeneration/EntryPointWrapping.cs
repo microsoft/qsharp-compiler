@@ -15,7 +15,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
-namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
+namespace Microsoft.Quantum.QsCompiler.Transformations
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
@@ -170,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
 
             var wrapper = new QsCallable(
                 c.Kind,
-                NameDecorator.PrependGuid(c.FullName),
+                new QsQualifiedName(c.FullName.Namespace, "__" + c.FullName.Name + "__"),  // FIXME
                 c.Attributes.Where(BuiltIn.MarksEntryPoint).ToImmutableArray(),
                 c.Access,
                 c.Source,

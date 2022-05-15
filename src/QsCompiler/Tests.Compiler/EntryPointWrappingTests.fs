@@ -6,7 +6,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.EntryPointWrapping
+open Microsoft.Quantum.QsCompiler.Transformations
 open Xunit
 
 type EntryPointWrappingTests() =
@@ -50,8 +50,9 @@ type EntryPointWrappingTests() =
         Assert.False((original.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The original entry point is still an entry point.")
 
         let generated =
-            TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Foo"
-            |> Seq.exactlyOne
+            TestUtils.getCallableWithName result Signatures.EntryPointWrappingNS "__Foo__"
+            //TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Foo"
+            //|> Seq.exactlyOne
 
         Assert.True((generated.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The entry point wrapper is not an entry point.")
 
@@ -242,8 +243,9 @@ type EntryPointWrappingTests() =
         let result = compileEntryPointWrappingTests 11
 
         let generated =
-            TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Foo"
-            |> Seq.exactlyOne
+            TestUtils.getCallableWithName result Signatures.EntryPointWrappingNS "__Foo__"
+            //TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Foo"
+            //|> Seq.exactlyOne
 
         let generatedParameters =
             generated.ArgumentTuple.Items
@@ -281,8 +283,9 @@ type EntryPointWrappingTests() =
         Assert.False((originalFoo.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The original entry point 'Foo' is still an entry point.")
 
         let generatedFoo =
-            TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Foo"
-            |> Seq.exactlyOne
+            TestUtils.getCallableWithName result Signatures.EntryPointWrappingNS "__Foo__"
+            //TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Foo"
+            //|> Seq.exactlyOne
 
         Assert.True((generatedFoo.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The entry point wrapper for 'Foo' is not an entry point.")
 
@@ -292,8 +295,9 @@ type EntryPointWrappingTests() =
         Assert.False((originalBar.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The original entry point 'Bar' is still an entry point.")
 
         let generatedBar =
-            TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Bar"
-            |> Seq.exactlyOne
+            TestUtils.getCallableWithName result Signatures.EntryPointWrappingNS "__Bar__"
+            //TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Bar"
+            //|> Seq.exactlyOne
 
         Assert.True((generatedBar.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The entry point wrapper for 'Bar' is not an entry point.")
 
@@ -308,8 +312,9 @@ type EntryPointWrappingTests() =
         Assert.False((originalFoo.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The original entry point 'Foo' is still an entry point.")
 
         let generatedFoo =
-            TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Foo"
-            |> Seq.exactlyOne
+            TestUtils.getCallableWithName result Signatures.EntryPointWrappingNS "__Foo__"
+            //TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Foo"
+            //|> Seq.exactlyOne
 
         Assert.True((generatedFoo.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The entry point wrapper for 'Foo' is not an entry point.")
 
@@ -319,7 +324,7 @@ type EntryPointWrappingTests() =
         Assert.True((originalBar.Attributes |> Seq.exists BuiltIn.MarksEntryPoint), "The original entry point 'Bar' is not an entry point.")
 
         let isNoGeneratedBar =
-            TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "_Bar"
+            TestUtils.getCallablesWithSuffix result Signatures.EntryPointWrappingNS "__Bar__"
             |> Seq.isEmpty
 
         Assert.True((isNoGeneratedBar), "Found an unexpected entry point wrapper generated for 'Bar'.")
