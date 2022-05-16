@@ -264,6 +264,7 @@ module AssemblyConstants =
     let QCIProcessor = "QCIProcessor"
     let QuantinuumProcessor = "QuantinuumProcessor"
     let ExecutionTarget = "ExecutionTarget"
+    let TargetCapability = "TargetCapability"
     let DefaultSimulator = "DefaultSimulator"
     let QuantumSimulator = "QuantumSimulator"
     let SparseSimulator = "SparseSimulator"
