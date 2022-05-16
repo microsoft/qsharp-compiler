@@ -390,16 +390,14 @@ let private driverSettings context =
         ]
         |> immutableList
 
-    let assemblyConstant defaultValue name =
-        context.assemblyConstants.TryGetValue name
-        |> (fun (_, value) -> if String.IsNullOrWhiteSpace value then defaultValue else value)
-
     let defaultSimulator =
-        assemblyConstant AssemblyConstants.QuantumSimulator AssemblyConstants.DefaultSimulator
+        context.assemblyConstants.TryGetValue AssemblyConstants.DefaultSimulator
+        |> fun (_, value) -> if String.IsNullOrWhiteSpace value then AssemblyConstants.QuantumSimulator else value
 
-    let defaultExecutionTarget = assemblyConstant "" AssemblyConstants.ExecutionTarget |> literal
-
-    let targetCapability = assemblyConstant "" AssemblyConstants.TargetCapability |> literal
+    let defaultExecutionTarget =
+        context.assemblyConstants.TryGetValue AssemblyConstants.ExecutionTarget
+        |> (fun (_, value) -> if value = null then "" else value)
+        |> literal
 
     [
         namedArg "simulatorOptionAliases" simulatorOptionAliases
@@ -409,7 +407,6 @@ let private driverSettings context =
         namedArg "resourcesEstimatorName" <| literal AssemblyConstants.ResourcesEstimator
         namedArg "defaultSimulatorName" <| literal defaultSimulator
         namedArg "defaultExecutionTarget" <| defaultExecutionTarget
-        namedArg "targetCapability" <| targetCapability
         namedArg "createDefaultCustomSimulator" <| customSimulatorFactory defaultSimulator
     ]
     |> SyntaxFactory.SeparatedList
