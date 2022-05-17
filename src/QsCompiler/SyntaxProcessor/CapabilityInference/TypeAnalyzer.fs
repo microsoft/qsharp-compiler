@@ -17,41 +17,40 @@ type Usage =
     | Return
     | Conditional
     | Literal
-    | Expression
 
 type Context = { IsEntryPoint: bool; StringLiteralsOk: bool }
 
-let rec requiredCapability context usage (ty: ResolvedType) =
-    match usage with
-    | Conditional
-    | Mutable _ ->
-        match ty.Resolution with
-        | Bool
-        | Int -> ClassicalCapability.integral
-        | _ -> ClassicalCapability.full
-    | Return when context.IsEntryPoint ->
-        // TODO: I think there's another place where the return type of the entry point is checked. That should be
-        // combined with this.
-        match ty.Resolution with
-        | UnitType
-        | Result -> ClassicalCapability.empty
-        | Bool
-        | Int -> ClassicalCapability.integral
-        | ArrayType t -> requiredCapability context usage t
-        | TupleType ts when not ts.IsEmpty -> Seq.map (requiredCapability context usage) ts |> Seq.max
-        | _ -> ClassicalCapability.full
-    | Return -> ClassicalCapability.empty
-    | Literal ->
-        match ty.Resolution with
-        | BigInt -> ClassicalCapability.full
-        | String -> if context.StringLiteralsOk then ClassicalCapability.empty else ClassicalCapability.full
-        | _ -> ClassicalCapability.empty
-    | Expression ->
-        match ty.Resolution with
-        | BigInt
-        | Range
-        | String -> ClassicalCapability.full
-        | _ -> ClassicalCapability.empty
+let requiredCapability context usage (ty: ResolvedType) =
+    let shallowCapability =
+        match usage with
+        | Conditional
+        | Mutable _ ->
+            function
+            | TupleType _
+            | ArrayType _ -> ClassicalCapability.empty
+            | Bool
+            | Int -> ClassicalCapability.integral
+            | _ -> ClassicalCapability.full
+        | Return when context.IsEntryPoint ->
+            // TODO: I think there's another place where the return type of the entry point is checked. That should be
+            // combined with this.
+            function
+            | UnitType
+            | Result
+            | TupleType _
+            | ArrayType _ -> ClassicalCapability.empty
+            | Bool
+            | Int -> ClassicalCapability.integral
+            | _ -> ClassicalCapability.full
+        | Return -> fun _ -> ClassicalCapability.empty
+        | Literal ->
+            function
+            | BigInt -> ClassicalCapability.full
+            | String when not context.StringLiteralsOk -> ClassicalCapability.full
+            | _ -> ClassicalCapability.empty
+
+    ty.ExtractAll(fun t -> shallowCapability t.Resolution |> Seq.singleton)
+    |> Seq.fold max ClassicalCapability.empty
 
 let createPattern range classical =
     let capability = RuntimeCapability.withClassical classical RuntimeCapability.bottom
@@ -124,23 +123,23 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
                 let usage =
-                    match expression.Expression, expression.ResolvedType.Resolution with
-                    | CONDITIONAL _, _ -> Conditional
-                    | IntLiteral _, _
-                    | BigIntLiteral _, _
-                    | DoubleLiteral _, _
-                    | BoolLiteral _, _
-                    | StringLiteral _, _
-                    | ResultLiteral _, _
-                    | PauliLiteral _, _
-                    | RangeLiteral _, _ -> Literal
-                    | _ -> Expression
+                    match expression.Expression with
+                    | CONDITIONAL _ -> Some Conditional
+                    | IntLiteral _
+                    | BigIntLiteral _
+                    | DoubleLiteral _
+                    | BoolLiteral _
+                    | StringLiteral _
+                    | ResultLiteral _
+                    | PauliLiteral _
+                    | RangeLiteral _ -> Some Literal
+                    | _ -> None
 
                 let expression = base.OnTypedExpression expression
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
-                requiredCapability context usage expression.ResolvedType
-                |> createPattern range
+                usage
+                |> Option.bind (fun u -> requiredCapability context u expression.ResolvedType |> createPattern range)
                 |> Option.iter patterns.Add
 
                 expression

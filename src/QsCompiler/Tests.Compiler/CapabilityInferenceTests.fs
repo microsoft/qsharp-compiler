@@ -149,7 +149,7 @@ let ``Infers with uncalled reference`` () =
 
 [<Fact>]
 let ``Restricts BigInt, Range, and String`` () =
-    [ "MessageStringLit"; "MessageInterpStringLit"; "UseRangeLit" ]
+    [ "MessageStringLit"; "MessageInterpStringLit"; "UseRangeLit"; "UseRangeVar" ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
 
     [
@@ -160,7 +160,6 @@ let ``Restricts BigInt, Range, and String`` () =
         "MessageStringVar"
         "ReturnString"
         "ConditionalString"
-        "UseRangeVar"
     ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
 
