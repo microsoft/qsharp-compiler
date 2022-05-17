@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// There are also some built-in callables that are also exempt from
     /// being removed from non-use, as they are needed for later rewrite steps.
     /// </summary>
-    public class OutputRecording
+    public class AddOutputRecording
     {
         internal class OutputRecorderDefinition
         {
@@ -115,13 +115,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
         private IOutputRecorder Recorder { get; }
 
-        internal OutputRecording(bool useRuntimeAPI) =>
+        internal AddOutputRecording(bool useRuntimeAPI) =>
             this.Recorder = useRuntimeAPI ? new RuntimeAPI() : new MessageAPI();
 
-        public static QsCompilation Apply(QsCompilation compilation, bool useRuntimeAPI = true)
+        public static QsCompilation Apply(QsCompilation compilation, bool useRuntimeAPI = false, bool alwaysCreateWrapper = false)
         {
-            var recording = new OutputRecording(useRuntimeAPI);
-            var transformation = new WrapEntryPoints(recording.RecordOutput);
+            var recording = new AddOutputRecording(useRuntimeAPI);
+            var transformation = new WrapEntryPoints(recording.RecordOutput, alwaysCreateWrapper);
 
             return compilation.EntryPoints.Length > 0
             ? transformation.OnCompilation(new QsCompilation(
@@ -414,8 +414,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
                     statements.Add(this.Recorder.RecordEndArray());
                 }
-                else
+                else if (!variableDecl.Type.Resolution.IsUnitType)
                 {
+                    // we choose to ignore unit for output recording
                     throw new ArgumentException($"Invalid type for in output recording: {variableDecl.Type.Resolution}");
                 }
             }
@@ -433,10 +434,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 public List<QsCallable> NewEntryPointWrappers { get; } = new List<QsCallable>();
             }
 
-            public WrapEntryPoints(OutputRecorder recorder)
+            public WrapEntryPoints(OutputRecorder recorder, bool alwaysCreateWrapper)
                 : base(new TransformationState())
             {
-                this.Namespaces = new NamespaceTransformation(this, recorder);
+                this.Namespaces = new NamespaceTransformation(this, recorder, alwaysCreateWrapper);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -453,10 +454,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
                 private OutputRecorder record;
+                private readonly bool alwaysCreateWrapper;
 
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent, OutputRecorder recorder)
-                    : base(parent) =>
+                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent, OutputRecorder recorder, bool alwaysCreateWrapper)
+                    : base(parent)
+                {
                     this.record = recorder;
+                    this.alwaysCreateWrapper = alwaysCreateWrapper;
+                }
 
                 private QsCallable CreateEntryPointWrapper(QsCallable c)
                 {
@@ -487,7 +492,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                             new LocalDeclarations(paramDecl));
                     }
 
-                    var wrapperName = new QsQualifiedName(c.FullName.Namespace, "__" + c.FullName.Name + "__");  // FIXME
+                    var wrapperName = new QsQualifiedName(c.FullName.Namespace, c.FullName.Name + "__main");
                     var wrapperSignature = new ResolvedSignature(
                         ImmutableArray<QsLocalSymbol>.Empty,
                         c.Signature.ArgumentType,
@@ -524,14 +529,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 {
                     if (c.Attributes.Any(BuiltIn.MarksEntryPoint))
                     {
-                        if (c.Signature.ReturnType.Resolution.IsUnitType)
+                        if (c.Signature.ReturnType.Resolution.IsUnitType && !this.alwaysCreateWrapper)
                         {
                             this.SharedState.EntryPointNames.Add(c.FullName);
                             return c;
                         }
                         else
                         {
-                            var wrapper = CreateEntryPointWrapper(c);
+                            var wrapper = this.CreateEntryPointWrapper(c);
                             this.SharedState.EntryPointNames.Add(wrapper.FullName);
                             this.SharedState.NewEntryPointWrappers.Add(wrapper);
                             return new QsCallable(

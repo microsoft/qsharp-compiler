@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.Testing.QIR {
     }
 
     @EntryPoint()
-    operation TestProfileTargeting() : Int {
+    operation TestProfileTargeting() : (Int, Int) {
         let arr1 = [1,2,3];
         DumpMachine(arr1);
         
@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.Testing.QIR {
 
         //mutable foo = m1 == m2 ? sum | 0; // TODO: check branching
 
-        return sum; //(sum, rand); TODO: requires output transformation
+        return (sum, rand);
     }
 
 

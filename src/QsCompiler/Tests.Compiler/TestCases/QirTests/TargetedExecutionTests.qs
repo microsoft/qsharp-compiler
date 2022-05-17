@@ -7,7 +7,7 @@
     newtype MyNestedTuple = ((Item1 : Int, Item2 : Double), Item3 : Double);
 
     @EntryPoint()
-    operation TestNativeTypeHandling() : Result {
+    operation TestNativeTypeHandling() : Unit {
         let arr1 = [1,2,3];
         Message($"{arr1}");
         
@@ -74,8 +74,6 @@
         Message($"{qubitArrArr w/ 1 <- [q, q, q]}");
 
         // TODO: write tests for array of array of array
-
-        return Zero;
     }
 }
 
