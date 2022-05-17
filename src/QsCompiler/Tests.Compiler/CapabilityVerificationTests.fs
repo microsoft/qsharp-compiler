@@ -257,13 +257,8 @@ let ``BasicQuantumFunctionality restricts library calls and references`` () =
         ]
 
 [<Fact>]
-let ``Allows returning results from entry point`` () =
-    let names =
-        [
-            "EntryPointReturnResult"
-            "EntryPointReturnResultArray"
-            "EntryPointReturnResultTuple"
-        ]
+let ``Allows returning Unit and Result from entry point`` () =
+    expect fullComputation [] "EntryPointReturnUnit"
 
     let compilations =
         [
@@ -271,11 +266,20 @@ let ``Allows returning results from entry point`` () =
             basicExecution
             adaptiveExecution
             basicMeasurementFeedback
-            fullComputation
         ]
 
-    List.allPairs names compilations
-    |> List.iter (fun (name, compilation) -> expect compilation [] name)
+    for compilation in compilations do
+        expect compilation [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ] "EntryPointReturnUnit"
+
+    let names =
+        [
+            "EntryPointReturnResult"
+            "EntryPointReturnResultArray"
+            "EntryPointReturnResultTuple"
+        ]
+
+    for name, compilation in List.allPairs names (fullComputation :: compilations) do
+        expect compilation [] name
 
 [<Fact>]
 let ``Restricts returning integral types from entry point`` () =
@@ -300,8 +304,8 @@ let ``Restricts returning integral types from entry point`` () =
             fullComputation, []
         ]
 
-    List.allPairs names expectations
-    |> List.iter (fun (name, (compilation, diagnostics)) -> expect compilation diagnostics name)
+    for name, (compilation, diagnostics) in List.allPairs names expectations do
+        expect compilation diagnostics name
 
 [<Fact>]
 let ``Restricts returning Double from entry point`` () =
@@ -329,5 +333,5 @@ let ``Restricts returning Double from entry point`` () =
             fullComputation, []
         ]
 
-    List.allPairs names expectations
-    |> List.iter (fun (name, (compilation, diagnostics)) -> expect compilation diagnostics name)
+    for name, (compilation, diagnostics) in List.allPairs names expectations do
+        expect compilation diagnostics name
