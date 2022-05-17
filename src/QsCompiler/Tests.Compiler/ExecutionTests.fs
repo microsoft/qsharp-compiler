@@ -239,7 +239,7 @@ type ExecutionTests(output: ITestOutputHelper) =
     [<Fact>]
     member this.``QIR native llvm type handling``() =
 
-        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling__body"
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling"
         let exitCode, out, err = QirExecutionTest true functionName
         AssertEqual String.Empty err
         Assert.Equal(0, exitCode)

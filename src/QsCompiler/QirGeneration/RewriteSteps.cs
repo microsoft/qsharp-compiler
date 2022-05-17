@@ -11,6 +11,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
 using Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
@@ -77,7 +78,10 @@ namespace Microsoft.Quantum.QsCompiler
             var runtimeCapability = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.TargetCapability, out var capability) && !string.IsNullOrWhiteSpace(capability)
                 ? RuntimeCapability.Parse(capability) // null if parsing fails
                 : null;
-            transformed = compilation;
+
+            transformed = runtimeCapability != null // TODO: this is very ad-hoc. Revise once we have aligned output processing better
+                ? AddOutputRecording.Apply(compilation, useRuntimeAPI: true, alwaysCreateWrapper: true)
+                : compilation;
             using var generator = new Generator(transformed, capability: runtimeCapability);
             generator.Apply();
 

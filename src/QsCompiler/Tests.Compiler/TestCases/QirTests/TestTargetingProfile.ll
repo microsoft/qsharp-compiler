@@ -1,4 +1,4 @@
-define internal i64 @Microsoft__Quantum__Testing__QIR__TestProfileTargeting__body() #0 {
+define internal void @Microsoft__Quantum__Testing__QIR__TestProfileTargeting() #0 {
 entry:
   %0 = alloca { [3 x i64], i64 }, align 8
   store { [3 x i64], i64 } { [3 x i64] [i64 1, i64 2, i64 3], i64 3 }, { [3 x i64], i64 }* %0, align 4
@@ -398,13 +398,19 @@ then0__4:                                         ; preds = %continue__5
   br label %continue__7
 
 continue__7:                                      ; preds = %then0__4, %continue__5
-  call void @__quantum__rt__result_update_reference_count(%Result* %m1, i32 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %m2, i32 -1)
+  %__rtrnVal1__ = load i64, i64* %rand, align 4
+  %240 = insertvalue { i64, i64 } { i64 6, i64 0 }, i64 %__rtrnVal1__, 1
   call void @__quantum__rt__qubit_release(%Qubit* %57)
   call void @__quantum__rt__qubit_release(%Qubit* %58)
   call void @__quantum__rt__qubit_release(%Qubit* %66)
   call void @__quantum__rt__qubit_release(%Qubit* %q)
+  call void @__quantum__rt__result_update_reference_count(%Result* %m1, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %m2, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit)
   call void @__quantum__rt__qubit_release(%Qubit* %target)
-  ret i64 6
+  call void @__quantum__rt__tuple_start_record_output()
+  call void @__quantum__rt__int_record_output(i64 6)
+  call void @__quantum__rt__int_record_output(i64 %__rtrnVal1__)
+  call void @__quantum__rt__tuple_end_record_output()
+  ret void
 }
