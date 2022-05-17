@@ -352,8 +352,8 @@ namespace Microsoft.Quantum.Testing.Capability {
     }
 
     @EntryPoint()
-    operation EntryPointReturnString() : String {
-        return "";
+    operation EntryPointReturnDouble() : Double {
+        return 0.0;
     }
 
     @EntryPoint()
@@ -367,7 +367,7 @@ namespace Microsoft.Quantum.Testing.Capability {
     }
 
     @EntryPoint()
-    operation EntryPointReturnStringArray() : String[] {
+    operation EntryPointReturnDoubleArray() : Double[] {
         return [];
     }
 
@@ -382,8 +382,8 @@ namespace Microsoft.Quantum.Testing.Capability {
     }
 
     @EntryPoint()
-    operation EntryPointReturnResultStringTuple() : (Result, String) {
-        return (Zero, "");
+    operation EntryPointReturnResultDoubleTuple() : (Result, Double) {
+        return (Zero, 0.0);
     }
 
     // Tuples and arrays currently don't support equality comparison, but result comparison should still be prevented if

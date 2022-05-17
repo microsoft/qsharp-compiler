@@ -53,21 +53,26 @@ let rec requiredCapability context usage (ty: ResolvedType) =
         | _ -> ClassicalCapability.empty
 
 let createPattern range classical =
-    let range = QsNullable.defaultValue Range.Zero range
     let capability = RuntimeCapability.withClassical classical RuntimeCapability.bottom
 
-    let diagnose target =
-        QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
-        |> Some
-        |> Option.filter (fun _ -> RuntimeCapability.subsumes target.Capability capability |> not)
+    if capability = RuntimeCapability.bottom then
+        None
+    else
+        let diagnose (target: Target) =
+            let range = QsNullable.defaultValue Range.Zero range
 
-    Some
-        {
-            Capability = capability
-            Diagnose = diagnose
-            Properties = ()
-        }
-    |> Option.filter (fun _ -> capability <> RuntimeCapability.bottom)
+            if RuntimeCapability.subsumes target.Capability capability then
+                None
+            else
+                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
+                |> Some
+
+        Some
+            {
+                Capability = capability
+                Diagnose = diagnose
+                Properties = ()
+            }
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
@@ -86,29 +91,31 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
         { new NamespaceTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnCallableDeclaration callable =
                 use _ = local { context with IsEntryPoint = Seq.exists BuiltIn.MarksEntryPoint callable.Attributes }
-                base.OnCallableDeclaration callable
+                let callable = base.OnCallableDeclaration callable
+
+                let returnType = callable.Signature.ReturnType
+                let returnRange = TypeRange.tryRange returnType.Range
+                let range = (callable.Location, returnRange) ||> QsNullable.Map2(fun l r -> l.Offset + r)
+                requiredCapability context Return returnType |> createPattern range |> Option.iter patterns.Add
+
+                callable
         }
 
     transformation.Statements <-
         { new StatementTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnStatement statement =
-                let range = statement.Location |> QsNullable<_>.Map (fun l -> l.Offset + l.Range)
-
                 match statement.Statement with
                 | QsFailStatement _ ->
                     use _ = local { context with StringLiteralsOk = true }
                     base.OnStatement statement
-                | QsReturnStatement value ->
-                    requiredCapability context Return value.ResolvedType
-                    |> createPattern range
-                    |> Option.iter patterns.Add
-
-                    base.OnStatement statement
                 | QsVariableDeclaration binding when binding.Kind = MutableBinding ->
+                    let statement = base.OnStatement statement
+
                     for var in statement.SymbolDeclarations.Variables do
+                        let range = QsNullable<_>.Map (fun o -> o + var.Range) transformation.Offset
                         requiredCapability context Mutable var.Type |> createPattern range |> Option.iter patterns.Add
 
-                    base.OnStatement statement
+                    statement
                 | _ -> base.OnStatement statement
         }
 
@@ -128,13 +135,14 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                     | RangeLiteral _, _ -> Literal
                     | _ -> Expression
 
+                let expression = base.OnTypedExpression expression
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
                 requiredCapability context usage expression.ResolvedType
                 |> createPattern range
                 |> Option.iter patterns.Add
 
-                base.OnTypedExpression expression
+                expression
         }
 
     transformation.ExpressionKinds <-

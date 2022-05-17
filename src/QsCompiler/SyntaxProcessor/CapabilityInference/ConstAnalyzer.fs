@@ -15,13 +15,16 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 type Context = { IsEntryPoint: bool; IsConstSensitive: bool }
 
 let createPattern range =
-    let range = QsNullable.defaultValue Range.Zero range
     let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
 
-    let diagnose target =
-        QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
-        |> Some
-        |> Option.filter (fun _ -> RuntimeCapability.subsumes target.Capability capability |> not)
+    let diagnose (target: Target) =
+        let range = QsNullable.defaultValue Range.Zero range
+
+        if RuntimeCapability.subsumes target.Capability capability then
+            None
+        else
+            QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
+            |> Some
 
     {
         Capability = capability
@@ -141,14 +144,17 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
+                let expression = base.OnTypedExpression expression
+                let range = QsNullable.Map2(+) transformation.Offset expression.Range
+
                 match expression.Expression with
-                | CONDITIONAL _ -> if context.IsConstSensitive then createPattern expression.Range |> patterns.Add
+                | CONDITIONAL _ -> if context.IsConstSensitive then createPattern range |> patterns.Add
                 | Identifier (LocalVariable name, _) ->
                     let isMutable = Map.tryFind name variables |> Option.exists id
-                    if context.IsConstSensitive && isMutable then createPattern expression.Range |> patterns.Add
+                    if context.IsConstSensitive && isMutable then createPattern range |> patterns.Add
                 | _ -> ()
 
-                base.OnTypedExpression expression
+                expression
         }
 
     transformation.ExpressionKinds <-

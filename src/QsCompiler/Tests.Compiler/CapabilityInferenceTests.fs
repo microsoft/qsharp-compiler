@@ -186,27 +186,3 @@ let ``Restricts mutability`` () =
         "MutableToNewArraySize"
     ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
-
-[<Fact>]
-let ``Restricts entry point return type`` () =
-    [
-        "EntryPointReturnResult"
-        "EntryPointReturnResultArray"
-        "EntryPointReturnResultTuple"
-    ]
-    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
-
-    [
-        "EntryPointReturnBool"
-        "EntryPointReturnInt"
-        "EntryPointReturnBoolArray"
-        "EntryPointReturnResultBoolTuple"
-    ]
-    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.integral |> expect)
-
-    [
-        "EntryPointReturnString"
-        "EntryPointReturnStringArray"
-        "EntryPointReturnResultStringTuple"
-    ]
-    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)

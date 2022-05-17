@@ -8,14 +8,26 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-type Target = { Capability: RuntimeCapability; Architecture: string }
+type Target =
+    {
+        capability: RuntimeCapability
+        architecture: string
+    }
+
+    member target.Capability = target.capability
+
+    member target.Architecture = target.architecture
+
+module Target =
+    [<CompiledName "Create">]
+    let create capability architecture =
+        { capability = capability; architecture = architecture }
 
 type 'props Pattern =
     {
         Capability: RuntimeCapability
         Diagnose: Target -> QsCompilerDiagnostic option
-        // TODO: This should be removed in the future.
-        Properties: 'props
+        Properties: 'props // TODO: This should be removed in the future.
     }
 
 module Pattern =

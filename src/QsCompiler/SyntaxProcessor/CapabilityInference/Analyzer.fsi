@@ -7,9 +7,15 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+[<Sealed>]
 type Target =
-    { Capability: RuntimeCapability
-      Architecture: string }
+    member internal Capability: RuntimeCapability
+
+    member internal Architecture: string
+
+module Target =
+    [<CompiledName "Create">]
+    val create: capability: RuntimeCapability -> architecture: string -> Target
 
 type internal 'props Pattern =
     { Capability: RuntimeCapability
