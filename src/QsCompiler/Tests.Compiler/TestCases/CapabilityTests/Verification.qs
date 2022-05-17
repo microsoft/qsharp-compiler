@@ -337,6 +337,9 @@ namespace Microsoft.Quantum.Testing.Capability {
     }
 
     @EntryPoint()
+    operation EntryPointReturnUnit() : Unit {}
+
+    @EntryPoint()
     operation EntryPointReturnResult() : Result {
         return Zero;
     }

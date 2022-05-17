@@ -33,6 +33,7 @@ let rec requiredCapability context usage (ty: ResolvedType) =
         // TODO: I think there's another place where the return type of the entry point is checked. That should be
         // combined with this.
         match ty.Resolution with
+        | UnitType
         | Result -> ClassicalCapability.empty
         | Bool
         | Int -> ClassicalCapability.integral
