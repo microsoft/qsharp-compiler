@@ -17,11 +17,11 @@ type EntryPointWrappingTests() =
         srcChunks.Length >= testNumber + 1 |> Assert.True
         let shared = srcChunks.[0]
         let compilationDataStructures = TestUtils.buildContentWithFiles (shared + srcChunks.[testNumber]) coreFiles
-        let processedCompilation = EntryPointWrapping.Apply compilationDataStructures.BuiltCompilation
+        let processedCompilation = OutputRecording.Apply compilationDataStructures.BuiltCompilation
         Assert.NotNull processedCompilation
         processedCompilation
 
-    let wrapperAPINamespaceName = "Microsoft.Quantum.Intrinsic";
+    let wrapperAPINamespaceName = BuiltIn.Message.FullName.Namespace;
 
     let makeVal n = sprintf "__rtrnVal%i__" n;
 
