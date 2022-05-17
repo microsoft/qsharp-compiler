@@ -4,7 +4,7 @@
 // =================================
 
 // Return Int
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : Int {
@@ -15,7 +15,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Return Bool
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : Bool {
@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Return Double
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : Double {
@@ -37,7 +37,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Return Result
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : Result {
@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Return Tuple
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : (Int, Bool) {
@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Return Nested Tuple
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : (Int, (Bool, Double)) {
@@ -70,7 +70,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Return Array
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : Int[] {
@@ -81,7 +81,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Return Empty Array
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : Int[] {
@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Return Jagged Array
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : Int[][] {
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Return Array in Tuple
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : (Result, Int[]) {
@@ -114,7 +114,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Multiple Parameter Entry Point
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo(a : Int, b : Bool) : Int {
@@ -125,7 +125,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Multiple Entry Points
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : Int {
@@ -141,7 +141,7 @@ namespace Microsoft.Quantum.Testing.EntryPointWrapping {
 // =================================
 
 // Don't Wrap Unit Entry Points
-namespace Microsoft.Quantum.Testing.EntryPointWrapping {
+namespace Microsoft.Quantum.Testing.OutputRecording {
 
     @EntryPoint()
     operation Foo() : Int {
