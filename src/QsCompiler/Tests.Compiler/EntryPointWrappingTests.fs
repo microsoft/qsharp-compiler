@@ -21,7 +21,7 @@ type EntryPointWrappingTests() =
         Assert.NotNull processedCompilation
         processedCompilation
 
-    let wrapperAPINamespaceName = "Microsoft.Quantum.Core";
+    let wrapperAPINamespaceName = "Microsoft.Quantum.Intrinsic";
 
     let makeVal n = sprintf "__rtrnVal%i__" n;
 

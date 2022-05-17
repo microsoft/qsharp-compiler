@@ -83,12 +83,13 @@ namespace Microsoft.Quantum.QIR
         /// <param name="name">The name of the function without the component prefix</param>
         /// <returns>The mangled function name</returns>
         /// <exception cref="ArgumentException">No naming convention is defined for the given component.</exception>
-        public static string FunctionName(Component component, string name) => component switch
-        {
-            Component.RuntimeLibrary => $"__quantum__rt__{name}",
-            Component.QuantumInstructionSet => $"__quantum__qis__{name}",
-            _ => throw new ArgumentException("unkown software component"),
-        };
+        public static string FunctionName(Component component, string name) =>
+            name.StartsWith("__") ? name : component switch
+            {
+                Component.RuntimeLibrary => $"__quantum__rt__{name}",
+                Component.QuantumInstructionSet => $"__quantum__qis__{name}",
+                _ => throw new ArgumentException("unkown software component"),
+            };
 
         // public and internal methods
 

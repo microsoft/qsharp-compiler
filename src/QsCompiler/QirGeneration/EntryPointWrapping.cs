@@ -1,15 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#if !__WRAPPER_API__
-#define __WRAPPER_API__
-#endif
-
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -19,10 +16,8 @@ using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations
 {
-    using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ParameterTuple = QsTuple<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using TypeParameterResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
     /// <summary>
     /// This transformation replaces callables with type parameters with concrete
@@ -35,65 +30,107 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     /// There are also some built-in callables that are also exempt from
     /// being removed from non-use, as they are needed for later rewrite steps.
     /// </summary>
-    public static class EntryPointWrapping
+    public class EntryPointWrapping
     {
-        private static readonly string ReturnValueVariableLabel = "rtrnVal";
-
-        private static readonly string OutputRecordersNamespaceName = "Microsoft.Quantum.Core";
-
-        private static readonly string BooleanRecordOutputName = "BooleanRecordOutput";
-
-        private static readonly string IntegerRecordOutputName = "IntegerRecordOutput";
-
-        private static readonly string DoubleRecordOutputName = "DoubleRecordOutput";
-
-        private static readonly string ResultRecordOutputName = "ResultRecordOutput";
-
-        private static readonly string TupleStartRecordOutputName = "TupleStartRecordOutput";
-
-        private static readonly string TupleEndRecordOutputName = "TupleEndRecordOutput";
-
-        private static readonly string ArrayStartRecordOutputName = "ArrayStartRecordOutput";
-
-        private static readonly string ArrayEndRecordOutputName = "ArrayEndRecordOutput";
-
-        // FIXME: CREATE ONLY IF IT DOESN'T EXIST
-        private static QsCallable CreateOutputRecorder(string name, ResolvedTypeKind parameterTypeKind, Source source)
+        internal class OutputRecorder
         {
-            var qualifiedName = new QsQualifiedName(OutputRecordersNamespaceName, name);
-            var sig = new ResolvedSignature(
-                ImmutableArray<QsLocalSymbol>.Empty,
-                ResolvedType.New(parameterTypeKind),
-                ResolvedType.New(ResolvedTypeKind.UnitType),
-                CallableInformation.NoInformation);
-            var parameterTuple = parameterTypeKind.IsUnitType
+            internal const string NamespaceName = "Microsoft.Quantum.Intrinsic";
+
+            internal QsQualifiedName QSharpName { get; }
+
+            internal ResolvedType QSharpType { get; }
+
+            internal QsCallableKind CallableKind => QsCallableKind.Function;
+
+            internal string TargetInstructionName { get; }
+
+            internal ResolvedSignature QSharpSignature { get; }
+
+            internal OutputRecorder(string qsharpName, string instructionName, ResolvedTypeKind parameterType)
+            {
+                this.QSharpName = new QsQualifiedName(NamespaceName, qsharpName);
+                this.TargetInstructionName = instructionName;
+                this.QSharpSignature = new ResolvedSignature(
+                    ImmutableArray<QsLocalSymbol>.Empty,
+                    ResolvedType.New(parameterType),
+                    ResolvedType.New(ResolvedTypeKind.UnitType),
+                    CallableInformation.NoInformation);
+                this.QSharpType = ResolvedType.New(
+                    this.CallableKind.IsFunction
+                    ? ResolvedTypeKind.NewFunction(this.QSharpSignature.ArgumentType, this.QSharpSignature.ReturnType)
+                    : throw new NotImplementedException("expecting output recorders to be functions"));
+            }
+
+            internal static readonly OutputRecorder Boolean =
+                new OutputRecorder("BooleanRecordOutput", "__quantum__rt__bool_record_output", ResolvedTypeKind.Bool);
+
+            internal static readonly OutputRecorder Integer =
+                new OutputRecorder("IntegerRecordOutput", "__quantum__rt__int_record_output", ResolvedTypeKind.Int);
+
+            internal static readonly OutputRecorder Double =
+                new OutputRecorder("DoubleRecordOutput", "__quantum__rt__double_record_output", ResolvedTypeKind.Double);
+
+            internal static readonly OutputRecorder Result =
+                new OutputRecorder("ResultRecordOutput", "__quantum__rt__result_record_output", ResolvedTypeKind.Result);
+
+            internal static readonly OutputRecorder TupleStart =
+                new OutputRecorder("TupleStartRecordOutput", "__quantum__rt__tuple_start_record_output", ResolvedTypeKind.UnitType);
+
+            internal static readonly OutputRecorder TupleEnd =
+                new OutputRecorder("TupleEndRecordOutput", "__quantum__rt__tuple_end_record_output", ResolvedTypeKind.UnitType);
+
+            internal static readonly OutputRecorder ArrayStart =
+                new OutputRecorder("ArrayStartRecordOutput", "__quantum__rt__array_start_record_output", ResolvedTypeKind.UnitType);
+
+            internal static readonly OutputRecorder ArrayEnd =
+                new OutputRecorder("ArrayEndRecordOutput", "__quantum__rt__array_end_record_output", ResolvedTypeKind.UnitType);
+        }
+
+        public static QsCompilation Apply(QsCompilation compilation) =>
+            compilation.EntryPoints.Length > 0
+            ? new WrapEntryPoints().OnCompilation(CreateOutputRecorderAPI(compilation))
+            : compilation;
+
+        private static readonly IEnumerable<OutputRecorder> RecorderAPI = ImmutableArray.Create(
+            OutputRecorder.Boolean,
+            OutputRecorder.Integer,
+            OutputRecorder.Double,
+            OutputRecorder.Result,
+            OutputRecorder.TupleStart,
+            OutputRecorder.TupleEnd,
+            OutputRecorder.ArrayStart,
+            OutputRecorder.ArrayEnd);
+
+        private static QsCallable CreateOutputRecorder(OutputRecorder recorder, Source source)
+        {
+            var parameterTuple = recorder.QSharpSignature.ArgumentType.Resolution.IsUnitType
                 ? ParameterTuple.NewQsTuple(ImmutableArray.Create(
                     ParameterTuple.NewQsTupleItem(
                         new LocalVariableDeclaration<QsLocalSymbol, ResolvedType>(
                             QsLocalSymbol.NewValidName("input"),
-                            ResolvedType.New(parameterTypeKind),
+                            recorder.QSharpSignature.ArgumentType,
                             InferredExpressionInformation.ParameterDeclaration,
                             QsNullable<Position>.Null,
                             DataTypes.Range.Zero))))
                 : ParameterTuple.NewQsTuple(ImmutableArray<ParameterTuple>.Empty);
             return new QsCallable(
-                QsCallableKind.Function,
-                qualifiedName,
+                recorder.CallableKind,
+                recorder.QSharpName,
                 ImmutableArray<QsDeclarationAttribute>.Empty,
                 Access.Internal,
                 source,
                 QsNullable<QsLocation>.Null,
-                sig,
+                recorder.QSharpSignature,
                 parameterTuple,
                 ImmutableArray.Create(
                     new QsSpecialization(
                         QsSpecializationKind.QsBody,
-                        qualifiedName,
+                        recorder.QSharpName,
                         ImmutableArray<QsDeclarationAttribute>.Empty,
                         source,
                         QsNullable<QsLocation>.Null,
                         QsNullable<ImmutableArray<ResolvedType>>.Null,
-                        sig,
+                        recorder.QSharpSignature,
                         SpecializationImplementation.Intrinsic,
                         ImmutableArray<string>.Empty,
                         QsComments.Empty)),
@@ -101,50 +138,52 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 QsComments.Empty);
         }
 
-        private static QsCallable CreateOutputRecorder(string name, Source source) =>
-            CreateOutputRecorder(name, ResolvedTypeKind.UnitType, source);
-
-        private static IEnumerable<QsCallable> CreateOutputRecorderAPI(Source source) => new[]
-            {
-                CreateOutputRecorder(BooleanRecordOutputName, ResolvedTypeKind.Bool, source),
-                CreateOutputRecorder(IntegerRecordOutputName, ResolvedTypeKind.Int, source),
-                CreateOutputRecorder(DoubleRecordOutputName, ResolvedTypeKind.Double, source),
-                CreateOutputRecorder(ResultRecordOutputName, ResolvedTypeKind.Result, source),
-                CreateOutputRecorder(TupleStartRecordOutputName, source),
-                CreateOutputRecorder(TupleEndRecordOutputName, source),
-                CreateOutputRecorder(ArrayStartRecordOutputName, source),
-                CreateOutputRecorder(ArrayEndRecordOutputName, source),
-            };
-
-        public static QsCompilation Apply(QsCompilation compilation)
+        private static QsCompilation CreateOutputRecorderAPI(QsCompilation compilation)
         {
-            if (compilation.EntryPoints.Length == 0)
-            {
-                return compilation;
-            }
-
             var apiNamespace =
-                compilation.Namespaces.FirstOrDefault(x => x.Name == OutputRecordersNamespaceName)
+                compilation.Namespaces.FirstOrDefault(x => x.Name == OutputRecorder.NamespaceName)
                 ?? new QsNamespace(
-                    OutputRecordersNamespaceName,
+                    OutputRecorder.NamespaceName,
                     ImmutableArray<QsNamespaceElement>.Empty,
                     Enumerable.Empty<ImmutableArray<string>>().ToLookup(x => default(string)));
 
+            var definedElements = apiNamespace.Elements.Partition(e => e.IsQsCallable);
+            var definedCallables = definedElements.Item1.ToDictionary(
+                e => e.GetFullName().Name,
+                e => ((QsNamespaceElement.QsCallable)e).Item);
+
             var apiSource = new Source(Path.GetTempFileName(), QsNullable<string>.Null);
-            apiNamespace = apiNamespace.WithElements(elems =>
-                elems.AddRange(CreateOutputRecorderAPI(apiSource).Select(QsNamespaceElement.NewQsCallable)).ToImmutableArray());
+            foreach (var recorder in RecorderAPI)
+            {
+                var recorderDeclaration = definedCallables.TryGetValue(recorder.QSharpName.Name, out var decl) ? decl : CreateOutputRecorder(recorder, apiSource);
+                if (SymbolResolution.TryGetTargetInstructionName(recorderDeclaration.Attributes).IsNull)
+                {
+                    recorderDeclaration = recorderDeclaration.AddAttribute(
+                        AttributeUtils.BuildAttribute(
+                            BuiltIn.TargetInstruction.FullName,
+                            AttributeUtils.StringArgument(recorder.TargetInstructionName)));
+                }
 
-            compilation = new QsCompilation(
-                compilation.Namespaces
-                    .Where(x => x.Name != apiNamespace.Name)
-                    .Append(apiNamespace)
-                    .ToImmutableArray(),
+                definedCallables[recorder.QSharpName.Name] = recorderDeclaration;
+                if (!(recorderDeclaration.Kind.IsFunction
+                    && recorderDeclaration.Signature.ArgumentType.Equals(recorder.QSharpSignature.ArgumentType)
+                    && recorderDeclaration.Signature.ReturnType.Resolution.IsUnitType
+                    && SymbolResolution.TryGetTargetInstructionName(recorderDeclaration.Attributes) is var instr
+                    && instr.IsValue && instr.Item == recorder.TargetInstructionName))
+                {
+                    throw new InvalidOperationException("callable with the expected recorder name is already defined bu t doesn't have the expected signature");
+                }
+            }
+
+            apiNamespace = apiNamespace.WithElements(_ =>
+                definedElements.Item2.Concat(definedCallables.Values.Select(QsNamespaceElement.NewQsCallable))
+                .ToImmutableArray());
+            return new QsCompilation(
+                compilation.Namespaces.Where(x => x.Name != apiNamespace.Name).Append(apiNamespace).ToImmutableArray(),
                 compilation.EntryPoints);
-
-            return new WrapEntryPoints().OnCompilation(compilation);
         }
 
-        private static IEnumerable<QsStatement> RecordOutput(ParameterTuple argTuple, SymbolTuple outputTuple, Dictionary<string, ResolvedType> variableTypes)
+        private static IEnumerable<QsStatement> RecordOutput(SymbolTuple outputTuple, ImmutableDictionary<string, LocalVariableDeclaration<string, ResolvedType>> variableDeclarations)
         {
             var statements = new List<QsStatement>();
 
@@ -152,89 +191,71 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             {
                 statements.Add(RecordStartTuple());
 
-                foreach (var i in tup.Item)
+                foreach (var sym in tup.Item)
                 {
-                    statements.AddRange(RecordOutput(argTuple, i, variableTypes));
+                    statements.AddRange(RecordOutput(sym, variableDeclarations));
                 }
 
                 statements.Add(RecordEndTuple());
             }
             else if (outputTuple is SymbolTuple.VariableName name)
             {
-                var variableType = variableTypes[name.Item];
-                if (variableType.Resolution.IsBool)
+                var variableDecl = variableDeclarations[name.Item];
+                if (variableDecl.Type.Resolution.IsBool)
                 {
                     statements.Add(RecordBool(name.Item));
                 }
-                else if (variableType.Resolution.IsInt)
+                else if (variableDecl.Type.Resolution.IsInt)
                 {
                     statements.Add(RecordInt(name.Item));
                 }
-                else if (variableType.Resolution.IsDouble)
+                else if (variableDecl.Type.Resolution.IsDouble)
                 {
                     statements.Add(RecordDouble(name.Item));
                 }
-                else if (variableType.Resolution.IsResult)
+                else if (variableDecl.Type.Resolution.IsResult)
                 {
                     statements.Add(RecordResult(name.Item));
                 }
-                else if (variableType.Resolution is ResolvedTypeKind.ArrayType arr)
+                else if (variableDecl.Type.Resolution is ResolvedTypeKind.ArrayType arr)
                 {
                     statements.Add(RecordStartArray());
 
-                    var (iterVars, iterVarTypes) = CreateDeconstruction(arr.Item, variableTypes.Count());
-
-                    // Merged dictionary of types for all known variables up to this point.
-                    var merged = new[] { variableTypes, iterVarTypes }
-                        .SelectMany(dict => dict)
-                        .ToDictionary(pair => pair.Key, pair => pair.Value);
-
-                    var forBodyStatements = RecordOutput(argTuple, iterVars, merged);
-
-                    // FIXME: NOT SURE IF THIS IS CORRECT...
-                    var knownSymbols = merged
-                        .Select(kvp => new LocalVariableDeclaration<string, ResolvedType>(
-                            kvp.Key,
-                            kvp.Value,
-                            InferredExpressionInformation.ParameterDeclaration,
-                            QsNullable<Position>.Null,
-                            DataTypes.Range.Zero))
-                        .Concat(SyntaxGenerator.ExtractItems(argTuple).ValidDeclarations())
-                        .ToImmutableArray();
+                    var (iterVars, iterVarTypes) = CreateDeconstruction(arr.Item, variableDeclarations.Count());
+                    var definedInsideFor = variableDeclarations.Concat(iterVarTypes)
+                        .ToImmutableDictionary(pair => pair.Key, pair => pair.Value);
 
                     var forStatement = new QsStatement(
                         QsStatementKind.NewQsForStatement(new QsForStatement(
                             Tuple.Create(iterVars, arr.Item),
-                            SyntaxGenerator.AutoGeneratedExpression(
-                                ExpressionKind.NewIdentifier(
-                                    Identifier.NewLocalVariable(name.Item),
-                                    QsNullable<ImmutableArray<ResolvedType>>.Null),
-                                variableType.Resolution,
-                                true), // assume a quantum dependency
+                            SyntaxGenerator.LocalVariable(
+                                name.Item,
+                                variableDecl.Type.Resolution,
+                                variableDecl.InferredInformation.HasLocalQuantumDependency),
                             new QsScope(
-                                forBodyStatements.ToImmutableArray(),
-                                new LocalDeclarations(knownSymbols.ToImmutableArray())))),
+                                RecordOutput(iterVars, definedInsideFor).ToImmutableArray(),
+                                new LocalDeclarations(definedInsideFor.Values.ToImmutableArray())))),
                         LocalDeclarations.Empty,
                         QsNullable<QsLocation>.Null,
                         QsComments.Empty);
-
                     statements.Add(forStatement);
+
                     statements.Add(RecordEndArray());
                 }
                 else
                 {
-                    throw new ArgumentException($"Invalid return type for Entry Point Wrapping: {variableType.Resolution}");
+                    throw new ArgumentException($"Invalid type for in output recording: {variableDecl.Type.Resolution}");
                 }
             }
 
             return statements;
         }
 
-        private static (SymbolTuple, Dictionary<string, ResolvedType>) CreateDeconstruction(ResolvedType returnType, int enumerationStart = 0)
+        private static (SymbolTuple, ImmutableDictionary<string, LocalVariableDeclaration<string, ResolvedType>>) CreateDeconstruction(ResolvedType returnType, int enumerationStart = 0)
         {
-            var newVars = new Dictionary<string, ResolvedType>();
+            var newVars = ImmutableDictionary.CreateBuilder<string, LocalVariableDeclaration<string, ResolvedType>>();
             static string MakeVariableName(int enumeration) =>
-                $"__{ReturnValueVariableLabel}{enumeration}__";
+                $"__rtrnVal{enumeration}__";
 
             SymbolTuple CreateSymbolTuple(ResolvedType t)
             {
@@ -245,120 +266,58 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 else
                 {
                     var newName = MakeVariableName(enumerationStart++);
-                    newVars.Add(newName, t);
+                    var inferredInfo = new InferredExpressionInformation(isMutable: false, hasLocalQuantumDependency: true); // assume a quantum dependency
+                    var newDecl = new LocalVariableDeclaration<string, ResolvedType>(
+                        newName, t, inferredInfo, QsNullable<Position>.Null, DataTypes.Range.Zero);
+                    newVars.Add(newName, newDecl);
                     return SymbolTuple.NewVariableName(newName);
                 }
             }
 
-            return (CreateSymbolTuple(returnType), newVars);
+            return (CreateSymbolTuple(returnType), newVars.ToImmutable());
         }
 
-        private static ImmutableArray<QsStatement> MakeStatements(QsCallable original)
+#if true
+
+        private static QsStatement MakeAPICall(OutputRecorder recorder, string? parameterName = null)
         {
-            var (captureVars, captureVarsDict) = CreateDeconstruction(original.Signature.ReturnType);
-            var localDeclarations = // FIXME: REALLY?
-                new LocalDeclarations(captureVarsDict
-                    .Select(kvp => new LocalVariableDeclaration<string, ResolvedType>(
-                        kvp.Key,
-                        kvp.Value,
-                        InferredExpressionInformation.ParameterDeclaration,
-                        QsNullable<Position>.Null,
-                        DataTypes.Range.Zero))
-                    .ToImmutableArray());
-
-            var callId = new TypedExpression(
-                ExpressionKind.NewIdentifier(
-                    Identifier.NewGlobalCallable(original.FullName),
-                    QsNullable<ImmutableArray<ResolvedType>>.Null),
-                TypeParameterResolution.Empty,
-                ResolvedType.New(
-                    ResolvedTypeKind.NewOperation(
-                        Tuple.Create(original.Signature.ArgumentType, original.Signature.ReturnType),
-                        original.Signature.Information)),
-                new InferredExpressionInformation(false, false),
-                QsNullable<DataTypes.Range>.Null);
-            var callArgs = SyntaxGenerator.ArgumentTupleAsExpression(original.ArgumentTuple);
-            var call = new TypedExpression(
-                ExpressionKind.NewCallLikeExpression(callId, callArgs),
-                TypeParameterResolution.Empty,
-                original.Signature.ReturnType,
-                new InferredExpressionInformation(false, false),
-                QsNullable<DataTypes.Range>.Null);
-
-            var outputDeconstruction = new QsStatement(
-                QsStatementKind.NewQsVariableDeclaration(new QsBinding<TypedExpression>(
-                    QsBindingKind.ImmutableBinding,
-                    captureVars,
-                    call)),
-                localDeclarations,
-                QsNullable<QsLocation>.Null,
-                QsComments.Empty);
-
-            return RecordOutput(original.ArgumentTuple, captureVars, captureVarsDict).Prepend(outputDeconstruction).ToImmutableArray();
-        }
-
-#if __WRAPPER_API__
-
-        private static QsStatement MakeAPICall(string callName, ResolvedTypeKind parameterTypeKind, string parameterName, bool hasParameter = true)
-        {
-            var parameter = new TypedExpression(
-                hasParameter
-                ? ExpressionKind.NewIdentifier(Identifier.NewLocalVariable(parameterName), QsNullable<ImmutableArray<ResolvedType>>.Null)
-                : ExpressionKind.UnitValue,
-                TypeParameterResolution.Empty,
-                ResolvedType.New(parameterTypeKind),
-                new InferredExpressionInformation(false, false),
-                QsNullable<DataTypes.Range>.Null);
+            var parameter = recorder.QSharpSignature.ArgumentType.Resolution.IsUnitType
+                ? SyntaxGenerator.UnitValue
+                : SyntaxGenerator.LocalVariable(parameterName, recorder.QSharpSignature.ArgumentType.Resolution, true); // assume local quantum dependency
 
             return new QsStatement(
-                QsStatementKind.NewQsExpressionStatement(new TypedExpression(
-                    ExpressionKind.NewCallLikeExpression(
-                        new TypedExpression(
-                            ExpressionKind.NewIdentifier(
-                                Identifier.NewGlobalCallable(new QsQualifiedName(OutputRecordersNamespaceName, callName)),
-                                QsNullable<ImmutableArray<ResolvedType>>.Null),
-                            TypeParameterResolution.Empty,
-                            ResolvedType.New(ResolvedTypeKind.NewFunction(
-                                ResolvedType.New(parameterTypeKind),
-                                ResolvedType.New(ResolvedTypeKind.UnitType))),
-                            new InferredExpressionInformation(false, false),
-                            QsNullable<DataTypes.Range>.Null),
-                        parameter),
-                    TypeParameterResolution.Empty,
-                    ResolvedType.New(ResolvedTypeKind.UnitType),
-                    new InferredExpressionInformation(false, false),
-                    QsNullable<DataTypes.Range>.Null)),
+                QsStatementKind.NewQsExpressionStatement(
+                    SyntaxGenerator.CallNonGeneric(
+                        SyntaxGenerator.GlobalCallable(recorder.QSharpName, recorder.QSharpType.Resolution, QsNullable<ImmutableArray<ResolvedType>>.Null),
+                        parameter)),
                 LocalDeclarations.Empty,
                 QsNullable<QsLocation>.Null,
                 QsComments.Empty);
         }
 
-        private static QsStatement MakeNoArgAPICall(string callName) =>
-            MakeAPICall(callName, ResolvedTypeKind.UnitType, "", false);
-
         private static QsStatement RecordStartTuple() =>
-            MakeNoArgAPICall(TupleStartRecordOutputName);
+            MakeAPICall(OutputRecorder.TupleStart);
 
         private static QsStatement RecordEndTuple() =>
-            MakeNoArgAPICall(TupleEndRecordOutputName);
+            MakeAPICall(OutputRecorder.TupleEnd);
 
         private static QsStatement RecordStartArray() =>
-            MakeNoArgAPICall(ArrayStartRecordOutputName);
+            MakeAPICall(OutputRecorder.ArrayStart);
 
         private static QsStatement RecordEndArray() =>
-            MakeNoArgAPICall(ArrayEndRecordOutputName);
+            MakeAPICall(OutputRecorder.ArrayEnd);
 
         private static QsStatement RecordBool(string name) =>
-            MakeAPICall(BooleanRecordOutputName, ResolvedTypeKind.Bool, name);
+            MakeAPICall(OutputRecorder.Boolean, name);
 
         private static QsStatement RecordInt(string name) =>
-            MakeAPICall(IntegerRecordOutputName, ResolvedTypeKind.Int, name);
+            MakeAPICall(OutputRecorder.Integer, name);
 
         private static QsStatement RecordDouble(string name) =>
-            MakeAPICall(DoubleRecordOutputName, ResolvedTypeKind.Double, name);
+            MakeAPICall(OutputRecorder.Double, name);
 
         private static QsStatement RecordResult(string name) =>
-            MakeAPICall(ResultRecordOutputName, ResolvedTypeKind.Result, name);
+            MakeAPICall(OutputRecorder.Result, name);
 
 #else
 
@@ -490,6 +449,33 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
                 private static QsCallable CreateEntryPointWrapper(QsCallable c)
                 {
+                    QsScope CreateWrapperBody()
+                    {
+                        var (argType, returnType) = (c.Signature.ArgumentType, c.Signature.ReturnType);
+                        var callableType = c.Kind.IsOperation
+                            ? ResolvedTypeKind.NewOperation(Tuple.Create(argType, returnType), c.Signature.Information)
+                            : ResolvedTypeKind.NewFunction(argType, returnType);
+                        var callee = SyntaxGenerator.GlobalCallable(c.FullName, callableType, QsNullable<ImmutableArray<ResolvedType>>.Null);
+                        var callArgs = SyntaxGenerator.ArgumentTupleAsExpression(c.ArgumentTuple);
+
+                        var (outputTuple, variableDeclarations) = CreateDeconstruction(c.Signature.ReturnType);
+                        var outputDeconstruction = new QsStatement(
+                            QsStatementKind.NewQsVariableDeclaration(new QsBinding<TypedExpression>(
+                                QsBindingKind.ImmutableBinding,
+                                outputTuple,
+                                SyntaxGenerator.CallNonGeneric(callee, callArgs))),
+                            new LocalDeclarations(variableDeclarations.Values.ToImmutableArray()),
+                            QsNullable<QsLocation>.Null,
+                            QsComments.Empty);
+
+                        var paramDecl = SyntaxGenerator.ExtractItems(c.ArgumentTuple).ValidDeclarations();
+                        var localDeclarations = variableDeclarations.Values.Concat(paramDecl)
+                            .ToImmutableDictionary(decl => decl.VariableName);
+                        return new QsScope(
+                            RecordOutput(outputTuple, localDeclarations).Prepend(outputDeconstruction).ToImmutableArray(),
+                            new LocalDeclarations(paramDecl));
+                    }
+
                     var wrapperName = new QsQualifiedName(c.FullName.Namespace, "__" + c.FullName.Name + "__");  // FIXME
                     var wrapperSignature = new ResolvedSignature(
                         ImmutableArray<QsLocalSymbol>.Empty,
@@ -505,11 +491,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         c.Location,
                         QsNullable<ImmutableArray<ResolvedType>>.Null,
                         wrapperSignature,
-                        SpecializationImplementation.NewProvided(
-                            c.ArgumentTuple,
-                            new QsScope(
-                                MakeStatements(c),
-                                new LocalDeclarations(SyntaxGenerator.ExtractItems(c.ArgumentTuple).ValidDeclarations()))),
+                        SpecializationImplementation.NewProvided(c.ArgumentTuple, CreateWrapperBody()),
                         ImmutableArray<string>.Empty,
                         QsComments.Empty);
 
