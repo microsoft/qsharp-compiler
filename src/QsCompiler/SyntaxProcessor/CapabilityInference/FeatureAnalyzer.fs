@@ -59,6 +59,8 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
                 match expression.Expression with
+                | CallLikeExpression ({ Expression = Identifier (GlobalCallable _, _) }, _) -> ()
+                | CallLikeExpression _
                 | NewArray _ -> createPattern range |> patterns.Add
                 | _ -> ()
 

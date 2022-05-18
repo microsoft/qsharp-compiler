@@ -201,6 +201,16 @@ let ``Restricts non-constant values`` () =
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
 
 [<Fact>]
-let ``Forbids default-initialized arrays`` () =
+let ``Restricts default-initialized arrays`` () =
     [ "NewArray"; "MutableToNewArraySize"; "LetToNewArraySize" ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
+
+[<Fact>]
+let ``Restricts calling non-trivial callable expressions`` () =
+    [
+        "FunctionValue"
+        "FunctionExpression"
+        "OperationValue"
+        "OperationExpression"
+    ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)

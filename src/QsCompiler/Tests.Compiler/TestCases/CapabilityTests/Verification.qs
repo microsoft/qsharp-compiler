@@ -418,6 +418,26 @@ namespace Microsoft.Quantum.Testing.Capability {
         let ys = xs w/ r <- [1, 2];
     }
 
+    function FunctionValue() : Unit {
+        let f = TakeBool;
+        f(true);
+    }
+
+    function FunctionExpression() : Unit {
+        [TakeBool][0](true);
+    }
+
+    operation OperationValue() : Unit {
+        let op = X;
+        use q = Qubit();
+        op(q);
+    }
+
+    operation OperationExpression(b : Bool) : Unit {
+        use q = Qubit();
+        [X][0](q);
+    }
+
     @EntryPoint()
     operation EntryPointParamBool(x : Bool) : Result {
         return Zero;
@@ -548,7 +568,7 @@ namespace Microsoft.Quantum.Intrinsic {
         body intrinsic;
     }
 
-    operation Message(message : String) : Unit {
+    function Message(message : String) : Unit {
         body intrinsic;
     }
 }
