@@ -419,6 +419,21 @@ namespace Microsoft.Quantum.Testing.Capability {
     }
 
     @EntryPoint()
+    operation EntryPointParamBool(x : Bool) : Result {
+        return Zero;
+    }
+
+    @EntryPoint()
+    operation EntryPointParamInt(x : Int) : Result {
+        return Zero;
+    }
+
+    @EntryPoint()
+    operation EntryPointParamDouble(x : Double) : Result {
+        return Zero;
+    }
+
+    @EntryPoint()
     operation EntryPointReturnUnit() : Unit {}
 
     @EntryPoint()

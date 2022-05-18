@@ -13,22 +13,35 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type Usage =
+    | Literal
     | Mutable
+    | Param
     | Return
     | Conditional
-    | Literal
 
 type Context = { IsEntryPoint: bool; StringLiteralsOk: bool }
 
 let requiredCapability context usage (ty: ResolvedType) =
     let shallowCapability =
         match usage with
+        | Literal ->
+            function
+            | BigInt -> ClassicalCapability.full
+            | String when not context.StringLiteralsOk -> ClassicalCapability.full
+            | _ -> ClassicalCapability.empty
         | Conditional
         | Mutable ->
             function
             | Bool
             | Int -> ClassicalCapability.integral
             | _ -> ClassicalCapability.full
+        | Param when context.IsEntryPoint ->
+            function
+            | TupleType _ -> ClassicalCapability.empty
+            | Bool
+            | Int -> ClassicalCapability.integral
+            | _ -> ClassicalCapability.full
+        | Param -> fun _ -> ClassicalCapability.empty
         | Return when context.IsEntryPoint ->
             // TODO: I think there's another place where the return type of the entry point is checked. That should be
             // combined with this.
@@ -41,11 +54,6 @@ let requiredCapability context usage (ty: ResolvedType) =
             | Int -> ClassicalCapability.integral
             | _ -> ClassicalCapability.full
         | Return -> fun _ -> ClassicalCapability.empty
-        | Literal ->
-            function
-            | BigInt -> ClassicalCapability.full
-            | String when not context.StringLiteralsOk -> ClassicalCapability.full
-            | _ -> ClassicalCapability.empty
 
     ty.ExtractAll(fun t -> shallowCapability t.Resolution |> Seq.singleton)
     |> Seq.fold max ClassicalCapability.empty
@@ -71,6 +79,24 @@ let createPattern range classical =
                 Properties = ()
             }
 
+let rec flattenTuple =
+    function
+    | QsTupleItem x -> Seq.singleton x
+    | QsTuple xs -> Seq.collect flattenTuple xs
+
+let paramPatterns context callable =
+    flattenTuple callable.ArgumentTuple
+    |> Seq.choose (fun param ->
+        let relativeRange = TypeRange.tryRange param.Type.Range
+        let range = (callable.Location, relativeRange) ||> QsNullable.Map2(fun l r -> l.Offset + r)
+        requiredCapability context Param param.Type |> createPattern range)
+
+let returnPattern context callable =
+    let ty = callable.Signature.ReturnType
+    let relativeRange = TypeRange.tryRange ty.Range
+    let range = (callable.Location, relativeRange) ||> QsNullable.Map2(fun l r -> l.Offset + r)
+    requiredCapability context Return ty |> createPattern range
+
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
@@ -89,12 +115,8 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
             override _.OnCallableDeclaration callable =
                 use _ = local { context with IsEntryPoint = Seq.exists BuiltIn.MarksEntryPoint callable.Attributes }
                 let callable = base.OnCallableDeclaration callable
-
-                let returnType = callable.Signature.ReturnType
-                let returnRange = TypeRange.tryRange returnType.Range
-                let range = (callable.Location, returnRange) ||> QsNullable.Map2(fun l r -> l.Offset + r)
-                requiredCapability context Return returnType |> createPattern range |> Option.iter patterns.Add
-
+                paramPatterns context callable |> patterns.AddRange
+                returnPattern context callable |> Option.iter patterns.Add
                 callable
         }
 

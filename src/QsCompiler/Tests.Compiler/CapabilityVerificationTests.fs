@@ -335,3 +335,23 @@ let ``Restricts returning Double from entry point`` () =
 
     for name, (compilation, diagnostics) in List.allPairs names expectations do
         expect compilation diagnostics name
+
+[<Fact>]
+let ``Restricts entry point parameter types`` () =
+    expect basicQuantumFunctionality [] "EntryPointParamBool"
+    expect basicExecution [ Error ErrorCode.UnsupportedClassicalCapability ] "EntryPointParamBool"
+    expect adaptiveExecution [] "EntryPointParamBool"
+    expect basicMeasurementFeedback [] "EntryPointParamBool"
+    expect fullComputation [] "EntryPointParamBool"
+
+    expect basicQuantumFunctionality [] "EntryPointParamInt"
+    expect basicExecution [ Error ErrorCode.UnsupportedClassicalCapability ] "EntryPointParamInt"
+    expect adaptiveExecution [] "EntryPointParamInt"
+    expect basicMeasurementFeedback [] "EntryPointParamInt"
+    expect fullComputation [] "EntryPointParamInt"
+
+    expect basicQuantumFunctionality [] "EntryPointParamDouble"
+    expect basicExecution [ Error ErrorCode.UnsupportedClassicalCapability ] "EntryPointParamDouble"
+    expect adaptiveExecution [ Error ErrorCode.UnsupportedClassicalCapability ] "EntryPointParamDouble"
+    expect basicMeasurementFeedback [] "EntryPointParamDouble"
+    expect fullComputation [] "EntryPointParamDouble"
