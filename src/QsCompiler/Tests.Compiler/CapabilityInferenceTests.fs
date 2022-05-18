@@ -165,23 +165,15 @@ let ``Restricts BigInt, Range, and String`` () =
 
 [<Fact>]
 let ``Restricts mutability`` () =
-    [
-        "LetToLet"
-        "LetToCall"
-        "ParamToLet"
-        "LetToFor"
-        "LetToArraySize"
-        "LetToNewArraySize"
-    ]
+    [ "LetToLet"; "LetToCall"; "ParamToLet"; "LetToFor"; "LetToArraySize" ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
 
     expect (createCapability ResultOpacity.opaque ClassicalCapability.integral) "LetToMutable"
 
-    [
-        "MutableToLet"
-        "MutableToCall"
-        "MutableToFor"
-        "MutableToArraySize"
-        "MutableToNewArraySize"
-    ]
+    [ "MutableToLet"; "MutableToCall"; "MutableToFor"; "MutableToArraySize" ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
+
+[<Fact>]
+let ``Forbids default-initialized arrays`` () =
+    [ "NewArray"; "MutableToNewArraySize"; "LetToNewArraySize" ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)

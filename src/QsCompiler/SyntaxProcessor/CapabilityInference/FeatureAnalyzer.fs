@@ -1,12 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.StatementAnalyzer
+module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.FeatureAnalyzer
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
+open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
@@ -49,6 +50,19 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 | _ -> ()
 
                 statement
+        }
+
+    transformation.Expressions <-
+        { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
+            override _.OnTypedExpression expression =
+                let expression = base.OnTypedExpression expression
+                let range = QsNullable.Map2(+) transformation.Offset expression.Range
+
+                match expression.Expression with
+                | NewArray _ -> createPattern range |> patterns.Add
+                | _ -> ()
+
+                expression
         }
 
     action transformation

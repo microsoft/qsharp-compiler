@@ -165,12 +165,6 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let arg = transformation.Expressions.OnTypedExpression arg
                 CallLikeExpression(callable, arg)
 
-            override _.OnNewArray(ty, size) =
-                let ty = transformation.Types.OnType ty
-                use _ = local { context with IsConstSensitive = true }
-                let size = transformation.Expressions.OnTypedExpression size
-                NewArray(ty, size)
-
             override _.OnSizedArray(value, size) =
                 let value = transformation.Expressions.OnTypedExpression value
                 use _ = local { context with IsConstSensitive = true }

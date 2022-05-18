@@ -326,6 +326,10 @@ namespace Microsoft.Quantum.Testing.Capability {
         let _ = [0, size = x];
     }
 
+    function NewArray<'a>() : 'a[] {
+        return new 'a[1];
+    }
+
     function MutableToNewArraySize() : Unit {
         mutable x = 3;
         let _ = new Int[x];
