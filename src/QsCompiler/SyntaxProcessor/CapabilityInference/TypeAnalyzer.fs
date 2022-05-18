@@ -26,8 +26,6 @@ let requiredCapability context usage (ty: ResolvedType) =
         | Conditional
         | Mutable _ ->
             function
-            | TupleType _
-            | ArrayType _ -> ClassicalCapability.empty
             | Bool
             | Int -> ClassicalCapability.integral
             | _ -> ClassicalCapability.full

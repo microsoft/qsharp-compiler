@@ -12,7 +12,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-type Context = { IsEntryPoint: bool; IsConstSensitive: bool }
+type Context = { IsEntryPoint: bool; ConstOnly: bool }
 
 let createPattern range =
     let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
@@ -52,7 +52,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let patterns = ResizeArray()
     let mutable variables = Map.empty
-    let mutable context = { IsEntryPoint = false; IsConstSensitive = false }
+    let mutable context = { IsEntryPoint = false; ConstOnly = false }
 
     let local context' =
         let oldContext = context
@@ -100,8 +100,8 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let itemType = snd forS.LoopItem |> transformation.Types.OnType
 
                 let values =
-                    using (local { context with IsConstSensitive = true }) (fun _ ->
-                        transformation.Expressions.OnTypedExpression forS.IterationValues)
+                    use _ = local { context with ConstOnly = true }
+                    transformation.Expressions.OnTypedExpression forS.IterationValues
 
                 let body = transformation.Statements.OnScope forS.Body
 
@@ -115,20 +115,20 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
             override _.OnQubitInitializer init =
                 match init.Resolution with
                 | QubitRegisterAllocation size ->
-                    use _ = local { context with IsConstSensitive = true }
+                    use _ = local { context with ConstOnly = true }
                     let size = transformation.Expressions.OnTypedExpression size
                     QubitRegisterAllocation size |> ResolvedInitializer.create init.Type.Range
                 | _ -> base.OnQubitInitializer init
 
             override _.OnReturnStatement value =
-                use _ = local { context with IsConstSensitive = not context.IsEntryPoint }
+                use _ = local { context with ConstOnly = not context.IsEntryPoint }
                 let value = transformation.Expressions.OnTypedExpression value
                 QsReturnStatement value
 
             override _.OnVariableDeclaration binding =
                 if binding.Kind = ImmutableBinding then
                     let lhs = transformation.StatementKinds.OnSymbolTuple binding.Lhs
-                    use _ = local { context with IsConstSensitive = true }
+                    use _ = local { context with ConstOnly = true }
                     let rhs = transformation.Expressions.OnTypedExpression binding.Rhs
 
                     QsVariableDeclaration
@@ -148,10 +148,10 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
                 match expression.Expression with
-                | CONDITIONAL _ -> if context.IsConstSensitive then createPattern range |> patterns.Add
+                | CONDITIONAL _ -> if context.ConstOnly then createPattern range |> patterns.Add
                 | Identifier (LocalVariable name, _) ->
                     let isMutable = Map.tryFind name variables |> Option.exists id
-                    if context.IsConstSensitive && isMutable then createPattern range |> patterns.Add
+                    if context.ConstOnly && isMutable then createPattern range |> patterns.Add
                 | _ -> ()
 
                 expression
@@ -161,13 +161,13 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
         { new ExpressionKindTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnCallLikeExpression(callable, arg) =
                 let callable = transformation.Expressions.OnTypedExpression callable
-                use _ = local { context with IsConstSensitive = true }
+                use _ = local { context with ConstOnly = true }
                 let arg = transformation.Expressions.OnTypedExpression arg
                 CallLikeExpression(callable, arg)
 
             override _.OnSizedArray(value, size) =
                 let value = transformation.Expressions.OnTypedExpression value
-                use _ = local { context with IsConstSensitive = true }
+                use _ = local { context with ConstOnly = true }
                 let size = transformation.Expressions.OnTypedExpression size
                 SizedArray(value, size)
         }

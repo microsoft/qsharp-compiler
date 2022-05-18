@@ -306,14 +306,44 @@ namespace Microsoft.Quantum.Testing.Capability {
         TakeBool(x);
     }
 
-    function MutableToFor() : Unit {
+    function MutableArrayLitToFor() : Unit {
         mutable x = 0;
         for y in [x] {}
     }
 
-    function LetToFor() : Unit {
+    function LetArrayLitToFor() : Unit {
         let x = 0;
         for y in [x] {}
+    }
+
+    function MutableArrayToFor() : Unit {
+        mutable xs = [0, 1];
+        for x in xs {}
+    }
+
+    function LetArrayToFor() : Unit {
+        let xs = [0, 1];
+        for x in xs {}
+    }
+
+    function MutableRangeLitToFor() : Unit {
+        mutable x = 0;
+        for i in x..1 {}
+    }
+
+    function LetRangeLitToFor() : Unit {
+        let x = 0;
+        for i in x..1 {}
+    }
+
+    function MutableRangeToFor() : Unit {
+        mutable r = 0..1;
+        for i in r {}
+    }
+
+    function LetRangeToFor() : Unit {
+        let r = 0..1;
+        for i in r {}
     }
 
     function MutableToArraySize() : Unit {
