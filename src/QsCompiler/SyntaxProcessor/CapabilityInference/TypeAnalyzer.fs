@@ -24,7 +24,7 @@ let requiredCapability context usage (ty: ResolvedType) =
     let shallowCapability =
         match usage with
         | Conditional
-        | Mutable _ ->
+        | Mutable ->
             function
             | Bool
             | Int -> ClassicalCapability.integral
@@ -57,12 +57,11 @@ let createPattern range classical =
         None
     else
         let diagnose (target: Target) =
-            let range = QsNullable.defaultValue Range.Zero range
-
             if RuntimeCapability.subsumes target.Capability capability then
                 None
             else
-                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
+                QsNullable.defaultValue Range.Zero range
+                |> QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ])
                 |> Some
 
         Some

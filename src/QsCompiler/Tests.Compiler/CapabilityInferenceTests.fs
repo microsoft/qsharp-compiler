@@ -169,11 +169,16 @@ let ``Restricts non-constant values`` () =
         "LetToLet"
         "LetToCall"
         "ParamToLet"
+        "LetArray"
         "LetArrayLitToFor"
         "LetArrayToFor"
         "LetRangeLitToFor"
         "LetRangeToFor"
         "LetToArraySize"
+        "LetToArrayIndex"
+        "LetToArraySlice"
+        "LetToArrayIndexUpdate"
+        "LetToArraySliceUpdate"
     ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
 
@@ -182,11 +187,16 @@ let ``Restricts non-constant values`` () =
     [
         "MutableToLet"
         "MutableToCall"
+        "MutableArray"
         "MutableArrayLitToFor"
         "MutableArrayToFor"
         "MutableRangeLitToFor"
         "MutableRangeToFor"
         "MutableToArraySize"
+        "MutableToArrayIndex"
+        "MutableToArraySlice"
+        "MutableToArrayIndexUpdate"
+        "MutableToArraySliceUpdate"
     ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
 

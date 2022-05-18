@@ -306,6 +306,14 @@ namespace Microsoft.Quantum.Testing.Capability {
         TakeBool(x);
     }
 
+    function MutableArray() : Unit {
+        mutable xs = [0, 1];
+    }
+
+    function LetArray() : Unit {
+        let xs = [0, 1];
+    }
+
     function MutableArrayLitToFor() : Unit {
         mutable x = 0;
         for y in [x] {}
@@ -368,6 +376,46 @@ namespace Microsoft.Quantum.Testing.Capability {
     function LetToNewArraySize() : Unit {
         let x = 3;
         let _ = new Int[x];
+    }
+
+    function MutableToArrayIndex(xs : Int[]) : Unit {
+        mutable i = 0;
+        mutable x = xs[i];
+    }
+
+    function LetToArrayIndex(xs : Int[]) : Unit {
+        let i = 0;
+        let x = xs[i];
+    }
+
+    function MutableToArraySlice(xs : Int[]) : Unit {
+        mutable r = 0..1;
+        mutable ys = xs[r];
+    }
+
+    function LetToArraySlice(xs : Int[]) : Unit {
+        let r = 0..1;
+        let ys = xs[r];
+    }
+
+    function MutableToArrayIndexUpdate(xs : Int[]) : Unit {
+        mutable i = 0;
+        mutable ys = xs w/ i <- 1;
+    }
+
+    function LetToArrayIndexUpdate(xs : Int[]) : Unit {
+        let i = 0;
+        let ys = xs w/ i <- 1;
+    }
+
+    function MutableToArraySliceUpdate(xs : Int[]) : Unit {
+        mutable r = 0..1;
+        mutable ys = xs w/ r <- [1, 2];
+    }
+
+    function LetToArraySliceUpdate(xs : Int[]) : Unit {
+        let r = 0..1;
+        let ys = xs w/ r <- [1, 2];
     }
 
     @EntryPoint()
