@@ -171,7 +171,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
             this.QSharpType = type;
             this.LlvmType = llvmType;
-            this.accessHandle = pointer ?? context.CurrentBuilder.Alloca(this.LlvmType);
+            this.accessHandle = pointer ?? context.AllocaBuilder.Alloca(this.LlvmType);
             this.cachedValue = new IValue.Cached<IValue>(context, Reload, Store);
         }
 
@@ -833,7 +833,7 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 (Value ConstArrPtr, Value ElementPtr) GetElementPointer(Value constArr, Value index)
                 {
-                    var constArrPtr = this.sharedState.CurrentBuilder.Alloca(constArr.NativeType);
+                    var constArrPtr = this.sharedState.AllocaBuilder.Alloca(constArr.NativeType);
                     this.sharedState.CurrentBuilder.Store(constArr, constArrPtr);
                     var elementPtr = this.sharedState.CurrentBuilder.GetElementPtr(
                         constArr.NativeType, constArrPtr, new[] { this.sharedState.Context.CreateConstant(0), index });

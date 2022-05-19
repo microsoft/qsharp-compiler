@@ -95,6 +95,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
 
+        internal InstructionBuilder AllocaBuilder
+        {
+            get
+            {
+                if (this.CurrentBuilder.InsertBlock != this.CurrentFunction!.EntryBlock)
+                {
+                    var entryBuilder = new InstructionBuilder(this.CurrentFunction!.EntryBlock!);
+                    entryBuilder.PositionBefore(this.CurrentFunction!.EntryBlock!.Terminator!);
+                    return entryBuilder;
+                }
+
+                return this.CurrentBuilder;
+            }
+        }
+
         internal ScopeManager ScopeMgr { get; }
         internal Stack<IValue> ValueStack { get; }
         internal Stack<ResolvedType> ExpressionTypeStack { get; }
