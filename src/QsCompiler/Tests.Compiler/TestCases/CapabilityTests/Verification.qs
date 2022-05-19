@@ -390,32 +390,32 @@ namespace Microsoft.Quantum.Testing.Capability {
 
     function MutableToArraySlice(xs : Int[]) : Unit {
         mutable r = 0..1;
-        mutable ys = xs[r];
+        mutable x = xs[r][0];
     }
 
     function LetToArraySlice(xs : Int[]) : Unit {
         let r = 0..1;
-        let ys = xs[r];
+        let x = xs[r][0];
     }
 
     function MutableToArrayIndexUpdate(xs : Int[]) : Unit {
         mutable i = 0;
-        mutable ys = xs w/ i <- 1;
+        mutable x = (xs w/ i <- 1)[0];
     }
 
     function LetToArrayIndexUpdate(xs : Int[]) : Unit {
         let i = 0;
-        let ys = xs w/ i <- 1;
+        let x = (xs w/ i <- 1)[0];
     }
 
     function MutableToArraySliceUpdate(xs : Int[]) : Unit {
         mutable r = 0..1;
-        mutable ys = xs w/ r <- [1, 2];
+        mutable x = (xs w/ r <- [1, 2])[0];
     }
 
     function LetToArraySliceUpdate(xs : Int[]) : Unit {
         let r = 0..1;
-        let ys = xs w/ r <- [1, 2];
+        let x = (xs w/ r <- [1, 2])[0];
     }
 
     function FunctionValue() : Unit {
