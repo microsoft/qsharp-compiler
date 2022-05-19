@@ -149,7 +149,7 @@ let ``Infers with uncalled reference`` () =
 
 [<Fact>]
 let ``Restricts BigInt, Range, and String`` () =
-    [ "MessageStringLit"; "MessageInterpStringLit"; "UseRangeLit" ]
+    [ "MessageStringLit"; "MessageInterpStringLit"; "UseRangeLit"; "UseRangeVar" ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
 
     [
@@ -160,19 +160,25 @@ let ``Restricts BigInt, Range, and String`` () =
         "MessageStringVar"
         "ReturnString"
         "ConditionalString"
-        "UseRangeVar"
     ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
 
 [<Fact>]
-let ``Restricts mutability`` () =
+let ``Restricts non-constant values`` () =
     [
         "LetToLet"
         "LetToCall"
         "ParamToLet"
-        "LetToFor"
+        "LetArray"
+        "LetArrayLitToFor"
+        "LetArrayToFor"
+        "LetRangeLitToFor"
+        "LetRangeToFor"
         "LetToArraySize"
-        "LetToNewArraySize"
+        "LetToArrayIndex"
+        "LetToArraySlice"
+        "LetToArrayIndexUpdate"
+        "LetToArraySliceUpdate"
     ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
 
@@ -181,8 +187,30 @@ let ``Restricts mutability`` () =
     [
         "MutableToLet"
         "MutableToCall"
-        "MutableToFor"
+        "MutableArray"
+        "MutableArrayLitToFor"
+        "MutableArrayToFor"
+        "MutableRangeLitToFor"
+        "MutableRangeToFor"
         "MutableToArraySize"
-        "MutableToNewArraySize"
+        "MutableToArrayIndex"
+        "MutableToArraySlice"
+        "MutableToArrayIndexUpdate"
+        "MutableToArraySliceUpdate"
+    ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
+
+[<Fact>]
+let ``Restricts default-initialized arrays`` () =
+    [ "NewArray"; "MutableToNewArraySize"; "LetToNewArraySize" ]
+    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
+
+[<Fact>]
+let ``Restricts calling non-trivial callable expressions`` () =
+    [
+        "FunctionValue"
+        "FunctionExpression"
+        "OperationValue"
+        "OperationExpression"
     ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)

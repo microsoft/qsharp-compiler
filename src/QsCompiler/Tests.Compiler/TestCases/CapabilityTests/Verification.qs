@@ -306,14 +306,52 @@ namespace Microsoft.Quantum.Testing.Capability {
         TakeBool(x);
     }
 
-    function MutableToFor() : Unit {
+    function MutableArray() : Unit {
+        mutable xs = [0, 1];
+    }
+
+    function LetArray() : Unit {
+        let xs = [0, 1];
+    }
+
+    function MutableArrayLitToFor() : Unit {
         mutable x = 0;
         for y in [x] {}
     }
 
-    function LetToFor() : Unit {
+    function LetArrayLitToFor() : Unit {
         let x = 0;
         for y in [x] {}
+    }
+
+    function MutableArrayToFor() : Unit {
+        mutable xs = [0, 1];
+        for x in xs {}
+    }
+
+    function LetArrayToFor() : Unit {
+        let xs = [0, 1];
+        for x in xs {}
+    }
+
+    function MutableRangeLitToFor() : Unit {
+        mutable x = 0;
+        for i in x..1 {}
+    }
+
+    function LetRangeLitToFor() : Unit {
+        let x = 0;
+        for i in x..1 {}
+    }
+
+    function MutableRangeToFor() : Unit {
+        mutable r = 0..1;
+        for i in r {}
+    }
+
+    function LetRangeToFor() : Unit {
+        let r = 0..1;
+        for i in r {}
     }
 
     function MutableToArraySize() : Unit {
@@ -326,6 +364,10 @@ namespace Microsoft.Quantum.Testing.Capability {
         let _ = [0, size = x];
     }
 
+    function NewArray<'a>() : 'a[] {
+        return new 'a[1];
+    }
+
     function MutableToNewArraySize() : Unit {
         mutable x = 3;
         let _ = new Int[x];
@@ -334,6 +376,81 @@ namespace Microsoft.Quantum.Testing.Capability {
     function LetToNewArraySize() : Unit {
         let x = 3;
         let _ = new Int[x];
+    }
+
+    function MutableToArrayIndex(xs : Int[]) : Unit {
+        mutable i = 0;
+        mutable x = xs[i];
+    }
+
+    function LetToArrayIndex(xs : Int[]) : Unit {
+        let i = 0;
+        let x = xs[i];
+    }
+
+    function MutableToArraySlice(xs : Int[]) : Unit {
+        mutable r = 0..1;
+        mutable x = xs[r][0];
+    }
+
+    function LetToArraySlice(xs : Int[]) : Unit {
+        let r = 0..1;
+        let x = xs[r][0];
+    }
+
+    function MutableToArrayIndexUpdate(xs : Int[]) : Unit {
+        mutable i = 0;
+        mutable x = (xs w/ i <- 1)[0];
+    }
+
+    function LetToArrayIndexUpdate(xs : Int[]) : Unit {
+        let i = 0;
+        let x = (xs w/ i <- 1)[0];
+    }
+
+    function MutableToArraySliceUpdate(xs : Int[]) : Unit {
+        mutable r = 0..1;
+        mutable x = (xs w/ r <- [1, 2])[0];
+    }
+
+    function LetToArraySliceUpdate(xs : Int[]) : Unit {
+        let r = 0..1;
+        let x = (xs w/ r <- [1, 2])[0];
+    }
+
+    function FunctionValue() : Unit {
+        let f = TakeBool;
+        f(true);
+    }
+
+    function FunctionExpression() : Unit {
+        [TakeBool][0](true);
+    }
+
+    operation OperationValue() : Unit {
+        let op = X;
+        use q = Qubit();
+        op(q);
+    }
+
+    operation OperationExpression(b : Bool) : Unit {
+        use q = Qubit();
+        [X][0](q);
+    }
+
+    @EntryPoint()
+    operation EntryPointParamBool(x : Bool) : Result {
+        return Zero;
+    }
+
+    @EntryPoint()
+    operation EntryPointParamInt(x : Int) : Result {
+        return Zero;
+    }
+
+    @EntryPoint()
+    operation EntryPointParamDouble(x : Double) : Result {
+        return Zero;
     }
 
     @EntryPoint()
@@ -451,7 +568,7 @@ namespace Microsoft.Quantum.Intrinsic {
         body intrinsic;
     }
 
-    operation Message(message : String) : Unit {
+    function Message(message : String) : Unit {
         body intrinsic;
     }
 }
