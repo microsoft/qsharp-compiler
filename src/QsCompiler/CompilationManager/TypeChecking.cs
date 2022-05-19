@@ -1933,13 +1933,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool CycleSelector(ImmutableArray<CallGraphNode> cycle) => // only cycles where all callables are type parameterized need to be checked
                 !cycle.Any(node => callables.TryGetValue(node.CallableName, out var decl) && decl.Signature.TypeParameters.IsEmpty);
 
-            foreach (var (diag, parent) in graph.VerifyAllCycles(CycleSelector))
+            foreach (var (diagnostic, parent) in graph.VerifyAllCycles(CycleSelector))
             {
                 // Only keep diagnostics for callables that are currently available in the editor.
                 if (headers.TryGetValue(parent, out var header))
                 {
                     var offset = header.Position is DeclarationHeader.Offset.Defined { Item: var p } ? p : null;
-                    yield return Diagnostics.Generate(header.Source.AssemblyOrCodeFile, diag, offset);
+                    yield return Diagnostics.Generate(header.Source.AssemblyOrCodeFile, diagnostic, offset);
                 }
             }
         }

@@ -70,9 +70,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <see cref="RuntimeCapabilityModule.Top"/> if no valid value is specified.
         /// </summary>
         public RuntimeCapability RuntimeCapability =>
-            this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedRuntimeCapabilities, out var capability)
-                ? RuntimeCapability.Parse(capability) ?? RuntimeCapabilityModule.Top
-                : RuntimeCapabilityModule.Top;
+            (this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedRuntimeCapabilities, out var capability)
+                ? RuntimeCapability.Parse(capability)
+                : null)
+            ?? RuntimeCapabilityModule.Top;
 
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
