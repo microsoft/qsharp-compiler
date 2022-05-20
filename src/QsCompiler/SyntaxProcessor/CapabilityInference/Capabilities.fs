@@ -13,10 +13,10 @@ open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 let syntaxAnalyzer callableKind =
-    Analyzer.concat [ ResultAnalyzer.analyzer callableKind
-                      StatementAnalyzer.analyzer
-                      TypeAnalyzer.analyzer
-                      ConstAnalyzer.analyzer ]
+    Analyzer.concat [ ConstAnalyzer.analyzer
+                      FeatureAnalyzer.analyzer
+                      ResultAnalyzer.analyzer callableKind
+                      TypeAnalyzer.analyzer ]
 
 // TODO: This should be removed in the future.
 let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =

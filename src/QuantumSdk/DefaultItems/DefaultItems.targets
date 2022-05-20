@@ -86,7 +86,7 @@
     <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' != '' And '$(QSharpDocsGeneration)' == 'default'">true</QSharpDocsGeneration>
     <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' == '' And '$(QSharpDocsGeneration)' == 'default'">false</QSharpDocsGeneration>
     <CSharpGeneration Condition="$(QirGeneration)">false</CSharpGeneration>
-    <EnableQirSubmission Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' Or '$(ResolvedTargetCapability)' == 'AdaptiveExecution' Or '$(ResolvedTargetCapability)' == 'BasicExecution')">true</EnableQirSubmission>
+    <EnableQirSubmission Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' Or '$(ResolvedTargetCapability)' == 'AdaptiveExecution' Or '$(ResolvedTargetCapability)' == 'BasicExecution'">true</EnableQirSubmission>
     <!-- path compatible assembly name -->
     <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
     <!-- output path for files generated during compilation -->
