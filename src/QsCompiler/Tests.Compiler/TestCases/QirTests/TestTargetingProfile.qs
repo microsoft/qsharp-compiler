@@ -41,6 +41,13 @@ namespace Microsoft.Quantum.Testing.QIR {
         return One;
     }
 
+    function CheckInlining1 (b : Bool) : Bool {
+
+        let a = Zero;
+        let c = a == One or b;
+        return c;
+    }
+
     @EntryPoint()
     operation TestProfileTargeting() : (Int, Int) {
         let arr1 = [1,2,3];
@@ -135,6 +142,10 @@ namespace Microsoft.Quantum.Testing.QIR {
                 set rand += 1;
             }
         }
+
+        let a = m1 == Zero;
+        let b = CheckInlining1(a);
+        DumpMachine((a, b));
 
         //mutable foo = m1 == m2 ? sum | 0; // TODO: check branching
 

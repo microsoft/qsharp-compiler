@@ -47,7 +47,7 @@
     <PackageReference Condition="$(QirGeneration) Or $(EnableQirSubmission)"
                       Include="Microsoft.Quantum.QirGeneration" Version="0.24.209330-beta"
                       IsImplicitlyDefined="true" 
-                      IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
+                      IsQscReference="true" ExecutionTarget="Any" Priority="-2" PrivateAssets="All" />
   </ItemGroup>
 
   <!-- Packages for execution on the simulation framework. -->

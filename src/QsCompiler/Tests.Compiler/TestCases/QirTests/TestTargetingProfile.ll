@@ -398,8 +398,20 @@ then0__4:                                         ; preds = %continue__5
   br label %continue__7
 
 continue__7:                                      ; preds = %then0__4, %continue__5
+  %240 = call %Result* @__quantum__rt__result_get_zero()
+  %a = call i1 @__quantum__rt__result_equal(%Result* %m1, %Result* %240)
+  %a__1 = call %Result* @__quantum__rt__result_get_zero()
+  %241 = call %Result* @__quantum__rt__result_get_one()
+  %242 = call i1 @__quantum__rt__result_equal(%Result* %a__1, %Result* %241)
+  %c = or i1 %242, %a
+  %243 = insertvalue { i1, i1 } zeroinitializer, i1 %a, 0
+  %244 = insertvalue { i1, i1 } %243, i1 %c, 1
+  %245 = alloca { i1, i1 }, align 8
+  store { i1, i1 } %244, { i1, i1 }* %245, align 1
+  %246 = bitcast { i1, i1 }* %245 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %246)
   %__rtrnVal1__ = load i64, i64* %rand, align 4
-  %240 = insertvalue { i64, i64 } { i64 6, i64 0 }, i64 %__rtrnVal1__, 1
+  %247 = insertvalue { i64, i64 } { i64 6, i64 0 }, i64 %__rtrnVal1__, 1
   call void @__quantum__rt__qubit_release(%Qubit* %57)
   call void @__quantum__rt__qubit_release(%Qubit* %58)
   call void @__quantum__rt__qubit_release(%Qubit* %66)

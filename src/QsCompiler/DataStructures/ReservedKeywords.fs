@@ -263,6 +263,7 @@ module AssemblyConstants =
     let IonQProcessor = "IonQProcessor"
     let QCIProcessor = "QCIProcessor"
     let QuantinuumProcessor = "QuantinuumProcessor"
+    let MicrosoftSimulator = "MicrosoftSimulator"
     let ExecutionTarget = "ExecutionTarget"
     let TargetCapability = "TargetCapability"
     let DefaultSimulator = "DefaultSimulator"
