@@ -11,41 +11,59 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
-type Usage =
+type Construct =
     | Literal
     | Mutable
     | Param
     | Return
     | Conditional
 
+type Scenario =
+    | UseBigInt
+    | StringNotArgumentToMessage
+    | ConditionalOrMutable of ResolvedType
+    | EntryPointParam of ResolvedType
+    | EntryPointReturn of ResolvedType
+
 type Context = { IsEntryPoint: bool; StringLiteralsOk: bool }
 
-let requiredCapability context usage (ty: ResolvedType) =
-    let shallowCapability =
-        match usage with
-        | Literal ->
-            function
-            | BigInt -> ClassicalCapability.full
-            | String when not context.StringLiteralsOk -> ClassicalCapability.full
-            | _ -> ClassicalCapability.empty
-        | Conditional
-        | Mutable ->
-            function
+let shallowFindScenario context construct (ty: ResolvedType) =
+    match construct with
+    | Literal ->
+        match ty.Resolution with
+        | BigInt -> Some UseBigInt
+        | String when not context.StringLiteralsOk -> Some StringNotArgumentToMessage
+        | _ -> None
+    | Conditional
+    | Mutable -> ConditionalOrMutable ty |> Some
+    | Param when context.IsEntryPoint -> EntryPointParam ty |> Some
+    | Param -> None
+    | Return when context.IsEntryPoint -> EntryPointReturn ty |> Some
+    | Return -> None
+
+let findScenarios context construct (ty: ResolvedType) =
+    ty.ExtractAll(shallowFindScenario context construct >> Option.toList >> Seq.ofList)
+
+let scenarioCapability scenario =
+    let classical =
+        match scenario with
+        | UseBigInt -> ClassicalCapability.full
+        | StringNotArgumentToMessage -> ClassicalCapability.full
+        | ConditionalOrMutable ty ->
+            match ty.Resolution with
             | Bool
             | Int -> ClassicalCapability.integral
             | _ -> ClassicalCapability.full
-        | Param when context.IsEntryPoint ->
-            function
+        | EntryPointParam ty ->
+            match ty.Resolution with
             | TupleType _ -> ClassicalCapability.empty
             | Bool
             | Int -> ClassicalCapability.integral
             | _ -> ClassicalCapability.full
-        | Param -> fun _ -> ClassicalCapability.empty
-        | Return when context.IsEntryPoint ->
-            // TODO: I think there's another place where the return type of the entry point is checked. That should be
-            // combined with this.
-            function
+        | EntryPointReturn ty ->
+            match ty.Resolution with
             | UnitType
             | Result
             | TupleType _
@@ -53,13 +71,30 @@ let requiredCapability context usage (ty: ResolvedType) =
             | Bool
             | Int -> ClassicalCapability.integral
             | _ -> ClassicalCapability.full
-        | Return -> fun _ -> ClassicalCapability.empty
 
-    ty.ExtractAll(fun t -> shallowCapability t.Resolution |> Seq.singleton)
-    |> Seq.fold max ClassicalCapability.empty
+    RuntimeCapability.withClassical classical RuntimeCapability.bottom
 
-let createPattern range classical =
-    let capability = RuntimeCapability.withClassical classical RuntimeCapability.bottom
+let shallowTypeName (ty: ResolvedType) =
+    match ty.Resolution with
+    | ArrayType _ -> "array"
+    | TupleType _ -> "tuple"
+    | QsTypeKind.Operation _ -> "operation"
+    | QsTypeKind.Function _ -> "function"
+    | _ -> SyntaxTreeToQsharp.Default.ToCode ty
+
+let describeScenario =
+    function
+    | UseBigInt -> "BigInt"
+    | StringNotArgumentToMessage -> "string that is not an argument to Message"
+    | ConditionalOrMutable ty -> "conditional expression or mutable variable of type " + shallowTypeName ty
+    | EntryPointParam ty -> "entry point parameter of type " + shallowTypeName ty
+    | EntryPointReturn ty -> "entry point return value of type " + shallowTypeName ty
+
+let createPattern context construct range (ty: ResolvedType) =
+    let scenarios = findScenarios context construct ty |> Seq.toList
+
+    let capability =
+        Seq.map scenarioCapability scenarios |> Seq.fold RuntimeCapability.merge RuntimeCapability.bottom
 
     if capability = RuntimeCapability.bottom then
         None
@@ -68,9 +103,13 @@ let createPattern range classical =
             if RuntimeCapability.subsumes target.Capability capability then
                 None
             else
-                QsNullable.defaultValue Range.Zero range
-                |> QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ])
-                |> Some
+                let unsupported =
+                    Seq.filter (scenarioCapability >> RuntimeCapability.subsumes target.Capability >> not) scenarios
+
+                let description = Seq.map describeScenario unsupported |> String.concat ", "
+                let args = [ target.Architecture; description ]
+                let range = QsNullable.defaultValue Range.Zero range
+                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
         Some
             {
@@ -89,13 +128,13 @@ let paramPatterns context callable =
     |> Seq.choose (fun param ->
         let relativeRange = TypeRange.tryRange param.Type.Range
         let range = (callable.Location, relativeRange) ||> QsNullable.Map2(fun l r -> l.Offset + r)
-        requiredCapability context Param param.Type |> createPattern range)
+        createPattern context Param range param.Type)
 
 let returnPattern context callable =
     let ty = callable.Signature.ReturnType
     let relativeRange = TypeRange.tryRange ty.Range
     let range = (callable.Location, relativeRange) ||> QsNullable.Map2(fun l r -> l.Offset + r)
-    requiredCapability context Return ty |> createPattern range
+    createPattern context Return range ty
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
@@ -132,7 +171,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
 
                     for var in statement.SymbolDeclarations.Variables do
                         let range = QsNullable<_>.Map (fun o -> o + var.Range) transformation.Offset
-                        requiredCapability context Mutable var.Type |> createPattern range |> Option.iter patterns.Add
+                        createPattern context Mutable range var.Type |> Option.iter patterns.Add
 
                     statement
                 | _ -> base.OnStatement statement
@@ -141,7 +180,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
-                let usage =
+                let construct =
                     match expression.Expression with
                     | CONDITIONAL _ -> Some Conditional
                     | IntLiteral _
@@ -157,8 +196,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let expression = base.OnTypedExpression expression
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
-                usage
-                |> Option.bind (fun u -> requiredCapability context u expression.ResolvedType |> createPattern range)
+                Option.bind (fun c -> createPattern context c range expression.ResolvedType) construct
                 |> Option.iter patterns.Add
 
                 expression

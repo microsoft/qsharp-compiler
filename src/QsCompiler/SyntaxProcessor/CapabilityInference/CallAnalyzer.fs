@@ -113,8 +113,8 @@ module CallAnalyzer =
                 let args = [ name.Name; capabilityName; target.Architecture ]
                 QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
             | Recursive ->
-                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
-                |> Some
+                let args = [ target.Architecture; "recursion" ]
+                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
         {
             Capability = capability
