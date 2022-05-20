@@ -255,8 +255,8 @@ type LinkingTests() =
             [ Signatures.SyntaxTreeTrimmingNS ]
             Signatures.SyntaxTreeTrimmingSignatures.[testNumber - 1]
 
-
-    [<Fact(Skip = "Skipped to validate a change in implementation across repos; this test should be reenabled!")>]
+    [<Fact>]
+    [<Trait("Category", "Monomorphization")>]
     member this.``Monomorphization Basic Implementation``() =
 
         let filePath = Path.Combine("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath
@@ -473,7 +473,7 @@ type LinkingTests() =
 
         let props = ImmutableDictionary.CreateBuilder()
         props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
-        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, "BasicQuantumFunctionality")
+        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, BasicQuantumFunctionality.Name)
 
         let compilationManager =
             new CompilationUnitManager(new ProjectProperties(props), Action<_>(fun (ex: exn) -> failwith ex.Message))
