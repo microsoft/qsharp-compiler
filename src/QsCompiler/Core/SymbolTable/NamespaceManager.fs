@@ -356,6 +356,7 @@ type NamespaceManager
             errs.AddRange signatureErrs
 
             // currently, only return values of type Result, Result[], and tuples thereof are supported on quantum processors
+            // TODO: Consider moving this to the capability analyzers.
             if runtimeCapability <> RuntimeCapability.top then
                 let invalid =
                     signature.ReturnType.ExtractAll (fun t ->
