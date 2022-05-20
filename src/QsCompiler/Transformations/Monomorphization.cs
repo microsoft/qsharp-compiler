@@ -40,12 +40,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         /// </summary>
         public static QsCompilation Apply(QsCompilation compilation, bool monomorphizeIntrinsics = false)
         {
-            // FIXME: SOMEWHERE THERE IS A CALL TO AN UNMONOMORPH CALLABLE WHEN THE DECLARATION HAS BEEN REPLACED WITH THE MONOMORPH NAME
-            // -> MAYBE IT HAS SOMETHING TO DO WITH PARTIAL APPLICATIONS?
-            // -> WHAT EXACTLY IS GetAccessModifiers FOR? (RELATED?)
-            // -> (IS IT POSSIBLE TO ASSIGN AND ID TO A LOCAL VAR AND FOR THE TYPE PARAMS ONLY TO GET RESOLVED UPON CALL WITH THE NEW TYPE INFERENCE?)
-            // -> MORE LIKELY, SOMETHING JUST DIDN'T PROPERLY PROPAGATE THE TYPE RESOLUTION DICTIONARY? e.g. functor generation, or something else (even the internal renaming?)
-
             var globals = compilation.Namespaces.GlobalCallableResolutions();
             var concretizations = new List<QsCallable>();
             var concreteNamesMap = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
@@ -55,7 +49,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 // Remove specialization information so that we only deal with the full callables.
                 // Note: this only works fine if for all nodes in the call graph,
                 // all existing functor specializations and their dependencies are also in the call graph.
-                //.Select(n => new ConcreteCallGraphNode(n.CallableName, QsSpecializationKind.QsBody, n.ParamResolutions)) // FIXME: WHY??
                 .Where(n => n.ParamResolutions.Any())
                 .ToImmutableHashSet();
 
