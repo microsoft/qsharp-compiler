@@ -438,6 +438,28 @@ namespace Microsoft.Quantum.Testing.Capability {
         [X][0](q);
     }
 
+    function InvalidCallable() : Unit {
+        __invalid__();
+    }
+
+    function NotFoundCallable() : Unit {
+        DoesNotExist();
+    }
+
+    operation CallFunctor1() : Unit {
+        use q = Qubit();
+        Adjoint X(q);
+    }
+
+    operation CallFunctor2() : Unit {
+        use q = Qubit();
+        Controlled Adjoint X([], q);
+    }
+
+    operation CallFunctorOfExpression() : Unit {
+        Adjoint [X][0](q);
+    }
+
     @EntryPoint()
     operation EntryPointParamBool(x : Bool) : Result {
         return Zero;

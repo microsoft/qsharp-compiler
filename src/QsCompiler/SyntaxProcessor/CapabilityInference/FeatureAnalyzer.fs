@@ -15,7 +15,7 @@ type Feature =
     | Fail
     | IndeterminateLoop
     | MultipleReturns
-    | NontrivialCall
+    | NontrivialCallee
     | DefaultArray
 
 let createPattern range feature =
@@ -32,7 +32,7 @@ let createPattern range feature =
                 | Fail -> "fail statement"
                 | IndeterminateLoop -> "repeat or while loop"
                 | MultipleReturns -> "multiple returns"
-                | NontrivialCall -> "callee that is not a global identifier"
+                | NontrivialCallee -> "callee that is not a global identifier or functor"
                 | DefaultArray -> "default-initialized array constructor"
 
             let args = [ target.Architecture; description ]
@@ -74,8 +74,17 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
                 match expression.Expression with
-                | CallLikeExpression ({ Expression = Identifier (GlobalCallable _, _) }, _) -> ()
-                | CallLikeExpression _ -> createPattern range NontrivialCall |> patterns.Add
+                | CallLikeExpression (callee, _) ->
+                    let isTrivial =
+                        function
+                        | InvalidExpr
+                        | Identifier (GlobalCallable _, _)
+                        | Identifier (InvalidIdentifier, _)
+                        | AdjointApplication _
+                        | ControlledApplication _ -> true
+                        | _ -> false
+
+                    if callee.Exists(isTrivial >> not) then createPattern range NontrivialCallee |> patterns.Add
                 | NewArray _ -> createPattern range DefaultArray |> patterns.Add
                 | _ -> ()
 

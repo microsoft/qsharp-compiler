@@ -38,7 +38,7 @@ let private createCapability opacity classical =
 
 [<Fact>]
 let ``Infers BasicQuantumFunctionality from syntax`` () =
-    expect (createCapability ResultOpacity.opaque ClassicalCapability.empty) "NoOp"
+    expect RuntimeCapability.bottom "NoOp"
 
     // Tuples and arrays don't support equality, so they are inferred as BasicQuantumFunctionality for now. If tuple
     // and array equality is supported, ResultTuple and ResultArray should be inferred as FullComputation instead.
@@ -93,7 +93,7 @@ let ``Infers full classical capability from syntax`` () =
 
 [<Fact>]
 let ``Allows overriding capabilities with attribute`` () =
-    expect (createCapability ResultOpacity.opaque ClassicalCapability.empty) "OverrideBmfToBqf"
+    expect RuntimeCapability.bottom "OverrideBmfToBqf"
 
     [ "OverrideBqfToBmf"; "OverrideFullToBmf"; "ExplicitBmf" ]
     |> List.iter (createCapability ResultOpacity.controlled ClassicalCapability.empty |> expect)
@@ -150,7 +150,7 @@ let ``Infers with uncalled reference`` () =
 [<Fact>]
 let ``Restricts BigInt, Range, and String`` () =
     [ "MessageStringLit"; "MessageInterpStringLit"; "UseRangeLit"; "UseRangeVar" ]
-    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
+    |> List.iter (expect RuntimeCapability.bottom)
 
     [
         "UseBigInt"
@@ -180,7 +180,7 @@ let ``Restricts non-constant values`` () =
         "LetToArrayIndexUpdate"
         "LetToArraySliceUpdate"
     ]
-    |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.empty |> expect)
+    |> List.iter (expect RuntimeCapability.bottom)
 
     expect (createCapability ResultOpacity.opaque ClassicalCapability.integral) "LetToMutable"
 
@@ -207,10 +207,14 @@ let ``Restricts default-initialized arrays`` () =
 
 [<Fact>]
 let ``Restricts calling non-trivial callable expressions`` () =
+    [ "InvalidCallable"; "NotFoundCallable"; "CallFunctor1"; "CallFunctor2" ]
+    |> List.iter (expect RuntimeCapability.bottom)
+
     [
         "FunctionValue"
         "FunctionExpression"
         "OperationValue"
         "OperationExpression"
+        "CallFunctorOfExpression"
     ]
     |> List.iter (createCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
