@@ -653,7 +653,7 @@ type DiagnosticItem =
             | ErrorCode.UnsupportedCallableCapability ->
                 "The callable {0} requires the {1} runtime capability, which is not supported by the target {2}."
             | ErrorCode.UnsupportedClassicalCapability ->
-                "This construct is not supported by the classical runtime capabilities of the target {0}."
+                "This construct requires a classical runtime capability that is not supported by the target {0}: {1}."
 
             | ErrorCode.CallableRedefinition ->
                 "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."

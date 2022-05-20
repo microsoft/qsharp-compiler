@@ -25,8 +25,9 @@ let createPattern range =
         if RuntimeCapability.subsumes target.Capability capability then
             None
         else
-            QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
-            |> Some
+            let description = "mutable variable or conditional expression in a constant context"
+            let args = [ target.Architecture; description ]
+            QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
     {
         Capability = capability

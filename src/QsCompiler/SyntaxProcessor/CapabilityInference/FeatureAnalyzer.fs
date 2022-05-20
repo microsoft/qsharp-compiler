@@ -11,7 +11,14 @@ open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
-let createPattern range =
+type Feature =
+    | Fail
+    | IndeterminateLoop
+    | MultipleReturns
+    | NontrivialCallee
+    | DefaultArray
+
+let createPattern range feature =
     let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
 
     let diagnose (target: Target) =
@@ -20,8 +27,16 @@ let createPattern range =
         if RuntimeCapability.subsumes target.Capability capability then
             None
         else
-            QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, [ target.Architecture ]) range
-            |> Some
+            let description =
+                match feature with
+                | Fail -> "fail statement"
+                | IndeterminateLoop -> "repeat or while loop"
+                | MultipleReturns -> "multiple returns"
+                | NontrivialCallee -> "callee that is not a global identifier or functor"
+                | DefaultArray -> "default-initialized array constructor"
+
+            let args = [ target.Architecture; description ]
+            QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
     {
         Capability = capability
@@ -41,12 +56,12 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let range = (transformation.Offset, statement.Location) ||> QsNullable.Map2(fun o l -> o + l.Range)
 
                 match statement.Statement with
-                | QsFailStatement _
+                | QsFailStatement _ -> createPattern range Fail |> patterns.Add
                 | QsRepeatStatement _
-                | QsWhileStatement _ -> createPattern range |> patterns.Add
+                | QsWhileStatement _ -> createPattern range IndeterminateLoop |> patterns.Add
                 | QsReturnStatement _ ->
                     numReturns <- numReturns + 1
-                    if numReturns > 1 then createPattern range |> patterns.Add
+                    if numReturns > 1 then createPattern range MultipleReturns |> patterns.Add
                 | _ -> ()
 
                 statement
@@ -59,9 +74,18 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
                 match expression.Expression with
-                | CallLikeExpression ({ Expression = Identifier (GlobalCallable _, _) }, _) -> ()
-                | CallLikeExpression _
-                | NewArray _ -> createPattern range |> patterns.Add
+                | CallLikeExpression (callee, _) ->
+                    let isTrivial =
+                        function
+                        | InvalidExpr
+                        | Identifier (GlobalCallable _, _)
+                        | Identifier (InvalidIdentifier, _)
+                        | AdjointApplication _
+                        | ControlledApplication _ -> true
+                        | _ -> false
+
+                    if callee.Exists(isTrivial >> not) then createPattern range NontrivialCallee |> patterns.Add
+                | NewArray _ -> createPattern range DefaultArray |> patterns.Add
                 | _ -> ()
 
                 expression
