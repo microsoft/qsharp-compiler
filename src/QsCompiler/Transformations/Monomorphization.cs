@@ -45,10 +45,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var concreteNamesMap = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
 
             var nodesWithResolutions = new ConcreteCallGraph(compilation).Nodes
-
-                // Remove specialization information so that we only deal with the full callables.
-                // Note: this only works fine if for all nodes in the call graph,
-                // all existing functor specializations and their dependencies are also in the call graph.
                 .Where(n => n.ParamResolutions.Any())
                 .ToImmutableHashSet();
 
