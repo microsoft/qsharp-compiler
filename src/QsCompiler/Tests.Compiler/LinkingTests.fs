@@ -473,7 +473,7 @@ type LinkingTests() =
 
         let props = ImmutableDictionary.CreateBuilder()
         props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
-        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, BasicQuantumFunctionality.Name)
+        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, "BasicQuantumFunctionality")
 
         let compilationManager =
             new CompilationUnitManager(new ProjectProperties(props), Action<_>(fun (ex: exn) -> failwith ex.Message))
