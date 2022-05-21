@@ -1033,7 +1033,7 @@ module SimulationCode =
             match context.allCallables.TryGetValue n with
             | true, decl -> decl.IsIntrinsic && context.UseIntrinsicsInterface
             | false, _ -> false
-
+            
         let name =
             let sameNamespace =
                 match context.current with
@@ -1043,7 +1043,10 @@ module SimulationCode =
             let opName =
                 if isInterface then
                     let nameDecorator = new NameDecorator("QsRef")
-                    "IIntrinsic" + nameDecorator.Undecorate n.Name
+                    let rec undecorate name =
+                        let undecorated = nameDecorator.Undecorate name
+                        if String.IsNullOrWhiteSpace undecorated then name else undecorate name
+                    "IIntrinsic" + undecorate n.Name
                 elif sameNamespace then
                     userDefinedName None n.Name
                 else
