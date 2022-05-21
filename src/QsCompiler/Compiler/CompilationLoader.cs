@@ -193,6 +193,13 @@ namespace Microsoft.Quantum.QsCompiler
                 this.BuildOutputFolder != null || this.DllOutputPath != null;
 
             /// <summary>
+            /// Indicates whether the compilation should be trimmed to include only the used callables.
+            /// This value is never true if SkipSyntaxTreeTrimming is specified.
+            /// </summary>
+            internal bool TrimTree =>
+                this.IsExecutable && !this.SkipSyntaxTreeTrimming;
+
+            /// <summary>
             /// Indicates whether the compilation needs to be monomorphized.
             /// This value is never true if SkipMonomorphization is specified.
             /// </summary>
@@ -631,11 +638,7 @@ namespace Microsoft.Quantum.QsCompiler
                 // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the
                 // old setup of the C# runtime works. With the new setup (interface-based approach for target
                 // packages), it is possible to trim unused intrinsics.
-                (
-                    new SyntaxTreeTrimming(keepAllIntrinsics: true, dependencies),
-                    this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming,
-                    s => status.TreeTrimming = s),
-
+                (new SyntaxTreeTrimming(keepAllIntrinsics: true, dependencies), this.config.TrimTree, s => status.TreeTrimming = s),
                 (new LiftLambdas(), this.config.LiftLambdaExpressions, s => status.LiftLambdaExpressions = s),
                 (new ClassicallyControlled(), this.config.ConvertClassicalControl, s => status.ConvertClassicalControl = s),
                 (new FunctorGeneration(), this.config.GenerateFunctorSupport, s => status.FunctorSupport = s),
