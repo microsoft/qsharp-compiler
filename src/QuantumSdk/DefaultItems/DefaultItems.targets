@@ -115,11 +115,11 @@
   <!-- Populates the ResolvedTargetSpecificDecompositions item group. -->
   <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQSharpCompile">
     <ItemGroup>
-      <_ResolvedProjectReferencePaths Update="@(_ResolvedProjectReferencePaths)" Aliases="TargetPackage" Condition="%(_ResolvedProjectReferencePaths.IsTargetPackage)" />
+      <_ResolvedProjectReferencePaths Update="@(_ResolvedProjectReferencePaths)" Aliases="TargetPackage" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsTargetPackage)" />
       <ResolvedTargetSpecificDecompositions Include="@(_ResolvedProjectReferencePaths)" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsTargetPackage)" />
     </ItemGroup>
     <ItemGroup>
-      <PackageReference Update="@(PackageReference)" Aliases="TargetPackage" Condition="%(PackageReference.IsTargetPackage)" />
+      <PackageReference Update="@(PackageReference)" Aliases="TargetPackage" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
       <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
       <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'QscRef_$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" />
       <_ResolvedTargetPackageReference Include="$(%(_TargetPackageReferencePathProperty.Identity))" />

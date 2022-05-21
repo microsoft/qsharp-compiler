@@ -44,21 +44,14 @@ module SimulationCode =
         member this.setUdt(udt: QsCustomType) =
             { this with current = (Some udt.FullName) }
 
-    let autoNamespaces =
+    let autoNamespaces (context: CodegenContext) =
         [
-            "System"
-            "Microsoft.Quantum.Core"
-            "Microsoft.Quantum.Intrinsic"
-            "Microsoft.Quantum.Simulation.Core"
-        ]
-
-    let autoNamespacesWithInterfaces =
-        [
-            "System"
-            "Microsoft.Quantum.Core"
-            "Microsoft.Quantum.Intrinsic"
-            "Microsoft.Quantum.Intrinsic.Interfaces"
-            "Microsoft.Quantum.Simulation.Core"
+            yield "System"
+            yield "Microsoft.Quantum.Core"
+            yield "Microsoft.Quantum.Intrinsic"
+            if context.UseIntrinsicsInterface || context.GenerateConcreteIntrinsic then
+                yield "Microsoft.Quantum.Intrinsic.Interfaces"
+            yield "Microsoft.Quantum.Simulation.Core"
         ]
 
     let funcsAsProps =
@@ -88,12 +81,6 @@ module SimulationCode =
     let prependNamespaceString (name: QsQualifiedName) =
         name.Namespace.Replace(".", "__") + "__" + name.Name
 
-    let isConcreteIntrinsic (context: CodegenContext) =
-        match context.assemblyConstants.TryGetValue AssemblyConstants.GenerateConcreteIntrinsic with
-        | true, "false" -> false
-        | true, _ -> true
-        | false, _ -> false
-
     let needsFullPath context (op: QsQualifiedName) =
         let hasMultipleDefinitions () =
             if context.byName.ContainsKey op.Name then context.byName.[op.Name].Length > 1 else false
@@ -103,10 +90,7 @@ module SimulationCode =
             | None -> false
             | Some n -> n.Namespace = op.Namespace
 
-        let namespaces =
-            if context.UseIntrinsicsInterface || isConcreteIntrinsic context
-            then autoNamespacesWithInterfaces
-            else autoNamespaces
+        let namespaces = autoNamespaces context
 
         if sameNamespace then false
         elif hasMultipleDefinitions () then true
@@ -1033,7 +1017,7 @@ module SimulationCode =
             match context.allCallables.TryGetValue n with
             | true, decl -> decl.IsIntrinsic && context.UseIntrinsicsInterface
             | false, _ -> false
-            
+
         let name =
             let sameNamespace =
                 match context.current with
@@ -1043,9 +1027,11 @@ module SimulationCode =
             let opName =
                 if isInterface then
                     let nameDecorator = new NameDecorator("QsRef")
+
                     let rec undecorate name =
                         let undecorated = nameDecorator.Undecorate name
                         if String.IsNullOrWhiteSpace undecorated then name else undecorate name
+
                     "IIntrinsic" + undecorate n.Name
                 elif sameNamespace then
                     userDefinedName None n.Name
@@ -1203,7 +1189,7 @@ module SimulationCode =
                 | _ -> "__Body__"
 
             Some(ident adjointedBodyName :> ExpressionSyntax)
-        | Intrinsic when isConcreteIntrinsic context ->
+        | Intrinsic when context.GenerateConcreteIntrinsic ->
             // Add in the control qubits parameter when dealing with a controlled spec
             let args =
                 match sp.Kind with
@@ -1721,7 +1707,7 @@ module SimulationCode =
         let opNames = operationDependencies op
         let inType = op.Signature.ArgumentType |> roslynTypeName context
         let outType = op.Signature.ReturnType |> roslynTypeName context
-        let isConcreteIntrinsic = op.IsIntrinsic && isConcreteIntrinsic context
+        let isConcreteIntrinsic = op.IsIntrinsic && context.GenerateConcreteIntrinsic
 
         let constructors =
             [
@@ -2012,7 +1998,7 @@ module SimulationCode =
 
     // Builds the C# syntaxTree for the Q# elements defined in the given file.
     let buildSyntaxTree localElements (context: CodegenContext) =
-        let namespaces = if isConcreteIntrinsic context then autoNamespacesWithInterfaces else autoNamespaces
+        let namespaces = autoNamespaces context
         let usings = namespaces |> List.map (fun ns -> using ns)
         let attributes = localElements |> List.map (snd >> buildDeclarationAttributes) |> List.concat
         let namespaces = localElements |> List.map (buildNamespace context)
