@@ -150,7 +150,7 @@ type CodegenContext =
                 || target = AssemblyConstants.IonQProcessor
                 || target = AssemblyConstants.QCIProcessor
                 || target = AssemblyConstants.QuantinuumProcessor
-                || target = "MicrosoftSimulator" // ToDo: We need to have an assembly constant for this.
+                || target = AssemblyConstants.MicrosoftSimulator
             | _ -> false
 
         not (fileName.EndsWith ".dll") || targetsQuantumProcessor

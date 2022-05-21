@@ -80,15 +80,7 @@ let private parameterOptionsProperty parameters =
 /// A lambda that creates an instance of the default simulator if it is a custom simulator.
 let private customSimulatorFactory name =
     let isCustomSimulator =
-        not
-        <| List.contains
-            name
-            [
-                AssemblyConstants.QuantumSimulator
-                AssemblyConstants.SparseSimulator
-                AssemblyConstants.ToffoliSimulator
-                AssemblyConstants.ResourcesEstimator
-            ]
+        not <| CommandLineArguments.BuiltInSimulators.Contains name
 
     let factory =
         if isCustomSimulator then

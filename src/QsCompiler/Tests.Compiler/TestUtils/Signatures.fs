@@ -147,9 +147,6 @@ let public MonomorphizationSignatures =
          [|
              MonomorphizationNS, "Test1", [||], "Unit"
              GenericsNS, "Test1Main", [||], "Unit"
-             GenericsNS, "Test2Main", [||], "Unit"
-             GenericsNS, "Test3Main", [||], "Unit"
-             GenericsNS, "Test4Main", [||], "Unit"
 
              GenericsNS, "BasicGeneric", [| "Double"; "Int" |], "Unit"
              GenericsNS, "BasicGeneric", [| "String"; "String" |], "Unit"
@@ -164,10 +161,7 @@ let public MonomorphizationSignatures =
         (_DefaultTypes,
          [|
              MonomorphizationNS, "Test2", [||], "Unit"
-             GenericsNS, "Test1Main", [||], "Unit"
              GenericsNS, "Test2Main", [||], "Unit"
-             GenericsNS, "Test3Main", [||], "Unit"
-             GenericsNS, "Test4Main", [||], "Unit"
 
              GenericsNS, "ArrayGeneric", [| "Qubit"; "String" |], "Int"
              GenericsNS, "ArrayGeneric", [| "Qubit"; "Int" |], "Int"
@@ -177,10 +171,7 @@ let public MonomorphizationSignatures =
         (_DefaultWithQubitArray,
          [|
              MonomorphizationNS, "Test3", [||], "Unit"
-             GenericsNS, "Test1Main", [||], "Unit"
-             GenericsNS, "Test2Main", [||], "Unit"
              GenericsNS, "Test3Main", [||], "Unit"
-             GenericsNS, "Test4Main", [||], "Unit"
 
              GenericsNS, "GenericCallsSpecializations", [| "Double"; "String"; "Qubit[]" |], "Unit"
              GenericsNS, "GenericCallsSpecializations", [| "Double"; "String"; "Double" |], "Unit"
@@ -203,9 +194,6 @@ let public MonomorphizationSignatures =
         (_DefaultTypes,
          [|
              MonomorphizationNS, "Test4", [||], "Unit"
-             GenericsNS, "Test1Main", [||], "Unit"
-             GenericsNS, "Test2Main", [||], "Unit"
-             GenericsNS, "Test3Main", [||], "Unit"
              GenericsNS, "Test4Main", [||], "Unit"
 
              GenericsNS, "_GenericCallsSelf", [||], "Unit"

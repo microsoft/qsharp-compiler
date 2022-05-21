@@ -36,57 +36,27 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
             {
                 var globals = compilation.Namespaces.GlobalCallableResolutions();
                 var dependenciesToKeep = dependencies?.Where(globals.ContainsKey) ?? ImmutableArray<QsQualifiedName>.Empty;
-                var augmentedEntryPoints = dependenciesToKeep
-                    .Concat(compilation.EntryPoints)
-                    .Distinct();
+                var augmentedEntryPoints = dependenciesToKeep.Concat(compilation.EntryPoints);
 
                 // If this compilation is for a Library project, treat each public, non-generic callable as an entry point
                 // for the purpose of constructing the call graph and pruning the syntax tree.
                 if (compilation.EntryPoints.Length == 0)
                 {
-                    var externals = globals.Where(g => g.Value.Source.AssemblyFile.IsNull && g.Value.Signature.TypeParameters.IsEmpty && g.Value.Access.IsPublic);
-                    augmentedEntryPoints = augmentedEntryPoints.Concat(externals.Select(e => e.Key)).Distinct();
+                    augmentedEntryPoints = augmentedEntryPoints.Concat(compilation.InteroperableSurface(includeReferences: false));
                 }
 
-                var compilationWithBuiltIns = new QsCompilation(compilation.Namespaces, augmentedEntryPoints.ToImmutableArray());
+                var compilationWithBuiltIns = new QsCompilation(compilation.Namespaces, augmentedEntryPoints.Distinct().ToImmutableArray());
                 var callablesToKeep = new CallGraph(compilationWithBuiltIns, true).Nodes.Select(node => node.CallableName).ToImmutableHashSet();
 
-                // ToDo: convert to using ternary operator, when target-type
-                // conditional expressions are supported in C#
-                Func<QsNamespaceElement, bool> filter = elem => Filter(elem, callablesToKeep);
-                if (keepAllIntrinsics)
-                {
-                    filter = elem => FilterWithIntrinsics(elem, callablesToKeep);
-                }
-
+                Func<QsNamespaceElement, bool> filter = elem => Filter(elem, callablesToKeep, keepAllIntrinsics);
                 var transformed = new TrimTree(filter).OnCompilation(compilation);
                 return new QsCompilation(transformed.Namespaces.Where(ns => ns.Elements.Any()).ToImmutableArray(), transformed.EntryPoints);
             }
 
-            private static bool FilterWithIntrinsics(QsNamespaceElement elem, ImmutableHashSet<QsQualifiedName> graphNodes)
-            {
-                if (elem is QsNamespaceElement.QsCallable call)
-                {
-                    return call.Item.Specializations.Any(spec => spec.Implementation.IsIntrinsic)
-                        || graphNodes.Contains(call.Item.FullName);
-                }
-                else
-                {
-                    return true;
-                }
-            }
-
-            private static bool Filter(QsNamespaceElement elem, ImmutableHashSet<QsQualifiedName> graphNodes)
-            {
-                if (elem is QsNamespaceElement.QsCallable call)
-                {
-                    return graphNodes.Contains(call.Item.FullName);
-                }
-                else
-                {
-                    return true;
-                }
-            }
+            private static bool Filter(QsNamespaceElement elem, ImmutableHashSet<QsQualifiedName> graphNodes, bool keepAllIntrinsics) =>
+                elem is QsNamespaceElement.QsCallable callable
+                ? graphNodes.Contains(callable.Item.FullName) || (keepAllIntrinsics && callable.Item.IsIntrinsic)
+                : true;
 
             /// <summary>
             /// Class representing the state of the transformation.

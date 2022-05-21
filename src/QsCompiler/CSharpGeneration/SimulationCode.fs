@@ -2094,7 +2094,7 @@ module SimulationCode =
     let generate fileName globalContext =
         let isIntrinsic =
             function
-            | QsCallable c -> c.Signature.Information.InferredInformation.IsIntrinsic
+            | QsCallable c -> c.IsIntrinsic
             | QsCustomType _ -> false
 
         let filterIntrinsics (ns, elems) =
