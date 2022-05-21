@@ -142,6 +142,16 @@ type CodegenContext =
         | true, propVal -> propVal = "true"
         | false, _ -> false
 
+    member internal this.GenerateConcreteIntrinsic =
+        match this.assemblyConstants.TryGetValue AssemblyConstants.GenerateConcreteIntrinsic with
+        | true, value -> value <> null && value.ToLower() = "true"
+        | false, _ -> false
+
+    member internal this.UseIntrinsicsInterface =
+        match this.assemblyConstants.TryGetValue AssemblyConstants.QuantumInstructionSet with
+        | true, qis -> qis.ToLower() <> "default" && not <| System.String.IsNullOrWhiteSpace qis
+        | _ -> false
+
     member internal this.GenerateCodeForSource(fileName: string) =
         let targetsQuantumProcessor =
             match this.assemblyConstants.TryGetValue AssemblyConstants.ProcessorArchitecture with
