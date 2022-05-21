@@ -147,9 +147,6 @@ let public MonomorphizationSignatures =
          [|
              MonomorphizationNS, "Test1", [||], "Unit"
              GenericsNS, "Test1Main", [||], "Unit"
-             //GenericsNS, "Test2Main", [||], "Unit"
-             //GenericsNS, "Test3Main", [||], "Unit"
-             //GenericsNS, "Test4Main", [||], "Unit"
 
              GenericsNS, "BasicGeneric", [| "Double"; "Int" |], "Unit"
              GenericsNS, "BasicGeneric", [| "String"; "String" |], "Unit"
