@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.CsharpGeneration
 
+open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
+
 #nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
 
 open System
@@ -101,7 +103,10 @@ module SimulationCode =
             | None -> false
             | Some n -> n.Namespace = op.Namespace
 
-        let namespaces = if isConcreteIntrinsic context then autoNamespacesWithInterfaces else autoNamespaces
+        let namespaces =
+            if context.UseIntrinsicsInterface || isConcreteIntrinsic context
+            then autoNamespacesWithInterfaces
+            else autoNamespaces
 
         if sameNamespace then false
         elif hasMultipleDefinitions () then true
@@ -1024,6 +1029,11 @@ module SimulationCode =
         seeker.SharedState |> Seq.toList
 
     let getTypeOfOp context (n: QsQualifiedName) =
+        let isInterface =
+            match context.allCallables.TryGetValue n with
+            | true, decl -> decl.IsIntrinsic && context.UseIntrinsicsInterface
+            | false, _ -> false
+
         let name =
             let sameNamespace =
                 match context.current with
@@ -1031,7 +1041,10 @@ module SimulationCode =
                 | Some o -> o.Namespace = n.Namespace
 
             let opName =
-                if sameNamespace then
+                if isInterface then
+                    let nameDecorator = new NameDecorator("QsRef")
+                    "IIntrinsic" + nameDecorator.Undecorate n.Name
+                elif sameNamespace then
                     userDefinedName None n.Name
                 else
                     "global::" + n.Namespace + "." + userDefinedName None n.Name
@@ -1635,14 +1648,6 @@ module SimulationCode =
 
         (name, nonGeneric)
 
-    let isIntrinsic op =
-        let isBody (sp: QsSpecialization) =
-            match sp.Kind with
-            | QsBody when sp.Implementation <> Intrinsic -> true
-            | _ -> false
-
-        not (op.Specializations |> Seq.exists isBody)
-
     let isFunction (op: QsCallable) =
         match op.Kind with
         | Function -> true
@@ -1713,8 +1718,7 @@ module SimulationCode =
         let opNames = operationDependencies op
         let inType = op.Signature.ArgumentType |> roslynTypeName context
         let outType = op.Signature.ReturnType |> roslynTypeName context
-        let opIsIntrinsic = isIntrinsic op
-        let isConcreteIntrinsic = opIsIntrinsic && isConcreteIntrinsic context
+        let isConcreteIntrinsic = op.IsIntrinsic && isConcreteIntrinsic context
 
         let constructors =
             [
@@ -1795,7 +1799,7 @@ module SimulationCode =
         let modifiers =
             let access = classAccess op.Access
 
-            if opIsIntrinsic && not isConcreteIntrinsic then
+            if op.IsIntrinsic && not isConcreteIntrinsic then
                 [ access; ``abstract``; partial ]
             else
                 [ access; partial ]

@@ -43,14 +43,14 @@
     <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
   </PropertyGroup>
 
-  <!-- Resolving the QuantumIntrinsics to either Type1, Type2, Type3, Type4 or Default.-->
+  <!-- Resolving the QuantumInstructionSet to either Type1, Type2, Type3, Type4 or Default.-->
   <PropertyGroup>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">Type1</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Type2</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Type3</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">Type4</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">Default</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'Unspecified'">Default</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' Or '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">Type1</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Type2</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Type3</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">Type4</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">Default</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'Unspecified'">Default</ResolvedQuantumInstructionSet>
   </PropertyGroup>
 
   <!-- Resolving the TargetCapability to either BasicExecution, AdaptiveExecution, BasicQuantumFunctionality, BasicMeasurementFeedback, or FullComputation.-->
@@ -115,9 +115,11 @@
   <!-- Populates the ResolvedTargetSpecificDecompositions item group. -->
   <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQSharpCompile">
     <ItemGroup>
+      <_ResolvedProjectReferencePaths Update="@(_ResolvedProjectReferencePaths)" Aliases="TargetPackage" Condition="%(_ResolvedProjectReferencePaths.IsTargetPackage)" />
       <ResolvedTargetSpecificDecompositions Include="@(_ResolvedProjectReferencePaths)" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsTargetPackage)" />
     </ItemGroup>
     <ItemGroup>
+      <PackageReference Update="@(PackageReference)" Aliases="TargetPackage" Condition="%(PackageReference.IsTargetPackage)" />
       <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
       <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'QscRef_$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" />
       <_ResolvedTargetPackageReference Include="$(%(_TargetPackageReferencePathProperty.Identity))" />

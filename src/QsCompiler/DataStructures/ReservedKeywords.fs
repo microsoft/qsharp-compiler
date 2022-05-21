@@ -258,6 +258,7 @@ module AssemblyConstants =
     let QsharpOutputType = "QSharpOutputType"
     let QsharpExe = "QSharpExe"
     let QsharpLibrary = "QSharpLibrary"
+    let QuantumInstructionSet = "QuantumInstructionSet"
     let ProcessorArchitecture = "ProcessorArchitecture"
     let HoneywellProcessor = "HoneywellProcessor"
     let IonQProcessor = "IonQProcessor"
