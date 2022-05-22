@@ -1013,15 +1013,9 @@ module SimulationCode =
         seeker.SharedState |> Seq.toList
 
     let getTypeOfOp context (n: QsQualifiedName) =
-        let isNotInFoundation (decl : QsCallable) = // todo: get rid of this and add the interface to the foundation package
-            match decl.Source.AssemblyFile with
-            | Value assemblyName ->
-                not <| assemblyName.ToLower().EndsWith "microsoft.quantum.qsharp.foundation.dll"
-            | Null -> false
-
         let isInterface =
             match context.allCallables.TryGetValue n with
-            | true, decl -> decl.IsIntrinsic && context.UseIntrinsicsInterface && isNotInFoundation decl
+            | true, decl -> decl.IsIntrinsic && context.UseIntrinsicsInterface && context.IsFromTargetPackage decl
             | false, _ -> false
 
         let name =

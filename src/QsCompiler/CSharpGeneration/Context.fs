@@ -142,6 +142,18 @@ type CodegenContext =
         | true, propVal -> propVal = "true"
         | false, _ -> false
 
+    member public this.IsFromTargetPackage (decl : QsCallable) =
+        let targetPackageAssemblies = 
+            match this.assemblyConstants.TryGetValue(AssemblyConstants.TargetPackageAssemblies) with
+            | true, value -> value.Split(";") |> Seq.map (fun s -> s.Trim().ToLower())
+            | false, _ -> Seq.empty
+
+        match decl.Source.AssemblyFile with
+        | Value assemblyName when not <| System.String.IsNullOrWhiteSpace assemblyName ->
+            assemblyName.Trim().ToLower() |> targetPackageAssemblies.Contains
+        | _ -> false
+
+
     member internal this.GenerateConcreteIntrinsic =
         match this.assemblyConstants.TryGetValue AssemblyConstants.GenerateConcreteIntrinsic with
         | true, value -> value <> null && value.ToLower() = "true"

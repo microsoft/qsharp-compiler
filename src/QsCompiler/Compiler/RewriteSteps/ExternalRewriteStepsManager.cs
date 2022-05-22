@@ -50,6 +50,14 @@ namespace Microsoft.Quantum.QsCompiler
                 var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null;
                 assemblyConstants[AssemblyConstants.OutputPath] = loaded.OutputFolder ?? defaultOutput ?? config.BuildOutputFolder;
                 assemblyConstants.TryAdd(AssemblyConstants.AssemblyName, config.ProjectNameWithoutPathOrExtension);
+
+                if (config.TargetPackageAssemblies != null)
+                {
+                    string DefinedTargetPackageAssemblies(string? predefined = null) =>
+                        string.Join(";", config.TargetPackageAssemblies.Append(predefined).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s?.Trim()));
+                    assemblyConstants[AssemblyConstants.TargetPackageAssemblies] = DefinedTargetPackageAssemblies(
+                        assemblyConstants.TryGetValue(AssemblyConstants.TargetPackageAssemblies, out var predefined) ? predefined : null);
+                }
             }
 
             return loadedSteps;

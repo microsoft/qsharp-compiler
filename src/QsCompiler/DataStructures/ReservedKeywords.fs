@@ -278,6 +278,7 @@ module AssemblyConstants =
     let DocsOutputPath = "DocsOutputPath"
     let DocsPackageId = "DocsPackageId"
     let GenerateConcreteIntrinsic = "GenerateConcreteIntrinsic"
+    let TargetPackageAssemblies = "TargetPackageAssemblies"
 
 /// contains reserved names for command line arguments of Q# projects
 module CommandLineArguments =
