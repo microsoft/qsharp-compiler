@@ -2152,10 +2152,3 @@
         fail "expected failure in CheckFail";
     }
 }
-
-namespace Microsoft.Quantum.Intrinsic {
-
-    function Message (arg : String) : Unit {
-        body intrinsic;
-    }
-}
