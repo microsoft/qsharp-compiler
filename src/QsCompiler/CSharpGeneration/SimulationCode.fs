@@ -1030,7 +1030,7 @@ module SimulationCode =
 
                     let rec undecorate name =
                         let undecorated = nameDecorator.Undecorate name
-                        if String.IsNullOrWhiteSpace undecorated then name else undecorate name
+                        if String.IsNullOrWhiteSpace undecorated then name else undecorate undecorated
 
                     "IIntrinsic" + undecorate n.Name
                 elif sameNamespace then
