@@ -162,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 public override QsCallable OnCallableDeclaration(QsCallable c)
                 {
                     var relevantAccessModifiers = this.SharedState.GetAccessModifiers.Apply(this.SharedState.TypeParams.Values)
-                        .Append(c.Access);
+                        .Append(c.Access).Append(Access.Internal); // monomorphized callables should never be public
 
                     c = new QsCallable(
                         c.Kind,

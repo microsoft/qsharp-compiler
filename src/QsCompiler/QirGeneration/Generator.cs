@@ -103,11 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: get rid of entry point and interop wrappers
             if (!this.SharedState.TargetQirProfile)
             {
-                var interopCompatible = this.Compilation.EntryPoints.Length == 0
-                    ? this.Compilation.InteroperableSurface(includeReferences: false)
-                    : this.Compilation.EntryPoints;
-
-                foreach (var epName in interopCompatible)
+                foreach (var epName in this.Compilation.EntryPoints)
                 {
                     this.SharedState.CreateInteropFriendlyWrapper(epName);
                     this.SharedState.CreateEntryPoint(epName);

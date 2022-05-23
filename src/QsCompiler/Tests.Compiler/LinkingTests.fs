@@ -244,8 +244,8 @@ type LinkingTests() =
                 Seq.item 0 x)
 
         Assert.True(
-            generated.Access = Public,
-            "Callables originally public should remain public if all arguments are public."
+            generated.Access = Internal,
+            "Callables originally public should be internal even if all arguments are public."
         )
 
     member private this.RunSyntaxTreeTrimTest testNumber keepIntrinsics =
