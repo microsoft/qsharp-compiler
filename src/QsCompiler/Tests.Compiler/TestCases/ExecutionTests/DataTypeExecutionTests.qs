@@ -8,7 +8,6 @@
     newtype MyTuple = (Item1 : Int, Item2 : Double);
     newtype MyNestedTuple = ((Item1 : Int, Item2 : Double), Item3 : Double);
 
-    @EntryPoint()
     operation TestNativeTypeHandling() : Unit {
         let arr1 = [1,2,3];
         Message($"{arr1}");

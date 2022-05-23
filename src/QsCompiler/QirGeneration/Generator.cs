@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
@@ -45,8 +47,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;
+            var interopSurface = compilation.InteroperableSurface(includeReferences: false);
+            var publicAPI = this.SharedState.TargetQirProfile
+                ? interopSurface.Where(this.BasicApiSurface).ToImmutableHashSet()
+                : interopSurface.ToImmutableHashSet();
 
-            this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild);
+            this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild, publicAPI);
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);
             this.Expressions = new QirExpressionTransformation(this, TransformationOptions.NoRebuild);
             this.ExpressionKinds = new QirExpressionKindTransformation(this, TransformationOptions.NoRebuild);
@@ -58,6 +64,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.QuantumInstructionSet = quantumInstructionSet;
             this.SharedState.InitializeRuntimeLibrary();
             this.SharedState.RegisterQuantumInstructionSet();
+        }
+
+        /// <summary>
+        /// Returns true if the callable with the give name does not take arguments or return values
+        /// that require support for composite types (including callable types) or require a classical runtime.
+        /// Qubits and results are assumed to not require special runtime support.
+        /// </summary>
+        private bool BasicApiSurface(QsQualifiedName callableName)
+        {
+            bool ContainsCompositeType(ResolvedType t) =>
+                t.Resolution.IsArrayType ||
+                t.Resolution.IsTupleType || t.Resolution.IsUserDefinedType ||
+                t.Resolution.IsOperation || t.Resolution.IsFunction;
+
+            bool RequiresClassicalRuntime(ResolvedType t) =>
+                t.Resolution.IsBigInt || t.Resolution.IsString;
+
+            bool IsSimpleSignature(ResolvedSignature sig) =>
+                !(ContainsCompositeType(sig.ArgumentType) || RequiresClassicalRuntime(sig.ArgumentType)) &&
+                !(ContainsCompositeType(sig.ReturnType) || RequiresClassicalRuntime(sig.ReturnType));
+
+            return this.SharedState.TryGetGlobalCallable(callableName, out var callable)
+                && IsSimpleSignature(callable.Signature);
         }
 
         /// <summary>
@@ -74,7 +103,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: get rid of entry point and interop wrappers
             if (!this.SharedState.TargetQirProfile)
             {
-                foreach (var epName in this.Compilation.EntryPoints)
+                var interopCompatible = this.Compilation.EntryPoints.Length == 0
+                    ? this.Compilation.InteroperableSurface(includeReferences: false)
+                    : this.Compilation.EntryPoints;
+
+                foreach (var epName in interopCompatible)
                 {
                     this.SharedState.CreateInteropFriendlyWrapper(epName);
                     this.SharedState.CreateEntryPoint(epName);

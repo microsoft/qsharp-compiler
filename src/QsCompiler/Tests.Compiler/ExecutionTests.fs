@@ -52,7 +52,6 @@ type ExecutionTests(output: ITestOutputHelper) =
                 yield outputDir
                 yield "--proj"
                 yield projName
-                yield "--build-exe"
                 yield "--input"
 
                 for file in files do
@@ -90,7 +89,7 @@ type ExecutionTests(output: ITestOutputHelper) =
     let compiledQirExecutionTest =
         let inputPaths =
             [
-                ("TestCases", "QirTests", "ExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
+                ("TestCases", "ExecutionTests", "ExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
             ]
 
         let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath
@@ -101,8 +100,8 @@ type ExecutionTests(output: ITestOutputHelper) =
         let inputPaths =
             [
                 if String.IsNullOrWhiteSpace targetPackageDll then
-                    yield ("TestCases", "QirTests", "DataTypeExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
-                else yield ("TestCases", "QirTests", "TargetedExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
+                    yield ("TestCases", "ExecutionTests", "DataTypeExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
+                else yield ("TestCases", "ExecutionTests", "TargetedExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
 
             ]
 
@@ -251,7 +250,7 @@ type ExecutionTests(output: ITestOutputHelper) =
     [<Fact>]
     member this.``QIR native llvm type handling``() =
 
-        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling"
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling__body"
         let exitCode, out, err = QirExecutionTest "" functionName
         AssertEqual String.Empty err
         Assert.Equal(0, exitCode)
@@ -287,10 +286,10 @@ type ExecutionTests(output: ITestOutputHelper) =
         AssertEqual expected out
 
 
-    [<Fact>]
+    [<Fact(Skip="This first requires additional support in the QIR runtime.")>]
     member this.``QIR target package handling``() =
 
-        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestTargetPackageHandling"
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestTargetPackageHandling__body"
         let exitCode, out, err = QirExecutionTest "Microsoft.Quantum.Type3.Core.dll" functionName
         AssertEqual String.Empty err
         Assert.Equal(0, exitCode)

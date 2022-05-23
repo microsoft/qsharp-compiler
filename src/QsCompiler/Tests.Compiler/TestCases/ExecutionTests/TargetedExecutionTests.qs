@@ -4,7 +4,6 @@
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Canon;
 
-    @EntryPoint()
     operation TestTargetPackageHandling() : Unit {
     
         use qs = Qubit[2];

@@ -1705,7 +1705,6 @@
     }
 
 
-    @EntryPoint()
     operation TestDefaultValues() : Unit {
         Message($"{new Int[3]}");
         Message($"{new Double[3]}");
@@ -1726,7 +1725,6 @@
     }
 
 
-    @EntryPoint()
     operation TestArraySlicing() : Range {
 
         let sizedArr = [3, size = "a" == "b" ? 1 | 3]; // test for size depending on runtime info
@@ -1781,7 +1779,6 @@
         Message("********************\n");
     }
 
-    @EntryPoint()
     operation TestInterpolatedStrings() : String {
 
         let arr1 = [1,2,3];
@@ -1817,20 +1814,16 @@
         return "All good!";
     }
 
-    @EntryPoint()
     operation NoReturn() : Unit {}
 
-    @EntryPoint()
     operation ReturnsUnit() : Unit {
         return ();
     }
 
-    @EntryPoint()
     operation ReturnsString() : String {
         return "Success!";
     }
 
-    @EntryPoint()
     operation RunExample() : Unit {
 
         PrintSection(1, "");
@@ -2147,7 +2140,6 @@
         Message("Executed successfully!");
     }
 
-    @EntryPoint()
     function CheckFail() : Unit {
         fail "expected failure in CheckFail";
     }

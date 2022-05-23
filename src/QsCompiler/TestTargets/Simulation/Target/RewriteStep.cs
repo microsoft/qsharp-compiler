@@ -55,10 +55,8 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
 
             var success = true;
             var outputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.OutputPath, out var path) ? path : null;
-            var allSources = GetSourceFiles.Apply(compilation.Namespaces) // also generate the code for referenced libraries...
+            var allSources = GetSourceFiles.Apply(compilation.Namespaces); // also generate the code for referenced libraries
 
-                // ... except when they are one of the packages that currently still already contains the C# code (temporary workaround):
-                .Where(s => !Path.GetFileName(s).StartsWith("Microsoft.Quantum"));
             foreach (var source in allSources)
             {
                 var content = SimulationCode.generate(source, CodegenContext.Create(compilation.Namespaces));
