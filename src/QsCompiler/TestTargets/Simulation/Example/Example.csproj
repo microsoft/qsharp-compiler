@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.24.41899-alpha">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.24.41904-alpha">
   <PropertyGroup>
     <QscVerbosity>Detailed</QscVerbosity>
     <OutputType>Exe</OutputType>
@@ -28,8 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.41899-alpha" />
-    <PackageReference Include="Microsoft.Quantum.EntryPointDriver" Version="0.24.41899-alpha" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.41904-alpha" />
+    <PackageReference Include="Microsoft.Quantum.EntryPointDriver" Version="0.24.41904-alpha" />
   </ItemGroup>
 
   <ItemGroup>
