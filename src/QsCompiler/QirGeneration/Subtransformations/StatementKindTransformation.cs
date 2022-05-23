@@ -313,12 +313,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             var message = this.SharedState.EvaluateSubexpression(ex);
 
-            // Release any resources (qubits or memory) before we fail.
-            this.SharedState.ScopeMgr.ExitFunction(message);
-            var fail = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail);
-            this.SharedState.CurrentBuilder.Call(fail, message.Value);
-            this.SharedState.CurrentBuilder.Unreachable();
+            // FIXME: this is a not so clean solution;
+            // update the scope manager to allow exiting an inlined function,
+            // and update the data structures to allow managed items in stack allocated ones.
+            if (!this.SharedState.TargetQirProfile)
+            {
+                // Release any resources (qubits or memory) before we fail.
+                this.SharedState.ScopeMgr.ExitFunction(message);
+                var fail = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail);
+                this.SharedState.CurrentBuilder.Call(fail, message.Value);
+            }
 
+            this.SharedState.CurrentBuilder.Unreachable();
             return QsStatementKind.EmptyStatement;
         }
 
