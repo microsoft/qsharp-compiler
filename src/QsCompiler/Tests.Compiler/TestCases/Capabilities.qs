@@ -1,11 +1,17 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-/// Test cases for verification of execution target runtime capabilities.
+namespace Microsoft.Quantum.Targeting {
+    @Attribute()
+    newtype RequiresCapability = (ResultOpacity : String, Classical : String, Reason : String);
+}
+
 namespace Microsoft.Quantum.Testing.Capability {
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Targeting;
+    open Microsoft.Quantum.Testing.General;
 
-    operation NoOp() : Unit { }
+    operation NoOp() : Unit {}
 
     function ResultAsBool(result : Result) : Bool {
         return result == Zero ? false | true;
@@ -177,13 +183,13 @@ namespace Microsoft.Quantum.Testing.Capability {
 
     operation Reset(q : Qubit) : Unit {
         if (M(q) == One) {
-            X(q);
+            Unitary(q);
         }
     }
 
     operation ResetNeq(q : Qubit) : Unit {
         if (M(q) != Zero) {
-            X(q);
+            Unitary(q);
         }
     }
 
@@ -448,12 +454,12 @@ namespace Microsoft.Quantum.Testing.Capability {
 
     operation CallFunctor1() : Unit {
         use q = Qubit();
-        Adjoint X(q);
+        Adjoint Unitary(q);
     }
 
     operation CallFunctor2() : Unit {
         use q = Qubit();
-        Controlled Adjoint X([], q);
+        Controlled Adjoint Unitary([], q);
     }
 
     operation CallFunctorOfExpression() : Unit {
@@ -579,18 +585,160 @@ namespace Microsoft.Quantum.Testing.Capability {
     operation ReferenceLibraryOverride(q : Qubit) : Unit {
         LibraryOverride(q);
     }
-}
 
-namespace Microsoft.Quantum.Intrinsic {
-    operation X(q : Qubit) : Unit {
-        body intrinsic;
+    // Inferred capabilities can be overridden or given explicitly.
+
+    @RequiresCapability("Controlled", "Empty", "Test case.")
+    operation OverrideBqfToBmf(q : Qubit) : Unit {
+        Unitary(q);
     }
 
-    operation M(q : Qubit) : Result {
-        body intrinsic;
+    @RequiresCapability("Transparent", "Empty", "Test case.")
+    operation OverrideBmfToFull(q : Qubit) : Unit {
+        if (M(q) == One) {
+            Unitary(q);
+        }
     }
 
-    function Message(message : String) : Unit {
-        body intrinsic;
+    @RequiresCapability("Opaque", "Empty", "Test case.")
+    operation OverrideBmfToBqf(q : Qubit) : Unit {
+        if (M(q) == One) {
+            Unitary(q);
+        }
+    }
+
+    @RequiresCapability("Controlled", "Empty", "Test case.")
+    operation OverrideFullToBmf(q : Qubit) : Bool {
+        return M(q) == One ? true | false;
+    }
+
+    @RequiresCapability("Controlled", "Empty", "Test case.")
+    operation ExplicitBmf(q : Qubit) : Unit {
+        if (M(q) == One) {
+            Unitary(q);
+        }
+    }
+
+    // BasicMeasurementFeedback (1 dependency)
+
+    operation CallBmfA(q : Qubit) : Unit {
+        CallBmfB(q);
+    }
+
+    operation CallBmfB(q : Qubit) : Unit {
+        if (M(q) == One) {
+            Unitary(q);
+        }
+    }
+
+    // Call BasicMeasurementFeedback and FullComputation (2 dependencies, 1 layer)
+
+    operation CallBmfFullA(q : Qubit) : Unit {
+        let r = CallBmfFullB(q);
+        let b = CallBmfFullC(r);
+    }
+
+    operation CallBmfFullB(q : Qubit) : Result {
+        let r = M(q);
+        if (r == One) {
+            Unitary(q);
+        }
+        return r;
+    }
+
+    operation CallBmfFullC(r : Result) : Bool {
+        return r == One ? true | false;
+    }
+
+    // FullComputation (2 dependencies)
+
+    operation CallFullA(q : Qubit) : Bool {
+        return CallFullB(q);
+    }
+
+    operation CallFullB(q : Qubit) : Bool {
+        return CallFullC(q) == One ? true | false;
+    }
+
+    operation CallFullC(q : Qubit) : Result {
+        let r = M(q);
+        if (r == One) {
+            Unitary(q);
+        }
+        return r;
+    }
+
+    // Override BasicMeasurementFeedback to FullComputation (2 dependencies)
+
+    operation CallFullOverrideA(q : Qubit) : Unit {
+        CallFullOverrideB(q);
+    }
+
+    @RequiresCapability("Transparent", "Empty", "Test case.")
+    operation CallFullOverrideB(q : Qubit) : Unit {
+        CallFullOverrideC(q);
+    }
+
+    operation CallFullOverrideC(q : Qubit) : Unit {
+        if (M(q) == One) {
+            Unitary(q);
+        }
+    }
+
+    // Override FullComputation to BasicMeasurementFeedback (2 dependencies)
+
+    operation CallBmfOverrideA(q : Qubit) : Bool {
+        return CallBmfOverrideB(q);
+    }
+
+    @RequiresCapability("Controlled", "Empty", "Test case.")
+    operation CallBmfOverrideB(q : Qubit) : Bool {
+        return CallBmfOverrideC(q);
+    }
+
+    operation CallBmfOverrideC(q : Qubit) : Bool {
+        let r = M(q);
+        if (r == One) {
+            Unitary(q);
+        }
+        return r == One ? true | false;
+    }
+
+    // BasicMeasurementFeedback direct recursion
+
+    operation BmfRecursion(q : Qubit) : Unit {
+        if (M(q) == One) {
+            Unitary(q);
+            BmfRecursion(q);
+        }
+    }
+
+    // BasicMeasurementFeedback period-3 recursion
+
+    operation BmfRecursion3A(q : Qubit) : Unit {
+        if (M(q) == One) {
+            Unitary(q);
+            BmfRecursion3B(q);
+        }
+    }
+
+    operation BmfRecursion3B(q : Qubit) : Unit {
+        BmfRecursion3C(q);
+    }
+
+    operation BmfRecursion3C(q : Qubit) : Unit {
+        BmfRecursion3A(q);
+    }
+
+    // BasicMeasurementFeedback reference without call
+
+    operation ReferenceBmfA() : (Qubit => Unit) {
+        return ReferenceBmfB;
+    }
+
+    operation ReferenceBmfB(q : Qubit) : Unit {
+        if (M(q) == One) {
+            Unitary(q);
+        }
     }
 }

@@ -10,13 +10,7 @@ open Xunit
 
 /// Compiles the capability verification test cases using the given capability.
 let private compile capability =
-    let files =
-        [
-            "LinkingTests/Core.qs"
-            "CapabilityTests/Verification.qs"
-            "CapabilityTests/Inference.qs"
-        ]
-
+    let files = [ "Capabilities.qs"; "General.qs"; "LinkingTests/Core.qs" ]
     let references = [ File.ReadAllLines("ReferenceTargets.txt").[2] ]
     CompilerTests.Compile("TestCases", files, references, capability, isExecutable = true)
 

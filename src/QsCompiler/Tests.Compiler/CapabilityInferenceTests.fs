@@ -11,13 +11,7 @@ open Xunit
 
 /// A mapping of all callables in the capability verification tests, after inferring capabilities.
 let private callables =
-    let files =
-        [
-            "LinkingTests/Core.qs"
-            "CapabilityTests/Verification.qs"
-            "CapabilityTests/Inference.qs"
-        ]
-
+    let files = [ "Capabilities.qs"; "General.qs"; "LinkingTests/Core.qs" ]
     let references = [ File.ReadAllLines "ReferenceTargets.txt" |> Array.item 2 ]
     let compilation = CompilerTests.Compile("TestCases", files, references)
     GlobalCallableResolutions (Capabilities.infer compilation.BuiltCompilation).Namespaces
