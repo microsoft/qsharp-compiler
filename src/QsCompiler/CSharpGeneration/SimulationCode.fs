@@ -1999,10 +1999,7 @@ module SimulationCode =
     // Builds the C# syntaxTree for the Q# elements defined in the given file.
     let buildSyntaxTree localElements (context: CodegenContext) =
 
-        let externs =
-            if context.UseIntrinsicsInterface
-            then [``extern alias``  "TargetPackage"]
-            else []
+        let externs = if context.UseIntrinsicsInterface then [ ``extern alias`` "TargetPackage" ] else []
         let namespaces = autoNamespaces context
         let usings = namespaces |> List.map (fun ns -> using ns)
         let attributes = localElements |> List.map (snd >> buildDeclarationAttributes) |> List.concat
