@@ -2277,7 +2277,7 @@ namespace N1
         String ICallable.Name => "emptyOperation";
         String ICallable.FullName => "Microsoft.Quantum.Testing.emptyOperation";
 
-        public static HoneywellEntryPointInfo<QVoid, QVoid> Info => new HoneywellEntryPointInfo<QVoid, QVoid>(typeof(emptyOperation));
+        public static QuantinuumEntryPointInfo<QVoid, QVoid> Info => new QuantinuumEntryPointInfo<QVoid, QVoid>(typeof(emptyOperation));
 
         public override void __Init__() { }
 
@@ -2289,7 +2289,7 @@ namespace N1
         }
     }
 """
-        |> testOneClass emptyOperation AssemblyConstants.HoneywellProcessor
+        |> testOneClass emptyOperation AssemblyConstants.QuantinuumProcessor
 
         """
     public abstract partial class randomAbstractOperation : Unitary<(Qubit,Basis,(Pauli,IQArray<IQArray<Double>>,Boolean),Int64)>, ICallable
@@ -2430,7 +2430,7 @@ namespace N1
         String ICallable.Name => "genCtrl3";
         String ICallable.FullName => "Microsoft.Quantum.Compiler.Generics.genCtrl3";
 
-        public static HoneywellEntryPointInfo<(__X__, (Int64, (__Y__, __Z__), Result)), QVoid> Info => new HoneywellEntryPointInfo<(__X__, (Int64, (__Y__, __Z__), Result)), QVoid>(typeof(genCtrl3<__X__,__Y__,__Z__>));
+        public static QuantinuumEntryPointInfo<(__X__, (Int64, (__Y__, __Z__), Result)), QVoid> Info => new QuantinuumEntryPointInfo<(__X__, (Int64, (__Y__, __Z__), Result)), QVoid>(typeof(genCtrl3<__X__,__Y__,__Z__>));
 
         public override void __Init__() { }
 
@@ -2442,7 +2442,7 @@ namespace N1
         }
     }
 """
-        |> testOneClass genCtrl3 AssemblyConstants.HoneywellProcessor
+        |> testOneClass genCtrl3 AssemblyConstants.QuantinuumProcessor
 
         """
     [SourceLocation("%%%", OperationFunctor.Body, 1290, 1296)]
