@@ -170,7 +170,7 @@ type CodegenContext =
                 target = AssemblyConstants.IonQProcessor
                 || target = AssemblyConstants.QCIProcessor
                 || target = AssemblyConstants.QuantinuumProcessor
-                || target = AssmeblyConstants.RigettiProcessor
+                || target = AssemblyConstants.RigettiProcessor
                 || target = AssemblyConstants.MicrosoftSimulator
             | _ -> false
 
