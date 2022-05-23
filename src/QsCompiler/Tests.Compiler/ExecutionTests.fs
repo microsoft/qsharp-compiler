@@ -34,7 +34,7 @@ type ExecutionTests(output: ITestOutputHelper) =
         !exitCode, (!out).ToString(), (!err).ToString()
 
     let ExecuteAndCompareOutput cName expectedOutput =
-        let args = sprintf "%s.%s" "Microsoft.Quantum.Testing.ExecutionTests" cName
+        let args = sprintf "simulate Microsoft.Quantum.Testing.ExecutionTests.%s" cName
         let exitCode, out, err = args |> ExecuteOnReferenceTarget 0
         AssertEqual String.Empty err
         Assert.Equal(0, exitCode)
@@ -52,6 +52,7 @@ type ExecutionTests(output: ITestOutputHelper) =
                 yield outputDir
                 yield "--proj"
                 yield projName
+                yield "--build-exe"
                 yield "--input"
 
                 for file in files do
@@ -250,7 +251,7 @@ type ExecutionTests(output: ITestOutputHelper) =
     [<Fact>]
     member this.``QIR native llvm type handling``() =
 
-        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling__body"
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling"
         let exitCode, out, err = QirExecutionTest "" functionName
         AssertEqual String.Empty err
         Assert.Equal(0, exitCode)
@@ -289,7 +290,7 @@ type ExecutionTests(output: ITestOutputHelper) =
     [<Fact(Skip="This first requires additional support in the QIR runtime.")>]
     member this.``QIR target package handling``() =
 
-        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestTargetPackageHandling__body"
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestTargetPackageHandling"
         let exitCode, out, err = QirExecutionTest "Microsoft.Quantum.Type3.Core.dll" functionName
         AssertEqual String.Empty err
         Assert.Equal(0, exitCode)

@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.24.210350-alpha" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.24.41899-alpha" ExcludeAssets="compile" />
     <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.41899-alpha" ExcludeAssets="compile" GeneratePathProperty="true" />
   </ItemGroup>
 

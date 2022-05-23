@@ -5,7 +5,6 @@
     <TargetFramework>net6.0</TargetFramework>
     <ExposeReferencesViaTestNames>true</ExposeReferencesViaTestNames>
     <IncludeProviderPackages>false</IncludeProviderPackages>
-    <NoEntryPoint>true</NoEntryPoint>
     <CSharpGeneration>false</CSharpGeneration> <!--we provide our own C# generation-->
     <NoWarn>
       CS0219; <!-- Suppress C# warning for unused variables. -->
@@ -23,9 +22,6 @@
 
   <ItemGroup>
     <Compile Remove="../Target/Driver.cs" />
-    <Compile Include="../Target/Driver.cs">
-      <Visible>false</Visible>
-    </Compile>
     <QSharpCompile Include="../../../Tests.Compiler/TestCases/ExecutionTests/*.*">
       <Link>$(ExecutionTestsDir)%(RecursiveDir)%(Filename)%(Extension)</Link>
     </QSharpCompile>
@@ -33,6 +29,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.41899-alpha" />
+    <PackageReference Include="Microsoft.Quantum.EntryPointDriver" Version="0.24.41899-alpha" />
   </ItemGroup>
 
   <ItemGroup>
