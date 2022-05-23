@@ -1,6 +1,8 @@
 ﻿namespace Microsoft.Quantum.Testing.ExecutionTests {
 
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.Canon;
 
     newtype MyUnit = Unit;
     newtype MyTuple = (Item1 : Int, Item2 : Double);
@@ -74,12 +76,5 @@
         Message($"{qubitArrArr w/ 1 <- [q, q, q]}");
 
         // TODO: write tests for array of array of array
-    }
-}
-
-namespace Microsoft.Quantum.Intrinsic {
-
-    function Message (arg : String) : Unit {
-        body intrinsic;
     }
 }

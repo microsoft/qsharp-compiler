@@ -153,7 +153,6 @@ type CodegenContext =
             assemblyName.Trim().ToLower() |> targetPackageAssemblies.Contains
         | _ -> false
 
-
     member internal this.GenerateConcreteIntrinsic =
         match this.assemblyConstants.TryGetValue AssemblyConstants.GenerateConcreteIntrinsic with
         | true, value -> value <> null && value.ToLower() = "true"
@@ -168,10 +167,10 @@ type CodegenContext =
         let targetsQuantumProcessor =
             match this.assemblyConstants.TryGetValue AssemblyConstants.ProcessorArchitecture with
             | true, target ->
-                target = AssemblyConstants.HoneywellProcessor
-                || target = AssemblyConstants.IonQProcessor
+                target = AssemblyConstants.IonQProcessor
                 || target = AssemblyConstants.QCIProcessor
                 || target = AssemblyConstants.QuantinuumProcessor
+                || target = AssmeblyConstants.RigettiProcessor
                 || target = AssemblyConstants.MicrosoftSimulator
             | _ -> false
 

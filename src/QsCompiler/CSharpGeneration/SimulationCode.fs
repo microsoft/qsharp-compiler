@@ -1124,14 +1124,14 @@ module SimulationCode =
     let buildOperationInfoProperty (globalContext: CodegenContext) operationInput operationOutput operationName =
         let propertyType =
             match globalContext.ProcessorArchitecture with
-            | target when target = AssemblyConstants.HoneywellProcessor ->
-                sprintf "HoneywellEntryPointInfo<%s, %s>" operationInput operationOutput
             | target when target = AssemblyConstants.IonQProcessor ->
                 sprintf "IonQEntryPointInfo<%s, %s>" operationInput operationOutput
             | target when target = AssemblyConstants.QCIProcessor ->
                 sprintf "QCIEntryPointInfo<%s, %s>" operationInput operationOutput
             | target when target = AssemblyConstants.QuantinuumProcessor ->
                 sprintf "QuantinuumEntryPointInfo<%s, %s>" operationInput operationOutput
+            | target when target = AssemblyConstants.RigettiProcessor ->
+                sprintf "RigettiEntryPointInfo<%s, %s>" operationInput operationOutput
             | _ -> sprintf "EntryPointInfo<%s, %s>" operationInput operationOutput
 
         let operationType = simpleBase operationName

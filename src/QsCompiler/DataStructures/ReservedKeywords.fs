@@ -260,6 +260,7 @@ module AssemblyConstants =
     let QsharpLibrary = "QSharpLibrary"
     let QuantumInstructionSet = "QuantumInstructionSet"
     let ProcessorArchitecture = "ProcessorArchitecture"
+    [<Obsolete("Replaced by QuantinuumProcessor.")>]
     let HoneywellProcessor = "HoneywellProcessor"
     let IonQProcessor = "IonQProcessor"
     let QCIProcessor = "QCIProcessor"

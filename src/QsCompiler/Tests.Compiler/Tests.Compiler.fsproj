@@ -26,12 +26,6 @@
     <Content Include="TestCases\QirTests\QirTarget.qs">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\ExecutionTests.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="TestCases\QirTests\TargetedExecutionTests.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="TestCases\QirTests\TestAliasCounts.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -494,15 +488,24 @@
     <None Include="TestCases\OptimizerTests\TypedParameters_input.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="TestCases\ExecutionTests\ExecutionTests.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\ExecutionTests\DataTypeExecutionTests.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\ExecutionTests\TargetedExecutionTests.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <None Include="TestCases\ExecutionTests\Packaging.qs" />
     <None Include="TestCases\ExecutionTests\LoggingBasedTests.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\StringParsingTests\StringParsing.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\StringParsingTests\StringInterpolation.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\AttributeGeneration.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -588,7 +591,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.210350-beta" ExcludeAssets="compile" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.41900-alpha" ExcludeAssets="compile" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.QSharp.Core" Version="0.24.41900-alpha" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Type3.Core" Version="0.24.41900-alpha" ExcludeAssets="compile" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
@@ -616,6 +621,7 @@
     <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt" Lines="$(ExecutionTarget); $(QirExecutionTarget); $(LibraryTarget)" Overwrite="true" />
     <Copy Condition="$([MSBuild]::IsOsPlatform('OSX'))" SourceFiles="$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/libMicrosoft.Quantum.Simulator.Runtime.dylib" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
     <Copy Condition="$([MSBuild]::IsOsPlatform('OSX'))" SourceFiles="$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/libomp.dylib" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    
   </Target>
 
 </Project>

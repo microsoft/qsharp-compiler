@@ -1704,7 +1704,6 @@
         Message(foo);
     }
 
-
     @EntryPoint()
     operation TestDefaultValues() : Unit {
         Message($"{new Int[3]}");
@@ -1724,7 +1723,6 @@
         Message($"{new (Qubit[] -> Unit)[3]}");
         Message($"{new (Qubit[] => Unit is Adj + Ctl)[3]}");
     }
-
 
     @EntryPoint()
     operation TestArraySlicing() : Range {
@@ -2150,12 +2148,5 @@
     @EntryPoint()
     function CheckFail() : Unit {
         fail "expected failure in CheckFail";
-    }
-}
-
-namespace Microsoft.Quantum.Intrinsic {
-
-    function Message (arg : String) : Unit {
-        body intrinsic;
     }
 }

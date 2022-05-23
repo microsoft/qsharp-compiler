@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CsharpGeneration;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations;
 
 namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
 {
@@ -16,32 +16,14 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
     /// Any class in this dll that implements the IRewriteStep interface will be detected during compilation,
     /// and its transformation and verification step (if implemented) will be executed.
     /// </summary>
-    public class CSharpGeneration : IRewriteStep
+    public class CSharpGeneration : Emitter, IRewriteStep
     {
-        /// <inheritdoc/>
-        public string Name => "CSharpGeneration";
-
-        /// <inheritdoc/>
-        public int Priority => 0;
-
-        /// <inheritdoc/>
-        public IDictionary<string, string?> AssemblyConstants { get; } = new Dictionary<string, string?>();
-
-        /// <inheritdoc/>
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics { get; private set; } =
             Enumerable.Empty<IRewriteStep.Diagnostic>();
 
-        /// <inheritdoc/>
-        public bool ImplementsTransformation => true;
+        public bool ImplementsPreconditionVerification => true;
 
-        /// <inheritdoc/>
-        public bool ImplementsPreconditionVerification => false;
-
-        /// <inheritdoc/>
-        public bool ImplementsPostconditionVerification => false;
-
-        /// <inheritdoc/>
-        public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
+        public bool PreconditionVerification(QsCompilation compilation)
         {
             // random "diagnostic" to check if diagnostics loading works
             this.GeneratedDiagnostics = new List<IRewriteStep.Diagnostic>()
@@ -53,37 +35,15 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
                 },
             };
 
-            var success = true;
-            var outputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.OutputPath, out var path) ? path : null;
-            var allSources = GetSourceFiles.Apply(compilation.Namespaces) // also generate the code for referenced libraries...
-
-                // ... except when they are one of the packages that currently still already contains the C# code (temporary workaround):
-                .Where(s => !Path.GetFileName(s).StartsWith("Microsoft.Quantum"));
-            foreach (var source in allSources)
+            // This ensures that we are regenerating the C# code for references.
+            var props = ((IRewriteStep)this).AssemblyConstants;
+            if (!props.TryGetValue(AssemblyConstants.ProcessorArchitecture, out var arch) ||
+                arch?.Trim().ToLower() == "unspecified")
             {
-                var content = SimulationCode.generate(source, CodegenContext.Create(compilation.Namespaces));
-                try
-                {
-                    CompilationLoader.GeneratedFile(source, outputFolder ?? this.Name, ".g.cs", content);
-                }
-                catch
-                {
-                    success = false;
-                }
+                props[AssemblyConstants.ProcessorArchitecture] = AssemblyConstants.MicrosoftSimulator;
             }
 
-            transformed = compilation;
-            return success;
+            return true;
         }
-
-        /// <inheritdoc/>
-        public bool PreconditionVerification(QsCompilation compilation) =>
-
-            // todo: we should implement this and check for conjugations and invalid pieces
-            throw new System.NotImplementedException();
-
-        /// <inheritdoc/>
-        public bool PostconditionVerification(QsCompilation compilation) =>
-            throw new System.NotImplementedException();
     }
 }

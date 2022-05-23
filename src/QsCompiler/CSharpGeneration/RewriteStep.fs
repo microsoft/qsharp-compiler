@@ -46,7 +46,7 @@ type Emitter() =
     interface IRewriteStep with
 
         member this.Name = "CSharpGeneration"
-        member this.Priority = -1 // doesn't matter because this rewrite step is the only one in the dll
+        member this.Priority = -1
         member this.AssemblyConstants = upcast _AssemblyConstants
         member this.GeneratedDiagnostics = Seq.empty
 
