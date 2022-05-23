@@ -6,7 +6,7 @@
     <ExposeReferencesViaTestNames>true</ExposeReferencesViaTestNames>
     <IncludeProviderPackages>false</IncludeProviderPackages>
     <NoEntryPoint>true</NoEntryPoint>
-    <CSharpGeneration>false</CSharpGeneration> <!--we provide our own C# generation for the sake of also generating C# for all references-->
+    <CSharpGeneration>false</CSharpGeneration> <!--we provide our own C# generation-->
     <NoWarn>
       CS0219; <!-- Suppress C# warning for unused variables. -->
     </NoWarn>
@@ -22,7 +22,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="$(GeneratedFilesOutputPath)" />
     <Compile Remove="../Target/Driver.cs" />
     <Compile Include="../Target/Driver.cs">
       <Visible>false</Visible>

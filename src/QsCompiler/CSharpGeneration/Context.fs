@@ -153,7 +153,6 @@ type CodegenContext =
             assemblyName.Trim().ToLower() |> targetPackageAssemblies.Contains
         | _ -> false
 
-
     member internal this.GenerateConcreteIntrinsic =
         match this.assemblyConstants.TryGetValue AssemblyConstants.GenerateConcreteIntrinsic with
         | true, value -> value <> null && value.ToLower() = "true"
