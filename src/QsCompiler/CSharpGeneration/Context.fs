@@ -167,10 +167,10 @@ type CodegenContext =
         let targetsQuantumProcessor =
             match this.assemblyConstants.TryGetValue AssemblyConstants.ProcessorArchitecture with
             | true, target ->
-                target = AssemblyConstants.HoneywellProcessor
-                || target = AssemblyConstants.IonQProcessor
+                target = AssemblyConstants.IonQProcessor
                 || target = AssemblyConstants.QCIProcessor
                 || target = AssemblyConstants.QuantinuumProcessor
+                || target = AssmeblyConstants.RigettiProcessor
                 || target = AssemblyConstants.MicrosoftSimulator
             | _ -> false
 
