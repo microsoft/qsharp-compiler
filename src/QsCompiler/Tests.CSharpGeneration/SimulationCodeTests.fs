@@ -253,7 +253,7 @@ namespace N1
     let createTestContext op = globalContext.setCallable op
 
 
-    let emitAndCompareOneFile assemblyConstants (compilation : QsCompilation) fileName =
+    let emitAndCompareOneFile assemblyConstants (compilation: QsCompilation) fileName =
         let fullPath = Path.GetFullPath fileName
         let escapeCSharpString (s: string) = SymbolDisplay.FormatLiteral(s, false)
 
@@ -263,9 +263,7 @@ namespace N1
             |> (fun s -> s.Replace("%%%", fullPath |> HttpUtility.JavaScriptStringEncode |> escapeCSharpString))
             |> (fun s -> s.Replace("%%", fullPath |> escapeCSharpString))
 
-        let actual =
-            CodegenContext.Create(compilation, assemblyConstants)
-            |> generate fullPath
+        let actual = CodegenContext.Create(compilation, assemblyConstants) |> generate fullPath
 
         Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
 
@@ -273,6 +271,7 @@ namespace N1
         let compilation =
             parse [ Path.Combine("Circuits", "Intrinsic.qs")
                     fileName ]
+
         emitAndCompareOneFile assemblyConstants compilation fileName
 
     let testOneBody (builder: SyntaxBuilder) (expected: string list) =
@@ -2241,7 +2240,7 @@ namespace N1
 
     [<Fact>]
     let ``is abstract`` () =
-        let testOne (_, op : QsCallable) expected =
+        let testOne (_, op: QsCallable) expected =
             let actual = op.IsIntrinsic
             Assert.Equal(expected, actual)
 
@@ -3156,13 +3155,13 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
     let ``one file - TargetedExe`` () =
 
         let intrinsicsFile = Path.Combine("Circuits", "Intrinsic.qs") |> Path.GetFullPath
-        let compiledRef = parse [intrinsicsFile]
-        let refPath = Path.ChangeExtension (intrinsicsFile, ".dll")
+        let compiledRef = parse [ intrinsicsFile ]
+        let refPath = Path.ChangeExtension(intrinsicsFile, ".dll")
 
-        let headers = [(refPath, new References.Headers(refPath, compiledRef.Namespaces))]
+        let headers = [ (refPath, new References.Headers(refPath, compiledRef.Namespaces)) ]
         let refs = new References(headers.ToImmutableDictionary(fst, snd))
 
-        let fileName = Path.Combine("Circuits", "TargetedExe.qs") 
+        let fileName = Path.Combine("Circuits", "TargetedExe.qs")
         let compilation = build refs [ fileName ]
 
         let assemblyConstants =
