@@ -115,6 +115,7 @@
   <!-- Populates the ResolvedTargetSpecificDecompositions item group. -->
   <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQSharpCompile">
     <ItemGroup>
+      <ProjectReference Update="@(ProjectReference)" Aliases="TargetPackage" Condition="@(ProjectReference->Count()) &gt; 0 And %(ProjectReference.IsTargetPackage)" />
       <_ResolvedProjectReferencePaths Update="@(_ResolvedProjectReferencePaths)" Aliases="TargetPackage" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsTargetPackage)" />
       <ResolvedTargetSpecificDecompositions Include="@(_ResolvedProjectReferencePaths)" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsTargetPackage)" />
     </ItemGroup>
