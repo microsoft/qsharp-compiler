@@ -434,14 +434,14 @@ namespace Microsoft.Quantum.Testing.Capability {
     }
 
     operation OperationValue() : Unit {
-        let op = X;
+        let op = Unitary;
         use q = Qubit();
         op(q);
     }
 
     operation OperationExpression(b : Bool) : Unit {
         use q = Qubit();
-        [X][0](q);
+        [Unitary][0](q);
     }
 
     function InvalidCallable() : Unit {
@@ -463,7 +463,8 @@ namespace Microsoft.Quantum.Testing.Capability {
     }
 
     operation CallFunctorOfExpression() : Unit {
-        Adjoint [X][0](q);
+        use q = Qubit();
+        Adjoint [Unitary][0](q);
     }
 
     @EntryPoint()
