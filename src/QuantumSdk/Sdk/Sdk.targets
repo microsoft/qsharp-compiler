@@ -17,6 +17,11 @@
     <UpToDateCheckInput Include="@(QSharpCompile)" /> <!-- ensure that projects are recompiled if a Q# source file is modified -->
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Update="@(ProjectReference)" Aliases="TargetPackage" Condition="@(ProjectReference->Count()) &gt; 0 And %(ProjectReference.IsTargetPackage)" />  
+    <PackageReference Update="@(PackageReference)" Aliases="TargetPackage" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
+  </ItemGroup>
+
 
   <!-- Target used to verify that the specified OutputType is valid. -->
   <Target Name="VerifyOutputType" BeforeTargets="QSharpCompile">
