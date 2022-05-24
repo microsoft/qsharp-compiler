@@ -158,13 +158,12 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                    if isExecutable then MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe ]
             |> ProjectProperties
 
-        let mutable exceptions = []
-        use manager = new CompilationUnitManager(props, (fun e -> exceptions <- e :: exceptions))
+        let exceptions = ResizeArray()
+        use manager = new CompilationUnitManager(props, exceptions.Add)
         manager.AddOrUpdateSourceFilesAsync(CompilationUnitManager.InitializeFileManagers files) |> ignore
 
         manager.UpdateReferencesAsync(ProjectManager.LoadReferencedAssemblies references |> References)
         |> ignore
 
         let compilation = manager.Build()
-        if not <| List.isEmpty exceptions then exceptions |> List.rev |> AggregateException |> raise
-        compilation
+        if exceptions.Count > 0 then AggregateException exceptions |> raise else compilation

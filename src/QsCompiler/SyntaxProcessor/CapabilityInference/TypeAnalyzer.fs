@@ -3,11 +3,11 @@
 
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.TypeAnalyzer
 
-open System
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.ContextRef
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -138,24 +138,18 @@ let returnPattern context callable =
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
+    let context = ref { IsEntryPoint = false; StringLiteralsOk = false }
     let patterns = ResizeArray()
-    let mutable context = { IsEntryPoint = false; StringLiteralsOk = false }
-
-    let local context' =
-        let oldContext = context
-        context <- context'
-
-        { new IDisposable with
-            member _.Dispose() = context <- oldContext
-        }
 
     transformation.Namespaces <-
         { new NamespaceTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnCallableDeclaration callable =
-                use _ = local { context with IsEntryPoint = Seq.exists BuiltIn.MarksEntryPoint callable.Attributes }
+                let isEntryPoint = Seq.exists BuiltIn.MarksEntryPoint callable.Attributes
+                use _ = local { context.Value with IsEntryPoint = isEntryPoint } context
+
                 let callable = base.OnCallableDeclaration callable
-                paramPatterns context callable |> patterns.AddRange
-                returnPattern context callable |> Option.iter patterns.Add
+                paramPatterns context.Value callable |> patterns.AddRange
+                returnPattern context.Value callable |> Option.iter patterns.Add
                 callable
         }
 
@@ -164,14 +158,14 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
             override _.OnStatement statement =
                 match statement.Statement with
                 | QsFailStatement _ ->
-                    use _ = local { context with StringLiteralsOk = true }
+                    use _ = local { context.Value with StringLiteralsOk = true } context
                     base.OnStatement statement
                 | QsVariableDeclaration binding when binding.Kind = MutableBinding ->
                     let statement = base.OnStatement statement
 
                     for var in statement.SymbolDeclarations.Variables do
                         let range = QsNullable<_>.Map (fun o -> o + var.Range) transformation.Offset
-                        createPattern context Mutable range var.Type |> Option.iter patterns.Add
+                        createPattern context.Value Mutable range var.Type |> Option.iter patterns.Add
 
                     statement
                 | _ -> base.OnStatement statement
@@ -196,7 +190,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let expression = base.OnTypedExpression expression
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
-                Option.bind (fun c -> createPattern context c range expression.ResolvedType) construct
+                Option.bind (fun c -> createPattern context.Value c range expression.ResolvedType) construct
                 |> Option.iter patterns.Add
 
                 expression
@@ -208,7 +202,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 match callable.Expression with
                 | Identifier (GlobalCallable name, _) when name = BuiltIn.Message.FullName ->
                     let callable = transformation.Expressions.OnTypedExpression callable
-                    use _ = local { context with StringLiteralsOk = true }
+                    use _ = local { context.Value with StringLiteralsOk = true } context
                     CallLikeExpression(callable, transformation.Expressions.OnTypedExpression args)
                 | _ -> ``base``.OnCallLikeExpression(callable, args)
         }

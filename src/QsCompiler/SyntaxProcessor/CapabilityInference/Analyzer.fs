@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
+open System
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -69,3 +70,12 @@ type LocatingTransformation(options) =
     override _.OnRelativeLocation location =
         relative <- location |> QsNullable<_>.Map (fun l -> l.Offset)
         location
+
+module ContextRef =
+    let local value (context: _ ref) =
+        let old = context.Value
+        context.Value <- value
+
+        { new IDisposable with
+            member _.Dispose() = context.Value <- old
+        }

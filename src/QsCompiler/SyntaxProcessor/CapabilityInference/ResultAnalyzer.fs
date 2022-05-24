@@ -3,10 +3,10 @@
 
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.ResultAnalyzer
 
-open System
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.ContextRef
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -95,28 +95,21 @@ let isResultEquality expression =
 // TODO: Remove the callableKind parameter.
 let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
-    let patterns = ResizeArray()
     let mutable dependsOnResult = false
+    let patterns = ResizeArray()
 
-    let mutable context =
-        {
-            CallableKind = Option.defaultValue Function callableKind
-            InCondition = false
-            FrozenVars = Set.empty
-        }
-
-    let local context' =
-        let oldContext = context
-        context <- context'
-
-        { new IDisposable with
-            member _.Dispose() = context <- oldContext
-        }
+    let context =
+        ref
+            {
+                CallableKind = Option.defaultValue Function callableKind
+                InCondition = false
+                FrozenVars = Set.empty
+            }
 
     transformation.Namespaces <-
         { new NamespaceTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnCallableDeclaration callable =
-                use _ = local { context with CallableKind = callable.Kind }
+                use _ = local { context.Value with CallableKind = callable.Kind } context
                 base.OnCallableDeclaration callable
         }
 
@@ -133,7 +126,7 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
                 | QsValueUpdate update ->
                     update.Lhs.ExtractAll (fun e ->
                         match e.Expression with
-                        | Identifier (LocalVariable name, _) when Set.contains name context.FrozenVars ->
+                        | Identifier (LocalVariable name, _) when Set.contains name context.Value.FrozenVars ->
                             let range = QsNullable.Map2(+) transformation.Offset e.Range
                             [ createPattern (SetInDependentBranch name) range ]
                         | _ -> [])
@@ -158,11 +151,12 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
                 let condition =
                     QsNullable<_>.Map
                         (fun c ->
-                            use _ = local { context with InCondition = true }
+                            use _ = local { context.Value with InCondition = true } context
                             transformation.Expressions.OnTypedExpression c) condition
 
                 let knownVars = Seq.map (fun v -> v.VariableName) block.Body.KnownSymbols.Variables |> Set.ofSeq
-                use _ = local (if dependsOnResult then { context with FrozenVars = knownVars } else context)
+                let frozenVars = if dependsOnResult then knownVars else context.Value.FrozenVars
+                use _ = local { context.Value with FrozenVars = frozenVars } context
                 let body = transformation.Statements.OnScope block.Body
 
                 condition,
@@ -181,7 +175,7 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
                 if isResultEquality expression then
                     let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
-                    if context.CallableKind = Operation && context.InCondition then
+                    if context.Value.CallableKind = Operation && context.Value.InCondition then
                         dependsOnResult <- true
                         createPattern ConditionalEqualityInOperation range |> patterns.Add
                     else
