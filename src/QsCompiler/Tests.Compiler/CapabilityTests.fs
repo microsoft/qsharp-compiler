@@ -366,15 +366,10 @@ let private cases =
                 Capability = RuntimeCapability.bottom
                 Diagnostics =
                     function
-                    | BasicExecution ->
-                        [
-                            Error ErrorCode.UnsupportedClassicalCapability
-                            Warning WarningCode.NonResultTypeReturnedInEntryPoint
-                        ]
-                    | AdaptiveExecution
+                    | BasicExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
                     | BasicQuantumFunctionality
                     | BasicMeasurementFeedback -> [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
-                    | FullComputation -> []
+                    | _ -> []
             }
 
         for name in
@@ -389,11 +384,7 @@ let private cases =
                 Diagnostics =
                     function
                     | BasicExecution
-                    | AdaptiveExecution ->
-                        [
-                            Error ErrorCode.UnsupportedClassicalCapability
-                            Warning WarningCode.NonResultTypeReturnedInEntryPoint
-                        ]
+                    | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
                     | BasicQuantumFunctionality
                     | BasicMeasurementFeedback -> [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
                     | FullComputation -> []
@@ -606,8 +597,9 @@ let private cases =
             Capability = RuntimeCapability.bottom
             Diagnostics =
                 function
-                | FullComputation -> []
-                | _ -> [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
+                | BasicQuantumFunctionality
+                | BasicMeasurementFeedback -> [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
+                | _ -> []
         }
         {
             Name = "EntryPointParamDouble"
