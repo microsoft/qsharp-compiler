@@ -86,6 +86,16 @@ type RuntimeCapability =
 
     member capability.Classical = capability.classical
 
+    static member BasicExecution = { resultOpacity = Opaque; classical = Empty }
+
+    static member AdaptiveExecution = { resultOpacity = Transparent; classical = Integral }
+
+    static member BasicQuantumFunctionality = { resultOpacity = Opaque; classical = Full }
+
+    static member BasicMeasurementFeedback = { resultOpacity = Controlled; classical = Full }
+
+    static member FullComputation = { resultOpacity = Transparent; classical = Full }
+
 module RuntimeCapability =
     [<CompiledName "Top">]
     let top = { resultOpacity = Transparent; classical = Full }
@@ -110,11 +120,11 @@ module RuntimeCapability =
         { capability with classical = classical }
 
     let names =
-        Map [ CaseInsensitive "BasicExecution", { resultOpacity = Opaque; classical = Empty }
-              CaseInsensitive "BasicQuantumFunctionality", { resultOpacity = Opaque; classical = Full }
-              CaseInsensitive "AdaptiveExecution", { resultOpacity = Transparent; classical = Integral }
-              CaseInsensitive "BasicMeasurementFeedback", { resultOpacity = Controlled; classical = Full }
-              CaseInsensitive "FullComputation", { resultOpacity = Transparent; classical = Full } ]
+        Map [ CaseInsensitive "BasicExecution", RuntimeCapability.BasicExecution
+              CaseInsensitive "AdaptiveExecution", RuntimeCapability.AdaptiveExecution
+              CaseInsensitive "BasicQuantumFunctionality", RuntimeCapability.BasicQuantumFunctionality
+              CaseInsensitive "BasicMeasurementFeedback", RuntimeCapability.BasicMeasurementFeedback
+              CaseInsensitive "FullComputation", RuntimeCapability.FullComputation ]
 
     [<CompiledName "Name">]
     let name capability =
@@ -129,9 +139,3 @@ type RuntimeCapability with
 
     static member Parse name =
         RuntimeCapability.ofName name |> Option.defaultValue Unchecked.defaultof<_>
-
-    static member FullComputation = RuntimeCapability.ofName "FullComputation" |> Option.get
-
-    static member BasicMeasurementFeedback = RuntimeCapability.ofName "BasicMeasurementFeedback" |> Option.get
-
-    static member BasicQuantumFunctionality = RuntimeCapability.ofName "BasicQuantumFunctionality" |> Option.get

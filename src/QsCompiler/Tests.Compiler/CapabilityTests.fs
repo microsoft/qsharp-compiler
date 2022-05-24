@@ -618,16 +618,16 @@ let private compile capability isExecutable =
     CompilerTests.Compile("TestCases", files, references, capability, isExecutable)
 
 let private inferences =
-    let compilation = compile "" false
+    let compilation = compile RuntimeCapability.top false
     GlobalCallableResolutions (Capabilities.infer compilation.BuiltCompilation).Namespaces
 
 let levels =
     [
-        BasicExecution, compile "BasicExecution" true |> CompilerTests
-        AdaptiveExecution, compile "AdaptiveExecution" true |> CompilerTests
-        BasicQuantumFunctionality, compile "BasicQuantumFunctionality" true |> CompilerTests
-        BasicMeasurementFeedback, compile "BasicMeasurementFeedback" true |> CompilerTests
-        FullComputation, compile "FullComputation" true |> CompilerTests
+        BasicExecution, compile RuntimeCapability.BasicExecution true |> CompilerTests
+        AdaptiveExecution, compile RuntimeCapability.AdaptiveExecution true |> CompilerTests
+        BasicQuantumFunctionality, compile RuntimeCapability.BasicQuantumFunctionality true |> CompilerTests
+        BasicMeasurementFeedback, compile RuntimeCapability.BasicMeasurementFeedback true |> CompilerTests
+        FullComputation, compile RuntimeCapability.FullComputation true |> CompilerTests
     ]
 
 [<Theory>]

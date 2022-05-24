@@ -53,20 +53,18 @@ type RuntimeCapability =
     [<MaybeNull>]
     member Name: string
 
-    [<return: MaybeNull>]
-    static member Parse: name: string -> RuntimeCapability
+    static member BasicExecution: RuntimeCapability
 
-    // TODO: Remove this.
-    [<Obsolete>]
-    static member FullComputation: RuntimeCapability
+    static member AdaptiveExecution: RuntimeCapability
 
-    // TODO: Remove this.
-    [<Obsolete>]
+    static member BasicQuantumFunctionality: RuntimeCapability
+
     static member BasicMeasurementFeedback: RuntimeCapability
 
-    // TODO: Remove this.
-    [<Obsolete>]
-    static member BasicQuantumFunctionality: RuntimeCapability
+    static member FullComputation: RuntimeCapability
+
+    [<return: MaybeNull>]
+    static member Parse: name: string -> RuntimeCapability
 
 module RuntimeCapability =
     [<CompiledName "Top">]

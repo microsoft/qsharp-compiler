@@ -470,16 +470,18 @@ type LinkingTests() =
     member this.``Entry point return type restriction for quantum processors``() =
 
         let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
+        let capabilityName = RuntimeCapability.name RuntimeCapability.BasicQuantumFunctionality
 
-        let props = ImmutableDictionary.CreateBuilder()
-        props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
-        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, "BasicQuantumFunctionality")
+        let props =
+            dict [ MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe
+                   MSBuildProperties.ResolvedRuntimeCapabilities, Option.toObj capabilityName ]
+            |> ProjectProperties
 
-        let compilationManager =
-            new CompilationUnitManager(new ProjectProperties(props), Action<_>(fun (ex: exn) -> failwith ex.Message))
+        use compilationManager =
+            new CompilationUnitManager(props, Action<_>(fun (ex: exn) -> failwith ex.Message))
 
         let addOrUpdateSourceFile filePath =
-            getManager (new Uri(filePath)) (File.ReadAllText filePath)
+            getManager (Uri filePath) (File.ReadAllText filePath)
             |> compilationManager.AddOrUpdateSourceFileAsync
             |> ignore
 

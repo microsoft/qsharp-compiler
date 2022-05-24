@@ -355,10 +355,9 @@ type NamespaceManager
             let signatureErrs = inErrs.Concat outErrs
             errs.AddRange signatureErrs
 
-            let name = RuntimeCapability.name runtimeCapability
-
             // currently, only return values of type Result, Result[], and tuples thereof are supported on quantum processors
-            if Option.contains "BasicQuantumFunctionality" name || Option.contains "BasicMeasurementFeedback" name then
+            if runtimeCapability = RuntimeCapability.BasicQuantumFunctionality
+               || runtimeCapability = RuntimeCapability.BasicMeasurementFeedback then
                 let invalid =
                     signature.ReturnType.ExtractAll (fun t ->
                         match t.Type with
