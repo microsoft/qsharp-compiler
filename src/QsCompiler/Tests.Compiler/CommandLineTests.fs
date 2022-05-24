@@ -149,7 +149,7 @@ let ``execute rewrite steps only if validation passes`` () =
         CompilationLoader.Configuration(
             GenerateFunctorSupport = true,
             BuildOutputFolder = null,
-            RuntimeCapability = (RuntimeCapability.ofName "BasicQuantumFunctionality" |> Option.get)
+            RuntimeCapability = RuntimeCapability.BasicQuantumFunctionality
         )
 
     let loadSources (loader: Func<_ seq, _>) = loader.Invoke([ source1; source2 ])

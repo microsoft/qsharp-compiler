@@ -143,8 +143,8 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
     static member Compile(srcFolder, fileNames, ?references, ?capability, ?isExecutable) =
         let references = defaultArg references []
-        let capability = defaultArg capability "FullComputation"
         let isExecutable = defaultArg isExecutable false
+        let capabilityName = Option.bind RuntimeCapability.name capability
 
         let files =
             fileNames
@@ -154,7 +154,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
             |> dict
 
         let props =
-            dict [ MSBuildProperties.ResolvedRuntimeCapabilities, capability
+            dict [ MSBuildProperties.ResolvedRuntimeCapabilities, Option.toObj capabilityName
                    if isExecutable then MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe ]
             |> ProjectProperties
 
