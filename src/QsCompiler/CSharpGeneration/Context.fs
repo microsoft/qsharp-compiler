@@ -142,8 +142,8 @@ type CodegenContext =
         | true, propVal -> propVal = "true"
         | false, _ -> false
 
-    member public this.IsFromTargetPackage (decl : QsCallable) =
-        let targetPackageAssemblies = 
+    member public this.IsFromTargetPackage(decl: QsCallable) =
+        let targetPackageAssemblies =
             match this.assemblyConstants.TryGetValue(AssemblyConstants.TargetPackageAssemblies) with
             | true, value -> value.Split(";") |> Seq.map (fun s -> s.Trim().ToLower())
             | false, _ -> Seq.empty
