@@ -142,8 +142,8 @@ type CodegenContext =
         | true, propVal -> propVal = "true"
         | false, _ -> false
 
-    member public this.IsFromTargetPackage (decl : QsCallable) =
-        let targetPackageAssemblies = 
+    member public this.IsFromTargetPackage(decl: QsCallable) =
+        let targetPackageAssemblies =
             match this.assemblyConstants.TryGetValue(AssemblyConstants.TargetPackageAssemblies) with
             | true, value -> value.Split(";") |> Seq.map (fun s -> s.Trim().ToLower())
             | false, _ -> Seq.empty
@@ -153,15 +153,10 @@ type CodegenContext =
             assemblyName.Trim().ToLower() |> targetPackageAssemblies.Contains
         | _ -> false
 
-    member internal this.GenerateConcreteIntrinsic =
-        match this.assemblyConstants.TryGetValue AssemblyConstants.GenerateConcreteIntrinsic with
+    member internal this.UseIntrinsicsInterface =
+        match this.assemblyConstants.TryGetValue AssemblyConstants.UseIntrinsicsInterface with
         | true, value -> value <> null && value.ToLower() = "true"
         | false, _ -> false
-
-    member internal this.UseIntrinsicsInterface =
-        match this.assemblyConstants.TryGetValue AssemblyConstants.QuantumInstructionSet with
-        | true, qis -> qis.ToLower() <> "default" && not <| System.String.IsNullOrWhiteSpace qis
-        | _ -> false
 
     member internal this.GenerateCodeForSource(fileName: string) =
         let targetsQuantumProcessor =

@@ -279,7 +279,9 @@ module AssemblyConstants =
     let PerfDataOutputPath = "PerfDataOutputPath"
     let DocsOutputPath = "DocsOutputPath"
     let DocsPackageId = "DocsPackageId"
+    [<Obsolete("Replaced by UseIntrinsicsInterface.")>]
     let GenerateConcreteIntrinsic = "GenerateConcreteIntrinsic"
+    let UseIntrinsicsInterface = "UseIntrinsicsInterface"
     let TargetPackageAssemblies = "TargetPackageAssemblies"
 
 /// contains reserved names for command line arguments of Q# projects

@@ -49,8 +49,7 @@ module SimulationCode =
             yield "System"
             yield "Microsoft.Quantum.Core"
             yield "Microsoft.Quantum.Intrinsic"
-            if context.UseIntrinsicsInterface || context.GenerateConcreteIntrinsic then
-                yield "Microsoft.Quantum.Intrinsic.Interfaces"
+            if context.UseIntrinsicsInterface then yield "Microsoft.Quantum.Intrinsic.Interfaces"
             yield "Microsoft.Quantum.Simulation.Core"
         ]
 
@@ -1013,11 +1012,6 @@ module SimulationCode =
         seeker.SharedState |> Seq.toList
 
     let getTypeOfOp context (n: QsQualifiedName) =
-        let isInterface =
-            match context.allCallables.TryGetValue n with
-            | true, decl -> decl.IsIntrinsic && context.UseIntrinsicsInterface && context.IsFromTargetPackage decl
-            | false, _ -> false
-
         let name =
             let sameNamespace =
                 match context.current with
@@ -1025,15 +1019,7 @@ module SimulationCode =
                 | Some o -> o.Namespace = n.Namespace
 
             let opName =
-                if isInterface then
-                    let nameDecorator = new NameDecorator("QsRef")
-
-                    let rec undecorate name =
-                        let undecorated = nameDecorator.Undecorate name
-                        if String.IsNullOrWhiteSpace undecorated then name else undecorate undecorated
-
-                    "IIntrinsic" + undecorate n.Name
-                elif sameNamespace then
+                if sameNamespace then
                     userDefinedName None n.Name
                 else
                     "global::" + n.Namespace + "." + userDefinedName None n.Name
@@ -1189,7 +1175,7 @@ module SimulationCode =
                 | _ -> "__Body__"
 
             Some(ident adjointedBodyName :> ExpressionSyntax)
-        | Intrinsic when context.GenerateConcreteIntrinsic ->
+        | Intrinsic when context.UseIntrinsicsInterface ->
             // Add in the control qubits parameter when dealing with a controlled spec
             let args =
                 match sp.Kind with
@@ -1707,7 +1693,7 @@ module SimulationCode =
         let opNames = operationDependencies op
         let inType = op.Signature.ArgumentType |> roslynTypeName context
         let outType = op.Signature.ReturnType |> roslynTypeName context
-        let isConcreteIntrinsic = op.IsIntrinsic && context.GenerateConcreteIntrinsic
+        let isConcreteIntrinsic = op.IsIntrinsic && context.UseIntrinsicsInterface
 
         let constructors =
             [

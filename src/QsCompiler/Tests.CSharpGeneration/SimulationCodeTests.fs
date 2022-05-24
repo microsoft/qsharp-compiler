@@ -2236,7 +2236,7 @@ namespace N1
 
     [<Fact>]
     let ``is abstract`` () =
-        let testOne (_, op : QsCallable) expected =
+        let testOne (_, op: QsCallable) expected =
             let actual = op.IsIntrinsic
             Assert.Equal(expected, actual)
 
