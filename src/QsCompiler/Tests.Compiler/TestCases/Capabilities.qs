@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.Testing.Capability {
         return result == Zero ? false | true;
     }
 
-    function ResultAsBoolNeqOp(result : Result) : Bool {
+    operation ResultAsBoolNeqOp(result : Result) : Bool {
         return result != One ? false | true;
     }
 

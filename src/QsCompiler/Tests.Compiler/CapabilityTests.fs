@@ -44,7 +44,18 @@ let private cases =
                 Capability = createCapability ResultOpacity.opaque ClassicalCapability.full
                 Diagnostics =
                     function
-                    | FullComputation -> [ Error ErrorCode.InvalidTypeInEqualityComparison ]
+                    | BasicExecution ->
+                        [
+                            Error ErrorCode.InvalidTypeInEqualityComparison
+                            Error ErrorCode.UnsupportedClassicalCapability
+                            Error ErrorCode.UnsupportedClassicalCapability
+                        ]
+                    | AdaptiveExecution ->
+                        [
+                            Error ErrorCode.InvalidTypeInEqualityComparison
+                            Error ErrorCode.UnsupportedClassicalCapability
+                        ]
+                    | _ -> [ Error ErrorCode.InvalidTypeInEqualityComparison ]
             }
 
         {
@@ -52,9 +63,13 @@ let private cases =
             Capability = createCapability ResultOpacity.controlled ClassicalCapability.integral
             Diagnostics =
                 function
+                | BasicExecution ->
+                    [
+                        Error ErrorCode.UnsupportedResultComparison
+                        Error ErrorCode.UnsupportedClassicalCapability
+                    ]
                 | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                | BasicMeasurementFeedback
-                | FullComputation -> []
+                | _ -> []
         }
 
         for name in [ "EmptyIfOp"; "EmptyIfNeqOp"; "Reset"; "ResetNeq" ] do
@@ -85,10 +100,16 @@ let private cases =
             Capability = createCapability ResultOpacity.transparent ClassicalCapability.integral
             Diagnostics =
                 function
+                | BasicExecution ->
+                    [
+                        Error ErrorCode.UnsupportedClassicalCapability
+                        Error ErrorCode.UnsupportedResultComparison
+                        Error ErrorCode.LocalVariableAlreadyExists
+                    ]
                 | BasicQuantumFunctionality ->
                     [
-                        Error ErrorCode.LocalVariableAlreadyExists
                         Error ErrorCode.UnsupportedResultComparison
+                        Error ErrorCode.LocalVariableAlreadyExists
                     ]
                 | BasicMeasurementFeedback ->
                     [
@@ -96,58 +117,110 @@ let private cases =
                         Error ErrorCode.SetInResultConditionedBlock
                         Error ErrorCode.SetInResultConditionedBlock
                     ]
-                | FullComputation -> [ Error ErrorCode.LocalVariableAlreadyExists ]
+                | _ -> [ Error ErrorCode.LocalVariableAlreadyExists ]
         }
 
-        for name in [ "ResultAsBool"; "ResultAsBoolNeq" ] do
+        for name in [ "ResultAsBool"; "ResultAsBoolNeq"; "ResultAsBoolOp"; "ResultAsBoolNeqOp" ] do
             {
                 Name = name
                 Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
                 Diagnostics =
                     function
+                    | BasicExecution ->
+                        [
+                            Error ErrorCode.UnsupportedResultComparison
+                            Error ErrorCode.UnsupportedClassicalCapability
+                            Error ErrorCode.UnsupportedClassicalCapability
+                        ]
+                    | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
                     | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
                     | BasicMeasurementFeedback -> [ Error ErrorCode.ResultComparisonNotInOperationIf ]
                     | FullComputation -> []
             }
 
-        for name in [ "ResultAsBoolOp"; "ResultAsBoolNeqOp" ] do
+        for name in [ "ResultAsBoolOpReturnIf"; "ResultAsBoolNeqOpReturnIf" ] do
             {
                 Name = name
                 Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
                 Diagnostics =
                     function
-                    | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                    | BasicMeasurementFeedback -> [ Error ErrorCode.ResultComparisonNotInOperationIf ]
-                    | FullComputation -> []
-            }
-
-        for name in
-            [
-                "ResultAsBoolOpReturnIf"
-                "ResultAsBoolOpReturnIfNested"
-                "ResultAsBoolNeqOpReturnIf"
-                "NestedResultIfReturn"
-            ] do
-            {
-                Name = name
-                Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
-                Diagnostics =
-                    function
+                    | BasicExecution ->
+                        [
+                            Error ErrorCode.UnsupportedResultComparison
+                            Error ErrorCode.UnsupportedClassicalCapability
+                        ]
+                    | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
                     | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
                     | BasicMeasurementFeedback -> Error ErrorCode.ReturnInResultConditionedBlock |> List.replicate 2
                     | FullComputation -> []
             }
 
-        for name in [ "ResultAsBoolOpSetIf"; "ResultAsBoolNeqOpSetIf"; "SetTuple" ] do
+        {
+            Name = "ResultAsBoolOpReturnIfNested"
+            Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+            Diagnostics =
+                function
+                | BasicExecution ->
+                    Error ErrorCode.UnsupportedResultComparison
+                    :: List.replicate 3 (Error ErrorCode.UnsupportedClassicalCapability)
+                | AdaptiveExecution -> Error ErrorCode.UnsupportedClassicalCapability |> List.replicate 3
+                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+                | BasicMeasurementFeedback -> Error ErrorCode.ReturnInResultConditionedBlock |> List.replicate 2
+                | FullComputation -> []
+        }
+
+        {
+            Name = "NestedResultIfReturn"
+            Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+            Diagnostics =
+                function
+                | BasicExecution ->
+                    [
+                        Error ErrorCode.UnsupportedResultComparison
+                        Error ErrorCode.UnsupportedClassicalCapability
+                        Error ErrorCode.UnsupportedClassicalCapability
+                    ]
+                | AdaptiveExecution -> Error ErrorCode.UnsupportedClassicalCapability |> List.replicate 2
+                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+                | BasicMeasurementFeedback -> Error ErrorCode.ReturnInResultConditionedBlock |> List.replicate 2
+                | FullComputation -> []
+        }
+
+        for name in [ "ResultAsBoolOpSetIf"; "ResultAsBoolNeqOpSetIf" ] do
             {
                 Name = name
                 Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
                 Diagnostics =
                     function
+                    | BasicExecution ->
+                        [
+                            Error ErrorCode.UnsupportedResultComparison
+                            Error ErrorCode.UnsupportedClassicalCapability
+                            Error ErrorCode.UnsupportedClassicalCapability
+                        ]
+                    | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
                     | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
                     | BasicMeasurementFeedback -> [ Error ErrorCode.SetInResultConditionedBlock ]
                     | FullComputation -> []
             }
+
+        {
+            Name = "SetTuple"
+            Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+            Diagnostics =
+                function
+                | BasicExecution ->
+                    [
+                        Error ErrorCode.UnsupportedClassicalCapability
+                        Error ErrorCode.UnsupportedResultComparison
+                        Error ErrorCode.UnsupportedClassicalCapability
+                        Error ErrorCode.UnsupportedClassicalCapability
+                    ]
+                | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
+                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+                | BasicMeasurementFeedback -> [ Error ErrorCode.SetInResultConditionedBlock ]
+                | FullComputation -> []
+        }
 
         for name in [ "ResultAsBoolOpElseSet"; "ElifSet"; "ElifElifSet"; "ElifElseSet" ] do
             {
@@ -192,9 +265,9 @@ let private cases =
             Capability = RuntimeCapability.bottom
             Diagnostics =
                 function
+                | BasicExecution
                 | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                | BasicMeasurementFeedback
-                | FullComputation -> []
+                | _ -> []
         }
 
         {
@@ -203,25 +276,41 @@ let private cases =
             Diagnostics = fun _ -> []
         }
 
-        for name in [ "OverrideFullToBmf"; "ExplicitBmf" ] do
-            {
-                Name = name
-                Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
-                Diagnostics =
-                    function
-                    | BasicExecution
-                    | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                    | _ -> []
-            }
+        {
+            Name = "OverrideFullToBmf"
+            Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
+            Diagnostics =
+                function
+                | BasicExecution ->
+                    [
+                        Error ErrorCode.UnsupportedResultComparison
+                        Error ErrorCode.UnsupportedClassicalCapability
+                        Error ErrorCode.UnsupportedClassicalCapability
+                    ]
+                | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
+                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+                | BasicMeasurementFeedback -> [ Error ErrorCode.ResultComparisonNotInOperationIf ]
+                | _ -> []
+        }
+
+        {
+            Name = "ExplicitBmf"
+            Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
+            Diagnostics =
+                function
+                | BasicExecution
+                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+                | _ -> []
+        }
 
         {
             Name = "OverrideBmfToFull"
             Capability = createCapability ResultOpacity.transparent ClassicalCapability.empty
             Diagnostics =
                 function
+                | BasicExecution
                 | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                | BasicMeasurementFeedback
-                | FullComputation -> []
+                | _ -> []
         }
 
         {
@@ -395,12 +484,21 @@ let private cases =
                     | _ -> []
             }
 
-        for name in [ "ReferenceBmfA"; "ReferenceBmfB" ] do
-            {
-                Name = name
-                Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
-                Diagnostics = fun _ -> failwith "todo"
-            }
+        {
+            Name = "ReferenceBmfA"
+            Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
+            Diagnostics = fun _ -> []
+        }
+
+        {
+            Name = "ReferenceBmfB"
+            Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
+            Diagnostics =
+                function
+                | BasicExecution
+                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+                | _ -> []
+        }
 
         for name in [ "MessageStringLit"; "MessageInterpStringLit"; "UseRangeLit"; "UseRangeVar" ] do
             {
@@ -572,7 +670,13 @@ let private cases =
             Diagnostics = fun _ -> [ Error ErrorCode.InvalidUseOfUnderscorePattern ]
         }
 
-        for name in [ "NotFoundCallable"; "CallFunctor1"; "CallFunctor2" ] do
+        {
+            Name = "NotFoundCallable"
+            Capability = RuntimeCapability.bottom
+            Diagnostics = fun _ -> [ Error ErrorCode.UnknownIdentifier ]
+        }
+
+        for name in [ "CallFunctor1"; "CallFunctor2" ] do
             {
                 Name = name
                 Capability = RuntimeCapability.bottom
@@ -605,12 +709,8 @@ let private cases =
 
         {
             Name = "ReferenceLibraryOverride"
-            Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
-            Diagnostics =
-                function
-                | BasicQuantumFunctionality
-                | BasicMeasurementFeedback
-                | FullComputation -> []
+            Capability = RuntimeCapability.bottom
+            Diagnostics = fun _ -> []
         }
 
         {
@@ -668,10 +768,7 @@ let private cases =
         {
             Name = "ReferenceLibraryBqf"
             Capability = RuntimeCapability.bottom
-            Diagnostics =
-                function
-                | BasicQuantumFunctionality
-                | FullComputation -> []
+            Diagnostics = fun _ -> []
         }
 
         {
@@ -679,12 +776,13 @@ let private cases =
             Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
             Diagnostics =
                 function
+                | BasicExecution
                 | BasicQuantumFunctionality ->
                     [
                         Error ErrorCode.UnsupportedCallableCapability
                         Warning WarningCode.UnsupportedResultComparison
                     ]
-                | FullComputation -> []
+                | _ -> []
         }
 
         {
