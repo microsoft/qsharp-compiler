@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
+open System
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Transformations.Core
@@ -38,3 +39,6 @@ type internal LocatingTransformation =
     new: options: TransformationOptions -> LocatingTransformation
 
     member Offset: Position QsNullable
+
+module ContextRef =
+    val local: value: 'a -> context: 'a ref -> IDisposable
