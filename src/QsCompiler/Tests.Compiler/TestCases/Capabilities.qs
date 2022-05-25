@@ -583,7 +583,7 @@ namespace Microsoft.Quantum.Testing.Capability {
         return f;
     }
 
-    operation ReferenceLibraryOverride(q : Qubit) : Unit {
+    operation CallLibraryOverride(q : Qubit) : Unit {
         LibraryOverride(q);
     }
 

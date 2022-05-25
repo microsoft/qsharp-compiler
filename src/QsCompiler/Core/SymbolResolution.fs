@@ -341,7 +341,12 @@ module SymbolResolution =
 
         let getCapability (attribute: QsDeclarationAttribute) =
             match attribute.Argument.Expression with
-            | ValueTuple args -> Seq.fold2 applyBuilder RuntimeCapability.bottom args builders |> Some
+            | ValueTuple args when args.Length = 2 ->
+                // Backwards compatibility with (Name : String, Reason : String).
+                getString args[0] |> Option.bind RuntimeCapability.ofName
+            | ValueTuple args when args.Length = 3 ->
+                // Parse (ResultOpacity : String, Classical : String, Reason : String).
+                Seq.fold2 applyBuilder RuntimeCapability.bottom args builders |> Some
             | _ -> None
 
         Seq.filter BuiltIn.MarksRequiredCapability attributes

@@ -42,7 +42,6 @@ namespace Microsoft.Quantum.Testing.Capability {
         }
     }
 
-    // TODO: Update this to use the new RequiresCapability type.
     @RequiresCapability("BasicQuantumFunctionality", "Test case.")
     operation LibraryOverride(q : Qubit) : Unit {
         let r = Zero;
