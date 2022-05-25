@@ -26,7 +26,7 @@ type Case =
 
     override case.ToString() = case.Name
 
-let private createCapability opacity classical =
+let private runtimeCapability opacity classical =
     RuntimeCapability.withResultOpacity opacity RuntimeCapability.bottom
     |> RuntimeCapability.withClassical classical
 
@@ -49,7 +49,6 @@ let private cases =
                 "NoOp"
                 "CallLibraryBqf"
                 "ReferenceLibraryBqf"
-                "ReferenceLibraryOverride"
                 "MessageStringLit"
                 "MessageInterpStringLit"
                 "UseRangeLit"
@@ -94,14 +93,14 @@ let private cases =
             ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
+                Capability = runtimeCapability ResultOpacity.controlled ClassicalCapability.empty
                 Diagnostics = unsupportedResult
             }
 
         for name in [ "ResultTuple"; "ResultArray" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.opaque ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.full
                 Diagnostics =
                     function
                     | BasicExecution ->
@@ -118,7 +117,7 @@ let private cases =
         for name in [ "EmptyIf"; "EmptyIfNeq" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.transparent ClassicalCapability.empty
+                Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.empty
                 Diagnostics =
                     function
                     | BasicExecution
@@ -138,7 +137,7 @@ let private cases =
             ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.full
                 Diagnostics =
                     function
                     | BasicExecution ->
@@ -153,7 +152,7 @@ let private cases =
         for name in [ "ResultAsBoolOpReturnIf"; "ResultAsBoolNeqOpReturnIf" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.full
                 Diagnostics =
                     function
                     | BasicExecution ->
@@ -170,7 +169,7 @@ let private cases =
         for name in [ "ResultAsBoolOpSetIf"; "ResultAsBoolNeqOpSetIf" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.full
                 Diagnostics =
                     function
                     | BasicExecution ->
@@ -185,7 +184,7 @@ let private cases =
         for name in [ "ResultAsBoolOpElseSet"; "ElifSet"; "ElifElifSet"; "ElifElseSet" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.full
                 Diagnostics =
                     function
                     | BasicExecution ->
@@ -220,28 +219,28 @@ let private cases =
             ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.opaque ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.full
                 Diagnostics = unsupportedClassical 1 1
             }
 
         for name in [ "OverrideBqfToBmf"; "CallBmfA"; "CallBmfOverrideB"; "ReferenceBmfA" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
+                Capability = runtimeCapability ResultOpacity.controlled ClassicalCapability.empty
                 Diagnostics = fun _ -> []
             }
 
         for name in [ "CallBmfFullA"; "CallFullA" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.full
                 Diagnostics = fun _ -> []
             }
 
         for name in [ "BmfRecursion"; "BmfRecursion3A" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.controlled ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.controlled ClassicalCapability.full
                 Diagnostics =
                     function
                     | BasicExecution ->
@@ -258,14 +257,14 @@ let private cases =
         for name in [ "BmfRecursion3B"; "BmfRecursion3C" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.controlled ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.controlled ClassicalCapability.full
                 Diagnostics = unsupportedClassical 1 1
             }
 
         for name in [ "ConditionalBigInt"; "ConditionalString" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.opaque ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.full
                 Diagnostics = unsupportedClassical 4 4
             }
 
@@ -279,35 +278,35 @@ let private cases =
             ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.opaque ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.full
                 Diagnostics = unsupportedClassical 2 1
             }
 
         for name in [ "MutableArrayToFor"; "MutableRangeToFor" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.opaque ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.full
                 Diagnostics = unsupportedClassical 2 2
             }
 
         for name in [ "MutableToArrayIndex"; "MutableToArrayIndexUpdate" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.opaque ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.full
                 Diagnostics = unsupportedClassical 3 1
             }
 
         for name in [ "MutableToArraySlice"; "MutableToArraySliceUpdate" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.opaque ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.full
                 Diagnostics = unsupportedClassical 3 2
             }
 
         for name in [ "NewArray"; "LetToNewArraySize" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.opaque ClassicalCapability.full
+                Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.full
                 Diagnostics =
                     function
                     | BasicExecution
@@ -322,7 +321,7 @@ let private cases =
         for name in [ "CallLibraryBmf"; "ReferenceLibraryBmf" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
+                Capability = runtimeCapability ResultOpacity.controlled ClassicalCapability.empty
                 Diagnostics =
                     function
                     | BasicExecution
@@ -337,7 +336,7 @@ let private cases =
         for name in [ "CallLibraryFull"; "ReferenceLibraryFull" ] do
             {
                 Name = name
-                Capability = createCapability ResultOpacity.transparent ClassicalCapability.integral
+                Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.integral
                 Diagnostics =
                     function
                     | BasicExecution
@@ -399,7 +398,7 @@ let private cases =
 
         {
             Name = "SetLocal"
-            Capability = createCapability ResultOpacity.controlled ClassicalCapability.integral
+            Capability = runtimeCapability ResultOpacity.controlled ClassicalCapability.integral
             Diagnostics =
                 function
                 | BasicExecution ->
@@ -412,7 +411,7 @@ let private cases =
         }
         {
             Name = "SetReusedName"
-            Capability = createCapability ResultOpacity.transparent ClassicalCapability.integral
+            Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.integral
             Diagnostics =
                 function
                 | BasicExecution ->
@@ -433,7 +432,7 @@ let private cases =
         }
         {
             Name = "ResultAsBoolOpReturnIfNested"
-            Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+            Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.full
             Diagnostics =
                 function
                 | BasicExecution ->
@@ -446,7 +445,7 @@ let private cases =
         }
         {
             Name = "NestedResultIfReturn"
-            Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+            Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.full
             Diagnostics =
                 function
                 | BasicExecution ->
@@ -459,7 +458,7 @@ let private cases =
         }
         {
             Name = "SetTuple"
-            Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+            Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.full
             Diagnostics =
                 function
                 | BasicExecution ->
@@ -477,7 +476,7 @@ let private cases =
         }
         {
             Name = "OverrideFullToBmf"
-            Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
+            Capability = runtimeCapability ResultOpacity.controlled ClassicalCapability.empty
             Diagnostics =
                 function
                 | BasicExecution ->
@@ -490,12 +489,12 @@ let private cases =
         }
         {
             Name = "OverrideBmfToFull"
-            Capability = createCapability ResultOpacity.transparent ClassicalCapability.empty
+            Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.empty
             Diagnostics = unsupportedResult
         }
         {
             Name = "CallFullOverrideA"
-            Capability = createCapability ResultOpacity.transparent ClassicalCapability.empty
+            Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.empty
             Diagnostics =
                 function
                 | BasicExecution
@@ -505,12 +504,12 @@ let private cases =
         }
         {
             Name = "CallFullOverrideB"
-            Capability = createCapability ResultOpacity.transparent ClassicalCapability.empty
+            Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.empty
             Diagnostics = fun _ -> []
         }
         {
             Name = "CallBmfOverrideA"
-            Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
+            Capability = runtimeCapability ResultOpacity.controlled ClassicalCapability.empty
             Diagnostics =
                 function
                 | BasicExecution
@@ -519,7 +518,7 @@ let private cases =
         }
         {
             Name = "CallBmfOverrideC"
-            Capability = createCapability ResultOpacity.transparent ClassicalCapability.full
+            Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.full
             Diagnostics =
                 function
                 | BasicExecution ->
@@ -531,13 +530,26 @@ let private cases =
                 | FullComputation -> []
         }
         {
+            Name = "CallLibraryOverride"
+            Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.full
+            Diagnostics =
+                function
+                | BasicExecution ->
+                    [
+                        Error ErrorCode.UnsupportedCallableCapability
+                        Warning WarningCode.UnsupportedResultComparison
+                    ]
+                | AdaptiveExecution -> [ Error ErrorCode.UnsupportedCallableCapability ]
+                | _ -> []
+        }
+        {
             Name = "LetToMutable"
-            Capability = createCapability ResultOpacity.opaque ClassicalCapability.integral
+            Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.integral
             Diagnostics = unsupportedClassical 1 0
         }
         {
             Name = "MutableToNewArraySize"
-            Capability = createCapability ResultOpacity.opaque ClassicalCapability.full
+            Capability = runtimeCapability ResultOpacity.opaque ClassicalCapability.full
             Diagnostics =
                 function
                 | BasicExecution ->
@@ -560,7 +572,7 @@ let private cases =
         }
         {
             Name = "CallLibraryBmfWithNestedCall"
-            Capability = createCapability ResultOpacity.controlled ClassicalCapability.empty
+            Capability = runtimeCapability ResultOpacity.controlled ClassicalCapability.empty
             Diagnostics =
                 function
                 | BasicExecution
@@ -574,7 +586,7 @@ let private cases =
         }
         {
             Name = "CallLibraryFullWithNestedCall"
-            Capability = createCapability ResultOpacity.transparent ClassicalCapability.integral
+            Capability = runtimeCapability ResultOpacity.transparent ClassicalCapability.integral
             Diagnostics =
                 function
                 | BasicExecution

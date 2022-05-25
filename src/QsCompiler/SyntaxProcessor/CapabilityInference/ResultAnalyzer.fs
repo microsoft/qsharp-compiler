@@ -50,22 +50,22 @@ let createPattern kind range =
         | ConditionalEqualityInOperation
         | UnrestrictedEquality ->
             let code =
-                if target.Capability.ResultOpacity >= ResultOpacity.controlled then
-                    ErrorCode.ResultComparisonNotInOperationIf
-                else
+                if target.Capability.ResultOpacity = ResultOpacity.opaque then
                     ErrorCode.UnsupportedResultComparison
+                else
+                    ErrorCode.ResultComparisonNotInOperationIf
 
-            Some(code, [ target.Architecture ])
+            Some(code, [ target.Name ])
         | ReturnInDependentBranch ->
-            if target.Capability.ResultOpacity >= ResultOpacity.controlled then
-                Some(ErrorCode.ReturnInResultConditionedBlock, [ target.Architecture ])
-            else
+            if target.Capability.ResultOpacity = ResultOpacity.opaque then
                 None
+            else
+                Some(ErrorCode.ReturnInResultConditionedBlock, [ target.Name ])
         | SetInDependentBranch name ->
-            if target.Capability.ResultOpacity >= ResultOpacity.controlled then
-                Some(ErrorCode.SetInResultConditionedBlock, [ name; target.Architecture ])
-            else
+            if target.Capability.ResultOpacity = ResultOpacity.opaque then
                 None
+            else
+                Some(ErrorCode.SetInResultConditionedBlock, [ name; target.Name ])
         |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Error(code, args) range)
 
     {
@@ -92,7 +92,7 @@ let isResultEquality expression =
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
-// TODO: Remove the callableKind parameter.
+// TODO: Remove the callableKind parameter as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
 let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let mutable dependsOnResult = false

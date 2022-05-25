@@ -3,11 +3,9 @@
 
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.ConstAnalyzer
 
-open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference.ContextRef
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -26,7 +24,7 @@ let createPattern range =
             None
         else
             let description = "conditional expression or mutable variable in a constant context"
-            let args = [ target.Architecture; description ]
+            let args = [ target.Name; description ]
             QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
     {
@@ -169,19 +167,8 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let container = transformation.Expressions.OnTypedExpression container
 
                 let index =
-                    // TODO: This duplicates the check for whether this is a UDT or array update.
-                    match container.ResolvedType.Resolution, index.Expression with
-                    | UserDefinedType udt, Identifier (LocalVariable name, Null) when
-                        Map.containsKey name variables |> not
-                        ->
-                        let range = transformation.OnExpressionRange index.Range
-                        let name = transformation.OnItemName(udt, name) |> LocalVariable
-                        let ty = transformation.Types.OnType index.ResolvedType
-                        let info = transformation.Expressions.OnExpressionInformation index.InferredInformation
-                        TypedExpression.New(Identifier(name, Null), ImmutableDictionary.Empty, ty, info, range)
-                    | _ ->
-                        use _ = local { context.Value with ConstOnly = true } context
-                        transformation.Expressions.OnTypedExpression index
+                    use _ = local { context.Value with ConstOnly = true } context
+                    transformation.Expressions.OnTypedExpression index
 
                 CopyAndUpdate(container, index, transformation.Expressions.OnTypedExpression value)
 

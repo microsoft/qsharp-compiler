@@ -107,7 +107,7 @@ let createPattern context construct range (ty: ResolvedType) =
                     Seq.filter (scenarioCapability >> RuntimeCapability.subsumes target.Capability >> not) scenarios
 
                 let description = Seq.map describeScenario unsupported |> String.concat ", "
-                let args = [ target.Architecture; description ]
+                let args = [ target.Name; description ]
                 let range = QsNullable.defaultValue Range.Zero range
                 QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
