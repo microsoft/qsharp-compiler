@@ -109,8 +109,14 @@ module CallAnalyzer =
             match kind with
             | _ when RuntimeCapability.subsumes target.Capability capability -> None
             | External capability ->
-                let capabilityName = RuntimeCapability.name capability |> Option.defaultValue "Unknown"
-                let args = [ name.Name; capabilityName; target.Name ]
+                let args =
+                    [
+                        name.Name
+                        target.Name
+                        string capability.ResultOpacity
+                        string capability.Classical
+                    ]
+
                 QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
             | Recursive ->
                 let args = [ target.Name; "recursion" ]
