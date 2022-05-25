@@ -11,18 +11,18 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type Target =
     {
+        name: string
         capability: RuntimeCapability
-        architecture: string
     }
+
+    member target.Name = target.name
 
     member target.Capability = target.capability
 
-    member target.Architecture = target.architecture
-
 module Target =
     [<CompiledName "Create">]
-    let create capability architecture =
-        { capability = capability; architecture = architecture }
+    let create name capability =
+        { name = name; capability = capability }
 
 type 'props Pattern =
     {
@@ -39,7 +39,7 @@ module Pattern =
             Properties = ()
         }
 
-    let max patterns =
+    let concat patterns =
         Seq.fold
             (fun capability pattern -> RuntimeCapability.merge pattern.Capability capability)
             RuntimeCapability.bottom

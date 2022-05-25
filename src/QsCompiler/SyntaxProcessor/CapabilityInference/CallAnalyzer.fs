@@ -49,7 +49,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
 
     do
         for cycle in cycles do
-            let capability = Seq.choose findCallable cycle |> Seq.collect syntaxAnalyzer |> Pattern.max
+            let capability = Seq.choose findCallable cycle |> Seq.collect syntaxAnalyzer |> Pattern.concat
 
             for node in cycle do
                 cycleCapabilities[node.CallableName] <- tryOption (cycleCapabilities.TryGetValue node.CallableName)
@@ -88,7 +88,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
         graph.GetDirectDependencies(CallGraphNode name)
         |> Seq.choose (fun group -> findCallable group.Key)
         |> Seq.collect analyzer.Analyze
-        |> Pattern.max
+        |> Pattern.concat
 
 type CallKind =
     | External of RuntimeCapability
@@ -110,10 +110,10 @@ module CallAnalyzer =
             | _ when RuntimeCapability.subsumes target.Capability capability -> None
             | External capability ->
                 let capabilityName = RuntimeCapability.name capability |> Option.defaultValue "Unknown"
-                let args = [ name.Name; capabilityName; target.Architecture ]
+                let args = [ name.Name; capabilityName; target.Name ]
                 QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
             | Recursive ->
-                let args = [ target.Architecture; "recursion" ]
+                let args = [ target.Name; "recursion" ]
                 QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
         {

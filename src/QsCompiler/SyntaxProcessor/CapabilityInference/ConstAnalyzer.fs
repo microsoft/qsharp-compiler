@@ -26,7 +26,7 @@ let createPattern range =
             None
         else
             let description = "conditional expression or mutable variable in a constant context"
-            let args = [ target.Architecture; description ]
+            let args = [ target.Name; description ]
             QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
     {

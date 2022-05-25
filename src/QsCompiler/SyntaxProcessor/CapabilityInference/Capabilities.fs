@@ -99,7 +99,7 @@ let infer compilation =
                     SymbolResolution.TryGetRequiredCapability callable.Attributes |> QsNullable.isNull
 
                 if isMissingCapability && QsNullable.isNull callable.Source.AssemblyFile then
-                    analyzer callable |> Pattern.max |> capabilityAttribute |> callable.AddAttribute
+                    analyzer callable |> Pattern.concat |> capabilityAttribute |> callable.AddAttribute
                 else
                     callable
         }

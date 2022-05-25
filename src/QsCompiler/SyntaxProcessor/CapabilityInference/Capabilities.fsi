@@ -8,7 +8,7 @@ open Microsoft.Quantum.QsCompiler.DependencyAnalysis
 open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-/// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
+/// Returns all capability diagnostics for the callable.
 [<CompiledName "Diagnose">]
 val diagnose:
     target: Target ->
@@ -17,6 +17,7 @@ val diagnose:
     callable: QsCallable ->
         QsCompilerDiagnostic seq
 
-/// Infers the capability of all callables in the compilation and adds the corresponding attribute to each one.
+/// Adds the <c>RequiresCapability</c> attribute to each callable in the compilation that is defined in a source file
+/// (not a reference), representing its inferred required runtime capability.
 [<CompiledName "Infer">]
 val infer: compilation: QsCompilation -> QsCompilation
