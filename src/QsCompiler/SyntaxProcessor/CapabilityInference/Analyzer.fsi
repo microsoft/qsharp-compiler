@@ -23,6 +23,7 @@ module Target =
 type internal 'props Pattern =
     { Capability: RuntimeCapability
       Diagnose: Target -> QsCompilerDiagnostic option
+      // TODO: Remove the additional properties as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
       Properties: 'props }
 
 module internal Pattern =

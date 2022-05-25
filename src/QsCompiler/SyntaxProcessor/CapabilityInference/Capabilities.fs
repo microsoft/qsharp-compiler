@@ -18,7 +18,7 @@ let syntaxAnalyzer callableKind =
                       ResultAnalyzer.analyzer callableKind
                       TypeAnalyzer.analyzer ]
 
-// TODO: This should be removed in the future.
+// TODO: Remove this function as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
 let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
     let warningCode =
         match diagnostic.Diagnostic with
@@ -40,7 +40,7 @@ let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) dia
 
     Option.map (fun code -> QsCompilerDiagnostic.Warning(code, args) (range.ValueOr Range.Zero)) warningCode
 
-// TODO: This should be removed in the future.
+// TODO: Remove this function as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
 let explainCall (nsManager: NamespaceManager) graph target (call: Call) =
     let node = CallGraphNode call.Name
 
@@ -58,7 +58,7 @@ let explainCall (nsManager: NamespaceManager) graph target (call: Call) =
             |> Seq.choose (referenceReasons call.Name.Name call.Range callable.Source.CodeFile))
     | _ -> Seq.empty
 
-// TODO: This should be removed in the future.
+// TODO: Remove this function as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
 let diagnoseCall target nsManager graph pattern =
     match pattern.Diagnose target with
     | Some d -> Seq.append (Seq.singleton d) (explainCall nsManager graph target pattern.Properties)

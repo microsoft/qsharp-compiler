@@ -92,7 +92,7 @@ let isResultEquality expression =
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
-// TODO: Remove the callableKind parameter.
+// TODO: Remove the callableKind parameter as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
 let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
     let mutable dependsOnResult = false

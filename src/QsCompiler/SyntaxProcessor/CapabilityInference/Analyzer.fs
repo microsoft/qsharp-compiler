@@ -28,7 +28,7 @@ type 'props Pattern =
     {
         Capability: RuntimeCapability
         Diagnose: Target -> QsCompilerDiagnostic option
-        Properties: 'props // TODO: This should be removed in the future.
+        Properties: 'props
     }
 
 module Pattern =
