@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.24.41900-alpha">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.24.41975-alpha">
   <PropertyGroup>
     <QscVerbosity>Detailed</QscVerbosity>
     <OutputType>Exe</OutputType>
@@ -9,7 +9,6 @@
     <NoWarn>
       CS0219; <!-- Suppress C# warning for unused variables. -->
     </NoWarn>
-    <QscVerbosity>D</QscVerbosity>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -21,15 +20,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="../Target/Driver.cs" />
     <QSharpCompile Include="../../../Tests.Compiler/TestCases/ExecutionTests/*.*">
       <Link>$(ExecutionTestsDir)%(RecursiveDir)%(Filename)%(Extension)</Link>
     </QSharpCompile>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.41900-alpha" />
-    <PackageReference Include="Microsoft.Quantum.EntryPointDriver" Version="0.24.41900-alpha" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.41975-alpha" />
+    <PackageReference Include="Microsoft.Quantum.EntryPointDriver" Version="0.24.41975-alpha" />
   </ItemGroup>
 
   <ItemGroup>
