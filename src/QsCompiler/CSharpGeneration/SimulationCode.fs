@@ -1032,7 +1032,7 @@ module SimulationCode =
                         let undecorated = nameDecorator.Undecorate name
                         if String.IsNullOrWhiteSpace undecorated then name else undecorate undecorated
 
-                    "IIntrinsic" + undecorate n.Name
+                    "TargetPackage::" + n.Namespace + "." + userDefinedName None (undecorate n.Name)
                 elif sameNamespace then
                     userDefinedName None n.Name
                 else
@@ -1998,12 +1998,15 @@ module SimulationCode =
 
     // Builds the C# syntaxTree for the Q# elements defined in the given file.
     let buildSyntaxTree localElements (context: CodegenContext) =
+
+        let externs = if context.UseIntrinsicsInterface then [ ``extern alias`` "TargetPackage" ] else []
         let namespaces = autoNamespaces context
         let usings = namespaces |> List.map (fun ns -> using ns)
         let attributes = localElements |> List.map (snd >> buildDeclarationAttributes) |> List.concat
         let namespaces = localElements |> List.map (buildNamespace context)
 
         ``compilation unit`` attributes usings namespaces
+        |> addExternAliases externs
         // We add a "pragma warning disable 1591" since we don't generate doc comments in our C# code.
         |> pragmaDisableWarning 1591
         |> pragmaDisableWarning 162 // unreachable code

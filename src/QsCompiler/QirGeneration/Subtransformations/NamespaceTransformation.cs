@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             this.SharedState.StartFunction();
 
-            var shouldBeExtern = this.SharedState.IsLibrary && this.publicApi.Contains(this.context.GetCurrentCallable().FullName);
+            var shouldBeExtern = this.publicApi.Contains(this.context.GetCurrentCallable().FullName);
             this.SharedState.GenerateFunctionHeader(this.context.GetCurrentSpecialization(), argTuple, deconstuctArgument: true, shouldBeExtern);
             this.Transformation.Statements.OnScope(body);
 
@@ -89,11 +89,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsCallable OnCallableDeclaration(QsCallable c)
         {
-            var filterForQirProfile = c.Kind.IsTypeConstructor ||
-                !(this.publicApi.Contains(c.FullName) || c.Attributes.Any(BuiltIn.MarksEntryPoint));
-
             if (this.SharedState.Functions.IsBuiltIn(c.FullName) ||
-                (this.SharedState.TargetQirProfile && filterForQirProfile))
+                (this.SharedState.TargetQirProfile && !this.publicApi.Contains(c.FullName)))
             {
                 return c;
             }

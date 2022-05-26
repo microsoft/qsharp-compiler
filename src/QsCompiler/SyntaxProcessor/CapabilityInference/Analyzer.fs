@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference
 
+open System
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -10,24 +11,24 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type Target =
     {
+        name: string
         capability: RuntimeCapability
-        architecture: string
     }
+
+    member target.Name = target.name
 
     member target.Capability = target.capability
 
-    member target.Architecture = target.architecture
-
 module Target =
     [<CompiledName "Create">]
-    let create capability architecture =
-        { capability = capability; architecture = architecture }
+    let create name capability =
+        { name = name; capability = capability }
 
 type 'props Pattern =
     {
         Capability: RuntimeCapability
         Diagnose: Target -> QsCompilerDiagnostic option
-        Properties: 'props // TODO: This should be removed in the future.
+        Properties: 'props
     }
 
 module Pattern =
@@ -38,7 +39,7 @@ module Pattern =
             Properties = ()
         }
 
-    let max patterns =
+    let concat patterns =
         Seq.fold
             (fun capability pattern -> RuntimeCapability.merge pattern.Capability capability)
             RuntimeCapability.bottom
@@ -69,3 +70,12 @@ type LocatingTransformation(options) =
     override _.OnRelativeLocation location =
         relative <- location |> QsNullable<_>.Map (fun l -> l.Offset)
         location
+
+module ContextRef =
+    let local value (context: _ ref) =
+        let old = context.Value
+        context.Value <- value
+
+        { new IDisposable with
+            member _.Dispose() = context.Value <- old
+        }

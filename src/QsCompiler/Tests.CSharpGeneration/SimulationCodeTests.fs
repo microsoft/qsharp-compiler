@@ -100,7 +100,7 @@ namespace N1
         ]
         |> List.iter testCulture
 
-    let parse files =
+    let build refs files =
         let mutable errors: Diagnostic list = []
 
         let addError (diag: Diagnostic) =
@@ -122,6 +122,7 @@ namespace N1
                 (fun (ps: PublishDiagnosticParams) -> ps.Diagnostics |> Array.iter addError)
             )
 
+        mgr.UpdateReferencesAsync(refs) |> ignore
         files |> List.iter (addSourceFile mgr)
 
         try
@@ -138,6 +139,8 @@ namespace N1
             compilation
         with
         | e -> sprintf "compilation threw exception: \n%s" e.Message |> failwith // should never happen (all exceptions are caught by the compiler)
+
+    let parse = build References.Empty
 
     let syntaxTree =
         parse [ (Path.Combine("Circuits", "Intrinsic.qs"))
@@ -250,7 +253,7 @@ namespace N1
     let createTestContext op = globalContext.setCallable op
 
 
-    let testOneFile fileName =
+    let emitAndCompareOneFile assemblyConstants (compilation: QsCompilation) fileName =
         let fullPath = Path.GetFullPath fileName
         let escapeCSharpString (s: string) = SymbolDisplay.FormatLiteral(s, false)
 
@@ -260,15 +263,16 @@ namespace N1
             |> (fun s -> s.Replace("%%%", fullPath |> HttpUtility.JavaScriptStringEncode |> escapeCSharpString))
             |> (fun s -> s.Replace("%%", fullPath |> escapeCSharpString))
 
+        let actual = CodegenContext.Create(compilation, assemblyConstants) |> generate fullPath
+
+        Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
+
+    let testOneFile assemblyConstants fileName =
         let compilation =
             parse [ Path.Combine("Circuits", "Intrinsic.qs")
                     fileName ]
 
-        let actual =
-            CodegenContext.Create(compilation, ImmutableDictionary.Empty)
-            |> generate (Path.GetFullPath fileName)
-
-        Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
+        emitAndCompareOneFile assemblyConstants compilation fileName
 
     let testOneBody (builder: SyntaxBuilder) (expected: string list) =
         let actual = builder.BuiltStatements |> List.map (fun s -> s.ToFullString())
@@ -2236,7 +2240,7 @@ namespace N1
 
     [<Fact>]
     let ``is abstract`` () =
-        let testOne (_, op : QsCallable) expected =
+        let testOne (_, op: QsCallable) expected =
             let actual = op.IsIntrinsic
             Assert.Equal(expected, actual)
 
@@ -2445,7 +2449,7 @@ namespace N1
         |> testOneClass genCtrl3 AssemblyConstants.QuantinuumProcessor
 
         """
-    [SourceLocation("%%%", OperationFunctor.Body, 1290, 1296)]
+    [SourceLocation("%%%", OperationFunctor.Body, 1285, 1291)]
     public partial class composeImpl<__A__, __B__> : Operation<(ICallable,ICallable,__B__), QVoid>, ICallable
     {
         public composeImpl(IOperationFactory m) : base(m)
@@ -2522,7 +2526,7 @@ namespace N1
     [<Fact>]
     let ``buildOperationClass - access modifiers`` () =
         """
-[SourceLocation("%%%", OperationFunctor.Body, 1338, 1340)]
+[SourceLocation("%%%", OperationFunctor.Body, 1333, 1335)]
 internal partial class EmptyInternalFunction : Function<QVoid, QVoid>, ICallable
 {
     public EmptyInternalFunction(IOperationFactory m) : base(m)
@@ -2556,7 +2560,7 @@ internal partial class EmptyInternalFunction : Function<QVoid, QVoid>, ICallable
         |> testOneClass emptyInternalFunction null
 
         """
-[SourceLocation("%%%", OperationFunctor.Body, 1340, 1342)]
+[SourceLocation("%%%", OperationFunctor.Body, 1335, 1337)]
 internal partial class EmptyInternalOperation : Operation<QVoid, QVoid>, ICallable
 {
     public EmptyInternalOperation(IOperationFactory m) : base(m)
@@ -2675,7 +2679,7 @@ internal partial class EmptyInternalOperation : Operation<QVoid, QVoid>, ICallab
     [<Fact>]
     let ``buildOperationClass - concrete functions`` () =
         """
-    [SourceLocation("%%%", OperationFunctor.Body, 1325, 1334)]
+    [SourceLocation("%%%", OperationFunctor.Body, 1320, 1329)]
     public partial class UpdateUdtItems : Function<MyType2, MyType2>, ICallable
     {
         public UpdateUdtItems(IOperationFactorym) : base(m)
@@ -3117,14 +3121,13 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
 """
         |> testOneUdt udt_NamedTuple
 
-
     [<Fact>]
     let ``one file - EmptyElements`` () =
-        testOneFile (Path.Combine("Circuits", "EmptyElements.qs"))
+        Path.Combine("Circuits", "EmptyElements.qs") |> testOneFile ImmutableDictionary.Empty
 
     [<Fact>]
     let ``one file - UserDefinedTypes`` () =
-        testOneFile (Path.Combine("Circuits", "Types.qs"))
+        Path.Combine("Circuits", "Types.qs") |> testOneFile ImmutableDictionary.Empty
 
     [<Fact>]
     let ``find local elements `` () =
@@ -3138,24 +3141,44 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
         let local =
             syntaxTree |> findLocalElements Some (Path.GetFullPath(Path.Combine("Circuits", "Intrinsic.qs")))
 
-        Assert.Equal(1, local.Length)
-        Assert.Equal("Microsoft.Quantum.Intrinsic", (fst local.[0]))
-        let actual = (snd local.[0]) |> List.map oneName |> List.sort
+        Assert.Equal(2, local.Length)
+        Assert.Equal("Microsoft.Quantum.Core", (fst local.[0]))
+        Assert.Equal("Microsoft.Quantum.Intrinsic", (fst local.[1]))
+        let actual = (snd local.[1]) |> List.map oneName |> List.sort
         List.zip expected actual |> List.iter Assert.Equal
 
     [<Fact>]
     let ``one file - HelloWorld`` () =
-        testOneFile (Path.Combine("Circuits", "HelloWorld.qs"))
+        Path.Combine("Circuits", "HelloWorld.qs") |> testOneFile ImmutableDictionary.Empty
 
+    [<Fact>]
+    let ``one file - TargetedExe`` () =
+
+        let intrinsicsFile = Path.Combine("Circuits", "Intrinsic.qs") |> Path.GetFullPath
+        let compiledRef = parse [ intrinsicsFile ]
+        let refPath = Path.ChangeExtension(intrinsicsFile, ".dll")
+
+        let headers = [ (refPath, new References.Headers(refPath, compiledRef.Namespaces)) ]
+        let refs = new References(headers.ToImmutableDictionary(fst, snd))
+
+        let fileName = Path.Combine("Circuits", "TargetedExe.qs")
+        let compilation = build refs [ fileName ]
+
+        let assemblyConstants =
+            [
+                (AssemblyConstants.QuantumInstructionSet, "Type1")
+                (AssemblyConstants.TargetPackageAssemblies, refPath)
+            ]
+
+        fileName |> emitAndCompareOneFile (assemblyConstants.ToImmutableDictionary(fst, snd)) compilation
 
     [<Fact>]
     let ``one file - LineNumbers`` () =
-        testOneFile (Path.Combine("Circuits", "LineNumbers.qs"))
-
+        Path.Combine("Circuits", "LineNumbers.qs") |> testOneFile ImmutableDictionary.Empty
 
     [<Fact>]
     let ``one file - UnitTests`` () =
-        testOneFile (Path.Combine("Circuits", "UnitTests.qs"))
+        Path.Combine("Circuits", "UnitTests.qs") |> testOneFile ImmutableDictionary.Empty
 
     [<Fact>]
     let ``Copies mutable array in sized array`` () =

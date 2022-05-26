@@ -143,8 +143,8 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
     static member Compile(srcFolder, fileNames, ?references, ?capability, ?isExecutable) =
         let references = defaultArg references []
-        let capability = defaultArg capability "FullComputation"
         let isExecutable = defaultArg isExecutable false
+        let capabilityName = Option.bind RuntimeCapability.name capability
 
         let files =
             fileNames
@@ -154,17 +154,16 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
             |> dict
 
         let props =
-            dict [ MSBuildProperties.ResolvedRuntimeCapabilities, capability
+            dict [ MSBuildProperties.ResolvedRuntimeCapabilities, Option.toObj capabilityName
                    if isExecutable then MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe ]
             |> ProjectProperties
 
-        let mutable exceptions = []
-        use manager = new CompilationUnitManager(props, (fun e -> exceptions <- e :: exceptions))
+        let exceptions = ResizeArray()
+        use manager = new CompilationUnitManager(props, exceptions.Add)
         manager.AddOrUpdateSourceFilesAsync(CompilationUnitManager.InitializeFileManagers files) |> ignore
 
         manager.UpdateReferencesAsync(ProjectManager.LoadReferencedAssemblies references |> References)
         |> ignore
 
         let compilation = manager.Build()
-        if not <| List.isEmpty exceptions then exceptions |> List.rev |> AggregateException |> raise
-        compilation
+        if exceptions.Count > 0 then AggregateException exceptions |> raise else compilation

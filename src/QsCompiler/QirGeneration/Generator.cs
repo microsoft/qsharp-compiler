@@ -47,10 +47,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;
-            var interopSurface = compilation.InteroperableSurface(includeReferences: false);
-            var publicAPI = this.SharedState.TargetQirProfile
-                ? interopSurface.Where(this.BasicApiSurface).ToImmutableHashSet()
-                : interopSurface.ToImmutableHashSet();
+            var publicAPI = ImmutableHashSet.CreateRange(
+                this.SharedState.IsLibrary // todo: this really should be simplified
+                ? compilation.InteroperableSurface(includeReferences: false)
+                    .Where(this.SharedState.TargetQirProfile ? this.BasicApiSurface : _ => true)
+                : this.SharedState.TargetQirProfile ? compilation.EntryPoints : ImmutableHashSet<QsQualifiedName>.Empty);
 
             this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild, publicAPI);
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);

@@ -651,7 +651,11 @@ type DiagnosticItem =
                 "The variable \"{0}\" cannot be reassigned here. "
                 + "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
             | ErrorCode.UnsupportedCallableCapability ->
-                "The callable {0} requires the {1} runtime capability, which is not supported by the target {2}."
+                "The callable {0} requires runtime capabilities which are not supported by the target {1}."
+                + Environment.NewLine
+                + "Result Opacity: {2}"
+                + Environment.NewLine
+                + "Classical Capability: {3}"
             | ErrorCode.UnsupportedClassicalCapability ->
                 "This construct requires a classical runtime capability that is not supported by the target {0}: {1}."
 

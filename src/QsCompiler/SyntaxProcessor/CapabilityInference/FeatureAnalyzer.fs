@@ -35,7 +35,7 @@ let createPattern range feature =
                 | NontrivialCallee -> "callee that is not a global identifier or functor"
                 | DefaultArray -> "default-initialized array constructor"
 
-            let args = [ target.Architecture; description ]
+            let args = [ target.Name; description ]
             QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
     {

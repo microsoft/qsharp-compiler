@@ -1,4 +1,4 @@
-define internal void @Microsoft__Quantum__Testing__QIR__TestProfileTargeting() #0 {
+define void @Microsoft__Quantum__Testing__QIR__TestProfileTargeting() #0 {
 entry:
   %0 = alloca { [3 x i64], i64 }, align 8
   store { [3 x i64], i64 } { [3 x i64] [i64 1, i64 2, i64 3], i64 3 }, { [3 x i64], i64 }* %0, align 4
