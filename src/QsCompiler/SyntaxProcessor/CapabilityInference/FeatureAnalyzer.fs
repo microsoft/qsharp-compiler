@@ -52,7 +52,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Statements <-
         { new StatementTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnStatement statement =
-                let statement = base.OnStatement statement
+                transformation.OnRelativeLocation statement.Location |> ignore
                 let range = (transformation.Offset, statement.Location) ||> QsNullable.Map2(fun o l -> o + l.Range)
 
                 match statement.Statement with
@@ -64,13 +64,12 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                     if numReturns > 1 then createPattern range MultipleReturns |> patterns.Add
                 | _ -> ()
 
-                statement
+                base.OnStatement statement
         }
 
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
-                let expression = base.OnTypedExpression expression
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
                 match expression.Expression with
@@ -88,7 +87,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 | NewArray _ -> createPattern range DefaultArray |> patterns.Add
                 | _ -> ()
 
-                expression
+                base.OnTypedExpression expression
         }
 
     action transformation

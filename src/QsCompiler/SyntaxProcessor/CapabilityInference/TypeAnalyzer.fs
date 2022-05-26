@@ -161,13 +161,13 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                     use _ = local { context.Value with StringLiteralsOk = true } context
                     base.OnStatement statement
                 | QsVariableDeclaration binding when binding.Kind = MutableBinding ->
-                    let statement = base.OnStatement statement
+                    transformation.OnRelativeLocation statement.Location |> ignore
 
                     for var in statement.SymbolDeclarations.Variables do
                         let range = QsNullable<_>.Map (fun o -> o + var.Range) transformation.Offset
                         createPattern context.Value Mutable range var.Type |> Option.iter patterns.Add
 
-                    statement
+                    base.OnStatement statement
                 | _ -> base.OnStatement statement
         }
 
@@ -187,13 +187,12 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                     | RangeLiteral _ -> Some Literal
                     | _ -> None
 
-                let expression = base.OnTypedExpression expression
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
                 Option.bind (fun c -> createPattern context.Value c range expression.ResolvedType) construct
                 |> Option.iter patterns.Add
 
-                expression
+                base.OnTypedExpression expression
         }
 
     transformation.ExpressionKinds <-

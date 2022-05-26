@@ -116,7 +116,7 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Statements <-
         { new StatementTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnStatement statement =
-                let statement = base.OnStatement statement
+                transformation.OnRelativeLocation statement.Location |> ignore
 
                 match statement.Statement with
                 | QsReturnStatement _ when dependsOnResult ->
@@ -134,7 +134,7 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
 
                 | _ -> ()
 
-                statement
+                base.OnStatement statement
         }
 
     transformation.StatementKinds <-
@@ -170,8 +170,6 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
-                let expression = base.OnTypedExpression expression
-
                 if isResultEquality expression then
                     let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
@@ -181,7 +179,7 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
                     else
                         createPattern UnrestrictedEquality range |> patterns.Add
 
-                expression
+                base.OnTypedExpression expression
         }
 
     action transformation
