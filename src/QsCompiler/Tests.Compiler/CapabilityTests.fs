@@ -470,6 +470,19 @@ let private cases =
                 | FullComputation -> []
         }
         {
+            Name = "SetInNestedIf"
+            Capability = runtimeCapability ResultOpacity.controlled ClassicalCapability.integral
+            Diagnostics =
+                function
+                | BasicExecution ->
+                    [
+                        Error ErrorCode.UnsupportedResultComparison
+                        Error ErrorCode.UnsupportedClassicalCapability
+                    ]
+                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+                | _ -> []
+        }
+        {
             Name = "OverrideBmfToBqf"
             Capability = RuntimeCapability.bottom
             Diagnostics = unsupportedResult

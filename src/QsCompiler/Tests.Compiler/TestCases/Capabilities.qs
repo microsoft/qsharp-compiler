@@ -165,6 +165,15 @@ namespace Microsoft.Quantum.Testing.Capability {
         }
     }
 
+    operation SetInNestedIf(q : Qubit) : Unit {
+        if M(q) == Zero {
+            mutable z = 0;
+            if z == 0 {
+                set z = 1;
+            }
+        }
+    }
+
     function EmptyIf(result : Result) : Unit {
         if (result == Zero) { }
     }
