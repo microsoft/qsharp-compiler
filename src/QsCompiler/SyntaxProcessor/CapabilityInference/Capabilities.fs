@@ -14,7 +14,8 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 let syntaxAnalyzer callableKind =
     Analyzer.concat [ FeatureAnalyzer.analyzer
-                      ResultAnalyzer.analyzer callableKind ]
+                      ResultAnalyzer.analyzer callableKind
+                      TypeAnalyzer.analyzer ]
 
 // TODO: Remove this function as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
 let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
