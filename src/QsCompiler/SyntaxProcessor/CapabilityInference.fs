@@ -51,37 +51,41 @@ type private StatementLocationTracker(options) =
 /// Returns the required runtime capability of the pattern, given whether it occurs in an operation.
 let private patternCapability inOperation =
     function
-    | ResultEqualityInCondition _ -> if inOperation then BasicMeasurementFeedback else FullComputation
-    | ResultEqualityNotInCondition _ -> FullComputation
-    | ReturnInResultConditionedBlock _ -> FullComputation
-    | SetInResultConditionedBlock _ -> FullComputation
+    | ResultEqualityInCondition _ ->
+        if inOperation then
+            RuntimeCapability.BasicMeasurementFeedback
+        else
+            RuntimeCapability.FullComputation
+    | ResultEqualityNotInCondition _ -> RuntimeCapability.FullComputation
+    | ReturnInResultConditionedBlock _ -> RuntimeCapability.FullComputation
+    | SetInResultConditionedBlock _ -> RuntimeCapability.FullComputation
 
 /// Returns the joined capability of the sequence of capabilities, or the default capability if the sequence is empty.
-let private joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapability.Base
+let private joinCapabilities = Seq.fold RuntimeCapability.merge RuntimeCapability.bottom
 
 /// Returns a diagnostic for the pattern if the inferred capability level exceeds the execution target's capability
 /// level.
 let private patternDiagnostic context pattern =
     let error code args (range: _ QsNullable) =
-        if patternCapability context.IsInOperation pattern |> context.Capability.Implies then
+        if RuntimeCapability.subsumes context.Capability (patternCapability context.IsInOperation pattern) then
             None
         else
             range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error(code, args) |> Some
 
     let unsupported =
-        if context.Capability = BasicMeasurementFeedback then
+        if context.Capability = RuntimeCapability.BasicMeasurementFeedback then
             ErrorCode.ResultComparisonNotInOperationIf
         else
             ErrorCode.UnsupportedResultComparison
 
     match pattern with
     | ReturnInResultConditionedBlock range ->
-        if context.Capability = BasicMeasurementFeedback then
+        if context.Capability = RuntimeCapability.BasicMeasurementFeedback then
             error ErrorCode.ReturnInResultConditionedBlock [ context.ProcessorArchitecture ] range
         else
             None
     | SetInResultConditionedBlock (name, range) ->
-        if context.Capability = BasicMeasurementFeedback then
+        if context.Capability = RuntimeCapability.BasicMeasurementFeedback then
             error ErrorCode.SetInResultConditionedBlock [ name; context.ProcessorArchitecture ] range
         else
             None
@@ -281,9 +285,9 @@ and private referenceDiagnostics includeReasons context (name: QsQualifiedName, 
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
         let capability =
-            (SymbolResolution.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
+            (SymbolResolution.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.bottom
 
-        if context.Capability.Implies capability then
+        if RuntimeCapability.subsumes context.Capability capability then
             Seq.empty
         else
             let reasons =
@@ -331,7 +335,7 @@ let private specSourceCapability inOperation spec =
         scopePatterns scope
         |> Seq.map (addOffset offset >> patternCapability inOperation)
         |> joinCapabilities
-    | _ -> RuntimeCapability.Base
+    | _ -> RuntimeCapability.bottom
 
 /// Returns the required runtime capability of the callable based on its source code, ignoring callable dependencies.
 let private callableSourceCapability callable =
@@ -362,9 +366,8 @@ let private sourceCycleCapabilities (callables: ImmutableDictionary<_, _>) (grap
             |> joinCapabilities
 
         for node in cycle do
-            initialCapabilities.[node.CallableName] <-
-                joinCapabilities [ initialCapabilities.[node.CallableName]
-                                   cycleCapability ]
+            initialCapabilities[node.CallableName] <- joinCapabilities [ initialCapabilities[node.CallableName]
+                                                                         cycleCapability ]
 
     initialCapabilities
 
@@ -402,13 +405,13 @@ let private callableDependentCapability (callables: ImmutableDictionary<_, _>) (
                     [
                         initialCapabilities.TryGetValue callable.FullName
                         |> tryOption
-                        |> Option.defaultValue RuntimeCapability.Base
+                        |> Option.defaultValue RuntimeCapability.bottom
 
                         dependentCapability visited callable.FullName
                     ]
                     |> joinCapabilities
                 else
-                    RuntimeCapability.Base)
+                    RuntimeCapability.bottom)
 
     // Tries to retrieve the capability of the callable from the cache first; otherwise, computes the capability and
     // saves it in the cache.
@@ -417,14 +420,20 @@ let private callableDependentCapability (callables: ImmutableDictionary<_, _>) (
         |> tryOption
         |> Option.defaultWith (fun () ->
             let capability = callableCapability visited callable
-            cache.[callable.FullName] <- capability
+            cache[callable.FullName] <- capability
             capability)
 
     cachedCapability Set.empty
 
 /// Returns the attribute for the inferred runtime capability.
-let private toAttribute capability =
-    let args = AttributeUtils.StringArguments(string capability, "Inferred automatically by the compiler.")
+let private toAttribute (capability: RuntimeCapability) =
+    let args =
+        AttributeUtils.StringArguments(
+            string capability.ResultOpacity,
+            string capability.Classical,
+            "Inferred automatically by the compiler."
+        )
+
     AttributeUtils.BuildAttribute(BuiltIn.RequiresCapability.FullName, args)
 
 /// Infers the capability of all callables in the compilation, adding the built-in Capability attribute to each

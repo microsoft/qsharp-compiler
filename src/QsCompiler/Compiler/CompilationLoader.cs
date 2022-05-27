@@ -203,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
             /// </summary>
             internal bool ConvertClassicalControl =>
-                this.RuntimeCapability != null && this.RuntimeCapability == RuntimeCapability.BasicMeasurementFeedback;
+                this.RuntimeCapability?.ResultOpacity.Equals(ResultOpacityModule.Controlled) ?? false;
 
             /// <summary>
             /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
@@ -551,7 +551,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && this.CompilationOutput?.EntryPoints.Length == 0)
             {
-                if (this.config.RuntimeCapability == null || this.config.RuntimeCapability == RuntimeCapability.FullComputation)
+                if (this.config.RuntimeCapability?.Equals(RuntimeCapabilityModule.Top) ?? true)
                 {
                     this.LogAndUpdate(ref this.compilationStatus.Validation, WarningCode.MissingEntryPoint);
                 }
