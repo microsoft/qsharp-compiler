@@ -269,13 +269,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new InvalidOperationException("file needs to be locked in order to update global symbols");
             }
 
+            // TODO: I *THINK* THIS IS THE ONLY FUNCTION THAT WE NEED TO MODIFY TO MAKE IT WORK "WITHOUT" NAMESPACES
             compilation.EnterUpgradeableReadLock();
             try
             {
                 compilation.GlobalSymbols.RemoveSource(file.FileName);
 
                 // add all namespace declarations
-                var namespaceHeaders = file.GetNamespaceHeaderItems().ToImmutableArray();
+                var namespaceHeaders = file.GetNamespaceHeaderItems().ToImmutableArray(); // CHECK: I think this will just return an empty array in the notebook case
                 var distinctNamespaces = namespaceHeaders.Select(tuple => tuple.Item2).GroupBy(header => header.SymbolName)
                     .Select(headers => compilation.GlobalSymbols.CopyForExtension(headers.First().SymbolName, file.FileName))
                     .ToImmutableDictionary(ns => ns.Name); // making sure the namespaces are extended even if they occur multiple times in the same file
@@ -289,8 +290,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // add all type declarations
                 var typesToCompile = AddItems(
-                    file.GetTypeDeclarationHeaderItems(),
+                    file.GetTypeDeclarationHeaderItems(), // CHECK that we are getting declarations even for notebooks
                     (pos, name, decl, att, doc) =>
+                        // NOTE:
+                        // Containing parent gets the position information of all namespaces that we found above (none for notebooks)
+                        // and the position information for a type declaration.
+                        // Based on the position, it identifies which namespace the type belongs to.
+                        // Currently, the context validation (in teh non-notebook case) ensures that there is always a namespace that proceeds any of the types returned by GetTypeDeclarationHeaderItems.
+                        // After we disable that check for notebooks, this is no longer the case,
+                        // and we need to update ContainingParent to not throw.
+                        // ContainingParent is returning the Namespace; i.e. the relevant symbol table entry that the type should be added to for the purpose of type checking.
+                        // What we need to do, is to "always" (in the notebook case) create a default entry in teh symbolt able that we use for declaration that are not part of the namespace.
+                        // Then update ContainingParent to return that default entry instead of throwing.
+                        //
                         ContainingParent(pos, namespaces).TryAddType(
                             file.FileName,
                             new QsLocation(pos, name.Item2),
@@ -311,7 +323,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // add all callable declarations
                 var callablesToCompile = AddItems(
-                    file.GetCallableDeclarationHeaderItems(),
+                    file.GetCallableDeclarationHeaderItems(),  // CHECK that we are getting declarations even for notebooks
                     (pos, name, decl, att, doc) =>
                         ContainingParent(pos, namespaces).TryAddCallableDeclaration(
                             file.FileName,

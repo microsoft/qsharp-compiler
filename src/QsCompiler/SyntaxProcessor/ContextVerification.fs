@@ -42,8 +42,8 @@ let private verifyDeclaration (context: SyntaxTokenContext) =
 
     let isNamespace =
         function
-        | [] -> errMsg
-        | parent :: _ ->
+        | [] -> errMsg // TODO: MODIFY THIS IF IT'S A NOTEBOOK
+        | parent :: _ -> // TODO: ANY PARENT SHOUDL BE AN ERROR FOR NOTEBOOK
             match parent with
             | Value (NamespaceDeclaration _) -> true, [||]
             | Value (InvalidFragment) -> false, [||]
@@ -291,12 +291,12 @@ let VerifySyntaxTokenContext =
             | AdjointDeclaration _ -> verifySpecialization context
             | ControlledDeclaration _ -> verifySpecialization context
             | ControlledAdjointDeclaration _ -> verifySpecialization context
-            | OperationDeclaration _ -> verifyDeclaration context
-            | FunctionDeclaration _ -> verifyDeclaration context
-            | TypeDefinition _ -> verifyDeclaration context
-            | OpenDirective _ -> verifyOpenDirective context
-            | DeclarationAttribute _ -> verifyDeclarationAttribute context
-            | NamespaceDeclaration _ -> verifyNamespace context
+            | OperationDeclaration _ -> verifyDeclaration context // TODO: CHECK & MODIFY AS NEEDED
+            | FunctionDeclaration _ -> verifyDeclaration context // TODO: CHECK & MODIFY AS NEEDED
+            | TypeDefinition _ -> verifyDeclaration context // TODO: CHECK & MODIFY AS NEEDED
+            | OpenDirective _ -> verifyOpenDirective context // TODO: CHECK & MODIFY AS NEEDED
+            | DeclarationAttribute _ -> verifyDeclarationAttribute context // TODO: CHECK & MODIFY AS NEEDED
+            | NamespaceDeclaration _ -> verifyNamespace context // TODO: NAMESPACE ARE INVALID IN NOTEBOOKS
             | InvalidFragment _ -> false, [||]
         |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New(x, []) y))
 

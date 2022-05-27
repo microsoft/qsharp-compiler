@@ -50,6 +50,11 @@ type NamespaceManager
     /// dictionary with all declared namespaces
     /// the key is the name of the namespace
     let Namespaces =
+
+        // TODO:
+        // PREPOPULATE THE DICTIONARY OF NAMESPACE WITH A DEFAULT NAMESPACE
+        // use either the invalid namespace name (it it's accessible - I think it is), or anythign with a double underscore
+        // -> create it empty via new Namespace(name, [], [].ToLookup(...), [].ToLookup(...), [].ToLookup(...)) 
         let namespaces = Dictionary<_, _>()
         let callables = callablesInRefs.ToLookup(fun header -> header.QualifiedName.Namespace)
         let specializations = specializationsInRefs.ToLookup(fun (header, _) -> header.Parent.Namespace)

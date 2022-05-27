@@ -32,6 +32,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public string FileName { get; }
 
+        // TODO: WE NEED A HANDLE BACK TO TEH BUILDCONFIGURATION IN TEH COMPILATIONUNITMANAGER
+        // TODO: EITHER WE NEED TO UPDATE THIS HANDLE WHENEVER WE REASSIGN A FILE,
+        // OR WE SOMEHOW NEED TO DECOUPLE IT FROM THE EXACT COMPILATIONUNITMANAGER
+        // (probably the former is better)
+
         /// <summary>
         /// An arbitrary integer representing the current version number of the file, or null if no version number is available.
         /// The version number may change at any time to any other integer, including a lower number than its current value.

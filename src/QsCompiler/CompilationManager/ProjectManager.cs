@@ -85,6 +85,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? architecture
                 : "Unspecified";
 
+        // TODO: ADD A HANDLE HERE TO STORE THE BUILD CONFIGURATION (WHICH FOR NOW WOULD JUST CONTAIN THE NOTEBOOK FLAG)
+
         /// <summary>
         /// Returns true if the <see cref="MSBuildProperties.ResolvedQsharpOutputType"/> indicates that
         /// the project is an executable project opposed to a library.
@@ -818,7 +820,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public ProjectManager(
             Action<Exception>? exceptionLogger,
             Action<string, MessageType>? log = null,
-            Action<PublishDiagnosticParams>? publishDiagnostics = null,
+            Action<PublishDiagnosticParams>? publishDiagnostics = null, // ALTERNATIVELY TO MODIFYING THE PROJECT PROPERTIES, YOU COULD ALSO STORE A CALLABACK TO THE LANGUAGE SERVER MUCH LIKE THIS PUBLISH DIAGNOSTICS HERE, OR PASS A FIX BOOLEAN VALUE.
             SendTelemetryHandler? sendTelemetry = null)
         {
             this.load = new ProcessingQueue(exceptionLogger);

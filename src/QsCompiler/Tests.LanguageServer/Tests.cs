@@ -73,6 +73,16 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
+        public async Task NotebookInitAsync()
+        {
+            var initParams = TestUtils.GetInitializeParams(addNotebookConfig = true);
+            var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
+
+            // todo: test that the new internal property in teh langauge server is set to true.
+            this.server ...
+        }
+
+        [TestMethod]
         public async Task ServerCapabilitiesAsync()
         {
             // NOTE: these assertions need to be adapted when the server capabilities are changed
@@ -83,6 +93,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             // is not null above.
             initParams.Capabilities.Workspace!.ApplyEdit = true;
             var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
+
+            // todo: check that the internal in teh langauge server is set to false. 
 
             Assert.IsNotNull(initReply);
             Assert.IsNotNull(initReply.Capabilities);

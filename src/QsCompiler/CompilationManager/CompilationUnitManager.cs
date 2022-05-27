@@ -246,7 +246,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// to events indicating when queued changes in the file content manager have not yet been processed,
         /// and to events indicating that the compilation unit wide semantic verification needs to be updated.
         /// </summary>
-        private void SubscribeToFileManagerEvents(FileContentManager file)
+        private void SubscribeToFileManagerEvents(FileContentManager file) // MAYBE UPDATE HANDLE AT THE SAME TIME AS THIS IS INVOKED?
         {
             file.TimerTriggeredUpdateEvent += this.TriggerFileUpdateAsync;
             if (this.EnableVerification)
@@ -258,7 +258,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Unsubscribes from all events that <see cref="SubscribeToFileManagerEvents"/> subscribes to for <paramref name="file"/>.
         /// </summary>
-        private void UnsubscribeFromFileManagerEvents(FileContentManager file)
+        private void UnsubscribeFromFileManagerEvents(FileContentManager file) // MAYBE UPDATE HANDLE AT THE SAME TIME AS THIS IS INVOKED?
         {
             file.TimerTriggeredUpdateEvent -= this.TriggerFileUpdateAsync;
             if (this.EnableVerification)
@@ -330,7 +330,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.Processing.QueueForExecutionAsync(() =>
             {
                 this.compilationUnit.RegisterDependentLock(file.SyncRoot);
-                this.SubscribeToFileManagerEvents(file);
+                this.SubscribeToFileManagerEvents(file) // HERE IS WHERE WE NEED TO UPDATE THE HANDLE
                 this.fileContentManagers.AddOrUpdate(file.FileName, file, (k, v) => file);
                 if (updatedContent != null)
                 {
@@ -612,6 +612,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var sourceFiles = this.fileContentManagers.Values.OrderBy(m => m.FileName);
             this.changedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName == f));
             var compilation = new CompilationUnit(this.compilationUnit, sourceFiles.Select(file => file.SyncRoot));
+
+            // HERE IS WHERE WE ARE GETTING FROM DATA STRUCTURE 3 -> 4 
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
             foreach (var file in sourceFiles)
             {

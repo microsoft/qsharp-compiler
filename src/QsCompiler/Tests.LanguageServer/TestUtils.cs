@@ -43,10 +43,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return new TextDocumentIdentifier { Uri = GetUri(filename) };
         }
 
-        internal static InitializeParams GetInitializeParams()
+        internal static InitializeParams GetInitializeParams(bool addNotebookConfig = false)
         {
             return new InitializeParams
             {
+                // TODO: ADD CONFIG THAT YOU WOULD GET FROM NOTEBOOK IF addNotebookConfig IS SET.
                 ProcessId = -1,
                 InitializationOptions = null,
                 Capabilities = new ClientCapabilities

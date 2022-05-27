@@ -483,7 +483,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var fragment = tokenIndex.GetFragment();
                 var context = tokenIndex.GetContext();
 
-                var (include, verifications) = Context.VerifySyntaxTokenContext(context);
+                var (include, verifications) = Context.VerifySyntaxTokenContext(context); // TODO: need to pass the info about whether the file is in a notebook
                 foreach (var msg in verifications)
                 {
                     messages.Add(Diagnostics.Generate(file.FileName, msg, fragment.Range.Start));
