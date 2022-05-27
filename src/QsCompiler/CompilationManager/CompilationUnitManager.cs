@@ -330,7 +330,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.Processing.QueueForExecutionAsync(() =>
             {
                 this.compilationUnit.RegisterDependentLock(file.SyncRoot);
-                this.SubscribeToFileManagerEvents(file) // HERE IS WHERE WE NEED TO UPDATE THE HANDLE
+                this.SubscribeToFileManagerEvents(file); // HERE IS WHERE WE NEED TO UPDATE THE HANDLE
                 this.fileContentManagers.AddOrUpdate(file.FileName, file, (k, v) => file);
                 if (updatedContent != null)
                 {
@@ -363,7 +363,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 foreach (var file in files)
                 {
                     this.compilationUnit.RegisterDependentLock(file.SyncRoot);
-                    this.SubscribeToFileManagerEvents(file);
+                    this.SubscribeToFileManagerEvents(file); // HERE IS WHERE WE NEED TO UPDATE THE HANDLE
                     this.fileContentManagers.AddOrUpdate(file.FileName, file, (k, v) => file);
                     this.changedFiles.Add(file.FileName);
                     this.PublishDiagnostics(file.Diagnostics());
@@ -613,7 +613,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.changedFiles.RemoveAll(f => sourceFiles.Any(m => m.FileName == f));
             var compilation = new CompilationUnit(this.compilationUnit, sourceFiles.Select(file => file.SyncRoot));
 
-            // HERE IS WHERE WE ARE GETTING FROM DATA STRUCTURE 3 -> 4 
             var content = compilation.UpdateGlobalSymbolsFor(sourceFiles);
             foreach (var file in sourceFiles)
             {

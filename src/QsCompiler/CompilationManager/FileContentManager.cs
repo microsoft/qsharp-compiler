@@ -34,8 +34,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // TODO: WE NEED A HANDLE BACK TO TEH BUILDCONFIGURATION IN TEH COMPILATIONUNITMANAGER
         // TODO: EITHER WE NEED TO UPDATE THIS HANDLE WHENEVER WE REASSIGN A FILE,
-        // OR WE SOMEHOW NEED TO DECOUPLE IT FROM THE EXACT COMPILATIONUNITMANAGER
-        // (probably the former is better)
+        // OR WE SOMEHOW NEED TO DECOUPLE IT FROM THE EXACT COMPILATIONUNITMANAGER (probably the former is better),
+        // OR WE JUST MAKE IT A FIX BOOLEAN PASSED UPON CREATION THAT DOESN'T CHANGE (in which case we should not add a configuration to the ProjectProperties)
 
         /// <summary>
         /// An arbitrary integer representing the current version number of the file, or null if no version number is available.
