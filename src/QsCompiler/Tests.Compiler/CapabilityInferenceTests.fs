@@ -112,12 +112,12 @@ let ``Allows unsafe override`` () =
 
 [<Fact>]
 let ``Infers with direction recursion`` () =
-    expect (runtimeCapability ResultOpacity.controlled ClassicalCapability.empty) "BmfRecursion"
+    expect (runtimeCapability ResultOpacity.controlled ClassicalCapability.full) "BmfRecursion"
 
 [<Fact>]
 let ``Infers with indirect recursion`` () =
     [ "BmfRecursion3A"; "BmfRecursion3B"; "BmfRecursion3C" ]
-    |> List.iter (runtimeCapability ResultOpacity.controlled ClassicalCapability.empty |> expect)
+    |> List.iter (runtimeCapability ResultOpacity.controlled ClassicalCapability.full |> expect)
 
 [<Fact>]
 let ``Infers with uncalled reference`` () =

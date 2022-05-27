@@ -16,6 +16,8 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Utils
 
 module Recursion =
+    let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
+
     let callableSet (cycles: #(CallGraphNode seq) seq) =
         Seq.collect id cycles |> Seq.map (fun n -> n.CallableName) |> Set.ofSeq
 
@@ -40,6 +42,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
         graph.GetCallCycles()
         |> Seq.filter (findCallable >> Option.exists (fun c -> QsNullable.isNull c.Source.AssemblyFile) |> Seq.exists)
 
+    let recursiveCallables = Recursion.callableSet cycles
     let cycleCapabilities = Dictionary()
     let callablePatterns = Dictionary()
     let visitedCallables = HashSet()
@@ -77,6 +80,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
                 | false, _ -> ()
 
                 analyzer.DependentCapability callable.FullName |> createPattern
+                if Set.contains callable.FullName recursiveCallables then createPattern Recursion.capability
             ]
         | Null -> []
 
@@ -86,16 +90,25 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
         |> Seq.collect analyzer.Analyze
         |> Pattern.concat
 
+type CallKind =
+    | External of RuntimeCapability
+    | Recursive
+
 type Call = { Name: QsQualifiedName; Range: Range QsNullable }
 
 module CallAnalyzer =
-    let createPattern capability (name: QsQualifiedName) range =
+    let createPattern kind (name: QsQualifiedName) range =
+        let capability =
+            match kind with
+            | External capability -> capability
+            | Recursive -> Recursion.capability
+
         let diagnose (target: Target) =
             let range = QsNullable.defaultValue Range.Zero range
 
-            if RuntimeCapability.subsumes target.Capability capability then
-                None
-            else
+            match kind with
+            | _ when RuntimeCapability.subsumes target.Capability capability -> None
+            | External capability ->
                 let args =
                     [
                         name.Name
@@ -105,6 +118,9 @@ module CallAnalyzer =
                     ]
 
                 QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
+            | Recursive ->
+                let args = [ target.Name; "recursion" ]
+                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
         {
             Capability = capability
@@ -152,11 +168,15 @@ module CallAnalyzer =
             | Found callable -> SymbolResolution.TryGetRequiredCapability callable.Attributes
             | _ -> Null
 
+        let recursiveCallables = graph.GetCallCycles() |> Recursion.callableSet
+
         seq {
             for name, range in dependencies do
                 match capabilityAttribute name with
-                | Value capability -> createPattern capability name range
+                | Value capability -> createPattern (External capability) name range
                 | Null -> ()
+
+                if Set.contains name recursiveCallables then createPattern Recursive node.CallableName range
         }
 
     let deep callables graph syntaxAnalyzer : Analyzer<_, _> =
