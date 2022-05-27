@@ -12,6 +12,10 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
+let syntaxAnalyzer callableKind =
+    Analyzer.concat [ FeatureAnalyzer.analyzer
+                      ResultAnalyzer.analyzer callableKind ]
+
 // TODO: Remove this function as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
 let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
     let warningCode =
@@ -40,7 +44,7 @@ let explainCall (nsManager: NamespaceManager) graph target (call: Call) =
 
     let analyzer callableKind action =
         Seq.append
-            (ResultAnalyzer.analyzer callableKind action)
+            (syntaxAnalyzer callableKind action)
             (CallAnalyzer.shallow nsManager graph node |> Seq.map Pattern.discard)
 
     match nsManager.TryGetCallable call.Name ("", "") with
@@ -60,9 +64,7 @@ let diagnoseCall target nsManager graph pattern =
 
 [<CompiledName "Diagnose">]
 let diagnose target nsManager graph (callable: QsCallable) =
-    let patterns =
-        ResultAnalyzer.analyzer None (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
-
+    let patterns = syntaxAnalyzer None (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
     let callPatterns = CallGraphNode callable.FullName |> CallAnalyzer.shallow nsManager graph
     let callDiagnostics = Seq.collect (diagnoseCall target nsManager graph) callPatterns
     Seq.append (Seq.choose (fun p -> p.Diagnose target) patterns) callDiagnostics
@@ -82,7 +84,7 @@ let infer compilation =
     let transformation = SyntaxTreeTransformation()
     let callables = GlobalCallableResolutions compilation.Namespaces
     let graph = CallGraph compilation
-    let syntaxAnalyzer = ResultAnalyzer.analyzer None
+    let syntaxAnalyzer = syntaxAnalyzer None
 
     let analyzer =
         CallAnalyzer.deep callables graph (fun callable ->

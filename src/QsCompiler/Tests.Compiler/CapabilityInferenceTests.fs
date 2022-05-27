@@ -22,7 +22,11 @@ let private callables =
 let private expect capability name =
     let fullName = CapabilityVerificationTests.testName name
     let actual = SymbolResolution.TryGetRequiredCapability callables[fullName].Attributes
-    Assert.Contains(capability, actual)
+
+    Assert.True(
+        Seq.contains capability actual,
+        $"Capability for {name} didn't match expected value.\nExpected: %A{capability}\nActual: %A{actual}"
+    )
 
 let private runtimeCapability opacity classical =
     RuntimeCapability.withResultOpacity opacity RuntimeCapability.bottom
@@ -52,13 +56,9 @@ let ``Infers FullComputation by source code`` () =
         "ResultAsBoolNeq"
         "ResultAsBoolOp"
         "ResultAsBoolNeqOp"
-        "ResultAsBoolOpReturnIf"
-        "ResultAsBoolNeqOpReturnIf"
-        "ResultAsBoolOpReturnIfNested"
         "ResultAsBoolOpSetIf"
         "ResultAsBoolNeqOpSetIf"
         "ResultAsBoolOpElseSet"
-        "NestedResultIfReturn"
         "ElifSet"
         "ElifElifSet"
         "ElifElseSet"
@@ -68,6 +68,14 @@ let ``Infers FullComputation by source code`` () =
         "EmptyIfNeq"
     ]
     |> List.iter (runtimeCapability ResultOpacity.transparent ClassicalCapability.empty |> expect)
+
+    [
+        "ResultAsBoolOpReturnIf"
+        "ResultAsBoolNeqOpReturnIf"
+        "ResultAsBoolOpReturnIfNested"
+        "NestedResultIfReturn"
+    ]
+    |> List.iter (runtimeCapability ResultOpacity.transparent ClassicalCapability.full |> expect)
 
 [<Fact>]
 let ``Allows overriding capabilities with attribute`` () =

@@ -20,6 +20,8 @@
     <Compile Include="CapabilityInference\Analyzer.fs" />
     <Compile Include="CapabilityInference\CallAnalyzer.fsi" />
     <Compile Include="CapabilityInference\CallAnalyzer.fs" />
+    <Compile Include="CapabilityInference\FeatureAnalyzer.fsi" />
+    <Compile Include="CapabilityInference\FeatureAnalyzer.fs" />
     <Compile Include="CapabilityInference\ResultAnalyzer.fsi" />
     <Compile Include="CapabilityInference\ResultAnalyzer.fs" />
     <Compile Include="CapabilityInference\Capabilities.fsi" />
