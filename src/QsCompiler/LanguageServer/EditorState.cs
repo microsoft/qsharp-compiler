@@ -24,6 +24,16 @@ namespace Microsoft.Quantum.QsLanguageServer
     {
         private readonly ProjectManager projects;
         private readonly ProjectLoader? projectLoader;
+        private readonly BuildConfiguration buildConfiguration;
+
+        // Abstract away BuildConfiguration from the LanguageServer
+        public bool IsNotebook
+        {
+            get
+            {
+                return this.buildConfiguration.IsNotebook;
+            }
+        }
 
         public void Dispose() => this.projects.Dispose();
 
@@ -60,7 +70,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             Action<PublishDiagnosticParams>? publishDiagnostics,
             SendTelemetryHandler? sendTelemetry,
             Action<string, MessageType>? log,
-            Action<Exception>? onException)
+            Action<Exception>? onException,
+            bool isNotebook = false)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
             this.sendTelemetry = sendTelemetry;
@@ -83,8 +94,9 @@ namespace Microsoft.Quantum.QsLanguageServer
                 }
             };
 
+            this.buildConfiguration = new BuildConfiguration(isNotebook);
             this.projectLoader = projectLoader;
-            this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry);
+            this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry, this.buildConfiguration);
         }
 
         /// <summary>
@@ -160,7 +172,8 @@ namespace Microsoft.Quantum.QsLanguageServer
                 sourceFiles: sourceFiles,
                 projectReferences: projectReferences,
                 references: references,
-                buildProperties);
+                buildProperties: buildProperties,
+                buildConfiguration: this.buildConfiguration);
 
             /* telemetry data */
 
@@ -261,11 +274,13 @@ namespace Microsoft.Quantum.QsLanguageServer
                     return;
                 }
 
-                var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, ex =>
+                var onException = (Exception ex) =>
                 {
                     showError?.Invoke($"Failed to load file '{textDocument.Uri.LocalPath}'", MessageType.Error);
                     manager.LogException(ex);
-                });
+                };
+
+                var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, onException, manager.BuildConfiguration);
 
                 // Currently it is not possible to handle both the behavior of VS and VS Code for changes on disk in a manner that will never fail.
                 // To mitigate the impact of failures we choose to just log them as info.
@@ -367,7 +382,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 // To mitigate the impact of failures we choose to ignore them silently and do our best to recover.
                 if (!this.openFiles.TryGetValue(textDocument.Uri, out var file))
                 {
-                    file = CompilationUnitManager.InitializeFileManager(textDocument.Uri, fileContent, this.publish, manager.LogException);
+                    file = CompilationUnitManager.InitializeFileManager(textDocument.Uri, fileContent, this.publish, manager.LogException, manager.BuildConfiguration);
                     this.openFiles.TryAdd(textDocument.Uri, file);
                     _ = manager.AddOrUpdateSourceFileAsync(file);
                 }

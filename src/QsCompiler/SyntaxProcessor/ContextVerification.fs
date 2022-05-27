@@ -28,49 +28,51 @@ let private ApplyOrDefaultTo fallback nullable apply =
 
 /// Verifies that the number of parents in the given context is 0.
 /// Returns an array with suitable diagnostics.
-let private verifyNamespace (context: SyntaxTokenContext) =
-    if context.Parents.Length = 0 then
-        true, [||]
-    else
-        false, [| (ErrorCode.NotWithinGlobalScope |> Error, context.Range) |]
+let private verifyNamespace (context: SyntaxTokenContext) (isNotebook: bool) =
+    if isNotebook then false, [| (ErrorCode.InvalidNamespaceDeclaration |> Error, context.Range) |]
+    elif context.Parents.Length = 0 then true, [||]
+    else false, [| (ErrorCode.NotWithinGlobalScope |> Error, context.Range) |]
 
 /// Verifies that the direct parent in the given context is a namespace declaration.
 /// Indicates that the fragment is to be excluded from compilation if the direct parent is not a namespace declaration.
 /// Returns an array with suitable diagnostics.
-let private verifyDeclaration (context: SyntaxTokenContext) =
-    let errMsg = false, [| (ErrorCode.NotWithinNamespace |> Error, context.Range) |]
+let private verifyDeclaration (context: SyntaxTokenContext) (isNotebook: bool) =
+    if isNotebook then
+        true, [||]
+    else
+        let errMsg = false, [| (ErrorCode.NotWithinNamespace |> Error, context.Range) |]
 
-    let isNamespace =
-        function
-        | [] -> errMsg
-        | parent :: _ ->
-            match parent with
-            | Value (NamespaceDeclaration _) -> true, [||]
-            | Value (InvalidFragment) -> false, [||]
-            | _ -> errMsg
+        let isNamespace =
+            function
+            | [] -> errMsg
+            | parent :: _ ->
+                match parent with
+                | Value (NamespaceDeclaration _) -> true, [||]
+                | Value (InvalidFragment) -> false, [||]
+                | _ -> errMsg
 
-    context.Parents |> Array.toList |> isNamespace
+        context.Parents |> Array.toList |> isNamespace
 
 /// Verifies that either there is no preceding fragment in the given context,
 /// or the preceding fragment is another open directive.
 /// Verifies that the direct parent is a namespace declaration.
 /// Returns an array with suitable diagnostics.
-let private verifyOpenDirective context =
+let private verifyOpenDirective (context: SyntaxTokenContext) (isNotebook: bool) =
     match context.Previous with
     | Value (OpenDirective _)
-    | Null -> verifyDeclaration context
+    | Null -> verifyDeclaration context isNotebook
     | Value InvalidFragment -> false, [||]
     | _ -> false, [| (ErrorCode.MisplacedOpenDirective |> Error, context.Range) |] // open directives may only occur at the beginning of a namespace
 
 /// Verifies that the next fragment is either another attribute or a function, operation, or type declaration.
 /// Verifies that the direct parent is a namespace declaration.
 /// Returns an array with suitable diagnostics.
-let private verifyDeclarationAttribute context =
+let private verifyDeclarationAttribute (context: SyntaxTokenContext) (isNotebook: bool) =
     match context.Next with
     | Value (FunctionDeclaration _)
     | Value (OperationDeclaration _)
     | Value (TypeDefinition _)
-    | Value (DeclarationAttribute _) -> verifyDeclaration context
+    | Value (DeclarationAttribute _) -> verifyDeclaration context isNotebook
     | Value InvalidFragment -> false, [||]
     | _ -> false, [| (ErrorCode.MisplacedDeclarationAttribute |> Error, context.Range) |]
 
@@ -257,7 +259,7 @@ let private followedByApply context =
     | _ -> false, [| (ErrorCode.MissingContinuationApply |> Error, context.Range) |]
 
 
-type ContextVerification = delegate of SyntaxTokenContext -> (bool * QsCompilerDiagnostic [])
+type ContextVerification = delegate of SyntaxTokenContext * bool -> (bool * QsCompilerDiagnostic [])
 
 /// Verifies that Self is valid within the given context -
 /// i.e. that it is indeed preceded and followed by suitable fragments (if required), and that it has suitable parents.
@@ -265,7 +267,7 @@ type ContextVerification = delegate of SyntaxTokenContext -> (bool * QsCompilerD
 /// In particular, specialization declarations with invalid generators are *not* marked as to be excluded.
 /// Marked as excluded, on the other hand, are invalid or empty fragments.
 let VerifySyntaxTokenContext =
-    new ContextVerification(fun context ->
+    new ContextVerification(fun context isNotebook ->
         match context.Self with
         | Null -> false, [||]
         | Value kind ->
@@ -291,12 +293,12 @@ let VerifySyntaxTokenContext =
             | AdjointDeclaration _ -> verifySpecialization context
             | ControlledDeclaration _ -> verifySpecialization context
             | ControlledAdjointDeclaration _ -> verifySpecialization context
-            | OperationDeclaration _ -> verifyDeclaration context
-            | FunctionDeclaration _ -> verifyDeclaration context
-            | TypeDefinition _ -> verifyDeclaration context
-            | OpenDirective _ -> verifyOpenDirective context
-            | DeclarationAttribute _ -> verifyDeclarationAttribute context
-            | NamespaceDeclaration _ -> verifyNamespace context
+            | OperationDeclaration _ -> verifyDeclaration context isNotebook
+            | FunctionDeclaration _ -> verifyDeclaration context isNotebook
+            | TypeDefinition _ -> verifyDeclaration context isNotebook
+            | OpenDirective _ -> verifyOpenDirective context isNotebook
+            | DeclarationAttribute _ -> verifyDeclarationAttribute context isNotebook
+            | NamespaceDeclaration _ -> verifyNamespace context isNotebook
             | InvalidFragment _ -> false, [||]
         |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New (x, []) y))
 

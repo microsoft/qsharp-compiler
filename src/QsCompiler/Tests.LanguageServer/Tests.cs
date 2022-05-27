@@ -66,10 +66,20 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var initParams = TestUtils.GetInitializeParams();
             var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
             Assert.IsNotNull(initReply);
+            Assert.IsFalse(this.server.IsNotebook);
 
             var init = await this.rpc.InvokeWithParameterObjectAsync<JToken>(Methods.Initialize.Name, initParams);
             var initializeError = Utils.TryJTokenAs<InitializeError>(init);
             Assert.IsTrue(initializeError != null ? initializeError.Retry : false);
+        }
+
+        [TestMethod]
+        public async Task NotebookInitializationAsync()
+        {
+            var initParams = TestUtils.GetInitializeParams(addNotebookConfig: true);
+            var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
+            Assert.IsNotNull(initReply);
+            Assert.IsTrue(this.server.IsNotebook);
         }
 
         [TestMethod]
@@ -539,6 +549,72 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
 
             static string PositionToString(Position p) => $"Ln {p.Line}, Col {p.Character}";
+        }
+
+        [TestMethod]
+        public async Task NotebookSyntaxRejectedAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test18");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var programFileWithoutNamespace = Path.Combine(projDir, "Bell.qs");
+            var programFileWithNamespace = Path.Combine(projDir, "Parity.qs");
+
+            // initParams.InitializationOptions.isNotebook will be false by default
+            var initParams = TestUtils.GetInitializeParams();
+            initParams.RootUri = new Uri(projDir);
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParams1 = TestUtils.GetOpenFileParams(programFileWithoutNamespace);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams1);
+            var diagnostics1 = await this.GetFileDiagnosticsAsync(programFileWithoutNamespace);
+
+            var openParams2 = TestUtils.GetOpenFileParams(programFileWithNamespace);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
+            var diagnostics2 = await this.GetFileDiagnosticsAsync(programFileWithNamespace);
+
+            Assert.IsNotNull(diagnostics1);
+            Assert.AreEqual(3, diagnostics1!.Length);
+            for (int i = 0; i < 3; i++)
+            {
+                Assert.AreEqual("QS4002", diagnostics1[i].Code);
+                Assert.AreEqual(DiagnosticSeverity.Error, diagnostics1[i].Severity);
+            }
+
+            Assert.IsNotNull(diagnostics2);
+            Assert.AreEqual(0, diagnostics2!.Length);
+        }
+
+        [TestMethod]
+        public async Task NotebookSyntaxAcceptedAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test18");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var programFileWithoutNamespace = Path.Combine(projDir, "Bell.qs");
+            var programFileWithNamespace = Path.Combine(projDir, "Parity.qs");
+
+            var notebookGuid = Guid.NewGuid();
+            var uriWithoutNamespace = TestUtils.GenerateNotebookCellUri(notebookGuid);
+            var uriWithNamespace = TestUtils.GenerateNotebookCellUri(notebookGuid);
+
+            // Azure Notebooks leaves RootUri=null, so do the same here
+            var initParams = TestUtils.GetInitializeParams(addNotebookConfig: true);
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParams1 = TestUtils.GetOpenFileParams(programFileWithoutNamespace, uriWithoutNamespace);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams1);
+            var diagnostics1 = await this.GetFileDiagnosticsAsync(uri: uriWithoutNamespace);
+
+            var openParams2 = TestUtils.GetOpenFileParams(programFileWithNamespace, uriWithNamespace);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
+            var diagnostics2 = await this.GetFileDiagnosticsAsync(uri: uriWithNamespace);
+
+            Assert.IsNotNull(diagnostics1);
+            Assert.AreEqual(0, diagnostics1!.Length);
+
+            Assert.IsNotNull(diagnostics2);
+            Assert.AreEqual(1, diagnostics2!.Length);
+            Assert.AreEqual("QS3027", diagnostics2[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics2[0].Severity);
         }
 
         private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)

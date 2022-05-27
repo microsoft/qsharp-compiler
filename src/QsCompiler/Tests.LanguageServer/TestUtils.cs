@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json.Linq;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
 using Range = Microsoft.VisualStudio.LanguageServer.Protocol.Range;
 
@@ -43,12 +44,16 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return new TextDocumentIdentifier { Uri = GetUri(filename) };
         }
 
-        internal static InitializeParams GetInitializeParams()
+        internal static Uri GenerateNotebookCellUri(Guid notebookGuid) =>
+            new Uri("file:///" + notebookGuid.ToString() + "/" + Guid.NewGuid().ToString() + ".qs");
+
+        internal static InitializeParams GetInitializeParams(bool addNotebookConfig = false)
         {
             return new InitializeParams
             {
                 ProcessId = -1,
-                InitializationOptions = null,
+                InitializationOptions = addNotebookConfig ? JObject.FromObject(new { isNotebook = true })
+                                                          : null,
                 Capabilities = new ClientCapabilities
                 {
                     Workspace = new WorkspaceClientCapabilities(),
@@ -58,12 +63,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             };
         }
 
-        internal static DidOpenTextDocumentParams GetOpenFileParams(string filename)
+        internal static DidOpenTextDocumentParams GetOpenFileParams(string filename, Uri? uri = null)
         {
             var file = Path.GetFullPath(filename);
             var content = File.ReadAllText(file);
             return new DidOpenTextDocumentParams
-            { TextDocument = new TextDocumentItem { Uri = GetUri(filename), Text = content } };
+            { TextDocument = new TextDocumentItem { Uri = uri ?? GetUri(filename), Text = content } };
         }
 
         internal static DidCloseTextDocumentParams GetCloseFileParams(string filename)
