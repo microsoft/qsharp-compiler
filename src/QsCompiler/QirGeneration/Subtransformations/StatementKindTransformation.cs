@@ -170,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         Value size = this.SharedState.EvaluateSubexpression(reg.Item).Value;
                         if (this.SharedState.TargetQirProfile && QirValues.AsConstantInt(size) is uint count)
                         {
-                            var qubits = Enumerable.Repeat<Action<IValue>>(
+                            var qubits = Enumerable.Repeat(
                                 this.SharedState.ScopeMgr.RegisterAllocatedQubits,
                                 (int)count).Select(AllocateQubit).ToArray();
                             return this.SharedState.Values.CreateArray(qubitType, qubits, allocOnStack: true);
