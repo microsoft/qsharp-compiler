@@ -13,7 +13,8 @@ open Microsoft.Quantum.QsCompiler.Transformations
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 let syntaxAnalyzer callableKind =
-    Analyzer.concat [ FeatureAnalyzer.analyzer
+    Analyzer.concat [ ConstAnalyzer.analyzer
+                      FeatureAnalyzer.analyzer
                       ResultAnalyzer.analyzer callableKind
                       TypeAnalyzer.analyzer ]
 

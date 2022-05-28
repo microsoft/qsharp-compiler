@@ -39,7 +39,7 @@ let ``Infers BasicQuantumFunctionality by source code`` () =
     // Tuples and arrays don't support equality, so they are inferred as BasicQuantumFunctionality for now. If tuple
     // and array equality is supported, ResultTuple and ResultArray should be inferred as FullComputation instead.
     [ "ResultTuple"; "ResultArray" ]
-    |> List.iter (runtimeCapability ResultOpacity.opaque ClassicalCapability.integral |> expect)
+    |> List.iter (runtimeCapability ResultOpacity.opaque ClassicalCapability.full |> expect)
 
 [<Fact>]
 let ``Infers BasicMeasurementFeedback by source code`` () =
@@ -53,7 +53,12 @@ let ``Infers FullComputation by source code`` () =
     [ "EmptyIf"; "EmptyIfNeq" ]
     |> List.iter (runtimeCapability ResultOpacity.transparent ClassicalCapability.empty |> expect)
 
+    expect (runtimeCapability ResultOpacity.transparent ClassicalCapability.integral) "SetReusedName"
+
     [
+        "ElifSet"
+        "ElifElseSet"
+        "ElifElifSet"
         "ResultAsBool"
         "ResultAsBoolNeq"
         "ResultAsBoolOp"
@@ -61,14 +66,6 @@ let ``Infers FullComputation by source code`` () =
         "ResultAsBoolOpSetIf"
         "ResultAsBoolNeqOpSetIf"
         "ResultAsBoolOpElseSet"
-        "ElifSet"
-        "ElifElseSet"
-        "ElifElifSet"
-        "SetReusedName"
-    ]
-    |> List.iter (runtimeCapability ResultOpacity.transparent ClassicalCapability.integral |> expect)
-
-    [
         "ResultAsBoolOpReturnIf"
         "ResultAsBoolNeqOpReturnIf"
         "ResultAsBoolOpReturnIfNested"
@@ -96,12 +93,12 @@ let ``Infers two side-by-side dependencies`` () =
     expect (runtimeCapability ResultOpacity.controlled ClassicalCapability.empty) "CallBmfFullB"
 
     [ "CallBmfFullA"; "CallBmfFullC" ]
-    |> List.iter (runtimeCapability ResultOpacity.transparent ClassicalCapability.integral |> expect)
+    |> List.iter (runtimeCapability ResultOpacity.transparent ClassicalCapability.full |> expect)
 
 [<Fact>]
 let ``Infers two chained dependencies`` () =
     [ "CallFullA"; "CallFullB" ]
-    |> List.iter (runtimeCapability ResultOpacity.transparent ClassicalCapability.integral |> expect)
+    |> List.iter (runtimeCapability ResultOpacity.transparent ClassicalCapability.full |> expect)
 
     expect (runtimeCapability ResultOpacity.controlled ClassicalCapability.empty) "CallFullC"
 
@@ -116,7 +113,7 @@ let ``Allows unsafe override`` () =
     [ "CallBmfOverrideA"; "CallBmfOverrideB" ]
     |> List.iter (expect RuntimeCapability.BasicMeasurementFeedback)
 
-    expect (runtimeCapability ResultOpacity.transparent ClassicalCapability.integral) "CallBmfOverrideC"
+    expect (runtimeCapability ResultOpacity.transparent ClassicalCapability.full) "CallBmfOverrideC"
 
 [<Fact>]
 let ``Infers with direction recursion`` () =
