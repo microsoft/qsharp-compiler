@@ -126,7 +126,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             // TODO: Is there a better way to normalize the paths?
             var decompositions =
                 GetItemsByType(projectInstance, "ResolvedTargetSpecificDecompositions").Select(Path.GetFullPath);
-            var references = GetItemsByType(projectInstance, "Reference").Except(decompositions);
+
+            // FIXME: need to check failing tests...
+            var references = GetItemsByType(projectInstance, "Reference"); // .Except(decompositions);
 
             // telemetry data
             var defaultSimulator = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();
