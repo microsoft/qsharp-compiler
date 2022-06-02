@@ -76,7 +76,7 @@ module ClassicalCapability =
         Map.tryFind (CaseInsensitive name) names
 
 [<NoComparison>]
-type RuntimeCapability =
+type TargetCapability =
     {
         resultOpacity: ResultOpacity
         classical: ClassicalCapability
@@ -86,22 +86,27 @@ type RuntimeCapability =
 
     member capability.Classical = capability.classical
 
-    static member BasicExecution = { resultOpacity = Opaque; classical = Empty }
-
-    static member AdaptiveExecution = { resultOpacity = Transparent; classical = Integral }
-
-    static member BasicQuantumFunctionality = { resultOpacity = Opaque; classical = Full }
-
-    static member BasicMeasurementFeedback = { resultOpacity = Controlled; classical = Full }
-
-    static member FullComputation = { resultOpacity = Transparent; classical = Full }
-
-module RuntimeCapability =
+module TargetCapability =
     [<CompiledName "Top">]
     let top = { resultOpacity = Transparent; classical = Full }
 
     [<CompiledName "Bottom">]
     let bottom = { resultOpacity = Opaque; classical = Empty }
+
+    [<CompiledName "BasicExecution">]
+    let basicExecution = { resultOpacity = Opaque; classical = Empty }
+
+    [<CompiledName "AdaptiveExecution">]
+    let adaptiveExecution = { resultOpacity = Transparent; classical = Integral }
+
+    [<CompiledName "BasicQuantumFunctionality">]
+    let basicQuantumFunctionality = { resultOpacity = Opaque; classical = Full }
+
+    [<CompiledName "BasicMeasurementFeedback">]
+    let basicMeasurementFeedback = { resultOpacity = Controlled; classical = Full }
+
+    [<CompiledName "FullComputation">]
+    let fullComputation = { resultOpacity = Transparent; classical = Full }
 
     [<CompiledName "Subsumes">]
     let subsumes c1 c2 =
@@ -120,11 +125,11 @@ module RuntimeCapability =
         { capability with classical = classical }
 
     let names =
-        Map [ CaseInsensitive "BasicExecution", RuntimeCapability.BasicExecution
-              CaseInsensitive "AdaptiveExecution", RuntimeCapability.AdaptiveExecution
-              CaseInsensitive "BasicQuantumFunctionality", RuntimeCapability.BasicQuantumFunctionality
-              CaseInsensitive "BasicMeasurementFeedback", RuntimeCapability.BasicMeasurementFeedback
-              CaseInsensitive "FullComputation", RuntimeCapability.FullComputation ]
+        Map [ CaseInsensitive "BasicExecution", basicExecution
+              CaseInsensitive "AdaptiveExecution", adaptiveExecution
+              CaseInsensitive "BasicQuantumFunctionality", basicQuantumFunctionality
+              CaseInsensitive "BasicMeasurementFeedback", basicMeasurementFeedback
+              CaseInsensitive "FullComputation", fullComputation ]
 
     [<CompiledName "Name">]
     let name capability =
@@ -134,8 +139,8 @@ module RuntimeCapability =
     let ofName name =
         Map.tryFind (CaseInsensitive name) names
 
-type RuntimeCapability with
-    member capability.Name = RuntimeCapability.name capability |> Option.toObj
+type TargetCapability with
+    member capability.Name = TargetCapability.name capability |> Option.toObj
 
     static member Parse name =
-        RuntimeCapability.ofName name |> Option.defaultValue Unchecked.defaultof<_>
+        TargetCapability.ofName name |> Option.defaultValue Unchecked.defaultof<_>

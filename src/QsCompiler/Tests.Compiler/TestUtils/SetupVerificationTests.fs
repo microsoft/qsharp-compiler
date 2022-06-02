@@ -144,7 +144,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
     static member Compile(srcFolder, fileNames, ?references, ?capability, ?isExecutable) =
         let references = defaultArg references []
         let isExecutable = defaultArg isExecutable false
-        let capabilityName = Option.bind RuntimeCapability.name capability
+        let capabilityName = Option.bind TargetCapability.name capability
 
         let files =
             fileNames
@@ -159,7 +159,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
             |> ProjectProperties
 
         let exceptions = ResizeArray()
-        use manager = new CompilationUnitManager(props, exceptions.Add)
+        use manager = new CompilationUnitManager(props, Action<_> exceptions.Add)
         manager.AddOrUpdateSourceFilesAsync(CompilationUnitManager.InitializeFileManagers files) |> ignore
 
         manager.UpdateReferencesAsync(ProjectManager.LoadReferencedAssemblies references |> References)

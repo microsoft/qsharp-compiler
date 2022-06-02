@@ -322,8 +322,10 @@ module SymbolResolution =
         |> Seq.map targetName
         |> ImmutableHashSet.CreateRange
 
-    /// Returns the required runtime capability if the sequence of attributes contains at least one valid instance of
-    /// the RequiresCapability attribute.
+    /// <summary>
+    /// Returns the required capability if the sequence of attributes contains at least one valid instance of the
+    /// <c>RequiresCapability</c> attribute.
+    /// </summary>
     let TryGetRequiredCapability attributes =
         let getString e =
             match e.Expression with
@@ -332,8 +334,8 @@ module SymbolResolution =
 
         let builders =
             [
-                ResultOpacity.ofName >> Option.map RuntimeCapability.withResultOpacity
-                ClassicalCapability.ofName >> Option.map RuntimeCapability.withClassical
+                ResultOpacity.ofName >> Option.map TargetCapability.withResultOpacity
+                ClassicalCapability.ofName >> Option.map TargetCapability.withClassical
             ]
 
         let applyBuilder capability arg builder =
@@ -343,15 +345,15 @@ module SymbolResolution =
             match attribute.Argument.Expression with
             | ValueTuple args when args.Length = 2 ->
                 // Backwards compatibility with (Name : String, Reason : String).
-                getString args[0] |> Option.bind RuntimeCapability.ofName
+                getString args[0] |> Option.bind TargetCapability.ofName
             | ValueTuple args when args.Length = 3 ->
                 // Parse (ResultOpacity : String, Classical : String, Reason : String).
-                Seq.fold2 applyBuilder RuntimeCapability.bottom args builders |> Some
+                Seq.fold2 applyBuilder TargetCapability.bottom args builders |> Some
             | _ -> None
 
         Seq.filter BuiltIn.MarksRequiredCapability attributes
         |> Seq.choose getCapability
-        |> Seq.fold (fun acc c -> Option.fold RuntimeCapability.merge c acc |> Some) None
+        |> Seq.fold (fun acc c -> Option.fold TargetCapability.merge c acc |> Some) None
         |> QsNullable.ofOption
 
     /// Checks whether the given attributes defines a code for an instruction within the quantum instruction set that matches this callable.

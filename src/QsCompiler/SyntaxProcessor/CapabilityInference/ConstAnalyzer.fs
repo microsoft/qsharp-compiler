@@ -15,12 +15,12 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 type Context = { IsEntryPoint: bool; ConstOnly: bool }
 
 let createPattern range =
-    let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
+    let capability = TargetCapability.withClassical ClassicalCapability.full TargetCapability.bottom
 
     let diagnose (target: Target) =
         let range = QsNullable.defaultValue Range.Zero range
 
-        if RuntimeCapability.subsumes target.Capability capability then
+        if TargetCapability.subsumes target.Capability capability then
             None
         else
             let description = "conditional expression or mutable variable in a constant context"

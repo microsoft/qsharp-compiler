@@ -72,7 +72,7 @@ let scenarioCapability scenario =
             | Int -> ClassicalCapability.integral
             | _ -> ClassicalCapability.full
 
-    RuntimeCapability.withClassical classical RuntimeCapability.bottom
+    TargetCapability.withClassical classical TargetCapability.bottom
 
 let shallowTypeName (ty: ResolvedType) =
     match ty.Resolution with
@@ -94,17 +94,17 @@ let createPattern context construct range (ty: ResolvedType) =
     let scenarios = findScenarios context construct ty |> Seq.toList
 
     let capability =
-        Seq.map scenarioCapability scenarios |> Seq.fold RuntimeCapability.merge RuntimeCapability.bottom
+        Seq.map scenarioCapability scenarios |> Seq.fold TargetCapability.merge TargetCapability.bottom
 
-    if capability = RuntimeCapability.bottom then
+    if capability = TargetCapability.bottom then
         None
     else
         let diagnose (target: Target) =
-            if RuntimeCapability.subsumes target.Capability capability then
+            if TargetCapability.subsumes target.Capability capability then
                 None
             else
                 let unsupported =
-                    Seq.filter (scenarioCapability >> RuntimeCapability.subsumes target.Capability >> not) scenarios
+                    Seq.filter (scenarioCapability >> TargetCapability.subsumes target.Capability >> not) scenarios
 
                 let description = Seq.map describeScenario unsupported |> String.concat ", "
                 let args = [ target.Name; description ]

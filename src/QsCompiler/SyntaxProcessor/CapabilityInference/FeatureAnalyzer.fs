@@ -19,12 +19,12 @@ type Feature =
     | DefaultArray
 
 let createPattern range feature =
-    let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
+    let capability = TargetCapability.withClassical ClassicalCapability.full TargetCapability.bottom
 
     let diagnose (target: Target) =
         let range = QsNullable.defaultValue Range.Zero range
 
-        if RuntimeCapability.subsumes target.Capability capability then
+        if TargetCapability.subsumes target.Capability capability then
             None
         else
             let description =

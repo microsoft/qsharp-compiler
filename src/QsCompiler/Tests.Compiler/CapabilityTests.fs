@@ -20,15 +20,15 @@ type Level =
 type Case =
     {
         Name: string
-        Capability: RuntimeCapability
+        Capability: TargetCapability
         Diagnostics: Level -> DiagnosticItem list
     }
 
     override case.ToString() = case.Name
 
 let private runtimeCapability opacity classical =
-    RuntimeCapability.withResultOpacity opacity RuntimeCapability.bottom
-    |> RuntimeCapability.withClassical classical
+    TargetCapability.withResultOpacity opacity TargetCapability.bottom
+    |> TargetCapability.withClassical classical
 
 let private unsupportedResult =
     function
@@ -74,7 +74,7 @@ let private cases =
             ] do
             {
                 Name = name
-                Capability = RuntimeCapability.bottom
+                Capability = TargetCapability.bottom
                 Diagnostics = fun _ -> []
             }
 
@@ -362,7 +362,7 @@ let private cases =
             ] do
             {
                 Name = name
-                Capability = RuntimeCapability.bottom
+                Capability = TargetCapability.bottom
                 Diagnostics =
                     function
                     | BasicExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
@@ -379,7 +379,7 @@ let private cases =
             ] do
             {
                 Name = name
-                Capability = RuntimeCapability.bottom
+                Capability = TargetCapability.bottom
                 Diagnostics =
                     function
                     | BasicExecution
@@ -392,7 +392,7 @@ let private cases =
         for name in [ "EntryPointParamBool"; "EntryPointParamInt" ] do
             {
                 Name = name
-                Capability = RuntimeCapability.bottom
+                Capability = TargetCapability.bottom
                 Diagnostics = unsupportedClassical 1 0
             }
 
@@ -484,7 +484,7 @@ let private cases =
         }
         {
             Name = "OverrideBmfToBqf"
-            Capability = RuntimeCapability.bottom
+            Capability = TargetCapability.bottom
             Diagnostics = unsupportedResult
         }
         {
@@ -575,12 +575,12 @@ let private cases =
         }
         {
             Name = "InvalidCallable"
-            Capability = RuntimeCapability.bottom
+            Capability = TargetCapability.bottom
             Diagnostics = fun _ -> [ Error ErrorCode.InvalidUseOfUnderscorePattern ]
         }
         {
             Name = "NotFoundCallable"
-            Capability = RuntimeCapability.bottom
+            Capability = TargetCapability.bottom
             Diagnostics = fun _ -> [ Error ErrorCode.UnknownIdentifier ]
         }
         {
@@ -619,7 +619,7 @@ let private cases =
         }
         {
             Name = "EntryPointReturnUnit"
-            Capability = RuntimeCapability.bottom
+            Capability = TargetCapability.bottom
             Diagnostics =
                 function
                 | BasicQuantumFunctionality
@@ -628,7 +628,7 @@ let private cases =
         }
         {
             Name = "EntryPointParamDouble"
-            Capability = RuntimeCapability.bottom
+            Capability = TargetCapability.bottom
             Diagnostics = unsupportedClassical 1 1
         }
     ]
@@ -643,16 +643,16 @@ let private compile capability isExecutable =
     CompilerTests.Compile("TestCases", files, references, capability, isExecutable)
 
 let private inferences =
-    let compilation = compile RuntimeCapability.top false
+    let compilation = compile TargetCapability.top false
     GlobalCallableResolutions (Capabilities.infer compilation.BuiltCompilation).Namespaces
 
 let levels =
     [
-        BasicExecution, compile RuntimeCapability.BasicExecution true |> CompilerTests
-        AdaptiveExecution, compile RuntimeCapability.AdaptiveExecution true |> CompilerTests
-        BasicQuantumFunctionality, compile RuntimeCapability.BasicQuantumFunctionality true |> CompilerTests
-        BasicMeasurementFeedback, compile RuntimeCapability.BasicMeasurementFeedback true |> CompilerTests
-        FullComputation, compile RuntimeCapability.FullComputation true |> CompilerTests
+        BasicExecution, compile TargetCapability.basicExecution true |> CompilerTests
+        AdaptiveExecution, compile TargetCapability.adaptiveExecution true |> CompilerTests
+        BasicQuantumFunctionality, compile TargetCapability.basicQuantumFunctionality true |> CompilerTests
+        BasicMeasurementFeedback, compile TargetCapability.basicMeasurementFeedback true |> CompilerTests
+        FullComputation, compile TargetCapability.fullComputation true |> CompilerTests
     ]
 
 [<Theory>]
