@@ -138,7 +138,6 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
-                let expression = base.OnTypedExpression expression
                 let range = QsNullable.Map2(+) transformation.Offset expression.Range
 
                 match expression.Expression with
@@ -148,7 +147,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                     if context.Value.ConstOnly && isMutable then createPattern range |> patterns.Add
                 | _ -> ()
 
-                expression
+                base.OnTypedExpression expression
         }
 
     transformation.ExpressionKinds <-

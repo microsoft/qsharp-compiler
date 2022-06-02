@@ -122,7 +122,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             // project item groups
             var sourceFiles = GetItemsByType(projectInstance, "QSharpCompile");
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
-            var references = GetItemsByType(projectInstance, "Reference");
+
+            // TODO: Is there a better way to normalize the paths?
+            var decompositions =
+                GetItemsByType(projectInstance, "ResolvedTargetSpecificDecompositions").Select(Path.GetFullPath);
+            var references = GetItemsByType(projectInstance, "Reference").Except(decompositions);
 
             // telemetry data
             var defaultSimulator = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();

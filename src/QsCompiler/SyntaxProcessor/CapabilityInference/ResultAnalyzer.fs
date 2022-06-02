@@ -28,8 +28,8 @@ type ResultDependency =
 type Context =
     {
         CallableKind: QsCallableKind
-        InCondition: bool
         FrozenVars: string Set
+        InCondition: bool
     }
 
 let createPattern kind range =
@@ -92,18 +92,22 @@ let isResultEquality expression =
     | NEQ (lhs, rhs) -> binaryType lhs rhs = Result
     | _ -> false
 
+let freezeContext dependsOnResult (block: QsPositionedBlock) (context: _ ref) =
+    let knownVars = Seq.map (fun v -> v.VariableName) block.Body.KnownSymbols.Variables |> Set.ofSeq
+    let frozenVars = if dependsOnResult then knownVars else context.Value.FrozenVars
+    local { context.Value with FrozenVars = frozenVars } context
+
 // TODO: Remove the callableKind parameter as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
 let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
-    let mutable dependsOnResult = false
     let patterns = ResizeArray()
 
     let context =
         ref
             {
                 CallableKind = Option.defaultValue Function callableKind
-                InCondition = false
                 FrozenVars = Set.empty
+                InCondition = false
             }
 
     transformation.Namespaces <-
@@ -116,13 +120,12 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Statements <-
         { new StatementTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnStatement statement =
-                let statement = base.OnStatement statement
+                transformation.OnRelativeLocation statement.Location |> ignore
 
                 match statement.Statement with
-                | QsReturnStatement _ when dependsOnResult ->
+                | QsReturnStatement _ when Set.isEmpty context.Value.FrozenVars |> not ->
                     let range = (transformation.Offset, statement.Location) ||> QsNullable.Map2(fun o l -> o + l.Range)
                     createPattern ReturnInDependentBranch range |> patterns.Add
-
                 | QsValueUpdate update ->
                     update.Lhs.ExtractAll (fun e ->
                         match e.Expression with
@@ -131,57 +134,52 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
                             [ createPattern (SetInDependentBranch name) range ]
                         | _ -> [])
                     |> patterns.AddRange
-
                 | _ -> ()
 
-                statement
+                base.OnStatement statement
         }
 
     transformation.StatementKinds <-
         { new StatementKindTransformation(transformation, TransformationOptions.NoRebuild) with
-            override _.OnConditionalStatement statement =
-                let oldDependsOnResult = dependsOnResult
-                let kind = base.OnConditionalStatement statement
-                dependsOnResult <- oldDependsOnResult
-                kind
+            override _.OnConditionalStatement conditional =
+                let mutable dependsOnResult = false
+
+                for condition, block in conditional.ConditionalBlocks do
+                    dependsOnResult <- dependsOnResult || condition.Exists isResultEquality
+                    use _ = freezeContext dependsOnResult block context
+                    transformation.StatementKinds.OnPositionedBlock(Value condition, block) |> ignore
+
+                for block in conditional.Default do
+                    use _ = freezeContext dependsOnResult block context
+                    transformation.StatementKinds.OnPositionedBlock(Null, block) |> ignore
+
+                QsConditionalStatement conditional
 
             override _.OnPositionedBlock(condition, block) =
-                let location = transformation.OnRelativeLocation block.Location
+                transformation.OnRelativeLocation block.Location |> ignore
 
-                let condition =
-                    QsNullable<_>.Map
-                        (fun c ->
-                            use _ = local { context.Value with InCondition = true } context
-                            transformation.Expressions.OnTypedExpression c) condition
+                for c in condition do
+                    use _ = local { context.Value with InCondition = true } context
+                    transformation.Expressions.OnTypedExpression c |> ignore
 
-                let knownVars = Seq.map (fun v -> v.VariableName) block.Body.KnownSymbols.Variables |> Set.ofSeq
-                let frozenVars = if dependsOnResult then knownVars else context.Value.FrozenVars
-                use _ = local { context.Value with FrozenVars = frozenVars } context
-                let body = transformation.Statements.OnScope block.Body
-
-                condition,
-                {
-                    Body = body
-                    Location = location
-                    Comments = block.Comments
-                }
+                transformation.Statements.OnScope block.Body |> ignore
+                condition, block
         }
 
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
-                let expression = base.OnTypedExpression expression
-
                 if isResultEquality expression then
+                    let dependency =
+                        if context.Value.CallableKind = Operation && context.Value.InCondition then
+                            ConditionalEqualityInOperation
+                        else
+                            UnrestrictedEquality
+
                     let range = QsNullable.Map2(+) transformation.Offset expression.Range
+                    createPattern dependency range |> patterns.Add
 
-                    if context.Value.CallableKind = Operation && context.Value.InCondition then
-                        dependsOnResult <- true
-                        createPattern ConditionalEqualityInOperation range |> patterns.Add
-                    else
-                        createPattern UnrestrictedEquality range |> patterns.Add
-
-                expression
+                base.OnTypedExpression expression
         }
 
     action transformation
