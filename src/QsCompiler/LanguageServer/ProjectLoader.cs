@@ -241,7 +241,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             return LoadAndApply(projectFile, properties, project =>
             {
                 var instance = project.CreateProjectInstance();
-                succeed = instance.Build("ResolveTargetPackage", loggers);
+
+                // FIXME: should be target ResolveTargetPackage instead.
+                succeed = instance.Build("ResolveAssemblyReferencesDesignTime", loggers);
                 if (!succeed)
                 {
                     this.Log($"Failed to resolve assembly references for project '{projectFile}'.", MessageType.Error);
