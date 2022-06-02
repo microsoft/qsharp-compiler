@@ -282,6 +282,12 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     this.clientVersion = null;
                 }
+
+                if (options.TryGetValue("isNotebook", out var isNotebook)
+                        && isNotebook.Type == JTokenType.Boolean)
+                {
+                    this.editorState.IsNotebook = (bool)isNotebook;
+                }
             }
 
             bool supportsCompletion = !this.ClientNameIs("VisualStudio") || this.ClientVersionIsAtLeast(new Version(16, 3));

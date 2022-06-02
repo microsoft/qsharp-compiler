@@ -20,6 +20,31 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     public delegate void SendTelemetryHandler(string eventName, Dictionary<string, string?> properties, Dictionary<string, int> measures);
 
     /// <summary>
+    /// Holds compilation configuration -- currently, just whether this is a notebook.
+    /// Warning: properties of an instance may change as we get more information from the client.
+    /// </summary>
+    public class BuildConfiguration
+    {
+        /// <summary>
+        /// Indicates whether code is compiled for a notebook (Azure Notebook, Jupyter Notebook, etc.).
+        /// This means inferring an implicit namespace{} block (and banning explicit namespace{}
+        /// blocks), special treatment of use directives, and ignoring magic commands (e.g. %simulate)
+        /// </summary>
+        public bool IsNotebook { get; set; }
+
+        public BuildConfiguration(bool isNotebook)
+        {
+            this.IsNotebook = isNotebook;
+        }
+
+        public static BuildConfiguration DefaultConfiguration()
+        {
+            // By default, assume we are not in a notebook until told otherwise
+            return new BuildConfiguration(isNotebook: false);
+        }
+    }
+
+    /// <summary>
     /// Represents project properties defined in the project file.
     /// </summary>
     public class ProjectProperties
@@ -124,6 +149,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         internal ProjectProperties Properties { get; }
 
+        public BuildConfiguration BuildConfiguration { get; }
+
         public ImmutableArray<string> SourceFiles { get; }
 
         public ImmutableArray<string> ProjectReferences { get; }
@@ -144,12 +171,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<string> sourceFiles,
             IEnumerable<string> projectReferences,
             IEnumerable<string> references,
-            IDictionary<string, string?> buildProperties)
+            IDictionary<string, string?> buildProperties,
+            BuildConfiguration? buildConfiguration = null)
         {
             this.Properties = new ProjectProperties(buildProperties);
             this.SourceFiles = sourceFiles.ToImmutableArray();
             this.ProjectReferences = projectReferences.ToImmutableArray();
             this.References = references.ToImmutableArray();
+            this.BuildConfiguration = buildConfiguration ?? BuildConfiguration.DefaultConfiguration();
+        }
+
+        private static IDictionary<string, string?> CreateBuildProperties(
+            string version,
+            string outputPath,
+            RuntimeCapability runtimeCapability,
+            bool isExecutable,
+            string processorArchitecture,
+            bool loadTestNames)
+        {
+            var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
+            buildProperties.Add(MSBuildProperties.QsharpLangVersion, version);
+            buildProperties.Add(MSBuildProperties.TargetPath, outputPath);
+            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, runtimeCapability.Name);
+            buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, isExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
+            buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
+            buildProperties.Add(MSBuildProperties.ExposeReferencesViaTestNames, loadTestNames ? "true" : "false");
+            return buildProperties;
         }
 
         [Obsolete]
@@ -163,19 +210,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<string> sourceFiles,
             IEnumerable<string> projectReferences,
             IEnumerable<string> references)
+                : this(
+                    sourceFiles,
+                    projectReferences,
+                    references,
+                    ProjectInformation.CreateBuildProperties(
+                        version,
+                        outputPath,
+                        runtimeCapability,
+                        isExecutable,
+                        processorArchitecture,
+                        loadTestNames))
         {
-            var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
-            buildProperties.Add(MSBuildProperties.QsharpLangVersion, version);
-            buildProperties.Add(MSBuildProperties.TargetPath, outputPath);
-            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, runtimeCapability.Name);
-            buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, isExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
-            buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
-            buildProperties.Add(MSBuildProperties.ExposeReferencesViaTestNames, loadTestNames ? "true" : "false");
-
-            this.Properties = new ProjectProperties(buildProperties);
-            this.SourceFiles = sourceFiles.ToImmutableArray();
-            this.ProjectReferences = projectReferences.ToImmutableArray();
-            this.References = references.ToImmutableArray();
         }
     }
 
@@ -188,6 +234,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             public Uri? OutputPath { get; private set; }
 
             public ProjectProperties Properties { get; private set; }
+
+            public BuildConfiguration BuildConfiguration { get; private set; }
 
             private bool isLoaded;
 
@@ -273,6 +321,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 this.ProjectFile = projectFile;
                 this.Properties = projectInfo.Properties;
+                this.BuildConfiguration = projectInfo.BuildConfiguration;
                 this.SetProjectInformation(projectInfo);
 
                 var version = projectInfo.Properties.LanguageVersion;
@@ -304,6 +353,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             private void SetProjectInformation(ProjectInformation projectInfo)
             {
                 this.Properties = projectInfo.Properties;
+                this.BuildConfiguration = projectInfo.BuildConfiguration;
                 this.isLoaded = false;
 
                 var outputPath = projectInfo.Properties.DllOutputPath;
@@ -606,7 +656,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var newFilesToAdd = CompilationUnitManager.InitializeFileManagers(
                     addToManager.Except(knownFilesToAdd.Select(m => m.Uri)).ToImmutableDictionary(uri => uri, uri => loaded[uri]),
                     this.Manager.PublishDiagnostics,
-                    this.Manager.LogException);
+                    this.Manager.LogException,
+                    this.BuildConfiguration);
 
                 var removal = this.Manager.TryRemoveSourceFilesAsync(removeFromManager, suppressVerification: true);
                 removeFiles?.Invoke(removeFromManager, removal);
@@ -715,7 +766,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     }
                     else
                     {
-                        var file = CompilationUnitManager.InitializeFileManager(sourceFile, content, this.Manager.PublishDiagnostics, this.Manager.LogException);
+                        var file = CompilationUnitManager.InitializeFileManager(sourceFile, content, this.Manager.PublishDiagnostics, this.Manager.LogException, this.BuildConfiguration);
                         this.Manager.AddOrUpdateSourceFileAsync(file);
                     }
                 });
@@ -818,11 +869,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Exception>? exceptionLogger,
             Action<string, MessageType>? log = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            SendTelemetryHandler? sendTelemetry = null)
+            SendTelemetryHandler? sendTelemetry = null,
+            BuildConfiguration? buildConfiguration = null)
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
-            this.defaultManager = new CompilationUnitManager(ProjectProperties.Empty, exceptionLogger, log, publishDiagnostics, syntaxCheckOnly: true);
+            this.defaultManager = new CompilationUnitManager(ProjectProperties.Empty, exceptionLogger, log, publishDiagnostics, syntaxCheckOnly: true, buildConfiguration);
             this.publishDiagnostics = publishDiagnostics;
             this.logException = exceptionLogger;
             this.log = log;

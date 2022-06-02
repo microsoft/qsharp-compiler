@@ -31,6 +31,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         internal bool EnableVerification { get; private set; }
 
+        public BuildConfiguration BuildConfiguration { get; }
+
         internal ProjectProperties BuildProperties => this.compilationUnit.BuildProperties;
 
         /// <summary>
@@ -86,7 +88,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Exception>? exceptionLogger = null,
             Action<string, MessageType>? log = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            bool syntaxCheckOnly = false)
+            bool syntaxCheckOnly = false,
+            BuildConfiguration? buildConfiguration = null)
         {
             this.EnableVerification = !syntaxCheckOnly;
             this.compilationUnit = new CompilationUnit(buildProperties);
@@ -95,11 +98,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
             this.Log = log ?? ((_, __) => { });
             this.LogException = exceptionLogger ?? Console.Error.WriteLine;
+            this.BuildConfiguration = buildConfiguration ?? BuildConfiguration.DefaultConfiguration();
             this.Processing = new ProcessingQueue(this.LogException);
             this.waitForTypeCheck = new CancellationTokenSource();
         }
 
-        [Obsolete("Use CompilationUnitManager(ProjectProperties, Action{Exception}?, Action{PublishDiagnosticParams}?, bool) instead.")]
+        [Obsolete("Use CompilationUnitManager(ProjectProperties, Action{Exception}?, Action{PublishDiagnosticParams}?, BuildConfiguration?, bool) instead.")]
         public CompilationUnitManager(
             Action<Exception>? exceptionLogger = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
@@ -278,9 +282,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Uri uri,
             string fileContent,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            Action<Exception>? onException = null)
+            Action<Exception>? onException = null,
+            BuildConfiguration? buildConfiguration = null)
         {
-            var file = new FileContentManager(uri, GetFileId(uri));
+            var file = new FileContentManager(uri, GetFileId(uri), buildConfiguration);
             try
             {
                 file.ReplaceFileContent(fileContent);
@@ -304,7 +309,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static ImmutableHashSet<FileContentManager> InitializeFileManagers(
             IDictionary<Uri, string> files,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            Action<Exception>? onException = null)
+            Action<Exception>? onException = null,
+            BuildConfiguration? buildConfiguration = null)
         {
             if (files.Any(item => !item.Key.IsAbsoluteUri || !item.Key.IsFile))
             {
@@ -314,7 +320,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return files.AsParallel()
                 .WithDegreeOfParallelism(Environment.ProcessorCount > 1 ? Environment.ProcessorCount - 1 : Environment.ProcessorCount)
                 .WithExecutionMode(ParallelExecutionMode.ForceParallelism) // we are fine with a slower performance if the work is trivial
-                .Select(entry => InitializeFileManager(entry.Key, entry.Value, publishDiagnostics, onException))
+                .Select(entry => InitializeFileManager(entry.Key, entry.Value, publishDiagnostics, onException, buildConfiguration))
                 .ToImmutableHashSet();
         }
 

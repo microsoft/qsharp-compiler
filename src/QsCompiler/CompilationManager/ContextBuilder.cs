@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -483,7 +484,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var fragment = tokenIndex.GetFragment();
                 var context = tokenIndex.GetContext();
 
-                var (include, verifications) = Context.VerifySyntaxTokenContext(context);
+                var (include, verifications) = Context.VerifySyntaxTokenContext(context, file.BuildConfiguration.IsNotebook);
                 foreach (var msg in verifications)
                 {
                     messages.Add(Diagnostics.Generate(file.FileName, msg, fragment.Range.Start));
@@ -534,8 +535,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var callables = file.GetCallableDeclarations().Select(tuple => // these are sorted according to their line number
             {
                 var ns = file.TryGetNamespaceAt(tuple.Item2.Start);
-                QsCompilerError.Verify(ns != null, "namespace for callable declaration should not be null"); // invalid namespace names default to an unknown namespace name, but remain included in the compilation
-                return (tuple.Item2.Start, new QsQualifiedName(ns, tuple.Item1));
+
+                // invalid namespace names default to an unknown namespace name, but remain included in the compilation
+                QsCompilerError.Verify(
+                    file.BuildConfiguration.IsNotebook == (ns == null),
+                    "namespace for callable declaration should be null if and only if this is a notebook");
+                return (tuple.Item2.Start, new QsQualifiedName(ns ?? InternalUse.NotebookNamespace, tuple.Item1));
             }).ToList();
 
             // NOTE: The range of modifications that has to trigger an update of the syntax tree for a callable
