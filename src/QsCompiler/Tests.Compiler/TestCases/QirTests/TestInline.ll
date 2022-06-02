@@ -1,8 +1,8 @@
 define internal { double, double }* @Microsoft__Quantum__Testing__QIR__TestInline__body() {
 entry:
+  %y = alloca double, align 8
   %x = alloca double, align 8
   store double 0.000000e+00, double* %x, align 8
-  %y = alloca double, align 8
   store double 0.000000e+00, double* %y, align 8
   %q = call %Qubit* @__quantum__rt__qubit_allocate()
   %0 = call { double, %Qubit* }* @Microsoft__Quantum__Testing__QIR__AsTuple__body(%Qubit* %q)

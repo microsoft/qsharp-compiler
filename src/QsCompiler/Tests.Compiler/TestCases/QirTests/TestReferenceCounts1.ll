@@ -1,5 +1,6 @@
 define internal void @Microsoft__Quantum__Testing__QIR__TestRefCountsForItemUpdate__body(i1 %cond) {
 entry:
+  %ops = alloca %Array*, align 8
   %0 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 0)
   %1 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 5)
   %2 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 0)
@@ -22,7 +23,6 @@ entry:
   call void @__quantum__rt__array_update_reference_count(%Array* %0, i32 1)
   call void @__quantum__rt__array_update_reference_count(%Array* %0, i32 1)
   call void @__quantum__rt__array_update_reference_count(%Array* %0, i32 1)
-  %ops = alloca %Array*, align 8
   store %Array* %1, %Array** %ops, align 8
   br label %header__1
 

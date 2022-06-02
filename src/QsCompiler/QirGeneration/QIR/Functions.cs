@@ -293,7 +293,7 @@ namespace Microsoft.Quantum.QIR
             var value = arg.Value;
             if (!value.NativeType.IsPointer)
             {
-                var pointer = this.sharedState.CurrentBuilder.Alloca(value.NativeType);
+                var pointer = this.sharedState.Allocate(value.NativeType);
                 this.sharedState.CurrentBuilder.Store(value, pointer);
                 value = pointer;
             }
@@ -308,7 +308,7 @@ namespace Microsoft.Quantum.QIR
         {
             if (!arg1.NativeType.IsPointer)
             {
-                var pointer = this.sharedState.CurrentBuilder.Alloca(arg1.NativeType);
+                var pointer = this.sharedState.Allocate(arg1.NativeType);
                 this.sharedState.CurrentBuilder.Store(arg1, pointer);
                 arg1 = pointer;
             }

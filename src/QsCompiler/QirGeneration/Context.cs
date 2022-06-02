@@ -1646,6 +1646,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         #region Block, scope, and value management
 
+        internal Alloca Allocate(ITypeRef type)
+        {
+            var entryBuilder = new InstructionBuilder(this.CurrentFunction!.EntryBlock!);
+            if (this.CurrentFunction.EntryBlock!.FirstInstruction == null)
+            {
+                entryBuilder.PositionAtEnd(this.CurrentFunction.EntryBlock);
+            }
+            else
+            {
+                entryBuilder.PositionBefore(this.CurrentFunction.EntryBlock!.FirstInstruction);
+            }
+
+            return entryBuilder.Alloca(type);
+        }
+
         /// <summary>
         /// Makes the given basic block current, creates a new builder for it, and makes that builder current.
         /// This method does not check to make sure that the block isn't already current.

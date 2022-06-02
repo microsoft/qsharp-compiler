@@ -1,9 +1,9 @@
 define internal %Array* @Microsoft__Quantum__Testing__QIR__TestRepeat2__body(%Qubit* %q) {
 entry:
+  %res = alloca %Array*, align 8
   %iter = alloca i64, align 8
   store i64 1, i64* %iter, align 4
   %0 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 0)
-  %res = alloca %Array*, align 8
   store %Array* %0, %Array** %res, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %0, i32 1)
   br label %repeat__1

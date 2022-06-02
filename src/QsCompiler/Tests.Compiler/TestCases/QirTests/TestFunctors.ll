@@ -1,5 +1,6 @@
 define internal i64 @Microsoft__Quantum__Testing__QIR__TestControlled__body() {
 entry:
+  %error_code = alloca i64, align 8
   %0 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Qop__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   %1 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i64 }* getelementptr ({ %Callable*, i64 }, { %Callable*, i64 }* null, i32 1) to i64))
   %2 = bitcast %Tuple* %1 to { %Callable*, i64 }*
@@ -31,7 +32,6 @@ entry:
   call void @__quantum__rt__callable_make_controlled(%Callable* %ctl_ctl_qop)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %ctl_ctl_qop, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_ctl_qop, i32 1)
-  %error_code = alloca i64, align 8
   store i64 0, i64* %error_code, align 4
   %q1 = call %Qubit* @__quantum__rt__qubit_allocate()
   %q2 = call %Qubit* @__quantum__rt__qubit_allocate()

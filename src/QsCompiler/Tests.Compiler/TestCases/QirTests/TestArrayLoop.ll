@@ -1,5 +1,7 @@
 define internal { i64, i64 }* @Microsoft__Quantum__Testing__QIR__TestArrayLoop__body(%Array* %a) {
 entry:
+  %y = alloca i64, align 8
+  %x = alloca i64, align 8
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %a)
   %1 = sub i64 %0, 1
   br label %header__1
@@ -23,9 +25,7 @@ exiting__1:                                       ; preds = %body__1
 
 exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 1)
-  %x = alloca i64, align 8
   store i64 0, i64* %x, align 4
-  %y = alloca i64, align 8
   store i64 0, i64* %y, align 4
   %9 = sub i64 %0, 1
   br label %header__2

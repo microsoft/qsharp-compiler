@@ -1,7 +1,8 @@
 define internal %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate3__body(%Array* %y, %String* %b) {
 entry:
-  call void @__quantum__rt__array_update_alias_count(%Array* %y, i32 1)
+  %arr = alloca %Array*, align 8
   %x = alloca %Array*, align 8
+  call void @__quantum__rt__array_update_alias_count(%Array* %y, i32 1)
   store %Array* %y, %Array** %x, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %y, i32 1)
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %y)
@@ -93,7 +94,6 @@ exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %17, i32 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %17, i32 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %17, i32 1)
-  %arr = alloca %Array*, align 8
   store %Array* %21, %Array** %arr, align 8
   br label %header__2
 

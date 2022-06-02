@@ -147,7 +147,23 @@ namespace Microsoft.Quantum.Testing.QIR {
         let b = CheckInlining1(a);
         DumpMachine((a, b));
 
-        //mutable foo = m1 == m2 ? sum | 0; // TODO: check branching
+        mutable foo = m1 == m2 ? sum | 0;
+        if (m1 == Zero)
+        {
+            mutable bar = 0;
+            for (anc in qs) {
+                set bar += M(anc) == One ? 1 | 0;
+            }
+            set foo = bar;
+        }
+        else
+        {
+            mutable bar = 0;
+            for (anc in qs) {
+                set bar += M(anc) == Zero ? 1 | 0;
+            }
+            set foo = bar;
+        }
 
         return (sum, rand);
     }
