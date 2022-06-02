@@ -40,13 +40,13 @@ let createPattern kind range =
         | ReturnInDependentBranch
         | SetInDependentBranch _ -> ResultOpacity.transparent
 
-    let capability = RuntimeCapability.withResultOpacity opacity RuntimeCapability.bottom
+    let capability = TargetCapability.withResultOpacity opacity TargetCapability.bottom
 
     let diagnose (target: Target) =
         let range = QsNullable.defaultValue Range.Zero range
 
         match kind with
-        | _ when RuntimeCapability.subsumes target.Capability capability -> None
+        | _ when TargetCapability.subsumes target.Capability capability -> None
         | ConditionalEqualityInOperation
         | UnrestrictedEquality ->
             let code =

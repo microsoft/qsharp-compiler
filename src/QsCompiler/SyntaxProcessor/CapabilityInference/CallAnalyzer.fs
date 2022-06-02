@@ -16,7 +16,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Utils
 
 module Recursion =
-    let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
+    let capability = TargetCapability.withClassical ClassicalCapability.full TargetCapability.bottom
 
     let callableSet (cycles: #(CallGraphNode seq) seq) =
         Seq.collect id cycles |> Seq.map (fun n -> n.CallableName) |> Set.ofSeq
@@ -53,7 +53,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
 
             for node in cycle do
                 cycleCapabilities[node.CallableName] <- tryOption (cycleCapabilities.TryGetValue node.CallableName)
-                                                        |> Option.fold RuntimeCapability.merge capability
+                                                        |> Option.fold TargetCapability.merge capability
 
     member analyzer.Analyze(callable: QsCallable) =
         let storePatterns () =
@@ -91,7 +91,7 @@ type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: Call
         |> Pattern.concat
 
 type CallKind =
-    | External of RuntimeCapability
+    | External of TargetCapability
     | Recursive
 
 type Call = { Name: QsQualifiedName; Range: Range QsNullable }
@@ -107,7 +107,7 @@ module CallAnalyzer =
             let range = QsNullable.defaultValue Range.Zero range
 
             match kind with
-            | _ when RuntimeCapability.subsumes target.Capability capability -> None
+            | _ when TargetCapability.subsumes target.Capability capability -> None
             | External capability ->
                 let args =
                     [

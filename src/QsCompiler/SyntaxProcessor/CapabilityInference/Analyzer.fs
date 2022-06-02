@@ -12,7 +12,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 type Target =
     {
         name: string
-        capability: RuntimeCapability
+        capability: TargetCapability
     }
 
     member target.Name = target.name
@@ -26,7 +26,7 @@ module Target =
 
 type 'props Pattern =
     {
-        Capability: RuntimeCapability
+        Capability: TargetCapability
         Diagnose: Target -> QsCompilerDiagnostic option
         Properties: 'props
     }
@@ -41,8 +41,8 @@ module Pattern =
 
     let concat patterns =
         Seq.fold
-            (fun capability pattern -> RuntimeCapability.merge pattern.Capability capability)
-            RuntimeCapability.bottom
+            (fun capability pattern -> TargetCapability.merge pattern.Capability capability)
+            TargetCapability.bottom
             patterns
 
 type Analyzer<'subject, 'props> = 'subject -> 'props Pattern seq

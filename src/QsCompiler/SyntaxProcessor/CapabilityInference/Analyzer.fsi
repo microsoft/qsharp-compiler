@@ -13,15 +13,15 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 type Target =
     member internal Name: string
 
-    member internal Capability: RuntimeCapability
+    member internal Capability: TargetCapability
 
 module Target =
     /// Creates a target architecture.
     [<CompiledName "Create">]
-    val create: name: string -> capability: RuntimeCapability -> Target
+    val create: name: string -> capability: TargetCapability -> Target
 
 type internal 'props Pattern =
-    { Capability: RuntimeCapability
+    { Capability: TargetCapability
       Diagnose: Target -> QsCompilerDiagnostic option
       // TODO: Remove the additional properties as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
       Properties: 'props }
@@ -29,7 +29,7 @@ type internal 'props Pattern =
 module internal Pattern =
     val discard: 'props Pattern -> unit Pattern
 
-    val concat: 'props Pattern seq -> RuntimeCapability
+    val concat: 'props Pattern seq -> TargetCapability
 
 type internal Analyzer<'subject, 'props> = 'subject -> 'props Pattern seq
 
