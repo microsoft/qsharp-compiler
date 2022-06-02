@@ -198,6 +198,9 @@ module InternalUse =
     /// to be used as name for all namespaces that do not have a valid name
     let UnknownNamespace = "__UnknownNamespaceName__"
 
+    /// the implicit namespace in notebooks
+    let NotebookNamespace = "__NotebookNamespace__"
+
     /// name for the control qubits used for compiler-generated controlled specializations (argument to the controlled functor)
     let ControlQubitsName = "__controlQubits__"
 
