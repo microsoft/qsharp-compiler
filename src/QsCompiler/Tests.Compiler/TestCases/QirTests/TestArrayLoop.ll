@@ -1,9 +1,9 @@
 define internal { i64, i64 }* @Microsoft__Quantum__Testing__QIR__TestArrayLoop__body(%Array* %a) {
 entry:
+  %y = alloca i64, align 8
+  %x = alloca i64, align 8
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %a)
   %1 = sub i64 %0, 1
-  %x = alloca i64, align 8
-  %y = alloca i64, align 8
   br label %header__1
 
 header__1:                                        ; preds = %exiting__1, %entry

@@ -1,8 +1,8 @@
 define internal %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate5__body(i1 %cond, %Array* %array) {
 entry:
+  %arr = alloca %Array*, align 8
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %array)
   %1 = sub i64 %0, 1
-  %arr = alloca %Array*, align 8
   br label %header__1
 
 header__1:                                        ; preds = %exiting__1, %entry

@@ -1,7 +1,7 @@
 define internal i64 @Microsoft__Quantum__Testing__QIR__TestScoping__body(%Array* %a) {
 entry:
-  call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 1)
   %sum = alloca i64, align 8
+  call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 1)
   store i64 0, i64* %sum, align 4
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %a)
   %1 = sub i64 %0, 1

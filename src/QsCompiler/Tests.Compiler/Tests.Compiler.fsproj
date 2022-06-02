@@ -395,9 +395,6 @@
     <Content Include="TestCases\QirTests\TestWhile.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <None Include="TestCases\Capabilities.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -502,6 +499,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\StringParsingTests\StringInterpolation.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Capabilities.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\AttributeGeneration.qs">

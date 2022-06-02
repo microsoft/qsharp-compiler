@@ -1648,14 +1648,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal Alloca Allocate(ITypeRef type)
         {
-            if (this.CurrentBuilder.InsertBlock != this.CurrentFunction!.EntryBlock)
+            var entryBuilder = new InstructionBuilder(this.CurrentFunction!.EntryBlock!);
+            if (this.CurrentFunction.EntryBlock!.FirstInstruction == null)
             {
-                var entryBuilder = new InstructionBuilder(this.CurrentFunction.EntryBlock!);
-                entryBuilder.PositionBefore(this.CurrentFunction.EntryBlock!.Terminator!);
-                return entryBuilder.Alloca(type);
+                entryBuilder.PositionAtEnd(this.CurrentFunction.EntryBlock);
+            }
+            else
+            {
+                entryBuilder.PositionBefore(this.CurrentFunction.EntryBlock!.FirstInstruction);
             }
 
-            return this.CurrentBuilder.Alloca(type);
+            return entryBuilder.Alloca(type);
         }
 
         /// <summary>
