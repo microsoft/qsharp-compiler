@@ -52,6 +52,7 @@ module ResultOpacity =
     let ofName name =
         Map.tryFind (CaseInsensitive name) names
 
+[<NoComparison>]
 type ClassicalCapability =
     | Empty
     | Integral
@@ -66,6 +67,22 @@ module ClassicalCapability =
 
     [<CompiledName "Full">]
     let full = Full
+
+    let subsumes c1 c2 =
+        match c1, c2 with
+        | Full, _
+        | Integral, Integral
+        | _, Empty -> true
+        | _, Full
+        | Empty, _ -> false
+
+    let merge c1 c2 =
+        match c1, c2 with
+        | Full, _
+        | _, Full -> Full
+        | Integral, Integral -> Integral
+        | c, Empty
+        | Empty, c -> c
 
     let names =
         Map [ CaseInsensitive "Empty", Empty
@@ -110,11 +127,14 @@ module TargetCapability =
 
     [<CompiledName "Subsumes">]
     let subsumes c1 c2 =
-        c1.resultOpacity >= c2.resultOpacity && c1.classical >= c2.classical
+        c1.resultOpacity >= c2.resultOpacity && ClassicalCapability.subsumes c1.classical c2.classical
 
     [<CompiledName "Merge">]
     let merge c1 c2 =
-        { resultOpacity = max c1.resultOpacity c2.resultOpacity; classical = max c1.classical c2.classical }
+        {
+            resultOpacity = max c1.resultOpacity c2.resultOpacity
+            classical = ClassicalCapability.merge c1.classical c2.classical
+        }
 
     [<CompiledName "WithResultOpacity">]
     let withResultOpacity opacity capability =
