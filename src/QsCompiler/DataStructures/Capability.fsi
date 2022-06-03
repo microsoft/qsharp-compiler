@@ -62,7 +62,7 @@ type TargetCapability =
     /// Parses a capability name or returns <c>null</c> if <paramref name="name"/> does not correspond to a capability.
     /// </summary>
     [<return: MaybeNull>]
-    static member Parse: name: string -> TargetCapability
+    static member TryParse: name: string -> TargetCapability
 
 module TargetCapability =
     /// The capability that subsumes all other capabilities.

@@ -162,5 +162,5 @@ module TargetCapability =
 type TargetCapability with
     member capability.Name = TargetCapability.name capability |> Option.toObj
 
-    static member Parse name =
+    static member TryParse name =
         TargetCapability.ofName name |> Option.defaultValue Unchecked.defaultof<_>
