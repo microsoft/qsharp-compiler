@@ -23,6 +23,8 @@ let createPattern range =
         if TargetCapability.subsumes target.Capability capability then
             None
         else
+            // TODO: The capability description string should be defined with the rest of the diagnostic message
+            // instead of here, but this is easier after https://github.com/microsoft/qsharp-compiler/issues/1025.
             let description = "conditional expression or mutable variable in a constant context"
             let args = [ target.Name; description ]
             QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some

@@ -63,6 +63,7 @@ let scenarioCapability scenario =
             | Int -> ClassicalCompute.integral
             | _ -> ClassicalCompute.full
         | EntryPointReturn ty ->
+            // We shouldn't recurse on the type since a separate scenario is recursively created for each type used.
             match ty.Resolution with
             | UnitType
             | Result
@@ -83,6 +84,8 @@ let shallowTypeName (ty: ResolvedType) =
     | _ -> SyntaxTreeToQsharp.Default.ToCode ty
 
 let describeScenario =
+    // TODO: The capability description string should be defined with the rest of the diagnostic message instead of
+    // here, but this is easier after https://github.com/microsoft/qsharp-compiler/issues/1025.
     function
     | UseBigInt -> "BigInt"
     | StringNotArgumentToMessage -> "string that is not an argument to Message"
