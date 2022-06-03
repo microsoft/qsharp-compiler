@@ -471,6 +471,12 @@ namespace Microsoft.Quantum.Testing.Capability {
         Controlled Adjoint Unitary([], q);
     }
 
+    operation CallFunctorOfLocalVar() : Unit {
+        let op = Unitary;
+        use q = Qubit();
+        Adjoint op(q);
+    }
+
     operation CallFunctorOfExpression() : Unit {
         use q = Qubit();
         Adjoint [Unitary][0](q);
