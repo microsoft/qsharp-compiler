@@ -121,13 +121,8 @@ let createPattern context construct range (ty: ResolvedType) =
                 Properties = ()
             }
 
-let rec flattenTuple =
-    function
-    | QsTupleItem x -> Seq.singleton x
-    | QsTuple xs -> Seq.collect flattenTuple xs
-
 let paramPatterns context callable =
-    flattenTuple callable.ArgumentTuple
+    callable.ArgumentTuple.Items
     |> Seq.choose (fun param ->
         let relativeRange = TypeRange.tryRange param.Type.Range
         let range = (callable.Location, relativeRange) ||> QsNullable.Map2(fun l r -> l.Offset + r)
