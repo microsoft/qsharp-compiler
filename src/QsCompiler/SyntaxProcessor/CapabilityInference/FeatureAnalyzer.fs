@@ -19,7 +19,7 @@ type Feature =
     | DefaultArray
 
 let createPattern range feature =
-    let capability = TargetCapability.withClassical ClassicalCapability.full TargetCapability.bottom
+    let capability = TargetCapability.withClassicalCompute ClassicalCompute.full TargetCapability.bottom
 
     let diagnose (target: Target) =
         let range = QsNullable.defaultValue Range.Zero range
