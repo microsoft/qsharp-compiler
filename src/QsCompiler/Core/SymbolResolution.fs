@@ -335,7 +335,7 @@ module SymbolResolution =
         let builders =
             [
                 ResultOpacity.ofName >> Option.map TargetCapability.withResultOpacity
-                ClassicalCapability.ofName >> Option.map TargetCapability.withClassical
+                ClassicalCompute.ofName >> Option.map TargetCapability.withClassicalCompute
             ]
 
         let applyBuilder capability arg builder =
@@ -347,7 +347,7 @@ module SymbolResolution =
                 // Backwards compatibility with (Name : String, Reason : String).
                 getString args[0] |> Option.bind TargetCapability.ofName
             | ValueTuple args when args.Length = 3 ->
-                // Parse (ResultOpacity : String, Classical : String, Reason : String).
+                // Parse (ResultOpacity : String, ClassicalCompute : String, Reason : String).
                 Seq.fold2 applyBuilder TargetCapability.bottom args builders |> Some
             | _ -> None
 

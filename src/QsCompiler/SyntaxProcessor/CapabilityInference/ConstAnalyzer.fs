@@ -15,7 +15,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 type Context = { IsEntryPoint: bool; ConstOnly: bool }
 
 let createPattern range =
-    let capability = TargetCapability.withClassical ClassicalCapability.full TargetCapability.bottom
+    let capability = TargetCapability.withClassicalCompute ClassicalCompute.full TargetCapability.bottom
 
     let diagnose (target: Target) =
         let range = QsNullable.defaultValue Range.Zero range

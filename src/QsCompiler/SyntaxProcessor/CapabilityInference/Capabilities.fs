@@ -75,7 +75,7 @@ let capabilityAttribute (capability: TargetCapability) =
     let args =
         AttributeUtils.StringArguments(
             string capability.ResultOpacity,
-            string capability.Classical,
+            string capability.ClassicalCompute,
             "Inferred automatically by the compiler."
         )
 

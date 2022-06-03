@@ -49,30 +49,30 @@ let findScenarios context construct (ty: ResolvedType) =
 let scenarioCapability scenario =
     let classical =
         match scenario with
-        | UseBigInt -> ClassicalCapability.full
-        | StringNotArgumentToMessage -> ClassicalCapability.full
+        | UseBigInt -> ClassicalCompute.full
+        | StringNotArgumentToMessage -> ClassicalCompute.full
         | ConditionalOrMutable ty ->
             match ty.Resolution with
             | Bool
-            | Int -> ClassicalCapability.integral
-            | _ -> ClassicalCapability.full
+            | Int -> ClassicalCompute.integral
+            | _ -> ClassicalCompute.full
         | EntryPointParam ty ->
             match ty.Resolution with
-            | TupleType _ -> ClassicalCapability.empty
+            | TupleType _ -> ClassicalCompute.empty
             | Bool
-            | Int -> ClassicalCapability.integral
-            | _ -> ClassicalCapability.full
+            | Int -> ClassicalCompute.integral
+            | _ -> ClassicalCompute.full
         | EntryPointReturn ty ->
             match ty.Resolution with
             | UnitType
             | Result
             | TupleType _
-            | ArrayType _ -> ClassicalCapability.empty
+            | ArrayType _ -> ClassicalCompute.empty
             | Bool
-            | Int -> ClassicalCapability.integral
-            | _ -> ClassicalCapability.full
+            | Int -> ClassicalCompute.integral
+            | _ -> ClassicalCompute.full
 
-    TargetCapability.withClassical classical TargetCapability.bottom
+    TargetCapability.withClassicalCompute classical TargetCapability.bottom
 
 let shallowTypeName (ty: ResolvedType) =
     match ty.Resolution with

@@ -26,22 +26,22 @@ module ResultOpacity =
     val internal ofName: name: string -> ResultOpacity option
 
 /// Describes what kinds of classical computations may be performed at runtime.
-type ClassicalCapability
+type ClassicalCompute
 
-module ClassicalCapability =
+module ClassicalCompute =
     /// No classical capabilities are supported.
     [<CompiledName "Empty">]
-    val empty: ClassicalCapability
+    val empty: ClassicalCompute
 
     /// Computations involving boolean and integer values are supported.
     [<CompiledName "Integral">]
-    val integral: ClassicalCapability
+    val integral: ClassicalCompute
 
     /// All classical capabilities are supported.
     [<CompiledName "Full">]
-    val full: ClassicalCapability
+    val full: ClassicalCompute
 
-    val internal ofName: name: string -> ClassicalCapability option
+    val internal ofName: name: string -> ClassicalCompute option
 
 /// Describes the capability of a compilation target.
 [<Sealed>]
@@ -50,7 +50,7 @@ type TargetCapability =
     member ResultOpacity: ResultOpacity
 
     /// The capabilities supported for classical computation.
-    member Classical: ClassicalCapability
+    member ClassicalCompute: ClassicalCompute
 
     /// <summary>
     /// The name of this capability, or <c>null</c> if it has none.
@@ -110,13 +110,13 @@ module TargetCapability =
     [<CompiledName "Merge">]
     val merge: c1: TargetCapability -> c2: TargetCapability -> TargetCapability
 
-    /// Updates the result opacity of the capability.
+    /// Updates the result opacity capability.
     [<CompiledName "WithResultOpacity">]
     val withResultOpacity: opacity: ResultOpacity -> capability: TargetCapability -> TargetCapability
 
-    /// Updates the classical capability of the capability.
-    [<CompiledName "WithClassical">]
-    val withClassical: classical: ClassicalCapability -> capability: TargetCapability -> TargetCapability
+    /// Updates the classical compute capability.
+    [<CompiledName "WithClassicalCompute">]
+    val withClassicalCompute: classical: ClassicalCompute -> capability: TargetCapability -> TargetCapability
 
     /// <summary>
     /// The name of the capability, or <c>None</c> if it has none.

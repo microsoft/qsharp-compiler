@@ -16,7 +16,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Utils
 
 module Recursion =
-    let capability = TargetCapability.withClassical ClassicalCapability.full TargetCapability.bottom
+    let capability = TargetCapability.withClassicalCompute ClassicalCompute.full TargetCapability.bottom
 
     let callableSet (cycles: #(CallGraphNode seq) seq) =
         Seq.collect id cycles |> Seq.map (fun n -> n.CallableName) |> Set.ofSeq
@@ -114,7 +114,7 @@ module CallAnalyzer =
                         name.Name
                         target.Name
                         string capability.ResultOpacity
-                        string capability.Classical
+                        string capability.ClassicalCompute
                     ]
 
                 QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
