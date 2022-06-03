@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public TargetCapability TargetCapability =>
             (this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedRuntimeCapabilities, out var capability)
-                ? TargetCapability.Parse(capability)
+                ? TargetCapability.TryParse(capability)
                 : null)
             ?? TargetCapabilityModule.Top;
 

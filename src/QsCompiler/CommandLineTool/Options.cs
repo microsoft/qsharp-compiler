@@ -90,7 +90,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// The parsed <see cref="TargetCapabilityName"/>.
         /// </summary>
         internal TargetCapability TargetCapability =>
-            TargetCapability.Parse(this.TargetCapabilityName) ?? TargetCapabilityModule.Top;
+            TargetCapability.TryParse(this.TargetCapabilityName) ?? TargetCapabilityModule.Top;
 
         [Option(
             "build-exe",
