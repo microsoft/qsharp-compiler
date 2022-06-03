@@ -215,6 +215,7 @@ let private cases =
                 "FunctionExpression"
                 "OperationValue"
                 "OperationExpression"
+                "CallFunctorOfLocalVar"
                 "CallFunctorOfExpression"
             ] do
             {
