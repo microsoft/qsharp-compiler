@@ -100,7 +100,12 @@ module TargetCapability =
     val subsumes: c1: TargetCapability -> c2: TargetCapability -> bool
 
     /// <summary>
-    /// Creates a capability that subsumes both <paramref name="c1"/> and <paramref name="c2"/>.
+    /// Creates a capability that:
+    ///
+    /// <list>
+    /// <item>Subsumes both <paramref name="c1"/> and <paramref name="c2"/>;</item>
+    /// <item>Minimizes the size of the set of capabilities that it subsumes.</item>
+    /// </list>
     /// </summary>
     [<CompiledName "Merge">]
     val merge: c1: TargetCapability -> c2: TargetCapability -> TargetCapability
