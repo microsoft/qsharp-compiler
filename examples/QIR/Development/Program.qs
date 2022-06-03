@@ -1,17 +1,17 @@
 ﻿namespace Microsoft.Quantum.Qir.Development {
     open Microsoft.Quantum.Intrinsic;
 
-    // // Returning mutables and using them to calculate output.
-    // @EntryPoint()
-    // operation Main() : Int {
-    //     use qs = Qubit[8];
-    //     for q in qs {
-    //         H(q);
-    //     }
-    //     let rs = MeasureEachZ(qs);
-    //     let val = ResultArrayAsInt(rs);
-    //     return val;
-    // }
+    // Returning mutables and using them to calculate output.
+    @EntryPoint()
+    operation Main() : Int {
+        use qs = Qubit[8];
+        for q in qs {
+            H(q);
+        }
+        let rs = MeasureEachZ(qs);
+        let val = ResultArrayAsInt(rs);
+        return val;
+    }
 
     // // Calculating mutables in a quantum conditional
     // @EntryPoint()
@@ -44,19 +44,19 @@
     //     return rs;
     // }
 
-    // Returning mutable array built with copy update and mutable int in struct.
-    @EntryPoint()
-    operation Main() : (Result[], Int) {
-        use qs = Qubit[8];
-        for q in qs {
-            H(q);
-        }
-        mutable rs = [M(qs[0]), size = 8];
-        for i in 1..Length(qs)-1 {
-            set rs w/= i <- M(qs[i]);
-        }
-        return (rs, ResultArrayAsInt(rs));
-    }
+    // // Returning mutable array built with copy update and mutable int in struct.
+    // @EntryPoint()
+    // operation Main() : (Result[], Int) {
+    //     use qs = Qubit[8];
+    //     for q in qs {
+    //         H(q);
+    //     }
+    //     mutable rs = [M(qs[0]), size = 8];
+    //     for i in 1..Length(qs)-1 {
+    //         set rs w/= i <- M(qs[i]);
+    //     }
+    //     return (rs, ResultArrayAsInt(rs));
+    // }
 
     // // Build up result array using concatenation on a mutable
     // @EntryPoint()
@@ -86,6 +86,12 @@
     //         set rand <<<= 1;
     //     }
     //     return rand;
+    // }
+
+    // @EntryPoint()
+    // operation Main() : (Result, Result[]) {
+    //     use q = Qubit();
+    //     return (Zero, []);
     // }
 
     operation MeasureEachZ(qs : Qubit[]) : Result[] {
