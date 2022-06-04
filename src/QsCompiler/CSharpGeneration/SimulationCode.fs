@@ -2112,4 +2112,4 @@ module SimulationCode =
     let generate (fileName: string) globalContext =
         globalContext
         |> generateCSharp
-            { AssemblyFile = if fileName.EndsWith ".dll" then Value fileName else Null; CodeFile = fileName }
+            { AssemblyFile = (if fileName.EndsWith ".dll" then Value fileName else Null); CodeFile = fileName }
