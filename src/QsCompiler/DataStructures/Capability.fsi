@@ -26,31 +26,31 @@ module ResultOpacity =
     val internal ofName: name: string -> ResultOpacity option
 
 /// Describes what kinds of classical computations may be performed at runtime.
-type ClassicalCapability
+type ClassicalCompute
 
-module ClassicalCapability =
+module ClassicalCompute =
     /// No classical capabilities are supported.
     [<CompiledName "Empty">]
-    val empty: ClassicalCapability
+    val empty: ClassicalCompute
 
     /// Computations involving boolean and integer values are supported.
     [<CompiledName "Integral">]
-    val integral: ClassicalCapability
+    val integral: ClassicalCompute
 
     /// All classical capabilities are supported.
     [<CompiledName "Full">]
-    val full: ClassicalCapability
+    val full: ClassicalCompute
 
-    val internal ofName: name: string -> ClassicalCapability option
+    val internal ofName: name: string -> ClassicalCompute option
 
-/// Describes which program capabilities are supported at runtime.
+/// Describes the capability of a compilation target.
 [<Sealed>]
-type RuntimeCapability =
+type TargetCapability =
     /// The capabilities supported for measurement results.
     member ResultOpacity: ResultOpacity
 
     /// The capabilities supported for classical computation.
-    member Classical: ClassicalCapability
+    member ClassicalCompute: ClassicalCompute
 
     /// <summary>
     /// The name of this capability, or <c>null</c> if it has none.
@@ -58,66 +58,75 @@ type RuntimeCapability =
     [<MaybeNull>]
     member Name: string
 
-    /// Opaque result opacity and empty classical capability.
-    static member BasicExecution: RuntimeCapability
-
-    /// Transparent result opacity and integral classical capability.
-    static member AdaptiveExecution: RuntimeCapability
-
-    /// Opaque result opacity and full classical capability.
-    static member BasicQuantumFunctionality: RuntimeCapability
-
-    /// Controlled result opacity and full classical capability.
-    static member BasicMeasurementFeedback: RuntimeCapability
-
-    /// Transparent result opacity and full classical capability.
-    static member FullComputation: RuntimeCapability
-
     /// <summary>
-    /// Parses a runtime capability name or returns <c>null</c> if <paramref name="name"/> does not correspond to a
-    /// runtime capability.
+    /// Parses a capability name or returns <c>null</c> if <paramref name="name"/> does not correspond to a capability.
     /// </summary>
     [<return: MaybeNull>]
-    static member Parse: name: string -> RuntimeCapability
+    static member TryParse: name: string -> TargetCapability
 
-module RuntimeCapability =
-    /// The runtime capability that subsumes all other capabilities.
+module TargetCapability =
+    /// The capability that subsumes all other capabilities.
     [<CompiledName "Top">]
-    val top: RuntimeCapability
+    val top: TargetCapability
 
-    /// The runtime capability that is subsumed by all other capabilities.
+    /// The capability that is subsumed by all other capabilities.
     [<CompiledName "Bottom">]
-    val bottom: RuntimeCapability
+    val bottom: TargetCapability
+
+    /// Opaque result opacity and empty classical capability.
+    [<CompiledName "BasicExecution">]
+    val basicExecution: TargetCapability
+
+    /// Transparent result opacity and integral classical capability.
+    [<CompiledName "AdaptiveExecution">]
+    val adaptiveExecution: TargetCapability
+
+    /// Opaque result opacity and full classical capability.
+    [<CompiledName "BasicQuantumFunctionality">]
+    val basicQuantumFunctionality: TargetCapability
+
+    /// Controlled result opacity and full classical capability.
+    [<CompiledName "BasicMeasurementFeedback">]
+    val basicMeasurementFeedback: TargetCapability
+
+    /// Transparent result opacity and full classical capability.
+    [<CompiledName "FullComputation">]
+    val fullComputation: TargetCapability
 
     /// <summary>
     /// <c>true</c> if <paramref name="c1"/> has all capabilities of <paramref name="c2"/> or more.
     /// </summary>
     [<CompiledName "Subsumes">]
-    val subsumes: c1: RuntimeCapability -> c2: RuntimeCapability -> bool
+    val subsumes: c1: TargetCapability -> c2: TargetCapability -> bool
 
     /// <summary>
-    /// Creates a runtime capability that subsumes both <paramref name="c1"/> and <paramref name="c2"/>.
+    /// Creates a capability that:
+    ///
+    /// <list>
+    /// <item>Subsumes both <paramref name="c1"/> and <paramref name="c2"/>;</item>
+    /// <item>Minimizes the size of the set of capabilities that it subsumes.</item>
+    /// </list>
     /// </summary>
     [<CompiledName "Merge">]
-    val merge: c1: RuntimeCapability -> c2: RuntimeCapability -> RuntimeCapability
+    val merge: c1: TargetCapability -> c2: TargetCapability -> TargetCapability
 
-    /// Updates the result opacity of the runtime capability.
+    /// Updates the result opacity capability.
     [<CompiledName "WithResultOpacity">]
-    val withResultOpacity: opacity: ResultOpacity -> capability: RuntimeCapability -> RuntimeCapability
+    val withResultOpacity: opacity: ResultOpacity -> capability: TargetCapability -> TargetCapability
 
-    /// Updates the classical capability of the runtime capability.
-    [<CompiledName "WithClassical">]
-    val withClassical: classical: ClassicalCapability -> capability: RuntimeCapability -> RuntimeCapability
+    /// Updates the classical compute capability.
+    [<CompiledName "WithClassicalCompute">]
+    val withClassicalCompute: classical: ClassicalCompute -> capability: TargetCapability -> TargetCapability
 
     /// <summary>
     /// The name of the capability, or <c>None</c> if it has none.
     /// </summary>
     [<CompiledName "Name">]
-    val name: capability: RuntimeCapability -> string option
+    val name: capability: TargetCapability -> string option
 
     /// <summary>
-    /// Creates a runtime capability from its name or returns <c>None</c> if <paramref name="name"/> does not correspond
-    /// to a runtime capability.
+    /// Creates a capability from its name or returns <c>None</c> if <paramref name="name"/> does not correspond to a
+    /// capability.
     /// </summary>
     [<CompiledName "FromName">]
-    val ofName: name: string -> RuntimeCapability option
+    val ofName: name: string -> TargetCapability option

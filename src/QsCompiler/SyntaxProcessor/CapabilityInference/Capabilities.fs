@@ -71,11 +71,11 @@ let diagnose target nsManager graph (callable: QsCallable) =
     let callDiagnostics = Seq.collect (diagnoseCall target nsManager graph) callPatterns
     Seq.append (Seq.choose (fun p -> p.Diagnose target) patterns) callDiagnostics
 
-let capabilityAttribute (capability: RuntimeCapability) =
+let capabilityAttribute (capability: TargetCapability) =
     let args =
         AttributeUtils.StringArguments(
             string capability.ResultOpacity,
-            string capability.Classical,
+            string capability.ClassicalCompute,
             "Inferred automatically by the compiler."
         )
 

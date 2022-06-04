@@ -67,13 +67,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedRuntimeCapabilities"/>, or
-        /// <see cref="RuntimeCapabilityModule.Top"/> if no valid value is specified.
+        /// <see cref="TargetCapabilityModule.Top"/> if no valid value is specified.
         /// </summary>
-        public RuntimeCapability RuntimeCapability =>
+        public TargetCapability TargetCapability =>
             (this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedRuntimeCapabilities, out var capability)
-                ? RuntimeCapability.Parse(capability)
+                ? TargetCapability.TryParse(capability)
                 : null)
-            ?? RuntimeCapabilityModule.Top;
+            ?? TargetCapabilityModule.Top;
 
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
@@ -147,32 +147,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<string> references,
             IDictionary<string, string?> buildProperties)
         {
-            this.Properties = new ProjectProperties(buildProperties);
-            this.SourceFiles = sourceFiles.ToImmutableArray();
-            this.ProjectReferences = projectReferences.ToImmutableArray();
-            this.References = references.ToImmutableArray();
-        }
-
-        [Obsolete]
-        public ProjectInformation(
-            string version,
-            string outputPath,
-            RuntimeCapability runtimeCapability,
-            bool isExecutable,
-            string processorArchitecture,
-            bool loadTestNames,
-            IEnumerable<string> sourceFiles,
-            IEnumerable<string> projectReferences,
-            IEnumerable<string> references)
-        {
-            var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
-            buildProperties.Add(MSBuildProperties.QsharpLangVersion, version);
-            buildProperties.Add(MSBuildProperties.TargetPath, outputPath);
-            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, runtimeCapability.Name);
-            buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, isExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
-            buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
-            buildProperties.Add(MSBuildProperties.ExposeReferencesViaTestNames, loadTestNames ? "true" : "false");
-
             this.Properties = new ProjectProperties(buildProperties);
             this.SourceFiles = sourceFiles.ToImmutableArray();
             this.ProjectReferences = projectReferences.ToImmutableArray();

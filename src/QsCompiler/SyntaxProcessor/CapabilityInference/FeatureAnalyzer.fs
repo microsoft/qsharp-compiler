@@ -19,14 +19,16 @@ type Feature =
     | DefaultArray
 
 let createPattern range feature =
-    let capability = RuntimeCapability.withClassical ClassicalCapability.full RuntimeCapability.bottom
+    let capability = TargetCapability.withClassicalCompute ClassicalCompute.full TargetCapability.bottom
 
     let diagnose (target: Target) =
         let range = QsNullable.defaultValue Range.Zero range
 
-        if RuntimeCapability.subsumes target.Capability capability then
+        if TargetCapability.subsumes target.Capability capability then
             None
         else
+            // TODO: The capability description string should be defined with the rest of the diagnostic message
+            // instead of here, but this is easier after https://github.com/microsoft/qsharp-compiler/issues/1025.
             let description =
                 match feature with
                 | Fail -> "fail statement"

@@ -49,30 +49,31 @@ let findScenarios context construct (ty: ResolvedType) =
 let scenarioCapability scenario =
     let classical =
         match scenario with
-        | UseBigInt -> ClassicalCapability.full
-        | StringNotArgumentToMessage -> ClassicalCapability.full
+        | UseBigInt -> ClassicalCompute.full
+        | StringNotArgumentToMessage -> ClassicalCompute.full
         | ConditionalOrMutable ty ->
             match ty.Resolution with
             | Bool
-            | Int -> ClassicalCapability.integral
-            | _ -> ClassicalCapability.full
+            | Int -> ClassicalCompute.integral
+            | _ -> ClassicalCompute.full
         | EntryPointParam ty ->
             match ty.Resolution with
-            | TupleType _ -> ClassicalCapability.empty
+            | TupleType _ -> ClassicalCompute.empty
             | Bool
-            | Int -> ClassicalCapability.integral
-            | _ -> ClassicalCapability.full
+            | Int -> ClassicalCompute.integral
+            | _ -> ClassicalCompute.full
         | EntryPointReturn ty ->
+            // We shouldn't recurse on the type since a separate scenario is recursively created for each type used.
             match ty.Resolution with
             | UnitType
             | Result
             | TupleType _
-            | ArrayType _ -> ClassicalCapability.empty
+            | ArrayType _ -> ClassicalCompute.empty
             | Bool
-            | Int -> ClassicalCapability.integral
-            | _ -> ClassicalCapability.full
+            | Int -> ClassicalCompute.integral
+            | _ -> ClassicalCompute.full
 
-    RuntimeCapability.withClassical classical RuntimeCapability.bottom
+    TargetCapability.withClassicalCompute classical TargetCapability.bottom
 
 let shallowTypeName (ty: ResolvedType) =
     match ty.Resolution with
@@ -83,6 +84,8 @@ let shallowTypeName (ty: ResolvedType) =
     | _ -> SyntaxTreeToQsharp.Default.ToCode ty
 
 let describeScenario =
+    // TODO: The capability description string should be defined with the rest of the diagnostic message instead of
+    // here, but this is easier after https://github.com/microsoft/qsharp-compiler/issues/1025.
     function
     | UseBigInt -> "BigInt"
     | StringNotArgumentToMessage -> "string that is not an argument to Message"
@@ -94,17 +97,17 @@ let createPattern context construct range (ty: ResolvedType) =
     let scenarios = findScenarios context construct ty |> Seq.toList
 
     let capability =
-        Seq.map scenarioCapability scenarios |> Seq.fold RuntimeCapability.merge RuntimeCapability.bottom
+        Seq.map scenarioCapability scenarios |> Seq.fold TargetCapability.merge TargetCapability.bottom
 
-    if capability = RuntimeCapability.bottom then
+    if capability = TargetCapability.bottom then
         None
     else
         let diagnose (target: Target) =
-            if RuntimeCapability.subsumes target.Capability capability then
+            if TargetCapability.subsumes target.Capability capability then
                 None
             else
                 let unsupported =
-                    Seq.filter (scenarioCapability >> RuntimeCapability.subsumes target.Capability >> not) scenarios
+                    Seq.filter (scenarioCapability >> TargetCapability.subsumes target.Capability >> not) scenarios
 
                 let description = Seq.map describeScenario unsupported |> String.concat ", "
                 let args = [ target.Name; description ]
@@ -118,13 +121,8 @@ let createPattern context construct range (ty: ResolvedType) =
                 Properties = ()
             }
 
-let rec flattenTuple =
-    function
-    | QsTupleItem x -> Seq.singleton x
-    | QsTuple xs -> Seq.collect flattenTuple xs
-
 let paramPatterns context callable =
-    flattenTuple callable.ArgumentTuple
+    callable.ArgumentTuple.Items
     |> Seq.choose (fun param ->
         let relativeRange = TypeRange.tryRange param.Type.Range
         let range = (callable.Location, relativeRange) ||> QsNullable.Map2(fun l r -> l.Offset + r)

@@ -1662,7 +1662,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
                     var context = ScopeContext.Create(
                         compilation.GlobalSymbols,
-                        compilation.BuildProperties.RuntimeCapability,
+                        compilation.BuildProperties.TargetCapability,
                         compilation.BuildProperties.ProcessorArchitecture,
                         spec);
                     implementation = BuildUserDefinedImplementation(
@@ -1913,7 +1913,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             CompilationUnit compilation, CallGraph graph, IEnumerable<QsQualifiedName> delta)
         {
             var properties = compilation.BuildProperties;
-            var target = TargetModule.Create(properties.ProcessorArchitecture, properties.RuntimeCapability);
+            var target = TargetModule.Create(properties.ProcessorArchitecture, properties.TargetCapability);
 
             foreach (var name in delta)
             {

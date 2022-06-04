@@ -14,13 +14,10 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 type ResultDependency =
     /// An equality expression inside the condition of an if statement, where the operands are results
     | ConditionalEqualityInOperation
-
     /// An equality expression outside the condition of an if statement, where the operands are results.
     | UnrestrictedEquality
-
     /// A return statement in the branch of an if statement whose condition depends on a result.
     | ReturnInDependentBranch
-
     /// A set statement in the branch of an if statement whose condition depends on a result, but which is reassigning a
     /// variable declared outside the block.
     | SetInDependentBranch of name: string
@@ -28,6 +25,8 @@ type ResultDependency =
 type Context =
     {
         CallableKind: QsCallableKind
+        /// Variables declared outside of a result conditional branch are frozen inside the branch. They may not be set
+        /// when the result opacity is controlled.
         FrozenVars: string Set
         InCondition: bool
     }
@@ -40,13 +39,13 @@ let createPattern kind range =
         | ReturnInDependentBranch
         | SetInDependentBranch _ -> ResultOpacity.transparent
 
-    let capability = RuntimeCapability.withResultOpacity opacity RuntimeCapability.bottom
+    let capability = TargetCapability.withResultOpacity opacity TargetCapability.bottom
 
     let diagnose (target: Target) =
         let range = QsNullable.defaultValue Range.Zero range
 
         match kind with
-        | _ when RuntimeCapability.subsumes target.Capability capability -> None
+        | _ when TargetCapability.subsumes target.Capability capability -> None
         | ConditionalEqualityInOperation
         | UnrestrictedEquality ->
             let code =

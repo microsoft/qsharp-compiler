@@ -472,7 +472,7 @@ type LinkingTests() =
     member this.``Entry point return type restriction for quantum processors``() =
 
         let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
-        let capabilityName = RuntimeCapability.name RuntimeCapability.BasicQuantumFunctionality
+        let capabilityName = TargetCapability.name TargetCapability.basicQuantumFunctionality
 
         let props =
             dict [ MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe

@@ -84,10 +84,10 @@ namespace Microsoft.Quantum.QsCompiler
             public bool AttemptFullPreEvaluation { get; set; }
 
             /// <summary>
-            /// Specifies the capabilities of the runtime.
+            /// Specifies the capabilities of the target.
             /// The specified capabilities determine what QIR profile to compile to.
             /// </summary>
-            public RuntimeCapability? RuntimeCapability { get; set; }
+            public TargetCapability? TargetCapability { get; set; }
 
             /// <summary>
             /// Specifies whether the project to build is a Q# command line application.
@@ -210,7 +210,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
             /// </summary>
             internal bool ConvertClassicalControl =>
-                this.RuntimeCapability?.ResultOpacity.Equals(ResultOpacityModule.Controlled) ?? false;
+                this.TargetCapability?.ResultOpacity.Equals(ResultOpacityModule.Controlled) ?? false;
 
             /// <summary>
             /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
@@ -538,7 +538,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
-            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, this.config.RuntimeCapability?.Name);
+            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, this.config.TargetCapability?.Name);
             buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, this.config.IsExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
             buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
 
@@ -558,7 +558,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && this.CompilationOutput?.EntryPoints.Length == 0)
             {
-                if (this.config.RuntimeCapability?.Equals(RuntimeCapabilityModule.Top) ?? true)
+                if (this.config.TargetCapability?.Equals(TargetCapabilityModule.Top) ?? true)
                 {
                     this.LogAndUpdate(ref this.compilationStatus.Validation, WarningCode.MissingEntryPoint);
                 }
