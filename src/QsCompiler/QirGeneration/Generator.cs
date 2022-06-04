@@ -38,12 +38,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Instantiates a transformation capable of emitting QIR for the given compilation.
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
-        public Generator(QsCompilation compilation, RuntimeCapability? capability = null)
+        public Generator(QsCompilation compilation, TargetCapability? capability = null)
         : base(
             new GenerationContext(
                 compilation.Namespaces,
                 compilation.EntryPoints.Length == 0,
-                capability ?? RuntimeCapabilityModule.Top),
+                capability ?? TargetCapabilityModule.Top),
             TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;

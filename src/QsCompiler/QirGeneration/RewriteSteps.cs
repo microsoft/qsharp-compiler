@@ -76,7 +76,7 @@ namespace Microsoft.Quantum.QsCompiler
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             var runtimeCapability = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.TargetCapability, out var capability) && !string.IsNullOrWhiteSpace(capability)
-                ? RuntimeCapability.Parse(capability) // null if parsing fails
+                ? TargetCapability.TryParse(capability) // null if parsing fails
                 : null;
 
             transformed = runtimeCapability != null // TODO: this is very ad-hoc. Revise once we have aligned output processing better

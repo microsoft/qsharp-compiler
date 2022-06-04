@@ -40,11 +40,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal bool IsLibrary { get; }
 
-        private RuntimeCapability TargetedRuntimeCapability { get; }
+        private TargetCapability TargetCapability { get; }
 
         internal bool TargetQirProfile =>
-            this.TargetedRuntimeCapability.Classical == ClassicalCapabilityModule.Empty ||
-            this.TargetedRuntimeCapability.Classical == ClassicalCapabilityModule.Integral;
+            this.TargetCapability.ClassicalCompute.Equals(ClassicalComputeModule.Empty) ||
+            this.TargetCapability.ClassicalCompute.Equals(ClassicalComputeModule.Integral);
 
         #region Member variables
 
@@ -178,10 +178,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, RuntimeCapability runtimeCapability)
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, TargetCapability capability)
         {
             this.IsLibrary = isLibrary;
-            this.TargetedRuntimeCapability = runtimeCapability;
+            this.TargetCapability = capability;
 
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
             this.globalTypes = syntaxTree.GlobalTypeResolutions();
