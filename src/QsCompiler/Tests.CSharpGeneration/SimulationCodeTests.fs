@@ -21,6 +21,7 @@ open Microsoft.Quantum.QsCompiler.CsharpGeneration
 open Microsoft.Quantum.QsCompiler.CsharpGeneration.SimulationCode
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
 
 module SimulationCode =
@@ -253,26 +254,38 @@ namespace N1
     let createTestContext op = globalContext.setCallable op
 
 
-    let emitAndCompareOneFile assemblyConstants (compilation: QsCompilation) fileName =
-        let fullPath = Path.GetFullPath fileName
+    let emitAndCompare assemblyConstants (compilation: QsCompilation) =
+
+        let sources = GetSourceFiles.Apply compilation
         let escapeCSharpString (s: string) = SymbolDisplay.FormatLiteral(s, false)
 
-        let expected =
-            Path.ChangeExtension(fullPath, "txt")
-            |> File.ReadAllText
-            |> (fun s -> s.Replace("%%%", fullPath |> HttpUtility.JavaScriptStringEncode |> escapeCSharpString))
-            |> (fun s -> s.Replace("%%", fullPath |> escapeCSharpString))
+        for source in sources do
+            let expected =
+                if source.IsReference then
+                    Path.Combine(
+                        Path.GetDirectoryName source.AssemblyOrCodeFile,
+                        Path.GetFileNameWithoutExtension source.AssemblyOrCodeFile + "_dll.txt"
+                    )
+                else
+                    Path.ChangeExtension(source.AssemblyOrCodeFile, "txt")
+                |> File.ReadAllText
+                |> (fun s ->
+                    s.Replace(
+                        "%%%",
+                        source.AssemblyOrCodeFile |> HttpUtility.JavaScriptStringEncode |> escapeCSharpString
+                    ))
+                |> (fun s -> s.Replace("%%", source.AssemblyOrCodeFile |> escapeCSharpString))
 
-        let actual = CodegenContext.Create(compilation, assemblyConstants) |> generate fullPath
+            let actual = CodegenContext.Create(compilation, assemblyConstants) |> generateCSharp source
 
-        Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
+            Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
 
     let testOneFile assemblyConstants fileName =
         let compilation =
             parse [ Path.Combine("Circuits", "Intrinsic.qs")
                     fileName ]
 
-        emitAndCompareOneFile assemblyConstants compilation fileName
+        emitAndCompare assemblyConstants compilation
 
     let testOneBody (builder: SyntaxBuilder) (expected: string list) =
         let actual = builder.BuiltStatements |> List.map (fun s -> s.ToFullString())
@@ -3156,9 +3169,12 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
 
         let intrinsicsFile = Path.Combine("Circuits", "Intrinsic.qs") |> Path.GetFullPath
         let compiledRef = parse [ intrinsicsFile ]
-        let refPath = Path.ChangeExtension(intrinsicsFile, ".dll")
 
-        let headers = [ (refPath, new References.Headers(refPath, compiledRef.Namespaces)) ]
+        let headers =
+            [
+                (intrinsicsFile, new References.Headers(intrinsicsFile, compiledRef.Namespaces))
+            ]
+
         let refs = new References(headers.ToImmutableDictionary(fst, snd))
 
         let fileName = Path.Combine("Circuits", "TargetedExe.qs")
@@ -3167,10 +3183,10 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
         let assemblyConstants =
             [
                 (AssemblyConstants.QuantumInstructionSet, "Type1")
-                (AssemblyConstants.TargetPackageAssemblies, refPath)
+                (AssemblyConstants.TargetPackageAssemblies, intrinsicsFile)
             ]
 
-        fileName |> emitAndCompareOneFile (assemblyConstants.ToImmutableDictionary(fst, snd)) compilation
+        emitAndCompare (assemblyConstants.ToImmutableDictionary(fst, snd)) compilation
 
     [<Fact>]
     let ``one file - LineNumbers`` () =

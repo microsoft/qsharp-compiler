@@ -8,7 +8,6 @@
 #pragma warning disable 436
 #pragma warning disable 162
 #pragma warning disable 1591
-extern alias TargetPackage;
 
 using System;
 using Microsoft.Quantum.Core;
@@ -74,8 +73,8 @@ namespace Microsoft.Quantum.Testing
         ;
         public override void __Init__()
         {
-            this.Length__ = this.__Factory__.Get<ICallable>(typeof(TargetPackage::Microsoft.Quantum.Core.Length<>));
-            this.M__ = this.__Factory__.Get<ICallable<Qubit, Result>>(typeof(TargetPackage::Microsoft.Quantum.Intrinsic.M));
+            this.Length__ = this.__Factory__.Get<ICallable>(typeof(global::Microsoft.Quantum.Core.Length<>));
+            this.M__ = this.__Factory__.Get<ICallable<Qubit, Result>>(typeof(global::Microsoft.Quantum.Intrinsic.M));
         }
 
         public override IApplyData __DataIn__(IQArray<Qubit> data) => data;

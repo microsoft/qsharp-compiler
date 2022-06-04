@@ -4,6 +4,7 @@
 namespace Microsoft.Quantum.QsCompiler.CsharpGeneration
 
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
+open System.IO
 
 #nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
 
@@ -49,8 +50,7 @@ module SimulationCode =
             yield "System"
             yield "Microsoft.Quantum.Core"
             yield "Microsoft.Quantum.Intrinsic"
-            if context.UseIntrinsicsInterface || context.GenerateConcreteIntrinsic then
-                yield "Microsoft.Quantum.Intrinsic.Interfaces"
+            yield "Microsoft.Quantum.Intrinsic.Interfaces"
             yield "Microsoft.Quantum.Simulation.Core"
         ]
 
@@ -1013,11 +1013,6 @@ module SimulationCode =
         seeker.SharedState |> Seq.toList
 
     let getTypeOfOp context (n: QsQualifiedName) =
-        let isInterface =
-            match context.allCallables.TryGetValue n with
-            | true, decl -> decl.IsIntrinsic && context.UseIntrinsicsInterface && context.IsFromTargetPackage decl
-            | false, _ -> false
-
         let name =
             let sameNamespace =
                 match context.current with
@@ -1025,15 +1020,7 @@ module SimulationCode =
                 | Some o -> o.Namespace = n.Namespace
 
             let opName =
-                if isInterface then
-                    let nameDecorator = new NameDecorator("QsRef")
-
-                    let rec undecorate name =
-                        let undecorated = nameDecorator.Undecorate name
-                        if String.IsNullOrWhiteSpace undecorated then name else undecorate undecorated
-
-                    "TargetPackage::" + n.Namespace + "." + userDefinedName None (undecorate n.Name)
-                elif sameNamespace then
+                if sameNamespace then
                     userDefinedName None n.Name
                 else
                     "global::" + n.Namespace + "." + userDefinedName None n.Name
@@ -1189,7 +1176,7 @@ module SimulationCode =
                 | _ -> "__Body__"
 
             Some(ident adjointedBodyName :> ExpressionSyntax)
-        | Intrinsic when context.GenerateConcreteIntrinsic ->
+        | Intrinsic when context.IsFromTargetPackage op ->
             // Add in the control qubits parameter when dealing with a controlled spec
             let args =
                 match sp.Kind with
@@ -1236,7 +1223,16 @@ module SimulationCode =
                 | QsTuple many -> many |> Seq.map argsToVars |> List.concat
 
             let callExp =
-                ``((`` (cast ("IIntrinsic" + (userDefinedName None op.FullName.Name)) (ident "Impl")) ``))``
+
+                let nameDecorator = new NameDecorator("QsRef")
+
+                let undecorate name =
+                    let undecorated = nameDecorator.Undecorate name
+                    if String.IsNullOrWhiteSpace undecorated then name else undecorated
+
+                ``((``
+                    (cast ("IIntrinsic" + (userDefinedName None (undecorate op.FullName.Name))) (ident "Impl"))
+                    ``))``
                 <.> (ident specCall, argsToVars args)
 
             let statements =
@@ -1707,7 +1703,8 @@ module SimulationCode =
         let opNames = operationDependencies op
         let inType = op.Signature.ArgumentType |> roslynTypeName context
         let outType = op.Signature.ReturnType |> roslynTypeName context
-        let isConcreteIntrinsic = op.IsIntrinsic && context.GenerateConcreteIntrinsic
+
+        let isConcreteIntrinsic = op.IsIntrinsic && context.IsFromTargetPackage op
 
         let constructors =
             [
@@ -1999,14 +1996,12 @@ module SimulationCode =
     // Builds the C# syntaxTree for the Q# elements defined in the given file.
     let buildSyntaxTree localElements (context: CodegenContext) =
 
-        let externs = if context.UseIntrinsicsInterface then [ ``extern alias`` "TargetPackage" ] else []
         let namespaces = autoNamespaces context
         let usings = namespaces |> List.map (fun ns -> using ns)
         let attributes = localElements |> List.map (snd >> buildDeclarationAttributes) |> List.concat
         let namespaces = localElements |> List.map (buildNamespace context)
 
         ``compilation unit`` attributes usings namespaces
-        |> addExternAliases externs
         // We add a "pragma warning disable 1591" since we don't generate doc comments in our C# code.
         |> pragmaDisableWarning 1591
         |> pragmaDisableWarning 162 // unreachable code
@@ -2054,7 +2049,7 @@ module SimulationCode =
                     | Value origName ->
                         match context.allUdts.TryGetValue origName with
                         | true, collision ->
-                            if context.GenerateCodeForSource collision.Source.AssemblyOrCodeFile then
+                            if context.GenerateCodeForSource collision.Source then
                                 None
                             else
                                 Some(origName.Namespace, QsCustomType collision)
@@ -2065,7 +2060,7 @@ module SimulationCode =
                     | Value origName ->
                         match context.allCallables.TryGetValue origName with
                         | true, collision ->
-                            if context.GenerateCodeForSource collision.Source.AssemblyOrCodeFile then
+                            if context.GenerateCodeForSource collision.Source then
                                 None
                             else
                                 Some(origName.Namespace, QsCallable collision)
@@ -2084,10 +2079,7 @@ module SimulationCode =
         else
             null
 
-    /// Main entry method for a CodeGenerator.
-    /// Builds the SyntaxTree for the given Q# syntax tree, formats it and returns it as a string.
-    /// Omits code generation for intrinsic callables in references.
-    let generate fileName globalContext =
+    let internal generateCSharp (source: Source) globalContext =
         let isIntrinsic =
             function
             | QsCallable c -> c.IsIntrinsic
@@ -2096,10 +2088,28 @@ module SimulationCode =
         let filterIntrinsics (ns, elems) =
             ns, elems |> List.filter (not << isIntrinsic)
 
-        let context = { globalContext with fileName = Some fileName }
+        let context = { globalContext with fileName = Some source.AssemblyOrCodeFile }
 
         let localElements =
-            let elements = findLocalElements Some fileName context.allQsElements
-            if fileName.EndsWith ".dll" then elements |> List.map filterIntrinsics else elements
+            let elements = findLocalElements Some source.AssemblyOrCodeFile context.allQsElements
+
+            match source.AssemblyFile with
+            | Value fileName when not <| context.IsTargetPackageAssembly fileName ->
+                elements |> List.map filterIntrinsics
+            | _ -> elements
 
         buildSyntaxTree localElements context |> formatSyntaxTree
+
+    /// Main entry method for a CodeGenerator.
+    /// Builds the SyntaxTree for the given Q# syntax tree, formats it and returns it as a string.
+    /// Omits code generation for intrinsic callables in references.
+    [<CompiledName "Emit">]
+    let emit (source: Source, targetFile: string, context) =
+        let content = generateCSharp source context
+        File.WriteAllText(targetFile, content)
+
+    [<Obsolete "Use SimulationCode.Emit instead.">]
+    let generate (fileName: string) globalContext =
+        globalContext
+        |> generateCSharp
+            { AssemblyFile = (if fileName.EndsWith ".dll" then Value fileName else Null); CodeFile = fileName }
