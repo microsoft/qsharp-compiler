@@ -15,7 +15,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     {
         public class TransformationState
         {
-            internal HashSet<string> SourceFiles { get; } = new HashSet<string>();
+            internal HashSet<Source> Sources { get; } = new HashSet<Source>();
         }
 
         private GetSourceFiles()
@@ -27,12 +27,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
-        // static methods for convenience
+        /* static methods for convenience */
 
-        /// <summary>
-        /// Returns a hash set containing all source files in the given namespaces.
-        /// </summary>
-        public static ImmutableHashSet<string> Apply(IEnumerable<QsNamespace> namespaces)
+        private static GetSourceFiles GetSources(IEnumerable<QsNamespace> namespaces)
         {
             var filter = new GetSourceFiles();
             foreach (var ns in namespaces)
@@ -40,14 +37,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 filter.Namespaces.OnNamespace(ns);
             }
 
-            return filter.SharedState.SourceFiles.ToImmutableHashSet();
+            return filter;
         }
+
+        /// <summary>
+        /// Returns a hash set containing all source files in the given namespaces.
+        /// </summary>
+        public static ImmutableHashSet<string> Apply(IEnumerable<QsNamespace> namespaces) =>
+            GetSources(namespaces).SharedState.Sources.Select(s => s.AssemblyOrCodeFile).ToImmutableHashSet();
 
         /// <summary>
         /// Returns a hash set containing all source files in the given namespace(s).
         /// </summary>
         public static ImmutableHashSet<string> Apply(params QsNamespace[] namespaces) =>
             Apply((IEnumerable<QsNamespace>)namespaces);
+
+        /// <summary>
+        /// Returns a hash set containing all sources in the given namespace(s).
+        /// </summary>
+        public static ImmutableHashSet<Source> Apply(QsCompilation compilation) =>
+            GetSources(compilation.Namespaces).SharedState.Sources.ToImmutableHashSet();
 
         /* helper classes */
 
@@ -67,7 +76,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 
             public override Source OnSource(Source source)
             {
-                this.SharedState.SourceFiles.Add(source.AssemblyOrCodeFile);
+                this.SharedState.Sources.Add(source);
                 return base.OnSource(source);
             }
         }

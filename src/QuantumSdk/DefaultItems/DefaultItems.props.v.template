@@ -57,7 +57,7 @@
     <QscExe>$(DefaultQscExe)</QscExe>
     <DefaultQsFmtExe>dotnet "$(MSBuildThisFileDirectory)../tools/qsfmt/qsfmt.dll"</DefaultQsFmtExe>
     <QsFmtExe>$(DefaultQsFmtExe)</QsFmtExe>
-    <GenerateConcreteIntrinsic>false</GenerateConcreteIntrinsic>
+    <IsTargetPackage>false</IsTargetPackage>
   </PropertyGroup>
 
 </Project>
