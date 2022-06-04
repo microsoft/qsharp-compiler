@@ -72,8 +72,11 @@ type Emitter() =
                     |> Uri)
                 |> (fun uri -> uri.LocalPath |> Path.GetDirectoryName)
 
+            let normalizeSource (source: Source) =
+                if source.IsReference then source.With(codeFile = "") else source
+
             let context = CodegenContext.Create(compilation, step.AssemblyConstants)
-            let allSources = GetSourceFiles.Apply compilation
+            let allSources = GetSourceFiles.Apply compilation |> Seq.map normalizeSource |> HashSet
 
             if (allSources.Count > 0 || not (compilation.EntryPoints.IsEmpty)) && not (Directory.Exists dir) then
                 Directory.CreateDirectory dir |> ignore
