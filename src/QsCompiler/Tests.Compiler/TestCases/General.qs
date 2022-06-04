@@ -82,3 +82,9 @@ namespace Microsoft.Quantum.Testing.General {
         body intrinsic;
     }
 }
+
+namespace Microsoft.Quantum.Intrinsic {
+    function Message(message : String) : Unit {
+        body intrinsic;
+    }
+}

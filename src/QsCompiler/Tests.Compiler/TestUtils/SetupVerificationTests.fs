@@ -141,31 +141,29 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
-
-    static member Compile(srcFolder, fileNames, ?references, ?capability) =
+    static member Compile(srcFolder, fileNames, ?references, ?capability, ?isExecutable) =
         let references = defaultArg references []
-        let capability = defaultArg capability FullComputation
-        let paths = fileNames |> Seq.map (fun file -> Path.Combine(srcFolder, file) |> Path.GetFullPath)
-        let props = ImmutableDictionary.CreateBuilder()
-        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, capability.Name)
-        let mutable exceptions = []
+        let isExecutable = defaultArg isExecutable false
+        let capabilityName = Option.bind TargetCapability.name capability
 
-        use manager =
-            new CompilationUnitManager(new ProjectProperties(props), (fun e -> exceptions <- e :: exceptions))
+        let files =
+            fileNames
+            |> Seq.map (fun name ->
+                let path = Path.Combine(srcFolder, name) |> Path.GetFullPath
+                Uri path, File.ReadAllText path)
+            |> dict
 
-        paths.ToImmutableDictionary(Uri, File.ReadAllText)
-        |> CompilationUnitManager.InitializeFileManagers
-        |> manager.AddOrUpdateSourceFilesAsync
-        |> ignore
+        let props =
+            dict [ MSBuildProperties.ResolvedRuntimeCapabilities, Option.toObj capabilityName
+                   if isExecutable then MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe ]
+            |> ProjectProperties
 
-        references
-        |> ProjectManager.LoadReferencedAssemblies
-        |> References
-        |> manager.UpdateReferencesAsync
+        let exceptions = ResizeArray()
+        use manager = new CompilationUnitManager(props, Action<_> exceptions.Add)
+        manager.AddOrUpdateSourceFilesAsync(CompilationUnitManager.InitializeFileManagers files) |> ignore
+
+        manager.UpdateReferencesAsync(ProjectManager.LoadReferencedAssemblies references |> References)
         |> ignore
 
         let compilation = manager.Build()
-
-        if not <| List.isEmpty exceptions then exceptions |> List.rev |> AggregateException |> raise
-
-        compilation
+        if exceptions.Count > 0 then AggregateException exceptions |> raise else compilation

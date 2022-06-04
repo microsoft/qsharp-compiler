@@ -83,14 +83,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             "runtime",
             Required = false,
             SetName = CodeMode,
-            HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
-        public string? RuntimeCapabilityName { get; set; }
+            HelpText = "The capability of the compilation target. This determines which QIR profile to compile to.")]
+        public string? TargetCapabilityName { get; set; }
 
         /// <summary>
-        /// The parsed <see cref="RuntimeCapabilityName"/>.
+        /// The parsed <see cref="TargetCapabilityName"/>.
         /// </summary>
-        internal RuntimeCapability RuntimeCapability =>
-            RuntimeCapability.TryParse(this.RuntimeCapabilityName).ValueOr(RuntimeCapability.FullComputation);
+        internal TargetCapability TargetCapability =>
+            TargetCapability.TryParse(this.TargetCapabilityName) ?? TargetCapabilityModule.Top;
 
         [Option(
             "build-exe",
