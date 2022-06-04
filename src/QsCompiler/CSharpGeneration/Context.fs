@@ -142,21 +142,23 @@ type CodegenContext =
         | true, propVal -> propVal = "true"
         | false, _ -> false
 
-    member public this.IsTargetPackageAssembly(assemblyName : string) =
+    member public this.IsTargetPackageAssembly(assemblyName: string) =
         let targetPackageAssemblies =
             match this.assemblyConstants.TryGetValue(AssemblyConstants.TargetPackageAssemblies) with
             | true, value -> value.Split(";") |> Seq.map (fun s -> s.Trim().ToLower())
             | false, _ -> Seq.empty
 
-        not <| System.String.IsNullOrWhiteSpace assemblyName &&
-        assemblyName.Trim().ToLower() |> targetPackageAssemblies.Contains
+        not <| System.String.IsNullOrWhiteSpace assemblyName
+        && assemblyName.Trim().ToLower() |> targetPackageAssemblies.Contains
 
     member public this.IsFromTargetPackage(decl: QsCallable) =
         match decl.Source.AssemblyFile with
         | Value assemblyName -> this.IsTargetPackageAssembly assemblyName
-        | _ -> this.assemblyConstants.TryGetValue(AssemblyConstants.IsTargetPackage) |> function
-            | true, value -> not <| System.String.IsNullOrWhiteSpace value && value.Trim().ToLower() = "true"
-            | _ -> false
+        | _ ->
+            this.assemblyConstants.TryGetValue(AssemblyConstants.IsTargetPackage)
+            |> function
+                | true, value -> not <| System.String.IsNullOrWhiteSpace value && value.Trim().ToLower() = "true"
+                | _ -> false
 
     member internal this.GenerateCodeForSource(source: Source) =
         if source.IsReference then
@@ -168,4 +170,5 @@ type CodegenContext =
                 || target = AssemblyConstants.RigettiProcessor
                 || target = AssemblyConstants.MicrosoftSimulator
             | _ -> false
-        else true
+        else
+            true

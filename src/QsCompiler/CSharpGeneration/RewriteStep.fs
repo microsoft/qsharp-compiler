@@ -84,6 +84,7 @@ type Emitter() =
 
             for source in allSources |> Seq.filter (not << context.GenerateCodeForSource) do
                 let content = SimulationCode.loadedViaTestNames source.AssemblyOrCodeFile context
+
                 if content <> null then
                     let target = this.NewTargetFileName source.AssemblyOrCodeFile dir ".dll.g.cs"
                     File.WriteAllText(target, content)

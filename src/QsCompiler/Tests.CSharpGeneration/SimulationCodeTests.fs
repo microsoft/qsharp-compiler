@@ -264,10 +264,16 @@ namespace N1
                 if source.IsReference then
                     Path.Combine(
                         Path.GetDirectoryName source.AssemblyOrCodeFile,
-                        Path.GetFileNameWithoutExtension source.AssemblyOrCodeFile + "_dll.txt")
-                else Path.ChangeExtension(source.AssemblyOrCodeFile, "txt")
+                        Path.GetFileNameWithoutExtension source.AssemblyOrCodeFile + "_dll.txt"
+                    )
+                else
+                    Path.ChangeExtension(source.AssemblyOrCodeFile, "txt")
                 |> File.ReadAllText
-                |> (fun s -> s.Replace("%%%", source.AssemblyOrCodeFile |> HttpUtility.JavaScriptStringEncode |> escapeCSharpString))
+                |> (fun s ->
+                    s.Replace(
+                        "%%%",
+                        source.AssemblyOrCodeFile |> HttpUtility.JavaScriptStringEncode |> escapeCSharpString
+                    ))
                 |> (fun s -> s.Replace("%%", source.AssemblyOrCodeFile |> escapeCSharpString))
 
             let actual = CodegenContext.Create(compilation, assemblyConstants) |> generateCSharp source
@@ -3164,7 +3170,11 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
         let intrinsicsFile = Path.Combine("Circuits", "Intrinsic.qs") |> Path.GetFullPath
         let compiledRef = parse [ intrinsicsFile ]
 
-        let headers = [ (intrinsicsFile, new References.Headers(intrinsicsFile, compiledRef.Namespaces)) ]
+        let headers =
+            [
+                (intrinsicsFile, new References.Headers(intrinsicsFile, compiledRef.Namespaces))
+            ]
+
         let refs = new References(headers.ToImmutableDictionary(fst, snd))
 
         let fileName = Path.Combine("Circuits", "TargetedExe.qs")

@@ -1704,8 +1704,7 @@ module SimulationCode =
         let inType = op.Signature.ArgumentType |> roslynTypeName context
         let outType = op.Signature.ReturnType |> roslynTypeName context
 
-        let isConcreteIntrinsic =
-            op.IsIntrinsic && context.IsFromTargetPackage op
+        let isConcreteIntrinsic = op.IsIntrinsic && context.IsFromTargetPackage op
 
         let constructors =
             [
@@ -2080,7 +2079,7 @@ module SimulationCode =
         else
             null
 
-    let internal generateCSharp (source : Source) globalContext =
+    let internal generateCSharp (source: Source) globalContext =
         let isIntrinsic =
             function
             | QsCallable c -> c.IsIntrinsic
@@ -2105,13 +2104,12 @@ module SimulationCode =
     /// Builds the SyntaxTree for the given Q# syntax tree, formats it and returns it as a string.
     /// Omits code generation for intrinsic callables in references.
     [<CompiledName "Emit">]
-    let emit (source : Source, targetFile : string, context) =
+    let emit (source: Source, targetFile: string, context) =
         let content = generateCSharp source context
         File.WriteAllText(targetFile, content)
 
     [<Obsolete "Use SimulationCode.Emit instead.">]
-    let generate (fileName : string) globalContext =
-        globalContext |> generateCSharp {
-            AssemblyFile = if fileName.EndsWith ".dll" then Value fileName else Null
-            CodeFile = fileName
-        }
+    let generate (fileName: string) globalContext =
+        globalContext
+        |> generateCSharp
+            { AssemblyFile = if fileName.EndsWith ".dll" then Value fileName else Null; CodeFile = fileName }
