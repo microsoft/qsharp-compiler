@@ -240,7 +240,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 AssemblyConstants = assemblyConstants,
                 ForceRewriteStepExecution = options.ForceRewriteStepExecution,
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
-                RuntimeCapability = options.RuntimeCapability,
+                TargetCapability = options.TargetCapability,
                 SkipMonomorphization = options.SkipMonomorphization,
                 LiftLambdaExpressions = true,
                 GenerateFunctorSupport = true,

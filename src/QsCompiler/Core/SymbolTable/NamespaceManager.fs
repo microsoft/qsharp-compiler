@@ -34,7 +34,7 @@ type NamespaceManager
         callablesInRefs: IEnumerable<CallableDeclarationHeader>,
         specializationsInRefs: IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
         typesInRefs: IEnumerable<TypeDeclarationHeader>,
-        runtimeCapability,
+        capability,
         isExecutable
     ) =
     // This class itself does not use any concurrency,
@@ -356,7 +356,8 @@ type NamespaceManager
             errs.AddRange signatureErrs
 
             // currently, only return values of type Result, Result[], and tuples thereof are supported on quantum processors
-            if runtimeCapability <> FullComputation then
+            if capability = TargetCapability.basicQuantumFunctionality
+               || capability = TargetCapability.basicMeasurementFeedback then
                 let invalid =
                     signature.ReturnType.ExtractAll (fun t ->
                         match t.Type with
