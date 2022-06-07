@@ -32,6 +32,15 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         internal bool ReadyForExit { get; private set; }
 
+        // Used in unit tests
+        internal bool IsNotebook
+        {
+            get
+            {
+                return this.editorState.IsNotebook;
+            }
+        }
+
         private readonly System.Timers.Timer internalErrorTimer; // used to avoid spamming users with a lot of errors at once
         private bool showInteralErrorMessage = true; // set via timer as needed
 
