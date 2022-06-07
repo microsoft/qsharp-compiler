@@ -123,7 +123,7 @@ The standard one provided for a standalone Q# application looks as follows:
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
 
 </Project>
@@ -136,7 +136,7 @@ Enabling QIR generation is a simple matter of adding the `<QirGeneration>` prope
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <QirGeneration>true</QirGeneration>
   </PropertyGroup>
 
@@ -315,7 +315,7 @@ For convenience, a variable `BuildOutputPath` is defined with the following line
 ```xml
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <QirGeneration>true</QirGeneration>
     <BuildOutputPath>$(MSBuildThisFileDirectory)build</BuildOutputPath>
   </PropertyGroup>
@@ -379,7 +379,7 @@ Put together, the new `Hello.csproj` project file should look as follows:
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <QirGeneration>true</QirGeneration>
     <BuildOutputPath>$(MSBuildThisFileDirectory)build</BuildOutputPath>
   </PropertyGroup>

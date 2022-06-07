@@ -10,7 +10,10 @@ param(
     $NuGetVersion = $Env:NUGET_VERSION,
 
     [string]
-    $VsVsixVersion = $Env:VSVSIX_VERSION
+    $VsVsixVersion = $Env:VSVSIX_VERSION,
+
+    [string]
+    $VsCodeVsixVersion = $Env:VSCODEVSIX_VERSION
 );
 
 if ("$AssemblyVersion".Trim().Length -eq 0) {
@@ -41,6 +44,11 @@ if ("$VsVsixVersion".Trim().Length -eq 0) {
     $VsVsixVersion = "$MajorVersion.$MinorVersion.$patch.$rev";
 }
 
+if ("$VsCodeVsixVersion".Trim().Length -eq 0) {
+    $VsCodeVsixVersion = "$SemverVersion".split('-')[0];
+}
+
+
 $Telemetry = "$($Env:ASSEMBLY_CONSTANTS)".Contains("TELEMETRY").ToString().ToLower();
 Write-Host "Enable telemetry: $Telemetry";
 
@@ -57,6 +65,7 @@ Get-ChildItem -Recurse *.v.template `
                     Replace("#ASSEMBLY_VERSION#", $AssemblyVersion).
                     Replace("#NUGET_VERSION#", $NuGetVersion).
                     Replace("#VSVSIX_VERSION#", $VsVsixVersion).
+                    Replace("#VSCODEVSIX_VERSION#", $VsCodeVsixVersion).
                     Replace("#SEMVER_VERSION#", $SemverVersion).
                     Replace("#ENABLE_TELEMETRY#", $Telemetry)
             } `
@@ -67,7 +76,9 @@ If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion"
 If ($Env:NUGET_VERSION -eq $null) { $Env:NUGET_VERSION ="$NuGetVersion" }
 If ($Env:SEMVER_VERSION -eq $null) { $Env:SEMVER_VERSION ="$SemverVersion" }
 If ($Env:VSVSIX_VERSION -eq $null) { $Env:VSVSIX_VERSION ="$VsVsixVersion" }
+If ($Env:VSCODEVSIX_VERSION -eq $null) { $Env:VSCODEVSIX_VERSION ="$VsCodeVsixVersion" }
 Write-Host "##vso[task.setvariable variable=VsVsix.Version]$VsVsixVersion"
+Write-Host "##vso[task.setvariable variable=VsCodeVsixVersion]$VsCodeVsixVersion"
 
 Write-Host "##[info]Finding NuSpec references..."
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
@@ -79,3 +90,6 @@ Pop-Location
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/QirGeneration')
 .\FindNuspecReferences.ps1;
 Pop-Location
+
+git submodule init
+git submodule update

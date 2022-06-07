@@ -24,10 +24,9 @@ let globalProperties =
 /// </summary>
 let getItemsByType (project: ProjectInstance) (itemType: string) =
     project.Items
-    |> Seq.where
-        (fun item ->
-            item.ItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase)
-            && not (isNull item.EvaluatedInclude))
+    |> Seq.where (fun item ->
+        item.ItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase)
+        && not (isNull item.EvaluatedInclude))
     |> Seq.map (fun item -> Path.Combine(project.Directory, item.EvaluatedInclude))
 
 let getSourceFiles (projectFile: string) =
@@ -70,7 +69,7 @@ let getSourceFiles (projectFile: string) =
 let assemblyLoadContextSetup () =
     // We need to set the current directory to the same directory of
     // the LanguageServer executable so that it will pick the global.json file
-    // and force the MSBuildLocator to use .NET Core SDK 3.1
+    // and force the MSBuildLocator to use .NET Core SDK 6.0
     let cwd = Directory.GetCurrentDirectory()
     Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory)
     // In the case where we actually instantiate a server, we need to "configure" the design time build.

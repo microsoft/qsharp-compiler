@@ -1,5 +1,7 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper.Testing
 
+#nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
+
 open Xunit
 
 open Microsoft.Quantum.RoslynWrapper
@@ -664,7 +666,7 @@ module StatementTests =
         let s = await ma |> statement
 
         let m =
-            method "int" "Host" ``<<`` [] ``>>`` ``(`` [] ``)`` [ ``protected``; ``internal``; async ] ``{`` [ s ] ``}``
+            method "int" "Host" ``<<`` [] ``>>`` ``(`` [] ``)`` [ protected; ``internal``; async ] ``{`` [ s ] ``}``
 
         let actual = to_class_members_code [ m ]
 
@@ -912,7 +914,8 @@ module StatementTests =
         let thens x =
             [ (ident "a") <-- ((literal 1) <+> (literal x)) ] |> List.map statement
 
-        let (condition, thens), elifs = (condition 1, thens 1), [ 2 .. 3 ] |> List.map (fun x -> condition x, thens x)
+        let (condition, thens), elifs =
+            (condition 1, thens 1), [ 2..3 ] |> List.map (fun x -> condition x, thens x)
 
         let elses =
             [
@@ -1081,7 +1084,7 @@ module StatementTests =
             [
                 (ident "x") <-- ((literal 1) <-> (literal 3)) |> statement
                 (ident "y") <-- ((``-`` (literal 1)) <*> (literal 4)) |> statement
-                ``break``
+                break
             ]
 
         let stmt = ``while`` ``(`` condition ``)`` body

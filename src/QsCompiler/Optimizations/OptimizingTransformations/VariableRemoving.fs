@@ -32,7 +32,7 @@ and private VariableRemovalNamespaces(parent: VariableRemoval) =
         let r = ReferenceCounter()
         r.Statements.OnScope body |> ignore
         parent.ReferenceCounter <- Some r
-        base.OnProvidedImplementation(argTuple, body)
+        ``base``.OnProvidedImplementation(argTuple, body)
 
 /// private helper class for VariableRemoval
 and private VariableRemovalStatementKinds(parent: VariableRemoval) =

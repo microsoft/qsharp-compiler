@@ -59,11 +59,16 @@ let private wordContainedIn (strings: ImmutableHashSet<_>) =
     term (keywordLike >>= inStrings) |>> snd
 
 /// parses any QsFragmentHeader and return unit
-let internal qsFragmentHeader = previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.FragmentHeaders
+let internal qsFragmentHeader =
+    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.FragmentHeaders
+
 /// parses any QsLanguageKeyword and return unit
-let internal qsLanguageKeyword = previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.LanguageKeywords
+let internal qsLanguageKeyword =
+    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.LanguageKeywords
+
 /// parses any QsReservedKeyword and return unit
-let internal qsReservedKeyword = previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.ReservedKeywords
+let internal qsReservedKeyword =
+    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.ReservedKeywords
 
 /// adds the given diagnostic to the user state
 let internal pushDiagnostic newDiagnostic =
@@ -151,8 +156,11 @@ let internal optTupleBrackets core =
 /// Fails without consuming input it the parsing fails.
 /// IMPORTANT: This parser does does *not* handle whitespace and needs to be wrapped into a term parser for proper processing of all whitespace.
 let private bracketDefinedContent core (lbracket, rbracket) =
-    let nextRbracket = attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy rbracket)
-    let nextLbracket = attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy lbracket)
+    let nextRbracket =
+        attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy rbracket)
+
+    let nextLbracket =
+        attempt (skipPiecesUntil stringContent (lbracket <|> rbracket) .>> followedBy lbracket)
 
     let rec findMatching stream =
         let recur = nextLbracket >>. bracket lbracket >>. findMatching .>> bracket rbracket
@@ -467,7 +475,7 @@ let internal asQualifiedSymbol ((path, sym), range: Range) =
         match names |> List.choose id with
         | [ sym ] -> (Symbol sym, range) |> QsSymbol.New
         | parts ->
-            let (ns, sym) = (String.concat "." parts.[0..parts.Length - 2]), parts.[parts.Length - 1]
+            let (ns, sym) = (String.concat "." parts.[0 .. parts.Length - 2]), parts.[parts.Length - 1]
             (QualifiedSymbol(ns, sym), range) |> QsSymbol.New
 
 /// Handles permissive parsing of a qualified symbol:
@@ -515,24 +523,22 @@ let private filterAndAdapt (diagnostics: QsCompilerDiagnostic list) endPos =
     // opting to only actually raise ExcessContinuation errors if no other errors overlap with them
     let excessCont, remainingDiagnostics =
         diagnostics
-        |> List.partition
-            (fun x ->
-                match x.Diagnostic with
-                | Error (ErrorCode.ExcessContinuation) -> true
-                | _ -> false)
+        |> List.partition (fun x ->
+            match x.Diagnostic with
+            | Error (ErrorCode.ExcessContinuation) -> true
+            | _ -> false)
 
     let remainingErrs =
         remainingDiagnostics
-        |> List.filter
-            (fun x ->
-                match x.Diagnostic with
-                | Error _ -> true
-                | _ -> false)
+        |> List.filter (fun x ->
+            match x.Diagnostic with
+            | Error _ -> true
+            | _ -> false)
 
     let hasOverlap (diagnostic: QsCompilerDiagnostic) =
         remainingErrs
-        |> List.exists
-            (fun other -> diagnostic.Range.Start <= other.Range.Start && diagnostic.Range.End >= other.Range.Start)
+        |> List.exists (fun other ->
+            diagnostic.Range.Start <= other.Range.Start && diagnostic.Range.End >= other.Range.Start)
 
     let filteredExcessCont = excessCont |> List.filter (not << hasOverlap)
 

@@ -99,27 +99,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.waitForTypeCheck = new CancellationTokenSource();
         }
 
-        [Obsolete("Use CompilationUnitManager(ProjectProperties, Action{Exception}?, Action{PublishDiagnosticParams}?, bool) instead.")]
-        public CompilationUnitManager(
-            Action<Exception>? exceptionLogger = null,
-            Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            bool syntaxCheckOnly = false,
-            RuntimeCapability? capability = null,
-            bool isExecutable = false,
-            string? processorArchitecture = null)
-        : this(
-              new ProjectProperties(ImmutableDictionary.CreateRange(new[]
-              {
-                  new KeyValuePair<string, string?>(MSBuildProperties.ResolvedRuntimeCapabilities, capability?.Name),
-                  new KeyValuePair<string, string?>(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture),
-                  new KeyValuePair<string, string?>(MSBuildProperties.ResolvedQsharpOutputType, isExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary),
-              })),
-              exceptionLogger,
-              null,
-              publishDiagnostics)
-        {
-        }
-
         /// <summary>
         /// Cancels any asynchronously running ongoing global type checking. After all currently queued tasks
         /// have finished, locks all processing, flushes the unprocessed changes in each source file,

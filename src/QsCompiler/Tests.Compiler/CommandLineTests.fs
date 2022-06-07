@@ -4,11 +4,11 @@
 module Microsoft.Quantum.QsCompiler.Testing.CommandLineTests
 
 open System
+open System.Collections.Immutable
 open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Xunit
 
 let private pathRoot = Path.GetPathRoot(Directory.GetCurrentDirectory())
@@ -149,14 +149,11 @@ let ``execute rewrite steps only if validation passes`` () =
         CompilationLoader.Configuration(
             GenerateFunctorSupport = true,
             BuildOutputFolder = null,
-            RuntimeCapability = BasicQuantumFunctionality
+            TargetCapability = TargetCapability.basicQuantumFunctionality
         )
 
     let loadSources (loader: Func<_ seq, _>) = loader.Invoke([ source1; source2 ])
-
-    let loaded =
-        new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config))
-
+    let loaded = CompilationLoader(CompilationLoader.SourceLoader loadSources, Seq.empty, config)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.ReferenceLoading)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.Validation)
@@ -164,15 +161,22 @@ let ``execute rewrite steps only if validation passes`` () =
     Assert.Equal(CompilationLoader.Status.NotRun, loaded.Monomorphization) // no entry point
 
     let loadSources (loader: Func<_ seq, _>) = loader.Invoke([ source2 ])
-
-    let loaded =
-        new CompilationLoader(new CompilationLoader.SourceLoader(loadSources), Seq.empty, new Nullable<_>(config))
-
+    let loaded = CompilationLoader(CompilationLoader.SourceLoader loadSources, Seq.empty, config)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.SourceFileLoading)
     Assert.Equal(CompilationLoader.Status.Succeeded, loaded.ReferenceLoading)
     Assert.Equal(CompilationLoader.Status.Failed, loaded.Validation)
     Assert.Equal(CompilationLoader.Status.NotRun, loaded.FunctorSupport)
     Assert.Equal(CompilationLoader.Status.NotRun, loaded.Monomorphization)
+
+[<Fact>]
+let ``lift lambdas by default`` () =
+    let source = "namespace Test { function Foo() : Unit { let f = x -> x + 1; } }"
+
+    let sourceLoader =
+        CompilationLoader.SourceLoader(fun _ -> ImmutableDictionary.Empty.Add(Uri "file:///Test.qs", source))
+
+    let loader = CompilationLoader(sourceLoader, Seq.empty, CompilationLoader.Configuration())
+    Assert.Equal(CompilationLoader.Status.Succeeded, loader.LiftLambdaExpressions)
 
 [<Fact>]
 let ``find path relative`` () =

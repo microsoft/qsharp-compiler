@@ -128,7 +128,7 @@ type internal ImperativeBuilder() =
 let internal imperative = ImperativeBuilder()
 
 /// Returns the current state of an imperative computation
-let internal getState : Imperative<'a, 'a, 'c> = fun s -> Normal(s, s)
+let internal getState: Imperative<'a, 'a, 'c> = fun s -> Normal(s, s)
 /// Sets the current state of an imperative computation to the given value
 let internal putState s : Imperative<'a, Unit, 'c> = fun _ -> Normal((), s)
 /// Updates the current state of an imperative computation using the given function

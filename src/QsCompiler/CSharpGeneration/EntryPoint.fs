@@ -335,10 +335,13 @@ let private entryPointClass context (entryPoint: QsCallable) =
         ``property-arrow_get`` typeName name [ ``public`` ] get (``=>`` value)
 
     let nameProperty = string entryPoint.FullName |> literal |> property "Name" "string"
-    let summaryProperty = (PrintSummary entryPoint.Documentation false).Trim() |> literal |> property "Summary" "string"
+
+    let summaryProperty =
+        (PrintSummary entryPoint.Documentation false).Trim() |> literal |> property "Summary" "string"
+
     let parameters = parameters context entryPoint.Documentation entryPoint.ArgumentTuple
 
-    let members : MemberDeclarationSyntax list =
+    let members: MemberDeclarationSyntax list =
         [
             nameProperty
             summaryProperty
@@ -371,7 +374,8 @@ let private entryPointNamespace context name entryPoints =
 
 /// Returns the driver settings object.
 let private driverSettings context =
-    let newDriverSettings = driverNamespace + ".DriverSettings" |> ``type`` |> SyntaxFactory.ObjectCreationExpression
+    let newDriverSettings =
+        driverNamespace + ".DriverSettings" |> ``type`` |> SyntaxFactory.ObjectCreationExpression
 
     let namedArg (name: string) expr =
         SyntaxFactory.NameColon name |> (SyntaxFactory.Argument expr).WithNameColon
@@ -386,14 +390,16 @@ let private driverSettings context =
         ]
         |> immutableList
 
-    let defaultSimulator =
-        context.assemblyConstants.TryGetValue AssemblyConstants.DefaultSimulator
-        |> fun (_, value) -> if String.IsNullOrWhiteSpace value then AssemblyConstants.QuantumSimulator else value
+    let assemblyConstant defaultValue name =
+        context.assemblyConstants.TryGetValue name
+        |> (fun (_, value) -> if String.IsNullOrWhiteSpace value then defaultValue else value)
 
-    let defaultExecutionTarget =
-        context.assemblyConstants.TryGetValue AssemblyConstants.ExecutionTarget
-        |> (fun (_, value) -> if value = null then "" else value)
-        |> literal
+    let defaultSimulator =
+        assemblyConstant AssemblyConstants.QuantumSimulator AssemblyConstants.DefaultSimulator
+
+    let defaultExecutionTarget = assemblyConstant "" AssemblyConstants.ExecutionTarget |> literal
+
+    let targetCapability = assemblyConstant "" AssemblyConstants.TargetCapability |> literal
 
     [
         namedArg "simulatorOptionAliases" simulatorOptionAliases
@@ -403,6 +409,7 @@ let private driverSettings context =
         namedArg "resourcesEstimatorName" <| literal AssemblyConstants.ResourcesEstimator
         namedArg "defaultSimulatorName" <| literal defaultSimulator
         namedArg "defaultExecutionTarget" <| defaultExecutionTarget
+        namedArg "targetCapability" <| targetCapability
         namedArg "createDefaultCustomSimulator" <| customSimulatorFactory defaultSimulator
     ]
     |> SyntaxFactory.SeparatedList

@@ -24,7 +24,7 @@ val qubitBindingUpdate: unit Rewriter
 
 /// Replaces `()` with `Unit` when referencing the Unit type.
 /// Will not replace `()` when referencing the Unit value literal.
-val unitUpdate : unit Rewriter
+val unitUpdate: unit Rewriter
 
 /// Updates for-loops to remove deprecated parentheses.
 val forParensUpdate: unit Rewriter
@@ -40,4 +40,4 @@ val checkArraySyntax: string -> Document -> string list
 
 /// Replaces deprecated use of boolean operators `&&`, `||`, and `!` with their keyword
 /// equivalence `and`, `or`, and `not` respectively.
-val booleanOperatorUpdate : unit Rewriter
+val booleanOperatorUpdate: unit Rewriter

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <AssemblyName>Tests.Microsoft.Quantum.QsCompiler</AssemblyName>
     <OutputType>Library</OutputType>
@@ -392,10 +392,7 @@
     <Content Include="TestCases\QirTests\TestWhile.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <None Include="TestCases\CapabilityTests\Verification.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="TestCases\CapabilityTests\Inference.qs">
+    <None Include="TestCases\Capabilities.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\LinkingTests\Core.qs">
@@ -552,8 +549,7 @@
     <Compile Include="CompletionParsingTests.fs" />
     <Compile Include="GlobalVerificationTests.fs" />
     <Compile Include="LocalVerificationTests.fs" />
-    <Compile Include="CapabilityVerificationTests.fs" />
-    <Compile Include="CapabilityInferenceTests.fs" />
+    <Compile Include="CapabilityTests.fs" />
     <Compile Include="TypeCheckingTests.fs" />
     <Compile Include="AutoGenerationTests.fs" />
     <Compile Include="TransformationTests.fs" />
@@ -572,10 +568,10 @@
     <Compile Include="CompilationTrackerTests.fs" />
     <Compile Include="QirTests.fs" />
     <Compile Include="ExecutionTests.fs" />
-</ItemGroup>
+  </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.22.187631" ExcludeAssets="compile" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.210930" ExcludeAssets="compile" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
@@ -594,16 +590,11 @@
     </ProjectReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Update="System.ValueTuple" Version="4.4.0" />
-    <PackageReference Update="FSharp.Core" Version="4.7.0" />
-  </ItemGroup>
-
   <Target Name="PrepareReferenceTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
     <PropertyGroup>
-      <ExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.1\Example.dll</ExecutionTarget>
-      <QirExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Target\bin\$(Configuration)\netcoreapp3.1\Simulation.dll</QirExecutionTarget>
-      <LibraryTarget>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\netcoreapp3.1\Library1.dll</LibraryTarget>
+      <ExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\net6.0\Example.dll</ExecutionTarget>
+      <QirExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Target\bin\$(Configuration)\net6.0\Simulation.dll</QirExecutionTarget>
+      <LibraryTarget>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\net6.0\Library1.dll</LibraryTarget>
     </PropertyGroup>
     <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt" Lines="$(ExecutionTarget); $(QirExecutionTarget); $(LibraryTarget)" Overwrite="true" />
     <Copy Condition="$([MSBuild]::IsOsPlatform('OSX'))" SourceFiles="$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/libMicrosoft.Quantum.Simulator.Runtime.dylib" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />

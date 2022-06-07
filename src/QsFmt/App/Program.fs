@@ -9,7 +9,6 @@ open System.IO
 open CommandLine
 open Microsoft.Quantum.QsFmt.App.Arguments
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
-open Microsoft.Quantum.QsFmt.App.Telemetry
 open Microsoft.Quantum.QsFmt.Formatter
 
 let runCommand (commandWithOptions: CommandWithOptions) inputs =
@@ -49,14 +48,13 @@ let runCommand (commandWithOptions: CommandWithOptions) inputs =
                             |> Result.map (fun isUpdated -> if isUpdated then filesUpdated <- filesUpdated.Add input)
                         | Format ->
                             Formatter.performFormat input commandWithOptions.QSharpVersion source
-                            |> Result.map
-                                (fun isFormatted -> if isFormatted then filesFormatted <- filesFormatted.Add input)
+                            |> Result.map (fun isFormatted ->
+                                if isFormatted then filesFormatted <- filesFormatted.Add input)
                         | UpdateAndFormat ->
                             Formatter.performUpdateAndFormat input commandWithOptions.QSharpVersion source
-                            |> Result.map
-                                (fun (isUpdated, isFormatted) ->
-                                    if isUpdated then filesUpdated <- filesUpdated.Add input
-                                    if isFormatted then filesFormatted <- filesFormatted.Add input)
+                            |> Result.map (fun (isUpdated, isFormatted) ->
+                                if isUpdated then filesUpdated <- filesUpdated.Add input
+                                if isFormatted then filesFormatted <- filesFormatted.Add input)
 
                     match result with
                     | Ok _ -> { RunResult.Default with FilesProcessed = 1 }

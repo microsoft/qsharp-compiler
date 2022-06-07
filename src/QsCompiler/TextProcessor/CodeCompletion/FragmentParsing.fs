@@ -147,7 +147,9 @@ let private applyHeader = expectedKeyword qsApply
 /// Parses a qubit initializer tuple used to allocate qubits in using- and borrowing-blocks.
 let rec private qubitInitializerTuple =
     parse {
-        let item = expectedKeyword qsQubit ?>> (expected unitValue <|> expectedBrackets (lArray, rArray) expression)
+        let item =
+            expectedKeyword qsQubit ?>> (expected unitValue <|> expectedBrackets (lArray, rArray) expression)
+
         return! item <|> (tuple1 item <|> qubitInitializerTuple)
     }
 
@@ -196,7 +198,8 @@ let private callableStatement =
 let private functionStatement = whileHeader .>> eotEof <|>@ callableStatement
 
 /// Parses a statement in a function that follows an if or elif clause in the same scope.
-let private functionStatementFollowingIf = pcollect [ elifClause; elseClause ] .>> eotEof <|>@ functionStatement
+let private functionStatementFollowingIf =
+    pcollect [ elifClause; elseClause ] .>> eotEof <|>@ functionStatement
 
 /// Parses a statement in an operation.
 let private operationStatement =
@@ -208,16 +211,19 @@ let private operationStatement =
     <|>@ callableStatement
 
 /// Parses a statement in an operation that follows an if or elif clause in the same scope.
-let private operationStatementFollowingIf = pcollect [ elifClause; elseClause ] .>> eotEof <|>@ operationStatement
+let private operationStatementFollowingIf =
+    pcollect [ elifClause; elseClause ] .>> eotEof <|>@ operationStatement
 
 /// Parses a statement in the top-level scope of an operation.
 let private operationTopLevel = specializationDeclaration .>> eotEof <|>@ operationStatement
 
 /// Parses a statement in the top-level scope of an operation that follows an if or elif clause.
-let private operationTopLevelFollowingIf = pcollect [ elifClause; elseClause ] .>> eotEof <|>@ operationTopLevel
+let private operationTopLevelFollowingIf =
+    pcollect [ elifClause; elseClause ] .>> eotEof <|>@ operationTopLevel
 
 /// Parses a namespace declaration.
-let private namespaceDeclaration = expectedKeyword namespaceDeclHeader ?>> expectedQualifiedSymbol Namespace
+let private namespaceDeclaration =
+    expectedKeyword namespaceDeclHeader ?>> expectedQualifiedSymbol Namespace
 
 /// Parses the fragment text assuming that it is in the given scope and follows the given previous fragment kind in the
 /// same scope (or null if it is the first statement in the scope). Returns the set of completion kinds that are valid

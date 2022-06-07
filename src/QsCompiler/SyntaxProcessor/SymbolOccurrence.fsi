@@ -22,32 +22,32 @@ type SymbolOccurrence =
     /// <param name="usedVariable">Called when this occurrence is a used variable.</param>
     /// <param name="usedLiteral">Called when this occurrence is a used literal.</param>
     /// <returns>The result of the called match function.</returns>
-    member Match :
-        declaration: Func<QsSymbol, 'a>
-        * usedType: Func<QsType, 'a>
-        * usedVariable: Func<QsSymbol, 'a>
-        * usedLiteral: Func<QsExpression, 'a> ->
-        'a
+    member Match:
+        declaration: Func<QsSymbol, 'a> *
+        usedType: Func<QsType, 'a> *
+        usedVariable: Func<QsSymbol, 'a> *
+        usedLiteral: Func<QsExpression, 'a> ->
+            'a
 
     /// <summary>
     /// Gets the occurring symbol if this occurrence is a declaration.
     /// </summary>
-    member TryGetDeclaration : symbol: QsSymbol outref -> bool
+    member TryGetDeclaration: symbol: QsSymbol outref -> bool
 
     /// <summary>
     /// Gets the occurring type if this occurrence is a used type.
     /// </summary>
-    member TryGetUsedType : ``type``: QsType outref -> bool
+    member TryGetUsedType: ``type``: QsType outref -> bool
 
     /// <summary>
     /// Gets the occurring symbol if this occurrence is a used variable.
     /// </summary>
-    member TryGetUsedVariable : symbol: QsSymbol outref -> bool
+    member TryGetUsedVariable: symbol: QsSymbol outref -> bool
 
     /// <summary>
     /// Gets the occurring expression if this occurrence is a used literal.
     /// </summary>
-    member TryGetUsedLiteral : expression: QsExpression outref -> bool
+    member TryGetUsedLiteral: expression: QsExpression outref -> bool
 
 module SymbolOccurrence =
     /// <summary>
@@ -56,4 +56,4 @@ module SymbolOccurrence =
     /// <param name="fragment">The fragment to extract symbols from.</param>
     /// <returns>The list of symbols.</returns>
     [<CompiledName "InFragment">]
-    val inFragment : fragment: QsFragmentKind -> SymbolOccurrence list
+    val inFragment: fragment: QsFragmentKind -> SymbolOccurrence list

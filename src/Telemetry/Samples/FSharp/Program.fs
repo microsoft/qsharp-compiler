@@ -151,7 +151,7 @@ let main args =
                 SampleObjectToBeSerialized =
                     Map [ ("key1", "value1")
                           ("key2", "value2") ]
-                SampleObjectToBeIgnored = [ 1 .. 10 ]
+                SampleObjectToBeIgnored = [ 1..10 ]
                 SampleGuid = Guid.NewGuid()
                 SampleException = createExceptionWithStackTrace true
                 SampleOptionWithValue = Some 123

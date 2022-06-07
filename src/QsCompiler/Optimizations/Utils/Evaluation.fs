@@ -42,7 +42,7 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
 
     /// Represents a computation that decreases the remaining statements counter by 1.
     /// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
-    let incrementState : Imp<Unit> =
+    let incrementState: Imp<Unit> =
         imperative {
             let! vars, counter = getState
             if counter < 1 then yield TooManyStatements

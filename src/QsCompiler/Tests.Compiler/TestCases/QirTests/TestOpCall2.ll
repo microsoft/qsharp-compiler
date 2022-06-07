@@ -10,10 +10,12 @@ entry:
   %5 = bitcast i8* %4 to %Qubit**
   store %Qubit* %control, %Qubit** %5, align 8
   %__controlQubits__1 = call %Array* @__quantum__rt__array_concatenate(%Array* %__controlQubits__, %Array* %3)
+  call void @__quantum__rt__array_update_reference_count(%Array* %__controlQubits__1, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__1, i32 1)
   call void @__quantum__qis__x__ctl(%Array* %__controlQubits__1, %Qubit* %target)
   call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__1, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %3, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %__controlQubits__1, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %__controlQubits__1, i32 -1)
   call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 -1)
   ret void

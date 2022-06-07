@@ -1,5 +1,7 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper.Testing
 
+#nowarn "46" // Backticks removed by Fantomas: https://github.com/fsprojects/fantomas/issues/2034
+
 open Xunit
 open System.Text.RegularExpressions
 
@@ -29,7 +31,7 @@ module internal Common =
         to_namespace_member_code c
 
     let host_in_method t ss =
-        method t "Host" ``<<`` [] ``>>`` ``(`` [] ``)`` [ ``protected``; ``internal`` ] ``{`` ss ``}``
+        method t "Host" ``<<`` [] ``>>`` ``(`` [] ``)`` [ protected; ``internal`` ] ``{`` ss ``}``
 
     let return_from_arrow_method t s =
-        arrow_method t "Host" ``<<`` [] ``>>`` ``(`` [] ``)`` [ ``protected``; ``internal`` ] (Some <| ``=>`` s)
+        arrow_method t "Host" ``<<`` [] ``>>`` ``(`` [] ``)`` [ protected; ``internal`` ] (Some <| ``=>`` s)

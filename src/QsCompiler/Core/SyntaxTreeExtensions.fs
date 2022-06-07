@@ -27,7 +27,8 @@ type QsInitializer with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems(fun (single: QsInitializer) -> single.TupleItems) "QsInitializer"
+    static member private OnTupleItems =
+        OnTupleItems(fun (single: QsInitializer) -> single.TupleItems) "QsInitializer"
 
     member internal this.TupleItems =
         match this.Initializer with
@@ -495,24 +496,20 @@ let GetResolvedType (argTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>)
 [<Extension>]
 let Types (syntaxTree: IEnumerable<QsNamespace>) =
     syntaxTree
-    |> Seq.collect
-        (fun ns ->
-            ns.Elements
-            |> Seq.choose
-                (function
-                | QsCustomType t -> Some t
-                | _ -> None))
+    |> Seq.collect (fun ns ->
+        ns.Elements
+        |> Seq.choose (function
+            | QsCustomType t -> Some t
+            | _ -> None))
 
 [<Extension>]
 let Callables (syntaxTree: IEnumerable<QsNamespace>) =
     syntaxTree
-    |> Seq.collect
-        (fun ns ->
-            ns.Elements
-            |> Seq.choose
-                (function
-                | QsCallable c -> Some c
-                | _ -> None))
+    |> Seq.collect (fun ns ->
+        ns.Elements
+        |> Seq.choose (function
+            | QsCallable c -> Some c
+            | _ -> None))
 
 [<Extension>]
 let Attributes (syntaxTree: IEnumerable<QsNamespace>) =
@@ -523,36 +520,30 @@ let Attributes (syntaxTree: IEnumerable<QsNamespace>) =
         | Null -> false
 
     syntaxTree
-    |> Seq.collect
-        (fun ns ->
-            ns.Elements
-            |> Seq.choose
-                (function
-                | QsCustomType t when t.Attributes |> Seq.exists marksAttribute -> Some t
-                | _ -> None))
+    |> Seq.collect (fun ns ->
+        ns.Elements
+        |> Seq.choose (function
+            | QsCustomType t when t.Attributes |> Seq.exists marksAttribute -> Some t
+            | _ -> None))
 
 [<Extension>]
 let Specializations (syntaxTree: IEnumerable<QsNamespace>) =
     syntaxTree
-    |> Seq.collect
-        (fun ns ->
-            ns.Elements
-            |> Seq.collect
-                (function
-                | QsCallable c -> c.Specializations
-                | _ -> ImmutableArray.Empty))
+    |> Seq.collect (fun ns ->
+        ns.Elements
+        |> Seq.collect (function
+            | QsCallable c -> c.Specializations
+            | _ -> ImmutableArray.Empty))
 
 [<Extension>]
 let GlobalTypeResolutions (syntaxTree: IEnumerable<QsNamespace>) =
     let types =
         syntaxTree
-        |> Seq.collect
-            (fun ns ->
-                ns.Elements
-                |> Seq.choose
-                    (function
-                    | QsCustomType t -> Some(t.FullName, t)
-                    | _ -> None))
+        |> Seq.collect (fun ns ->
+            ns.Elements
+            |> Seq.choose (function
+                | QsCustomType t -> Some(t.FullName, t)
+                | _ -> None))
 
     types.ToImmutableDictionary(fst, snd)
 
@@ -560,13 +551,11 @@ let GlobalTypeResolutions (syntaxTree: IEnumerable<QsNamespace>) =
 let GlobalCallableResolutions (syntaxTree: IEnumerable<QsNamespace>) =
     let callables =
         syntaxTree
-        |> Seq.collect
-            (fun ns ->
-                ns.Elements
-                |> Seq.choose
-                    (function
-                    | QsCallable c -> Some(c.FullName, c)
-                    | _ -> None))
+        |> Seq.collect (fun ns ->
+            ns.Elements
+            |> Seq.choose (function
+                | QsCallable c -> Some(c.FullName, c)
+                | _ -> None))
 
     callables.ToImmutableDictionary(fst, snd)
 

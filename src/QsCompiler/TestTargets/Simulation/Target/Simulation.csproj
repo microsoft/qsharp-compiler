@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>Simulation</AssemblyName>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -18,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.22.187631-alpha" ExcludeAssets="compile" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.22.187631" ExcludeAssets="compile" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.24.210930-alpha" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.210930" ExcludeAssets="compile" GeneratePathProperty="true" />
   </ItemGroup>
 
   <Target Name="PrepareReferenceTests" Condition="'$(DesignTimeBuild)' != 'true' And $([MSBuild]::IsOsPlatform('OSX'))" BeforeTargets="CoreCompile">

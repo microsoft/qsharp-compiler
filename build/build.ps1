@@ -7,6 +7,10 @@ $ErrorActionPreference = 'Stop'
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
 
+# Write .NET SDK diagnostics.
+Write-Host -ForegroundColor Blue "##[info].NET SDK versions:"
+dotnet --list-sdks
+
 ##
 # Q# compiler and Sdk tools
 ##
