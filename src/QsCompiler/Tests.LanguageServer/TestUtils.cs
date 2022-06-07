@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json.Linq;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
 using Range = Microsoft.VisualStudio.LanguageServer.Protocol.Range;
 
@@ -43,12 +44,13 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return new TextDocumentIdentifier { Uri = GetUri(filename) };
         }
 
-        internal static InitializeParams GetInitializeParams()
+        internal static InitializeParams GetInitializeParams(bool addNotebookConfig = false)
         {
             return new InitializeParams
             {
                 ProcessId = -1,
-                InitializationOptions = null,
+                InitializationOptions = addNotebookConfig ? JObject.FromObject(new { isNotebook = true })
+                                                          : null,
                 Capabilities = new ClientCapabilities
                 {
                     Workspace = new WorkspaceClientCapabilities(),

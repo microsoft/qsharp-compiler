@@ -66,10 +66,20 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var initParams = TestUtils.GetInitializeParams();
             var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
             Assert.IsNotNull(initReply);
+            Assert.IsFalse(this.server.IsNotebook);
 
             var init = await this.rpc.InvokeWithParameterObjectAsync<JToken>(Methods.Initialize.Name, initParams);
             var initializeError = Utils.TryJTokenAs<InitializeError>(init);
             Assert.IsTrue(initializeError != null ? initializeError.Retry : false);
+        }
+
+        [TestMethod]
+        public async Task NotebookInitializationAsync()
+        {
+            var initParams = TestUtils.GetInitializeParams(addNotebookConfig: true);
+            var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
+            Assert.IsNotNull(initReply);
+            Assert.IsTrue(this.server.IsNotebook);
         }
 
         [TestMethod]
