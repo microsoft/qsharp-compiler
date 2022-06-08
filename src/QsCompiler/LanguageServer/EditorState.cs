@@ -123,7 +123,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             var sourceFiles = GetItemsByType(projectInstance, "QSharpCompile");
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
 
-            // TODO: Is there a better way to normalize the paths?
+            // we need to normalize paths here -
+            // see also https://stackoverflow.com/questions/1266674/how-can-one-get-an-absolute-or-normalized-file-path-in-net
             var decompositions =
                 GetItemsByType(projectInstance, "ResolvedTargetSpecificDecompositions").Select(Path.GetFullPath);
             var references = GetItemsByType(projectInstance, "Reference").Except(decompositions);

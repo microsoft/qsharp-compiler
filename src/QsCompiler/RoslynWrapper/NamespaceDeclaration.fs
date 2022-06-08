@@ -62,8 +62,5 @@ module NamespaceDeclaration =
     let ``using`` (typeName: string) =
         typeName |> (ident >> SyntaxFactory.UsingDirective)
 
-    let ``extern alias`` (name : string) =
-        name |> SyntaxFactory.ExternAliasDirective
-
     let ``alias`` (aliasName: string) (typeName: string) =
         SyntaxFactory.UsingDirective(SyntaxFactory.NameEquals(aliasName), SyntaxFactory.IdentifierName(typeName))

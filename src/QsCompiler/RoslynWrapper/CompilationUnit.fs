@@ -26,9 +26,6 @@ module CompilationUnit =
         | None -> SyntaxFactory.AttributeList([| attribute |] |> SyntaxFactory.SeparatedList)
         | Some target -> SyntaxFactory.AttributeList(target, [| attribute |] |> SyntaxFactory.SeparatedList)
 
-    let addExternAliases (externs : ExternAliasDirectiveSyntax seq) (cu : CompilationUnitSyntax) =
-        cu.AddExterns (externs |> Seq.toArray)
-
     let private addUsings usings (cu: CompilationUnitSyntax) =
         usings |> (Seq.toArray >> SyntaxFactory.List) |> cu.WithUsings
 
