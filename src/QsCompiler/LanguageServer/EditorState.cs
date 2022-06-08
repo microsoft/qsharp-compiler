@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
         /// or whether its current state as it is in the editor needs to be preserved
         /// </summary>
-        private readonly ConcurrentDictionary<Uri, FileContentManager> openFiles =
+        internal readonly ConcurrentDictionary<Uri, FileContentManager> openFiles =
             new ConcurrentDictionary<Uri, FileContentManager>();
 
         private FileContentManager? GetOpenFile(Uri key) => this.openFiles.TryGetValue(key, out var file) ? file : null;
@@ -184,6 +184,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.projectLoader is object ?
                 this.projects.LoadProjectsAsync(projects, this.QsProjectLoader, this.GetOpenFile) :
                 Task.CompletedTask;
+
+        internal Task LoadNotebookProjectAsyc() =>
+                this.projects.LoadProjectsAsync(
+                    new[] { /* fixme: make up a uri to identify the project */ new Uri("some name") },
+                    // todo: define a custom project "loader"
+                    mycustomLoader,
+                    this.GetOpenFile);
 
         /// <summary>
         /// If the given uri corresponds to the project file for a Q# project,

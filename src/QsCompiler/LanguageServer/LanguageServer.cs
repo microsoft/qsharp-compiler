@@ -202,6 +202,15 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         internal void OnInternalError(Exception ex)
         {
+            // todo: in the notebook scenario,
+            if (notebook)
+            {
+                foreach (var uri in this.editorState.openFiles.Keys)
+                {
+                    // todo: send an empty list of diagnostics for this file.
+                    this.PublishDiagnosticsAsync(new PublishDiagnosticParams { ... });
+                }
+            }
             var exceptionLogRecord = ex.ToExceptionLogRecord(new ExceptionLoggingOptions()
             {
                 CollectTargetSite = true,
@@ -312,6 +321,12 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.workspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
             this.LogToWindow($"workspace folder: {this.workspaceFolder ?? "(Null)"}", MessageType.Info);
             this.fileWatcher.ListenAsync(this.workspaceFolder, true, dict => this.InitializeWorkspaceAsync(dict), "*.csproj", "*.dll", "*.qs").Wait(); // not strictly necessary to wait but less confusing
+            // todo: for notebooks
+            this.editorState.LoadNotebookProjectAsyc(); // we may not need this if we just have the container contain a csproj as a "config file"
+            // if the jupiter kernel / notebook container creating and updating a project file is not a good option,
+            // then they could manage a (simpler) config file instead. In this case, we would need to watch the config file
+            // for change much like we watch for project file changes.
+            // Additionally, in both cases we need to make sure that all "files" are attributed to this (same) notebook project.
 
             var capabilities = new ServerCapabilities
             {

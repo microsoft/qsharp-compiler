@@ -153,9 +153,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public ImmutableArray<string> SourceFiles { get; }
 
-        public ImmutableArray<string> ProjectReferences { get; }
+        public ImmutableArray<string> ProjectReferences { get; } // same as comment on References below (or empty for now)
 
-        public ImmutableArray<string> References { get; }
+        public ImmutableArray<string> References { get; } // TODO: to populate this as part of the notebook project creation, look for a config file (fixed name) in the workspace folder, and that file should contain the paths to the referenced dlls; nb: we might as well make the config file a csproj file?
 
         internal static ProjectInformation Empty(string outputPath) =>
             new ProjectInformation(
@@ -312,6 +312,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <param name="publishDiagnostics">
             /// If provided, called whenever diagnostics for the project have changed and are ready for publishing.
             /// </param>
+            // TODO: add a boolean indicating whether this is the notebook project?
+            // and if the project is the notebook project, have it alway reply yes when asked if the file belong to it. 
             internal Project(
                 Uri projectFile,
                 ProjectInformation projectInfo,
@@ -418,6 +420,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 this.LoadReferencedAssembliesAsync(this.specifiedReferences.Select(uri => uri.LocalPath), skipVerification: true);
                 this.LoadProjectReferencesAsync(projectOutputPaths, this.specifiedProjectReferences.Select(uri => uri.LocalPath), skipVerification: true);
+                // keep a todo in the code to check LoadSourceFilesAsync and whether this will work fine for the notebook project
                 this.LoadSourceFilesAsync(this.specifiedSourceFiles.Select(uri => uri.LocalPath), getExistingFileManagers, removeFiles, skipIfAlreadyLoaded: true)
                 .ContinueWith(_ => this.log($"Done loading project '{this.ProjectFile.LocalPath}'", MessageType.Log), TaskScheduler.Default);
                 this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
@@ -744,7 +747,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 return this.processing.QueueForExecutionAsync(() =>
                 {
-                    if (!this.specifiedSourceFiles.Contains(sourceFile) || !this.isLoaded || openInEditor(sourceFile) != null)
+                    if (!this.ContainsSourceFile(sourceFile) || !this.isLoaded || openInEditor(sourceFile) != null)
                     {
                         return;
                     }
@@ -781,7 +784,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.processing.QueueForExecution(
                     () =>
                     {
-                        if (!this.specifiedSourceFiles.Contains(file))
+                        if (!this.ContainsSourceFile(file))
                         {
                             return false;
                         }
