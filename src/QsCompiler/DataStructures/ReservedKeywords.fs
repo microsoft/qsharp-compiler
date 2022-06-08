@@ -275,6 +275,7 @@ module AssemblyConstants =
     let PerfDataOutputPath = "PerfDataOutputPath"
     let DocsOutputPath = "DocsOutputPath"
     let DocsPackageId = "DocsPackageId"
+    let DocsLintingRules = "DocsLintingRules"
     let GenerateConcreteIntrinsic = "GenerateConcreteIntrinsic"
 
 /// contains reserved names for command line arguments of Q# projects
