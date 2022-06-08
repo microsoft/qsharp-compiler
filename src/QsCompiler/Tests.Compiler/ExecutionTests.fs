@@ -90,7 +90,7 @@ type ExecutionTests(output: ITestOutputHelper) =
     let compiledQirExecutionTest =
         let inputPaths =
             [
-                ("TestCases", "ExecutionTests", "ExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
+                ("TestCases", "ExecutionTests", "QirTests.qs") |> Path.Combine |> Path.GetFullPath
             ]
 
         let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath
@@ -101,8 +101,8 @@ type ExecutionTests(output: ITestOutputHelper) =
         let inputPaths =
             [
                 if String.IsNullOrWhiteSpace targetPackageDll then
-                    yield ("TestCases", "ExecutionTests", "DataTypeExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
-                else yield ("TestCases", "ExecutionTests", "TargetedExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
+                    yield ("TestCases", "ExecutionTests", "QirDataTypeTests.qs") |> Path.Combine |> Path.GetFullPath
+                else yield ("TestCases", "ExecutionTests", "QirTargetingTests.qs") |> Path.Combine |> Path.GetFullPath
 
             ]
 
@@ -287,19 +287,14 @@ type ExecutionTests(output: ITestOutputHelper) =
         AssertEqual expected out
 
 
-    [<Fact(Skip="This first requires additional support in the QIR runtime.")>]
+    [<Fact(Skip="This first requires additional support in the QIR runtime, specifically implementing support for all target instructions.")>]
     member this.``QIR target package handling``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestTargetPackageHandling"
         let exitCode, out, err = QirExecutionTest "Microsoft.Quantum.Type3.Core.dll" functionName
         AssertEqual String.Empty err
         Assert.Equal(0, exitCode)
-
-        let expected =
-            """
-            """
-
-        AssertEqual expected out
+        AssertEqual "" out
 
 
     [<Fact>]

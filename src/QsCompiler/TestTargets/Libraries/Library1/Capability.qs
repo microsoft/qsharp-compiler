@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.Testing.Capability {
         }
     }
 
-    @RequiresCapability("BasicQuantumFunctionality", "Test case.")
+    @RequiresCapability("Opaque", "Full", "Test case.")
     operation LibraryOverride(q : Qubit) : Unit {
         let r = Zero;
         if r == One {}

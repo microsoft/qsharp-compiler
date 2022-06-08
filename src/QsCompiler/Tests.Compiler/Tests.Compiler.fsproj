@@ -395,9 +395,6 @@
     <Content Include="TestCases\QirTests\TestWhile.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <None Include="TestCases\Capabilities.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Include="TestCases\LinkingTests\Core.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -485,13 +482,13 @@
     <None Include="TestCases\OptimizerTests\TypedParameters_input.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Content Include="TestCases\ExecutionTests\ExecutionTests.qs">
+    <Content Include="TestCases\ExecutionTests\QirTests.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\ExecutionTests\DataTypeExecutionTests.qs">
+    <Content Include="TestCases\ExecutionTests\QirDataTypeTests.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\ExecutionTests\TargetedExecutionTests.qs">
+    <Content Include="TestCases\ExecutionTests\QirTargetingTests.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <None Include="TestCases\ExecutionTests\Packaging.qs" />
@@ -502,6 +499,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\StringParsingTests\StringInterpolation.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\Capabilities.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\Capabilities.qs">
@@ -590,9 +590,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.41975-alpha" ExcludeAssets="compile" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.QSharp.Core" Version="0.24.41975-alpha" ExcludeAssets="compile" />
-    <PackageReference Include="Microsoft.Quantum.Type3.Core" Version="0.24.41975-alpha" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.214451-alpha" ExcludeAssets="compile" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.QSharp.Core" Version="0.24.214451-alpha" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Type3.Core" Version="0.24.214451-alpha" ExcludeAssets="compile" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">

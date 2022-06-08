@@ -75,6 +75,11 @@
         Message($"{qubitArrArr w/ 0 <- []}");
         Message($"{qubitArrArr w/ 1 <- [q, q, q]}");
 
-        // TODO: write tests for array of array of array
+        // FIXME: fix the issue reported by Troels and fix this:
+        
+        // let arrArrArr = [[[2], [1,0]], [], [[], [3]], [[0,1,2]]];
+        // Message($"{arrArrArr[0][1][1]}, {arrArrArr[1]}, {arrArrArr[3][0][2]}");
+        // Message($"{arrArrArr w/ 3 <- [[1,2,3,4], []]}");
+        // Message($"{arrArrArr w/ 2 .. 3 <- [[], []]}");
     }
 }
