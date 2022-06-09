@@ -75,7 +75,7 @@
         Message($"{qubitArrArr w/ 0 <- []}");
         Message($"{qubitArrArr w/ 1 <- [q, q, q]}");
 
-        // FIXME: fix the issue reported by Troels and fix this:
+        // FIXME: fix this:
         
         // let arrArrArr = [[[2], [1,0]], [], [[], [3]], [[0,1,2]]];
         // Message($"{arrArrArr[0][1][1]}, {arrArrArr[1]}, {arrArrArr[3][0][2]}");
