@@ -53,6 +53,7 @@ namespace Microsoft.Quantum.QsCompiler
 
                 if (config.TargetPackageAssemblies != null)
                 {
+                    // TODO: change on compiler and runtime to pass the ResolvedTargetCapability instead of the TargetCapability
                     string DefinedTargetPackageAssemblies(string? predefined = null) =>
                         string.Join(";", config.TargetPackageAssemblies.Append(predefined).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s?.Trim()));
                     assemblyConstants[AssemblyConstants.TargetPackageAssemblies] = DefinedTargetPackageAssemblies(

@@ -48,6 +48,21 @@ namespace Microsoft.Quantum.Testing.QIR {
         return c;
     }
 
+    operation Slicing() : Unit
+    {
+        use q = Qubit[5];
+        let r1 = M(q[1]);
+        let r2 = M(q[4]);
+
+        let r3 = M(q[0..-1..4][1]);
+        let z1 = q[0..-1..4];
+        let r4 = M(z1[4]);
+
+        let r5 = M(q[4..-1..0][1]);
+        let z2 = q[4..-1..0];
+        let r6 = M(z2[4]);
+    }
+
     @EntryPoint()
     operation TestProfileTargeting() : (Int, Int) {
         let arr1 = [1,2,3];
@@ -165,6 +180,7 @@ namespace Microsoft.Quantum.Testing.QIR {
             set foo = bar;
         }
 
+        Slicing();
         return (sum, rand);
     }
 

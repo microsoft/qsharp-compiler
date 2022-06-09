@@ -1,3 +1,8 @@
+
+%Result = type opaque
+%Qubit = type opaque
+%Array = type opaque
+
 define void @Microsoft__Quantum__Testing__QIR__TestProfileTargeting() #0 {
 entry:
   %bar__1 = alloca i64, align 8
@@ -459,8 +464,99 @@ else__2:                                          ; preds = %continue__7
   br label %continue__9
 
 continue__9:                                      ; preds = %else__2, %then0__5
+  %qubit__18 = call %Qubit* @__quantum__rt__qubit_allocate()
+  %qubit__13 = call %Qubit* @__quantum__rt__qubit_allocate()
+  %271 = call %Qubit* @__quantum__rt__qubit_allocate()
+  %qubit__17 = call %Qubit* @__quantum__rt__qubit_allocate()
+  %qubit__14 = call %Qubit* @__quantum__rt__qubit_allocate()
+  %272 = insertvalue [5 x %Qubit*] zeroinitializer, %Qubit* %qubit__18, 0
+  %273 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %272, 0
+  %274 = insertvalue { [5 x %Qubit*], i64 } %273, i64 5, 1
+  %275 = extractvalue { [5 x %Qubit*], i64 } %274, 0
+  %276 = extractvalue { [5 x %Qubit*], i64 } %274, 1
+  %277 = insertvalue [5 x %Qubit*] %275, %Qubit* %qubit__13, 1
+  %278 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %277, 0
+  %279 = insertvalue { [5 x %Qubit*], i64 } %278, i64 5, 1
+  %280 = extractvalue { [5 x %Qubit*], i64 } %279, 0
+  %281 = extractvalue { [5 x %Qubit*], i64 } %279, 1
+  %282 = insertvalue [5 x %Qubit*] %280, %Qubit* %271, 2
+  %283 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %282, 0
+  %284 = insertvalue { [5 x %Qubit*], i64 } %283, i64 5, 1
+  %285 = extractvalue { [5 x %Qubit*], i64 } %284, 0
+  %286 = extractvalue { [5 x %Qubit*], i64 } %284, 1
+  %287 = insertvalue [5 x %Qubit*] %285, %Qubit* %qubit__17, 3
+  %288 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %287, 0
+  %289 = insertvalue { [5 x %Qubit*], i64 } %288, i64 5, 1
+  %290 = extractvalue { [5 x %Qubit*], i64 } %289, 0
+  %291 = extractvalue { [5 x %Qubit*], i64 } %289, 1
+  %292 = insertvalue [5 x %Qubit*] %290, %Qubit* %qubit__14, 4
+  %293 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %292, 0
+  %q__7 = insertvalue { [5 x %Qubit*], i64 } %293, i64 5, 1
+  %r1 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit__13)
+  %r2 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit__14)
+  %r3 = call %Result* @__quantum__qis__m__body(%Qubit* poison)
+  %r4 = call %Result* @__quantum__qis__m__body(%Qubit* poison)
+  %294 = insertvalue [5 x %Qubit*] zeroinitializer, %Qubit* %qubit__14, 0
+  %295 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %294, 0
+  %296 = insertvalue { [5 x %Qubit*], i64 } %295, i64 5, 1
+  %297 = extractvalue { [5 x %Qubit*], i64 } %296, 0
+  %298 = extractvalue { [5 x %Qubit*], i64 } %296, 1
+  %299 = insertvalue [5 x %Qubit*] %297, %Qubit* %qubit__17, 1
+  %300 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %299, 0
+  %301 = insertvalue { [5 x %Qubit*], i64 } %300, i64 5, 1
+  %302 = extractvalue { [5 x %Qubit*], i64 } %301, 0
+  %303 = extractvalue { [5 x %Qubit*], i64 } %301, 1
+  %304 = insertvalue [5 x %Qubit*] %302, %Qubit* %271, 2
+  %305 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %304, 0
+  %306 = insertvalue { [5 x %Qubit*], i64 } %305, i64 5, 1
+  %307 = extractvalue { [5 x %Qubit*], i64 } %306, 0
+  %308 = extractvalue { [5 x %Qubit*], i64 } %306, 1
+  %309 = insertvalue [5 x %Qubit*] %307, %Qubit* %qubit__13, 3
+  %310 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %309, 0
+  %311 = insertvalue { [5 x %Qubit*], i64 } %310, i64 5, 1
+  %312 = extractvalue { [5 x %Qubit*], i64 } %311, 0
+  %313 = extractvalue { [5 x %Qubit*], i64 } %311, 1
+  %314 = insertvalue [5 x %Qubit*] %312, %Qubit* %qubit__18, 4
+  %315 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %314, 0
+  %316 = insertvalue { [5 x %Qubit*], i64 } %315, i64 5, 1
+  %r5 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit__17)
+  %317 = insertvalue [5 x %Qubit*] zeroinitializer, %Qubit* %qubit__14, 0
+  %318 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %317, 0
+  %319 = insertvalue { [5 x %Qubit*], i64 } %318, i64 5, 1
+  %320 = extractvalue { [5 x %Qubit*], i64 } %319, 0
+  %321 = extractvalue { [5 x %Qubit*], i64 } %319, 1
+  %322 = insertvalue [5 x %Qubit*] %320, %Qubit* %qubit__17, 1
+  %323 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %322, 0
+  %324 = insertvalue { [5 x %Qubit*], i64 } %323, i64 5, 1
+  %325 = extractvalue { [5 x %Qubit*], i64 } %324, 0
+  %326 = extractvalue { [5 x %Qubit*], i64 } %324, 1
+  %327 = insertvalue [5 x %Qubit*] %325, %Qubit* %271, 2
+  %328 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %327, 0
+  %329 = insertvalue { [5 x %Qubit*], i64 } %328, i64 5, 1
+  %330 = extractvalue { [5 x %Qubit*], i64 } %329, 0
+  %331 = extractvalue { [5 x %Qubit*], i64 } %329, 1
+  %332 = insertvalue [5 x %Qubit*] %330, %Qubit* %qubit__13, 3
+  %333 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %332, 0
+  %334 = insertvalue { [5 x %Qubit*], i64 } %333, i64 5, 1
+  %335 = extractvalue { [5 x %Qubit*], i64 } %334, 0
+  %336 = extractvalue { [5 x %Qubit*], i64 } %334, 1
+  %337 = insertvalue [5 x %Qubit*] %335, %Qubit* %qubit__18, 4
+  %338 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %337, 0
+  %z2 = insertvalue { [5 x %Qubit*], i64 } %338, i64 5, 1
+  %r6 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit__18)
+  call void @__quantum__rt__result_update_reference_count(%Result* %r1, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %r2, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %r3, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %r4, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %r5, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %r6, i32 -1)
+  call void @__quantum__rt__qubit_release(%Qubit* %qubit__18)
+  call void @__quantum__rt__qubit_release(%Qubit* %qubit__13)
+  call void @__quantum__rt__qubit_release(%Qubit* %271)
+  call void @__quantum__rt__qubit_release(%Qubit* %qubit__17)
+  call void @__quantum__rt__qubit_release(%Qubit* %qubit__14)
   %__rtrnVal1__ = load i64, i64* %rand, align 4
-  %271 = insertvalue { i64, i64 } { i64 6, i64 0 }, i64 %__rtrnVal1__, 1
+  %339 = insertvalue { i64, i64 } { i64 6, i64 0 }, i64 %__rtrnVal1__, 1
   call void @__quantum__rt__qubit_release(%Qubit* %66)
   call void @__quantum__rt__qubit_release(%Qubit* %67)
   call void @__quantum__rt__qubit_release(%Qubit* %75)
@@ -475,3 +571,35 @@ continue__9:                                      ; preds = %else__2, %then0__5
   call void @__quantum__rt__tuple_end_record_output()
   ret void
 }
+
+declare void @__quantum__qis__dumpmachine__body(i8*)
+
+declare %Qubit* @__quantum__rt__qubit_allocate()
+
+declare %Array* @__quantum__rt__qubit_allocate_array(i64)
+
+declare void @__quantum__rt__qubit_release(%Qubit*)
+
+declare void @__quantum__qis__h__body(%Qubit*)
+
+declare void @__quantum__qis__cnot__body(%Qubit*, %Qubit*)
+
+declare %Result* @__quantum__qis__m__body(%Qubit*)
+
+declare void @__quantum__qis__logpauli__body(i2)
+
+declare %Result* @__quantum__rt__result_get_zero()
+
+declare i1 @__quantum__rt__result_equal(%Result*, %Result*)
+
+declare %Result* @__quantum__rt__result_get_one()
+
+declare void @__quantum__rt__result_update_reference_count(%Result*, i32)
+
+declare void @__quantum__rt__tuple_start_record_output()
+
+declare void @__quantum__rt__int_record_output(i64)
+
+declare void @__quantum__rt__tuple_end_record_output()
+
+attributes #0 = { "EntryPoint" }

@@ -10,9 +10,6 @@ using System.Linq;
 
 using LlvmBindings.Interop;
 
-// Interface+internal type matches file name
-#pragma warning disable SA1649
-
 namespace LlvmBindings.Types
 {
     /// <summary>Interface to represent the LLVM type of a function (e.g. a signature).</summary>

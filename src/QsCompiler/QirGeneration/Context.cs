@@ -1515,8 +1515,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var currentOutputValue = initialOutputValue;
                 for (var idx = 0; idx < array.Count; ++idx)
                 {
-                    array.GetArrayElements(idx);
-                    currentOutputValue = executeBody(array.GetArrayElements(idx)[0], currentOutputValue);
+                    var elems = array.GetArrayElements(new[] { idx });
+                    currentOutputValue = executeBody(elems[0], currentOutputValue);
                 }
 
                 return currentOutputValue;

@@ -54,22 +54,39 @@ namespace LlvmBindings.Values
             }
         }
 
-        /// <summary>Gets a value indicating whether this value is Undefined.</summary>
+        /// <summary>
+        /// Gets a value indicating whether this value is Undefined.
+        /// </summary>
         public bool IsUndefined => this.ValueHandle.IsUndef;
 
-        /// <summary>Gets a value indicating whether the Value represents the NULL value for the values type.</summary>
+        /// <summary>
+        /// Gets a value indicating whether the Value represents the NULL value for the values type.
+        /// </summary>
         public bool IsNull => this.ValueHandle.IsNull;
 
-        /// <summary>Gets the type of the value.</summary>
+        /// <summary>
+        /// Indicates whether the Value represents a poison value.
+        /// </summary>
+        public bool IsPoison => this.ValueHandle.IsPoison;
+
+        /// <summary>
+        /// Gets the type of the value.
+        /// </summary>
         public ITypeRef NativeType => TypeRef.FromHandle(this.ValueHandle.TypeOf)!;
 
-        /// <summary>Gets the context for this value.</summary>
+        /// <summary>
+        /// Gets the context for this value.
+        /// </summary>
         public Context Context => this.NativeType.Context;
 
-        /// <summary>Gets a value indicating whether the Value is an instruction.</summary>
+        /// <summary>
+        /// Gets a value indicating whether the Value is an instruction.
+        /// </summary>
         public bool IsInstruction => this.ValueHandle.Kind == LLVMValueKind.LLVMInstructionValueKind;
 
-        /// <summary>Gets a value indicating whether the Value is a function.</summary>
+        /// <summary>
+        /// Gets a value indicating whether the Value is a function.
+        /// </summary>
         public bool IsFunction => this.ValueHandle.Kind == LLVMValueKind.LLVMFunctionValueKind;
 
         public LLVMValueRef ValueHandle { get; }

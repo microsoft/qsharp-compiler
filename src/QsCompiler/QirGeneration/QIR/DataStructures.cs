@@ -865,12 +865,20 @@ namespace Microsoft.Quantum.QIR.Emission
             }
         }
 
+        private PointerValue CreatePointerForPoison() => new(
+            this.QSharpElementType,
+            this.LlvmElementType,
+            this.sharedState,
+            () => this.sharedState.Values.From(Constant.PoisonValueFor(this.LlvmElementType), this.QSharpElementType),
+            _ => { });
+
         private PointerValue CreateArrayElementPointer(int index, IValue? element = null) =>
             this.CreateArrayElementPointer(this.sharedState.Context.CreateConstant((long)index), element);
 
         internal PointerValue GetArrayElementPointer(Value index) =>
             this.arrayElementPointers != null && QirValues.AsConstantInt(index) is uint idx
-            ? this.arrayElementPointers[idx].Load()
+            ? (idx < this.arrayElementPointers.Length
+                ? this.arrayElementPointers[idx].Load() : this.CreatePointerForPoison())
             : this.CreateArrayElementPointer(index);
 
         private IValue GetArrayElement(int index) =>
@@ -888,9 +896,9 @@ namespace Microsoft.Quantum.QIR.Emission
         /// If no indices are specified, returns all element pointers if the length of the array is known,
         /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
         /// </summary>
-        internal PointerValue[] GetArrayElementPointers(params int[] indices)
+        internal PointerValue[] GetArrayElementPointers(IEnumerable<int>? indices = null)
         {
-            var enumerable = indices.Length != 0 ? indices :
+            var enumerable = indices != null ? indices :
                 this.Count != null && this.Count <= int.MaxValue ? Enumerable.Range(0, (int)this.Count) :
                 throw new InvalidOperationException("cannot get all element pointers for array of unknown length");
 
@@ -905,7 +913,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// If no indices are specified, returns all elements if the length of the array is known,
         /// i.e. it it has been instantiated with a count, and throws an InvalidOperationException otherwise.
         /// </summary>
-        internal IValue[] GetArrayElements(params int[] indices) =>
+        internal IValue[] GetArrayElements(IEnumerable<int>? indices = null) =>
             this.GetArrayElementPointers(indices).Select(ptr => ptr.LoadValue()).ToArray();
     }
 
