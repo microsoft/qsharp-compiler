@@ -733,10 +733,11 @@ namespace Microsoft.Quantum.QIR.Emission
             if (eltype.Resolution is QsResolvedTypeKind.ArrayType it)
             {
                 var arrs = elements.Select(e => (ArrayValue)e).ToArray();
-                var innerArrSize = arrs.Max(a =>
+                var sizes = arrs.Select(a =>
                     a.IsNativeValue(out var constArr, out var _) && constArr.NativeType is IArrayType iat
                     ? iat.Length
                     : throw new InvalidOperationException("expecting a constant array as inner element"));
+                var innerArrSize = Enumerable.Prepend(sizes, 0u).Max();
 
                 IValue GetInnerElements(int idx, ArrayValue array) =>
                     idx < array.Count

@@ -1,4 +1,7 @@
-﻿namespace Microsoft.Quantum.Testing.ExecutionTests {
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+namespace Microsoft.Quantum.Testing.ExecutionTests {
 
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Measurement;
@@ -74,12 +77,10 @@
         let qubitArrArr = [qs1, [], qs2, [q]];
         Message($"{qubitArrArr w/ 0 <- []}");
         Message($"{qubitArrArr w/ 1 <- [q, q, q]}");
-
-        // FIXME: fix this:
         
-        // let arrArrArr = [[[2], [1,0]], [], [[], [3]], [[0,1,2]]];
-        // Message($"{arrArrArr[0][1][1]}, {arrArrArr[1]}, {arrArrArr[3][0][2]}");
-        // Message($"{arrArrArr w/ 3 <- [[1,2,3,4], []]}");
-        // Message($"{arrArrArr w/ 2 .. 3 <- [[], []]}");
+        let arrArrArr = [[[2], [1,0]], [], [[], [3]], [[0,1,2]]];
+        Message($"{arrArrArr[0][1][1]}, {arrArrArr[1]}, {arrArrArr[3][0][2]}");
+        Message($"{arrArrArr w/ 3 <- [[1,2,3,4], []]}");
+        Message($"{arrArrArr w/ 2 .. 3 <- [[], []]}");
     }
 }
