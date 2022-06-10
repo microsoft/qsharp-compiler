@@ -170,7 +170,10 @@ export class LanguageServer {
             }
 
             version = response.stdout.trim();
-
+            let info = getPackageInfo(this.context);
+            if (info === undefined || info === null) {
+                throw new Error("Package info was undefined.");
+            }
             console.log(`[qsharp-lsp] Package is ${info.name} with ${info.nugetVersion} and ${info.version}`);
             if (versionCheck && info.nugetVersion !== version) {
                 console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.nugetVersion}. Clearing cached version.`);
@@ -181,11 +184,6 @@ export class LanguageServer {
         else
         {
             console.log(`[qsharp-lsp] Using Language Server from manual path at "${lsPath}".`);
-        }
-
-        let info = getPackageInfo(this.context);
-        if (info === undefined || info === null) {
-            throw new Error("Package info was undefined.");
         }
 
         this.serverExe = {
