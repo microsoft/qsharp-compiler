@@ -119,6 +119,8 @@ export class LanguageServer {
 
     async findExecutable() : Promise<boolean> {
         let lsPath : string | undefined | null = undefined;
+        let lsGlobalStoragePath : string | undefined | null = undefined;
+        let version = "";
         // Before anything else, look at the user's configuration to see
         // if they set a path manually for the language server.
         let versionCheck = false;
@@ -134,42 +136,56 @@ export class LanguageServer {
             if (exeName === null) {
                 throw new Error(`Unsupported platform: ${os.platform()}`);
             }
-            lsPath = path.join(this.context.globalStoragePath, CommonPaths.storageRelativePath, exeName);
-            versionCheck = true;
+            lsGlobalStoragePath = path.join(this.context.globalStoragePath, CommonPaths.storageRelativePath, exeName);
+            lsPath = lsGlobalStoragePath;
         }
 
         // Since lsPath has been set unconditionally, we can now proceed to
         // check if it's valid or not.
         if (!await isPathExecutable(lsPath)) {
-            console.log(`[qsharp-lsp] "${lsPath}" is not executable. Proceed to download Q# language server.`)
+            console.log(`[qsharp-lsp] "${lsPath}" is not executable. Proceed to download Q# language server.`);
             // Language server didn't exist or wasn't executable.
             return false;
         }
-        // NB: There is a possible race condition here, as per node docs. An
-        //     alternative approach might be to simply run the language server
-        //     and catch errors there.
-        var response : {stdout: string, stderr: string};
-        try {
-            response = await promisify(cp.exec)(`"${lsPath}" --version`);
-        } catch (err) {
-            console.log(`[qsharp-lsp] Error while fetching LSP version: ${err}`);
-            throw err;
+
+        if (lsGlobalStoragePath !== undefined)
+        {
+            // Since we're using a global storage path and not a manually defined path,
+            // we need to check the version.
+            console.log(`[qsharp-lsp] Using Language Server from global storage at "${lsGlobalStoragePath}".`);
+
+            // NB: There is a possible race condition here, as per node docs. An
+            //     alternative approach might be to simply run the language server
+            //     and catch errors there.
+            var response : {stdout: string, stderr: string};
+            try {
+                response = await promisify(cp.exec)(`"${lsGlobalStoragePath}" --version`);
+            } catch (err) {
+                console.log(`[qsharp-lsp] Error while fetching LSP version: ${err}`);
+                throw err;
+            }
+
+            if (response.stderr.trim().length !== 0) {
+                throw new Error(`Language server returned error when reporting version: ${response.stderr}`);
+            }
+
+            version = response.stdout.trim();
+
+            console.log(`[qsharp-lsp] Package is ${info.name} with ${info.nugetVersion} and ${info.version}`);
+            if (versionCheck && info.nugetVersion !== version) {
+                console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.nugetVersion}. Clearing cached version.`);
+                await this.clearCache();
+                return false;
+            }
+        }
+        else
+        {
+            console.log(`[qsharp-lsp] Using Language Server from manual path at "${lsPath}".`);
         }
 
-        if (response.stderr.trim().length !== 0) {
-            throw new Error(`Language server returned error when reporting version: ${response.stderr}`);
-        }
-
-        let version = response.stdout.trim();
         let info = getPackageInfo(this.context);
         if (info === undefined || info === null) {
             throw new Error("Package info was undefined.");
-        }
-        console.log(`[qsharp-lsp] Package is ${info.name} with ${info.nugetVersion} and ${info.version}`);
-        if (versionCheck && info.nugetVersion !== version) {
-            console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.nugetVersion}. Clearing cached version.`);
-            await this.clearCache();
-            return false;
         }
 
         this.serverExe = {
