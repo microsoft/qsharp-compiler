@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
@@ -98,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             var continuation = file.GetLine(continueAt);
-            var updatedContinuation = ComputeCodeLines(new string[] { continuation.Text }, previous).Single();
+            var updatedContinuation = ComputeCodeLines(new string[] { continuation.Text }, previous, file.AllWhiteSpaceUntil(continueAt), file.DocumentKind).Single();
             return updatedContinuation.Indentation - continuation.Indentation;
         }
 
@@ -378,6 +379,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     prefixDelims,
                     -1, // The comment will have been removed by this point
                     0,
+                    false, // Whether this line is all whitespace is also irrelevant
                     prefixExcessClosings);
             }
 
@@ -506,12 +508,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// Specifying <paramref name="previousLine"/> as null indicates that there is no previous line.
         /// </remarks>
-        private static IEnumerable<CodeLine> InitializeCodeLines(IEnumerable<string> texts, CodeLine? previousLine = null)
+        private static IEnumerable<CodeLine> InitializeCodeLines(
+            IEnumerable<string> texts,
+            CodeLine? previousLine,
+            bool allWhiteSpaceUntil,
+            DocumentKind documentKind)
         {
             var previousLineStringContext = previousLine?.EndingStringContext ?? CodeLine.StringContext.NoOpenString;
             foreach (string text in texts)
             {
-                var line = new CodeLine(text, previousLineStringContext);
+                var line = new CodeLine(text, previousLineStringContext, allWhiteSpaceUntil, documentKind);
+                allWhiteSpaceUntil &= line.IsAllWhiteSpace;
                 previousLineStringContext = line.EndingStringContext;
                 yield return line;
             }
@@ -556,8 +563,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// Specifying <paramref name="previousLine"/> as null indicates that there is no previous line.
         /// </remarks>
-        private static IEnumerable<CodeLine> ComputeCodeLines(IEnumerable<string> texts, CodeLine? previousLine = null) =>
-            SetIndentations(InitializeCodeLines(texts, previousLine), previousLine == null ? 0 : previousLine.FinalIndentation());
+        private static IEnumerable<CodeLine> ComputeCodeLines(IEnumerable<string> texts, CodeLine? previousLine, bool allWhiteSpaceUntil, DocumentKind documentKind) =>
+            SetIndentations(InitializeCodeLines(texts, previousLine, allWhiteSpaceUntil, documentKind), previousLine == null ? 0 : previousLine.FinalIndentation());
 
         /// <summary>
         /// Returns an enumerable sequence of new <see cref="CodeLine"/> objects where the initial indentation
@@ -606,7 +613,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 // we need to recompute everything if the interpretation of what is code and what is a string changes...
                 // since the interpretation of the remaining file changed, we need to update the entire file from start onwards
-                return ComputeCodeLines(remainingLines.Select(line => line.Text), replacements.Last()).ToList();
+                bool allWhiteSpaceUntil = file.AllWhiteSpaceUntil(start) && replacements.All(line => line.IsAllWhiteSpace);
+                return ComputeCodeLines(remainingLines.Select(line => line.Text), replacements.Last(), allWhiteSpaceUntil, file.DocumentKind).ToList();
             }
             else if (indentationChange != 0)
             {
@@ -686,7 +694,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static void Update(this FileContentManager file, int start, int count, IEnumerable<string> newText)
         {
             CodeLine[] replacements = QsCompilerError.RaiseOnFailure(
-                () => ComputeCodeLines(newText, start > 0 ? file.GetLine(start - 1) : null).ToArray(),
+                () => ComputeCodeLines(newText, start > 0 ? file.GetLine(start - 1) : null, file.AllWhiteSpaceUntil(start), file.DocumentKind).ToArray(),
                 "scope tracking update failed during computing the replacements");
 
             IEnumerable<CodeLine>? updateRemaining = QsCompilerError.RaiseOnFailure(
@@ -735,7 +743,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <para/>
         /// If <paramref name="change"/> is null, then (only) the currently queued unprocessed changes are processed.
         /// </remarks>
-        internal static void UpdateScopeTacking(this FileContentManager file, TextDocumentContentChangeEvent? change)
+        internal static void UpdateScopeTracking(this FileContentManager file, TextDocumentContentChangeEvent? change)
         {
             // Replaces the lines in the range [start, end] with those for the given text.
             void ComputeUpdate(int start, int end, string text)
