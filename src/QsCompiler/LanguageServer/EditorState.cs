@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
@@ -199,6 +200,34 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
+        internal bool NotebookProjectLoader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? info)
+        {
+            var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
+            buildProperties.Add(MSBuildProperties.TargetPath, null);
+
+            // TODO: Should be propagated from notebook for more helpful text in error message
+            buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, null);
+            buildProperties.Add(MSBuildProperties.QuantumSdkPath, null);
+            buildProperties.Add(MSBuildProperties.QuantumSdkVersion, Assembly.GetEntryAssembly()?.GetName().Version?.ToString());
+            buildProperties.Add(MSBuildProperties.QsharpLangVersion, null);
+
+            // TODO: Want to propagate the runtime capability from the notebook
+            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, null);
+            buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, "QSharpLibrary");
+            buildProperties.Add(MSBuildProperties.ExposeReferencesViaTestNames, null);
+
+            // TODO: In the future if we add formatting support, this will need to be updated
+            buildProperties.Add(MSBuildProperties.QsFmtExe, null);
+
+            info = new ProjectInformation(
+                sourceFiles: ImmutableArray<string>.Empty,
+                projectReferences: ImmutableArray<string>.Empty,
+                references: ImmutableArray<string>.Empty,
+                buildProperties: buildProperties,
+                buildConfiguration: this.buildConfiguration);
+            return true;
+        }
+
         /// <summary>
         /// For each given uri, loads the corresponding project if the uri contains the project file for a Q# project,
         /// and publishes suitable diagnostics for it.
@@ -207,6 +236,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.projectLoader is object ?
                 this.projects.LoadProjectsAsync(projects, this.QsProjectLoader, this.GetOpenFile) :
                 Task.CompletedTask;
+
+        internal Task CreateNotebookProjectAsync() =>
+            this.projects.CreateNotebookProjectAsync(this.NotebookProjectLoader);
 
         /// <summary>
         /// If the given uri corresponds to the project file for a Q# project,
