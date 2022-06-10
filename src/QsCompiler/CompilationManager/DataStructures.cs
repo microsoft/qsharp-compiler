@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         internal string LineEnding { get; } // contains the line break for this line (included in text)
 
-        private static readonly char[] NoOpenStringDelimiters = new[] { '"', '/' };
+        private static readonly char[] NoOpenStringDelimiters = new[] { '"', '/', '%' };
         private static readonly char[] OpenInterpolatedArgumentDelimiters = new[] { '"', '}', '/' };
         private static readonly char[] OpenInterpolatedStringDelimiters = new[] { '"', '{' };
 
@@ -70,6 +70,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         public string? EndOfLineComment { get; }
 
         internal int Indentation { get; } // Note: This denotes the initial indentation at the beginning of the line
+
+        internal bool IsAllWhiteSpace { get; }
 
         internal ImmutableArray<int> ExcessBracketPositions { get; }
 
@@ -92,6 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             string withoutEnding,
             string? endOfLineComment,
             int indentation,
+            bool isAllWhiteSpace,
             IEnumerable<int> excessBracketPositions,
             IEnumerable<int> errorDelimiterPositions,
             IEnumerable<int> stringDelimiters,
@@ -103,6 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.WithoutEnding = withoutEnding;
             this.EndOfLineComment = endOfLineComment;
             this.Indentation = indentation;
+            this.IsAllWhiteSpace = isAllWhiteSpace;
             this.ExcessBracketPositions = excessBracketPositions.ToImmutableArray();
             this.ErrorDelimiterPositions = errorDelimiterPositions.ToImmutableArray();
             this.StringDelimiters = stringDelimiters.ToImmutableArray();
@@ -123,6 +127,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.WithoutEnding = string.Empty;
             this.EndOfLineComment = null;
             this.Indentation = 0;
+            this.IsAllWhiteSpace = true;
             this.ExcessBracketPositions = ImmutableArray<int>.Empty;
             this.ErrorDelimiterPositions = ImmutableArray<int>.Empty;
             this.StringDelimiters = ImmutableArray<int>.Empty;
@@ -134,8 +139,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// Constructs a code line from text and optionally a beginning string context.
         /// Other information about the code line is calculated automatically.
         /// </summary>
-        public CodeLine(string text, StringContext beginningStringContext = StringContext.NoOpenString)
-            : this(text, beginningStringContext, 0, new List<int>())
+        public CodeLine(string text, StringContext beginningStringContext = StringContext.NoOpenString, bool allWhiteSpaceUntil = false, BuildConfiguration? buildConfiguration = null)
+            : this(text, beginningStringContext, 0, new List<int>(), allWhiteSpaceUntil, buildConfiguration)
         {
         }
 
@@ -143,7 +148,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// Constructs a code line from text. Beginning string context, indentation, and excess brackets are also required.
         /// Other information about the code line is calculated automatically.
         /// </summary>
-        private CodeLine(string text, StringContext beginningStringContext, int indentation, IEnumerable<int> excessBrackets)
+        private CodeLine(string text, StringContext beginningStringContext, int indentation, IEnumerable<int> excessBrackets, bool allWhiteSpaceUntil, BuildConfiguration? buildConfiguration = null)
         {
             this.Text = text;
             this.LineEnding = Utils.EndOfLine.Match(text).Value; // empty string if the matching failed
@@ -152,8 +157,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.EndingStringContext = beginningStringContext;
 
             var endingStringContext = this.EndingStringContext;
-            var delimiters = ComputeStringDelimiters(text, ref endingStringContext, out var commentStart, out var errorDelimiters);
+            buildConfiguration ??= BuildConfiguration.DefaultConfiguration();
+            var delimiters = ComputeStringDelimiters(text, allWhiteSpaceUntil, buildConfiguration, ref endingStringContext, out var isAllWhiteSpace, out var commentStart, out var errorDelimiters);
             this.EndingStringContext = endingStringContext;
+            this.IsAllWhiteSpace = isAllWhiteSpace;
             this.ErrorDelimiterPositions = errorDelimiters.ToImmutableArray();
 
             var lineLength = text.Length - this.LineEnding.Length;
@@ -182,7 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Constructs a code line using provided information. Here, delimiters are provided rather than calculated.
         /// </summary>
-        public CodeLine(string text, StringContext beginningStringContext, IEnumerable<int> delimiters, int commentStart, int indentation, IEnumerable<int> excessBrackets)
+        public CodeLine(string text, StringContext beginningStringContext, IEnumerable<int> delimiters, int commentStart, int indentation, bool isAllWhiteSpace, IEnumerable<int> excessBrackets)
         {
             this.Text = text;
             this.LineEnding = Utils.EndOfLine.Match(text).Value; // empty string if the matching failed
@@ -249,6 +256,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.StringDelimiters = delimiterBuilder.ToImmutable();
             this.ErrorDelimiterPositions = errorDelimiterBuilder.ToImmutable();
             this.Indentation = indentation;
+            this.IsAllWhiteSpace = isAllWhiteSpace;
             this.ExcessBracketPositions = excessBrackets.ToImmutableArray();
             ScopeTracking.VerifyStringDelimiters(text, this.StringDelimiters);
             ScopeTracking.VerifyExcessBracketPositions(this, excessBrackets);
@@ -260,34 +268,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// </summary>
         private static bool IsInAString(StringContext context) => context >= StringContext.OpenString;
 
-        private static int FindNextDelimOrComment(string text, char[] delimiters, int startIndex)
-        {
-            var delimitersAndComment = delimiters.Append('/').ToArray();
-
-            var index = text.IndexOfAny(delimitersAndComment, startIndex);
-            if (index >= 0 && text[index] == '/')
-            {
-                // Found a comment
-                if (index + 1 < text.Length && text[index + 1] == '/')
-                {
-                    return index;
-                }
-                else
-                {
-                    // Just a lone /, move past it and try again
-                    return FindNextDelimOrComment(text, delimiters, index + 1);
-                }
-            }
-            else
-            {
-                return index;
-            }
-        }
-
         /// <summary>
         /// Computes the location of the string delimiters within a given text.
         /// </summary>
-        private static IEnumerable<int> ComputeStringDelimiters(string text, ref StringContext stringContext, out int commentIndex, out IEnumerable<int> errorDelimiters)
+        private static IEnumerable<int> ComputeStringDelimiters(
+            string text,
+            bool allWhiteSpaceUntil,
+            BuildConfiguration buildConfiguration,
+            ref StringContext stringContext,
+            out bool isAllWhiteSpace,
+            out int commentIndex,
+            out IEnumerable<int> errorDelimiters)
         {
             var delimiterBuilder = ImmutableArray.CreateBuilder<int>();
             var errorDelimiterBuilder = ImmutableArray.CreateBuilder<int>();
@@ -299,7 +290,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             commentIndex = -1;
 
+            var firstNonWhiteSpaceIndex = text.TakeWhile(char.IsWhiteSpace).Count();
+            isAllWhiteSpace = firstNonWhiteSpaceIndex == text.Length;
+
             bool IsLoneSlash(int index) => index >= 0 && text[index] == '/' && (index + 1 == text.Length || text[index + 1] != '/');
+            bool IsNotMagicCommand(int index) => index >= 0 && text[index] == '%'
+                                                 && (!buildConfiguration.IsNotebook || !allWhiteSpaceUntil || index != firstNonWhiteSpaceIndex);
             bool IsEscaped(int index) => index > 0 && text[index - 1] == '\\';
 
             var pos = 0;
@@ -312,8 +308,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                         // Find the next " or comment
                         indexOfDelim = text.IndexOfAny(NoOpenStringDelimiters, pos);
 
-                        // Don't stop if index is a lone /
-                        while (IsLoneSlash(indexOfDelim))
+                        // Don't stop if index is a lone /, or if the % is not a magic command
+                        while (IsLoneSlash(indexOfDelim) || IsNotMagicCommand(indexOfDelim))
                         {
                             indexOfDelim = text.IndexOfAny(NoOpenStringDelimiters, indexOfDelim + 1);
                         }
@@ -356,7 +352,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     break;
                 }
 
-                if (text[indexOfDelim] == '/')
+                if (text[indexOfDelim] == '/' || text[indexOfDelim] == '%')
                 {
                     commentIndex = indexOfDelim;
                     break;
@@ -476,6 +472,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 this.WithoutEnding,
                 this.EndOfLineComment,
                 newIndentation,
+                this.IsAllWhiteSpace,
                 this.ExcessBracketPositions,
                 this.ErrorDelimiterPositions,
                 this.StringDelimiters,
@@ -491,6 +488,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 this.WithoutEnding,
                 this.EndOfLineComment,
                 this.Indentation,
+                this.IsAllWhiteSpace,
                 newExcessBrackets,
                 this.ErrorDelimiterPositions,
                 this.StringDelimiters,
