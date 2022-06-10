@@ -550,6 +550,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
             var programFileWithoutNamespace = Path.Combine(projDir, "Bell.qs");
             var programFileWithNamespace = Path.Combine(projDir, "Parity.qs");
+            var programFileWithMagic = Path.Combine(projDir, "Magic.qs");
 
             var initParams = TestUtils.GetInitializeParams();
             initParams.RootUri = new Uri(projDir);
@@ -561,11 +562,15 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(programFileWithoutNamespace));
             var diagnostics1 = await this.GetFileDiagnosticsAsync(programFileWithoutNamespace);
 
-            // By default, LanguageId will not contain "notebook"
             var openParams2 = TestUtils.GetOpenFileParams(programFileWithNamespace);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
             Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(programFileWithNamespace));
             var diagnostics2 = await this.GetFileDiagnosticsAsync(programFileWithNamespace);
+
+            var openParams3 = TestUtils.GetOpenFileParams(programFileWithMagic);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams3);
+            Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(programFileWithNamespace));
+            var diagnostics3 = await this.GetFileDiagnosticsAsync(programFileWithNamespace);
 
             Assert.IsNotNull(diagnostics1);
             Assert.AreEqual(3, diagnostics1!.Length);
@@ -577,6 +582,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             Assert.IsNotNull(diagnostics2);
             Assert.AreEqual(0, diagnostics2!.Length);
+
+            Assert.AreEqual(1, diagnostics3!.Length);
+            Assert.AreEqual("QS3001", diagnostics3[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics3[0].Severity);
         }
 
         [TestMethod]
@@ -586,6 +595,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
             var programFileWithoutNamespace = Path.Combine(projDir, "Bell.qs");
             var programFileWithNamespace = Path.Combine(projDir, "Parity.qs");
+            var programFileWithMagic = Path.Combine(projDir, "Magic.qs");
 
             // Same value sent by Azure Notebooks
             var languageId = "qsharp-notebook";
@@ -593,6 +603,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var notebookGuid = Guid.NewGuid();
             var uriWithoutNamespace = TestUtils.GenerateNotebookCellUri(notebookGuid);
             var uriWithNamespace = TestUtils.GenerateNotebookCellUri(notebookGuid);
+            var uriWithMagic = TestUtils.GenerateNotebookCellUri(notebookGuid);
 
             // Azure Notebooks leaves RootUri=null, so do the same here
             var initParams = TestUtils.GetInitializeParams();
@@ -607,6 +618,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
             Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uriWithNamespace));
             var diagnostics2 = await this.GetFileDiagnosticsAsync(uri: uriWithNamespace);
+
+            var openParams3 = TestUtils.GetOpenFileParams(programFileWithMagic, uriWithMagic);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams3);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uriWithMagic));
+            var diagnostics3 = await this.GetFileDiagnosticsAsync(uri: uriWithMagic);
 
             Assert.IsNotNull(diagnostics1);
             Assert.AreEqual(0, diagnostics1!.Length);
