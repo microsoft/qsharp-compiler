@@ -32,10 +32,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Methods.WorkspaceExecuteCommand.Name,
                 TestUtils.ServerCommand(CommandIds.FileContentInMemory, TestUtils.GetTextDocumentIdentifier(filename)));
 
-        public Task<Diagnostic[]> GetFileDiagnosticsAsync(string? filename = null) =>
+        public Task<Diagnostic[]> GetFileDiagnosticsAsync(string? filename = null, Uri? uri = null) =>
             this.rpc.InvokeWithParameterObjectAsync<Diagnostic[]>(
                 Methods.WorkspaceExecuteCommand.Name,
-                TestUtils.ServerCommand(CommandIds.FileDiagnostics, filename == null ? new TextDocumentIdentifier { Uri = new Uri("file://unknown") } : TestUtils.GetTextDocumentIdentifier(filename)));
+                TestUtils.ServerCommand(CommandIds.FileDiagnostics, filename == null ? new TextDocumentIdentifier { Uri = uri ?? new Uri("file://unknown") } : TestUtils.GetTextDocumentIdentifier(filename)));
 
         public Task SetupAsync()
         {
