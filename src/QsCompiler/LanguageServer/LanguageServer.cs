@@ -295,8 +295,16 @@ namespace Microsoft.Quantum.QsLanguageServer
 
 #pragma warning restore CS0618 // Type or member is obsolete
             this.workspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
-            this.LogToWindow($"workspace folder: {this.workspaceFolder ?? "(Null)"}", MessageType.Info);
-            this.fileWatcher.ListenAsync(this.workspaceFolder, true, dict => this.InitializeWorkspaceAsync(dict), "*.csproj", "*.dll", "*.qs").Wait(); // not strictly necessary to wait but less confusing
+
+            if (this.editorState.IsNotebook)
+            {
+                this.editorState.CreateNotebookProjectAsync().Wait();
+            }
+            else
+            {
+                this.LogToWindow($"workspace folder: {this.workspaceFolder ?? "(Null)"}", MessageType.Info);
+                this.fileWatcher.ListenAsync(this.workspaceFolder, true, dict => this.InitializeWorkspaceAsync(dict), "*.csproj", "*.dll", "*.qs").Wait(); // not strictly necessary to wait but less confusing
+            }
 
             var capabilities = new ServerCapabilities
             {
