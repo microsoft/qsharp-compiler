@@ -322,26 +322,39 @@ module SymbolResolution =
         |> Seq.map targetName
         |> ImmutableHashSet.CreateRange
 
-    /// Returns the required runtime capability if the sequence of attributes contains at least one valid instance of
-    /// the RequiresCapability attribute.
+    /// <summary>
+    /// Returns the required capability if the sequence of attributes contains at least one valid instance of the
+    /// <c>RequiresCapability</c> attribute.
+    /// </summary>
     let TryGetRequiredCapability attributes =
-        let getCapability (att: QsDeclarationAttribute) =
-            if att |> BuiltIn.MarksRequiredCapability then
-                match att.Argument.Expression with
-                | ValueTuple vs when vs.Length = 2 -> Some vs.[0]
-                | _ -> None
-            else
-                None
+        let getString e =
+            match e.Expression with
+            | StringLiteral (s, es) when es.IsEmpty -> Some s
+            | _ -> None
 
-        let capabilities =
-            StringArgument(getCapability, (fun ex -> ex.Expression)) attributes
-            |> QsNullable<_>.Choose RuntimeCapability.TryParse
-            |> ImmutableHashSet.CreateRange
+        let builders =
+            [
+                ResultOpacity.ofName >> Option.map TargetCapability.withResultOpacity
+                ClassicalCompute.ofName >> Option.map TargetCapability.withClassicalCompute
+            ]
 
-        if Seq.isEmpty capabilities then
-            Null
-        else
-            capabilities |> Seq.reduce RuntimeCapability.Combine |> Value
+        let applyBuilder capability arg builder =
+            (getString arg |> Option.bind builder |> Option.defaultValue id) capability
+
+        let getCapability (attribute: QsDeclarationAttribute) =
+            match attribute.Argument.Expression with
+            | ValueTuple args when args.Length = 2 ->
+                // Backwards compatibility with (Name : String, Reason : String).
+                getString args[0] |> Option.bind TargetCapability.ofName
+            | ValueTuple args when args.Length = 3 ->
+                // Parse (ResultOpacity : String, ClassicalCompute : String, Reason : String).
+                Seq.fold2 applyBuilder TargetCapability.bottom args builders |> Some
+            | _ -> None
+
+        Seq.filter BuiltIn.MarksRequiredCapability attributes
+        |> Seq.choose getCapability
+        |> Seq.fold (fun acc c -> Option.fold TargetCapability.merge c acc |> Some) None
+        |> QsNullable.ofOption
 
     /// Checks whether the given attributes defines a code for an instruction within the quantum instruction set that matches this callable.
     /// Returns the string code as Value if this is the case, and Null otherwise.
