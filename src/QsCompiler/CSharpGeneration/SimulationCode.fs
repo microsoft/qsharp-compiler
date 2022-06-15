@@ -1112,6 +1112,7 @@ module SimulationCode =
             /// eg:
             /// protected opType opName { get; }
             let signature = roslynCallableTypeName context qualifiedName
+
             let name = getOpName context qualifiedName
             let modifiers = getPropertyModifiers qualifiedName
             prop signature name modifiers :> MemberDeclarationSyntax

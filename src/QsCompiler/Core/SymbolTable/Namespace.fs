@@ -36,6 +36,7 @@ type Namespace
     /// dictionary containing a PartialNamespaces for each source file which implements a part of this namespace -
     /// the key is the source file where each part of the namespace is defined
     let Parts = parts.ToDictionary((fun item -> item.Key), (fun item -> item.Value))
+
     let mutable TypesDefinedInAllSourcesCache = null
     let mutable CallablesDefinedInAllSourcesCache = null
 
@@ -57,10 +58,12 @@ type Namespace
 
     /// name of the namespace
     member this.Name = name
+
     /// Immutable array with the names of all source files that contain (a part of) the namespace.
     /// Note that files contained in referenced assemblies that implement part of the namespace
     /// are *not* considered to be source files within the context of this Namespace instance!
     member internal this.Sources = Parts.Keys.ToImmutableHashSet()
+
     /// contains all types declared within one of the referenced assemblies as part of this namespace
     member this.TypesInReferencedAssemblies = TypesInReferences // access should be fine, since this is immutable
     /// contains all callables declared within one of the referenced assemblies as part of this namespace

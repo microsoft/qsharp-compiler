@@ -357,7 +357,7 @@ type ResolvedCharacteristics =
     /// The properties cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
     /// </exception>
     member this.GetProperties() =
-        match ResolvedCharacteristics.ExtractProperties(fun ex -> ex._Characteristics) this with
+        match ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this with
         | Some props -> props.ToImmutableHashSet()
         | None -> InvalidOperationException "properties cannot be determined" |> raise
 
@@ -369,7 +369,7 @@ type ResolvedCharacteristics =
             | Adjointable -> Some Adjoint
             | Controllable -> Some Controlled
 
-        match ResolvedCharacteristics.ExtractProperties(fun ex -> ex._Characteristics) this with
+        match ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this with
         | Some props -> (props |> Seq.choose getFunctor).ToImmutableHashSet() |> Value
         | None -> Null
 

@@ -179,8 +179,8 @@ let internal validateTypeSyntax isArrayItem { Type = kind; Range = range } =
         // To avoid confusing syntax like "new Int -> Int[3]" or "Qubit => Unit is Adj[]", require that function and
         // operation types are tupled when used as an array item type.
         [
-            QsCompilerDiagnostic.Error(ErrorCode.MissingLTupleBracket, []) (Range.Create start start)
-            QsCompilerDiagnostic.Error(ErrorCode.MissingRTupleBracket, []) (Range.Create end' end')
+            QsCompilerDiagnostic.Error (ErrorCode.MissingLTupleBracket, []) (Range.Create start start)
+            QsCompilerDiagnostic.Error (ErrorCode.MissingRTupleBracket, []) (Range.Create end' end')
         ]
         |> pushDiagnostics
     | _ -> preturn ()

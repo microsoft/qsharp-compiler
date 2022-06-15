@@ -38,7 +38,7 @@ let createPattern range feature =
                 | DefaultArray -> "default-initialized array constructor"
 
             let args = [ target.Name; description ]
-            QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
+            QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
     {
         Capability = capability
@@ -72,7 +72,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
-                let range = QsNullable.Map2(+) transformation.Offset expression.Range
+                let range = QsNullable.Map2 (+) transformation.Offset expression.Range
 
                 match expression.Expression with
                 | CallLikeExpression (callee, _) ->

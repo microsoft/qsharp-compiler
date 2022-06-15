@@ -82,7 +82,7 @@ module Diagnostic =
         function
         | TypeMismatch context ->
             let range = TypeRange.tryRange context.Actual.Range |> QsNullable.defaultValue Range.Zero
-            QsCompilerDiagnostic.Error(ErrorCode.TypeMismatch, typeContextArgs context) range
+            QsCompilerDiagnostic.Error (ErrorCode.TypeMismatch, typeContextArgs context) range
         | TypeIntersectionMismatch (ordering, context) ->
             let orderingString =
                 match ordering with
@@ -96,8 +96,8 @@ module Diagnostic =
                 |> QsNullable.defaultValue Range.Zero
 
             let args = orderingString :: typeContextArgs context
-            QsCompilerDiagnostic.Error(ErrorCode.TypeIntersectionMismatch, args) range
+            QsCompilerDiagnostic.Error (ErrorCode.TypeIntersectionMismatch, args) range
         | InfiniteType context ->
             let range = TypeRange.tryRange context.Actual.Range |> QsNullable.defaultValue Range.Zero
-            QsCompilerDiagnostic.Error(ErrorCode.InfiniteType, typeContextArgs context) range
+            QsCompilerDiagnostic.Error (ErrorCode.InfiniteType, typeContextArgs context) range
         | CompilerDiagnostic diagnostic -> diagnostic

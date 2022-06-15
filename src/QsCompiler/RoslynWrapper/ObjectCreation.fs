@@ -1,10 +1,10 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper
 
+#nowarn "1182" // Unused parameters
+
 /// <summary>
 /// Use this module to specify the syntax for a <code>object instantiation</code>
 /// </summary>
-#nowarn "1182" // Unused parameters
-
 [<AutoOpen>]
 module ObjectCreation =
     open Microsoft.CodeAnalysis

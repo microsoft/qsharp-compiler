@@ -33,7 +33,7 @@ let private _MakeTupleType tupleItems =
 
     names
     |> String.concat ", "
-    |> fun x -> "(" + x + ")", types |> List.map ResolvedType.New |> fun x -> x.ToImmutableArray() |> TupleType
+    |> fun x -> "(" + x + ")", types |> List.map ResolvedType.New |> (fun x -> x.ToImmutableArray() |> TupleType)
 
 let private _MakeTypeMap extraTypes =
     Array.concat [ _BaseTypes; extraTypes ] |> Seq.map (fun (k, v) -> k, ResolvedType.New v) |> dict

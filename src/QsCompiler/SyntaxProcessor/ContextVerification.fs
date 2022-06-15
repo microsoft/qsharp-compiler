@@ -132,7 +132,7 @@ let private verifySpecialization (context: SyntaxTokenContext) =
             false, [| (ErrorCode.ControlledAdjointDeclInFunction |> Error, context.Range) |]
         | decl -> checkGenerator decl
 
-    let NullOr = ApplyOrDefaultTo(false, [||]) context.Self // empty fragments can be excluded from the compilation
+    let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
 
     let errMsg = false, [| (ErrorCode.NotWithinCallable |> Error, context.Range) |]
 
@@ -180,7 +180,7 @@ let private verifyStatement (context: SyntaxTokenContext) =
         | ReturnStatement _ -> false, [| (ErrorCode.ReturnFromWithinApplyBlock |> Error, context.Range) |]
         | _ -> true, [||]
 
-    let NullOr = ApplyOrDefaultTo(false, [||]) context.Self // empty fragments can be excluded from the compilation
+    let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
 
     let notWithinSpecialization = false, [| (ErrorCode.NotWithinSpecialization |> Error, context.Range) |]
 
@@ -298,7 +298,7 @@ let VerifySyntaxTokenContext =
             | DeclarationAttribute _ -> verifyDeclarationAttribute context
             | NamespaceDeclaration _ -> verifyNamespace context
             | InvalidFragment _ -> false, [||]
-        |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New(x, []) y))
+        |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New (x, []) y))
 
 let private mergeMaps onDuplicateKey =
     fun map key value ->

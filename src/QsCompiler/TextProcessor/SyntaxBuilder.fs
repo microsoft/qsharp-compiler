@@ -20,6 +20,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxExtensions
 
 /// returns the current state of the char stream
 let getCharStreamState (stream: CharStream<_>) = Reply stream.State
+
 /// given a char stream state, returns the chars between that and the current stream position as string
 let getSubstring (start: CharStreamState<_>) =
     fun (stream: CharStream<_>) -> Reply(stream.ReadFrom(start, false))
@@ -73,9 +74,11 @@ let internal qsReservedKeyword =
 /// adds the given diagnostic to the user state
 let internal pushDiagnostic newDiagnostic =
     updateUserState (fun diagnostics -> newDiagnostic :: diagnostics)
+
 /// adds the given diagnostics to the user state
 let internal pushDiagnostics newDiagnostics =
     updateUserState (fun diagnostics -> newDiagnostics @ diagnostics)
+
 /// clears all diagnostics from the user state
 let private clearDiagnostics = updateUserState (fun _ -> [])
 
@@ -99,24 +102,31 @@ let internal buildWarning body wrnCode =
 /// Parses a left tuple bracket "(".
 /// IMPORTANT: Does *not* handle whitespace -> use in combination with "bracket" for proper whitespace handling!
 let internal lTuple = pstring "("
+
 /// Parses a right tuple bracket ")".
 /// IMPORTANT: Does *not* handle whitespace -> use in combination with "bracket" for proper whitespace handling!
 let internal rTuple = pstring ")"
+
 /// Parses a left array bracket "[".
 /// IMPORTANT: Does *not* handle whitespace -> use in combination with "bracket" for proper whitespace handling!
 let internal lArray = pstring "["
+
 /// Parses a right array bracket "]".
 /// IMPORTANT: Does *not* handle whitespace -> use in combination with "bracket" for proper whitespace handling!
 let internal rArray = pstring "]"
+
 /// Parses a left angle bracket "<".
 /// IMPORTANT: Does *not* handle whitespace -> use in combination with "bracket" for proper whitespace handling!
 let internal lAngle = pstring "<"
+
 /// Parses a right angle bracket ">".
 /// IMPORTANT: Does *not* handle whitespace -> use in combination with "bracket" for proper whitespace handling!
 let internal rAngle = pstring ">"
+
 /// Parses a left curly bracket "{".
 /// IMPORTANT: Does *not* handle whitespace -> use in combination with "bracket" for proper whitespace handling!
 let internal lCurly = pstring "{"
+
 /// Parses a right curly bracket "}".
 /// IMPORTANT: Does *not* handle whitespace -> use in combination with "bracket" for proper whitespace handling!
 let internal rCurly = pstring "}"
@@ -543,7 +553,7 @@ let private filterAndAdapt (diagnostics: QsCompilerDiagnostic list) endPos =
     let filteredExcessCont = excessCont |> List.filter (not << hasOverlap)
 
     let rangeWithinFragment (range: Range) =
-        Range.Create(min endPos range.Start) (min endPos range.End)
+        Range.Create (min endPos range.Start) (min endPos range.End)
 
     filteredExcessCont @ remainingDiagnostics
     |> List.map (fun diagnostic -> { diagnostic with Range = rangeWithinFragment diagnostic.Range })

@@ -40,11 +40,11 @@ let private BuildUnknown text =
         {
             Kind = InvalidFragment
             Range = range
-            Diagnostics = ImmutableArray.Create(QsCompilerDiagnostic.Error(InvalidFragment.ErrorCode, []) range)
+            Diagnostics = ImmutableArray.Create(QsCompilerDiagnostic.Error (InvalidFragment.ErrorCode, []) range)
             Text = text
         }
 
-    let range = GetDelimiters(getRange remainingText |>> snd) text
+    let range = GetDelimiters (getRange remainingText |>> snd) text
     let unknownStatement = unknownFragment text range
     unknownStatement, (unknownStatement.Range.End, "")
 

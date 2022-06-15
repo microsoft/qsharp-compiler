@@ -112,7 +112,7 @@ let createPattern context construct range (ty: ResolvedType) =
                 let description = Seq.map describeScenario unsupported |> String.concat ", "
                 let args = [ target.Name; description ]
                 let range = QsNullable.defaultValue Range.Zero range
-                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
+                QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
         Some
             {
@@ -185,7 +185,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                     | RangeLiteral _ -> Some Literal
                     | _ -> None
 
-                let range = QsNullable.Map2(+) transformation.Offset expression.Range
+                let range = QsNullable.Map2 (+) transformation.Offset expression.Range
 
                 Option.bind (fun c -> createPattern context.Value c range expression.ResolvedType) construct
                 |> Option.iter patterns.Add
