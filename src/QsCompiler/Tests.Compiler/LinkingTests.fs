@@ -128,7 +128,10 @@ type LinkingTests() =
     member private this.CompileMonomorphization input =
         let compilationDataStructures = this.BuildContent(compilationManager, input)
         let monomorphize = new BuiltInRewriteSteps.Monomorphization()
-        let success, monomorphicCompilation = monomorphize.Transformation compilationDataStructures.BuiltCompilation
+
+        let success, monomorphicCompilation =
+            monomorphize.Transformation compilationDataStructures.BuiltCompilation
+
         Assert.True success
         Assert.NotNull monomorphicCompilation
         ValidateMonomorphization.Apply monomorphicCompilation

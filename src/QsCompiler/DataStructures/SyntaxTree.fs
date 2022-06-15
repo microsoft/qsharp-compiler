@@ -1147,6 +1147,13 @@ type QsCompilation =
     /// independent on whether they have been defined in the source code of this compilation unit or in a referenced assembly.
     /// Returns only the names of callables defined in source code otherwise.
     member this.InteroperableSurface includeReferences =
-        let isInteropSourceApi (c : QsCallable) = c.Signature.TypeParameters.IsEmpty && c.Access = Public && (includeReferences || c.Source.AssemblyFile = Null)
-        this.Namespaces |> Seq.collect (fun ns -> ns.Elements)
-        |> Seq.choose (function | QsCallable c when c |> isInteropSourceApi -> Some c.FullName | _ -> None)
+        let isInteropSourceApi (c: QsCallable) =
+            c.Signature.TypeParameters.IsEmpty
+            && c.Access = Public
+            && (includeReferences || c.Source.AssemblyFile = Null)
+
+        this.Namespaces
+        |> Seq.collect (fun ns -> ns.Elements)
+        |> Seq.choose (function
+            | QsCallable c when c |> isInteropSourceApi -> Some c.FullName
+            | _ -> None)

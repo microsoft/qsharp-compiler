@@ -102,7 +102,8 @@ type ExecutionTests(output: ITestOutputHelper) =
             [
                 if String.IsNullOrWhiteSpace targetPackageDll then
                     yield ("TestCases", "ExecutionTests", "QirDataTypeTests.qs") |> Path.Combine |> Path.GetFullPath
-                else yield ("TestCases", "ExecutionTests", "QirTargetingTests.qs") |> Path.Combine |> Path.GetFullPath
+                else
+                    yield ("TestCases", "ExecutionTests", "QirTargetingTests.qs") |> Path.Combine |> Path.GetFullPath
 
             ]
 
@@ -112,10 +113,13 @@ type ExecutionTests(output: ITestOutputHelper) =
 
     let QirExecutionTest targetPackageDll functionName =
         output.WriteLine(sprintf "Testing execution of %s:\n" functionName)
+
         let bitcodeFile =
-            if targetPackageDll <> null // an empty string permits targeting without pulling in a specific target package
-            then CompileQirTargetedExecutionTest targetPackageDll
-            else compiledQirExecutionTest
+            if targetPackageDll <> null then // an empty string permits targeting without pulling in a specific target package
+                CompileQirTargetedExecutionTest targetPackageDll
+            else
+                compiledQirExecutionTest
+
         let args = sprintf "%s %s" bitcodeFile functionName
         let exitCode, out, err = args |> ExecuteOnReferenceTarget 1
         output.WriteLine(out)
@@ -290,7 +294,7 @@ type ExecutionTests(output: ITestOutputHelper) =
         AssertEqual expected out
 
 
-    [<Fact(Skip="This first requires additional support in the QIR runtime, specifically implementing support for all target instructions.")>]
+    [<Fact(Skip = "This first requires additional support in the QIR runtime, specifically implementing support for all target instructions.")>]
     member this.``QIR target package handling``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestTargetPackageHandling"
