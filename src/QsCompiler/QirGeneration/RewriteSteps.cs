@@ -82,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler
             transformed =
                 runtimeCapability == TargetCapabilityModule.BasicExecution ||
                 runtimeCapability == TargetCapabilityModule.AdaptiveExecution
-                ? AddOutputRecording.Apply(compilation, useRuntimeAPI: true, alwaysCreateWrapper: true)
+                ? AddOutputRecording.Apply(compilation, useRuntimeAPI: true, mainSuffix: NameGeneration.MainSuffix, alwaysCreateWrapper: true)
                 : compilation;
             using var generator = new Generator(transformed, capability: runtimeCapability);
             generator.Apply();

@@ -10,6 +10,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 {
     public static class NameGeneration
     {
+        internal const string MainSuffix = "__Main";
+
         /// <summary>
         /// Cleans a namespace name by replacing periods with double underscores.
         /// </summary>
@@ -41,10 +43,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The mangled name for the specialization.</returns>
         public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind)
         {
-            // TODO: not the nicest solution, revise once processing is better aligned
-            if (fullName.Name.EndsWith("__main"))
+            if (fullName.Name.EndsWith(MainSuffix))
             {
-                var trimmedName = fullName.Name.Substring(0, fullName.Name.Length - "__main".Length);
+                var trimmedName = fullName.Name.Substring(0, fullName.Name.Length - MainSuffix.Length);
                 return kind == QsSpecializationKind.QsBody
                     ? EntryPointName(new QsQualifiedName(fullName.Namespace, trimmedName))
                     : throw new ArgumentException("non-body specialization name requested for callable tagged as main");

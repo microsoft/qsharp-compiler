@@ -642,8 +642,8 @@ namespace Microsoft.Quantum.QsCompiler
             var steps = new (IRewriteStep Step, bool Enabled, Action<Status> SetStatus)[]
             {
                 // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the
-                // old setup of the C# runtime works. With the new setup (interface-based approach for target
-                // packages), it is possible to trim unused intrinsics.
+                // old setup of the C# runtime works. Intrinsics that come from packages that use the new interface-based
+                // approach (which is the case for target packages) can be trimmed if they are unused.
                 (new SyntaxTreeTrimming(keepAllIntrinsics: true, dependencies), this.config.TrimTree, s => status.TreeTrimming = s),
                 (new LiftLambdas(), this.config.LiftLambdaExpressions, s => status.LiftLambdaExpressions = s),
                 (new ClassicallyControlled(), this.config.ConvertClassicalControl, s => status.ConvertClassicalControl = s),

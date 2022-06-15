@@ -279,8 +279,6 @@ module AssemblyConstants =
     let PerfDataOutputPath = "PerfDataOutputPath"
     let DocsOutputPath = "DocsOutputPath"
     let DocsPackageId = "DocsPackageId"
-    [<Obsolete("Replaced by IsTargetPackage.")>]
-    let GenerateConcreteIntrinsic = "GenerateConcreteIntrinsic"
     let IsTargetPackage = "IsTargetPackage"
     let TargetPackageAssemblies = "TargetPackageAssemblies"
 

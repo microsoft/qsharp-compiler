@@ -472,7 +472,6 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates a new array value.
-        /// The array will be stack allocated if and only if maxCount is set.
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// IMPORTANT:
         /// Does *not* increase the reference count of the given arrayElements.

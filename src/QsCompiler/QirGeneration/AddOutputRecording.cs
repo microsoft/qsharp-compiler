@@ -13,7 +13,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations
 {
@@ -21,15 +20,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
-    /// This transformation replaces callables with type parameters with concrete
-    /// instances of the same callables. The concrete values for the type parameters
-    /// are found from uses of the callables.
-    /// This transformation also removes all callables that are not used directly or
-    /// indirectly from any of the marked entry point.
-    /// Monomorphizing intrinsic callables is optional and intrinsics can be prevented
-    /// from being monomorphized if the monomorphizeIntrinsics parameter is set to false.
-    /// There are also some built-in callables that are also exempt from
-    /// being removed from non-use, as they are needed for later rewrite steps.
+    /// This class generates a new entry point callable that takes the same arguments and returns void.
+    /// Output recording functions that need to be provided by the runtime are instead used to log the
+    /// original return value. Removes the entry point attribute from the original entry point and
+    /// instead marks the newly generated callable as entry point.
     /// </summary>
     public class AddOutputRecording
     {
@@ -90,6 +84,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 new OutputRecorderDefinition("ArrayEndRecordOutput", "__quantum__rt__array_end_record_output", ResolvedTypeKind.UnitType);
         }
 
+        internal string MainSuffix { get; }
+
         internal delegate IEnumerable<QsStatement> OutputRecorder(SymbolTuple outputTuple, ImmutableDictionary<string, LocalVariableDeclaration<string, ResolvedType>> variableDeclarations);
 
         public interface IOutputRecorder
@@ -115,13 +111,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
         private IOutputRecorder Recorder { get; }
 
-        internal AddOutputRecording(bool useRuntimeAPI) =>
-            this.Recorder = useRuntimeAPI ? new RuntimeAPI() : new MessageAPI();
-
-        public static QsCompilation Apply(QsCompilation compilation, bool useRuntimeAPI = false, bool alwaysCreateWrapper = false)
+        internal AddOutputRecording(bool useRuntimeAPI, string? mainSuffix = null)
         {
-            var recording = new AddOutputRecording(useRuntimeAPI);
-            var transformation = new WrapEntryPoints(recording.RecordOutput, alwaysCreateWrapper);
+            this.Recorder = useRuntimeAPI ? new RuntimeAPI() : new MessageAPI();
+            this.MainSuffix = mainSuffix ?? "__Main";
+        }
+
+        public static QsCompilation Apply(QsCompilation compilation, bool useRuntimeAPI = false, string? mainSuffix = null, bool alwaysCreateWrapper = false)
+        {
+            var recording = new AddOutputRecording(useRuntimeAPI, mainSuffix);
+            var transformation = new WrapEntryPoints(recording.RecordOutput, recording.MainSuffix, alwaysCreateWrapper);
 
             return compilation.EntryPoints.Length > 0
             ? transformation.OnCompilation(new QsCompilation(
@@ -249,6 +248,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             }
         }
 
+        private static string MakeVariableName(int enumeration) =>
+            $"__rtrnVal{enumeration}__";
+
         private static QsCallable CreateOutputRecorder(OutputRecorderDefinition recorder, Source source)
         {
             var parameterTuple = recorder.QSharpSignature.ArgumentType.Resolution.IsUnitType
@@ -332,8 +334,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         private static (SymbolTuple, ImmutableDictionary<string, LocalVariableDeclaration<string, ResolvedType>>) CreateDeconstruction(ResolvedType returnType, int enumerationStart = 0)
         {
             var newVars = ImmutableDictionary.CreateBuilder<string, LocalVariableDeclaration<string, ResolvedType>>();
-            static string MakeVariableName(int enumeration) =>
-                $"__rtrnVal{enumeration}__";
 
             SymbolTuple CreateSymbolTuple(ResolvedType t)
             {
@@ -434,10 +434,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 public List<QsCallable> NewEntryPointWrappers { get; } = new List<QsCallable>();
             }
 
-            public WrapEntryPoints(OutputRecorder recorder, bool alwaysCreateWrapper)
+            public WrapEntryPoints(OutputRecorder recorder, string mainSuffix, bool alwaysCreateWrapper)
                 : base(new TransformationState())
             {
-                this.Namespaces = new NamespaceTransformation(this, recorder, alwaysCreateWrapper);
+                this.Namespaces = new NamespaceTransformation(this, recorder, mainSuffix, alwaysCreateWrapper);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.Disabled);
                 this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -453,13 +453,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
             private class NamespaceTransformation : NamespaceTransformation<TransformationState>
             {
-                private OutputRecorder record;
+                private readonly OutputRecorder record;
                 private readonly bool alwaysCreateWrapper;
+                private readonly string mainSuffix;
 
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent, OutputRecorder recorder, bool alwaysCreateWrapper)
+                public NamespaceTransformation(
+                    SyntaxTreeTransformation<TransformationState> parent, OutputRecorder recorder, string mainSuffix, bool alwaysCreateWrapper)
                     : base(parent)
                 {
                     this.record = recorder;
+                    this.mainSuffix = mainSuffix;
                     this.alwaysCreateWrapper = alwaysCreateWrapper;
                 }
 
@@ -492,7 +495,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                             new LocalDeclarations(paramDecl));
                     }
 
-                    var wrapperName = new QsQualifiedName(c.FullName.Namespace, c.FullName.Name + "__main");
+                    var wrapperName = new QsQualifiedName(c.FullName.Namespace, $"{c.FullName.Name}{this.mainSuffix}");
                     var wrapperSignature = new ResolvedSignature(
                         ImmutableArray<QsLocalSymbol>.Empty,
                         c.Signature.ArgumentType,
