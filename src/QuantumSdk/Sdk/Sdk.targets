@@ -32,7 +32,8 @@
 
   <!-- Target used to verify that the specified TargetCapability is valid. -->
   <Target Name="VerifyTargetCapability" BeforeTargets="QSharpCompile">
-    <Error Condition="'$(TargetCapability)' == 'Invalid'" Text="Invalid TargetCapability. $(ValidTargetCapabilities)" />
+    <Error Condition="'$(ResolvedTargetCapability)' == '' And '$(TargetCapability)' == ''" Text="Failed to resolve the TargetCapability for the ExecutionTarget '$(ExecutionTarget)'. Specify the TargetCapability property explicitly or report the issue." />
+    <Error Condition="'$(ResolvedTargetCapability)' == '' And '$(TargetCapability)' != ''" Text="The specified TargetCapability is invalid or not supported by the ExecutionTarget '$(ExecutionTarget)'. $(ValidTargetCapabilities)" />
   </Target>
 
 
@@ -100,11 +101,10 @@
       <_QscCommandLlvmLibsPath Condition="'$(LlvmLibsPath)' != ''">$(_NewLine)--llvm-libs$(_NewLineIndent)$(LlvmLibsPath)</_QscCommandLlvmLibsPath>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">$(_NewLine)--load-test-names</_QscCommandTestNamesFlag>
       <!-- Appending the current content of _QscCommandPredefinedAssemblyProperties *after* new properties allows to effectively override them for development purposes -->
-      <_QscCommandPredefinedAssemblyProperties>$(_NewLineIndent)AssemblyName:$(PathCompatibleAssemblyName)$(_NewLineIndent)ProcessorArchitecture:$(ResolvedProcessorArchitecture)$(_NewLineIndent)QSharpOutputType:$(ResolvedQSharpOutputType)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties>$(_NewLineIndent)AssemblyName:$(PathCompatibleAssemblyName)$(_NewLineIndent)ProcessorArchitecture:$(ResolvedProcessorArchitecture)$(_NewLineIndent)TargetCapability:$(ResolvedTargetCapability)$(_NewLineIndent)QSharpOutputType:$(ResolvedQSharpOutputType)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(EnableQirSubmission)">$(_NewLineIndent)QuantumInstructionSet:$(ResolvedQuantumInstructionSet)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_NewLineIndent)DefaultSimulator:$(DefaultSimulator)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_NewLineIndent)ExecutionTarget:$(ExecutionTarget)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(TargetCapability)' != ''">$(_NewLineIndent)TargetCapability:$(TargetCapability)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(ExposeReferencesViaTestNames)">$(_NewLineIndent)ExposeReferencesViaTestNames:true$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_NewLineIndent)DocsPackageId:$(_QscDocsPackageId)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(QirGeneration)">$(_NewLineIndent)QirOutputPath:"$(QirOutputPath)"$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>

@@ -851,7 +851,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var (argTuple, impl) =
                     callable.Kind.IsTypeConstructor ? (callable.ArgumentTuple, null) :
                     spec.Implementation is SpecializationImplementation.Provided decl ? (decl.Item1, decl.Item2) :
-                    throw new InvalidOperationException("missing specialization implementation for inlining");
+                    throw new InvalidOperationException($"missing {kind} specialization implementation for inlining {callable.FullName}");
 
                 this.SharedState.StartInlining();
 

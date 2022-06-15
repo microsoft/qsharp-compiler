@@ -139,7 +139,7 @@ type CodegenContext =
 
     member public this.ExposeReferencesViaTestNames =
         match this.assemblyConstants.TryGetValue AssemblyConstants.ExposeReferencesViaTestNames with
-        | true, propVal -> propVal = "true"
+        | true, propVal -> not <| System.String.IsNullOrWhiteSpace propVal && propVal.Trim().ToLower() = "true"
         | false, _ -> false
 
     member public this.IsTargetPackageAssembly(assemblyName: string) =
@@ -162,13 +162,11 @@ type CodegenContext =
 
     member internal this.GenerateCodeForSource(source: Source) =
         if source.IsReference then
-            match this.assemblyConstants.TryGetValue AssemblyConstants.ProcessorArchitecture with
-            | true, target ->
-                target = AssemblyConstants.IonQProcessor
-                || target = AssemblyConstants.QCIProcessor
-                || target = AssemblyConstants.QuantinuumProcessor
-                || target = AssemblyConstants.RigettiProcessor
-                || target = AssemblyConstants.MicrosoftSimulator
-            | _ -> false
+            let target = this.ProcessorArchitecture
+            target = AssemblyConstants.IonQProcessor
+            || target = AssemblyConstants.QCIProcessor
+            || target = AssemblyConstants.QuantinuumProcessor
+            || target = AssemblyConstants.RigettiProcessor
+            || target = AssemblyConstants.MicrosoftSimulator
         else
             true
