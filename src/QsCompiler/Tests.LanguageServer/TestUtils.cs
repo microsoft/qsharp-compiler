@@ -63,12 +63,17 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             };
         }
 
+        internal static DidOpenTextDocumentParams GetOpenParams(Uri uri, string content)
+        {
+            return new DidOpenTextDocumentParams
+            { TextDocument = new TextDocumentItem { Uri = uri, Text = content } };
+        }
+
         internal static DidOpenTextDocumentParams GetOpenFileParams(string filename, Uri? uri = null)
         {
             var file = Path.GetFullPath(filename);
             var content = File.ReadAllText(file);
-            return new DidOpenTextDocumentParams
-            { TextDocument = new TextDocumentItem { Uri = uri ?? GetUri(filename), Text = content } };
+            return TestUtils.GetOpenParams(uri ?? GetUri(filename), content);
         }
 
         internal static DidCloseTextDocumentParams GetCloseFileParams(string filename)
@@ -81,11 +86,16 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return new DidSaveTextDocumentParams { TextDocument = new TextDocumentIdentifier { Uri = GetUri(filename) }, Text = content };
         }
 
-        internal static DidChangeTextDocumentParams GetChangedFileParams(string filename, TextDocumentContentChangeEvent[] changes)
+        internal static DidChangeTextDocumentParams GetChangedParams(Uri uri, TextDocumentContentChangeEvent[] changes)
         {
-            var fileId = new VersionedTextDocumentIdentifier { Uri = GetUri(filename) };
+            var fileId = new VersionedTextDocumentIdentifier { Uri = uri };
             return new DidChangeTextDocumentParams
             { TextDocument = fileId, ContentChanges = changes };
+        }
+
+        internal static DidChangeTextDocumentParams GetChangedFileParams(string filename, TextDocumentContentChangeEvent[] changes)
+        {
+            return GetChangedParams(GetUri(filename), changes);
         }
 
         internal static TextDocumentPositionParams GetTextDocumentPositionParams(string filename, Position pos)

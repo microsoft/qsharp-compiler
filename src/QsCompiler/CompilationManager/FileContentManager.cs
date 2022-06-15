@@ -476,6 +476,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal bool AllWhiteSpaceUntil(int index) => index == 0 || this.GetLines(0, index).All(line => line.IsAllWhiteSpace);
 
         /// <summary>
+        /// Returns true if there is a line within the range [index, this.NrLines()) beginning with
+        /// a % such that all preceding lines in the range are only whitespace. This is useful for
+        /// knowing whether or not to re-compile code when the programmer adds/removes a line before
+        /// a possible magic command that changes whether it is a magic command or not
+        /// </summary>
+        internal bool MagicCandidateExistsStartingAt(int index) =>
+            index < this.NrLines()
+            && (this.GetLines(index, this.NrLines() - index)
+                    .FirstOrDefault(line => !line.IsAllWhiteSpace)?
+                    .Text
+                    .TrimStart()
+                    .StartsWith('%') ?? false);
+
+        /// <summary>
         /// Gets the code line at <paramref name="index"/>.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0.</exception>

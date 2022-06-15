@@ -619,6 +619,67 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.AreEqual(DiagnosticSeverity.Error, diagnostics2[0].Severity);
         }
 
+        [TestMethod]
+        public async Task MagicCommandTrackingAsync()
+        {
+            var initParams = TestUtils.GetInitializeParams(addNotebookConfig: true);
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var notebookGuid = Guid.NewGuid();
+            var cellUri = TestUtils.GenerateNotebookCellUri(notebookGuid);
+
+            var openParams = TestUtils.GetOpenParams(cellUri, content: "");
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+
+            var diagnosticsBlank = await this.GetFileDiagnosticsAsync(uri: cellUri);
+            Assert.IsNotNull(diagnosticsBlank);
+            Assert.AreEqual(0, diagnosticsBlank!.Length);
+
+            var goodMagicText = "%simulate myOperation\n";
+            var edits = new TextDocumentContentChangeEvent[]
+            {
+                new TextDocumentContentChangeEvent
+                {
+                    Range = new Range { Start = new Position(0, 0), End = new Position(0, 0) },
+                    Text = goodMagicText,
+                },
+            };
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedParams(cellUri, edits));
+            var diagnosticsGoodMagic = await this.GetFileDiagnosticsAsync(uri: cellUri);
+            Assert.IsNotNull(diagnosticsGoodMagic);
+            Assert.AreEqual(0, diagnosticsGoodMagic!.Length);
+
+            var operationText = "operation hi() : Unit {}";
+            var operationTextWithNewlines = operationText + "\n\n";
+            edits = new TextDocumentContentChangeEvent[]
+            {
+                new TextDocumentContentChangeEvent
+                {
+                    Range = new Range { Start = new Position(0, 0), End = new Position(0, 0) },
+                    Text = operationTextWithNewlines,
+                },
+            };
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedParams(cellUri, edits));
+            var diagnosticsBadMagic = await this.GetFileDiagnosticsAsync(uri: cellUri);
+            Assert.IsNotNull(diagnosticsBadMagic);
+            Assert.AreEqual(1, diagnosticsBadMagic!.Length);
+            Assert.AreEqual("QS3001", diagnosticsBadMagic[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnosticsBadMagic[0].Severity);
+
+            edits = new TextDocumentContentChangeEvent[]
+            {
+                new TextDocumentContentChangeEvent
+                {
+                    Range = new Range { Start = new Position(0, 0), End = new Position(0, operationText.Length) },
+                    Text = "",
+                },
+            };
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedParams(cellUri, edits));
+            var diagnosticsRevivedMagic = await this.GetFileDiagnosticsAsync(uri: cellUri);
+            Assert.IsNotNull(diagnosticsRevivedMagic);
+            Assert.AreEqual(0, diagnosticsRevivedMagic!.Length);
+        }
+
         private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)
         {
             var projectManager = new ProjectManager(e => throw e);

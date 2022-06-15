@@ -608,7 +608,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // how much the effective indentation (i.e. absolute indentation plus nr of excess closings up to that point) changed determines how much an what we need to update:
             var indentationChange = GetIndentationChange(file, continueAtInFile, replacements.Last());
             var requiresStringDelimiterUpdate = ContinueString(file.GetLine(continueAtInFile - 1)) ^ ContinueString(replacements.Last());
-            if (requiresStringDelimiterUpdate)
+
+            // iqsharp accepts magic commands only when they are preceded only by whitespace. If the
+            // programmer writes some code before a magic command, or removes code before a
+            // previously- ineligible magic command, we need to re-parse onward. (Why re-parse?
+            // Imagine if some code like `%simulate "` was previously interpreted as a magic
+            // command, but now the programmer added some code before it. Then the text that follows
+            // the % is no longer a comment, and that annoying double-quote has changed the
+            // StringContext and we need to re-parse everything!) We try to be very picky about when
+            // we do this re-parse, since it will be expensive.
+            var requiresMagicUpdate = file.BuildConfiguration.IsNotebook
+                                      && file.AllWhiteSpaceUntil(start)
+                                      && file.MagicCandidateExistsStartingAt(continueAtInFile)
+                                      && (replacements.All(line => line.IsAllWhiteSpace) ^ file.GetLines(start, count).All(line => line.IsAllWhiteSpace));
+            if (requiresStringDelimiterUpdate || requiresMagicUpdate)
             {
                 // we need to recompute everything if the interpretation of what is code and what is a string changes...
                 // since the interpretation of the remaining file changed, we need to update the entire file from start onwards
