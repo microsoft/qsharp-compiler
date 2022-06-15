@@ -41,9 +41,17 @@ namespace Microsoft.Quantum.QsCompiler
                     continue;
                 }
 
+                var updateConstants = config.SkipTargetSpecificCompilation
+                    ? ImmutableDictionary.CreateRange(new[]
+                    {
+                        KeyValuePair.Create(AssemblyConstants.ExecutionTarget, "Any"),
+                        KeyValuePair.Create(AssemblyConstants.ProcessorArchitecture, "Unspecified"),
+                        KeyValuePair.Create(AssemblyConstants.TargetCapability, TargetCapabilityModule.Top.Name),
+                    })
+                    : ImmutableDictionary<string, string>.Empty;
                 foreach (var kvPair in config.AssemblyConstants ?? Enumerable.Empty<KeyValuePair<string, string>>())
                 {
-                    assemblyConstants[kvPair.Key] = kvPair.Value;
+                    assemblyConstants[kvPair.Key] = updateConstants.TryGetValue(kvPair.Key, out var value) ? value : kvPair.Value;
                 }
 
                 // We don't overwrite assembly properties specified by configuration.
@@ -53,7 +61,6 @@ namespace Microsoft.Quantum.QsCompiler
 
                 if (config.TargetPackageAssemblies != null)
                 {
-                    // TODO: change on compiler and runtime to pass the ResolvedTargetCapability instead of the TargetCapability
                     string DefinedTargetPackageAssemblies(string? predefined = null) =>
                         string.Join(";", config.TargetPackageAssemblies.Append(predefined).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s?.Trim()));
                     assemblyConstants[AssemblyConstants.TargetPackageAssemblies] = DefinedTargetPackageAssemblies(

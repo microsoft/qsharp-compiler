@@ -79,7 +79,9 @@ namespace Microsoft.Quantum.QsCompiler
                 ? TargetCapability.TryParse(capability) // null if parsing fails
                 : null;
 
-            transformed = runtimeCapability != null // TODO: this is very ad-hoc. Revise once we have aligned output processing better
+            transformed =
+                runtimeCapability == TargetCapabilityModule.BasicExecution ||
+                runtimeCapability == TargetCapabilityModule.AdaptiveExecution
                 ? AddOutputRecording.Apply(compilation, useRuntimeAPI: true, alwaysCreateWrapper: true)
                 : compilation;
             using var generator = new Generator(transformed, capability: runtimeCapability);

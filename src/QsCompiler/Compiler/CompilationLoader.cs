@@ -78,6 +78,12 @@ namespace Microsoft.Quantum.QsCompiler
             public bool SkipSyntaxTreeTrimming { get; set; }
 
             /// <summary>
+            /// If this is set to true, the initial validation will take the specified runtime capability into account,
+            /// but any further compilation steps will execute as if no target specific properties were specified.
+            /// </summary>
+            public bool SkipTargetSpecificCompilation { get; set; }
+
+            /// <summary>
             /// If set to true, the compiler attempts to pre-evaluate the built compilation as much as possible.
             /// This is an experimental feature that will change over time.
             /// </summary>
@@ -210,13 +216,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
             /// </summary>
             internal bool ConvertClassicalControl =>
-                this.TargetCapability?.ResultOpacity.Equals(ResultOpacityModule.Controlled) ?? false;
+                !this.SkipTargetSpecificCompilation && (this.TargetCapability?.ResultOpacity.Equals(ResultOpacityModule.Controlled) ?? false);
 
             /// <summary>
             /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
             /// </summary>
             internal bool LoadTargetSpecificDecompositions =>
-                this.TargetPackageAssemblies != null && this.TargetPackageAssemblies.Any();
+                !this.SkipTargetSpecificCompilation && this.TargetPackageAssemblies != null && this.TargetPackageAssemblies.Any();
 
             /// <summary>
             /// If the ProjectName does not have an ending "proj", appends a .qsproj ending to the project name.

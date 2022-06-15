@@ -31,16 +31,15 @@
   <!-- Initializing the ResolvedProcessorArchitecture to either IonQProcessor, QCIProcessor, QuantinuumProcessor, RigettiProcessor, MicrosoftSimulator or Unspecified.-->
   <PropertyGroup>
     <!-- These architectures are in production and available for public use. -->
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('ionq'))">IonQProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('qci'))">QCIProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('quantinuum'))">QuantinuumProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('honeywell'))">QuantinuumProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('rigetti'))">RigettiProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.ToLowerInvariant().Contains('microsoft.simulator'))">MicrosoftSimulator</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('ionq'))">IonQProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('qci'))">QCIProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('quantinuum'))">QuantinuumProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('honeywell'))">QuantinuumProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('rigetti'))">RigettiProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('microsoft.simulator'))">MicrosoftSimulator</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.Equals('Any', StringComparison.InvariantCultureIgnoreCase))">Unspecified</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="'$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor' And '$(ResolvedProcessorArchitecture)' != 'QuantinuumProcessor' And '$(ResolvedProcessorArchitecture)' != 'RigettiProcessor' And '$(ResolvedProcessorArchitecture)' != 'MicrosoftSimulator' And '$(ResolvedProcessorArchitecture)' != 'Unspecified'"></ResolvedProcessorArchitecture>
-    <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values must match 'ionq*', 'qci*', 'quantinuum*', 'rigetti*', 'microsoft.simulator*', or 'Any'.</ValidExecutionTargets>
-    <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
+    <ValidExecutionTargets>Possible values must match 'ionq*', 'qci*', 'quantinuum*', 'rigetti*', 'microsoft.simulator*', or 'Any'.</ValidExecutionTargets>
   </PropertyGroup>
 
   <!-- Resolving the QuantumInstructionSet to either Type1, Type2, Type3, Type4 or Default.-->
@@ -55,22 +54,34 @@
 
   <!-- Resolving the TargetCapability to either BasicExecution, AdaptiveExecution, BasicQuantumFunctionality, BasicMeasurementFeedback, or FullComputation.-->
   <PropertyGroup>
-    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'AdaptiveExecution' And '$(TargetCapability)' != 'BasicExecution' And '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">Invalid</TargetCapability>
-    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Invalid</TargetCapability>
-    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'AdaptiveExecution' And '$(TargetCapability)' != 'BasicExecution' And '$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Invalid</TargetCapability>
-    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'BasicExecution' And '$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">Invalid</TargetCapability>
-    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">Invalid</TargetCapability>
-    <TargetCapability Condition="'$(TargetCapability)' != '' And '$(TargetCapability)' != 'AdaptiveExecution' And '$(TargetCapability)' != 'BasicExecution' And '$(ResolvedProcessorArchitecture)' == 'Unspecified'">Invalid</TargetCapability>
-    <TargetCapability Condition="'$(TargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">AdaptiveExecution</TargetCapability>
-    <TargetCapability Condition="'$(TargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">BasicExecution</TargetCapability>
-    <ResolvedTargetCapability Condition="'$(TargetCapability)' != 'Invalid'">$(TargetCapability)</ResolvedTargetCapability>
-    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">BasicMeasurementFeedback</ResolvedTargetCapability>
-    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">BasicQuantumFunctionality</ResolvedTargetCapability>
-    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">BasicMeasurementFeedback</ResolvedTargetCapability>
-    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">BasicQuantumFunctionality</ResolvedTargetCapability>
-    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">FullComputation</ResolvedTargetCapability>
-    <ResolvedTargetCapability Condition="'$(ResolvedTargetCapability)' == '' And '$(ResolvedProcessorArchitecture)' == 'Unspecified'">FullComputation</ResolvedTargetCapability>
-    <ValidTargetCapabilities>The specified target capability is invalid or not supported by the execution target.</ValidTargetCapabilities>
+    <_EnableBasicExecution>$(TargetCapability.Equals('BasicExecution', StringComparison.InvariantCultureIgnoreCase))</_EnableBasicExecution>
+    <_EnableAdaptiveExecution>$(TargetCapability.Equals('AdaptiveExecution', StringComparison.InvariantCultureIgnoreCase))</_EnableAdaptiveExecution>
+    <_EnableBasicQuantumFunctionality>$(TargetCapability.Equals('BasicQuantumFunctionality', StringComparison.InvariantCultureIgnoreCase))</_EnableBasicQuantumFunctionality>
+    <_EnableBasicMeasurementFeedback>$(TargetCapability.Equals('BasicMeasurementFeedback', StringComparison.InvariantCultureIgnoreCase))</_EnableBasicMeasurementFeedback>
+    <_EnableFullComputation>$(TargetCapability.Equals('FullComputation', StringComparison.InvariantCultureIgnoreCase))</_EnableFullComputation>
+    <!-- Set the ResolvedTargetCapability to a default choice for each ResolvedProcessorArchitecture. -->
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">BasicMeasurementFeedback</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">BasicQuantumFunctionality</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">AdaptiveExecution</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">BasicExecution</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">FullComputation</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'Unspecified'">FullComputation</ResolvedTargetCapability>
+    <!-- Set the ResolvedTargetCapability to the specified TargetCapability, if that capability is supported by the ResolvedProcessorArchitecture. -->
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor' And ($(_EnableBasicExecution) Or $(_EnableAdaptiveExecution) Or $(_EnableBasicQuantumFunctionality) Or $(_EnableBasicMeasurementFeedback))">$(TargetCapability)</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(_EnableBasicQuantumFunctionality)">$(TargetCapability)</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And ($(_EnableBasicExecution) Or $(_EnableAdaptiveExecution))">$(TargetCapability)</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor' And $(_EnableBasicExecution)">$(TargetCapability)</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator' And $(_EnableFullComputation)">$(TargetCapability)</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'Unspecified' And ($(_EnableBasicExecution) Or $(_EnableAdaptiveExecution) Or $(_EnableBasicQuantumFunctionality) Or $(_EnableBasicMeasurementFeedback) Or $(_EnableFullComputation))">$(TargetCapability)</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(TargetCapability)' != '' And '$(ResolvedTargetCapability)' != '$(TargetCapability)'"></ResolvedTargetCapability>
+    <!-- Define a suitable error message for failing the build when the TargetCapability is not compatible with the ExecutionTarget. -->
+    <ValidTargetCapabilities>The execution target supports the following target capabilities</ValidTargetCapabilities>
+    <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">$(ValidTargetCapabilities): AdaptiveExecution, BasicExecution, BasicMeasurementFeedback, BasicQuantumFunctionality.</ValidTargetCapabilities>
+    <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">$(ValidTargetCapabilities): BasicQuantumFunctionality.</ValidTargetCapabilities>
+    <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">$(ValidTargetCapabilities): AdaptiveExecution, BasicExecution.</ValidTargetCapabilities>
+    <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">$(ValidTargetCapabilities): BasicExecution.</ValidTargetCapabilities>
+    <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">$(ValidTargetCapabilities): FullComputation.</ValidTargetCapabilities>
+    <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'Unspecified'">$(ValidTargetCapabilities): FullComputation, AdaptiveExecution, BasicExecution, BasicMeasurementFeedback, BasicQuantumFunctionality.</ValidTargetCapabilities>
   </PropertyGroup>
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->

@@ -230,6 +230,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 SkipMonomorphization = options.SkipMonomorphization,
                 LiftLambdaExpressions = true,
                 GenerateFunctorSupport = true,
+                SkipTargetSpecificCompilation = options.SkipTargetSpecificCompilation,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 SkipConjugationInlining = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,

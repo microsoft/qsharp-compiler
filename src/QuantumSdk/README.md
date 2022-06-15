@@ -198,12 +198,14 @@ The order of evaluation for properties and item groups is roughly the following:
 
 - Properties defined in \*.props files of the Sdk
 - Properties defined or included by the specific project file
-- Properties defined in *.targets files of the Sdk
-- Item groups defined in *.props files of the Sdk
+- Properties defined in \*.targets files of the Sdk
+- Item groups defined in \*.props files of the Sdk
 - Item groups defined or included by the specific project file
-- Item groups defined in *.targets files of the Sdk
+- Item groups defined in \*.targets files of the Sdk
 
 Similar considerations apply for the definition of targets. MSBuild will overwrite targets if multiple targets with the same name are defined. In that case, the target is replaced in its entirety independent on whether the values for `DependsOn`, `BeforeTarget`, and `AfterTarget` match - i.e. those will be overwritten. However, a target can be "anchored" by the surrounding targets' specifications of their dependencies, see e.g. the defined `BeforeCSharpCompile` target.
+
+See also [this post](https://social.msdn.microsoft.com/Forums/vstudio/en-US/95a04398-05c1-4fea-b596-abbe156e6a84/summary-of-property-evaluation-in-msbuild) for general information about property evaluation not specifically related to how Sdks work. 
 
 ## Load context in .NET Core
 
