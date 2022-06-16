@@ -26,11 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.7.0" />
-    <PackageReference Update="System.ValueTuple" Version="4.4.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>Microsoft.Quantum.QsCore$(PublicKeySuffix)</_Parameter1>
     </AssemblyAttribute>
