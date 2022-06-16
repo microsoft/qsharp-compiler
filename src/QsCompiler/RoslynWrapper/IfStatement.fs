@@ -1,10 +1,10 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper
 
+#nowarn "1182" // Unused parameters
+
 /// <summary>
 /// Generate if statements
 /// </summary>
-#nowarn "1182" // Unused parameters
-
 [<AutoOpen>]
 module IfStatement =
     open Microsoft.CodeAnalysis

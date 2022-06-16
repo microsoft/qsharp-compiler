@@ -2,11 +2,11 @@
 
 open Microsoft.CodeAnalysis
 
+#nowarn "1182" // Unused parameters
+
 /// <summary>
 /// Use this module to specify the syntax for a <code>class or interface method</code>
 /// </summary>
-#nowarn "1182" // Unused parameters
-
 [<AutoOpen>]
 module MethodDeclaration =
     open Microsoft.CodeAnalysis.CSharp

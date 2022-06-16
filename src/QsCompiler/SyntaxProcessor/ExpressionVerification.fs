@@ -101,7 +101,7 @@ let private verifyConditionalExecution (expr: TypedExpression) =
 
     [
         if expr.Exists isOperationCall then
-            QsCompilerDiagnostic.Warning(WarningCode.ConditionalEvaluationOfOperationCall, []) (rangeOrDefault expr)
+            QsCompilerDiagnostic.Warning (WarningCode.ConditionalEvaluationOfOperationCall, []) (rangeOrDefault expr)
     ]
 
 /// <summary>
@@ -254,7 +254,7 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
     | LocalVariable _, Null -> (identifier, resId.Type) |> exprWithoutTypeArgs symbol.Range info, Seq.toList diagnostics
     | LocalVariable _, Value _ ->
         invalidWithoutTargs false,
-        QsCompilerDiagnostic.Error(ErrorCode.IdentifierCannotHaveTypeArguments, []) symbol.RangeOrDefault
+        QsCompilerDiagnostic.Error (ErrorCode.IdentifierCannotHaveTypeArguments, []) symbol.RangeOrDefault
         :: Seq.toList diagnostics
     | GlobalCallable _, Value res when res.Length <> typeParams.Length ->
         invalidWithoutTargs false,
@@ -307,13 +307,13 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
     | InvalidSymbol -> InvalidItem, [||], [||]
     | MissingSymbol when warnOnDiscard ->
         let warning =
-            QsCompilerDiagnostic.Warning(WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
+            QsCompilerDiagnostic.Warning (WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
 
         DiscardedItem, [||], [| warning |]
     | MissingSymbol -> DiscardedItem, [||], [||]
     | OmittedSymbols
     | QualifiedSymbol _ ->
-        let error = QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
+        let error = QsCompilerDiagnostic.Error (ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
         InvalidItem, [||], [| error |]
     | Symbol name ->
         match tryBuildDeclaration (name, symbol.RangeOrDefault) rhsType with
@@ -549,7 +549,7 @@ type QsExpression with
             | InvalidSymbol -> InvalidIdentifier
             | Symbol name -> LocalVariable name
             | _ ->
-                QsCompilerDiagnostic.Error(ErrorCode.ExpectingItemName, []) sym.RangeOrDefault |> diagnose
+                QsCompilerDiagnostic.Error (ErrorCode.ExpectingItemName, []) sym.RangeOrDefault |> diagnose
                 InvalidIdentifier
 
         /// Resolves and verifies the given expression and item name of a named item access expression,
@@ -759,7 +759,7 @@ type QsExpression with
                     inference.Constrain(callable.ResolvedType <. ResolvedType.New(QsTypeKind.Function(argType, output)))
 
                 if inference.Resolve callable.ResolvedType |> isOperation then
-                    QsCompilerDiagnostic.Error(ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
+                    QsCompilerDiagnostic.Error (ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
                     |> diagnose
                 else
                     List.iter diagnose diagnostics
