@@ -4,8 +4,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Runtime.Loader;
-using Microsoft.Build.Locator;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -15,24 +13,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     [TestClass]
     public class ProjectLoaderTests
     {
-        [AssemblyInitialize]
-        public static void SetupMSBuildLocator(TestContext testContext)
-        {
-            VisualStudioInstance vsi = MSBuildLocator.RegisterDefaults();
-
-            // This is replicating the approach followed in Microsoft.Quantum.QsLanguageServer.Server.Run()
-            AssemblyLoadContext.Default.Resolving += (assemblyLoadContext, assemblyName) =>
-            {
-                string path = Path.Combine(vsi.MSBuildPath, assemblyName.Name + ".dll");
-                if (File.Exists(path))
-                {
-                    return assemblyLoadContext.LoadFromAssemblyPath(path);
-                }
-
-                return null;
-            };
-        }
-
         private static string ProjectFileName(string project) =>
             Path.Combine("TestProjects", project, $"{project}.csproj");
 
@@ -45,7 +25,13 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return (uri, CompilationContext.Load(uri));
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestInitialize]
+        public void RunMSBuildLocator()
+        {
+            _ = VisualStudioInstanceWrapper.LazyVisualStudioInstance.Value;
+        }
+
+        [TestMethod]
         public void GetGlobalProperties()
         {
             var expectedFramework = "Some-framework";
@@ -57,7 +43,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.AreEqual(expectedFramework, result["TargetFramework"]);
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestMethod]
         public void SupportedTargetFrameworks()
         {
             var loader = new ProjectLoader();
@@ -71,7 +57,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(loader.IsSupportedQsFramework("net6.0"));
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestMethod]
         public void FindProjectTargetFramework()
         {
             static void CompareFramework(string project, string? expected)
@@ -110,7 +96,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestMethod]
         public void LoadNonQSharpProjects()
         {
             var invalidProjects = new string[]
@@ -127,7 +113,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestMethod]
         public void LoadOutdatedQSharpProject()
         {
             var (projectFile, context) = Context("test9");
@@ -147,7 +133,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestMethod]
         public void LoadQSharpCoreLibraries()
         {
             var (projectFile, context) = Context("test3");
@@ -191,7 +177,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestMethod]
         public void LoadQSharpFrameworkLibrary()
         {
             var (projectFile, context) = Context("test7");
@@ -211,7 +197,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestMethod]
         public void LoadQSharpConsoleApps()
         {
             var (projectFile, context) = Context("test4");
@@ -262,7 +248,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestMethod]
         public void LoadQSharpUnitTest()
         {
             var (projectFile, context) = Context("test5");
@@ -286,7 +272,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestMethod]
         public void LoadQSharpMultiFrameworkLibrary()
         {
             var (projectFile, context) = Context("test6");

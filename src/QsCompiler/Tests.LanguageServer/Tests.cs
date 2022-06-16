@@ -286,7 +286,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
         }
 
-        // [TestMethod] TODO: REENABLE
+        [TestMethod]
         public async Task UpdateProjectFileAsync()
         {
             var projectFile = ProjectLoaderTests.ProjectUri("test14");
