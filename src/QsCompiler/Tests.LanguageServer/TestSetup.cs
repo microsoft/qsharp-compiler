@@ -55,6 +55,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestInitialize]
         public async Task SetupServerConnectionAsync()
         {
+            // Need to run MSBuildLocator for some tests like UpdateProjectFileAsync
+            _ = VisualStudioInstanceWrapper.LazyVisualStudioInstance.Value;
+
             Directory.CreateDirectory(RandomInput.TestInputDirectory);
             var outputDir = new DirectoryInfo(RandomInput.TestInputDirectory);
             foreach (var file in outputDir.GetFiles())

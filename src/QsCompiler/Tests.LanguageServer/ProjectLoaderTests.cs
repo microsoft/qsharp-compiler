@@ -4,8 +4,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Runtime.Loader;
-using Microsoft.Build.Locator;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -15,24 +13,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     [TestClass]
     public class ProjectLoaderTests
     {
-        [AssemblyInitialize]
-        public static void SetupMSBuildLocator(TestContext testContext)
-        {
-            VisualStudioInstance vsi = MSBuildLocator.RegisterDefaults();
-
-            // This is replicating the approach followed in Microsoft.Quantum.QsLanguageServer.Server.Run()
-            AssemblyLoadContext.Default.Resolving += (assemblyLoadContext, assemblyName) =>
-            {
-                string path = Path.Combine(vsi.MSBuildPath, assemblyName.Name + ".dll");
-                if (File.Exists(path))
-                {
-                    return assemblyLoadContext.LoadFromAssemblyPath(path);
-                }
-
-                return null;
-            };
-        }
-
         private static string ProjectFileName(string project) =>
             Path.Combine("TestProjects", project, $"{project}.csproj");
 
@@ -43,6 +23,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         {
             var uri = ProjectUri(project);
             return (uri, CompilationContext.Load(uri));
+        }
+
+        [TestInitialize]
+        public void RunMSBuildLocator()
+        {
+            _ = VisualStudioInstanceWrapper.LazyVisualStudioInstance.Value;
         }
 
         [TestMethod]
