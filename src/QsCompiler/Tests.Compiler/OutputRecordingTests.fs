@@ -59,7 +59,7 @@ type OutputRecordingTests() =
             "The original entry point is still an entry point."
         )
 
-        let generated = TestUtils.getCallableWithName result Signatures.OutputRecordingNS "Foo__main"
+        let generated = TestUtils.getCallableWithName result Signatures.OutputRecordingNS "Foo__Main"
 
         Assert.True(
             (generated.Attributes |> Seq.exists BuiltIn.MarksEntryPoint),
@@ -251,7 +251,7 @@ type OutputRecordingTests() =
     member this.``Multiple Parameter Entry Point``() =
         let result = compileEntryPointWrappingTests 11
 
-        let generated = TestUtils.getCallableWithName result Signatures.OutputRecordingNS "Foo__main"
+        let generated = TestUtils.getCallableWithName result Signatures.OutputRecordingNS "Foo__Main"
 
         let generatedParameters =
             generated.ArgumentTuple.Items
@@ -285,7 +285,7 @@ type OutputRecordingTests() =
             "The original entry point 'Foo' is still an entry point."
         )
 
-        let generatedFoo = TestUtils.getCallableWithName result Signatures.OutputRecordingNS "Foo__main"
+        let generatedFoo = TestUtils.getCallableWithName result Signatures.OutputRecordingNS "Foo__Main"
 
         Assert.True(
             (generatedFoo.Attributes |> Seq.exists BuiltIn.MarksEntryPoint),
@@ -299,7 +299,7 @@ type OutputRecordingTests() =
             "The original entry point 'Bar' is still an entry point."
         )
 
-        let generatedBar = TestUtils.getCallableWithName result Signatures.OutputRecordingNS "Bar__main"
+        let generatedBar = TestUtils.getCallableWithName result Signatures.OutputRecordingNS "Bar__Main"
 
         Assert.True(
             (generatedBar.Attributes |> Seq.exists BuiltIn.MarksEntryPoint),
@@ -318,7 +318,7 @@ type OutputRecordingTests() =
             "The original entry point 'Foo' is still an entry point."
         )
 
-        let generatedFoo = TestUtils.getCallableWithName result Signatures.OutputRecordingNS "Foo__main"
+        let generatedFoo = TestUtils.getCallableWithName result Signatures.OutputRecordingNS "Foo__Main"
 
         Assert.True(
             (generatedFoo.Attributes |> Seq.exists BuiltIn.MarksEntryPoint),
@@ -333,6 +333,6 @@ type OutputRecordingTests() =
         )
 
         let isNoGeneratedBar =
-            TestUtils.getCallablesWithSuffix result Signatures.OutputRecordingNS "Bar__main" |> Seq.isEmpty
+            TestUtils.getCallablesWithSuffix result Signatures.OutputRecordingNS "Bar__Main" |> Seq.isEmpty
 
         Assert.True((isNoGeneratedBar), "Found an unexpected entry point wrapper generated for 'Bar'.")
