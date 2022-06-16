@@ -33,7 +33,7 @@
   <!-- Target used to verify that the specified TargetCapability is valid. -->
   <Target Name="VerifyTargetCapability" BeforeTargets="QSharpCompile">
     <Error Condition="'$(ResolvedTargetCapability)' == '' And '$(TargetCapability)' == ''" Text="Failed to resolve the TargetCapability for the ExecutionTarget '$(ExecutionTarget)'. Specify the TargetCapability property explicitly or report the issue." />
-    <Error Condition="'$(ResolvedTargetCapability)' == '' And '$(TargetCapability)' != ''" Text="The specified TargetCapability is invalid or not supported by the ExecutionTarget '$(ExecutionTarget)'. $(ValidTargetCapabilities)" />
+    <Error Condition="'$(ResolvedTargetCapability)' == '' And '$(TargetCapability)' != ''" Text="The specified TargetCapability '$(TargetCapability)' is invalid or not supported by the ExecutionTarget '$(ExecutionTarget)'. $(ValidTargetCapabilities)" />
   </Target>
 
 

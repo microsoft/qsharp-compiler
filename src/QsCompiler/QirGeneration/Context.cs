@@ -178,7 +178,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        /// <param name="capability">Describes the set of features that are supported by the targeted backend. This is relevant for certain kinds of optimizations.</param>
+        /// <param name="capability">The set of features that are supported by the targeted backend. This is relevant for certain kinds of optimizations.</param>
         internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, TargetCapability capability)
         {
             this.IsLibrary = isLibrary;

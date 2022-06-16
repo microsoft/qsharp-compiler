@@ -116,30 +116,62 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Writes the current content to the output file.
+        /// Call <see cref="Apply"/> first to populate the generator.
         /// </summary>
         /// <param name="fileName">The file to which the output is written.</param>
         /// <param name="emitBitcode">False if the file should be human readable, true if the file should contain bitcode.</param>
         /// <param name="overwrite">Whether or not to overwrite a file if it already exists.</param>
-        public void Emit(string fileName, bool emitBitcode = false, bool overwrite = true)
+        /// <returns>True if the file has been created successfully, and false otherwise.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if a file with the given name already exists, but <paramref name="overwrite"/> has been set to false.
+        /// </exception>
+        public bool Emit(string fileName, bool emitBitcode = false, bool overwrite = true, Action<string>? onError = null)
         {
             if (!overwrite && File.Exists(fileName))
             {
-                throw new ArgumentException($"The file \"{fileName}\" already exist(s).");
+                throw new InvalidOperationException($"The file \"{fileName}\" already exist(s).");
             }
 
-            if (!this.SharedState.Module.Verify(out string validationErrors))
+            var valid = this.SharedState.Module.Verify(out string validationErrors);
+            if (!valid)
             {
-                File.WriteAllText(fileName, $"LLVM errors:{Environment.NewLine}{validationErrors}");
+                onError?.Invoke(validationErrors);
             }
 
-            if (emitBitcode)
+            // We generate human readable LLVM IR if the IR is invalid,
+            // independent on whether bitcode has been requested or not.
+            if (valid && emitBitcode)
             {
                 this.SharedState.Module.WriteToFile(fileName);
+                return true;
             }
-            else if (!this.SharedState.Module.WriteToTextFile(fileName, out string errorMessage))
+            else
             {
-                throw new IOException(errorMessage);
+                if (!this.SharedState.Module.WriteToTextFile(fileName, out string fileErrors))
+                {
+                    onError?.Invoke(fileErrors);
+                    return false;
+                }
+
+                return valid;
             }
+        }
+
+        /// <summary>
+        /// Creates a string with the current QIR.
+        /// Call <see cref="Apply"/> first to populate the generator.
+        /// </summary>
+        /// <returns>True if the QIR passes basic LLVM validation.</returns>
+        public bool EmitLlvmIR(out string llvmIR, Action<string>? onError = null)
+        {
+            var valid = this.SharedState.Module.Verify(out string validationErrors);
+            if (!valid)
+            {
+                onError?.Invoke(validationErrors);
+            }
+
+            llvmIR = this.SharedState.Module.WriteToString();
+            return valid;
         }
 
         public void Dispose() =>
