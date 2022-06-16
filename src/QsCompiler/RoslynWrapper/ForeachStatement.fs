@@ -1,10 +1,10 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper
 
+#nowarn "1182" // Unused parameters
+
 /// <summary>
 /// Generate foreach statements
 /// </summary>
-#nowarn "1182" // Unused parameters
-
 [<AutoOpen>]
 module ForeachStatement =
     open Microsoft.CodeAnalysis

@@ -9,9 +9,7 @@ open Microsoft.Quantum.QsCompiler.DependencyAnalysis
 open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
-type internal Call =
-    { Name: QsQualifiedName
-      Range: Range QsNullable }
+type internal Call = { Name: QsQualifiedName; Range: Range QsNullable }
 
 module internal CallAnalyzer =
     val shallow: nsManager: NamespaceManager -> graph: CallGraph -> Analyzer<CallGraphNode, Call>

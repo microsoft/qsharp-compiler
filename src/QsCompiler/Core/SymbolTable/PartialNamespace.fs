@@ -47,15 +47,19 @@ type private PartialNamespace
     /// list containing all documentation for this namespace within this source file
     /// -> a list since the namespace can in principle occur several times in the same file each time with documentation
     let AssociatedDocumentation = documentation.ToList()
+
     /// list of namespaces open or aliased within this namespace and file
     let OpenNamespaces = openNS.ToDictionary(keySelector, valueSelector)
+
     /// dictionary of types declared within this namespace and file
     /// the key is the name of the type
     let TypeDeclarations = typeDecl.ToDictionary(keySelector, valueSelector)
+
     /// dictionary of callables declared within this namespace and file
     /// includes functions, operations, *and* (auto-generated) type constructors
     /// the key is the name of the callable
     let CallableDeclarations = callableDecl.ToDictionary(keySelector, valueSelector)
+
     /// dictionary of callable specializations declared within this namespace and file
     /// -> note that all specializations that are declared in a namespace *have* to extend a declarations in the same namespace,
     /// -> however, they may be declared in a source file (or even compilation unit) that is different from the one of the original declaration
@@ -91,6 +95,7 @@ type private PartialNamespace
     /// types defined within this (part of) the namespace
     /// -> NOTE: the returned enumerable is *not* immutable and may change over time!
     member internal this.DefinedTypes = TypeDeclarations.Select(fun item -> item.Key, item.Value)
+
     /// callables defined within this (part of) the namespace (includes auto-generated type constructors)
     /// -> NOTE: the returned enumerable is *not* immutable and may change over time!
     member internal this.DefinedCallables = CallableDeclarations.Select(fun item -> item.Key, item.Value)

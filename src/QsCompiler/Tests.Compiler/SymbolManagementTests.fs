@@ -15,11 +15,11 @@ open Xunit
 let private random = System.Random 1
 
 let private randomPosition () =
-    Position.Create(random.Next()) (random.Next())
+    Position.Create (random.Next()) (random.Next())
 
 let private randomRange () =
     let a, b = randomPosition (), randomPosition ()
-    Range.Create(min a b) (max a b)
+    Range.Create (min a b) (max a b)
 
 let toQualName (ns: string, name: string) = { Namespace = ns; Name = name }
 

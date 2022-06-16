@@ -65,7 +65,7 @@ let createPattern kind range =
                 None
             else
                 Some(ErrorCode.SetInResultConditionedBlock, [ name; target.Name ])
-        |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Error(code, args) range)
+        |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Error (code, args) range)
 
     {
         Capability = capability
@@ -129,7 +129,7 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
                     update.Lhs.ExtractAll (fun e ->
                         match e.Expression with
                         | Identifier (LocalVariable name, _) when Set.contains name context.Value.FrozenVars ->
-                            let range = QsNullable.Map2(+) transformation.Offset e.Range
+                            let range = QsNullable.Map2 (+) transformation.Offset e.Range
                             [ createPattern (SetInDependentBranch name) range ]
                         | _ -> [])
                     |> patterns.AddRange
@@ -175,7 +175,7 @@ let analyzer callableKind (action: SyntaxTreeTransformation -> _) : _ seq =
                         else
                             UnrestrictedEquality
 
-                    let range = QsNullable.Map2(+) transformation.Offset expression.Range
+                    let range = QsNullable.Map2 (+) transformation.Offset expression.Range
                     createPattern dependency range |> patterns.Add
 
                 base.OnTypedExpression expression

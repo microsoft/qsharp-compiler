@@ -247,7 +247,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 1 |> BuildTrimmedGraph
 
         [ "Main", [ "Foo"; "Bar" ]; "Foo", []; "Bar", [ "Baz" ]; "Baz", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
@@ -256,7 +256,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 2 |> BuildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
         [ "Bar"; "Baz" ] |> List.map (AssertNotInGraph graph) |> ignore
@@ -267,7 +267,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 3 |> BuildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
         AssertNotInGraph graph "NotCalled"
@@ -278,7 +278,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraph 4 |> CallGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
         AssertInGraph graph "NotCalled"
@@ -289,7 +289,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraph 5 |> CallGraph
 
         [ "Main", [ "Foo" ]; "Foo", []; "Bar", [ "Baz" ]; "Baz", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
@@ -304,7 +304,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 7 |> BuildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [ "Main" ] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
@@ -313,7 +313,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 8 |> BuildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
         AssertNotInGraph graph "Bar"
@@ -324,7 +324,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 9 |> BuildTrimmedGraph
 
         [ "Main1", [ "Foo" ]; "Main2", [ "Bar" ]; "Foo", []; "Bar", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
@@ -333,7 +333,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 10 |> BuildTrimmedGraph
 
         [ "Test", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
         AssertNotInGraph graph "Bar"
@@ -349,7 +349,7 @@ type CallGraphTests(output: ITestOutputHelper) =
             "Test1", [ "Zip" ]
             "Test2", [ "Zap" ]
         ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
         AssertNotInGraph graph "Unused"

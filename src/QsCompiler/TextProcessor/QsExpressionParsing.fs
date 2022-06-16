@@ -34,6 +34,7 @@ let private buildCombinedExpr kind (lRange, rRange) =
 
 /// operator precedence parser for Q# expressions
 let private qsExpression = new OperatorPrecedenceParser<QsExpression, _, _>()
+
 /// operator precedence parser for Q# call arguments
 /// processing all expressions handled by the Q# expression parser as well as omitted arguments
 let private qsArgument = new OperatorPrecedenceParser<QsExpression, _, _>()
@@ -538,7 +539,7 @@ let private newArray =
 
     let withWarning (expr: QsExpression) =
         let range = expr.Range |> QsNullable.defaultValue Range.Zero
-        QsCompilerDiagnostic.Warning(WarningCode.DeprecatedNewArray, []) range |> pushDiagnostic >>% expr
+        QsCompilerDiagnostic.Warning (WarningCode.DeprecatedNewArray, []) range |> pushDiagnostic >>% expr
 
     arrayDecl.parse
     >>= fun headRange -> term body |>> toExpr headRange <|> (term invalid |>> fst)

@@ -187,7 +187,7 @@ type NamespaceManager
             Array.append errs warnings
 
         let error code args =
-            None, [| QsCompilerDiagnostic.Error(code, args) (symRange.ValueOr Range.Zero) |]
+            None, [| QsCompilerDiagnostic.Error (code, args) (symRange.ValueOr Range.Zero) |]
 
         let findUnqualified () =
             match
@@ -264,7 +264,7 @@ type NamespaceManager
         syncRoot.EnterReadLock()
 
         try
-            SymbolResolution.ResolveType(processUDT, processTP) qsType
+            SymbolResolution.ResolveType (processUDT, processTP) qsType
         finally
             syncRoot.ExitReadLock()
 
@@ -276,7 +276,7 @@ type NamespaceManager
 
         [|
             if udtAccess < parentAccess then
-                yield QsCompilerDiagnostic.Error(code, [ udt.Name; parent ]) udtRange
+                yield QsCompilerDiagnostic.Error (code, [ udt.Name; parent ]) udtRange
         |]
 
     /// <summary>
@@ -700,7 +700,7 @@ type NamespaceManager
             let res, errs = resolveType (parentName, tpNames, source) qsType checkAccess
             if parentKind <> TypeConstructor then res, errs else res.WithoutRangeInfo, errs // strip positional info for auto-generated type constructors
 
-        SymbolResolution.ResolveCallableSignature(resolveType, specBundleCharacteristics) signature
+        SymbolResolution.ResolveCallableSignature (resolveType, specBundleCharacteristics) signature
 
 
     /// Sets the Resolved property for all type and callable declarations to Null, and the ResolvedAttributes to an empty array.
@@ -711,7 +711,7 @@ type NamespaceManager
         if this.ContainsResolutions || force then
             for ns in Namespaces.Values do
                 for kvPair in ns.TypesDefinedInAllSources() do
-                    ns.SetTypeResolution(fst kvPair.Value) (kvPair.Key, Null, ImmutableArray.Empty)
+                    ns.SetTypeResolution (fst kvPair.Value) (kvPair.Key, Null, ImmutableArray.Empty)
 
                 for kvPair in ns.CallablesDefinedInAllSources() do
                     ns.SetSpecializationResolutions(
@@ -721,7 +721,7 @@ type NamespaceManager
                     )
                     |> ignore
 
-                    ns.SetCallableResolution(fst kvPair.Value) (kvPair.Key, Null, ImmutableArray.Empty)
+                    ns.SetCallableResolution (fst kvPair.Value) (kvPair.Key, Null, ImmutableArray.Empty)
 
             this.ContainsResolutions <- false
 
@@ -763,7 +763,7 @@ type NamespaceManager
                 |> Seq.collect (fun kvPair ->
                     let tName, (source, qsType) = kvPair.Key, kvPair.Value
                     let parentName = { Namespace = ns.Name; Name = tName }
-                    let resolvedAttributes, msgs = this.ResolveAttributes(parentName, source) qsType
+                    let resolvedAttributes, msgs = this.ResolveAttributes (parentName, source) qsType
                     ns.SetTypeResolution source (tName, qsType.Resolved, resolvedAttributes)
                     msgs |> Array.map (fun msg -> source, msg)))
 
@@ -805,7 +805,7 @@ type NamespaceManager
                     let definedSpecs = ns.SpecializationsDefinedInAllSources parent.Name
 
                     let insertSpecialization typeArgs kind =
-                        ns.InsertSpecialization(kind, typeArgs) (parent.Name, source)
+                        ns.InsertSpecialization (kind, typeArgs) (parent.Name, source)
 
                     let props, bundleErrs =
                         SymbolResolution.GetBundleProperties insertSpecialization (signature, source) definedSpecs
@@ -820,7 +820,7 @@ type NamespaceManager
                         | Warning _ -> ()
                         | Error errCode ->
                             let removed =
-                                ns.RemoveSpecialization(specSource, { Offset = errPos; Range = d.Range }) parent.Name
+                                ns.RemoveSpecialization (specSource, { Offset = errPos; Range = d.Range }) parent.Name
 
                             QsCompilerError.Verify(
                                 (removed <= 1),
@@ -835,7 +835,7 @@ type NamespaceManager
                         )
 
                     // only then can we resolve the generators themselves, as well as the callable and specialization attributes
-                    let callableAttributes, attrErrs = this.ResolveAttributes(parent, source) signature
+                    let callableAttributes, attrErrs = this.ResolveAttributes (parent, source) signature
                     let resolution _ = SymbolResolution.ResolveGenerator props
 
                     let specErrs =
@@ -906,7 +906,7 @@ type NamespaceManager
             for opened in nsToAutoOpen do
                 for ns in Namespaces.Values do
                     for source in ns.Sources do
-                        this.AddOpenDirective(opened, Range.Zero) (null, Value Range.Zero) (ns.Name, source) |> ignore
+                        this.AddOpenDirective (opened, Range.Zero) (null, Value Range.Zero) (ns.Name, source) |> ignore
             // We need to resolve types before we resolve callables,
             // since the attribute resolution for callables relies on the corresponding types having been resolved.
             let typeDiagnostics = this.CacheTypeResolution nsNames
@@ -1344,7 +1344,7 @@ type NamespaceManager
     /// contain the parent namespace.
     /// </exception>
     member this.TryGetCallable (callableName: QsQualifiedName) (nsName, source) =
-        this.TryGetCallableHeader(callableName, None) (nsName, source)
+        this.TryGetCallableHeader (callableName, None) (nsName, source)
 
     /// Given an unqualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
     /// the qualifier can be uniquely resolved within the given parent namespace and source file, and the callable is
@@ -1453,7 +1453,7 @@ type NamespaceManager
     /// contain the parent namespace.
     /// </exception>
     member this.TryGetType (typeName: QsQualifiedName) (nsName, source) =
-        this.TryGetTypeHeader(typeName, None) (nsName, source)
+        this.TryGetTypeHeader (typeName, None) (nsName, source)
 
     /// Given an unqualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
     /// qualifier can be uniquely resolved within the given parent namespace and source file, and the type is
@@ -1463,7 +1463,7 @@ type NamespaceManager
     /// uniquely resolved.
     member this.TryResolveAndGetType tName (nsName, source) =
         let toHeader (declaredNs, (declaredSource, _, _)) =
-            match this.TryGetTypeHeader({ Namespace = declaredNs; Name = tName }, Some declaredSource) (nsName, source)
+            match this.TryGetTypeHeader ({ Namespace = declaredNs; Name = tName }, Some declaredSource) (nsName, source)
                 with
             | Found value -> value
             | _ ->

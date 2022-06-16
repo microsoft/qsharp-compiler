@@ -379,8 +379,8 @@ type ClassicalControlTests() =
             |> Seq.filter (fun x -> x.Name = Signatures.ClassicalControlNS)
             |> GlobalCallableResolutions
 
-        let original = callables |> Seq.find (fun x -> x.Key.Name = "Foo") |> fun x -> x.Value
-        let generated = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Foo") |> fun x -> x.Value
+        let original = callables |> Seq.find (fun x -> x.Key.Name = "Foo") |> (fun x -> x.Value)
+        let generated = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Foo") |> (fun x -> x.Value)
 
         let GetTypeParams call =
             call.Signature.TypeParameters
@@ -425,9 +425,9 @@ type ClassicalControlTests() =
             |> Seq.filter (fun x -> x.Name = Signatures.ClassicalControlNS)
             |> GlobalCallableResolutions
 
-        let selfOp = callables |> Seq.find (fun x -> x.Key.Name = "Self") |> fun x -> x.Value
-        let invertOp = callables |> Seq.find (fun x -> x.Key.Name = "Invert") |> fun x -> x.Value
-        let providedOp = callables |> Seq.find (fun x -> x.Key.Name = "Provided") |> fun x -> x.Value
+        let selfOp = callables |> Seq.find (fun x -> x.Key.Name = "Self") |> (fun x -> x.Value)
+        let invertOp = callables |> Seq.find (fun x -> x.Key.Name = "Invert") |> (fun x -> x.Value)
+        let providedOp = callables |> Seq.find (fun x -> x.Key.Name = "Provided") |> (fun x -> x.Value)
 
         [ (1, BuiltIn.ApplyIfZero.FullName) ]
         |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable selfOp)
@@ -438,8 +438,8 @@ type ClassicalControlTests() =
         [ (1, BuiltIn.ApplyIfZero.FullName) ]
         |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable providedOp)
 
-        let _selfOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Self") |> fun x -> x.Value
-        let _invertOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Invert") |> fun x -> x.Value
+        let _selfOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Self") |> (fun x -> x.Value)
+        let _invertOp = callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Invert") |> (fun x -> x.Value)
 
         let _providedOps =
             callables |> Seq.filter (fun x -> x.Key.Name.EndsWith "_Provided") |> Seq.map (fun x -> x.Value)
@@ -465,8 +465,8 @@ type ClassicalControlTests() =
             |> Seq.filter (fun x -> x.Name = Signatures.ClassicalControlNS)
             |> GlobalCallableResolutions
 
-        let distributeOp = callables |> Seq.find (fun x -> x.Key.Name = "Distribute") |> fun x -> x.Value
-        let providedOp = callables |> Seq.find (fun x -> x.Key.Name = "Provided") |> fun x -> x.Value
+        let distributeOp = callables |> Seq.find (fun x -> x.Key.Name = "Distribute") |> (fun x -> x.Value)
+        let providedOp = callables |> Seq.find (fun x -> x.Key.Name = "Provided") |> (fun x -> x.Value)
 
         [ (1, BuiltIn.ApplyIfZeroC.FullName) ]
         |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable distributeOp)
@@ -475,7 +475,7 @@ type ClassicalControlTests() =
         |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable providedOp)
 
         let _distributeOp =
-            callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Distribute") |> fun x -> x.Value
+            callables |> Seq.find (fun x -> x.Key.Name.EndsWith "_Distribute") |> (fun x -> x.Value)
 
         let _providedOps =
             callables |> Seq.filter (fun x -> x.Key.Name.EndsWith "_Provided") |> Seq.map (fun x -> x.Value)
@@ -503,7 +503,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let bodyCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedBody") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedBody") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZeroCA.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -529,7 +529,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let controlledCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedControlled") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedControlled") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZeroA.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -565,7 +565,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let adjointCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedAdjoint") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedAdjoint") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZeroC.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -601,7 +601,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let allCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedAll") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "ProvidedAll") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZero.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -652,7 +652,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let bodyCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeBody") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeBody") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZeroCA.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -675,7 +675,8 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let controlledCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeControlled") |> fun x -> x.Value
+            let original =
+                callables |> Seq.find (fun x -> x.Key.Name = "DistributeControlled") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZeroCA.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -703,7 +704,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let adjointCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeAdjoint") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeAdjoint") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZeroC.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -731,7 +732,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let allCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeAll") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "DistributeAll") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZero.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -774,7 +775,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let bodyCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertBody") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertBody") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZeroCA.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -795,7 +796,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let controlledCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertControlled") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertControlled") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZeroA.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -823,7 +824,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let adjointCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertAdjoint") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertAdjoint") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZeroCA.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -851,7 +852,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let allCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertAll") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "InvertAll") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZero.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -892,7 +893,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let bodyCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "SelfBody") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "SelfBody") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZeroC.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
@@ -913,7 +914,7 @@ type ClassicalControlTests() =
         (*-----------------------------------------*)
 
         let controlledCheck () =
-            let original = callables |> Seq.find (fun x -> x.Key.Name = "SelfControlled") |> fun x -> x.Value
+            let original = callables |> Seq.find (fun x -> x.Key.Name = "SelfControlled") |> (fun x -> x.Value)
 
             [ (1, BuiltIn.ApplyIfZero.FullName) ]
             |> assertSpecializationHasCalls (TestUtils.getBodyFromCallable original)
