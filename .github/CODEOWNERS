@@ -1,0 +1,15 @@
+/src/QsCompiler/CommandLineTool @samarsha @cesarzc
+/src/QsCompiler/CompilationManager @samarsha @cesarzc
+/src/QsCompiler/Compiler @samarsha @cesarzc
+/src/QsCompiler/Core @samarsha @cesarzc
+/src/QsCompiler/DataStructures @samarsha @cesarzc
+/src/QsCompiler/LanguageServer @samarsha @cesarzc
+/src/QsCompiler/Optimizations @samarsha @cesarzc
+/src/QsCompiler/SyntaxProcessor @samarsha @cesarzc
+/src/QsCompiler/TestProjects @samarsha @cesarzc
+/src/QsCompiler/Tests.Compiler @samarsha @cesarzc
+/src/QsCompiler/Tests.LanguageServer @samarsha @cesarzc
+/src/QsCompiler/TextProcessor @samarsha @cesarzc
+/src/QsCompiler/Transformations @samarsha @cesarzc
+
+/src/QsFmt @ScottCarda-MS @samarsha
