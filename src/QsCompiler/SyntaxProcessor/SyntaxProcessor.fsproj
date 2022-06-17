@@ -46,4 +46,9 @@
     <ProjectReference Include="..\Transformations\Transformations.csproj" />
     <ProjectReference Include="..\Core\Core.fsproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
+    <PackageReference Update="System.ValueTuple" Version="4.4.0" />
+  </ItemGroup>
 </Project>
