@@ -19,10 +19,12 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 /// </para>
 /// </example>
 type internal TypeContext =
-    { Expected: ResolvedType
-      ExpectedParent: ResolvedType option
-      Actual: ResolvedType
-      ActualParent: ResolvedType option }
+    {
+        Expected: ResolvedType
+        ExpectedParent: ResolvedType option
+        Actual: ResolvedType
+        ActualParent: ResolvedType option
+    }
 
 module internal TypeContext =
     val createOrphan: expected: ResolvedType -> actual: ResolvedType -> TypeContext
