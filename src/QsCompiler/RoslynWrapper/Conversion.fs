@@ -1,10 +1,10 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper
 
+#nowarn "1182" // Unused parameters
+
 /// <summary>
 /// Use this module to specify the syntax for <code>explicit</code> and <code>implicit</code> conversion operators
 /// </summary>
-#nowarn "1182" // Unused parameters
-
 [<AutoOpen>]
 module Conversion =
     open Microsoft.CodeAnalysis
