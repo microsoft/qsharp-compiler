@@ -123,7 +123,6 @@ export class LanguageServer {
         let version = "";
         // Before anything else, look at the user's configuration to see
         // if they set a path manually for the language server.
-        let versionCheck = false;
         let config = vscode.workspace.getConfiguration();
         lsPath = config.get("quantumDevKit.languageServerPath");
 
@@ -159,7 +158,7 @@ export class LanguageServer {
             //     and catch errors there.
             var response : {stdout: string, stderr: string};
             try {
-                response = await promisify(cp.exec)(`"${lsGlobalStoragePath}" --version`);
+                response = await promisify(cp.execFile)(`"${lsGlobalStoragePath}" --version`);
             } catch (err) {
                 console.log(`[qsharp-lsp] Error while fetching LSP version: ${err}`);
                 throw err;
@@ -175,7 +174,7 @@ export class LanguageServer {
                 throw new Error("Package info was undefined.");
             }
             console.log(`[qsharp-lsp] Package is ${info.name} with ${info.nugetVersion} and ${info.version}`);
-            if (versionCheck && info.nugetVersion !== version) {
+            if (info.nugetVersion !== version) {
                 console.log(`[qsharp-lsp] Found version ${version}, expected version ${info.nugetVersion}. Clearing cached version.`);
                 await this.clearCache();
                 return false;
