@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             this.Compilation = compilation;
             var publicAPI = ImmutableHashSet.CreateRange(
-                this.SharedState.IsLibrary // todo: this really should be simplified
+                this.SharedState.IsLibrary // it would be nicer to not have 4 cases...
                 ? compilation.InteroperableSurface(includeReferences: false)
                     .Where(this.SharedState.TargetQirProfile ? this.BasicApiSurface : _ => true)
                 : this.SharedState.TargetQirProfile ? compilation.EntryPoints : ImmutableHashSet<QsQualifiedName>.Empty);
@@ -102,6 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             // TODO: get rid of entry point and interop wrappers
+            // (requires simulator update to align in- and output processing)
             if (!this.SharedState.TargetQirProfile)
             {
                 foreach (var epName in this.Compilation.EntryPoints)

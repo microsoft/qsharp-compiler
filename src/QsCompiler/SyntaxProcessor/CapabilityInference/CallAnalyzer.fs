@@ -117,12 +117,12 @@ module CallAnalyzer =
                         string capability.ClassicalCompute
                     ]
 
-                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedCallableCapability, args) range |> Some
+                QsCompilerDiagnostic.Error (ErrorCode.UnsupportedCallableCapability, args) range |> Some
             | Recursive ->
                 // TODO: The capability description string should be defined with the rest of the diagnostic message
                 // instead of here, but this is easier after https://github.com/microsoft/qsharp-compiler/issues/1025.
                 let args = [ target.Name; "recursion" ]
-                QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
+                QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
         {
             Capability = capability
@@ -139,7 +139,7 @@ module CallAnalyzer =
                 override this.OnTypedExpression expression =
                     match expression.Expression with
                     | Identifier (GlobalCallable name, _) ->
-                        let range = QsNullable.Map2(+) transformation.Offset expression.Range
+                        let range = QsNullable.Map2 (+) transformation.Offset expression.Range
                         references.Add(name, range)
                     | _ -> ()
 
