@@ -60,4 +60,4 @@ type PreEvaluation =
     /// Attempts to pre-evaluate the given sequence of namespaces
     /// as much as possible with a default optimization script
     static member All(arg: QsCompilation) =
-        PreEvaluation.WithScript(PreEvaluation.DefaultScript false 40) arg
+        PreEvaluation.WithScript (PreEvaluation.DefaultScript false 40) arg

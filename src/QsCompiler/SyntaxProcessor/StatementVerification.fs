@@ -32,7 +32,7 @@ let private onAutoInvertCheckQuantumDependency (symbols: SymbolTracker) (expr: T
     [|
         if symbols.RequiredFunctorSupport.Contains Adjoint
            && expr.InferredInformation.HasLocalQuantumDependency then
-            QsCompilerDiagnostic.Error(ErrorCode.QuantumDependencyOutsideExprStatement, []) (rangeOrDefault expr)
+            QsCompilerDiagnostic.Error (ErrorCode.QuantumDependencyOutsideExprStatement, []) (rangeOrDefault expr)
     |]
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested,
@@ -60,7 +60,7 @@ let NewExpressionStatement comments location context expr =
     if context.Inference.Constrain(ResolvedType.New UnitType .> expr.ResolvedType) |> List.isEmpty |> not then
         let type_ = context.Inference.Resolve expr.ResolvedType |> SyntaxTreeToQsharp.Default.ToCode
         let range = QsNullable.defaultValue Range.Zero expr.Range
-        QsCompilerDiagnostic.Error(ErrorCode.ValueImplicitlyIgnored, [ type_ ]) range |> diagnostics.Add
+        QsCompilerDiagnostic.Error (ErrorCode.ValueImplicitlyIgnored, [ type_ ]) range |> diagnostics.Add
 
     QsExpressionStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
@@ -112,7 +112,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
             | Identifier (LocalVariable id, Null) -> context.Symbols.UpdateQuantumDependency id localQdep
             | _ -> ()
         | Item ex ->
-            QsCompilerDiagnostic.Error(ErrorCode.UpdateOfImmutableIdentifier, []) (ex.Range.ValueOr Range.Zero)
+            QsCompilerDiagnostic.Error (ErrorCode.UpdateOfImmutableIdentifier, []) (ex.Range.ValueOr Range.Zero)
             |> diagnostics.Add
         | _ -> () // both missing and invalid expressions on the lhs are fine
 
