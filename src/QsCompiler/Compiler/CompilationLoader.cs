@@ -544,7 +544,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
-            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, this.config.TargetCapability?.Name);
+            buildProperties.Add(MSBuildProperties.ResolvedTargetCapability, this.config.TargetCapability?.Name);
             buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, this.config.IsExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
             buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
 
