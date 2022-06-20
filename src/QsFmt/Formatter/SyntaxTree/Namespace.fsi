@@ -6,23 +6,25 @@ namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 /// An attribute.
 type internal Attribute =
     {
-      /// The at symbol prefix.
-      At: Terminal
+        /// The at symbol prefix.
+        At: Terminal
 
-      /// The attribute expression.
-      Expression: Expression }
+        /// The attribute expression.
+        Expression: Expression
+    }
 
 /// A type parameter binding sequence.
 type internal TypeParameterBinding =
     {
-      /// The opening angle bracket.
-      OpenBracket: Terminal
+        /// The opening angle bracket.
+        OpenBracket: Terminal
 
-      /// The type parameters.
-      Parameters: Terminal SequenceItem list
+        /// The type parameters.
+        Parameters: Terminal SequenceItem list
 
-      /// The closing angle bracket.
-      CloseBracket: Terminal }
+        /// The closing angle bracket.
+        CloseBracket: Terminal
+    }
 
 /// A specialization generator.
 type internal SpecializationGenerator =
@@ -35,33 +37,35 @@ type internal SpecializationGenerator =
 /// A specialization.
 type internal Specialization =
     {
-      /// The names of the specialization.
-      Names: Terminal list
+        /// The names of the specialization.
+        Names: Terminal list
 
-      /// The specialization generator.
-      Generator: SpecializationGenerator }
+        /// The specialization generator.
+        Generator: SpecializationGenerator
+    }
 
 /// An open directive
 type internal OpenDirective =
     {
-      /// <summary>
-      /// The <c>open</c> keyword.
-      /// </summary>
-      OpenKeyword: Terminal
+        /// <summary>
+        /// The <c>open</c> keyword.
+        /// </summary>
+        OpenKeyword: Terminal
 
-      /// The name of the opened namespace.
-      OpenName: Terminal
+        /// The name of the opened namespace.
+        OpenName: Terminal
 
-      /// <summary>
-      /// The optional <c>as</c> keyword.
-      /// </summary>
-      AsKeyword: Terminal option
+        /// <summary>
+        /// The optional <c>as</c> keyword.
+        /// </summary>
+        AsKeyword: Terminal option
 
-      /// The alias name of the opened namespace.
-      AsName: Terminal option
+        /// The alias name of the opened namespace.
+        AsName: Terminal option
 
-      /// The semicolon.
-      Semicolon: Terminal }
+        /// The semicolon.
+        Semicolon: Terminal
+    }
 
 /// The underlying type of a newly defined type.
 type internal UnderlyingType =
@@ -82,30 +86,31 @@ and internal TypeTupleItem =
 /// A type declaration
 type internal TypeDeclaration =
     {
-      /// The attributes attached to the type declaration.
-      Attributes: Attribute list
+        /// The attributes attached to the type declaration.
+        Attributes: Attribute list
 
-      /// The access modifier for the callable.
-      Access: Terminal option
+        /// The access modifier for the callable.
+        Access: Terminal option
 
-      /// <summary>
-      /// The <c>newtype</c> keyword.
-      /// </summary>
-      NewtypeKeyword: Terminal
+        /// <summary>
+        /// The <c>newtype</c> keyword.
+        /// </summary>
+        NewtypeKeyword: Terminal
 
-      /// The name of the declared type.
-      DeclaredType: Terminal
+        /// The name of the declared type.
+        DeclaredType: Terminal
 
-      /// <summary>
-      /// The <c>=</c> symbol.
-      /// </summary>
-      Equals: Terminal
+        /// <summary>
+        /// The <c>=</c> symbol.
+        /// </summary>
+        Equals: Terminal
 
-      /// The underlying type.
-      UnderlyingType: UnderlyingType
+        /// The underlying type.
+        UnderlyingType: UnderlyingType
 
-      /// The semicolon.
-      Semicolon: Terminal }
+        /// The semicolon.
+        Semicolon: Terminal
+    }
 
 /// The body of a callable declaration.
 type internal CallableBody =
@@ -115,38 +120,39 @@ type internal CallableBody =
     /// A block of specializations.
     | Specializations of Specialization Block
 
-/// A callable declaration.
 // TODO: Add specialization generators.
+/// A callable declaration.
 type internal CallableDeclaration =
     {
-      /// The attributes attached to the callable.
-      Attributes: Attribute list
+        /// The attributes attached to the callable.
+        Attributes: Attribute list
 
-      /// The access modifier for the callable.
-      Access: Terminal option
+        /// The access modifier for the callable.
+        Access: Terminal option
 
-      /// <summary>
-      /// The declaration keyword (either <c>function</c> or <c>operation</c>).
-      /// </summary>
-      CallableKeyword: Terminal
+        /// <summary>
+        /// The declaration keyword (either <c>function</c> or <c>operation</c>).
+        /// </summary>
+        CallableKeyword: Terminal
 
-      /// The name of the callable.
-      Name: Terminal
+        /// The name of the callable.
+        Name: Terminal
 
-      /// The type parameters of the callable.
-      TypeParameters: TypeParameterBinding option
+        /// The type parameters of the callable.
+        TypeParameters: TypeParameterBinding option
 
-      /// The parameters of the callable.
-      Parameters: ParameterBinding
+        /// The parameters of the callable.
+        Parameters: ParameterBinding
 
-      /// The return type of the callable.
-      ReturnType: TypeAnnotation
+        /// The return type of the callable.
+        ReturnType: TypeAnnotation
 
-      /// The characteristic section of the callable.
-      CharacteristicSection: CharacteristicSection option
+        /// The characteristic section of the callable.
+        CharacteristicSection: CharacteristicSection option
 
-      /// The body of the callable.
-      Body: CallableBody }
+        /// The body of the callable.
+        Body: CallableBody
+    }
 
 /// An item in a namespace.
 type internal NamespaceItem =
@@ -171,22 +177,24 @@ module internal NamespaceItem =
 /// A namespace.
 type internal Namespace =
     {
-      /// <summary>
-      /// The <c>namespace</c> keyword.
-      /// </summary>
-      NamespaceKeyword: Terminal
+        /// <summary>
+        /// The <c>namespace</c> keyword.
+        /// </summary>
+        NamespaceKeyword: Terminal
 
-      /// The name of the namespace.
-      Name: Terminal
+        /// The name of the namespace.
+        Name: Terminal
 
-      /// The body of the namespace.
-      Block: NamespaceItem Block }
+        /// The body of the namespace.
+        Block: NamespaceItem Block
+    }
 
 /// A document representing a Q# file.
 type internal Document =
     {
-      /// The namespaces in the document.
-      Namespaces: Namespace list
+        /// The namespaces in the document.
+        Namespaces: Namespace list
 
-      /// The end-of-file symbol.
-      Eof: Terminal }
+        /// The end-of-file symbol.
+        Eof: Terminal
+    }

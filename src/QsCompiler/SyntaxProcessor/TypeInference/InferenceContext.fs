@@ -6,7 +6,6 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
-open Microsoft.Collections.Extensions
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -181,7 +180,7 @@ module Inference =
 
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
-    let classConstraints = MultiValueDictionary()
+    let classConstraints = Dictionary()
 
     let mutable rootNodePos = Null
     let mutable relativePos = Null
@@ -189,9 +188,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     let bind param substitution =
         if Inference.occursCheck param substitution then
-            let variable = variables.[param]
+            let variable = variables[param]
             if Option.isSome variable.Substitution then failwith "Type parameter is already bound."
-            variables.[param] <- { variable with Substitution = Some substitution }
+            variables[param] <- { variable with Substitution = Some substitution }
             Ok()
         else
             Result.Error()
@@ -200,7 +199,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         if types |> Seq.contains (ResolvedType.New InvalidType) || List.isEmpty diagnostics |> not then
             for param in types |> Seq.fold (fun params' -> Inference.typeParameters >> Set.union params') Set.empty do
                 match variables.TryGetValue param |> tryOption with
-                | Some variable -> variables.[param] <- { variable with HasError = true }
+                | Some variable -> variables[param] <- { variable with HasError = true }
                 | None -> ()
 
         diagnostics
@@ -282,7 +281,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | [] -> context.ApplyClassConstraint cls
             | tyParams ->
                 for param in tyParams do
-                    classConstraints.Add(param, cls)
+                    let classes = classConstraints.TryGetValue param |> tryOption |> Option.defaultValue []
+                    classConstraints[param] <- cls :: classes
 
                 []
         | Relation (expected, ordering, actual) -> context.Relate(expected, ordering, actual)
@@ -361,7 +361,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.ApplyClassConstraint cls =
         let error code args range =
             let range = TypeRange.tryRange range |> QsNullable.defaultValue Range.Zero
-            QsCompilerDiagnostic.Error(code, args) range |> CompilerDiagnostic
+            QsCompilerDiagnostic.Error (code, args) range |> CompilerDiagnostic
 
         let isInvalidType ty =
             context.Resolve(ty).Resolution = InvalidType
@@ -517,7 +517,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
             match container.Resolution with
             | UserDefinedType udt ->
-                let actualItem = symbolTracker.GetUnderlyingType(fun _ -> ()) udt
+                let actualItem = symbolTracker.GetUnderlyingType (fun _ -> ()) udt
                 context.ConstrainImpl(item .> actualItem)
             | _ ->
                 [
