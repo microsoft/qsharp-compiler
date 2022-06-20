@@ -164,6 +164,9 @@ module Expressions =
 
     // left >>> right
     let (.>>>.) left right =
+        // TODO: Should be replaced with a use of SyntaxFactor.Token to generate an unsigned shift right. For reference,
+        // see https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/operators/bitwise-and-shift-operators#unsigned-right-shift-operator-
+        // and https://docs.microsoft.com/en-us/dotnet/api/microsoft.codeanalysis.csharp.syntaxfactory.token?view=roslyn-dotnet-4.2.0#microsoft-codeanalysis-csharp-syntaxfactory-token(microsoft-codeanalysis-syntaxtrivialist-microsoft-codeanalysis-csharp-syntaxkind-system-string-system-string-microsoft-codeanalysis-syntaxtrivialist)
         (SyntaxKind.RightShiftExpression, left, right) |> SyntaxFactory.BinaryExpression :> ExpressionSyntax
 
     // left <<< right
