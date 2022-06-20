@@ -66,11 +66,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : string.Empty;
 
         /// <summary>
-        /// Returns the value specified by <see cref="MSBuildProperties.ResolvedRuntimeCapabilities"/>, or
+        /// Returns the value specified by <see cref="MSBuildProperties.ResolvedTargetCapability"/>, or
         /// <see cref="TargetCapabilityModule.Top"/> if no valid value is specified.
         /// </summary>
         public TargetCapability TargetCapability =>
-            (this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedRuntimeCapabilities, out var capability)
+            (this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedTargetCapability, out var capability)
                 ? TargetCapability.TryParse(capability)
                 : null)
             ?? TargetCapabilityModule.Top;

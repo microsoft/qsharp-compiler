@@ -16,7 +16,7 @@
   <ItemGroup>
     <UpToDateCheckInput Include="@(QSharpCompile)" /> <!-- ensure that projects are recompiled if a Q# source file is modified -->
   </ItemGroup>
-  
+
 
   <!-- Target used to verify that the specified OutputType is valid. -->
   <Target Name="VerifyOutputType" BeforeTargets="QSharpCompile">

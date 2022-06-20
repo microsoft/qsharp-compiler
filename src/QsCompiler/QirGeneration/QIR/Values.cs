@@ -133,52 +133,70 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /// <summary>
-        /// Creates a simple value that stores the given LLVM value as well as its Q# type.
+        /// Creates a simple value that contains the given LLVM value as well as
+        /// additional infos used for optimization during QIR generation.
         /// </summary>
-        /// <param name="value">The LLVM value to store</param>
-        /// <param name="type">The Q# of the value</param>
+        /// <param name="value">The LLVM value representing a value of the given Q# type.</param>
+        /// <param name="type">The Q# type of the value.</param>
         internal SimpleValue FromSimpleValue(Value value, ResolvedType type) =>
-            new SimpleValue(value, type);
+            new(value, type);
 
         /// <summary>
-        /// Creates a tuple value that stores the given LLVM value representing a Q# value of user defined type.
+        /// Creates a tuple value that represents a Q# value of user defined type and
+        /// contains the given LLVM value as well as additional infos used for optimization
+        /// during QIR generation.
         /// </summary>
-        /// <param name="value">The typed tuple representing a value of user defined type</param>
-        /// <param name="typeName">The Q# type name of the value</param>
+        /// <param name="value">The LLVM value representing a Q# value of user defined type.</param>
+        /// <param name="typeName">The Q# type name of the value.</param>
         internal TupleValue FromCustomType(Value value, QsQualifiedName typeName) =>
-            new TupleValue(typeName, value, this.sharedState.GetItemTypes(typeName), this.sharedState);
+            new(typeName, value, this.sharedState.GetItemTypes(typeName), this.sharedState);
 
         /// <summary>
-        /// Creates a new tuple value from the given tuple pointer. The casts to get the opaque and typed pointer
-        /// respectively are executed lazily. When needed, instructions are emitted using the current builder.
+        /// Creates a tuple value that represents a Q# value of tuple type and contains
+        /// the given LLVM value as well as additional infos used for optimization
+        /// during QIR generation.
         /// </summary>
-        /// <param name="tuple">Either an opaque or a typed pointer to the tuple data structure</param>
-        /// <param name="elementTypes">The Q# types of the tuple items</param>
-        internal TupleValue FromTuple(Value tuple, ImmutableArray<ResolvedType> elementTypes) =>
-            new TupleValue(tuple, elementTypes, this.sharedState);
+        /// <param name="value">The LLVM value representing a Q# tuple with elements of the given types.</param>
+        /// <param name="elementTypes">The Q# types of the tuple elements.</param>
+        internal TupleValue FromTuple(Value value, ImmutableArray<ResolvedType> elementTypes) =>
+            new(value, elementTypes, this.sharedState);
 
         /// <summary>
-        /// Creates a new array value from the given opaque array of elements of the given type.
+        /// Creates an array value that represents a Q# value of array type and contains
+        /// the given LLVM value as well as additional infos used for optimization
+        /// during QIR generation.
         /// </summary>
-        /// <param name="elementType">Q# type of the array elements</param>
+        /// <param name="value">The LLVM value representing a Q# array with elements of the given type.</param>
+        /// <param name="elementType">Q# type of the array elements.</param>
+        /// <param name="count">The number of elements in the array, or null if unknown.</param>
         internal ArrayValue FromArray(Value value, ResolvedType elementType, uint? count) =>
-            new ArrayValue(value, elementType, count, this.sharedState);
-
-        internal ArrayValue FromArray(ArrayValue value, bool alwaysCopy) => new ArrayValue(value, alwaysCopy);
+            new(value, elementType, count, this.sharedState);
 
         /// <summary>
-        /// Creates a callable value that stores the given LLVM value representing a Q# callable.
+        /// Creates an new array value that is a copy of the given value.
         /// </summary>
-        /// <param name="value">The LLVM value to store</param>
-        /// <param name="type">The Q# of the value</param>
+        /// <param name="value">The array value to copy.</param>
+        /// <param name="alwaysCopy">Whether to force the runtime to make a copy of the contained LLVM value even if the alias count is zero.</param>
+        internal ArrayValue FromArray(ArrayValue value, bool alwaysCopy) =>
+            new(value, alwaysCopy);
+
+        /// <summary>
+        /// Creates a callable value that represents a Q# value of opertion or function type
+        /// and contains the given LLVM value as well as additional infos used for optimization
+        /// during QIR generation.
+        /// </summary>
+        /// <param name="value">The LLVM value representing a Q# callable of the given type.</param>
+        /// <param name="type">The Q# type of the value.</param>
         internal CallableValue FromCallable(Value value, ResolvedType type) =>
-            new CallableValue(value, type, this.sharedState);
+            new(value, type, this.sharedState);
 
         /// <summary>
-        /// Creates a suitable class to pass around a built LLVM value that represents a Q# value of the given type.
+        /// Creates a suitable class instance that represents a Q# value of the given type
+        /// and contains the given LLVM value as well as additional infos used for optimization
+        /// during QIR generation.
         /// </summary>
-        /// <param name="value">The LLVM value to store</param>
-        /// <param name="type">The Q# of the value</param>
+        /// <param name="value">The LLVM value representing a Q# value of the given type.</param>
+        /// <param name="type">The Q# type of the value.</param>
         internal IValue From(Value value, ResolvedType type) =>
             type.Resolution is ResolvedTypeKind.ArrayType it ? this.sharedState.Values.FromArray(value, it.Item, null) :
             type.Resolution is ResolvedTypeKind.TupleType ts ? this.sharedState.Values.FromTuple(value, ts.Item) :
@@ -187,8 +205,7 @@ namespace Microsoft.Quantum.QIR.Emission
             (IValue)new SimpleValue(value, type);
 
         internal SimpleValue CreatePauli(QsPauli pauli) =>
-            new SimpleValue(
-                this.sharedState.Context.CreateConstant(
+            new(this.sharedState.Context.CreateConstant(
                     this.sharedState.Types.Pauli,
                     pauli.IsPauliI ? 0ul :
                     pauli.IsPauliX ? 1ul :
@@ -204,7 +221,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="value">The value that the pointer points to</param>
         internal PointerValue CreatePointer(IValue value) =>
-            new PointerValue(value, this.sharedState);
+            new(value, this.sharedState);
 
         /// <summary>
         /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
@@ -213,7 +230,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="elementTypes">The Q# types of the tuple items</param>
         internal TupleValue CreateTuple(ImmutableArray<ResolvedType> elementTypes, bool registerWithScopeManager = true) =>
-            new TupleValue(elementTypes, this.sharedState, registerWithScopeManager: registerWithScopeManager);
+            new(elementTypes, this.sharedState, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.
@@ -221,7 +238,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="tupleElements">The tuple elements</param>
         internal TupleValue CreateTuple(ImmutableArray<TypedExpression> tupleElements, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new TupleValue(null, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+            new(null, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.
@@ -231,7 +248,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="tupleElements">The tuple elements</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         internal TupleValue CreateTuple(IReadOnlyList<IValue> tupleElements, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new TupleValue(null, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+            new(null, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds a tuple with the items set to the given tuple elements.
@@ -239,7 +256,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="tupleElements">The tuple elements</param>
         internal TupleValue CreateCustomType(QsQualifiedName typeName, ImmutableArray<TypedExpression> tupleElements, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new TupleValue(typeName, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+            new(typeName, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds a tuple representing a Q# value of user defined type with the items set to the given elements.
@@ -250,7 +267,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="tupleElements">The tuple elements</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         internal TupleValue CreateCustomType(QsQualifiedName typeName, IReadOnlyList<IValue> tupleElements, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new TupleValue(typeName, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+            new(typeName, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
@@ -259,7 +276,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
         internal ArrayValue CreateArray(ResolvedType elementType, Value length, bool registerWithScopeManager = true) =>
-            new ArrayValue(elementType, length, this.sharedState, registerWithScopeManager: registerWithScopeManager);
+            new(elementType, length, this.sharedState, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds an array that contains the given array elements.
@@ -267,7 +284,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="arrayElements">The elements in the array</param>
         internal ArrayValue CreateArray(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new ArrayValue(elementType, arrayElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+            new(elementType, arrayElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Builds an array that containsthe given array elements.
@@ -278,7 +295,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="arrayElements">The elements in the array</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         internal ArrayValue CreateArray(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new ArrayValue(elementType, arrayElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+            new(elementType, arrayElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Creates an array of the given size and populates each element with the value returned by <paramref name="getElement"/>,
@@ -290,7 +307,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="getElement">Given an index into the array, returns the value to populate that element with</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
         internal ArrayValue CreateArray(ResolvedType elementType, Value length, Func<Value, IValue> getElement, bool registerWithScopeManager = true) =>
-            new ArrayValue(elementType, length, getElement, this.sharedState, registerWithScopeManager: registerWithScopeManager);
+            new(elementType, length, getElement, this.sharedState, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
         /// Creates a callable value of the given type and registers it with the scope manager.
@@ -301,6 +318,6 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="table">The global variable that contains the array of function pointers defining the callable.</param>
         /// <param name="captured">All captured values.</param>
         internal CallableValue CreateCallable(ResolvedType callableType, GlobalVariable table, ImmutableArray<TypedExpression>? captured = null) =>
-            new CallableValue(callableType, table, this.sharedState, captured);
+            new(callableType, table, this.sharedState, captured);
     }
 }
