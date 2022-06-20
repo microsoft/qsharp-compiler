@@ -158,7 +158,7 @@ export class LanguageServer {
             //     and catch errors there.
             var response : {stdout: string, stderr: string};
             try {
-                response = await promisify(cp.execFile)(`"${lsGlobalStoragePath}" --version`);
+                response = await promisify(cp.execFile)(`${lsGlobalStoragePath}`, ['--version']);
             } catch (err) {
                 console.log(`[qsharp-lsp] Error while fetching LSP version: ${err}`);
                 throw err;
