@@ -479,7 +479,7 @@ type LinkingTests() =
 
         let props =
             dict [ MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe
-                   MSBuildProperties.ResolvedRuntimeCapabilities, Option.toObj capabilityName ]
+                   MSBuildProperties.ResolvedTargetCapability, Option.toObj capabilityName ]
             |> ProjectProperties
 
         use compilationManager =
