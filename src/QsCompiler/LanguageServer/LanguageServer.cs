@@ -176,17 +176,26 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal Task SendTelemetryAsync(
                 string eventName,
                 Dictionary<string, string?> properties,
-                Dictionary<string, int> measurements) =>
-            #if TELEMETRY
+                Dictionary<string, int> measurements)
+        {
+            var propsStr = properties.Select(kv => $"{kv.Key}: {kv.Value}");
+            var measStr = measurements.Select(kv => $"{kv.Key}: {kv.Value}");
+            var propsMsg = $"properties: \n{string.Join("\n", propsStr)}";
+            var measMsg = $"measurements: \n{string.Join("\n", measStr)}";
+            var msg = $"Event: {eventName}\n{propsMsg}\n{measMsg}";
+            this.LogToWindow(msg, MessageType.Info);
+
+#if TELEMETRY
             this.NotifyClientAsync(Methods.TelemetryEventName, new Dictionary<string, object>
             {
                 ["event"] = eventName,
                 ["properties"] = properties,
                 ["measurements"] = measurements,
             });
-            #else
-            Task.CompletedTask;
-            #endif
+#else
+            return Task.CompletedTask;
+#endif
+        }
 
         /// <summary>
         /// to be called when the server encounters an internal error (i.e. a QsCompilerError is raised)
