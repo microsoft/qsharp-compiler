@@ -3180,11 +3180,7 @@ public class NamedTuple : UDTBase<((Int64,Double),Int64)>, IApplyData
         let fileName = Path.Combine("Circuits", "TargetedExe.qs")
         let compilation = build refs [ fileName ]
 
-        let assemblyConstants =
-            [
-                (AssemblyConstants.QuantumInstructionSet, "Type1")
-                (AssemblyConstants.TargetPackageAssemblies, intrinsicsFile)
-            ]
+        let assemblyConstants = [ (AssemblyConstants.TargetPackageAssemblies, intrinsicsFile) ]
 
         emitAndCompare (assemblyConstants.ToImmutableDictionary(fst, snd)) compilation
 
