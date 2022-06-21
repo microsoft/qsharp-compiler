@@ -287,6 +287,28 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
+        public async Task TargetPackageIntrinsicsAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test17");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var programFile = Path.Combine(projDir, "MeasureBell.qs");
+
+            var initParams = TestUtils.GetInitializeParams();
+            initParams.RootUri = new Uri(projDir);
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParams = TestUtils.GetOpenFileParams(programFile);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+            var diagnostics = await this.GetFileDiagnosticsAsync(programFile);
+
+            // Check that we are not getting any diagnostics,
+            // and in particular that we are not ending up with errors for duplicate intrinsics
+            // due to the use of target packages.
+            Assert.IsNotNull(diagnostics);
+            Assert.AreEqual(0, diagnostics!.Length);
+        }
+
+        [TestMethod]
         public async Task UpdateProjectFileAsync()
         {
             var projectFile = ProjectLoaderTests.ProjectUri("test14");

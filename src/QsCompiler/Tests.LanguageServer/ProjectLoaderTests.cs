@@ -4,7 +4,9 @@
 using System;
 using System.IO;
 using System.Linq;
+using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -245,6 +247,31 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             Assert.IsTrue(context.UsesIntrinsics());
             Assert.IsTrue(context.UsesCanon());
+            CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
+        }
+
+        [TestMethod]
+        public void LoadTargetedQSharpExecutable()
+        {
+            var (projectFile, context) = Context("test17");
+            var projDir = Path.GetDirectoryName(projectFile.LocalPath) ?? "";
+            Assert.IsNotNull(context);
+            Assert.AreEqual("test17.dll", Path.GetFileName(context!.Properties.DllOutputPath));
+            Assert.IsTrue((Path.GetDirectoryName(context.Properties.DllOutputPath) ?? "").StartsWith(projDir));
+
+            var qsFiles = new string[]
+            {
+                Path.Combine(projDir, "MeasureBell.qs"),
+            };
+
+            Assert.AreEqual(TargetCapabilityModule.FromName("AdaptiveExecution"), context.Properties.TargetCapability);
+            Assert.AreEqual(AssemblyConstants.QCIProcessor, context.Properties.ProcessorArchitecture);
+
+            Assert.IsTrue(context.UsesQSharpCore());
+            Assert.IsFalse(context.UsesIntrinsics());
+            Assert.IsFalse(context.UsesDll("Microsoft.Quantum.Type3.Core.dll"));
+            Assert.IsTrue(context.UsesCanon());
+            Assert.IsFalse(context.UsesXunitHelper());
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
         }
 
