@@ -245,6 +245,8 @@ module MSBuildProperties =
     let QuantumSdkVersion = "QuantumSdkVersion"
     let TargetPath = "TargetPath"
     let ResolvedProcessorArchitecture = "ResolvedProcessorArchitecture"
+    [<Obsolete("Replaced by ResolvedTargetCapability for Microsoft.Quantum.Sdk version 0.25 and newer.")>]
+    let ResolvedRuntimeCapabilities = "ResolvedRuntimeCapabilities"
     let ResolvedTargetCapability = "ResolvedTargetCapability"
     let ResolvedQsharpOutputType = "ResolvedQSharpOutputType"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
@@ -258,9 +260,8 @@ module AssemblyConstants =
     let QsharpOutputType = "QSharpOutputType"
     let QsharpExe = "QSharpExe"
     let QsharpLibrary = "QSharpLibrary"
-    let QuantumInstructionSet = "QuantumInstructionSet"
     let ProcessorArchitecture = "ProcessorArchitecture"
-    [<Obsolete("Replaced by QuantinuumProcessor.")>]
+    [<Obsolete("Replaced by QuantinuumProcessor for Microsoft.Quantum.Sdk version 0.25 and newer.")>]
     let HoneywellProcessor = "HoneywellProcessor"
     let IonQProcessor = "IonQProcessor"
     let QCIProcessor = "QCIProcessor"
