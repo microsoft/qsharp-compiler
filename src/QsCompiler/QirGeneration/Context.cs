@@ -387,7 +387,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the givne name
+        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the given name
         /// and the corresponding QIR function for the given specialization kind.
         /// Attaches the attributes with the given names to the returned IrFunction.
         /// </summary>
@@ -414,6 +414,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
+        /// <summary>
+        /// Attaches teh attributes wiht the given names to the IrFunction that represents
+        /// the given specialization of Q# callable with the given name.
+        /// </summary>
+        /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
         internal void AttachAttributes(QsQualifiedName qualifiedName, QsSpecializationKind specKind, params string[] attributeNames) =>
             this.CreateBridgeFunction(qualifiedName, specKind, (_, func) => func, attributeNames);
 
@@ -517,6 +522,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
             this.globalTypes.TryGetValue(fullName, out udt);
 
+        /// <returns>The types of the items in the user defined Q# type with the given name.</returns>
+        /// <exception cref="ArgumentException">Thrown if not type with the given name exists in the compilation.</exception>
         internal ImmutableArray<ResolvedType> GetItemTypes(QsQualifiedName udtName) =>
             this.TryGetCustomType(udtName, out var udtDecl)
                 ? udtDecl.Type.Resolution is ResolvedTypeKind.TupleType its ? its.Item : ImmutableArray.Create(udtDecl.Type)
@@ -697,9 +704,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     throw new InvalidOperationException("number of function parameters does not match argument");
                 }
 
-                var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
-                var innerTuple = this.Values.CreateTuple(tupleItems, allocOnStack: this.TargetQirProfile);
                 var name = outerArgItems[0].Item1;
+                var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
+                var innerTuple = this.Values.CreateTuple(tupleItems, allocOnStack: name is null); // if the name is null we know the tuple won't escape its scope
                 if (name != null)
                 {
                     this.ScopeMgr.RegisterVariable(name, innerTuple, fromLocalId: null);
@@ -766,7 +773,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                var udtTuple = this.Values.CreateTuple(ImmutableArray.Create(this.Values.Unit), allocOnStack: this.TargetQirProfile);
+                var udtTuple = this.Values.CreateTuple(ImmutableArray.Create(this.Values.Unit), allocOnStack: false); // the tuple is returned such that we can't stack allocate it
                 this.AddReturn(udtTuple, returnsVoid: false);
             }
             else if (this.CurrentFunction != null)
@@ -780,7 +787,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, itemTypes[i])).ToArray();
-                var udtTuple = this.Values.CreateTuple(tupleItems, allocOnStack: this.TargetQirProfile);
+                var udtTuple = this.Values.CreateTuple(tupleItems, allocOnStack: false); // the tuple is returned such that we can't stack allocate it
                 this.AddReturn(udtTuple, returnsVoid: false);
             }
         }
@@ -1281,6 +1288,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return this.Values.From(constant, ResolvedType.New(ResolvedTypeKind.Range));
         }
 
+        /// <returns>
+        /// An enumerable that yields the integer values to which a range with the given start, step, and end evaluates to.
+        /// </returns>
         internal IEnumerable<long> EvaluateRange(ConstantInt start, ConstantInt step, ConstantInt end)
         {
             var stepSize = step.SignExtendedValue;
@@ -1476,12 +1486,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return this.CurrentBuilder.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd);
             }
 
-            if (this.TargetQirProfile
-                && start is ConstantInt constStart && end is ConstantInt constEnd
-                && (step == null || step is ConstantInt))
+            var evaluatedRange =
+                start is ConstantInt constStart &&
+                end is ConstantInt constEnd &&
+                (step == null || step is ConstantInt)
+                ? this.EvaluateRange(constStart, step as ConstantInt ?? this.Context.CreateConstant(1L), constEnd)
+                : null;
+
+            // Unless we target a QIR profile, we leave the heuristic for unrolling up to LLVM.
+            if (evaluatedRange != null && this.TargetQirProfile)
             {
-                var constStep = step as ConstantInt ?? this.Context.CreateConstant(1L);
-                foreach (var item in this.EvaluateRange(constStart, constStep, constEnd))
+                foreach (var item in evaluatedRange)
                 {
                     executeBody(this.Context.CreateConstant(item));
                 }
@@ -1511,13 +1526,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return initialOutputValue;
             }
 
+            // Unless we target a QIR profile, we leave the heuristic for unrolling up to LLVM.
             if (array.Count != null && this.TargetQirProfile)
             {
                 var currentOutputValue = initialOutputValue;
                 for (var idx = 0; idx < array.Count; ++idx)
                 {
-                    var elems = array.GetArrayElements(new[] { idx });
-                    currentOutputValue = executeBody(elems[0], currentOutputValue);
+                    var element = array.GetArrayElements(new[] { idx })[0];
+                    currentOutputValue = executeBody(element, currentOutputValue);
                 }
 
                 return currentOutputValue;
@@ -1647,16 +1663,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         #region Block, scope, and value management
 
+        /// <summary>
+        /// Adds an instruction to the entry block of the current function to
+        /// allocate memory on the stack for storing a value of the given type.
+        /// </summary>
+        /// <returns>The handle to the allocated memory.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// The current function or the entry block of the current function is set to null.
+        /// </exception>
         internal Alloca Allocate(ITypeRef type)
         {
-            var entryBuilder = new InstructionBuilder(this.CurrentFunction!.EntryBlock!);
-            if (this.CurrentFunction.EntryBlock!.FirstInstruction == null)
+            if (this.CurrentFunction?.EntryBlock == null)
+            {
+                throw new InvalidOperationException("no current function specified or entry block defined");
+            }
+
+            var entryBuilder = new InstructionBuilder(this.CurrentFunction.EntryBlock);
+            if (this.CurrentFunction.EntryBlock.FirstInstruction == null)
             {
                 entryBuilder.PositionAtEnd(this.CurrentFunction.EntryBlock);
             }
             else
             {
-                entryBuilder.PositionBefore(this.CurrentFunction.EntryBlock!.FirstInstruction);
+                entryBuilder.PositionBefore(this.CurrentFunction.EntryBlock.FirstInstruction);
             }
 
             return entryBuilder.Alloca(type);
