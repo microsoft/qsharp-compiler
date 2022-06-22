@@ -193,7 +193,7 @@ export class LanguageServer {
     }
 
     private async setAsExecutable(path : string) : Promise<void> {
-        let results = await promisify(cp.exec)(`chmod +x "${path}"`);
+        let results = await promisify(fs.chmod)(`${path}`, "+x");
         console.log(`[qsharp-lsp] Results from setting ${path} as executable:\n${results.stdout}\nstderr:\n${results.stderr}`);
         return;
     }
