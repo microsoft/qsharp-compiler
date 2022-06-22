@@ -217,95 +217,139 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates a pointer to the given value.
-        /// When needed, instructions are emitted using the current builder.
         /// </summary>
         /// <param name="value">The value that the pointer points to</param>
         internal PointerValue CreatePointer(IValue value) =>
             new(value, this.sharedState);
 
         /// <summary>
-        /// Creates a new tuple value. The allocation of the value via invokation of the corresponding runtime function
-        /// is lazy, and so are the necessary casts. When needed, instructions are emitted using the current builder.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// Builds a new tuple value that represents a Q# value of tuple type
+        /// with the items set to the given tuple elements.
+        /// The allocation of the value via invokation of the corresponding runtime function is lazy,
+        /// and so are the necessary casts. Registers the value with the scope manager,
+        /// unless <paramref name="registerWithScopeManager"/> is set to false.
         /// </summary>
-        /// <param name="elementTypes">The Q# types of the tuple items</param>
+        /// <param name="elementTypes">The Q# types of the tuple items.</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built value with the scope manager.</param>
         internal TupleValue CreateTuple(ImmutableArray<ResolvedType> elementTypes, bool registerWithScopeManager = true) =>
             new(elementTypes, this.sharedState, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
-        /// Builds a tuple with the items set to the given tuple elements.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// Builds a new tuple value that represents a Q# value of tuple type
+        /// with the items set to the given tuple elements.
+        /// The tuple itself is allocated via invokation of the corresponding runtime function
+        /// if <paramref name="allocOnStack"/> is set to false, and is allocated on the stack
+        /// as an LLVM value of IStructType using the built-in LLVM support otherwise.
+        /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/>
+        /// is set to false.
         /// </summary>
-        /// <param name="tupleElements">The tuple elements</param>
+        /// <param name="tupleElements">The tuple elements.</param>
+        /// <param name="allocOnStack">Whether to represent the tuple as a stack-allocated LLVM value of IStructType.</param>
+        /// <param name="registerWithScopeManager">Whether to register the built value with the scope manager.</param>
         internal TupleValue CreateTuple(ImmutableArray<TypedExpression> tupleElements, bool allocOnStack, bool registerWithScopeManager = true) =>
             new(null, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
-        /// Builds a tuple with the items set to the given tuple elements.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
-        /// Increases the reference count for the tuple elements.
+        /// Builds a tuple value that represents a Q# value of tuple type
+        /// with the items set to the given tuple elements.
+        /// The tuple itself is allocated via invokation of the corresponding runtime function
+        /// if <paramref name="allocOnStack"/> is set to false, and is allocated on the stack
+        /// as an LLVM value of IStructType usinf the built-in LLVM support otherwise.
+        /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/>
+        /// is set to false. Increases the reference count for the tuple elements.
         /// </summary>
-        /// <param name="tupleElements">The tuple elements</param>
-        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
+        /// <param name="tupleElements">The tuple elements.</param>
+        /// <param name="allocOnStack">Whether to represent the tuple as a stack-allocated LLVM value of IStructType.</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built value with the scope manager.</param>
         internal TupleValue CreateTuple(IReadOnlyList<IValue> tupleElements, bool allocOnStack, bool registerWithScopeManager = true) =>
             new(null, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
-        /// Builds a tuple with the items set to the given tuple elements.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// Builds a tuple value that represents a Q# value of user defined type
+        /// with the items set to the given elements.
+        /// The tuple itself is allocated via invokation of the corresponding runtime function
+        /// if <paramref name="allocOnStack"/> is set to false, and is allocated on the stack
+        /// as an LLVM value of IStructType usinf the built-in LLVM support otherwise.
+        /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/>
+        /// is set to false.
         /// </summary>
-        /// <param name="tupleElements">The tuple elements</param>
-        internal TupleValue CreateCustomType(QsQualifiedName typeName, ImmutableArray<TypedExpression> tupleElements, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new(typeName, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+        /// <param name="typeName">The name of the user defined type.</param>
+        /// <param name="elements">The named or anonymous items that constitute the value of custom type.</param>
+        /// <param name="allocOnStack">Whether to represent the value as a stack-allocated LLVM value of IStructType.</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built value with the scope manager.</param>
+        internal TupleValue CreateCustomType(QsQualifiedName typeName, ImmutableArray<TypedExpression> elements, bool allocOnStack, bool registerWithScopeManager = true) =>
+            new(typeName, elements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
-        /// Builds a tuple representing a Q# value of user defined type with the items set to the given elements.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
-        /// Increases the reference count for the tuple elements.
+        /// Builds a tuple value that represents a Q# value of user defined type
+        /// with the items set to the given elements.
+        /// The tuple itself is allocated via invokation of the corresponding runtime function
+        /// if <paramref name="allocOnStack"/> is set to false, and is allocated on the stack
+        /// as an LLVM value of IStructType using the built-in LLVM support otherwise.
+        /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/>
+        /// is set to false. Increases the reference count for the tuple elements.
         /// </summary>
-        /// <param name="typeName">The name of the user defined type</param>
-        /// <param name="tupleElements">The tuple elements</param>
-        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
-        internal TupleValue CreateCustomType(QsQualifiedName typeName, IReadOnlyList<IValue> tupleElements, bool allocOnStack, bool registerWithScopeManager = true) =>
-            new(typeName, tupleElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
+        /// <param name="typeName">The name of the user defined type.</param>
+        /// <param name="elements">The named or anonymous items that constitute the value of custom type.</param>
+        /// <param name="allocOnStack">Whether to represent the value as a stack-allocated LLVM value of IStructType.</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built value with the scope manager.</param>
+        internal TupleValue CreateCustomType(QsQualifiedName typeName, IReadOnlyList<IValue> elements, bool allocOnStack, bool registerWithScopeManager = true) =>
+            new(typeName, elements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
-        /// Creates a new array value of the given length. Expects a value of type i64 for the length of the array.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// Creates an array value that represents a Q# value of array type with the given length.
+        /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/>
+        /// is set to false.
         /// </summary>
         /// <param name="elementType">Q# type of the array elements</param>
         /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built value with the scope manager.</param>
         internal ArrayValue CreateArray(ResolvedType elementType, Value length, bool registerWithScopeManager = true) =>
             new(elementType, length, this.sharedState, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
-        /// Builds an array that contains the given array elements.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// Builds an array value that represents a Q# value of array type
+        /// with the items set to the given array elements.
+        /// The array itself is allocated via invokation of the corresponding runtime function
+        /// if <paramref name="allocOnStack"/> is set to false, and is allocated on the stack
+        /// as an LLVM value of IArrayType using the built-in LLVM support for constant arrays otherwise.
+        /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/>
+        /// is set to false.
         /// </summary>
-        /// <param name="arrayElements">The elements in the array</param>
+        /// <param name="elementType">The Q# type of the array elements.</param>
+        /// <param name="arrayElements">The elements in the array.</param>
+        /// <param name="allocOnStack">Whether to represent the array as a stack-allocated LLVM value of IArrayType.</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built value with the scope manager.</param>
         internal ArrayValue CreateArray(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, bool allocOnStack, bool registerWithScopeManager = true) =>
             new(elementType, arrayElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
-        /// Builds an array that containsthe given array elements.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
-        /// Increases the reference count for the array elements.
+        /// Builds an array value that represents a Q# value of array type
+        /// with the items set to the given array elements.
+        /// The array itself is allocated via invokation of the corresponding runtime function
+        /// if <paramref name="allocOnStack"/> is set to false, and is allocated on the stack
+        /// as an LLVM value of IArrayType using the built-in LLVM support for constant arrays otherwise.
+        /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/>
+        /// is set to false. Increases the reference count for the array elements.
         /// </summary>
-        /// <param name="elementType">The Q# type of the array elements</param>
-        /// <param name="arrayElements">The elements in the array</param>
-        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
+        /// <param name="elementType">The Q# type of the array elements.</param>
+        /// <param name="arrayElements">The elements in the array.</param>
+        /// <param name="allocOnStack">Whether to represent the array as a stack-allocated LLVM value of IArrayType.</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built value with the scope manager.</param>
         internal ArrayValue CreateArray(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, bool allocOnStack, bool registerWithScopeManager = true) =>
             new(elementType, arrayElements, this.sharedState, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager);
 
         /// <summary>
-        /// Creates an array of the given size and populates each element with the value returned by <paramref name="getElement"/>,
-        /// increasing its reference count accordingly. The function <paramref name="getElement"/> is invoked with the respective index.
-        /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
+        /// Creates an array of the given length and populates each element with the value
+        /// returned by <paramref name="getElement"/>, increasing its reference count accordingly.
+        /// The function <paramref name="getElement"/> is invoked with the respective index.
+        /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/>
+        /// is set to false.
         /// </summary>
-        /// <param name="elementType">The Q# type of the array elements</param>
-        /// <param name="length">Value of type i64 indicating the number of elements in the array</param>
-        /// <param name="getElement">Given an index into the array, returns the value to populate that element with</param>
-        /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
+        /// <param name="elementType">The Q# type of the array elements.</param>
+        /// <param name="length">Value of type i64 indicating the number of elements in the array.</param>
+        /// <param name="getElement">Given an index into the array, returns the value to populate that element with.</param>
+        /// <param name="registerWithScopeManager">Whether or not to register the built value with the scope manager.</param>
         internal ArrayValue CreateArray(ResolvedType elementType, Value length, Func<Value, IValue> getElement, bool registerWithScopeManager = true) =>
             new(elementType, length, getElement, this.sharedState, registerWithScopeManager: registerWithScopeManager);
 
