@@ -2260,7 +2260,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.LogicalShiftRight(lhs.Value, rhs.Value);
+                var res = this.SharedState.CurrentBuilder.ArithmeticShiftRight(lhs.Value, rhs.Value);
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
