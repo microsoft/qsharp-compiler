@@ -103,6 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // TODO: get rid of entry point and interop wrappers
             // (requires simulator update to align in- and output processing)
+            // Update the generation of the entry point attribute in the Namespace transformation accordingly.
             if (!this.SharedState.TargetQirProfile)
             {
                 foreach (var epName in this.Compilation.EntryPoints)

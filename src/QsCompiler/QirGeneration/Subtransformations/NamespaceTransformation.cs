@@ -99,6 +99,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             c = base.OnCallableDeclaration(c);
             this.context.SetCurrentCallable(null);
 
+            // TODO: The check for whether we are targeting a QIR profile can be removed
+            // once we get rid of entry point and interop wrappers.
             if (this.SharedState.TargetQirProfile && c.Attributes.Any(BuiltIn.MarksEntryPoint))
             {
                 this.SharedState.AttachAttributes(c.FullName, QsSpecializationKind.QsBody, AttributeNames.EntryPoint);
