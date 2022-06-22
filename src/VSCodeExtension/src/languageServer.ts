@@ -195,7 +195,7 @@ export class LanguageServer {
     private async setAsExecutable(path : string) : Promise<void> {
         try {
             // fs-extra 
-            await fs.chmod(`${path}`, "+x");
+            await fs.chmod(`${path}`, 0o775);
             console.log(`[qsharp-lsp] Setting ${path} as executable`);
         } catch (err) {
             console.log(`[qsharp-lsp] Error while setting ${path} as executable: ${err}`);
