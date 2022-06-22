@@ -364,8 +364,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
-                var (getStart, getStep, getEnd) = this.SharedState.Functions.RangeItems(stm.IterationValues);
-                this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), LoopBody<Value>(ExecuteBody));
+                var (start, step, end) = this.SharedState.Functions.RangeItems(stm.IterationValues);
+                this.SharedState.IterateThroughRange(start, step, end, LoopBody<Value>(ExecuteBody));
             }
             else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
             {

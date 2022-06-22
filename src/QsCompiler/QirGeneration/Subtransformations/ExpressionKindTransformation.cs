@@ -308,8 +308,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     // do not increase the ref count here - we will increase the ref count of all new items at the end
                     var newItemValues = (ArrayValue)sharedState.EvaluateSubexpression(updated);
-                    var (getStart, getStep, getEnd) = sharedState.Functions.RangeItems(accEx);
-                    sharedState.IterateThroughArray(newItemValues, getStart(), (newItem, targetIdx) =>
+                    var (start, step, end) = sharedState.Functions.RangeItems(accEx);
+                    sharedState.IterateThroughArray(newItemValues, start, (newItem, targetIdx) =>
                     {
                         sharedState.ScopeMgr.OpenScope();
                         var elementPtr = array.GetArrayElementPointer(targetIdx!);
@@ -322,7 +322,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         }
 
                         UpdateElement(() => newItem, elementPtr);
-                        var step = getStep() ?? sharedState.Context.CreateConstant(1L);
+                        step ??= sharedState.Context.CreateConstant(1L);
                         var nextIdx = sharedState.CurrentBuilder.Add(targetIdx!, step);
                         var isTerminated = sharedState.CurrentBlock?.Terminator != null;
                         sharedState.ScopeMgr.CloseScope(isTerminated);
@@ -332,7 +332,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (updateFromSelf && ScopeManager.RequiresReferenceCount(originalArray.LlvmElementType))
                     {
                         // separate loop after we have performed all updates to unreferenced the old values
-                        sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), targetIdx =>
+                        sharedState.IterateThroughRange(start, step, end, targetIdx =>
                         {
                             sharedState.ScopeMgr.OpenScope();
                             sharedState.ScopeMgr.DecreaseReferenceCount(originalArray.GetArrayElement(targetIdx));
@@ -1115,11 +1115,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (idx.ResolvedType.Resolution.IsRange)
             {
-                if (this.SharedState.TargetQirProfile)
+                // As is, invoking the runtime really only makes sense when it is needed,
+                // given that we always force a copy anyway.
+                if (!this.SharedState.CurrentExpressionMayEscapeItsScope() &&
+                    this.SharedState.TryEvaluateRange(idx) is IEnumerable<int> evaluatedRange)
                 {
-                    var (getStart, getStep, getEnd) = this.SharedState.Functions.RangeItems(idx);
-                    var evaluatedRange = this.SharedState.TryEvaluateRange(getStart(), getStep(), getEnd());
-                    var elements = array.GetArrayElements(evaluatedRange!.ToArray());
+                    var elements = array.GetArrayElements(evaluatedRange.ToArray());
                     value = this.SharedState.Values.CreateArray(array.QSharpElementType, elements, allocOnStack: true);
                 }
                 else

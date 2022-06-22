@@ -1301,14 +1301,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <returns>
         /// An enumerable that yields the integer values to which a range with the given start, step, and end evaluates to,
-        /// if the range can be evaluated at compiler time, and null otherwise
+        /// if the range can be evaluated at compiler time, and null otherwise.
         /// </returns>
-        internal IEnumerable<int>? TryEvaluateRange(Value startValue, Value? stepValue, Value endValue) =>
+        private IEnumerable<int>? TryEvaluateRange(Value startValue, Value? stepValue, Value endValue) =>
                 QirValues.AsConstantInt32(startValue) is int start &&
                 QirValues.AsConstantInt32(endValue) is int end &&
                 QirValues.AsConstantInt32(stepValue ?? this.Context.CreateConstant(1L)) is int step
                 ? EvaluateRange(start, step, end)
                 : null;
+
+        /// <returns>
+        /// An enumerable that yields the integer values to which the given range evaluates,
+        /// if the range can be evaluated at compiler time, and null otherwise.
+        /// </returns>
+        internal IEnumerable<int>? TryEvaluateRange(TypedExpression range)
+        {
+            var (start, step, end) = this.Functions.RangeItems(range);
+            return this.TryEvaluateRange(start, step, end);
+        }
 
         /// <summary>
         /// <inheritdoc cref="CreateForLoop(Value, Func{Value, Value}, Value, Action{Value})"/>
