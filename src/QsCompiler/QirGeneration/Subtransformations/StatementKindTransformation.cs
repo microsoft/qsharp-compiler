@@ -168,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                     {
                         Value size = this.SharedState.EvaluateSubexpression(reg.Item).Value;
-                        if (this.SharedState.TargetQirProfile && QirValues.AsConstantInt(size) is uint count)
+                        if (this.SharedState.TargetQirProfile && QirValues.AsConstantUInt32(size) is uint count)
                         {
                             var qubits = Enumerable.Repeat(
                                 this.SharedState.ScopeMgr.RegisterAllocatedQubits,
@@ -260,7 +260,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var testValue = this.SharedState.EvaluateSubexpression(clauses[n].Item1).Value;
                 this.SharedState.ScopeMgr.CloseScope(false);
 
-                if (!(QirValues.AsConstantInt(testValue) == 0))
+                if (!(QirValues.AsConstantUInt32(testValue) == 0))
                 {
                     // If this is an intermediate clause, then the next block if the test fails
                     // is the next clause's test block.
@@ -268,7 +268,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // if there is one, or the continue block if not.
                     var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
                                 this.SharedState.BlockName($"then{n}"), contBlock);
-                    skipRest = (QirValues.AsConstantInt(testValue) & 1) == 1;
+                    skipRest = (QirValues.AsConstantUInt32(testValue) & 1) == 1;
                     var nextConditional = n < clauses.Length - 1 && !skipRest
                         ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
                         : (stm.Default.IsNull || skipRest

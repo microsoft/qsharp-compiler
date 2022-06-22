@@ -692,16 +692,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (ty.IsPauli)
                 {
-                    Value LoadPauli(QsPauli pauli)
-                    {
-                        sharedState.ExpressionTypeStack.Push(ResolvedType.New(ResolvedTypeKind.Pauli));
-                        sharedState.Transformation.ExpressionKinds.OnPauliLiteral(pauli);
-                        sharedState.ExpressionTypeStack.Pop();
-                        return sharedState.ValueStack.Pop().Value;
-                    }
-
                     Value CompareValueEquals(QsPauli pauli) =>
-                        sharedState.CurrentBuilder.Compare(IntPredicate.Equal, LoadPauli(pauli), evaluated.Value);
+                        sharedState.CurrentBuilder.Compare(
+                            IntPredicate.Equal,
+                            sharedState.Values.CreatePauli(pauli).Value,
+                            evaluated.Value);
 
                     IValue EvaluateEqualityComparison(QsPauli pauli, string pauliStr, Func<IValue> continuation) =>
                         CreateStringValue(
@@ -1022,7 +1017,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private ResolvedExpressionKind CreateAndPopulateArray(TypedExpression sizeEx, IValue itemValue)
         {
             var size = this.SharedState.EvaluateSubexpression(sizeEx);
-            var array = QirValues.AsConstantInt(size.Value) is uint count
+            var array = QirValues.AsConstantUInt32(size.Value) is uint count
                 ? this.SharedState.Values.CreateArray(
                     itemValue.QSharpType,
                     Enumerable.Repeat(itemValue, (int)count).ToArray(),
@@ -1123,10 +1118,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (this.SharedState.TargetQirProfile)
                 {
                     var (getStart, getStep, getEnd) = this.SharedState.Functions.RangeItems(idx);
-                    var (start, step, end) = (getStart(), getStep() ?? this.SharedState.Context.CreateConstant(1L), getEnd());
-                    var elements = array.GetArrayElements(
-                        this.SharedState.EvaluateRange((ConstantInt)start, (ConstantInt)step, (ConstantInt)end)
-                        .Select(item => (int)item).ToArray());
+                    var evaluatedRange = this.SharedState.TryEvaluateRange(getStart(), getStep(), getEnd());
+                    var elements = array.GetArrayElements(evaluatedRange!.ToArray());
                     value = this.SharedState.Values.CreateArray(array.QSharpElementType, elements, allocOnStack: true);
                 }
                 else
@@ -1904,7 +1897,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpressionKind OnNamedItemAccess(TypedExpression ex, Identifier acc)
         {
             IValue value;
-            if (!(ex.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt))
+            if (ex.ResolvedType.Resolution is not ResolvedTypeKind.UserDefinedType udt)
             {
                 throw new NotSupportedException("invalid type for named item access");
             }
@@ -2099,7 +2092,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         // We then create and populate the complete argument tuple for the controlled specialization of the inner callable.
                         // The tuple consists of the control qubits and the combined tuple of captured values and the arguments given to the partial application.
                         var innerArgs = partialArgs.BuildItem(captureTuple, ctlPaArgItems[1]);
-                        return this.SharedState.Values.CreateTuple(ImmutableArray.Create(ctlPaArgItems[0], innerArgs), allocOnStack: this.SharedState.TargetQirProfile);
+
+                        // TODO: If not for the current way for how callable values are created and invoked,
+                        // we could always stack allocate this tuple.
+                        return this.SharedState.Values.CreateTuple(ImmutableArray.Create(ctlPaArgItems[0], innerArgs), allocOnStack: false);
                     }
 
                     TupleValue innerArg;
@@ -2117,7 +2113,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var typedInnerArg = partialArgs.BuildItem(captureTuple, parArgsTuple);
                         innerArg = typedInnerArg is TupleValue innerArgTuple
                             ? innerArgTuple
-                            : this.SharedState.Values.CreateTuple(ImmutableArray.Create(typedInnerArg), allocOnStack: this.SharedState.TargetQirProfile);
+
+                            // TODO: If not for the current way for how callable values are created and invoked,
+                            // we could always stack allocate this tuple (or not create it in the first place).
+                            : this.SharedState.Values.CreateTuple(ImmutableArray.Create(typedInnerArg), allocOnStack: false);
                     }
 
                     var invokeCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
@@ -2329,24 +2328,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpressionKind OnValueArray(ImmutableArray<TypedExpression> vs)
+        public override ResolvedExpressionKind OnValueArray(ImmutableArray<TypedExpression> arrayItems)
         {
             // TODO: handle multi-dimensional arrays
             var elementType = this.SharedState.CurrentExpressionType().Resolution is ResolvedTypeKind.ArrayType arrItemType
                 ? arrItemType.Item
                 : throw new InvalidOperationException("current expression is not of type array");
 
-            var value = this.SharedState.Values.CreateArray(elementType, vs, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
+            var value = this.SharedState.Values.CreateArray(
+                elementType, arrayItems, allocOnStack: !this.SharedState.CurrentExpressionMayEscapeItsScope());
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpressionKind OnValueTuple(ImmutableArray<TypedExpression> vs)
+        public override ResolvedExpressionKind OnValueTuple(ImmutableArray<TypedExpression> tupleItems)
         {
             IValue value =
-                vs.Length == 0 ? this.SharedState.Values.Unit :
-                vs.Length == 1 ? this.SharedState.EvaluateSubexpression(vs.Single()) :
-                this.SharedState.Values.CreateTuple(vs, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
+                tupleItems.Length == 0 ? this.SharedState.Values.Unit :
+                tupleItems.Length == 1 ? this.SharedState.EvaluateSubexpression(tupleItems[0]) :
+                this.SharedState.Values.CreateTuple(
+                    tupleItems, allocOnStack: !this.SharedState.CurrentExpressionMayEscapeItsScope());
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
@@ -2357,7 +2358,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // except pushing the value on the value stack unless the tuples contains a single item,
             // in which case we need to remove the tuple wrapping.
             var value = this.SharedState.EvaluateSubexpression(ex);
-            if (!(ex.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt))
+            if (ex.ResolvedType.Resolution is not ResolvedTypeKind.UserDefinedType udt)
             {
                 throw new NotSupportedException("invalid type for unwrap operator");
             }

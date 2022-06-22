@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             static void CompareFramework(string project, string? expected)
             {
                 var projectFileName = ProjectFileName(project);
-                var props = new ProjectLoader().DesignTimeBuildProperties(projectFileName, out var _, (x, y) => (y.Contains('.') ? 1 : 0) - (x.Contains('.') ? 1 : 0));
+                var props = new ProjectLoader().DesignTimeBuildProperties(projectFileName, (x, y) => (y.Contains('.') ? 1 : 0) - (x.Contains('.') ? 1 : 0));
                 if (!props.TryGetValue("TargetFramework", out var actual))
                 {
                     actual = null;

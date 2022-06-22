@@ -144,10 +144,10 @@ namespace Microsoft.Quantum.QIR
         /// </returns>
         private (Func<Value> GetStart, Func<Value> GetStep, Func<Value> GetEnd) RangeItems(IValue range)
         {
-            Func<Value> startValue = () => this.sharedState.CurrentBuilder.ExtractValue(range.Value, 0u);
-            Func<Value> stepValue = () => this.sharedState.CurrentBuilder.ExtractValue(range.Value, 1u);
-            Func<Value> endValue = () => this.sharedState.CurrentBuilder.ExtractValue(range.Value, 2u);
-            return (startValue, stepValue, endValue);
+            Value StartValue() => this.sharedState.CurrentBuilder.ExtractValue(range.Value, 0u);
+            Value StepValue() => this.sharedState.CurrentBuilder.ExtractValue(range.Value, 1u);
+            Value EndValue() => this.sharedState.CurrentBuilder.ExtractValue(range.Value, 2u);
+            return (StartValue, StepValue, EndValue);
         }
 
         /// <param name="rangeEx">The range expression for which to create the access functions</param>

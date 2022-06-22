@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal ScopeManager ScopeMgr { get; }
         internal Stack<IValue> ValueStack { get; }
-        internal Stack<ResolvedType> ExpressionTypeStack { get; }
+        internal Stack<QirExpressionTransformation.Metadata> ExpressionMetadataStack { get; }
 
         /// <summary>
         /// We support nested inlining and hence keep a stack with the information for each inline level.
@@ -197,7 +197,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.CurrentBuilder = new InstructionBuilder(this.Context);
             this.ValueStack = new Stack<IValue>();
-            this.ExpressionTypeStack = new Stack<ResolvedType>();
+            this.ExpressionMetadataStack = new Stack<QirExpressionTransformation.Metadata>();
             this.inlineLevels = new Stack<IValue>();
             this.ScopeMgr = new ScopeManager(this);
 
@@ -1291,18 +1291,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>
         /// An enumerable that yields the integer values to which a range with the given start, step, and end evaluates to.
         /// </returns>
-        internal IEnumerable<long> EvaluateRange(ConstantInt start, ConstantInt step, ConstantInt end)
+        private static IEnumerable<int> EvaluateRange(int start, int step, int end)
         {
-            var stepSize = step.SignExtendedValue;
-            bool CheckBound(long val) =>
-                stepSize > 0 ? val <= end.SignExtendedValue :
-                stepSize < 0 && val >= end.SignExtendedValue;
-
-            for (var item = start.SignExtendedValue; CheckBound(item); item += stepSize)
+            for (var val = start; step > 0 ? val <= end : step < 0 && val >= end; val += step)
             {
-                yield return item;
+                yield return val;
             }
         }
+
+        /// <returns>
+        /// An enumerable that yields the integer values to which a range with the given start, step, and end evaluates to,
+        /// if the range can be evaluated at compiler time, and null otherwise
+        /// </returns>
+        internal IEnumerable<int>? TryEvaluateRange(Value startValue, Value? stepValue, Value endValue) =>
+                QirValues.AsConstantInt32(startValue) is int start &&
+                QirValues.AsConstantInt32(endValue) is int end &&
+                QirValues.AsConstantInt32(stepValue ?? this.Context.CreateConstant(1L)) is int step
+                ? EvaluateRange(start, step, end)
+                : null;
 
         /// <summary>
         /// <inheritdoc cref="CreateForLoop(Value, Func{Value, Value}, Value, Action{Value})"/>
@@ -1486,19 +1492,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return this.CurrentBuilder.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd);
             }
 
-            var evaluatedRange =
-                start is ConstantInt constStart &&
-                end is ConstantInt constEnd &&
-                (step == null || step is ConstantInt)
-                ? this.EvaluateRange(constStart, step as ConstantInt ?? this.Context.CreateConstant(1L), constEnd)
-                : null;
-
             // Unless we target a QIR profile, we leave the heuristic for unrolling up to LLVM.
+            var evaluatedRange = this.TryEvaluateRange(start, step, end);
             if (evaluatedRange != null && this.TargetQirProfile)
             {
                 foreach (var item in evaluatedRange)
                 {
-                    executeBody(this.Context.CreateConstant(item));
+                    executeBody(this.Context.CreateConstant((long)item));
                 }
             }
             else
@@ -1583,9 +1583,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             ? value
             : this.CurrentBuilder.BitCast(value, expectedType);
 
-        /// <returns>The kind of the Q# type on top of the expression type stack</returns>
+        /// <returns>Whether the expression on top of the expression metadata stack may escape its scope.</returns>
+        internal bool CurrentExpressionMayEscapeItsScope() =>
+            this.ExpressionMetadataStack.Peek().MayEscapeItsScope;
+
+        /// <returns>The type of the expression on top of the expression metadata stack.</returns>
         internal ResolvedType CurrentExpressionType() =>
-            this.ExpressionTypeStack.Peek();
+            this.ExpressionMetadataStack.Peek().Type;
 
         /// <inheritdoc cref="QirTypeTransformation.LlvmTypeFromQsharpType(ResolvedType)"/>
         internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>

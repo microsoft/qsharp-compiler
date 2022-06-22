@@ -570,7 +570,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
             if (this.IsNativeValue(out var constArr, out var length, value: value))
             {
-                this.Count ??= QirValues.AsConstantInt(length);
+                this.Count ??= QirValues.AsConstantUInt32(length);
                 this.LlvmElementType = ((IArrayType)constArr.NativeType).ElementType;
                 this.Value = value;
             }
@@ -593,7 +593,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue(ResolvedType elementType, Value length, GenerationContext context, bool registerWithScopeManager)
         {
             this.sharedState = context;
-            this.Count = QirValues.AsConstantInt(length);
+            this.Count = QirValues.AsConstantUInt32(length);
             this.length = this.CreateLengthCache(length);
             this.QSharpElementType = elementType;
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
@@ -805,7 +805,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 var typedElementPointer = this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.LlvmElementType.CreatePointerType());
                 return new PointerValue(typedElementPointer, this.QSharpElementType, this.LlvmElementType, this.sharedState);
             }
-            else if (QirValues.AsConstantInt(index) is uint constIndex)
+            else if (QirValues.AsConstantUInt32(index) is uint constIndex)
             {
                 void Store(IValue v)
                 {
@@ -876,7 +876,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.CreateArrayElementPointer(this.sharedState.Context.CreateConstant((long)index), element);
 
         internal PointerValue GetArrayElementPointer(Value index) =>
-            this.arrayElementPointers != null && QirValues.AsConstantInt(index) is uint idx
+            this.arrayElementPointers != null && QirValues.AsConstantUInt32(index) is uint idx
             ? (idx < this.arrayElementPointers.Length
                 ? this.arrayElementPointers[idx].Load() : this.CreatePointerForPoison())
             : this.CreateArrayElementPointer(index);

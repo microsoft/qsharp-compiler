@@ -30,9 +30,23 @@ namespace Microsoft.Quantum.QIR.Emission
             this.Unit = new SimpleValue(context.Types.Tuple.GetNullValue(), ResolvedType.New(ResolvedTypeKind.UnitType));
         }
 
-        public static uint? AsConstantInt(Value? value) =>
-            value is ConstantInt count && count.ZeroExtendedValue < int.MaxValue ? (uint?)count.ZeroExtendedValue : null;
+        /// <returns>
+        /// An unsigned integer if the given value is a constant that is in the range [0, int.MaxValue], and null otherwise.
+        /// </returns>
+        public static uint? AsConstantUInt32(Value? value) =>
+            value is ConstantInt count && count.SignExtendedValue >= 0 && count.SignExtendedValue <= int.MaxValue
+            ? (uint?)count.SignExtendedValue
+            : null;
 
+        /// <returns>
+        /// A signed integer if the given value is a constant that is in the range [int.MinVaue, int.MaxValue], and null otherwise.
+        /// </returns>
+        public static int? AsConstantInt32(Value? value) =>
+            value is ConstantInt count && count.SignExtendedValue >= int.MinValue && count.SignExtendedValue <= int.MaxValue
+            ? (int?)count.SignExtendedValue
+            : null;
+
+        /// <returns>A default value to represent an uninitialized Q# value of the given type.</returns>
         internal IValue DefaultValue(ResolvedType type)
         {
             if (type.Resolution.IsInt)
