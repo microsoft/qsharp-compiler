@@ -29,7 +29,19 @@ entry:
   store i64 14, i64* %15, align 4
   store i64 16, i64* %17, align 4
   call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 1)
-  %b = call %Array* @__quantum__rt__array_slice_1d(%Array* %a, %Range { i64 0, i64 2, i64 6 }, i1 true)
+  %b = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 4)
+  %18 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %b, i64 0)
+  %19 = bitcast i8* %18 to i64*
+  %20 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %b, i64 1)
+  %21 = bitcast i8* %20 to i64*
+  %22 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %b, i64 2)
+  %23 = bitcast i8* %22 to i64*
+  %24 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %b, i64 3)
+  %25 = bitcast i8* %24 to i64*
+  store i64 0, i64* %19, align 4
+  store i64 4, i64* %21, align 4
+  store i64 8, i64* %23, align 4
+  store i64 12, i64* %25, align 4
   call void @__quantum__rt__array_update_alias_count(%Array* %b, i32 1)
   br label %preheader__1
 
@@ -37,17 +49,17 @@ preheader__1:                                     ; preds = %entry
   br label %header__1
 
 header__1:                                        ; preds = %exiting__1, %preheader__1
-  %j = phi i64 [ 0, %preheader__1 ], [ %21, %exiting__1 ]
-  %18 = icmp sle i64 %j, 4
-  %19 = icmp sge i64 %j, 4
-  %20 = select i1 true, i1 %18, i1 %19
-  br i1 %20, label %body__1, label %exit__1
+  %j = phi i64 [ 0, %preheader__1 ], [ %29, %exiting__1 ]
+  %26 = icmp sle i64 %j, 4
+  %27 = icmp sge i64 %j, 4
+  %28 = select i1 true, i1 %26, i1 %27
+  br i1 %28, label %body__1, label %exit__1
 
 body__1:                                          ; preds = %header__1
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
-  %21 = add i64 %j, 1
+  %29 = add i64 %j, 1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1

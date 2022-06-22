@@ -110,6 +110,9 @@
     <Content Include="TestCases\QirTests\TestConditional4.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestConditional5.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestConditional.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

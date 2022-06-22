@@ -171,7 +171,7 @@ namespace Microsoft.Quantum.QIR
                 else
                 {
                     startValue = this.sharedState.EvaluateSubexpression(rlit.Item1).Value;
-                    stepValue = (Value?)null;
+                    stepValue = null;
                 }
 
                 // Item2 is always the end. Either Item1 is the start and 1 is the step,

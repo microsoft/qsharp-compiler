@@ -1066,11 +1066,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (exType.Resolution is ResolvedTypeKind.ArrayType elementType)
             {
+                // Invoking the runtime really only makes sense when it is needed.
                 var (arr1, arr2) = ((ArrayValue)lhs, (ArrayValue)rhs);
-                if (this.SharedState.TargetQirProfile)
+                if (arr1.Count != null && arr2.Count != null)
                 {
                     var elements = arr1.GetArrayElements().Concat(arr2.GetArrayElements()).ToArray();
-                    value = this.SharedState.Values.CreateArray(elementType.Item, elements, allocOnStack: true);
+                    value = this.SharedState.Values.CreateArray(elementType.Item, elements, allocOnStack: !this.SharedState.CurrentExpressionMayEscapeItsScope());
                 }
                 else
                 {
@@ -1115,13 +1116,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (idx.ResolvedType.Resolution.IsRange)
             {
-                // As is, invoking the runtime really only makes sense when it is needed,
+                // Invoking the runtime really only makes sense when it is needed,
                 // given that we always force a copy anyway.
-                if (!this.SharedState.CurrentExpressionMayEscapeItsScope() &&
-                    this.SharedState.TryEvaluateRange(idx) is IEnumerable<int> evaluatedRange)
+                var (start, step, end) = this.SharedState.Functions.RangeItems(idx);
+                if (this.SharedState.TryEvaluateRange(start, step, end) is IEnumerable<int> evaluatedRange)
                 {
                     var elements = array.GetArrayElements(evaluatedRange.ToArray());
-                    value = this.SharedState.Values.CreateArray(array.QSharpElementType, elements, allocOnStack: true);
+                    value = this.SharedState.Values.CreateArray(array.QSharpElementType, elements, allocOnStack: !this.SharedState.CurrentExpressionMayEscapeItsScope());
                 }
                 else
                 {
@@ -1136,7 +1137,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // the comment there is exactly one.
                     var forceCopy = this.SharedState.Context.CreateConstant(true);
                     var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
-                    var range = this.SharedState.EvaluateSubexpression(idx).Value;
+                    var range = this.SharedState.CreateRange(start, step, end).Value;
                     var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.OpaquePointer, range, forceCopy);
                     value = this.SharedState.Values.FromArray(slice, elementType, null);
 

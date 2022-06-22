@@ -243,6 +243,7 @@ let ``QIR conditionals`` () =
             "TestConditional2"
             "TestConditional3"
             "TestConditional4"
+            "TestConditional5"
         ]
 
 [<Fact>]

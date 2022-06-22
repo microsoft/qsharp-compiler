@@ -1192,70 +1192,87 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("a default value is required if either onCondTrue or onCondFalse is null");
             }
 
-            var defaultRequiresRefCount = increaseReferenceCount && defaultValue != null && ScopeManager.RequiresReferenceCount(defaultValue.LlvmType);
-            var requiresTrueBlock = onCondTrue != null || defaultRequiresRefCount;
-            var requiresFalseBlock = onCondFalse != null || defaultRequiresRefCount;
-
-            var contBlock = this.AddBlockAfterCurrent("condContinue");
-            var falseBlock = requiresFalseBlock
-                ? this.AddBlockAfterCurrent("condFalse")
-                : contBlock;
-            var trueBlock = requiresTrueBlock
-                ? this.AddBlockAfterCurrent("condTrue")
-                : contBlock;
-
-            // In order to ensure the correct reference counts, it is important that we create a new scope
-            // for each branch of the conditional. When we close the scope, we list the computed value as
-            // to be returned from that scope, meaning it either won't be dereferenced or its reference
-            // count will increase by 1. The result of the expression is a phi node that we then properly
-            // register with the scope manager, such that it will be unreferenced when going out of scope.
-            this.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
-            var entryBlock = this.CurrentBlock!;
-
-            Value ProcessConditionalBlock(BasicBlock block, Func<IValue>? evaluate)
+            IValue EvaluateInline(Func<IValue>? evaluate)
             {
-                this.SetCurrentBlock(block);
-                this.StartBranch();
-
-                IValue evaluated;
                 if (increaseReferenceCount)
                 {
                     this.ScopeMgr.OpenScope();
-                    evaluated = evaluate?.Invoke() ?? defaultValue!;
-                    this.ScopeMgr.CloseScope(evaluated); // forces that the ref count is increased within the branch
+                    var evaluated = evaluate?.Invoke() ?? defaultValue!;
+                    this.ScopeMgr.CloseScope(evaluated); // forces that the ref count is increased
+                    return evaluated;
                 }
                 else
                 {
-                    evaluated = evaluate?.Invoke() ?? defaultValue!;
+                    return evaluate?.Invoke() ?? defaultValue!;
+                }
+            }
+
+            var evaluatedCond = QirValues.AsConstantUInt32(condition);
+            if (evaluatedCond is not null)
+            {
+                // The value of the condition is known at compile time.
+                // Evaluate the corresponding branch inline (i.e. without creating an additional block) if it is defined,
+                // and return the default value otherwise. Increase the ref count if needed.
+                return evaluatedCond == 0u
+                    ? EvaluateInline(onCondFalse).Value
+                    : EvaluateInline(onCondTrue).Value;
+            }
+            else
+            {
+                var defaultRequiresRefCount = increaseReferenceCount && defaultValue != null && ScopeManager.RequiresReferenceCount(defaultValue.LlvmType);
+                var requiresTrueBlock = onCondTrue != null || defaultRequiresRefCount;
+                var requiresFalseBlock = onCondFalse != null || defaultRequiresRefCount;
+
+                var contBlock = this.AddBlockAfterCurrent("condContinue");
+                var falseBlock = requiresFalseBlock
+                    ? this.AddBlockAfterCurrent("condFalse")
+                    : contBlock;
+                var trueBlock = requiresTrueBlock
+                    ? this.AddBlockAfterCurrent("condTrue")
+                    : contBlock;
+
+                // In order to ensure the correct reference counts, it is important that we create a new scope
+                // for each branch of the conditional. When we close the scope, we list the computed value as
+                // to be returned from that scope, meaning it either won't be dereferenced or its reference
+                // count will increase by 1. The result of the expression is a phi node that we then properly
+                // register with the scope manager, such that it will be unreferenced when going out of scope.
+                this.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
+                var entryBlock = this.CurrentBlock!;
+
+                Value ProcessConditionalBlock(BasicBlock block, Func<IValue>? evaluate)
+                {
+                    this.SetCurrentBlock(block);
+                    this.StartBranch();
+                    IValue evaluated = EvaluateInline(evaluate);
+
+                    // We need to make sure to access the value *before* we end the branch -
+                    // otherwise the caching may complain that the value is no longer accessible.
+                    var res = evaluated.Value;
+                    this.EndBranch();
+                    this.CurrentBuilder.Branch(contBlock);
+                    return res;
                 }
 
-                // We need to make sure to access the value *before* we end the branch -
-                // otherwise the caching may complain that the value is no longer accessible.
-                var res = evaluated.Value;
-                this.EndBranch();
-                this.CurrentBuilder.Branch(contBlock);
-                return res;
-            }
+                var (evaluatedOnTrue, afterTrue) = (defaultValue?.Value, entryBlock);
+                if (requiresTrueBlock)
+                {
+                    var onTrue = ProcessConditionalBlock(trueBlock, onCondTrue);
+                    (evaluatedOnTrue, afterTrue) = (onTrue, this.CurrentBlock!);
+                }
 
-            var (evaluatedOnTrue, afterTrue) = (defaultValue?.Value, entryBlock);
-            if (requiresTrueBlock)
-            {
-                var onTrue = ProcessConditionalBlock(trueBlock, onCondTrue);
-                (evaluatedOnTrue, afterTrue) = (onTrue, this.CurrentBlock!);
-            }
+                var (evaluatedOnFalse, afterFalse) = (defaultValue?.Value, entryBlock);
+                if (requiresFalseBlock)
+                {
+                    var onFalse = ProcessConditionalBlock(falseBlock, onCondFalse);
+                    (evaluatedOnFalse, afterFalse) = (onFalse, this.CurrentBlock!);
+                }
 
-            var (evaluatedOnFalse, afterFalse) = (defaultValue?.Value, entryBlock);
-            if (requiresFalseBlock)
-            {
-                var onFalse = ProcessConditionalBlock(falseBlock, onCondFalse);
-                (evaluatedOnFalse, afterFalse) = (onFalse, this.CurrentBlock!);
+                this.SetCurrentBlock(contBlock);
+                var phi = this.CurrentBuilder.PhiNode(defaultValue?.LlvmType ?? evaluatedOnTrue!.NativeType);
+                phi.AddIncoming(evaluatedOnTrue!, afterTrue);
+                phi.AddIncoming(evaluatedOnFalse!, afterFalse);
+                return phi;
             }
-
-            this.SetCurrentBlock(contBlock);
-            var phi = this.CurrentBuilder.PhiNode(defaultValue?.LlvmType ?? evaluatedOnTrue!.NativeType);
-            phi.AddIncoming(evaluatedOnTrue!, afterTrue);
-            phi.AddIncoming(evaluatedOnFalse!, afterFalse);
-            return phi;
         }
 
         /// <summary>
@@ -1279,11 +1296,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.ConditionalEvaluation(condition, onCondTrue: onCondTrue, onCondFalse: null, defaultValueForCondFalse, increaseReferenceCount);
 
         /// <returns>A range with the given start, step and end.</returns>
-        internal IValue CreateRange(Value start, Value step, Value end)
+        internal IValue CreateRange(Value start, Value? step, Value end)
         {
             Value constant = this.Types.Range.GetNullValue();
             constant = this.CurrentBuilder.InsertValue(constant, start, 0u);
-            constant = this.CurrentBuilder.InsertValue(constant, step, 1u);
+            constant = this.CurrentBuilder.InsertValue(constant, step ?? this.Context.CreateConstant(1L), 1u);
             constant = this.CurrentBuilder.InsertValue(constant, end, 2u);
             return this.Values.From(constant, ResolvedType.New(ResolvedTypeKind.Range));
         }
@@ -1303,22 +1320,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// An enumerable that yields the integer values to which a range with the given start, step, and end evaluates to,
         /// if the range can be evaluated at compiler time, and null otherwise.
         /// </returns>
-        private IEnumerable<int>? TryEvaluateRange(Value startValue, Value? stepValue, Value endValue) =>
+        internal IEnumerable<int>? TryEvaluateRange(Value startValue, Value? stepValue, Value endValue) =>
                 QirValues.AsConstantInt32(startValue) is int start &&
                 QirValues.AsConstantInt32(endValue) is int end &&
                 QirValues.AsConstantInt32(stepValue ?? this.Context.CreateConstant(1L)) is int step
                 ? EvaluateRange(start, step, end)
                 : null;
-
-        /// <returns>
-        /// An enumerable that yields the integer values to which the given range evaluates,
-        /// if the range can be evaluated at compiler time, and null otherwise.
-        /// </returns>
-        internal IEnumerable<int>? TryEvaluateRange(TypedExpression range)
-        {
-            var (start, step, end) = this.Functions.RangeItems(range);
-            return this.TryEvaluateRange(start, step, end);
-        }
 
         /// <summary>
         /// <inheritdoc cref="CreateForLoop(Value, Func{Value, Value}, Value, Action{Value})"/>

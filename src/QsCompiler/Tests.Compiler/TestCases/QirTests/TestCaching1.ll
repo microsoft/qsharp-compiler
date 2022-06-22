@@ -76,13 +76,16 @@ condFalse__1:                                     ; preds = %continue__1
 condContinue__1:                                  ; preds = %condFalse__1, %condTrue__1
   %pad = phi %Array* [ %12, %condTrue__1 ], [ %arr, %condFalse__1 ]
   call void @__quantum__rt__array_update_alias_count(%Array* %pad, i32 1)
-  %sliced = call %Array* @Microsoft__Quantum__Testing__QIR__LengthCaching__body(%Array* %pad)
+  %33 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %pad, i64 0)
+  %34 = bitcast i8* %33 to i64*
+  %35 = load i64, i64* %34, align 4
+  %sliced = call %Array* @Microsoft__Quantum__Testing__QIR__LengthCaching__body(%Array* %pad, i64 %35)
   call void @__quantum__rt__array_update_alias_count(%Array* %sliced, i32 1)
-  %33 = call i64 @__quantum__rt__array_get_size_1d(%Array* %pad)
+  %36 = call i64 @__quantum__rt__array_get_size_1d(%Array* %pad)
   call void @__quantum__rt__array_update_alias_count(%Array* %arr, i32 -1)
   call void @__quantum__rt__array_update_alias_count(%Array* %pad, i32 -1)
   call void @__quantum__rt__array_update_alias_count(%Array* %sliced, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %pad, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %sliced, i32 -1)
-  ret i64 %33
+  ret i64 %36
 }
