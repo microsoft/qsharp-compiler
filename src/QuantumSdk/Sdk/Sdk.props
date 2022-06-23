@@ -56,7 +56,7 @@
                       Include="Microsoft.Quantum.Runtime.Core" Version="0.24.216973-beta" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CSharpGeneration) And $(IncludeCSharpRuntime) And '$(ResolvedQSharpOutputType)' == 'QSharpExe'"
                       Include="Microsoft.Quantum.EntryPointDriver" Version="0.24.216973-beta" IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CSharpGeneration)"
+    <PackageReference Condition="$(CSharpGeneration) And $(IncludeCSharpRuntime)"
                       Include="Microsoft.Quantum.Targets.Interfaces" Version="0.24.216973-beta" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CSharpGeneration)"
                       Include="Microsoft.Quantum.CSharpGeneration" Version="0.24.216973-beta" IsImplicitlyDefined="true"
