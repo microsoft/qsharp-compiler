@@ -552,7 +552,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Ends a QIR function by finishing the current basic block, closing the current scope in teh scope manager
+        /// Ends a QIR function by finishing the current basic block, closing the current scope in the scope manager
         /// and closing a naming scope.
         /// </summary>
         /// <returns>true if the function has been properly ended</returns>
@@ -698,7 +698,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // rather than the argument tuple for determining the signature of a function is much cleaner.
             if (outerArgItems.Length == 1 && this.CurrentFunction.Parameters.Count > 1)
             {
-                if (!(outerArgItems[0].Item2.Resolution is ResolvedTypeKind.TupleType ts)
+                if (outerArgItems[0].Item2.Resolution is not ResolvedTypeKind.TupleType ts
                     || ts.Item.Length != this.CurrentFunction.Parameters.Count)
                 {
                     throw new InvalidOperationException("number of function parameters does not match argument");

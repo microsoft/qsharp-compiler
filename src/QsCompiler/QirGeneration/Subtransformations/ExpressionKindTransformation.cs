@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             public override IValue BuildItem(TupleValue capture, IValue parArgs)
             {
                 var items = this.Items.Select(item => item.BuildItem(capture, parArgs)).ToArray();
-                var tuple = this.SharedState.Values.CreateTuple(items, allocOnStack: this.SharedState.TargetQirProfile);
+                var tuple = this.SharedState.Values.CreateTuple(items, allocOnStack: false); // the current implementation does not permit to stack allocate the tuple
                 return tuple;
             }
         }
@@ -646,9 +646,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var comma = CreateConstantString(", ");
                     var openParens = CreateConstantString("[");
                     UpdateStringRefCount(openParens, 1); // added to avoid dangling pointer in comparison inside loop
+
                     var outputStr = sharedState.IterateThroughArray(array, openParens, (item, str) =>
                     {
-                        var cond = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, str!, openParens); // TODO GET RID OF THIS FOR QIR PROFILE
+                        var cond = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, str!, openParens);
                         var updatedStr = sharedState.ConditionalEvaluation(
                             cond,
                             onCondTrue: () => CreateStringValue(DoAppend(str!, comma, unreferenceNext: false)),
@@ -805,7 +806,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">
         /// Thrown when no callable with the given name exists, or the corresponding specialization cannot be found.
         /// </exception>
-        private IValue InvokeGlobalCallable(QsQualifiedName callableName, QsSpecializationKind kind, TypedExpression arg)
+        private IValue InvokeGlobalCallable(QsQualifiedName callableName, QsSpecializationKind kind, TypedExpression arg, bool canBeStackAllocated)
         {
             IValue CallGlobal(IrFunction func, ResolvedType returnType)
             {
@@ -868,7 +869,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         argExpr.ResolvedType.Resolution.IsUnitType ? ImmutableArray<TypedExpression>.Empty :
                         argExpr.Expression is ResolvedExpressionKind.ValueTuple tuple ? tuple.Item :
                         ImmutableArray.Create(argExpr);
-                    var udt = this.SharedState.Values.CreateCustomType(callableName, argItems, allocOnStack: this.SharedState.TargetQirProfile, registerWithScopeManager: true);
+                    var udt = this.SharedState.Values.CreateCustomType(callableName, argItems, allocOnStack: canBeStackAllocated);
                     this.SharedState.AddReturn(udt, returnsVoid: false);
                 }
 
@@ -891,6 +892,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var targetInstruction = this.SharedState.GetOrCreateTargetInstruction(instructionName);
                 return CallGlobal(targetInstruction, callable.Signature.ReturnType);
             }
+
+            // Unless we target a QIR profile, or an attribute specifically requests inlining,
+            // we leave the heuristic for inlining up to LLVM.
             else if (callable.Attributes.Any(BuiltIn.MarksInlining) || this.SharedState.TargetQirProfile)
             {
                 // deal with global callables that need to be inlined
@@ -919,7 +923,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // If the argument is not already of a type that results in the creation of a tuple,
                 // then we need to create a tuple to store the (single) argument to be able to pass
                 // it to the callable value.
-                argValue = this.SharedState.Values.CreateTuple(ImmutableArray.Create(argValue), allocOnStack: this.SharedState.TargetQirProfile);
+                // Even though we know that the tuple does not escape its scope, the current
+                // implementation of the wrapper function needs to be reexamined to consume a
+                // stack allocated tuple.
+                argValue = this.SharedState.Values.CreateTuple(ImmutableArray.Create(argValue), allocOnStack: false);
             }
 
             var callableArg = argValue.QSharpType.Resolution.IsUnitType
@@ -938,7 +945,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var resElementTypes = returnType.Resolution is ResolvedTypeKind.TupleType elementTypes
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
-                TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes, registerWithScopeManager: true);
+                TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes);
                 this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer);
                 return returnType.Resolution.IsTupleType
                     ? resultTuple
@@ -1014,16 +1021,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Registers the contructed array with the scope manager.
         /// </summary>
         /// <exception cref="InvalidOperationException">The type of the current expression is not an array type.</exception>
-        private ResolvedExpressionKind CreateAndPopulateArray(TypedExpression sizeEx, IValue itemValue)
+        private ResolvedExpressionKind CreateAndPopulateArray(TypedExpression sizeEx, IValue itemValue, bool canBeStackAllocated)
         {
             var size = this.SharedState.EvaluateSubexpression(sizeEx);
             var array = QirValues.AsConstantUInt32(size.Value) is uint count
                 ? this.SharedState.Values.CreateArray(
                     itemValue.QSharpType,
                     Enumerable.Repeat(itemValue, (int)count).ToArray(),
-                    allocOnStack: this.SharedState.TargetQirProfile)
+                    allocOnStack: canBeStackAllocated)
                 : this.SharedState.Values.CreateArray(
-                    itemValue.QSharpType, size.Value, _ => itemValue); // FIXME: fail if qir generation is enabled?
+                    itemValue.QSharpType, size.Value, _ => itemValue);
 
             this.SharedState.ValueStack.Push(array);
             return ResolvedExpressionKind.InvalidExpr;
@@ -1515,7 +1522,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else
             {
                 // deal with global callables
-                value = this.InvokeGlobalCallable(callableName, QsSpecializationKind.QsBody, arg);
+                value = this.InvokeGlobalCallable(callableName, QsSpecializationKind.QsBody, arg, canBeStackAllocated: !this.SharedState.CurrentExpressionMayEscapeItsScope());
             }
 
             this.SharedState.ValueStack.Push(value);
@@ -1958,10 +1965,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         public override ResolvedExpressionKind OnSizedArray(TypedExpression ex, TypedExpression size) =>
-            this.CreateAndPopulateArray(size, this.SharedState.EvaluateSubexpression(ex));
+            this.CreateAndPopulateArray(
+                size,
+                this.SharedState.EvaluateSubexpression(ex),
+                canBeStackAllocated: !this.SharedState.CurrentExpressionMayEscapeItsScope());
 
         public override ResolvedExpressionKind OnNewArray(ResolvedType elementType, TypedExpression size) =>
-            this.CreateAndPopulateArray(size, this.SharedState.Values.DefaultValue(elementType));
+            this.CreateAndPopulateArray(
+                size,
+                this.SharedState.Values.DefaultValue(elementType),
+                canBeStackAllocated: !this.SharedState.CurrentExpressionMayEscapeItsScope());
 
         public override ResolvedExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)
         {
@@ -2021,7 +2034,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // deal with global callables
                 var innerArg = BuildInnerArg(arg, controlledCount);
                 var kind = GetSpecializationKind(isAdjoint, controlledCount > 0);
-                value = this.InvokeGlobalCallable(callableName, kind, innerArg);
+                value = this.InvokeGlobalCallable(callableName, kind, innerArg, canBeStackAllocated: !this.SharedState.CurrentExpressionMayEscapeItsScope());
             }
 
             this.SharedState.ValueStack.Push(value);
