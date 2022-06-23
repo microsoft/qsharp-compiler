@@ -274,8 +274,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // is the next clause's test block.
                     // If this is the last clause, then the next block is the default clause's block
                     // if there is one, or the continue block if not.
-                    var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
-                                this.SharedState.BlockName($"then{n}"), contBlock);
+                    var conditionalBlock =
+                        this.SharedState.CurrentFunction.InsertBasicBlock(
+                            this.SharedState.BlockName($"then{n}"), contBlock);
                     skipRest = (QirValues.AsConstantUInt32(testValue) & 1) == 1;
                     var nextConditional = n < clauses.Length - 1 && !skipRest
                         ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
@@ -298,6 +299,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.StartBranch();
                 contBlockUsed = this.ProcessBlock(this.SharedState.CurrentBlock, stm.Default.Item.Body, contBlock) || contBlockUsed;
                 this.SharedState.EndBranch();
+            }
+            else if (this.SharedState.CurrentBlock.Terminator is null && this.SharedState.CurrentBlock != contBlock)
+            {
+                // If the evaluation of the first condition is inconclusive,
+                // all subsequent conditions are known to be false, and there is no else defined,
+                // then we can end up with a test block that is unpopulated.
+                this.SharedState.CurrentBuilder.Branch(contBlock);
+                this.SharedState.SetCurrentBlock(contBlock);
+                contBlockUsed = true;
             }
 
             var currentBlock = this.SharedState.CurrentBlock;
