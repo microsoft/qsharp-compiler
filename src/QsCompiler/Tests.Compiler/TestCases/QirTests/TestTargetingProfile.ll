@@ -370,6 +370,9 @@ continue__4:                                      ; preds = %else__1, %then0__2
   %228 = insertvalue [1 x %Qubit*] zeroinitializer, %Qubit* %qubit, 0
   %229 = insertvalue { [1 x %Qubit*], i64 } zeroinitializer, [1 x %Qubit*] %228, 0
   %qubits = insertvalue { [1 x %Qubit*], i64 } %229, i64 1, 1
+  br label %continue__6
+
+continue__6:                                      ; preds = %continue__4
   %230 = call %Result* @__quantum__rt__result_get_one()
   call void @__quantum__rt__result_update_reference_count(%Result* %230, i32 1)
   %231 = call %Result* @__quantum__rt__result_get_one()
@@ -377,20 +380,20 @@ continue__4:                                      ; preds = %else__1, %then0__2
   call void @__quantum__rt__result_update_reference_count(%Result* %230, i32 -1)
   br i1 %232, label %then0__3, label %continue__5
 
-continue__6:                                      ; No predecessors!
-  unreachable
-
-then0__3:                                         ; preds = %continue__4
+then0__3:                                         ; preds = %continue__6
   store i64 1, i64* %rand, align 4
   br label %continue__5
 
-continue__5:                                      ; preds = %then0__3, %continue__4
+continue__5:                                      ; preds = %then0__3, %continue__6
   %233 = load i64, i64* %rand, align 4
   %234 = shl i64 %233, 1
   store i64 %234, i64* %rand, align 4
   %235 = insertvalue [1 x %Qubit*] zeroinitializer, %Qubit* %target, 0
   %236 = insertvalue { [1 x %Qubit*], i64 } zeroinitializer, [1 x %Qubit*] %235, 0
   %qubits__1 = insertvalue { [1 x %Qubit*], i64 } %236, i64 1, 1
+  br label %continue__8
+
+continue__8:                                      ; preds = %continue__5
   %237 = call %Result* @__quantum__rt__result_get_one()
   call void @__quantum__rt__result_update_reference_count(%Result* %237, i32 1)
   %238 = call %Result* @__quantum__rt__result_get_one()
@@ -398,15 +401,12 @@ continue__5:                                      ; preds = %then0__3, %continue
   call void @__quantum__rt__result_update_reference_count(%Result* %237, i32 -1)
   br i1 %239, label %then0__4, label %continue__7
 
-continue__8:                                      ; No predecessors!
-  unreachable
-
-then0__4:                                         ; preds = %continue__5
+then0__4:                                         ; preds = %continue__8
   %240 = add i64 %234, 1
   store i64 %240, i64* %rand, align 4
   br label %continue__7
 
-continue__7:                                      ; preds = %then0__4, %continue__5
+continue__7:                                      ; preds = %then0__4, %continue__8
   %241 = call %Result* @__quantum__rt__result_get_zero()
   %a = call i1 @__quantum__rt__result_equal(%Result* %m1, %Result* %241)
   %a__1 = call %Result* @__quantum__rt__result_get_zero()
