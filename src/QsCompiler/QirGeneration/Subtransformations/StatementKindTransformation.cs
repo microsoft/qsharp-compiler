@@ -167,6 +167,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                     {
+                        // There may be benefits to allocating a register as a whole,
+                        // so we only allocate them one by one when this is preferable (the case for certain QIR profiles).
                         Value size = this.SharedState.EvaluateSubexpression(reg.Item).Value;
                         if (this.SharedState.TargetQirProfile && QirValues.AsConstantUInt32(size) is uint count)
                         {
@@ -186,6 +188,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
                     {
                         var items = inits.Item.Select(Allocate).ToArray();
+
+                        // Todo: In principle it would be reasonable to always stack allocate the tuple
+                        // (given that it is immutable and the qubits it contains must not escape the scope).
+                        // However, this will currently cause issues when this tuple is then passed as an
+                        // argument to a callable. We hence chose to stack allocate based on target for now,
+                        // but this would be good to revise.
                         return this.SharedState.Values.CreateTuple(items, allocOnStack: this.SharedState.TargetQirProfile);
                     }
                     else

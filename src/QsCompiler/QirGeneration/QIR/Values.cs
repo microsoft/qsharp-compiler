@@ -34,8 +34,11 @@ namespace Microsoft.Quantum.QIR.Emission
         /// An unsigned integer if the given value is a constant that is in the range [0, int.MaxValue], and null otherwise.
         /// </returns>
         public static uint? AsConstantUInt32(Value? value) =>
-            value is ConstantInt count && count.SignExtendedValue >= 0 && count.SignExtendedValue <= int.MaxValue
-            ? (uint?)count.SignExtendedValue
+
+            // Todo: it would be nice if we could also check that the value is larger than 0
+            // rather than blindly treat it as unsigned and zero extend.
+            value is ConstantInt count && count.ZeroExtendedValue <= int.MaxValue
+            ? (uint?)count.ZeroExtendedValue
             : null;
 
         /// <returns>
