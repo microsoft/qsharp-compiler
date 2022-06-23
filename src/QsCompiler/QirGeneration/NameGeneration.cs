@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
@@ -9,6 +10,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 {
     public static class NameGeneration
     {
+        internal const string MainSuffix = "__Main";
+
         /// <summary>
         /// Cleans a namespace name by replacing periods with double underscores.
         /// </summary>
@@ -40,8 +43,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The mangled name for the specialization.</returns>
         public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind)
         {
-            var suffix = InferTargetInstructions.SpecializationSuffix(kind).ToLowerInvariant();
-            return $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}{suffix}";
+            if (fullName.Name.EndsWith(MainSuffix))
+            {
+                var trimmedName = fullName.Name.Substring(0, fullName.Name.Length - MainSuffix.Length);
+                return kind == QsSpecializationKind.QsBody
+                    ? EntryPointName(new QsQualifiedName(fullName.Namespace, trimmedName))
+                    : throw new ArgumentException("non-body specialization name requested for callable tagged as main");
+            }
+            else
+            {
+                var suffix = InferTargetInstructions.SpecializationSuffix(kind).ToLowerInvariant();
+                return $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}{suffix}";
+            }
         }
 
         /// <summary>

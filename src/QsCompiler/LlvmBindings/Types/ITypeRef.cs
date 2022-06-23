@@ -111,7 +111,6 @@ namespace LlvmBindings.Types
         Context Context { get; }
 
         /// <summary>Gets the integer bit width of this type or 0 for non integer types.</summary>
-        [SuppressMessage("Microsoft.Naming", "CA1720:IdentifiersShouldNotContainTypeNames", Justification = "Value is the bit width of an integer, name is appropriate")]
         uint IntegerBitWidth { get; }
 
         /// <summary>Gets a null value (e.g. all bits == 0 ) for the type.</summary>
@@ -120,7 +119,6 @@ namespace LlvmBindings.Types
         /// for types that don't support such a thing (i.e. void ).
         /// </remarks>
         /// <returns><see cref="Constant"/> that represents a null (0) value of this type.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate", Justification = "See comment remarks")]
         Constant GetNullValue();
 
         /// <summary>Array type factory for an array with elements of this type.</summary>

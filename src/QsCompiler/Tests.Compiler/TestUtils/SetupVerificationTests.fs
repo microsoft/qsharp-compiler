@@ -154,7 +154,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
             |> dict
 
         let props =
-            dict [ MSBuildProperties.ResolvedRuntimeCapabilities, Option.toObj capabilityName
+            dict [ MSBuildProperties.ResolvedTargetCapability, Option.toObj capabilityName
                    if isExecutable then MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe ]
             |> ProjectProperties
 
