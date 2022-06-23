@@ -30,6 +30,12 @@
     <Error Condition = "'$(ResolvedProcessorArchitecture)' == '' And '$(ExecutionTarget)' != ''" Text="Invalid ExecutionTarget '$(ExecutionTarget)'. $(ValidExecutionTargets)" />
   </Target>
 
+  <!-- Target used to verify that the specified TargetCapability is valid. -->
+  <Target Name="VerifyTargetCapability" BeforeTargets="QSharpCompile">
+    <Error Condition="'$(ResolvedTargetCapability)' == '' And '$(TargetCapability)' == ''" Text="Failed to resolve the TargetCapability for the ExecutionTarget '$(ExecutionTarget)'. Specify the TargetCapability property explicitly or report the issue." />
+    <Error Condition="'$(ResolvedTargetCapability)' == '' And '$(TargetCapability)' != ''" Text="The specified TargetCapability '$(TargetCapability)' is invalid or not supported by the ExecutionTarget '$(ExecutionTarget)'. $(ValidTargetCapabilities)" />
+  </Target>
+
 
   <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
   <Target Name="QSharpClean" BeforeTargets="Clean" DependsOnTargets="Restore">
@@ -87,28 +93,29 @@
       <_QscCommandOutputFlag>$(_NewLine)--output$(_NewLineIndent)"$(_QscCommandOutputPath)"</_QscCommandOutputFlag>
       <_QscCommandReferencesFlag Condition="@(ResolvedQSharpReferences->Count()) &gt; 0">$(_NewLine)--references$(_NewLineIndent)"@(ResolvedQSharpReferences,'"$(_NewLineIndent)"')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">$(_NewLine)--load$(_NewLineIndent)"@(_PrioritizedResolvedQscReferences,'"$(_NewLineIndent)"')"</_QscCommandLoadFlag>
-      <_QscCommandRuntimeFlag>$(_NewLine)--runtime$(_NewLineIndent)$(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag>
-      <_QscCommandSkipMonomorphization Condition="'$(ResolvedRuntimeCapabilities)' == 'FullComputation' And $(CSharpGeneration) And !$(EnableQirSubmission)">$(_NewLine)--skip-monomorphization</_QscCommandSkipMonomorphization>
+      <_QscCommandRuntimeFlag>$(_NewLine)--runtime$(_NewLineIndent)$(ResolvedTargetCapability)</_QscCommandRuntimeFlag>
+      <_QscCommandSkipTargetingFlag Condition="'$(ResolvedQSharpOutputType)' == 'QSharpLibrary' And '$(NoEntryPoint)' != 'true'">$(_NewLine)--skip-targeting</_QscCommandSkipTargetingFlag>
+      <_QscCommandSkipMonomorphization Condition="'$(ResolvedTargetCapability)' == 'FullComputation' And $(CSharpGeneration) And !$(EnableQirSubmission)">$(_NewLine)--skip-monomorphization</_QscCommandSkipMonomorphization>
       <_QscCommandPerfDataGenerationFlag Condition="$(PerfDataGeneration)">$(_NewLine)--perf$(_NewLineIndent)$(PerfDataOutputPath)</_QscCommandPerfDataGenerationFlag>
       <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">$(_NewLine)--target-specific-decompositions$(_NewLineIndent)"@(ResolvedTargetSpecificDecompositions,'"$(_NewLineIndent)"')"</_QscCommandTargetDecompositionsFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">$(_NewLine)--package-load-fallback-folders$(_NewLineIndent)"@(ResolvedPackageLoadFallbackFolders,'"$(_NewLineIndent)"')"</_QscPackageLoadFallbackFoldersFlag>
       <_QscCommandLlvmLibsPath Condition="'$(LlvmLibsPath)' != ''">$(_NewLine)--llvm-libs$(_NewLineIndent)$(LlvmLibsPath)</_QscCommandLlvmLibsPath>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">$(_NewLine)--load-test-names</_QscCommandTestNamesFlag>
       <!-- Appending the current content of _QscCommandPredefinedAssemblyProperties *after* new properties allows to effectively override them for development purposes -->
-      <_QscCommandPredefinedAssemblyProperties>$(_NewLineIndent)AssemblyName:$(PathCompatibleAssemblyName)$(_NewLineIndent)ProcessorArchitecture:$(ResolvedProcessorArchitecture)$(_NewLineIndent)QSharpOutputType:$(ResolvedQSharpOutputType)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties>$(_NewLineIndent)AssemblyName:$(PathCompatibleAssemblyName)$(_NewLineIndent)ProcessorArchitecture:$(ResolvedProcessorArchitecture)$(_NewLineIndent)TargetCapability:$(ResolvedTargetCapability)$(_NewLineIndent)QSharpOutputType:$(ResolvedQSharpOutputType)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(EnableQirSubmission)">$(_NewLineIndent)QuantumInstructionSet:$(ResolvedQuantumInstructionSet)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_NewLineIndent)DefaultSimulator:$(DefaultSimulator)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_NewLineIndent)ExecutionTarget:$(ExecutionTarget)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(TargetCapability)' != ''">$(_NewLineIndent)TargetCapability:$(TargetCapability)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(ExposeReferencesViaTestNames)">$(_NewLineIndent)ExposeReferencesViaTestNames:true$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_NewLineIndent)DocsPackageId:$(_QscDocsPackageId)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(QirGeneration)">$(_NewLineIndent)QirOutputPath:"$(QirOutputPath)"$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(QSharpDocsGeneration)">$(_NewLineIndent)DocsOutputPath:"$(QSharpDocsOutputPath)"$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandPredefinedAssemblyProperties Condition="$(PerfDataGeneration)">$(_NewLineIndent)PerfDataOutputPath:"$(PerfDataOutputPath)"$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="$(GenerateConcreteIntrinsic)">$(_NewLineIndent)GenerateConcreteIntrinsic:$(GenerateConcreteIntrinsic)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(IsTargetPackage)">$(_NewLineIndent)IsTargetPackage:$(IsTargetPackage)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandAssemblyPropertiesFlag>$(_NewLine)--assembly-properties$(_QscCommandPredefinedAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <_QscCommandAssemblyPropertiesFlag Condition="'$(QscCommandAssemblyProperties)' != ''">$(_QscCommandAssemblyPropertiesFlag)$(_NewLineIndent)$(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <AdditionalQscArguments Condition="'$(AdditionalQscArguments)' != ''">$(_NewLine)$(AdditionalQscArguments)</AdditionalQscArguments>
-      <_QscCommandArgs>$(_QscCommandProjFlag)$(_QscCommandIsExecutableFlag)$(_QscCommandInputFlag)$(_QscCommandOutputFlag)$(_QscCommandReferencesFlag)$(_QscCommandLoadFlag)$(_QscCommandPerfDataGenerationFlag)$(_QscCommandRuntimeFlag)$(_QscCommandSkipMonomorphization)$(_QscCommandTargetDecompositionsFlag)$(_QscPackageLoadFallbackFoldersFlag)$(_QscCommandLlvmLibsPath)$(_QscCommandTestNamesFlag)$(_QscCommandAssemblyPropertiesFlag)$(AdditionalQscArguments)</_QscCommandArgs>
+      <_QscCommandArgs>$(_QscCommandProjFlag)$(_QscCommandIsExecutableFlag)$(_QscCommandInputFlag)$(_QscCommandOutputFlag)$(_QscCommandReferencesFlag)$(_QscCommandLoadFlag)$(_QscCommandPerfDataGenerationFlag)$(_QscCommandRuntimeFlag)$(_QscCommandSkipTargetingFlag)$(_QscCommandSkipMonomorphization)$(_QscCommandTargetDecompositionsFlag)$(_QscPackageLoadFallbackFoldersFlag)$(_QscCommandLlvmLibsPath)$(_QscCommandTestNamesFlag)$(_QscCommandAssemblyPropertiesFlag)$(AdditionalQscArguments)</_QscCommandArgs>
       <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
     </PropertyGroup>
 

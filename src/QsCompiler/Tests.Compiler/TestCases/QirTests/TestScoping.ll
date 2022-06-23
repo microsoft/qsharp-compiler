@@ -1,7 +1,7 @@
 define internal i64 @Microsoft__Quantum__Testing__QIR__TestScoping__body(%Array* %a) {
 entry:
-  call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 1)
   %sum = alloca i64, align 8
+  call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 1)
   store i64 0, i64* %sum, align 4
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %a)
   %1 = sub i64 %0, 1
@@ -63,14 +63,14 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  %20 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i64 }* getelementptr ({ %Callable*, i64 }, { %Callable*, i64 }* null, i32 1) to i64))
-  %21 = bitcast %Tuple* %20 to { %Callable*, i64 }*
-  %22 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %21, i32 0, i32 0
-  %23 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %21, i32 0, i32 1
-  %24 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Foo__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
-  store %Callable* %24, %Callable** %22, align 8
-  store i64 1, i64* %23, align 4
-  %25 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__3__FunctionTable, [2 x void (%Tuple*, i32)*]* @MemoryManagement__3__FunctionTable, %Tuple* %20)
+  %20 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Foo__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %21 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i64 }* getelementptr ({ %Callable*, i64 }, { %Callable*, i64 }* null, i32 1) to i64))
+  %22 = bitcast %Tuple* %21 to { %Callable*, i64 }*
+  %23 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %22, i32 0, i32 0
+  %24 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %22, i32 0, i32 1
+  store %Callable* %20, %Callable** %23, align 8
+  store i64 1, i64* %24, align 4
+  %25 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__3__FunctionTable, [2 x void (%Tuple*, i32)*]* @MemoryManagement__3__FunctionTable, %Tuple* %21)
   %26 = load i64, i64* %sum, align 4
   call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %25, i32 -1)

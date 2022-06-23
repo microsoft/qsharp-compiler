@@ -23,12 +23,12 @@ type Emitter() =
     [<Literal>]
     let _EnumerationLimit = 100
 
-    member private this.WriteFile (fileId: string) outputFolder (fileEnding: string) content overwrite =
+    member private this.NewTargetFileName (fileId: string) outputFolder (fileEnding: string) =
         let mutable fileEnding = fileEnding
         let withoutEnding = Path.GetFileNameWithoutExtension(fileId)
         let mutable targetFile = Path.GetFullPath(Path.Combine(outputFolder, withoutEnding + fileEnding))
 
-        if (not overwrite) && _FileNamesGenerated.Contains(targetFile) then
+        if _FileNamesGenerated.Contains(targetFile) then
             let mutable enumeration = 1
             let pos = fileEnding.LastIndexOf('.')
 
@@ -41,12 +41,12 @@ type Emitter() =
                 enumeration <- enumeration + 1
 
         _FileNamesGenerated.Add targetFile |> ignore
-        File.WriteAllText(targetFile, content)
+        targetFile
 
     interface IRewriteStep with
 
         member this.Name = "CSharpGeneration"
-        member this.Priority = -1 // doesn't matter because this rewrite step is the only one in the dll
+        member this.Priority = -1
         member this.AssemblyConstants = upcast _AssemblyConstants
         member this.GeneratedDiagnostics = Seq.empty
 
@@ -72,19 +72,25 @@ type Emitter() =
                     |> Uri)
                 |> (fun uri -> uri.LocalPath |> Path.GetDirectoryName)
 
+            let normalizeSource (source: Source) =
+                if source.IsReference then source.With(codeFile = "") else source
+
             let context = CodegenContext.Create(compilation, step.AssemblyConstants)
-            let allSources = GetSourceFiles.Apply compilation.Namespaces
+            let allSources = GetSourceFiles.Apply compilation |> Seq.map normalizeSource |> HashSet
 
             if (allSources.Count > 0 || not (compilation.EntryPoints.IsEmpty)) && not (Directory.Exists dir) then
                 Directory.CreateDirectory dir |> ignore
 
             for source in allSources |> Seq.filter context.GenerateCodeForSource do
-                let content = SimulationCode.generate source context
-                this.WriteFile source dir ".g.cs" content false
+                let target = this.NewTargetFileName source.AssemblyOrCodeFile dir ".g.cs"
+                SimulationCode.emit (source, target, context)
 
             for source in allSources |> Seq.filter (not << context.GenerateCodeForSource) do
-                let content = SimulationCode.loadedViaTestNames source context
-                if content <> null then this.WriteFile source dir ".dll.g.cs" content false
+                let content = SimulationCode.loadedViaTestNames source.AssemblyOrCodeFile context
+
+                if content <> null then
+                    let target = this.NewTargetFileName source.AssemblyOrCodeFile dir ".dll.g.cs"
+                    File.WriteAllText(target, content)
 
             if not compilation.EntryPoints.IsEmpty then
 
@@ -96,11 +102,13 @@ type Emitter() =
                     (dir, "EntryPoint") |> Path.Combine |> Path.GetFullPath |> Uri |> CompilationUnitManager.GetFileId
 
                 let content = EntryPoint.generateMainSource context entryPointCallables
-                this.WriteFile mainSourceFile dir ".g.Main.cs" content false
+                let target = this.NewTargetFileName mainSourceFile dir ".g.Main.cs"
+                File.WriteAllText(target, content)
 
                 for (sourceFile, callables) in entryPointSources do
                     let content = EntryPoint.generateSource context callables
-                    this.WriteFile sourceFile dir ".g.EntryPoint.cs" content false
+                    let target = this.NewTargetFileName sourceFile dir ".g.EntryPoint.cs"
+                    File.WriteAllText(target, content)
 
             transformed <- compilation
             true
