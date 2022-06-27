@@ -434,13 +434,15 @@ type QsExpression with
             let openStartInSlicing =
                 function
                 | Some step when Some step |> validSlicing ->
-                    conditionalIntExpr (IsNegative step) (LengthMinusOne array) (SyntaxGenerator.IntLiteral 0L)
+                    let inferredStep = { step with ResolvedType = Int |> ResolvedType.New } // validSlicing ensures that the type must be an Int
+                    conditionalIntExpr (IsNegative inferredStep) (LengthMinusOne array) (SyntaxGenerator.IntLiteral 0L)
                 | _ -> SyntaxGenerator.IntLiteral 0L
 
             let openEndInSlicing =
                 function
                 | Some step when Some step |> validSlicing ->
-                    conditionalIntExpr (IsNegative step) (SyntaxGenerator.IntLiteral 0L) (LengthMinusOne array)
+                    let inferredStep = { step with ResolvedType = Int |> ResolvedType.New } // validSlicing ensures that the type must be an Int
+                    conditionalIntExpr (IsNegative inferredStep) (SyntaxGenerator.IntLiteral 0L) (LengthMinusOne array)
                 | ex -> if validSlicing ex then LengthMinusOne array else invalidRangeDelimiter
 
             let resolveSlicingRange start step end_ =
