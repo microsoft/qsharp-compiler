@@ -1,5 +1,6 @@
 define internal %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate5__body(i1 %cond, %Array* %array) {
 entry:
+  %arr = alloca %Array*, align 8
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %array)
   %1 = sub i64 %0, 1
   br label %header__1
@@ -26,7 +27,6 @@ exit__1:                                          ; preds = %header__1
   %item = call { double, double }* @Microsoft__Quantum__Testing__QIR__Complex__body(double 0.000000e+00, double 0.000000e+00)
   %9 = bitcast { double, double }* %item to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %9, i32 1)
-  %arr = alloca %Array*, align 8
   store %Array* %array, %Array** %arr, align 8
   %10 = sub i64 %0, 1
   br label %header__2

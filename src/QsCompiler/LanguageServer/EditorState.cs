@@ -113,29 +113,35 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return false;
             }
 
-            var projectInstance = this.projectLoader.TryGetQsProjectInstance(projectFile.LocalPath, out var telemetryProps);
+            var projectInstance = this.projectLoader.TryGetQsProjectInstance(projectFile.LocalPath);
             if (projectInstance == null)
             {
                 return false;
             }
 
-            // project item groups
+            /* project item groups */
+
             var sourceFiles = GetItemsByType(projectInstance, "QSharpCompile");
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
-            var references = GetItemsByType(projectInstance, "Reference");
 
-            // telemetry data
-            var defaultSimulator = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();
-            var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
-            var telemetryMeas = new Dictionary<string, int>();
-            telemetryMeas["sources"] = sourceFiles.Count();
-            telemetryMeas["csharpfiles"] = csharpFiles.Count();
-            telemetryProps["defaultSimulator"] = defaultSimulator;
-            this.sendTelemetry?.Invoke("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
+            // we need to normalize paths here -
+            // see also https://stackoverflow.com/questions/1266674/how-can-one-get-an-absolute-or-normalized-file-path-in-net
+            var decompositions =
+                GetItemsByType(projectInstance, "ResolvedTargetSpecificDecompositions").Select(Path.GetFullPath);
+            var references = GetItemsByType(projectInstance, "Reference").Except(decompositions);
 
-            // project properties
-            void AddProperty(IDictionary<string, string?> props, string property) =>
-                props.Add(property, projectInstance.GetPropertyValue(property));
+            /* project properties */
+
+            void AddProperty(IDictionary<string, string?> props, string property, params string[] alternativeNames)
+            {
+                var propVal = projectInstance.GetPropertyValue(property)?.Trim();
+                for (var i = 0; string.IsNullOrWhiteSpace(propVal) && i < alternativeNames.Length; ++i)
+                {
+                    propVal = projectInstance.GetPropertyValue(alternativeNames[i])?.Trim();
+                }
+
+                props.Add(property, propVal);
+            }
 
             var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
             AddProperty(buildProperties, MSBuildProperties.TargetPath);
@@ -143,7 +149,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             AddProperty(buildProperties, MSBuildProperties.QuantumSdkPath);
             AddProperty(buildProperties, MSBuildProperties.QuantumSdkVersion);
             AddProperty(buildProperties, MSBuildProperties.QsharpLangVersion);
-            AddProperty(buildProperties, MSBuildProperties.ResolvedRuntimeCapabilities);
+#pragma warning disable CS0618 // Type or member is obsolete
+            AddProperty(buildProperties, MSBuildProperties.ResolvedTargetCapability, MSBuildProperties.ResolvedRuntimeCapabilities);
+#pragma warning restore CS0618 // Type or member is obsolete
             AddProperty(buildProperties, MSBuildProperties.ResolvedQsharpOutputType);
             AddProperty(buildProperties, MSBuildProperties.ExposeReferencesViaTestNames);
             AddProperty(buildProperties, MSBuildProperties.QsFmtExe);
@@ -153,6 +161,40 @@ namespace Microsoft.Quantum.QsLanguageServer
                 projectReferences: projectReferences,
                 references: references,
                 buildProperties);
+
+            /* telemetry data */
+
+            var telemetryMeas = new Dictionary<string, int>();
+            telemetryMeas["sources"] = sourceFiles.Count();
+            telemetryMeas["csharpfiles"] = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs")).Count();
+
+            static bool GeneratePackageInfo(string packageName) =>
+                packageName.StartsWith("microsoft.quantum.", StringComparison.InvariantCultureIgnoreCase);
+
+            string? GetVersion(ProjectItemInstance item) => item.Metadata
+                .FirstOrDefault(data => data.Name.Equals("Version", StringComparison.OrdinalIgnoreCase))?.EvaluatedValue;
+
+            var packageRefs = projectInstance.Items
+                .Where(item => item.ItemType.Equals("PackageReference", StringComparison.OrdinalIgnoreCase))
+                .Where(item => GeneratePackageInfo(item.EvaluatedInclude))
+                .Select(item => (item.EvaluatedInclude, GetVersion(item)));
+
+            var telemetryProps = new Dictionary<string, string?>();
+            telemetryProps["projectNameHash"] = ProjectLoader.GetProjectNameHash(projectFile.LocalPath);
+            foreach (var (package, version) in packageRefs)
+            {
+                telemetryProps[$"pkgref.{package}"] = version;
+            }
+
+            telemetryProps["qsharplangversion"] = buildProperties[MSBuildProperties.QsharpLangVersion];
+            telemetryProps["quantumSdkVersion"] = buildProperties[MSBuildProperties.QuantumSdkVersion];
+
+            telemetryProps["defaultSimulator"] = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();
+            telemetryProps["processorArchitecture"] = buildProperties[MSBuildProperties.ResolvedProcessorArchitecture];
+            telemetryProps["targetCapability"] = buildProperties[MSBuildProperties.ResolvedTargetCapability];
+
+            this.sendTelemetry?.Invoke("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
+
             return true;
         }
 

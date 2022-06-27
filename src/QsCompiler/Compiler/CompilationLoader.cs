@@ -78,6 +78,12 @@ namespace Microsoft.Quantum.QsCompiler
             public bool SkipSyntaxTreeTrimming { get; set; }
 
             /// <summary>
+            /// If this is set to true, the initial validation will take the specified runtime capability into account,
+            /// but any further compilation steps will execute as if no target specific properties were specified.
+            /// </summary>
+            public bool SkipTargetSpecificCompilation { get; set; }
+
+            /// <summary>
             /// If set to true, the compiler attempts to pre-evaluate the built compilation as much as possible.
             /// This is an experimental feature that will change over time.
             /// </summary>
@@ -193,6 +199,13 @@ namespace Microsoft.Quantum.QsCompiler
                 this.BuildOutputFolder != null || this.DllOutputPath != null;
 
             /// <summary>
+            /// Indicates whether the compilation should be trimmed to include only the used callables.
+            /// This value is never true if SkipSyntaxTreeTrimming is specified.
+            /// </summary>
+            internal bool TrimTree =>
+                this.IsExecutable && !this.SkipSyntaxTreeTrimming;
+
+            /// <summary>
             /// Indicates whether the compilation needs to be monomorphized.
             /// This value is never true if SkipMonomorphization is specified.
             /// </summary>
@@ -203,13 +216,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
             /// </summary>
             internal bool ConvertClassicalControl =>
-                this.TargetCapability?.ResultOpacity.Equals(ResultOpacityModule.Controlled) ?? false;
+                !this.SkipTargetSpecificCompilation && (this.TargetCapability?.ResultOpacity.Equals(ResultOpacityModule.Controlled) ?? false);
 
             /// <summary>
             /// Indicates whether any paths to assemblies have been specified that may contain target specific decompositions.
             /// </summary>
             internal bool LoadTargetSpecificDecompositions =>
-                this.TargetPackageAssemblies != null && this.TargetPackageAssemblies.Any();
+                !this.SkipTargetSpecificCompilation && this.TargetPackageAssemblies != null && this.TargetPackageAssemblies.Any();
 
             /// <summary>
             /// If the ProjectName does not have an ending "proj", appends a .qsproj ending to the project name.
@@ -531,7 +544,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             var processorArchitecture = this.config.AssemblyConstants?.GetValueOrDefault(AssemblyConstants.ProcessorArchitecture);
             var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
-            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, this.config.TargetCapability?.Name);
+            buildProperties.Add(MSBuildProperties.ResolvedTargetCapability, this.config.TargetCapability?.Name);
             buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, this.config.IsExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
             buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
 
@@ -629,13 +642,9 @@ namespace Microsoft.Quantum.QsCompiler
             var steps = new (IRewriteStep Step, bool Enabled, Action<Status> SetStatus)[]
             {
                 // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the
-                // old setup of the C# runtime works. With the new setup (interface-based approach for target
-                // packages), it is possible to trim unused intrinsics.
-                (
-                    new SyntaxTreeTrimming(keepAllIntrinsics: true, dependencies),
-                    this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming,
-                    s => status.TreeTrimming = s),
-
+                // old setup of the C# runtime works. Intrinsics that come from packages that use the new interface-based
+                // approach (which is the case for target packages) can be trimmed if they are unused.
+                (new SyntaxTreeTrimming(keepAllIntrinsics: true, dependencies), this.config.TrimTree, s => status.TreeTrimming = s),
                 (new LiftLambdas(), this.config.LiftLambdaExpressions, s => status.LiftLambdaExpressions = s),
                 (new ClassicallyControlled(), this.config.ConvertClassicalControl, s => status.ConvertClassicalControl = s),
                 (new FunctorGeneration(), this.config.GenerateFunctorSupport, s => status.FunctorSupport = s),

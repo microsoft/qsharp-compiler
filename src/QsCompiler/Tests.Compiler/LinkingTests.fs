@@ -127,7 +127,12 @@ type LinkingTests() =
 
     member private this.CompileMonomorphization input =
         let compilationDataStructures = this.BuildContent(compilationManager, input)
-        let monomorphicCompilation = Monomorphize.Apply compilationDataStructures.BuiltCompilation
+        let monomorphize = new BuiltInRewriteSteps.Monomorphization()
+
+        let success, monomorphicCompilation =
+            monomorphize.Transformation compilationDataStructures.BuiltCompilation
+
+        Assert.True success
         Assert.NotNull monomorphicCompilation
         ValidateMonomorphization.Apply monomorphicCompilation
         monomorphicCompilation
@@ -242,8 +247,8 @@ type LinkingTests() =
                 Seq.item 0 x)
 
         Assert.True(
-            generated.Access = Public,
-            "Callables originally public should remain public if all arguments are public."
+            generated.Access = Internal,
+            "Callables originally public should be internal even if all arguments are public."
         )
 
     member private this.RunSyntaxTreeTrimTest testNumber keepIntrinsics =
@@ -474,7 +479,7 @@ type LinkingTests() =
 
         let props =
             dict [ MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe
-                   MSBuildProperties.ResolvedRuntimeCapabilities, Option.toObj capabilityName ]
+                   MSBuildProperties.ResolvedTargetCapability, Option.toObj capabilityName ]
             |> ProjectProperties
 
         use compilationManager =

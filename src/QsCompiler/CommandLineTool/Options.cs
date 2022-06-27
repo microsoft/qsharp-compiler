@@ -73,6 +73,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public bool SkipMonomorphization { get; set; }
 
         [Option(
+            "skip-targeting",
+            Required = false,
+            Default = false,
+            HelpText = "If this is set to true, the initial validation will take the specified runtime capability into account, but any further compilation steps will execute as if no target specific properties were specified.")]
+        public bool SkipTargetSpecificCompilation { get; set; }
+
+        [Option(
             "force-rewrite-step-execution",
             Required = false,
             Default = false,
