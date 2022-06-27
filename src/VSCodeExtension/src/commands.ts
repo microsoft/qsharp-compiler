@@ -4,6 +4,9 @@
 'use strict';
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
+import { DefaultAzureCredential } from "@azure/identity";
+import { QuantumJobClient } from "@azure/quantum-jobs";
+
 
 import { DotnetInfo, findIQSharpVersion } from './dotnet';
 import { IPackageInfo } from './packageInfo';
@@ -11,7 +14,19 @@ import * as semver from 'semver';
 import { promisify } from 'util';
 import { QSharpGenerator } from './yeoman-generator';
 
+import * as hardwareConfigs from "./hardwareConfigs.json";
+
 import * as yeoman from 'yeoman-environment';
+
+import {ContainerClient, BlockBlobClient} from "@azure/storage-blob";
+import * as pako from 'pako';
+
+type accountInfo = {
+    subscriptionId: string;
+    resourceGroupName: string;
+    workspaceName: string,
+    location: string
+  };
 
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
     context.subscriptions.push(
@@ -141,3 +156,154 @@ export function installOrUpdateIQSharp(dotNetSdk: DotnetInfo, requiredVersion?: 
             }
         );
 }
+
+export async function connectToAzureAccount(context: vscode.ExtensionContext) {
+    const subscriptionId = await vscode.window.showInputBox({prompt:"Enter subscription ID",ignoreFocusOut:true});
+    const resourceGroupName = subscriptionId && await vscode.window.showInputBox({prompt:"Enter Resource Group Name",ignoreFocusOut:true});
+    const workspaceName = resourceGroupName && await vscode.window.showInputBox({prompt:"Enter Workspace Name",ignoreFocusOut:true});
+    const location = workspaceName && await vscode.window.showInputBox({prompt:"Enter location",ignoreFocusOut:true});
+
+    if (!location){
+        return;
+    }
+
+    context.workspaceState.update("accountInfo",
+    {"subscriptionId": subscriptionId,
+    "resourceGroupName": resourceGroupName,
+    "workspaceName": workspaceName,
+    "location": location
+});
+
+}
+export async function disconnectFromAzureAccount(context: vscode.ExtensionContext) {
+
+    context.workspaceState.update("accountInfo", undefined);
+    vscode.window.showInformationMessage("Successfully Disconnected");
+}
+
+
+export async function submitJob(context: vscode.ExtensionContext) {
+    const credential = new DefaultAzureCredential();
+    // Create a QuantumJobClient
+    let accountInfo: accountInfo | undefined = context.workspaceState.get("accountInfo");
+    if (accountInfo === undefined){
+        await connectToAzureAccount(context);
+        accountInfo = context.workspaceState.get("accountInfo");
+    }
+    // TODO ADD FUNCTIONALITY TO ALLOW USER TO RETRY LOGIN STEP
+    if (accountInfo ===undefined){
+        vscode.window.showWarningMessage(`Could not connect to Azure Account`);
+        return;
+    }
+    const subscriptionId:string = accountInfo["subscriptionId"];
+    const resourceGroupName:string = accountInfo["resourceGroupName"];
+    const workspaceName:string =  accountInfo["workspaceName"];
+    // how should we handle containter??
+    const storageContainerName = "mycontainerforjs";
+    const location: string =  accountInfo["location"];
+    const endpoint = "https://" + location + ".quantum.azure.com";
+
+
+    const quantumJobClient = new QuantumJobClient(
+        credential,
+        subscriptionId,
+        resourceGroupName,
+        workspaceName,
+        {
+        endpoint: endpoint,
+        credentialScopes: "https://quantum.microsoft.com/.default"
+        }
+    );
+    // Get container Uri with SAS key
+    const containerUri: string | undefined = (
+        await quantumJobClient.storage.sasUri({
+        containerName: storageContainerName
+    })
+    ).sasUri;
+
+    if (containerUri === undefined){
+        vscode.window.showWarningMessage(`Could not connect to storage container`);
+        return;
+    }
+    // Create container if not exists
+    const containerClient = new ContainerClient(containerUri);
+    await containerClient.createIfNotExists();
+    // Upload input data
+     // Get input data blob Uri with SAS key
+     const blobName = "input.json";
+     const inputDataUri: string | undefined = (
+       await quantumJobClient.storage.sasUri({
+         containerName: storageContainerName,
+         blobName: blobName
+       })
+     ).sasUri;
+
+     if (inputDataUri === undefined){
+        vscode.window.showWarningMessage(`Could not connect to storage blob`);
+        return;
+    }
+     // Upload input data to blob
+    const blobClient = new BlockBlobClient(inputDataUri);
+    const problemFilename = await vscode.window.showInputBox({prompt:"Enter full file path",ignoreFocusOut:true});
+    if (problemFilename === undefined){
+        return;
+    }
+
+    const problemFileUri = vscode.Uri.file(problemFilename);
+    const fileContent = await vscode.workspace.fs.readFile(problemFileUri);
+    let fileConent: string| Uint8Array  = String.fromCharCode(...fileContent);
+
+
+    const providerName = await vscode.window.showQuickPick(Object.keys(hardwareConfigs),{placeHolder:"Select Provider",ignoreFocusOut:true});
+    if (!providerName){
+        return;
+    }
+    const providerId = providerName.toLowerCase();
+
+    const target = await vscode.window.showQuickPick((hardwareConfigs as { [key: string]: any })[providerName]["targets"],{placeHolder:"Select Target",ignoreFocusOut:true}) || "";
+    const inputDataFormat = (hardwareConfigs as { [key: string]: any })[providerName]["inputDataFormat"];
+    const outputDataFormat = (hardwareConfigs as { [key: string]: any })[providerName]["outputDataFormat"];
+    let blobOptions = (hardwareConfigs as { [key: string]: any })[providerName]["blobOptions"];
+
+    if (providerId ==='microsoft'){
+        const utf8Data = unescape(encodeURIComponent(fileConent));
+        fileConent = pako.gzip(utf8Data);
+    }
+
+
+
+
+    await blobClient.upload(fileConent, Buffer.byteLength(fileConent), blobOptions);
+    const randomId = `${Math.floor(Math.random() * 10000 + 1)}`;
+    // Submit job
+    const jobId = `job-${randomId}`;
+    const jobName = `jobName-${randomId}`;
+
+
+
+
+    const createJobDetails = {
+        containerUri: containerUri,
+        inputDataFormat: inputDataFormat,
+        providerId: providerId,
+        target: target,
+        id: jobId,
+        inputDataUri: inputDataUri,
+        name: jobName,
+        outputDataFormat: outputDataFormat,
+        inputParams:
+        {
+            params:
+            {
+                timeout:100,
+                seed:22
+            }
+        }
+    };
+    await quantumJobClient.jobs.create(jobId, createJobDetails);
+    vscode.window.showInformationMessage(jobId);
+    const jobResult = await quantumJobClient.jobs.get(jobId);
+    vscode.window.showInformationMessage(jobResult.status||"");
+}
+
+

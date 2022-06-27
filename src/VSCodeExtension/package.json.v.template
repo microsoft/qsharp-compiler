@@ -29,7 +29,10 @@
         "onCommand:quantum.installTemplates",
         "onCommand:quantum.newProject",
         "onCommand:quantum.openDocumentation",
-        "onCommand:quantum.installIQSharp"
+        "onCommand:quantum.installIQSharp",
+        "onCommand:quantum.connectToAzureAccount",
+        "onCommand:quantum.disconnectFromAzureAccount",
+        "onCommand:quantum.submitJob"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -49,6 +52,18 @@
             {
                 "command": "quantum.installIQSharp",
                 "title": "Q#: Install IQ#"
+            },
+            {
+                "command": "quantum.connectToAzureAccount",
+                "title": "Q#: Connect to Azure Account"
+            },
+            {
+                "command": "quantum.disconnectFromAzureAccount",
+                "title": "Q#: Disconnect from Azure Account"
+            },
+            {
+                "command": "quantum.submitJob",
+                "title": "Q#: Submit Job"
             }
         ],
         "languages": [

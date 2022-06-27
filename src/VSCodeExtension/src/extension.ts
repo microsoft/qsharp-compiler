@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import { startTelemetry, EventNames, sendTelemetryEvent, reporter } from './telemetry';
 import { DotnetInfo, requireDotNetSdk, findDotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
-import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp } from './commands';
+import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp, connectToAzureAccount, disconnectFromAzureAccount, submitJob } from './commands';
 import { LanguageServer } from './languageServer';
 
 /**
@@ -96,6 +96,30 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
+    registerCommand(
+        context,
+        "quantum.connectToAzureAccount",
+        () => {
+            connectToAzureAccount(context);
+        }
+    );
+    registerCommand(
+        context,
+        "quantum.disconnectFromAzureAccount",
+        () => {
+            disconnectFromAzureAccount(context);
+        }
+    );
+
+    registerCommand(
+        context,
+        "quantum.submitJob",
+        () => {
+            submitJob(context);
+        }
+    );
+
+
     let rootFolder = findRootFolder();
 
     // Start the language server client.
@@ -118,6 +142,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 );
             }
         );
+
+        return context;
 
 }
 
