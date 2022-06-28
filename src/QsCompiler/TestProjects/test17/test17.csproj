@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.24.216633-beta">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ExecutionTarget>qci.qpu</ExecutionTarget>
+  </PropertyGroup>
+
+</Project>

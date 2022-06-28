@@ -133,18 +133,22 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Invalid cycles are those that cause type parameters to be mapped to
         /// other type parameters of the same callable (constricting resolutions)
         /// or to a type containing a nested reference to the same type parameter,
-        /// i.e Foo.A -> Foo.A[].
+        /// i.e Foo.A -> Foo.A[]. If a <paramref name="cycleSelector"/> is given,
+        /// checks only the cycles for which it returns true.
         /// Returns an enumerable of tuples for each edge of each invalid cycle found,
         /// each tuple containing a diagnostic and the callable name where the diagnostic
         /// should be placed.
         /// </summary>
-        public IEnumerable<(QsCompilerDiagnostic, QsQualifiedName)> VerifyAllCycles()
+        public IEnumerable<(QsCompilerDiagnostic, QsQualifiedName)> VerifyAllCycles(Func<ImmutableArray<CallGraphNode>, bool>? cycleSelector)
         {
+            cycleSelector ??= _ => true;
             var diagnostics = new List<(QsCompilerDiagnostic, QsQualifiedName)>();
 
             if (this.Nodes.Any())
             {
-                var cycles = this.GetCallCycles().SelectMany(x => CartesianProduct(this.GetEdgesWithNames(x).Reverse()));
+                var cycles = this.GetCallCycles()
+                    .Where(cycleSelector)
+                    .SelectMany(x => CartesianProduct(this.GetEdgesWithNames(x).Reverse()));
                 foreach (var cycle in cycles)
                 {
                     var combination = new TypeResolutionCombination(cycle.Select(edge => edge.Item1.ParamResolutions));

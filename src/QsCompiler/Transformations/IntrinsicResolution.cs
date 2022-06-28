@@ -98,22 +98,3 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         }
     }
 }
-
-#pragma warning disable SA1403 // File may only contain a single namespace
-namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
-#pragma warning restore SA1403 // File may only contain a single namespace
-{
-    [Obsolete("Please use Microsoft.Quantum.QsCompiler.Transformations.Targeting.ReplaceWithTargetIntrinsics instead.")]
-    public static class ReplaceWithTargetIntrinsics
-    {
-        /// <summary>
-        /// Merge the environment-specific syntax tree with the target tree. The resulting tree will
-        /// have the union of the namespaces found in both input trees. All namespaces in the intersection
-        /// between the trees will be merged so that the environment's definitions of elements are preserved
-        /// over the target's definitions.
-        /// </summary>
-        [Obsolete("Please use Microsoft.Quantum.QsCompiler.Transformations.Targeting.ReplaceWithTargetIntrinsics.Apply instead.")]
-        public static QsCompilation Apply(QsCompilation environment, QsCompilation target) =>
-            Targeting.ReplaceWithTargetIntrinsics.Apply(environment, target);
-    }
-}

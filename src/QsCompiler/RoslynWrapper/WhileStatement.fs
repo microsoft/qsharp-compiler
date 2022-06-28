@@ -1,10 +1,10 @@
 ﻿namespace Microsoft.Quantum.RoslynWrapper
 
+#nowarn "1182" // Unused parameters
+
 /// <summary>
 /// Generate while statements
 /// </summary>
-#nowarn "1182" // Unused parameters
-
 [<AutoOpen>]
 module WhileStatement =
     open Microsoft.CodeAnalysis

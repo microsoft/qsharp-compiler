@@ -79,16 +79,7 @@ let private parameterOptionsProperty parameters =
 
 /// A lambda that creates an instance of the default simulator if it is a custom simulator.
 let private customSimulatorFactory name =
-    let isCustomSimulator =
-        not
-        <| List.contains
-            name
-            [
-                AssemblyConstants.QuantumSimulator
-                AssemblyConstants.SparseSimulator
-                AssemblyConstants.ToffoliSimulator
-                AssemblyConstants.ResourcesEstimator
-            ]
+    let isCustomSimulator = not <| CommandLineArguments.BuiltInSimulators.Contains name
 
     let factory =
         if isCustomSimulator then
@@ -390,14 +381,16 @@ let private driverSettings context =
         ]
         |> immutableList
 
-    let defaultSimulator =
-        context.assemblyConstants.TryGetValue AssemblyConstants.DefaultSimulator
-        |> fun (_, value) -> if String.IsNullOrWhiteSpace value then AssemblyConstants.QuantumSimulator else value
+    let assemblyConstant defaultValue name =
+        context.assemblyConstants.TryGetValue name
+        |> (fun (_, value) -> if String.IsNullOrWhiteSpace value then defaultValue else value)
 
-    let defaultExecutionTarget =
-        context.assemblyConstants.TryGetValue AssemblyConstants.ExecutionTarget
-        |> (fun (_, value) -> if value = null then "" else value)
-        |> literal
+    let defaultSimulator =
+        assemblyConstant AssemblyConstants.QuantumSimulator AssemblyConstants.DefaultSimulator
+
+    let defaultExecutionTarget = assemblyConstant "" AssemblyConstants.ExecutionTarget |> literal
+
+    let targetCapability = assemblyConstant "" AssemblyConstants.TargetCapability |> literal
 
     [
         namedArg "simulatorOptionAliases" simulatorOptionAliases
@@ -407,6 +400,7 @@ let private driverSettings context =
         namedArg "resourcesEstimatorName" <| literal AssemblyConstants.ResourcesEstimator
         namedArg "defaultSimulatorName" <| literal defaultSimulator
         namedArg "defaultExecutionTarget" <| defaultExecutionTarget
+        namedArg "targetCapability" <| targetCapability
         namedArg "createDefaultCustomSimulator" <| customSimulatorFactory defaultSimulator
     ]
     |> SyntaxFactory.SeparatedList
@@ -466,7 +460,10 @@ let private mainNamespace context entryPoints =
 let generateMainSource context entryPoints =
     let mainNS = mainNamespace context entryPoints
 
-    ``compilation unit`` [] (Seq.map using SimulationCode.autoNamespaces) [ mainNS :> MemberDeclarationSyntax ]
+    ``compilation unit``
+        []
+        (Seq.map using (SimulationCode.autoNamespaces context))
+        [ mainNS :> MemberDeclarationSyntax ]
     |> ``with leading comments`` SimulationCode.autogenComment
     |> SimulationCode.formatSyntaxTree
 
@@ -479,6 +476,6 @@ let generateSource context (entryPoints: seq<QsCallable>) =
             for ns, eps in entryPointNamespaces -> entryPointNamespace context ns eps :> MemberDeclarationSyntax
         ]
 
-    ``compilation unit`` [] (Seq.map using SimulationCode.autoNamespaces) namespaces
+    ``compilation unit`` [] (Seq.map using (SimulationCode.autoNamespaces context)) namespaces
     |> ``with leading comments`` SimulationCode.autogenComment
     |> SimulationCode.formatSyntaxTree

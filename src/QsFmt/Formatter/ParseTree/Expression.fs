@@ -8,16 +8,36 @@ open Microsoft.Quantum.QsFmt.Parser
 
 module Expression =
     let toTypeArgs tokens (context: QSharpParser.TypeTupleContext) =
-        let typeArgs = context._typeArgs |> Seq.map (TypeVisitor tokens).Visit
-
-        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+        let typeArgs = context.``type`` () |> Seq.map (TypeVisitor tokens).Visit
+        let commas = context.Comma() |> Seq.map (fun node -> Node.toTerminal tokens node.Symbol)
 
         {
-            OpenParen = context.openBracket |> Node.toTerminal tokens
+            OpenParen = context.Less().Symbol |> Node.toTerminal tokens
             Items = Node.tupleItems typeArgs commas
-            CloseParen = context.closeBracket |> Node.toTerminal tokens
+            CloseParen = context.Greater().Symbol |> Node.toTerminal tokens
         }
 
+type SymbolBindingVisitor(tokens) =
+    inherit QSharpParserBaseVisitor<SymbolBinding>()
+
+    override _.DefaultResult = failwith "Unknown symbol binding."
+
+    override _.VisitDiscardSymbol context =
+        context.Underscore().Symbol |> Node.toTerminal tokens |> SymbolDeclaration
+
+    override _.VisitSymbolName context =
+        context.Identifier().Symbol |> Node.toTerminal tokens |> SymbolDeclaration
+
+    override visitor.VisitSymbolTuple context =
+        let bindings = context.symbolBinding () |> Seq.map visitor.Visit
+        let commas = context.Comma() |> Seq.map (fun node -> Node.toTerminal tokens node.Symbol)
+
+        {
+            OpenParen = context.ParenLeft().Symbol |> Node.toTerminal tokens
+            Items = Node.tupleItems bindings commas
+            CloseParen = context.ParenRight().Symbol |> Node.toTerminal tokens
+        }
+        |> SymbolTuple
 
 type InterpStringContentVisitor(tokens) =
     inherit QSharpParserBaseVisitor<InterpStringContent>()
@@ -27,9 +47,9 @@ type InterpStringContentVisitor(tokens) =
 
     override _.VisitInterpExpressionContent context =
         {
-            OpenBrace = context.openBrace |> Node.toTerminal tokens
-            Expression = (ExpressionVisitor tokens).Visit context.exp
-            CloseBrace = context.closeBrace |> Node.toTerminal tokens
+            OpenBrace = context.InterpBraceLeft().Symbol |> Node.toTerminal tokens
+            Expression = context.expression () |> (ExpressionVisitor tokens).Visit
+            CloseBrace = context.BraceRight().Symbol |> Node.toTerminal tokens
         }
         |> Expression
 
@@ -40,6 +60,7 @@ and ExpressionVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Expression>()
 
     let typeVisitor = TypeVisitor tokens
+    let symbolBindingVisitor = SymbolBindingVisitor tokens
 
     override _.DefaultResult = failwith "Unknown expression."
 
@@ -50,143 +71,151 @@ and ExpressionVisitor(tokens) =
         context.Underscore().Symbol |> Node.toTerminal tokens |> Missing
 
     override _.VisitIdentifierExpression context =
+        let name = context.qualifiedName ()
+
         {
-            Name = { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
-            TypeArgs = Option.ofObj context.types |> Option.map (Expression.toTypeArgs tokens)
+            Name = { Prefix = Node.prefix tokens name.Start.TokenIndex; Text = name.GetText() }
+            TypeArgs = context.typeTuple () |> Option.ofObj |> Option.map (Expression.toTypeArgs tokens)
         }
         |> Identifier
 
     override _.VisitIntegerExpression context =
-        context.value |> Node.toTerminal tokens |> Literal
+        context.IntegerLiteral().Symbol |> Node.toTerminal tokens |> Literal
 
     override _.VisitBigIntegerExpression context =
-        context.value |> Node.toTerminal tokens |> Literal
+        context.BigIntegerLiteral().Symbol |> Node.toTerminal tokens |> Literal
 
     override _.VisitDoubleExpression context =
-        context.value |> Node.toTerminal tokens |> Literal
+        context.DoubleLiteral().Symbol |> Node.toTerminal tokens |> Literal
 
     override _.VisitStringExpression context =
         { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() } |> Literal
 
     override _.VisitInterpStringExpression context =
         {
-            OpenQuote = context.openQuote |> Node.toTerminal tokens
-            Content = context._content |> Seq.map ((InterpStringContentVisitor tokens).Visit) |> List.ofSeq
-            CloseQuote = context.closeQuote |> Node.toTerminal tokens
+            OpenQuote = context.DollarQuote().Symbol |> Node.toTerminal tokens
+            Content = context.interpStringContent () |> Seq.map (InterpStringContentVisitor tokens).Visit |> List.ofSeq
+            CloseQuote = context.InterpDoubleQuote().Symbol |> Node.toTerminal tokens
         }
         |> InterpString
 
     override _.VisitBoolExpression context =
-        { Prefix = Node.prefix tokens context.value.Start.TokenIndex; Text = context.value.GetText() }
-        |> Literal
+        let literal = context.boolLiteral ()
+        { Prefix = Node.prefix tokens literal.Start.TokenIndex; Text = literal.GetText() } |> Literal
 
     override _.VisitResultExpression context =
-        { Prefix = Node.prefix tokens context.value.Start.TokenIndex; Text = context.value.GetText() }
-        |> Literal
+        let literal = context.resultLiteral ()
+        { Prefix = Node.prefix tokens literal.Start.TokenIndex; Text = literal.GetText() } |> Literal
 
     override _.VisitPauliExpression context =
-        { Prefix = Node.prefix tokens context.value.Start.TokenIndex; Text = context.value.GetText() }
-        |> Literal
+        let literal = context.pauliLiteral ()
+        { Prefix = Node.prefix tokens literal.Start.TokenIndex; Text = literal.GetText() } |> Literal
 
     override visitor.VisitTupleExpression context =
-        let expressions = context._items |> Seq.map visitor.Visit
-
-        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+        let expressions = context.expression () |> Seq.map visitor.Visit
+        let commas = context.Comma() |> Seq.map (fun node -> Node.toTerminal tokens node.Symbol)
 
         {
-            OpenParen = context.openParen |> Node.toTerminal tokens
+            OpenParen = context.ParenLeft().Symbol |> Node.toTerminal tokens
             Items = Node.tupleItems expressions commas
-            CloseParen = context.closeParen |> Node.toTerminal tokens
+            CloseParen = context.ParenRight().Symbol |> Node.toTerminal tokens
         }
         |> Tuple
 
     override visitor.VisitArrayExpression context =
-        let expressions = context._items |> Seq.map visitor.Visit
-
-        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+        let expressions = context.expression () |> Seq.map visitor.Visit
+        let commas = context.Comma() |> Seq.map (fun node -> Node.toTerminal tokens node.Symbol)
 
         {
-            OpenParen = context.openBracket |> Node.toTerminal tokens
+            OpenParen = context.BracketLeft().Symbol |> Node.toTerminal tokens
             Items = Node.tupleItems expressions commas
-            CloseParen = context.closeBracket |> Node.toTerminal tokens
+            CloseParen = context.BracketRight().Symbol |> Node.toTerminal tokens
         }
         |> Tuple
 
     override visitor.VisitSizedArrayExpression context =
         {
-            OpenBracket = context.openBracket |> Node.toTerminal tokens
+            OpenBracket = context.BracketLeft().Symbol |> Node.toTerminal tokens
             Value = visitor.Visit context.value
-            Comma = context.comma |> Node.toTerminal tokens
-            Size = context.size.terminal |> Node.toTerminal tokens
-            Equals = context.equals |> Node.toTerminal tokens
+            Comma = context.Comma().Symbol |> Node.toTerminal tokens
+            Size = context.size().Identifier().Symbol |> Node.toTerminal tokens
+            Equals = context.Equal().Symbol |> Node.toTerminal tokens
             Length = visitor.Visit context.length
-            CloseBracket = context.closeBracket |> Node.toTerminal tokens
+            CloseBracket = context.BracketRight().Symbol |> Node.toTerminal tokens
         }
         |> NewSizedArray
 
     override visitor.VisitNewArrayExpression context =
         {
-            New = context.``new`` |> Node.toTerminal tokens
-            ItemType = typeVisitor.Visit context.itemType
-            OpenBracket = context.openBracket |> Node.toTerminal tokens
+            New = context.New().Symbol |> Node.toTerminal tokens
+            ItemType = context.``type`` () |> typeVisitor.Visit
+            OpenBracket = context.BracketLeft().Symbol |> Node.toTerminal tokens
             Length = visitor.Visit context.length
-            CloseBracket = context.closeBracket |> Node.toTerminal tokens
+            CloseBracket = context.BracketRight().Symbol |> Node.toTerminal tokens
         }
         |> NewArray
 
     override visitor.VisitNamedItemAccessExpression context =
         {
-            Record = visitor.Visit context.record
-            DoubleColon = context.colon |> Node.toTerminal tokens
-            Name = context.name |> Node.toTerminal tokens
+            Record = context.expression () |> visitor.Visit
+            DoubleColon = context.DoubleColon().Symbol |> Node.toTerminal tokens
+            Name = context.Identifier().Symbol |> Node.toTerminal tokens
         }
         |> NamedItemAccess
 
     override visitor.VisitArrayAccessExpression context =
         {
             Array = visitor.Visit context.array
-            OpenBracket = context.openBracket |> Node.toTerminal tokens
+            OpenBracket = context.BracketLeft().Symbol |> Node.toTerminal tokens
             Index = visitor.Visit context.index
-            CloseBracket = context.closeBracket |> Node.toTerminal tokens
+            CloseBracket = context.BracketRight().Symbol |> Node.toTerminal tokens
         }
         |> ArrayAccess
 
     override visitor.VisitUnwrapExpression context =
-        { Operand = visitor.Visit context.operand; PostfixOperator = context.operator |> Node.toTerminal tokens }
+        {
+            Operand = context.expression () |> visitor.Visit
+            PostfixOperator = context.Bang().Symbol |> Node.toTerminal tokens
+        }
         |> PostfixOperator
 
     override visitor.VisitControlledExpression context =
-        { PrefixOperator = context.functor |> Node.toTerminal tokens; Operand = visitor.Visit context.operation }
+        {
+            PrefixOperator = context.ControlledFunctor().Symbol |> Node.toTerminal tokens
+            Operand = context.expression () |> visitor.Visit
+        }
         |> PrefixOperator
 
     override visitor.VisitAdjointExpression context =
-        { PrefixOperator = context.functor |> Node.toTerminal tokens; Operand = visitor.Visit context.operation }
+        {
+            PrefixOperator = context.AdjointFunctor().Symbol |> Node.toTerminal tokens
+            Operand = context.expression () |> visitor.Visit
+        }
         |> PrefixOperator
 
     override visitor.VisitCallExpression context =
-        let expressions = context._arguments |> Seq.map visitor.Visit
-
-        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+        let expressions = context._args |> Seq.map visitor.Visit
+        let commas = context.Comma() |> Seq.map (fun node -> Node.toTerminal tokens node.Symbol)
 
         {
             Callable = visitor.Visit context.callable
             Arguments =
                 {
-                    OpenParen = context.openParen |> Node.toTerminal tokens
+                    OpenParen = context.ParenLeft().Symbol |> Node.toTerminal tokens
                     Items = Node.tupleItems expressions commas
-                    CloseParen = context.closeParen |> Node.toTerminal tokens
+                    CloseParen = context.ParenRight().Symbol |> Node.toTerminal tokens
                 }
         }
         |> Call
 
     override visitor.VisitPrefixOpExpression context =
-        { PrefixOperator = context.operator |> Node.toTerminal tokens; Operand = visitor.Visit context.operand }
+        { PrefixOperator = context.op |> Node.toTerminal tokens; Operand = context.expression () |> visitor.Visit }
         |> PrefixOperator
 
     override visitor.VisitExponentExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.Caret().Symbol |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -194,7 +223,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitMultiplyExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.op |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -202,7 +231,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitAddExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.op |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -210,7 +239,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitShiftExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.op |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -218,7 +247,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitCompareExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.op |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -226,7 +255,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitEqualsExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.op |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -234,7 +263,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitBitwiseAndExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.TripleAmpersand().Symbol |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -242,7 +271,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitBitwiseXorExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.TripleCaret().Symbol |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -250,7 +279,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitBitwiseOrExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.TriplePipe().Symbol |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -258,7 +287,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitAndExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.op |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -266,7 +295,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitOrExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.op |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -274,7 +303,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitRangeExpression context =
         {
             Left = visitor.Visit context.left
-            InfixOperator = context.ellipsis |> Node.toTerminal tokens
+            InfixOperator = context.DoubleDot().Symbol |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> InfixOperator
@@ -282,19 +311,25 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitConditionalExpression context =
         {
             Condition = visitor.Visit context.cond
-            Question = context.question |> Node.toTerminal tokens
-            IfTrue = visitor.Visit context.ifTrue
-            Pipe = context.pipe |> Node.toTerminal tokens
-            IfFalse = visitor.Visit context.ifFalse
+            Question = context.Question().Symbol |> Node.toTerminal tokens
+            IfTrue = visitor.Visit context.``then``
+            Pipe = context.Pipe().Symbol |> Node.toTerminal tokens
+            IfFalse = visitor.Visit context.``else``
         }
         |> Conditional
 
     override visitor.VisitRightOpenRangeExpression context =
-        { Operand = visitor.Visit context.left; PostfixOperator = context.ellipsis |> Node.toTerminal tokens }
+        {
+            Operand = context.expression () |> visitor.Visit
+            PostfixOperator = context.Ellipsis().Symbol |> Node.toTerminal tokens
+        }
         |> PostfixOperator
 
     override visitor.VisitLeftOpenRangeExpression context =
-        { PrefixOperator = context.ellipsis |> Node.toTerminal tokens; Operand = visitor.Visit context.right }
+        {
+            PrefixOperator = context.Ellipsis().Symbol |> Node.toTerminal tokens
+            Operand = context.expression () |> visitor.Visit
+        }
         |> PrefixOperator
 
     override _.VisitOpenRangeExpression context =
@@ -303,9 +338,17 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitUpdateExpression context =
         {
             Record = visitor.Visit context.record
-            With = context.``with`` |> Node.toTerminal tokens
-            Item = visitor.Visit context.item
-            Arrow = context.arrow |> Node.toTerminal tokens
+            With = context.With().Symbol |> Node.toTerminal tokens
+            Item = visitor.Visit context.index
+            Arrow = context.ArrowLeft().Symbol |> Node.toTerminal tokens
             Value = visitor.Visit context.value
         }
         |> Update
+
+    override visitor.VisitLambdaExpression context =
+        {
+            Binding = context.symbolBinding () |> symbolBindingVisitor.Visit
+            Arrow = Node.toTerminal tokens context.arrow
+            Body = context.expression () |> visitor.Visit
+        }
+        |> Lambda

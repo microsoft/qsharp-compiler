@@ -80,6 +80,9 @@ let internal rangeOrDefault expr =
 let private inferred isMutable quantumDep =
     InferredExpressionInformation.New(isMutable, quantumDep)
 
+let private anyQuantumDep: TypedExpression seq -> _ =
+    Seq.exists (fun e -> e.InferredInformation.HasLocalQuantumDependency)
+
 /// Creates a <see cref="TypedExpression"/> with empty type parameter resolutions.
 let private exprWithoutTypeArgs range inferred (expr, resolvedType) =
     TypedExpression.New(expr, ImmutableDictionary.Empty, resolvedType, inferred, range)
@@ -98,53 +101,29 @@ let private verifyConditionalExecution (expr: TypedExpression) =
 
     [
         if expr.Exists isOperationCall then
-            QsCompilerDiagnostic.Warning(WarningCode.ConditionalEvaluationOfOperationCall, []) (rangeOrDefault expr)
+            QsCompilerDiagnostic.Warning (WarningCode.ConditionalEvaluationOfOperationCall, []) (rangeOrDefault expr)
     ]
-
-/// <summary>
-/// Verifies that <paramref name="resolvedType"/> is a user-defined type.
-/// </summary>
-/// <param name="processUdt">
-/// Given a function to add diagnostics, and a user-defined type, extracts a resolved type from the user-defined type.
-/// </param>
-/// <param name="resolvedType">The resolved type to verify.</param>
-/// <param name="range">The diagnostic range.</param>
-/// <returns>The result of applying <paramref name="processUdt"/> to the UDT and the diagnostics.</returns>
-let private verifyUdtWith processUdt (resolvedType: ResolvedType) range =
-    match resolvedType.Resolution with
-    | QsTypeKind.UserDefinedType udt ->
-        let diagnostics = ResizeArray()
-
-        let resultType =
-            udt |> processUdt (fun error -> QsCompilerDiagnostic.Error error range |> diagnostics.Add)
-
-        resultType, Seq.toList diagnostics
-    | _ ->
-        ResolvedType.New InvalidType,
-        [
-            QsCompilerDiagnostic.Error(ErrorCode.ExpectingUserDefinedType, [ showType resolvedType ]) range
-        ]
 
 /// <summary>
 /// Verifies that <paramref name="lhs"/> and <paramref name="rhs"/> have type Bool.
 /// </summary>
 let private verifyAreBooleans (inference: InferenceContext) lhs rhs =
-    inference.Match(ResolvedType.New Bool .> lhs.ResolvedType)
-    @ inference.Match(ResolvedType.New Bool .> rhs.ResolvedType)
+    inference.Constrain(ResolvedType.New Bool .> lhs.ResolvedType)
+    @ inference.Constrain(ResolvedType.New Bool .> rhs.ResolvedType)
 
 /// <summary>
 /// Verifies that <paramref name="lhs"/> and <paramref name="rhs"/> have type Int.
 /// </summary>
 let private verifyAreIntegers (inference: InferenceContext) lhs rhs =
-    inference.Match(ResolvedType.New Int .> lhs.ResolvedType)
-    @ inference.Match(ResolvedType.New Int .> rhs.ResolvedType)
+    inference.Constrain(ResolvedType.New Int .> lhs.ResolvedType)
+    @ inference.Constrain(ResolvedType.New Int .> rhs.ResolvedType)
 
 /// <summary>
 /// Verifies that <paramref name="expr"/> has type Int or BigInt.
 /// </summary>
 /// <returns>The type of <paramref name="expr"/> and the diagnostics.</returns>
 let private verifyIsIntegral (inference: InferenceContext) expr =
-    expr.ResolvedType, inference.Constrain(expr.ResolvedType, Integral)
+    expr.ResolvedType, Integral expr.ResolvedType |> Class |> inference.Constrain
 
 /// <summary>
 /// Verifies that <paramref name="lhs"/> and <paramref name="rhs"/> have an intersecting integral type.
@@ -153,7 +132,7 @@ let private verifyIsIntegral (inference: InferenceContext) expr =
 let private verifyIntegralOp (inference: InferenceContext) range lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
     let exType = exType |> ResolvedType.withAllRanges (TypeRange.inferred range)
-    let constrainDiagnostics = inference.Constrain(exType, Integral)
+    let constrainDiagnostics = Integral exType |> Class |> inference.Constrain
     exType, intersectDiagnostics @ constrainDiagnostics
 
 /// <summary>
@@ -161,7 +140,7 @@ let private verifyIntegralOp (inference: InferenceContext) range lhs rhs =
 /// </summary>
 /// <returns>The type of <paramref name="expr"/> and the diagnostics.</returns>
 let private verifySupportsArithmetic (inference: InferenceContext) expr =
-    expr.ResolvedType, inference.Constrain(expr.ResolvedType, Numeric)
+    expr.ResolvedType, Num expr.ResolvedType |> Class |> inference.Constrain
 
 /// <summary>
 /// Verifies that <paramref name="lhs"/> and <paramref name="rhs"/> have an intersecting numeric type.
@@ -170,7 +149,7 @@ let private verifySupportsArithmetic (inference: InferenceContext) expr =
 let private verifyArithmeticOp (inference: InferenceContext) range lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
     let exType = exType |> ResolvedType.withAllRanges (TypeRange.inferred range)
-    let constrainDiagnostics = inference.Constrain(exType, Numeric)
+    let constrainDiagnostics = Num exType |> Class |> inference.Constrain
     exType, intersectDiagnostics @ constrainDiagnostics
 
 /// <summary>
@@ -180,7 +159,7 @@ let private verifyArithmeticOp (inference: InferenceContext) range lhs rhs =
 let internal verifyIsIterable (inference: InferenceContext) expr =
     let range = rangeOrDefault expr
     let item = inference.Fresh range
-    item, inference.Constrain(expr.ResolvedType, Iterable item)
+    item, Iterable(expr.ResolvedType, item) |> Class |> inference.Constrain
 
 /// <summary>
 /// Verifies that <paramref name="lhs"/> and <paramref name="rhs"/> have an intersecting semigroup type.
@@ -189,7 +168,7 @@ let internal verifyIsIterable (inference: InferenceContext) expr =
 let private verifySemigroup (inference: InferenceContext) range lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
     let exType = exType |> ResolvedType.withAllRanges (TypeRange.inferred range)
-    let constrainDiagnostics = inference.Constrain(exType, Semigroup)
+    let constrainDiagnostics = Semigroup exType |> Class |> inference.Constrain
     exType, intersectDiagnostics @ constrainDiagnostics
 
 /// <summary>
@@ -199,7 +178,7 @@ let private verifySemigroup (inference: InferenceContext) range lhs rhs =
 let private verifyEqualityComparison (inference: InferenceContext) range lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
     let exType = exType |> ResolvedType.withAllRanges (TypeRange.inferred range)
-    let constrainDiagnostics = inference.Constrain(exType, Equatable)
+    let constrainDiagnostics = Eq exType |> Class |> inference.Constrain
     intersectDiagnostics @ constrainDiagnostics
 
 /// <summary>
@@ -225,21 +204,11 @@ let private verifyValueArray (inference: InferenceContext) range exprs =
         Seq.toList diagnostics
 
 /// <summary>
-/// Verifies that <paramref name="container"/> has a type that can be indexed by a value of type
-/// <paramref name="indexType"/>.
-/// </summary>
-/// <returns>The item type and the diagnostics.</returns>
-let private verifyIndexedItem (inference: InferenceContext) container indexType =
-    let range = rangeOrDefault container
-    let itemType = inference.Fresh range
-    itemType, inference.Constrain(container.ResolvedType, Indexed(indexType, itemType))
-
-/// <summary>
 /// Verifies that <paramref name="expr"/> has an adjointable type.
 /// </summary>
 /// <returns>The type of <paramref name="expr"/> and the diagnostics.</returns>
 let private verifyAdjointApplication (inference: InferenceContext) expr =
-    expr.ResolvedType, inference.Constrain(expr.ResolvedType, Constraint.Adjointable)
+    expr.ResolvedType, ClassConstraint.Adjointable expr.ResolvedType |> Class |> inference.Constrain
 
 /// <summary>
 /// Verifies that <paramref name="expr"/> has a controllable type.
@@ -248,7 +217,7 @@ let private verifyAdjointApplication (inference: InferenceContext) expr =
 let private verifyControlledApplication (inference: InferenceContext) expr =
     let range = rangeOrDefault expr
     let controlled = inference.Fresh range
-    controlled, inference.Constrain(expr.ResolvedType, Constraint.Controllable controlled)
+    controlled, ClassConstraint.Controllable(expr.ResolvedType, controlled) |> Class |> inference.Constrain
 
 // utils for verifying identifiers, call expressions, and resolving type parameters
 
@@ -285,7 +254,7 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
     | LocalVariable _, Null -> (identifier, resId.Type) |> exprWithoutTypeArgs symbol.Range info, Seq.toList diagnostics
     | LocalVariable _, Value _ ->
         invalidWithoutTargs false,
-        QsCompilerDiagnostic.Error(ErrorCode.IdentifierCannotHaveTypeArguments, []) symbol.RangeOrDefault
+        QsCompilerDiagnostic.Error (ErrorCode.IdentifierCannotHaveTypeArguments, []) symbol.RangeOrDefault
         :: Seq.toList diagnostics
     | GlobalCallable _, Value res when res.Length <> typeParams.Length ->
         invalidWithoutTargs false,
@@ -322,23 +291,6 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
 
         TypedExpression.New(identifier, resolutions, resId.Type, exInfo, symbol.Range), Seq.toList diagnostics
 
-/// Verifies that an expression of the given rhsType, used within the given parent (i.e. specialization declaration),
-/// can be used when an expression of expectedType is expected by callaing TypeMatchArgument.
-/// Generates an error with the given error code mismatchErr for the given range if this is not the case.
-/// Verifies that any internal type parameters are "matched" only with themselves (or with an invalid type),
-/// and generates a ConstrainsTypeParameter error if this is not the case.
-/// If the given rhsEx is Some value, verifies whether it contains an identifier referring to the parent
-/// that is not part of a call-like expression but does not specify all needed type arguments.
-/// Calls the given function addError on all generated errors.
-/// IMPORTANT: ignores any external type parameter occuring in expectedType without raising an error!
-let internal verifyAssignment (inference: InferenceContext) expectedType mismatchErr rhs =
-    [
-        if inference.Match(expectedType .> rhs.ResolvedType) |> List.isEmpty |> not then
-            QsCompilerDiagnostic.Error
-                (mismatchErr, [ showType rhs.ResolvedType; showType expectedType ])
-                (rangeOrDefault rhs)
-    ]
-
 /// Given a Q# symbol, as well as the resolved type of the right hand side that is assigned to it,
 /// shape matches the symbol tuple with the type to determine whether the assignment is valid, and
 /// calls the given function tryBuildDeclaration on each symbol item and its matched type.
@@ -355,13 +307,13 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
     | InvalidSymbol -> InvalidItem, [||], [||]
     | MissingSymbol when warnOnDiscard ->
         let warning =
-            QsCompilerDiagnostic.Warning(WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
+            QsCompilerDiagnostic.Warning (WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
 
         DiscardedItem, [||], [| warning |]
     | MissingSymbol -> DiscardedItem, [||], [||]
     | OmittedSymbols
     | QualifiedSymbol _ ->
-        let error = QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
+        let error = QsCompilerDiagnostic.Error (ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
         InvalidItem, [||], [| error |]
     | Symbol name ->
         match tryBuildDeclaration (name, symbol.RangeOrDefault) rhsType with
@@ -374,7 +326,7 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
             if List.isEmpty types then UnitType else ImmutableArray.CreateRange types |> TupleType
             |> ResolvedType.create (TypeRange.inferred symbol.Range)
 
-        let unifyDiagnostics = inference.Match(tupleType .> rhsType)
+        let unifyDiagnostics = inference.Constrain(tupleType .> rhsType)
 
         let verify symbol symbolType =
             verifyBinding inference tryBuildDeclaration (symbol, symbolType) warnOnDiscard
@@ -460,8 +412,7 @@ type QsExpression with
             value
 
         /// Given and expression used for array slicing, as well as the type of the sliced expression,
-        /// generates suitable boundaries for open ended ranges and returns the resolved slicing expression as Some.
-        /// Returns None if the slicing expression is trivial, i.e. if the sliced array does not deviate from the orginal one.
+        /// generates suitable boundaries for open ended ranges and returns the resolved slicing expression.
         /// NOTE: Does *not* generated any diagnostics related to the given type for the array to slice.
         let resolveSlicing array (index: QsExpression) =
             let array = { array with ResolvedType = inference.Resolve array.ResolvedType }
@@ -477,12 +428,8 @@ type QsExpression with
                 | _ -> false
 
             let conditionalIntExpr (cond: TypedExpression) ifTrue ifFalse =
-                let quantumDep =
-                    [ cond; ifTrue; ifFalse ]
-                    |> List.exists (fun ex -> ex.InferredInformation.HasLocalQuantumDependency)
-
                 (CONDITIONAL(cond, ifTrue, ifFalse), ResolvedType.New Int)
-                |> exprWithoutTypeArgs Null (inferred false quantumDep)
+                |> exprWithoutTypeArgs Null (inferred false (anyQuantumDep [ cond; ifTrue; ifFalse ]))
 
             let openStartInSlicing =
                 function
@@ -496,10 +443,10 @@ type QsExpression with
                     conditionalIntExpr (IsNegative step) (SyntaxGenerator.IntLiteral 0L) (LengthMinusOne array)
                 | ex -> if validSlicing ex then LengthMinusOne array else invalidRangeDelimiter
 
-            let resolveSlicingRange start step end' =
+            let resolveSlicingRange start step end_ =
                 let integerExpr ex =
                     let ex = resolve context ex
-                    inference.Match(ResolvedType.New Int .> ex.ResolvedType) |> List.iter diagnose
+                    inference.Constrain(ResolvedType.New Int .> ex.ResolvedType) |> List.iter diagnose
                     ex
 
                 let resolvedStep = step |> Option.map integerExpr
@@ -508,7 +455,7 @@ type QsExpression with
                     if ex.isMissing then build resolvedStep else integerExpr ex
 
                 let resolvedStart, resolvedEnd =
-                    start |> resolveWith openStartInSlicing, end' |> resolveWith openEndInSlicing
+                    start |> resolveWith openStartInSlicing, end_ |> resolveWith openEndInSlicing
 
                 match resolvedStep with
                 | Some resolvedStep ->
@@ -516,31 +463,24 @@ type QsExpression with
                 | None -> SyntaxGenerator.RangeLiteral(resolvedStart, resolvedEnd)
 
             match index.Expression with
-            | RangeLiteral (lhs, rhs) when lhs.isMissing && rhs.isMissing ->
-                // case arr[...]
-                None
-            | RangeLiteral (lhs, end') ->
+            | RangeLiteral (lhs, end_) ->
                 match lhs.Expression with
                 | RangeLiteral (start, step) ->
-                    // cases arr[...step..ex], arr[ex..step...], arr[ex1..step..ex2], and arr[...ex...]
-                    resolveSlicingRange start (Some step) end'
+                    // Cases: xs[...step..end], xs[start..step...], xs[start..step..end], xs[...step...].
+                    resolveSlicingRange start (Some step) end_
                 | _ ->
-                    // case arr[...ex], arr[ex...] and arr[ex1..ex2]
-                    resolveSlicingRange lhs None end'
-                |> Some
+                    // Cases: xs[...end], xs[start...], xs[start..end], xs[...].
+                    resolveSlicingRange lhs None end_
             | _ ->
-                // case arr[ex]
-                resolve context index |> Some
+                // Case: xs[i].
+                resolve context index
 
         /// Resolves and verifies the interpolated expressions, and returns the StringLiteral as typed expression.
         let buildStringLiteral (literal, interpolated) =
             let resInterpol = interpolated |> Seq.map (resolve context) |> ImmutableArray.CreateRange
 
-            let localQdependency =
-                resInterpol |> Seq.exists (fun r -> r.InferredInformation.HasLocalQuantumDependency)
-
             (StringLiteral(literal, resInterpol), String |> ResolvedType.create (TypeRange.inferred this.Range))
-            |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep resInterpol))
 
         /// <summary>
         /// Resolves and verifies all given items, and returns the corresponding ValueTuple as typed expression.
@@ -551,22 +491,19 @@ type QsExpression with
             let items = items |> Seq.map (resolve context) |> ImmutableArray.CreateRange
             let types = items |> Seq.map (fun x -> x.ResolvedType) |> ImmutableArray.CreateRange
 
-            let localQdependency =
-                items |> Seq.exists (fun item -> item.InferredInformation.HasLocalQuantumDependency)
-
             if items.IsEmpty then
                 failwith "tuple expression requires at least one tuple item"
             elif items.Length = 1 then
                 items.[0]
             else
                 (ValueTuple items, TupleType types |> ResolvedType.create (TypeRange.inferred this.Range))
-                |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+                |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep items))
 
         /// Resolves and verifies the given array base type and the expression denoting the length of the array,
         /// and returns the corrsponding NewArray expression as typed expression
         let buildNewArray (bType, ex) =
             let ex = resolve context ex
-            inference.Match(ResolvedType.New Int .> ex.ResolvedType) |> List.iter diagnose
+            inference.Constrain(ResolvedType.New Int .> ex.ResolvedType) |> List.iter diagnose
 
             let resolvedBase = symbols.ResolveType diagnose bType
             let arrType = resolvedBase |> ArrayType |> ResolvedType.create (TypeRange.inferred this.Range)
@@ -578,45 +515,31 @@ type QsExpression with
             let values = values |> Seq.map (resolve context) |> ImmutableArray.CreateRange
             let resolvedType = values |> verifyValueArray inference this.RangeOrDefault |> takeDiagnostics
 
-            let localQdependency =
-                values |> Seq.exists (fun item -> item.InferredInformation.HasLocalQuantumDependency)
-
             (ValueArray values, resolvedType)
-            |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep values))
 
         /// Resolves and verifies the sized array constructor expression and returns it as a typed expression.
         let buildSizedArray value size =
             let value = resolve context value
             let arrayType = ArrayType value.ResolvedType |> ResolvedType.create (TypeRange.inferred this.Range)
             let size = resolve context size
-            inference.Match(ResolvedType.New Int .> size.ResolvedType) |> List.iter diagnose
-
-            let quantumDependency =
-                value.InferredInformation.HasLocalQuantumDependency
-                || size.InferredInformation.HasLocalQuantumDependency
+            inference.Constrain(ResolvedType.New Int .> size.ResolvedType) |> List.iter diagnose
 
             (SizedArray(value, size), arrayType)
-            |> exprWithoutTypeArgs this.Range (inferred false quantumDependency)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ value; size ]))
 
         /// Resolves and verifies the given array expression and index expression of an array item access expression,
         /// and returns the corresponding ArrayItem expression as typed expression.
         let buildArrayItem (array, index: QsExpression) =
             let array = resolve context array
+            let index = resolveSlicing array index
+            let itemType = inference.Fresh this.RangeOrDefault
 
-            match resolveSlicing array index with
-            | None ->
-                { array with
-                    ResolvedType = verifyIndexedItem inference array (ResolvedType.New Range) |> takeDiagnostics
-                }
-            | Some index ->
-                let resolvedType = verifyIndexedItem inference array index.ResolvedType |> takeDiagnostics
+            inference.Constrain(HasIndex(array.ResolvedType, index.ResolvedType, itemType) |> Class)
+            |> List.iter diagnose
 
-                let localQdependency =
-                    array.InferredInformation.HasLocalQuantumDependency
-                    || index.InferredInformation.HasLocalQuantumDependency
-
-                (ArrayItem(array, index), resolvedType)
-                |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            (ArrayItem(array, index), itemType)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ array; index ]))
 
         /// Given a symbol used to represent an item name in an item access or update expression,
         /// returns the an identifier that can be used to represent the corresponding item name.
@@ -626,69 +549,52 @@ type QsExpression with
             | InvalidSymbol -> InvalidIdentifier
             | Symbol name -> LocalVariable name
             | _ ->
-                QsCompilerDiagnostic.Error(ErrorCode.ExpectingItemName, []) sym.RangeOrDefault |> diagnose
+                QsCompilerDiagnostic.Error (ErrorCode.ExpectingItemName, []) sym.RangeOrDefault |> diagnose
                 InvalidIdentifier
 
         /// Resolves and verifies the given expression and item name of a named item access expression,
         /// and returns the corresponding NamedItem expression as typed expression.
         let buildNamedItem (ex, acc) =
             let ex = resolve context ex
-            let itemName = acc |> buildItemName
-            let udtType = inference.Resolve ex.ResolvedType
-            let exType = verifyUdtWith (symbols.GetItemType itemName) udtType (rangeOrDefault ex) |> takeDiagnostics
-            let localQdependency = ex.InferredInformation.HasLocalQuantumDependency
+            let itemName = buildItemName acc
+            let itemType = inference.Fresh this.RangeOrDefault
+            HasField(ex.ResolvedType, itemName, itemType) |> Class |> inference.Constrain |> List.iter diagnose
 
-            (NamedItem(ex, itemName), exType)
-            |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            (NamedItem(ex, itemName), itemType)
+            |> exprWithoutTypeArgs this.Range (inferred false ex.InferredInformation.HasLocalQuantumDependency)
 
         /// Resolves and verifies the given left hand side, access expression, and right hand side of a copy-and-update expression,
         /// and returns the corresponding copy-and-update expression as typed expression.
-        let buildCopyAndUpdate (lhs, accEx: QsExpression, rhs) =
-            let lhs = resolve context lhs
-            let lhs = { lhs with ResolvedType = inference.Resolve lhs.ResolvedType }
-            let rhs = resolve context rhs
+        let buildCopyAndUpdate (container, accessor: QsExpression, item) =
+            let container = resolve context container
+            let item = resolve context item
+            let itemType = inference.Fresh this.RangeOrDefault
 
-            let resolvedCopyAndUpdateExpr accEx =
-                let localQdependency =
-                    [ lhs; accEx; rhs ]
-                    |> Seq.map (fun ex -> ex.InferredInformation.HasLocalQuantumDependency)
-                    |> Seq.contains true
+            let unqualifiedSymbol, isRecordUpdate =
+                match accessor.Expression with
+                | Identifier ({ Symbol = Symbol name } as symbol, Null) ->
+                    Some symbol, Seq.forall (fun v -> v.VariableName <> name) symbols.CurrentDeclarations.Variables
+                | _ -> None, false
 
-                (CopyAndUpdate(lhs, accEx, rhs), lhs.ResolvedType)
-                |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            let recordUpdate field =
+                let itemName = buildItemName field
 
-            match (lhs.ResolvedType.Resolution, accEx.Expression) with
-            | UserDefinedType _, Identifier (sym, Null) ->
-                let itemName = buildItemName sym
+                (Identifier(itemName, Null), itemType) |> exprWithoutTypeArgs field.Range (inferred false false),
+                HasField(container.ResolvedType, itemName, itemType)
 
-                let itemType =
-                    verifyUdtWith (symbols.GetItemType itemName) lhs.ResolvedType (rangeOrDefault lhs)
-                    |> takeDiagnostics
+            let arrayUpdate index =
+                index, HasIndex(container.ResolvedType, index.ResolvedType, itemType)
 
-                verifyAssignment inference itemType ErrorCode.TypeMismatchInCopyAndUpdateExpr rhs
-                |> List.iter diagnose
+            let accessor, cls =
+                match unqualifiedSymbol with
+                | Some symbol when isRecordUpdate -> recordUpdate symbol
+                | _ -> resolveSlicing container accessor |> arrayUpdate
 
-                let resAccEx =
-                    (Identifier(itemName, Null), itemType)
-                    |> exprWithoutTypeArgs sym.Range (inferred false lhs.InferredInformation.HasLocalQuantumDependency)
+            inference.Constrain(Class cls) |> List.iter diagnose
+            inference.Constrain(itemType .> item.ResolvedType) |> List.iter diagnose
 
-                resAccEx |> resolvedCopyAndUpdateExpr
-            | _ -> // by default, assume that the update expression is supposed to be for an array
-                match resolveSlicing lhs accEx with
-                | None -> // indicates a trivial slicing of the form "..." resulting in a complete replacement
-                    let expectedRhs = verifyIndexedItem inference lhs (ResolvedType.New Range) |> takeDiagnostics
-
-                    verifyAssignment inference expectedRhs ErrorCode.TypeMismatchInCopyAndUpdateExpr rhs
-                    |> List.iter diagnose
-
-                    { rhs with ResolvedType = expectedRhs }
-                | Some resAccEx -> // indicates either a index or index range to update
-                    let expectedRhs = verifyIndexedItem inference lhs resAccEx.ResolvedType |> takeDiagnostics
-
-                    verifyAssignment inference expectedRhs ErrorCode.TypeMismatchInCopyAndUpdateExpr rhs
-                    |> List.iter diagnose
-
-                    resAccEx |> resolvedCopyAndUpdateExpr
+            (CopyAndUpdate(container, accessor, item), container.ResolvedType)
+            |> exprWithoutTypeArgs this.Range (inferred false ([ container; accessor; item ] |> anyQuantumDep))
 
         /// Resolves and verifies the given left hand side and right hand side of a range operator,
         /// and returns the corresponding RANGE expression as typed expression.
@@ -696,7 +602,7 @@ type QsExpression with
         /// *under the assumption* that the range operator is left associative.
         let buildRange (lhs: QsExpression, rhs) =
             let rhs = resolve context rhs
-            inference.Match(ResolvedType.New Int .> rhs.ResolvedType) |> List.iter diagnose
+            inference.Constrain(ResolvedType.New Int .> rhs.ResolvedType) |> List.iter diagnose
 
             let lhs =
                 match lhs.Expression with
@@ -705,24 +611,16 @@ type QsExpression with
                     let step = resolve context step
                     verifyAreIntegers inference start step |> List.iter diagnose
 
-                    let localQdependency =
-                        start.InferredInformation.HasLocalQuantumDependency
-                        || step.InferredInformation.HasLocalQuantumDependency
-
                     (RangeLiteral(start, step), Range |> ResolvedType.create (TypeRange.inferred this.Range))
-                    |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+                    |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ start; step ]))
                 | _ ->
                     resolve context lhs
                     |> (fun resStart ->
-                        inference.Match(ResolvedType.New Int .> resStart.ResolvedType) |> List.iter diagnose
+                        inference.Constrain(ResolvedType.New Int .> resStart.ResolvedType) |> List.iter diagnose
                         resStart)
 
-            let localQdependency =
-                lhs.InferredInformation.HasLocalQuantumDependency
-                || rhs.InferredInformation.HasLocalQuantumDependency
-
             (RangeLiteral(lhs, rhs), Range |> ResolvedType.create (TypeRange.inferred this.Range))
-            |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ lhs; rhs ]))
 
         /// Resolves and verifies the given expression with the given verification function,
         /// and returns the corresponding expression built with buildExprKind as typed expression.
@@ -740,12 +638,8 @@ type QsExpression with
             let rhs = resolve context rhs
             let resolvedType = verifyArithmeticOp inference this.Range lhs rhs |> takeDiagnostics
 
-            let localQdependency =
-                lhs.InferredInformation.HasLocalQuantumDependency
-                || rhs.InferredInformation.HasLocalQuantumDependency
-
             (buildExprKind (lhs, rhs), resolvedType)
-            |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ lhs; rhs ]))
 
         /// Resolves and verifies the given left hand side and right hand side of an addition operator,
         /// and returns the corresponding ADD expression as typed expression.
@@ -757,11 +651,8 @@ type QsExpression with
             let rhs = resolve context rhs
             let resolvedType = verifySemigroup inference this.Range lhs rhs |> takeDiagnostics
 
-            let localQdependency =
-                lhs.InferredInformation.HasLocalQuantumDependency
-                || rhs.InferredInformation.HasLocalQuantumDependency
-
-            (ADD(lhs, rhs), resolvedType) |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            (ADD(lhs, rhs), resolvedType)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ lhs; rhs ]))
 
         /// Resolves and verifies the given left hand side and right hand side of a power operator,
         /// and returns the corresponding POW expression as typed expression.
@@ -773,16 +664,13 @@ type QsExpression with
 
             let resolvedType =
                 if inference.Resolve(lhs.ResolvedType).Resolution = BigInt then
-                    inference.Match(ResolvedType.New Int .> rhs.ResolvedType) |> List.iter diagnose
+                    inference.Constrain(ResolvedType.New Int .> rhs.ResolvedType) |> List.iter diagnose
                     lhs.ResolvedType
                 else
                     verifyArithmeticOp inference this.Range lhs rhs |> takeDiagnostics
 
-            let localQdependency =
-                lhs.InferredInformation.HasLocalQuantumDependency
-                || rhs.InferredInformation.HasLocalQuantumDependency
-
-            (POW(lhs, rhs), resolvedType) |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            (POW(lhs, rhs), resolvedType)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ lhs; rhs ]))
 
         /// Resolves and verifies the given left hand side and right hand side of a binary integral operator,
         /// and returns the corresponding expression built with buildExprKind as typed expression of type Int or BigInt, as appropriate.
@@ -791,12 +679,8 @@ type QsExpression with
             let rhs = resolve context rhs
             let resolvedType = verifyIntegralOp inference this.Range lhs rhs |> takeDiagnostics
 
-            let localQdependency =
-                lhs.InferredInformation.HasLocalQuantumDependency
-                || rhs.InferredInformation.HasLocalQuantumDependency
-
             (buildExprKind (lhs, rhs), resolvedType)
-            |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ lhs; rhs ]))
 
         /// Resolves and verifies the given left hand side and right hand side of a shift operator,
         /// and returns the corresponding expression built with buildExprKind as typed expression of type Int or BigInt, as appropriate.
@@ -804,14 +688,10 @@ type QsExpression with
             let lhs = resolve context lhs
             let rhs = resolve context rhs
             let resolvedType = verifyIsIntegral inference lhs |> takeDiagnostics
-            inference.Match(ResolvedType.New Int .> rhs.ResolvedType) |> List.iter diagnose
-
-            let localQdependency =
-                lhs.InferredInformation.HasLocalQuantumDependency
-                || rhs.InferredInformation.HasLocalQuantumDependency
+            inference.Constrain(ResolvedType.New Int .> rhs.ResolvedType) |> List.iter diagnose
 
             (buildExprKind (lhs, rhs), resolvedType)
-            |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ lhs; rhs ]))
 
         /// Resolves and verifies the given left hand side and right hand side of a binary boolean operator,
         /// and returns the corresponding expression built with buildExprKind as typed expression of type Bool.
@@ -822,12 +702,8 @@ type QsExpression with
 
             if shortCircuits then verifyConditionalExecution rhs |> List.iter diagnose
 
-            let localQdependency =
-                lhs.InferredInformation.HasLocalQuantumDependency
-                || rhs.InferredInformation.HasLocalQuantumDependency
-
             (buildExprKind (lhs, rhs), ResolvedType.New Bool)
-            |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ lhs; rhs ]))
 
         /// Resolves and verifies the given condition, left hand side, and right hand side of a conditional expression (if-else-shorthand),
         /// and returns the corresponding conditional expression as typed expression.
@@ -835,7 +711,7 @@ type QsExpression with
             let cond = resolve context cond
             let ifTrue = resolve context ifTrue
             let ifFalse = resolve context ifFalse
-            inference.Match(ResolvedType.New Bool .> cond.ResolvedType) |> List.iter diagnose
+            inference.Constrain(ResolvedType.New Bool .> cond.ResolvedType) |> List.iter diagnose
             verifyConditionalExecution ifTrue |> List.iter diagnose
             verifyConditionalExecution ifFalse |> List.iter diagnose
 
@@ -844,18 +720,15 @@ type QsExpression with
                 |> takeDiagnostics
                 |> ResolvedType.withAllRanges (TypeRange.inferred this.Range)
 
-            let localQdependency =
-                [ cond; ifTrue; ifFalse ] |> Seq.exists (fun ex -> ex.InferredInformation.HasLocalQuantumDependency)
-
             (CONDITIONAL(cond, ifTrue, ifFalse), exType)
-            |> exprWithoutTypeArgs this.Range (inferred false localQdependency)
+            |> exprWithoutTypeArgs this.Range (inferred false (anyQuantumDep [ cond; ifTrue; ifFalse ]))
 
         /// Resolves the given expression and verifies that its type is indeed a user defined type.
         /// Determines the underlying type of the user defined type and returns the corresponding UNWRAP expression as typed expression of that type.
         let buildUnwrap ex =
             let ex = resolve context ex
             let exType = inference.Fresh this.RangeOrDefault
-            inference.Constrain(ex.ResolvedType, Wrapped exType) |> List.iter diagnose
+            Unwrap(ex.ResolvedType, exType) |> Class |> inference.Constrain |> List.iter diagnose
 
             (UnwrapApplication ex, exType)
             |> exprWithoutTypeArgs this.Range (inferred false ex.InferredInformation.HasLocalQuantumDependency)
@@ -869,22 +742,24 @@ type QsExpression with
             let argType, partialType = partialArgType inference arg.ResolvedType
 
             if Option.isNone partialType then
-                inference.Constrain(
-                    callable.ResolvedType,
-                    Set.ofSeq symbols.RequiredFunctorSupport |> CanGenerateFunctors
-                )
+                HasFunctorsIfOperation(callable.ResolvedType, Set.ofSeq symbols.RequiredFunctorSupport)
+                |> Class
+                |> inference.Constrain
                 |> List.iter diagnose
 
             let output = inference.Fresh this.RangeOrDefault
 
             if Option.isSome partialType || context.IsInOperation then
-                inference.Constrain(callable.ResolvedType, Callable(argType, output)) |> List.iter diagnose
+                Callable(callable.ResolvedType, argType, output)
+                |> Class
+                |> inference.Constrain
+                |> List.iter diagnose
             else
                 let diagnostics =
-                    inference.Match(callable.ResolvedType <. ResolvedType.New(QsTypeKind.Function(argType, output)))
+                    inference.Constrain(callable.ResolvedType <. ResolvedType.New(QsTypeKind.Function(argType, output)))
 
                 if inference.Resolve callable.ResolvedType |> isOperation then
-                    QsCompilerDiagnostic.Error(ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
+                    QsCompilerDiagnostic.Error (ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
                     |> diagnose
                 else
                     List.iter diagnose diagnostics
@@ -894,7 +769,9 @@ type QsExpression with
                 | Some missing ->
                     let result = inference.Fresh this.RangeOrDefault
 
-                    inference.Constrain(callable.ResolvedType, HasPartialApplication(missing, result))
+                    HasPartialApplication(callable.ResolvedType, missing, result)
+                    |> Class
+                    |> inference.Constrain
                     |> List.iter diagnose
 
                     result
@@ -902,8 +779,7 @@ type QsExpression with
 
             let hasQuantumDependency =
                 if Option.isSome partialType || inference.Resolve callable.ResolvedType |> isFunction then
-                    callable.InferredInformation.HasLocalQuantumDependency
-                    || arg.InferredInformation.HasLocalQuantumDependency
+                    anyQuantumDep [ callable; arg ]
                 else
                     true
 
@@ -1049,6 +925,6 @@ type QsExpression with
                 NOT
                 (fun ex' ->
                     Bool |> ResolvedType.create (TypeRange.inferred this.Range),
-                    inference.Match(ResolvedType.New Bool .> ex'.ResolvedType))
+                    inference.Constrain(ResolvedType.New Bool .> ex'.ResolvedType))
                 ex
         | Lambda lambda -> buildLambda lambda

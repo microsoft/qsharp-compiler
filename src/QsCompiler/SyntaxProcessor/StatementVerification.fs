@@ -32,7 +32,7 @@ let private onAutoInvertCheckQuantumDependency (symbols: SymbolTracker) (expr: T
     [|
         if symbols.RequiredFunctorSupport.Contains Adjoint
            && expr.InferredInformation.HasLocalQuantumDependency then
-            QsCompilerDiagnostic.Error(ErrorCode.QuantumDependencyOutsideExprStatement, []) (rangeOrDefault expr)
+            QsCompilerDiagnostic.Error (ErrorCode.QuantumDependencyOutsideExprStatement, []) (rangeOrDefault expr)
     |]
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested,
@@ -57,10 +57,10 @@ let private asStatement comments location vars kind =
 let NewExpressionStatement comments location context expr =
     let expr, diagnostics = resolveExpr context expr
 
-    if context.Inference.Match(ResolvedType.New UnitType .> expr.ResolvedType) |> List.isEmpty |> not then
+    if context.Inference.Constrain(ResolvedType.New UnitType .> expr.ResolvedType) |> List.isEmpty |> not then
         let type_ = context.Inference.Resolve expr.ResolvedType |> SyntaxTreeToQsharp.Default.ToCode
         let range = QsNullable.defaultValue Range.Zero expr.Range
-        QsCompilerDiagnostic.Error(ErrorCode.ValueImplicitlyIgnored, [ type_ ]) range |> diagnostics.Add
+        QsCompilerDiagnostic.Error (ErrorCode.ValueImplicitlyIgnored, [ type_ ]) range |> diagnostics.Add
 
     QsExpressionStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
@@ -70,7 +70,7 @@ let NewExpressionStatement comments location context expr =
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewFailStatement comments location context expr =
     let expr, diagnostics = resolveExpr context expr
-    context.Inference.Match(ResolvedType.New String .> expr.ResolvedType) |> diagnostics.AddRange
+    context.Inference.Constrain(ResolvedType.New String .> expr.ResolvedType) |> diagnostics.AddRange
     onAutoInvertCheckQuantumDependency context.Symbols expr |> diagnostics.AddRange
     QsFailStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
@@ -83,9 +83,7 @@ let NewFailStatement comments location context expr =
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics.
 let NewReturnStatement comments (location: QsLocation) context expr =
     let expr, diagnostics = resolveExpr context expr
-
-    verifyAssignment context.Inference context.ReturnType ErrorCode.TypeMismatchInReturn expr
-    |> diagnostics.AddRange
+    context.Inference.Constrain(context.ReturnType .> expr.ResolvedType) |> diagnostics.AddRange
 
     onAutoInvertGenerateError ((ErrorCode.ReturnStatementWithinAutoInversion, []), location.Range) context.Symbols
     |> diagnostics.AddRange
@@ -104,9 +102,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
     let rhs, rhsDiagnostics = resolveExpr context rhs
     let localQdep = rhs.InferredInformation.HasLocalQuantumDependency
     diagnostics.AddRange rhsDiagnostics
-
-    verifyAssignment context.Inference lhs.ResolvedType ErrorCode.TypeMismatchInValueUpdate rhs
-    |> diagnostics.AddRange
+    context.Inference.Constrain(lhs.ResolvedType .> rhs.ResolvedType) |> diagnostics.AddRange
 
     let rec verifyMutability: TypedExpression -> _ =
         function
@@ -116,7 +112,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
             | Identifier (LocalVariable id, Null) -> context.Symbols.UpdateQuantumDependency id localQdep
             | _ -> ()
         | Item ex ->
-            QsCompilerDiagnostic.Error(ErrorCode.UpdateOfImmutableIdentifier, []) (ex.Range.ValueOr Range.Zero)
+            QsCompilerDiagnostic.Error (ErrorCode.UpdateOfImmutableIdentifier, []) (ex.Range.ValueOr Range.Zero)
             |> diagnostics.Add
         | _ -> () // both missing and invalid expressions on the lhs are fine
 
@@ -217,7 +213,7 @@ let NewForStatement comments (location: QsLocation) context (symbol, expr) =
 /// as well as a delegate that given a Q# scope returns the built while-statement with the given scope as the body.
 let NewWhileStatement comments (location: QsLocation) context condition =
     let condition, diagnostics = resolveExpr context condition
-    context.Inference.Match(ResolvedType.New Bool .> condition.ResolvedType) |> diagnostics.AddRange
+    context.Inference.Constrain(ResolvedType.New Bool .> condition.ResolvedType) |> diagnostics.AddRange
 
     let whileLoop body =
         QsWhileStatement.New(condition, body) |> QsWhileStatement
@@ -230,7 +226,7 @@ let NewWhileStatement comments (location: QsLocation) context condition =
 /// as well as a delegate that given a positioned block of Q# statements returns the corresponding conditional block.
 let NewConditionalBlock comments location context condition =
     let condition, diagnostics = resolveExpr context condition
-    context.Inference.Match(ResolvedType.New Bool .> condition.ResolvedType) |> diagnostics.AddRange
+    context.Inference.Constrain(ResolvedType.New Bool .> condition.ResolvedType) |> diagnostics.AddRange
     onAutoInvertCheckQuantumDependency context.Symbols condition |> diagnostics.AddRange
     BlockStatement(fun body -> condition, QsPositionedBlock.New comments (Value location) body), diagnostics.ToArray()
 
@@ -322,7 +318,7 @@ let private NewBindingScope kind comments (location: QsLocation) context (symbol
             SingleQubitAllocation |> ResolvedInitializer.create (TypeRange.inferred init.Range), Seq.empty
         | QubitRegisterAllocation size ->
             let size, diagnostics = resolveExpr context size
-            context.Inference.Match(ResolvedType.New Int .> size.ResolvedType) |> diagnostics.AddRange
+            context.Inference.Constrain(ResolvedType.New Int .> size.ResolvedType) |> diagnostics.AddRange
             onAutoInvertCheckQuantumDependency context.Symbols size |> diagnostics.AddRange
 
             QubitRegisterAllocation size |> ResolvedInitializer.create (TypeRange.inferred init.Range),

@@ -247,7 +247,7 @@ module SymbolResolution =
         let getRedirect (att: AttributeAnnotation) =
             if att |> IndicatesDeprecation checkQualification then Some att.Argument else None
 
-        StringArgument(getRedirect, (fun ex -> ex.Expression)) attributes
+        StringArgument (getRedirect, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> QsNullable.ofOption
 
@@ -259,7 +259,7 @@ module SymbolResolution =
         let getRedirect (att: QsDeclarationAttribute) =
             if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
 
-        StringArgument(getRedirect, (fun ex -> ex.Expression)) attributes
+        StringArgument (getRedirect, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> QsNullable.ofOption
 
@@ -281,7 +281,7 @@ module SymbolResolution =
         let getTestName (att: QsDeclarationAttribute) =
             if att |> BuiltIn.DefinesNameForTesting then Some att.Argument else None
 
-        StringArgument(getTestName, (fun ex -> ex.Expression)) attributes
+        StringArgument (getTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> Option.bind TryAsQualifiedName
         |> QsNullable.ofOption
@@ -293,7 +293,7 @@ module SymbolResolution =
         let loadedViaTestName (att: QsDeclarationAttribute) =
             if att |> BuiltIn.DefinesLoadedViaTestNameInsteadOf then Some att.Argument else None
 
-        StringArgument(loadedViaTestName, (fun ex -> ex.Expression)) attributes
+        StringArgument (loadedViaTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> Option.bind TryAsQualifiedName
         |> QsNullable.ofOption
@@ -318,30 +318,43 @@ module SymbolResolution =
                 | true, valid -> valid
                 | false, _ -> null
 
-        StringArgument(getTarget, (fun ex -> ex.Expression)) attributes
+        StringArgument (getTarget, (fun ex -> ex.Expression)) attributes
         |> Seq.map targetName
         |> ImmutableHashSet.CreateRange
 
-    /// Returns the required runtime capability if the sequence of attributes contains at least one valid instance of
-    /// the RequiresCapability attribute.
+    /// <summary>
+    /// Returns the required capability if the sequence of attributes contains at least one valid instance of the
+    /// <c>RequiresCapability</c> attribute.
+    /// </summary>
     let TryGetRequiredCapability attributes =
-        let getCapability (att: QsDeclarationAttribute) =
-            if att |> BuiltIn.MarksRequiredCapability then
-                match att.Argument.Expression with
-                | ValueTuple vs when vs.Length = 2 -> Some vs.[0]
-                | _ -> None
-            else
-                None
+        let getString e =
+            match e.Expression with
+            | StringLiteral (s, es) when es.IsEmpty -> Some s
+            | _ -> None
 
-        let capabilities =
-            StringArgument(getCapability, (fun ex -> ex.Expression)) attributes
-            |> QsNullable<_>.Choose RuntimeCapability.TryParse
-            |> ImmutableHashSet.CreateRange
+        let builders =
+            [
+                ResultOpacity.ofName >> Option.map TargetCapability.withResultOpacity
+                ClassicalCompute.ofName >> Option.map TargetCapability.withClassicalCompute
+            ]
 
-        if Seq.isEmpty capabilities then
-            Null
-        else
-            capabilities |> Seq.reduce RuntimeCapability.Combine |> Value
+        let applyBuilder capability arg builder =
+            (getString arg |> Option.bind builder |> Option.defaultValue id) capability
+
+        let getCapability (attribute: QsDeclarationAttribute) =
+            match attribute.Argument.Expression with
+            | ValueTuple args when args.Length = 2 ->
+                // Backwards compatibility with (Name : String, Reason : String).
+                getString args[0] |> Option.bind TargetCapability.ofName
+            | ValueTuple args when args.Length = 3 ->
+                // Parse (ResultOpacity : String, ClassicalCompute : String, Reason : String).
+                Seq.fold2 applyBuilder TargetCapability.bottom args builders |> Some
+            | _ -> None
+
+        Seq.filter BuiltIn.MarksRequiredCapability attributes
+        |> Seq.choose getCapability
+        |> Seq.fold (fun acc c -> Option.fold TargetCapability.merge c acc |> Some) None
+        |> QsNullable.ofOption
 
     /// Checks whether the given attributes defines a code for an instruction within the quantum instruction set that matches this callable.
     /// Returns the string code as Value if this is the case, and Null otherwise.
@@ -350,7 +363,7 @@ module SymbolResolution =
         let loadedViaTestName (att: QsDeclarationAttribute) =
             if att |> BuiltIn.DefinesTargetInstruction then Some att.Argument else None
 
-        StringArgument(loadedViaTestName, (fun ex -> ex.Expression)) attributes
+        StringArgument (loadedViaTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> QsNullable.ofOption
 
@@ -387,7 +400,7 @@ module SymbolResolution =
 
                 [
                     if argType.Exists isNamedParam |> not && returnType.Exists isNamedParam |> not then
-                        QsCompilerDiagnostic.Warning(WarningCode.UnusedTypeParam, [ "'" + name ]) range
+                        QsCompilerDiagnostic.Warning (WarningCode.UnusedTypeParam, [ "'" + name ]) range
                 ]
             | InvalidName -> []
 
@@ -706,7 +719,7 @@ module SymbolResolution =
                 let onTypeParam (_, tpRange) =
                     InvalidType, [| tpRange |> diagnostic ErrorCode.TypeParameterizedArgumentInAttribute |]
 
-                let resBaseType, typeErrs = ResolveType(onUdt, onTypeParam) bt
+                let resBaseType, typeErrs = ResolveType (onUdt, onTypeParam) bt
                 let resIdx, idxErrs = argExpression idx
 
                 (NewArray(resBaseType, resIdx), ArrayType resBaseType) |> asTypedExpression ex.Range,

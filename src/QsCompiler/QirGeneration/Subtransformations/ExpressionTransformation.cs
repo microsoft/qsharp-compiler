@@ -8,6 +8,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 {
     internal class QirExpressionTransformation : ExpressionTransformation<GenerationContext>
     {
+        internal class Metadata
+        {
+            public ResolvedType Type { get; }
+
+            public bool MayEscapeItsScope { get; } = true;
+
+            internal Metadata(ResolvedType type, bool mayEscapeScope = true)
+            {
+                this.Type = type;
+                this.MayEscapeItsScope = mayEscapeScope;
+            }
+        }
+
         public QirExpressionTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation)
             : base(parentTransformation)
         {
@@ -32,9 +45,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override TypedExpression OnTypedExpression(TypedExpression ex)
         {
-            this.SharedState.ExpressionTypeStack.Push(ex.ResolvedType);
+            // Todo: write a proper analysis to determine whether a value may escape its scope.
+            var metadata = new Metadata(
+                ex.ResolvedType,
+                mayEscapeScope: !this.SharedState.TargetQirProfile);
+
+            this.SharedState.ExpressionMetadataStack.Push(metadata);
             var result = base.OnTypedExpression(ex);
-            this.SharedState.ExpressionTypeStack.Pop();
+            this.SharedState.ExpressionMetadataStack.Pop();
             return result;
         }
     }

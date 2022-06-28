@@ -3,7 +3,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsFmt.Parser</AssemblyName>
     <RootNamespace>$(AssemblyName)</RootNamespace>
-    <!--Disable warnings for generated code -->
+    <!-- Disable warnings for generated code. -->
     <NoWarn>$(NoWarn);CS1584;CS1658</NoWarn>
   </PropertyGroup>
 
@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AntlrInput Include="*.g4" />
+    <AntlrInput Include="$(ProjectDir)/../../../qsharp-language/Specifications/Language/5_Grammar/*.g4" />
 
     <AntlrOutput Include="$(AntlrPath)QSharpLexer.cs" />
     <AntlrOutput Include="$(AntlrPath)QSharpParser.cs" />
@@ -26,24 +26,21 @@
   <ItemGroup>
     <PackageReference Include="Antlr4.Runtime.Standard" Version="$(AntlrVersion)" />
   </ItemGroup>
-  
+
   <Target Name="Antlr" BeforeTargets="CoreCompile" Inputs="@(AntlrInput)" Outputs="@(AntlrOutput)">
     <DownloadFile DestinationFolder="$(AntlrPath)" SourceUrl="$(AntlrJarUrl)" />
-    <Exec Command="java -jar &quot;$(AntlrPath)$(AntlrJar)&quot; -o &quot;$(AntlrPath)&quot; -no-listener -visitor -package &quot;$(RootNamespace)&quot; -Dlanguage=CSharp &quot;@(AntlrInput, '&quot; &quot;')&quot;" />
+    <Exec Command="java -jar &quot;$(AntlrPath)$(AntlrJar)&quot; -o &quot;$(AntlrPath)&quot; -no-listener -visitor -package &quot;$(RootNamespace)&quot; &quot;@(AntlrInput, '&quot; &quot;')&quot;" />
     <ItemGroup>
       <Compile Include="@(AntlrOutput)" />
     </ItemGroup>
   </Target>
 
-  <!--
-  Providing this target is necessary since otherwise generated C# files are not properly cleaned.
-  -->
-  <Target Name="CleanAntlrFiles" BeforeTargets="Clean">
+  <!-- Providing this target is necessary since otherwise generated C# files are not properly cleaned. -->
+  <Target Name="CleanAntlr" BeforeTargets="Clean">
     <ItemGroup>
       <_FilesToClean Include="$(AntlrPath)**" />
       <Compile Remove="$(_FilesToClean)**/*.cs" />
     </ItemGroup>
     <Delete Files="@(_FilesToClean)" />
   </Target>
-
-  </Project>
+</Project>

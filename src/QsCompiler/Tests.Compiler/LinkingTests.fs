@@ -127,7 +127,12 @@ type LinkingTests() =
 
     member private this.CompileMonomorphization input =
         let compilationDataStructures = this.BuildContent(compilationManager, input)
-        let monomorphicCompilation = Monomorphize.Apply compilationDataStructures.BuiltCompilation
+        let monomorphize = new BuiltInRewriteSteps.Monomorphization()
+
+        let success, monomorphicCompilation =
+            monomorphize.Transformation compilationDataStructures.BuiltCompilation
+
+        Assert.True success
         Assert.NotNull monomorphicCompilation
         ValidateMonomorphization.Apply monomorphicCompilation
         monomorphicCompilation
@@ -242,8 +247,8 @@ type LinkingTests() =
                 Seq.item 0 x)
 
         Assert.True(
-            generated.Access = Public,
-            "Callables originally public should remain public if all arguments are public."
+            generated.Access = Internal,
+            "Callables originally public should be internal even if all arguments are public."
         )
 
     member private this.RunSyntaxTreeTrimTest testNumber keepIntrinsics =
@@ -470,16 +475,18 @@ type LinkingTests() =
     member this.``Entry point return type restriction for quantum processors``() =
 
         let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
+        let capabilityName = TargetCapability.name TargetCapability.basicQuantumFunctionality
 
-        let props = ImmutableDictionary.CreateBuilder()
-        props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
-        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, BasicQuantumFunctionality.Name)
+        let props =
+            dict [ MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe
+                   MSBuildProperties.ResolvedTargetCapability, Option.toObj capabilityName ]
+            |> ProjectProperties
 
-        let compilationManager =
-            new CompilationUnitManager(new ProjectProperties(props), Action<_>(fun (ex: exn) -> failwith ex.Message))
+        use compilationManager =
+            new CompilationUnitManager(props, Action<_>(fun (ex: exn) -> failwith ex.Message))
 
         let addOrUpdateSourceFile filePath =
-            getManager (new Uri(filePath)) (File.ReadAllText filePath)
+            getManager (Uri filePath) (File.ReadAllText filePath)
             |> compilationManager.AddOrUpdateSourceFileAsync
             |> ignore
 

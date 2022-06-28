@@ -3,17 +3,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
 using Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming;
-using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 
 namespace Microsoft.Quantum.QsCompiler
 {
@@ -21,13 +15,10 @@ namespace Microsoft.Quantum.QsCompiler
     {
         internal const int EmissionPriority = -10;
 
-        private readonly List<IRewriteStep.Diagnostic> diagnostics;
+        private readonly List<IRewriteStep.Diagnostic> diagnostics = new();
 
-        public QirGeneration()
-        {
-            this.diagnostics = new List<IRewriteStep.Diagnostic>();
+        public QirGeneration() =>
             this.AssemblyConstants = new Dictionary<string, string?>();
-        }
 
         /// <inheritdoc/>
         public string Name => "QIR Generation";
@@ -51,32 +42,16 @@ namespace Microsoft.Quantum.QsCompiler
         public bool ImplementsPostconditionVerification => false;
 
         /// <inheritdoc/>
-        public bool PreconditionVerification(QsCompilation compilation)
-        {
-            try
-            {
-                ValidateMonomorphization.Apply(compilation, allowTypeParametersForIntrinsics: true);
-                return true;
-            }
-            catch
-            {
-                this.diagnostics.Add(new IRewriteStep.Diagnostic
-                {
-                    Severity = DiagnosticSeverity.Error,
-                    Stage = IRewriteStep.Stage.PreconditionVerification,
-                    Message = DiagnosticItem.Message(ErrorCode.SyntaxTreeNotMonomorphized, Array.Empty<string>()),
-                    Source = Assembly.GetExecutingAssembly().Location,
-                });
-                return false;
-            }
-        }
+        public bool PreconditionVerification(QsCompilation compilation) =>
+            CompilationSteps.VerifyGenerationPrecondition(compilation, this.diagnostics);
 
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = compilation;
-            using var generator = new Generator(transformed);
-            generator.Apply();
+            var targetCapability = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.TargetCapability, out var capability) && !string.IsNullOrWhiteSpace(capability)
+                ? TargetCapability.TryParse(capability) // null if parsing fails
+                : null;
+            using var generator = CompilationSteps.CreateAndPopulateGenerator(compilation, targetCapability);
 
             // write generated QIR to disk
             var assemblyName = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.AssemblyName, out var asmName) ? asmName : null;
@@ -95,6 +70,7 @@ namespace Microsoft.Quantum.QsCompiler
                 generator.Emit(llvmSourceFile, emitBitcode: false);
             }
 
+            transformed = compilation;
             return true;
         }
 
@@ -119,13 +95,10 @@ namespace Microsoft.Quantum.QsCompiler
     /// </exception>
     public class TargetInstructionInference : IRewriteStep
     {
-        private readonly List<IRewriteStep.Diagnostic> diagnostics = new List<IRewriteStep.Diagnostic>();
+        private readonly List<IRewriteStep.Diagnostic> diagnostics = new();
 
-        public TargetInstructionInference()
-        {
-            this.diagnostics = new List<IRewriteStep.Diagnostic>();
+        public TargetInstructionInference() =>
             this.AssemblyConstants = new Dictionary<string, string?>();
-        }
 
         /// <inheritdoc/>
         public string Name => "Target Instruction Separation";
@@ -149,30 +122,13 @@ namespace Microsoft.Quantum.QsCompiler
         public bool ImplementsPostconditionVerification => false;
 
         /// <inheritdoc/>
-        public bool PreconditionVerification(QsCompilation compilation)
-        {
-            var attributes = compilation.Namespaces.Attributes().Select(att => att.FullName).ToImmutableHashSet();
-            return attributes.Contains(BuiltIn.TargetInstruction.FullName)
-                && attributes.Contains(BuiltIn.Inline.FullName);
-        }
+        public bool PreconditionVerification(QsCompilation compilation) =>
+            CompilationSteps.VerifyTargetInstructionInferencePrecondition(compilation);
 
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = TrimSyntaxTree.Apply(compilation, keepAllIntrinsics: false);
-            transformed = InferTargetInstructions.ReplaceSelfAdjointSpecializations(transformed);
-            transformed = InferTargetInstructions.LiftIntrinsicSpecializations(transformed);
-            var allAttributesAdded = InferTargetInstructions.TryAddMissingTargetInstructionAttributes(transformed, out transformed);
-            if (!allAttributesAdded)
-            {
-                this.diagnostics.Add(new IRewriteStep.Diagnostic
-                {
-                    Severity = DiagnosticSeverity.Warning,
-                    Message = DiagnosticItem.Message(WarningCode.MissingTargetInstructionName, Array.Empty<string>()),
-                    Stage = IRewriteStep.Stage.Transformation,
-                });
-            }
-
+            transformed = CompilationSteps.RunTargetInstructionInference(compilation, this.diagnostics);
             return true;
         }
 

@@ -376,6 +376,12 @@ type internal 'context Rewriter =
     default Update: context: 'context * update: Update -> Update
 
     /// <summary>
+    /// Rewrites a <see cref="Lambda"/> expression node.
+    /// </summary>
+    abstract Lambda: context: 'context * lambda: Lambda -> Lambda
+    default Lambda: context: 'context * lambda: Lambda -> Lambda
+
+    /// <summary>
     /// Rewrites a <see cref="Block{a}"/> node, given a rewriter for the block contents.
     /// </summary>
     abstract Block: context: 'context * mapper: ('context * 'a -> 'a) * block: 'a Block -> 'a Block

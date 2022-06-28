@@ -4,8 +4,8 @@
 namespace Microsoft.Quantum.Testing.QIR {
     open Microsoft.Quantum.Intrinsic;
 
-    operation LengthCaching (vals : Int[]) : Int[] {
-        return vals[...2...];
+    operation LengthCaching (vals : Int[], step : Int) : Int[] {
+        return vals[...step...];
     }
 
     internal function Conditional(res : Result, (x : Double, y : Double)) : (Double, Double) {
@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.Testing.QIR {
 
         let pad = Length(arr) < 10 ? 
             new Int[10] | arr;
-        let sliced = LengthCaching(pad);
+        let sliced = LengthCaching(pad, pad[0]);
         return Length(pad);
     }
 }

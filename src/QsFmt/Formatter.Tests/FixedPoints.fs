@@ -314,7 +314,7 @@ let ``Unwrap operator`` =
 }"""
 
 [<FixedPoint>]
-let ``Factor application`` =
+let ``Functor application`` =
     """namespace Foo {
     function Bar () : Unit {
         Controlled Adjoint Op([], ());
@@ -345,5 +345,25 @@ let ``Range expressions`` =
         let slice1 = arr[3...];
         let slice2 = arr[...2..3];
         let slice3 = arr[...];
+    }
+}"""
+
+[<FixedPoint>]
+let ``Lambda expression`` =
+    """namespace Foo {
+    function Bar() : Unit {
+        let l1 = x -> x;
+        let l2 = x => x;
+        let l3 = f -> f();
+        let l4 = (f -> f());
+        let l5 = (f -> f)();
+        let l6 = (x, y) -> x + y;
+        let l7 = U(q => X(q));
+        let l8 = U(q => X(q), x);
+        let l9 = U(x, q => X(q));
+        let l10 = U((x, q) => X(q));
+        let l11 = U(7, q => X(q));
+        let l12 = U(7, i, q => X(q));
+        let l13 = F(_ -> 0, xs);
     }
 }"""

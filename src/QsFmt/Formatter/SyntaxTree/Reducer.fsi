@@ -378,6 +378,12 @@ type internal 'result Reducer =
     default Update: update: Update -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="Lambda"/> expression node.
+    /// </summary>
+    abstract Lambda: lambda: Lambda -> 'result
+    default Lambda: lambda: Lambda -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="Block{a}"/> node, given a reducer for the block contents.
     /// </summary>
     abstract Block: mapper: ('a -> 'result) * block: 'a Block -> 'result

@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -12,10 +11,25 @@
     <Content Include="TypeInference\README.md" />
     <Compile Include="TypeInference\Constraint.fsi" />
     <Compile Include="TypeInference\Constraint.fs" />
+    <Compile Include="TypeInference\Diagnostic.fsi" />
+    <Compile Include="TypeInference\Diagnostic.fs" />
     <Compile Include="TypeInference\InferenceContext.fsi" />
     <Compile Include="TypeInference\InferenceContext.fs" />
     <Compile Include="ScopeContext.fs" />
-    <Compile Include="CapabilityInference.fs" />
+    <Compile Include="CapabilityInference\Analyzer.fsi" />
+    <Compile Include="CapabilityInference\Analyzer.fs" />
+    <Compile Include="CapabilityInference\CallAnalyzer.fsi" />
+    <Compile Include="CapabilityInference\CallAnalyzer.fs" />
+    <Compile Include="CapabilityInference\ConstAnalyzer.fsi" />
+    <Compile Include="CapabilityInference\ConstAnalyzer.fs" />
+    <Compile Include="CapabilityInference\FeatureAnalyzer.fsi" />
+    <Compile Include="CapabilityInference\FeatureAnalyzer.fs" />
+    <Compile Include="CapabilityInference\ResultAnalyzer.fsi" />
+    <Compile Include="CapabilityInference\ResultAnalyzer.fs" />
+    <Compile Include="CapabilityInference\TypeAnalyzer.fsi" />
+    <Compile Include="CapabilityInference\TypeAnalyzer.fs" />
+    <Compile Include="CapabilityInference\Capabilities.fsi" />
+    <Compile Include="CapabilityInference\Capabilities.fs" />
     <Compile Include="ContextVerification.fs" />
     <Compile Include="ExpressionVerification.fs" />
     <Compile Include="StatementVerification.fs" />
@@ -37,5 +51,4 @@
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Update="System.ValueTuple" Version="4.4.0" />
   </ItemGroup>
-
 </Project>
