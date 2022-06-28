@@ -357,7 +357,7 @@ type ResolvedCharacteristics =
     /// The properties cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
     /// </exception>
     member this.GetProperties() =
-        match ResolvedCharacteristics.ExtractProperties(fun ex -> ex._Characteristics) this with
+        match ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this with
         | Some props -> props.ToImmutableHashSet()
         | None -> InvalidOperationException "properties cannot be determined" |> raise
 
@@ -369,7 +369,7 @@ type ResolvedCharacteristics =
             | Adjointable -> Some Adjoint
             | Controllable -> Some Controlled
 
-        match ResolvedCharacteristics.ExtractProperties(fun ex -> ex._Characteristics) this with
+        match ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this with
         | Some props -> (props |> Seq.choose getFunctor).ToImmutableHashSet() |> Value
         | None -> Null
 
@@ -1141,3 +1141,19 @@ type QsCompilation =
         /// In the case of a library the array is empty.
         EntryPoints: ImmutableArray<QsQualifiedName>
     }
+
+    /// Returns the names of all callables that are part of the public API surface that can be used from outside Q#.
+    /// If includeReferences is true, returns the names of the callables that are part of this surface,
+    /// independent on whether they have been defined in the source code of this compilation unit or in a referenced assembly.
+    /// Returns only the names of callables defined in source code otherwise.
+    member this.InteroperableSurface includeReferences =
+        let isInteropSourceApi (c: QsCallable) =
+            c.Signature.TypeParameters.IsEmpty
+            && c.Access = Public
+            && (includeReferences || c.Source.AssemblyFile = Null)
+
+        this.Namespaces
+        |> Seq.collect (fun ns -> ns.Elements)
+        |> Seq.choose (function
+            | QsCallable c when c |> isInteropSourceApi -> Some c.FullName
+            | _ -> None)

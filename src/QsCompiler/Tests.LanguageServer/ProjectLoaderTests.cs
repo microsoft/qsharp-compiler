@@ -4,9 +4,9 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Runtime.Loader;
-using Microsoft.Build.Locator;
+using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -15,24 +15,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     [TestClass]
     public class ProjectLoaderTests
     {
-        [AssemblyInitialize]
-        public static void SetupMSBuildLocator(TestContext testContext)
-        {
-            VisualStudioInstance vsi = MSBuildLocator.RegisterDefaults();
-
-            // This is replicating the approach followed in Microsoft.Quantum.QsLanguageServer.Server.Run()
-            AssemblyLoadContext.Default.Resolving += (assemblyLoadContext, assemblyName) =>
-            {
-                string path = Path.Combine(vsi.MSBuildPath, assemblyName.Name + ".dll");
-                if (File.Exists(path))
-                {
-                    return assemblyLoadContext.LoadFromAssemblyPath(path);
-                }
-
-                return null;
-            };
-        }
-
         private static string ProjectFileName(string project) =>
             Path.Combine("TestProjects", project, $"{project}.csproj");
 
@@ -43,6 +25,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         {
             var uri = ProjectUri(project);
             return (uri, CompilationContext.Load(uri));
+        }
+
+        [TestInitialize]
+        public void RunMSBuildLocator()
+        {
+            _ = VisualStudioInstanceWrapper.LazyVisualStudioInstance.Value;
         }
 
         [TestMethod]
@@ -77,7 +65,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             static void CompareFramework(string project, string? expected)
             {
                 var projectFileName = ProjectFileName(project);
-                var props = new ProjectLoader().DesignTimeBuildProperties(projectFileName, out var _, (x, y) => (y.Contains('.') ? 1 : 0) - (x.Contains('.') ? 1 : 0));
+                var props = new ProjectLoader().DesignTimeBuildProperties(projectFileName, (x, y) => (y.Contains('.') ? 1 : 0) - (x.Contains('.') ? 1 : 0));
                 if (!props.TryGetValue("TargetFramework", out var actual))
                 {
                     actual = null;
@@ -259,6 +247,31 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             Assert.IsTrue(context.UsesIntrinsics());
             Assert.IsTrue(context.UsesCanon());
+            CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
+        }
+
+        [TestMethod]
+        public void LoadTargetedQSharpExecutable()
+        {
+            var (projectFile, context) = Context("test17");
+            var projDir = Path.GetDirectoryName(projectFile.LocalPath) ?? "";
+            Assert.IsNotNull(context);
+            Assert.AreEqual("test17.dll", Path.GetFileName(context!.Properties.DllOutputPath));
+            Assert.IsTrue((Path.GetDirectoryName(context.Properties.DllOutputPath) ?? "").StartsWith(projDir));
+
+            var qsFiles = new string[]
+            {
+                Path.Combine(projDir, "MeasureBell.qs"),
+            };
+
+            Assert.AreEqual(TargetCapabilityModule.FromName("AdaptiveExecution"), context.Properties.TargetCapability);
+            Assert.AreEqual(AssemblyConstants.QCIProcessor, context.Properties.ProcessorArchitecture);
+
+            Assert.IsTrue(context.UsesQSharpCore());
+            Assert.IsFalse(context.UsesIntrinsics());
+            Assert.IsFalse(context.UsesDll("Microsoft.Quantum.Type3.Core.dll"));
+            Assert.IsTrue(context.UsesCanon());
+            Assert.IsFalse(context.UsesXunitHelper());
             CollectionAssert.AreEquivalent(qsFiles, context.SourceFiles.ToArray());
         }
 

@@ -38,7 +38,7 @@ let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) dia
             yield! diagnostic.Arguments
         }
 
-    Option.map (fun code -> QsCompilerDiagnostic.Warning(code, args) (range.ValueOr Range.Zero)) warningCode
+    Option.map (fun code -> QsCompilerDiagnostic.Warning (code, args) (range.ValueOr Range.Zero)) warningCode
 
 // TODO: Remove this function as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
 let explainCall (nsManager: NamespaceManager) graph target (call: Call) =

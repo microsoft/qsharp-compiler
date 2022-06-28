@@ -83,12 +83,13 @@ namespace Microsoft.Quantum.QIR
         /// <param name="name">The name of the function without the component prefix</param>
         /// <returns>The mangled function name</returns>
         /// <exception cref="ArgumentException">No naming convention is defined for the given component.</exception>
-        public static string FunctionName(Component component, string name) => component switch
-        {
-            Component.RuntimeLibrary => $"__quantum__rt__{name}",
-            Component.QuantumInstructionSet => $"__quantum__qis__{name}",
-            _ => throw new ArgumentException("unkown software component"),
-        };
+        public static string FunctionName(Component component, string name) =>
+            name.StartsWith("__") ? name : component switch
+            {
+                Component.RuntimeLibrary => $"__quantum__rt__{name}",
+                Component.QuantumInstructionSet => $"__quantum__qis__{name}",
+                _ => throw new ArgumentException("unkown software component"),
+            };
 
         // public and internal methods
 
@@ -141,12 +142,12 @@ namespace Microsoft.Quantum.QIR
         /// The function to access the step may return null if the given range does not specify the step.
         /// In that case, the step size defaults to be 1L.
         /// </returns>
-        private (Func<Value> GetStart, Func<Value> GetStep, Func<Value> GetEnd) RangeItems(IValue range)
+        private (Value Start, Value Step, Value End) RangeItems(IValue range)
         {
-            Func<Value> startValue = () => this.sharedState.CurrentBuilder.ExtractValue(range.Value, 0u);
-            Func<Value> stepValue = () => this.sharedState.CurrentBuilder.ExtractValue(range.Value, 1u);
-            Func<Value> endValue = () => this.sharedState.CurrentBuilder.ExtractValue(range.Value, 2u);
-            return (startValue, stepValue, endValue);
+            var start = this.sharedState.CurrentBuilder.ExtractValue(range.Value, 0u);
+            var step = this.sharedState.CurrentBuilder.ExtractValue(range.Value, 1u);
+            var end = this.sharedState.CurrentBuilder.ExtractValue(range.Value, 2u);
+            return (start, step, end);
         }
 
         /// <param name="rangeEx">The range expression for which to create the access functions</param>
@@ -155,27 +156,27 @@ namespace Microsoft.Quantum.QIR
         /// The function to access the step may return null if the given range does not specify the step.
         /// In that case, the step size defaults to be 1L.
         /// </returns>
-        internal (Func<Value> GetStart, Func<Value?> GetStep, Func<Value> GetEnd) RangeItems(TypedExpression rangeEx)
+        internal (Value Start, Value? Step, Value End) RangeItems(TypedExpression rangeEx)
         {
-            Func<Value> startValue;
-            Func<Value?> stepValue;
-            Func<Value> endValue;
+            Value startValue;
+            Value? stepValue;
+            Value endValue;
             if (rangeEx.Expression is ResolvedExpressionKind.RangeLiteral rlit)
             {
                 if (rlit.Item1.Expression is ResolvedExpressionKind.RangeLiteral rlitInner)
                 {
-                    startValue = () => this.sharedState.EvaluateSubexpression(rlitInner.Item1).Value;
-                    stepValue = () => this.sharedState.EvaluateSubexpression(rlitInner.Item2).Value;
+                    startValue = this.sharedState.EvaluateSubexpression(rlitInner.Item1).Value;
+                    stepValue = this.sharedState.EvaluateSubexpression(rlitInner.Item2).Value;
                 }
                 else
                 {
-                    startValue = () => this.sharedState.EvaluateSubexpression(rlit.Item1).Value;
-                    stepValue = () => null;
+                    startValue = this.sharedState.EvaluateSubexpression(rlit.Item1).Value;
+                    stepValue = null;
                 }
 
                 // Item2 is always the end. Either Item1 is the start and 1 is the step,
                 // or Item1 is a range expression itself, with Item1 the start and Item2 the step.
-                endValue = () => this.sharedState.EvaluateSubexpression(rlit.Item2).Value;
+                endValue = this.sharedState.EvaluateSubexpression(rlit.Item2).Value;
             }
             else
             {
@@ -215,39 +216,39 @@ namespace Microsoft.Quantum.QIR
 
         private IValue RangeStart(IValue arg)
         {
-            var (getStart, _, _) = this.RangeItems(arg);
-            return this.sharedState.Values.FromSimpleValue(getStart(), Int);
+            var (start, _, _) = this.RangeItems(arg);
+            return this.sharedState.Values.FromSimpleValue(start, Int);
         }
 
         private IValue RangeStart(TypedExpression arg)
         {
-            var (getStart, _, _) = this.RangeItems(arg);
-            return this.sharedState.Values.FromSimpleValue(getStart(), Int);
+            var (start, _, _) = this.RangeItems(arg);
+            return this.sharedState.Values.FromSimpleValue(start, Int);
         }
 
         private IValue RangeStep(IValue arg)
         {
-            var (_, getStep, _) = this.RangeItems(arg);
-            return this.sharedState.Values.FromSimpleValue(getStep(), Int);
+            var (_, step, _) = this.RangeItems(arg);
+            return this.sharedState.Values.FromSimpleValue(step, Int);
         }
 
         private IValue RangeStep(TypedExpression arg)
         {
-            var (_, getStep, _) = this.RangeItems(arg);
-            var res = getStep() ?? this.sharedState.Context.CreateConstant(1L);
+            var (_, step, _) = this.RangeItems(arg);
+            var res = step ?? this.sharedState.Context.CreateConstant(1L);
             return this.sharedState.Values.FromSimpleValue(res, Int);
         }
 
         private IValue RangeEnd(IValue arg)
         {
-            var (_, _, getEnd) = this.RangeItems(arg);
-            return this.sharedState.Values.FromSimpleValue(getEnd(), Int);
+            var (_, _, end) = this.RangeItems(arg);
+            return this.sharedState.Values.FromSimpleValue(end, Int);
         }
 
         private IValue RangeEnd(TypedExpression arg)
         {
-            var (_, _, getEnd) = this.RangeItems(arg);
-            return this.sharedState.Values.FromSimpleValue(getEnd(), Int);
+            var (_, _, end) = this.RangeItems(arg);
+            return this.sharedState.Values.FromSimpleValue(end, Int);
         }
 
         private IValue RangeReverse(Value start, Value step, Value end)
@@ -263,14 +264,14 @@ namespace Microsoft.Quantum.QIR
 
         private IValue RangeReverse(IValue arg)
         {
-            var (getStart, getStep, getEnd) = this.RangeItems(arg);
-            return this.RangeReverse(getStart(), getStep(), getEnd());
+            var (start, step, end) = this.RangeItems(arg);
+            return this.RangeReverse(start, step, end);
         }
 
         private IValue RangeReverse(TypedExpression arg)
         {
-            var (getStart, getStep, getEnd) = this.RangeItems(arg);
-            return this.RangeReverse(getStart(), getStep() ?? this.sharedState.Context.CreateConstant(1L), getEnd());
+            var (start, step, end) = this.RangeItems(arg);
+            return this.RangeReverse(start, step ?? this.sharedState.Context.CreateConstant(1L), end);
         }
 
         private IValue Message(IValue arg)
@@ -292,7 +293,7 @@ namespace Microsoft.Quantum.QIR
             var value = arg.Value;
             if (!value.NativeType.IsPointer)
             {
-                var pointer = this.sharedState.CurrentBuilder.Alloca(value.NativeType);
+                var pointer = this.sharedState.Allocate(value.NativeType);
                 this.sharedState.CurrentBuilder.Store(value, pointer);
                 value = pointer;
             }
@@ -307,7 +308,7 @@ namespace Microsoft.Quantum.QIR
         {
             if (!arg1.NativeType.IsPointer)
             {
-                var pointer = this.sharedState.CurrentBuilder.Alloca(arg1.NativeType);
+                var pointer = this.sharedState.Allocate(arg1.NativeType);
                 this.sharedState.CurrentBuilder.Store(arg1, pointer);
                 arg1 = pointer;
             }

@@ -1141,11 +1141,6 @@ namespace Microsoft.Quantum.Intrinsic {
 
 namespace Microsoft.Quantum.Core
 {
-    function Length<'T> (a : 'T[]) : Int {
-        body intrinsic;
-    }
-
-
     function RangeStart (range : Range) : Int {
         body intrinsic;
     }

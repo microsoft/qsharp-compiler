@@ -31,15 +31,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     /// </summary>
     public static class Monomorphize
     {
-        private static bool IsGeneric(QsCallable callable) =>
-            callable.Signature.TypeParameters.Any() || callable.Specializations.Any(spec => spec.Signature.TypeParameters.Any());
-
         /// <summary>
         /// Performs Monomorphization on the given compilation. If the monomorphizeIntrinsics parameter
         /// is set to false, then intrinsics will not be monomorphized.
         /// </summary>
         public static QsCompilation Apply(QsCompilation compilation, bool monomorphizeIntrinsics = false)
         {
+            // If this compilation is for a library project, there are no defined entry points. Instead,
+            // treat every public, non-generic callable as a possible entry point into the library.
+            var hasEntryPoints = compilation.EntryPoints.Length > 0;
+            if (!hasEntryPoints)
+            {
+                compilation = new QsCompilation(compilation.Namespaces, compilation.InteroperableSurface(includeReferences: false).ToImmutableArray());
+            }
+
             var globals = compilation.Namespaces.GlobalCallableResolutions();
             var concretizations = new List<QsCallable>();
             var concreteNamesMap = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
@@ -81,25 +86,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 }
             }
 
-            var callablesByNamespace = concretizations.ToLookup(x => x.FullName.Namespace);
+            var callablesByNamespace = concretizations.ToLookup(x => x.FullName.Namespace, QsNamespaceElement.NewQsCallable);
             var namespacesWithImpls = compilation.Namespaces.Select(ns =>
-            {
-                var elemsToAdd = callablesByNamespace[ns.Name].Select(call => QsNamespaceElement.NewQsCallable(call));
-
-                return ns.WithElements(elems =>
-                    elems
-                    .Where(elem =>
-                        !(elem is QsNamespaceElement.QsCallable call)
-                        || !IsGeneric(call.Item)
-                        || (call.Item.IsIntrinsic && !monomorphizeIntrinsics))
-                    .Concat(elemsToAdd)
-                    .ToImmutableArray());
-            }).ToImmutableArray();
+                ns.WithElements(elems => elems.Concat(callablesByNamespace[ns.Name]).ToImmutableArray())).ToImmutableArray();
 
             var compWithImpls = new QsCompilation(namespacesWithImpls, compilation.EntryPoints);
 
             GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
-                    GetConcreteIdentifier(concreteNamesMap, globalCallable, types);
+                GetConcreteIdentifier(concreteNamesMap, globalCallable, types);
 
             var intrinsicsToKeep = monomorphizeIntrinsics
                 ? ImmutableHashSet<QsQualifiedName>.Empty
@@ -108,7 +102,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     .Select(kvp => kvp.Key)
                     .ToImmutableHashSet();
 
-            return ReplaceTypeParamCalls.Apply(compWithImpls, getConcreteIdentifier, intrinsicsToKeep);
+            var monomorphized = ReplaceTypeParamCalls.Apply(compWithImpls, getConcreteIdentifier, intrinsicsToKeep);
+            return hasEntryPoints ? monomorphized : new QsCompilation(monomorphized.Namespaces, ImmutableArray<QsQualifiedName>.Empty);
         }
 
         /* Rewrite Implementations */
@@ -167,7 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 public override QsCallable OnCallableDeclaration(QsCallable c)
                 {
                     var relevantAccessModifiers = this.SharedState.GetAccessModifiers.Apply(this.SharedState.TypeParams.Values)
-                        .Append(c.Access);
+                        .Append(c.Access).Append(Access.Internal); // monomorphized callables should never be public
 
                     c = new QsCallable(
                         c.Kind,

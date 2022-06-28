@@ -54,11 +54,16 @@ namespace Microsoft.Quantum.Testing.QIR{
            arr | (arr w/ 2 <- "!");
     }
 
+    function SlicingWithOpenEndedRange(arr : Double[]) : Double[] {
+        return arr[...2...];
+    }
+
     @EntryPoint()
     operation TestConditional (arg : Double[]) : Int {
         let _ = Hello(true);
         let _ = ReturnFromNested(true, false);
         let _ = TestConditions("", []);
+        let _ = SlicingWithOpenEndedRange(arg);
         let result = ReturnInt(CustomTuple([3.]));
         return result;
     }

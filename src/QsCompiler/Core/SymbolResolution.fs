@@ -247,7 +247,7 @@ module SymbolResolution =
         let getRedirect (att: AttributeAnnotation) =
             if att |> IndicatesDeprecation checkQualification then Some att.Argument else None
 
-        StringArgument(getRedirect, (fun ex -> ex.Expression)) attributes
+        StringArgument (getRedirect, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> QsNullable.ofOption
 
@@ -259,7 +259,7 @@ module SymbolResolution =
         let getRedirect (att: QsDeclarationAttribute) =
             if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
 
-        StringArgument(getRedirect, (fun ex -> ex.Expression)) attributes
+        StringArgument (getRedirect, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> QsNullable.ofOption
 
@@ -281,7 +281,7 @@ module SymbolResolution =
         let getTestName (att: QsDeclarationAttribute) =
             if att |> BuiltIn.DefinesNameForTesting then Some att.Argument else None
 
-        StringArgument(getTestName, (fun ex -> ex.Expression)) attributes
+        StringArgument (getTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> Option.bind TryAsQualifiedName
         |> QsNullable.ofOption
@@ -293,7 +293,7 @@ module SymbolResolution =
         let loadedViaTestName (att: QsDeclarationAttribute) =
             if att |> BuiltIn.DefinesLoadedViaTestNameInsteadOf then Some att.Argument else None
 
-        StringArgument(loadedViaTestName, (fun ex -> ex.Expression)) attributes
+        StringArgument (loadedViaTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> Option.bind TryAsQualifiedName
         |> QsNullable.ofOption
@@ -318,7 +318,7 @@ module SymbolResolution =
                 | true, valid -> valid
                 | false, _ -> null
 
-        StringArgument(getTarget, (fun ex -> ex.Expression)) attributes
+        StringArgument (getTarget, (fun ex -> ex.Expression)) attributes
         |> Seq.map targetName
         |> ImmutableHashSet.CreateRange
 
@@ -363,7 +363,7 @@ module SymbolResolution =
         let loadedViaTestName (att: QsDeclarationAttribute) =
             if att |> BuiltIn.DefinesTargetInstruction then Some att.Argument else None
 
-        StringArgument(loadedViaTestName, (fun ex -> ex.Expression)) attributes
+        StringArgument (loadedViaTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> QsNullable.ofOption
 
@@ -400,7 +400,7 @@ module SymbolResolution =
 
                 [
                     if argType.Exists isNamedParam |> not && returnType.Exists isNamedParam |> not then
-                        QsCompilerDiagnostic.Warning(WarningCode.UnusedTypeParam, [ "'" + name ]) range
+                        QsCompilerDiagnostic.Warning (WarningCode.UnusedTypeParam, [ "'" + name ]) range
                 ]
             | InvalidName -> []
 
@@ -719,7 +719,7 @@ module SymbolResolution =
                 let onTypeParam (_, tpRange) =
                     InvalidType, [| tpRange |> diagnostic ErrorCode.TypeParameterizedArgumentInAttribute |]
 
-                let resBaseType, typeErrs = ResolveType(onUdt, onTypeParam) bt
+                let resBaseType, typeErrs = ResolveType (onUdt, onTypeParam) bt
                 let resIdx, idxErrs = argExpression idx
 
                 (NewArray(resBaseType, resIdx), ArrayType resBaseType) |> asTypedExpression ex.Range,

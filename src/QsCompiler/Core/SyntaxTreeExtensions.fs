@@ -28,7 +28,7 @@ type QsInitializer with
     // utils for tuple matching
 
     static member private OnTupleItems =
-        OnTupleItems(fun (single: QsInitializer) -> single.TupleItems) "QsInitializer"
+        OnTupleItems (fun (single: QsInitializer) -> single.TupleItems) "QsInitializer"
 
     member internal this.TupleItems =
         match this.Initializer with
@@ -42,7 +42,7 @@ type ResolvedInitializer with
     // utils for tuple matching
 
     static member private OnTupleItems =
-        OnTupleItems(fun (single: ResolvedInitializer) -> single.TupleItems) "ResolvedInitializer"
+        OnTupleItems (fun (single: ResolvedInitializer) -> single.TupleItems) "ResolvedInitializer"
 
     member internal this.TupleItems =
         match this.Resolution with
@@ -55,7 +55,7 @@ type QsSymbol with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems(fun (single: QsSymbol) -> single.TupleItems) "QsSymbol"
+    static member private OnTupleItems = OnTupleItems (fun (single: QsSymbol) -> single.TupleItems) "QsSymbol"
 
     member internal this.TupleItems =
         match this.Symbol with
@@ -69,7 +69,7 @@ type SymbolTuple with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems(fun (single: SymbolTuple) -> single.TupleItems) "SymbolTuple"
+    static member private OnTupleItems = OnTupleItems (fun (single: SymbolTuple) -> single.TupleItems) "SymbolTuple"
 
     member internal this.TupleItems =
         match this with
@@ -98,7 +98,7 @@ type ResolvedType with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems(fun (single: ResolvedType) -> single.TupleItems) "ResolvedType"
+    static member private OnTupleItems = OnTupleItems (fun (single: ResolvedType) -> single.TupleItems) "ResolvedType"
 
     member internal this.TupleItems =
         match this.Resolution with
@@ -148,14 +148,14 @@ type ResolvedType with
     /// Returns an enumerable of all extracted return values.
     member this.ExtractAll(extract: _ -> IEnumerable<_>) : IEnumerable<_> =
         let inner (t: ResolvedType) = t.Resolution
-        ResolvedType.ExtractAll(inner, extract) this
+        ResolvedType.ExtractAll (inner, extract) this
 
 
 type QsType with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems(fun (single: QsType) -> single.TupleItems) "QsType"
+    static member private OnTupleItems = OnTupleItems (fun (single: QsType) -> single.TupleItems) "QsType"
 
     member internal this.TupleItems =
         match this.Type with
@@ -171,7 +171,7 @@ type QsType with
     /// Returns an enumerable of all extracted types.
     member public this.ExtractAll(extract: _ -> IEnumerable<_>) =
         let inner (t: QsType) = t.Type
-        ResolvedType.ExtractAll(inner, extract) this
+        ResolvedType.ExtractAll (inner, extract) this
 
 
 type TypedExpression with
@@ -179,7 +179,7 @@ type TypedExpression with
     // utils for tuple matching
 
     static member private OnTupleItems =
-        OnTupleItems(fun (single: TypedExpression) -> single.TupleItems) "TypedExpression"
+        OnTupleItems (fun (single: TypedExpression) -> single.TupleItems) "TypedExpression"
 
     member internal this.TupleItems =
         match this.Expression with
@@ -303,7 +303,7 @@ type QsExpression with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems(fun (single: QsExpression) -> single.TupleItems) "QsExpression"
+    static member private OnTupleItems = OnTupleItems (fun (single: QsExpression) -> single.TupleItems) "QsExpression"
 
     member internal this.TupleItems =
         match this.Expression with

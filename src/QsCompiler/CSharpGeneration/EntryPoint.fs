@@ -79,16 +79,7 @@ let private parameterOptionsProperty parameters =
 
 /// A lambda that creates an instance of the default simulator if it is a custom simulator.
 let private customSimulatorFactory name =
-    let isCustomSimulator =
-        not
-        <| List.contains
-            name
-            [
-                AssemblyConstants.QuantumSimulator
-                AssemblyConstants.SparseSimulator
-                AssemblyConstants.ToffoliSimulator
-                AssemblyConstants.ResourcesEstimator
-            ]
+    let isCustomSimulator = not <| CommandLineArguments.BuiltInSimulators.Contains name
 
     let factory =
         if isCustomSimulator then
@@ -469,7 +460,10 @@ let private mainNamespace context entryPoints =
 let generateMainSource context entryPoints =
     let mainNS = mainNamespace context entryPoints
 
-    ``compilation unit`` [] (Seq.map using SimulationCode.autoNamespaces) [ mainNS :> MemberDeclarationSyntax ]
+    ``compilation unit``
+        []
+        (Seq.map using (SimulationCode.autoNamespaces context))
+        [ mainNS :> MemberDeclarationSyntax ]
     |> ``with leading comments`` SimulationCode.autogenComment
     |> SimulationCode.formatSyntaxTree
 
@@ -482,6 +476,6 @@ let generateSource context (entryPoints: seq<QsCallable>) =
             for ns, eps in entryPointNamespaces -> entryPointNamespace context ns eps :> MemberDeclarationSyntax
         ]
 
-    ``compilation unit`` [] (Seq.map using SimulationCode.autoNamespaces) namespaces
+    ``compilation unit`` [] (Seq.map using (SimulationCode.autoNamespaces context)) namespaces
     |> ``with leading comments`` SimulationCode.autogenComment
     |> SimulationCode.formatSyntaxTree
