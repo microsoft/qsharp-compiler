@@ -10,7 +10,7 @@
 /src/QsCompiler/Optimizations @samarsha
 
 /src/QsCompiler/BondSchemas @cesarzc
-/src/QsCompiler/TestTargets @cesarzc
+/src/QsCompiler/TestTargets @swernli @cesarzc
 
 /src/QsCompiler/LanguageServer @samarsha @swernli
 /src/QsCompiler/TestProjects @samarsha @swernli
