@@ -446,7 +446,6 @@ type QsExpression with
             let resolveSlicingRange start step end_ =
                 let integerExpr ex =
                     let ex = resolve context ex
-                    inference.Constrain(ResolvedType.New Int .> ex.ResolvedType) |> List.iter diagnose
                     { ex  with ResolvedType = inference.Resolve ex.ResolvedType }
 
                 let resolvedStep = step |> Option.map integerExpr
