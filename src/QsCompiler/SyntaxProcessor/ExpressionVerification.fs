@@ -423,8 +423,7 @@ type QsExpression with
 
             let validSlicing step =
                 match array.ResolvedType.Resolution with
-                | ArrayType _ ->
-                    step |> Option.forall (fun expr -> Int = expr.ResolvedType.Resolution)
+                | ArrayType _ -> step |> Option.forall (fun expr -> Int = expr.ResolvedType.Resolution)
                 | _ -> false
 
             let conditionalIntExpr (cond: TypedExpression) ifTrue ifFalse =
@@ -446,7 +445,7 @@ type QsExpression with
             let resolveSlicingRange start step end_ =
                 let integerExpr ex =
                     let ex = resolve context ex
-                    { ex  with ResolvedType = inference.Resolve ex.ResolvedType }
+                    { ex with ResolvedType = inference.Resolve ex.ResolvedType }
 
                 let resolvedStep = step |> Option.map integerExpr
 
