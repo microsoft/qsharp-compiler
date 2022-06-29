@@ -424,7 +424,7 @@ type QsExpression with
             let validSlicing step =
                 match array.ResolvedType.Resolution with
                 | ArrayType _ ->
-                    step |> Option.forall (fun expr -> Int = (inference.Resolve expr.ResolvedType).Resolution)
+                    step |> Option.forall (fun expr -> Int = expr.ResolvedType.Resolution)
                 | _ -> false
 
             let conditionalIntExpr (cond: TypedExpression) ifTrue ifFalse =
@@ -434,22 +434,20 @@ type QsExpression with
             let openStartInSlicing =
                 function
                 | Some step when Some step |> validSlicing ->
-                    let inferredStep = { step with ResolvedType = Int |> ResolvedType.New } // validSlicing ensures that the type must be an Int
-                    conditionalIntExpr (IsNegative inferredStep) (LengthMinusOne array) (SyntaxGenerator.IntLiteral 0L)
+                    conditionalIntExpr (IsNegative step) (LengthMinusOne array) (SyntaxGenerator.IntLiteral 0L)
                 | _ -> SyntaxGenerator.IntLiteral 0L
 
             let openEndInSlicing =
                 function
                 | Some step when Some step |> validSlicing ->
-                    let inferredStep = { step with ResolvedType = Int |> ResolvedType.New } // validSlicing ensures that the type must be an Int
-                    conditionalIntExpr (IsNegative inferredStep) (SyntaxGenerator.IntLiteral 0L) (LengthMinusOne array)
+                    conditionalIntExpr (IsNegative step) (SyntaxGenerator.IntLiteral 0L) (LengthMinusOne array)
                 | ex -> if validSlicing ex then LengthMinusOne array else invalidRangeDelimiter
 
             let resolveSlicingRange start step end_ =
                 let integerExpr ex =
                     let ex = resolve context ex
                     inference.Constrain(ResolvedType.New Int .> ex.ResolvedType) |> List.iter diagnose
-                    ex
+                    { ex  with ResolvedType = inference.Resolve ex.ResolvedType }
 
                 let resolvedStep = step |> Option.map integerExpr
 
