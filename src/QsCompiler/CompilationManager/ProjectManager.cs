@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Indicates whether code is compiled for a notebook (Azure Notebook, Jupyter Notebook, etc.).
         /// This means inferring an implicit namespace{} block (and banning explicit namespace{}
-        /// blocks), special treatment of use directives, and ignoring magic commands (e.g. %simulate)
+        /// blocks), special treatment of open directives, and ignoring magic commands (e.g. %simulate)
         /// </summary>
         public bool IsNotebook { get; set; }
 
