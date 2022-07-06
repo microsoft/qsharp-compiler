@@ -310,6 +310,10 @@ type LocalVerificationTests() =
         this.Expect "ValidArraySlice7" []
         this.Expect "ValidArraySlice8" []
         this.Expect "ValidArraySlice9" []
+        this.Expect "ValidArraySlice10" []
+        this.Expect "ValidArraySlice11" []
+        this.Expect "ValidArraySlice12" []
+        this.Expect "ValidArraySlice13" []
 
         this.Expect "InvalidArraySlice1" [ Error ErrorCode.ItemAccessForNonArray ]
         this.Expect "InvalidArraySlice2" [ Error ErrorCode.ItemAccessForNonArray ]
