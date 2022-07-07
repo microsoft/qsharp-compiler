@@ -1,6 +1,6 @@
 {
     "name": "quantum-devkit-vscode",
-    "version": "#VSCODEVSIX_VERSION#",
+    "version": "0.9999.22060152",
     "displayName": "Microsoft Quantum Development Kit for Visual Studio Code",
     "description": "Microsoft Quantum Development Kit for Visual Studio Code provides support for developing quantum algorithms in the Q# programming language.",
     "publisher": "quantum",
@@ -32,7 +32,9 @@
         "onCommand:quantum.installIQSharp",
         "onCommand:quantum.connectToAzureAccount",
         "onCommand:quantum.disconnectFromAzureAccount",
-        "onCommand:quantum.submitJob"
+        "onCommand:quantum.submitJob",
+        "onCommand:quantum.getJob",
+        "onView:quantum-jobs"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -64,6 +66,34 @@
             {
                 "command": "quantum.submitJob",
                 "title": "Q#: Submit Job"
+            },
+            {
+                "command": "quantum.getJob",
+                "title": "Q#: Get Job"
+            },
+            {
+                "command": "quantum-jobs.refreshEntry",
+                "title": "Refresh",
+                "icon": {
+                    "light": "resources/light/refresh.svg",
+                    "dark": "resources/dark/refresh.svg"
+                }
+            },
+            {
+                "command": "quantum-jobs.jobDetails",
+                "title": " Details "
+            },
+            {
+                "command": "quantum-jobs.jobResults",
+                "title": " Results "
+            },
+            {
+                "command": "quantum-jobs.clearJobs",
+                "title": "Clear",
+                "icon": {
+                    "light": "resources/light/trash.svg",
+                    "dark": "resources/dark/trash.svg"
+                }
             }
         ],
         "languages": [
@@ -89,7 +119,7 @@
                         "null"
                     ],
                     "description": "Path to the language server assembly for Q#.",
-                    "default": null
+                    "default": "C:/Users/t-jackmonas/work/qsharp-compiler/src/QsCompiler/LanguageServer/bin/Debug/net6.0/win10-x64/publish/Microsoft.Quantum.QsLanguageServer.exe"
                 }
             }
         },
@@ -109,7 +139,50 @@
                 "language": "csharp",
                 "path": "./snippets/csharp.json"
             }
-        ]
+        ],
+        "viewsContainers": {
+            "panel": [
+                {
+                    "id": "quantum-jobs",
+                    "title": "Quantum Job Submissions",
+                    "icon": "resources/image2vector.svg"
+                }
+            ]
+        },
+        "views": {
+            "quantum-jobs": [
+                {
+                    "id": "quantum-jobs",
+                    "name": "Jobs"
+                }
+            ]
+        },
+        "menus": {
+            "view/title": [
+                {
+                    "command": "quantum-jobs.clearJobs",
+                    "when": "view == quantum-jobs",
+                    "group": "navigation"
+                },
+                {
+                    "command": "quantum-jobs.refreshEntry",
+                    "when": "view == quantum-jobs",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "quantum-jobs.jobDetails",
+                    "when": "isWindows || editorIsOpen || view == quantum-jobs || viewItem == LocalSubmissionItem",
+                    "group": "inline"
+                },
+                {
+                    "command": "quantum-jobs.jobResults",
+                    "when": "isWindows || editorIsOpen || view == quantum-jobs || viewItem == LocalSubmissionItem",
+                    "group": "inline"
+                }
+            ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile",
@@ -117,10 +190,21 @@
         "watch": "tsc -watch -p ./"
     },
     "dependencies": {
+        "@azure/identity": "^2.0.5",
+        "@azure/quantum-jobs": "^1.0.0-beta.1",
+        "@azure/storage-blob": "^12.10.0",
+        "@microsoft/sp-http": "^1.15.0",
+        "@microsoft/vscode-azext-utils": "^0.3.7",
         "@types/fs-extra": "^8.0.0",
         "decompress-zip": "^0.2.2",
+        "dotnet": "^1.1.4",
+        "edge-js": "^18.4.0",
         "fs-extra": "^8.1.0",
+        "g": "^2.0.1",
+        "install": "^0.13.0",
         "lodash": "^4.17.21",
+        "node": "^18.4.0",
+        "pako": "^2.0.4",
         "request": "^2.88.0",
         "semver": "^6.0.0",
         "tmp": "0.0.33",
@@ -134,7 +218,8 @@
     },
     "devDependencies": {
         "@types/mocha": "^5.2.0",
-        "@types/node": "9.6.57",
+        "@types/node": "^9.6.57",
+        "@types/pako": "^2.0.0",
         "@types/request": "^2.48.3",
         "@types/semver": "^6.0.0",
         "@types/tmp": "0.0.33",
@@ -152,23 +237,23 @@
     },
     "blobs": {
         "win32": {
-            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-win10-x64-#SEMVER_VERSION#.zip",
+            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-win10-x64-0.9999.22060152.zip",
             "sha256": "<DISABLED>"
         },
         "darwin": {
-            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-osx-x64-#SEMVER_VERSION#.zip",
+            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-osx-x64-0.9999.22060152.zip",
             "sha256": "<DISABLED>"
         },
         "linux": {
-            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-linux-x64-#SEMVER_VERSION#.zip",
+            "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-linux-x64-0.9999.22060152.zip",
             "sha256": "<DISABLED>"
         }
     },
     "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",
     "requiredDotNetCoreSDK": "2.1.0",
-    "enableTelemetry": #ENABLE_TELEMETRY#,
-    "nugetVersion": "#NUGET_VERSION#",
-    "assemblyVersion": "#ASSEMBLY_VERSION#",
+    "enableTelemetry": false,
+    "nugetVersion": "0.9999.2206.0152-alpha",
+    "assemblyVersion": "0.9999.2206.0152",
     "files": [
         "*",
         "../../NOTICE.txt"

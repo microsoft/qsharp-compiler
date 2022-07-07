@@ -8,8 +8,11 @@ import * as vscode from 'vscode';
 import { startTelemetry, EventNames, sendTelemetryEvent, reporter } from './telemetry';
 import { DotnetInfo, requireDotNetSdk, findDotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
-import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp, connectToAzureAccount, disconnectFromAzureAccount, submitJob } from './commands';
+import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp, storeAzureAccount, deleteAzureAccountInfo, submitJob, getJobResults, getJobDetails } from './commands';
 import { LanguageServer } from './languageServer';
+import {LocalSubmissionsProvider} from './localSubmissionsProvider';
+import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVariables } from '@microsoft/vscode-azext-utils';
+
 
 /**
  * Returns the root folder for the current workspace.
@@ -56,6 +59,18 @@ export async function activate(context: vscode.ExtensionContext) {
         {}
     );
 
+    // creates treeview of locally submitted jobs in custom panel
+    const localSubmissionsProvider = new LocalSubmissionsProvider(context);
+    vscode.window.createTreeView("quantum-jobs",  {
+        treeDataProvider: localSubmissionsProvider,
+    });
+    // need to registerUIExtensionVariables to use openReadOnlyJson from
+    // @microsoft/vscode-azext-utils package
+    const AzExtOutputChannel = await createAzExtOutputChannel("trial", "quantum-devkit-vscode");
+    const args: UIExtensionVariables = {context: context, outputChannel:AzExtOutputChannel};
+    registerUIExtensionVariables(args);
+
+
     // Register commands that use the .NET Core SDK.
     // We do so as early as possible so that we can handle if someone calls
     // a command before we found the .NET Core SDK.
@@ -100,14 +115,14 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.connectToAzureAccount",
         () => {
-            connectToAzureAccount(context);
+            storeAzureAccount(context);
         }
     );
     registerCommand(
         context,
         "quantum.disconnectFromAzureAccount",
         () => {
-            disconnectFromAzureAccount(context);
+            deleteAzureAccountInfo(context);
         }
     );
 
@@ -115,8 +130,43 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.submitJob",
         () => {
-            submitJob(context);
+            requireDotNetSdk(dotNetSdkVersion).then(
+                dotNetSdk => submitJob(context, dotNetSdk, localSubmissionsProvider)
+            );
         }
+    );
+
+    registerCommand(
+        context,
+        "quantum.getJob",
+        () => {
+            getJobResults(context);
+        }
+    );
+
+//     vscode.commands.registerCommand('quantum-jobs.refreshEntry', () =>
+//     jobsSubmittedProvider.refresh(context)
+//   );
+
+
+    vscode.commands.registerCommand('quantum-jobs.clearJobs', async () =>{
+        const userQuery = await vscode.window.showWarningMessage("Are you sure you want to clear your jobs?", ...["Clear","Cancel"]);
+        if(userQuery === "Clear"){
+            context.workspaceState.update("locallySubmittedJobs", undefined);
+            localSubmissionsProvider.refresh(context);
+        }
+        }
+    );
+
+    vscode.commands.registerCommand('quantum-jobs.jobDetails', (job) =>{
+        getJobDetails(context, job);
+    });
+
+
+    vscode.commands.registerCommand('quantum-jobs.jobResults', (job) =>{
+        const jobId = job['jobDetails']['Job Id'];
+        getJobResults(context, jobId);
+    }
     );
 
 
