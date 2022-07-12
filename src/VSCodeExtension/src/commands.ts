@@ -17,7 +17,7 @@ import { promisify } from 'util';
 import { QSharpGenerator } from './yeoman-generator';
 import {LocalSubmissionItem, LocalSubmissionsProvider} from './localSubmissionsProvider';
 
-import * as excludedProviders from "./utils/excludedProviders.json";
+import * as excludedTargets from "./utils/excludedTargets.json";
 
 import * as yeoman from 'yeoman-environment';
 import {openReadOnlyJson } from '@microsoft/vscode-azext-utils';
@@ -242,14 +242,17 @@ export async function submitJob(context: vscode.ExtensionContext, dotNetSdk: Dot
             break;
         }
     // For now, only concern is .qs programs, not json optimization programs
-    // so filter out optimization providers
-        if (excludedProviders["optimizationProviders"].includes( iter.value.id)){
-            continue;
+    // so filter out optimization targets
+    const targets = iter['value']['targets'].filter((target:any)=>{
+        if (excludedTargets["optimizationTargets"].includes(target["id"])){
+            return false;
         }
-
+        return true;
+    });
         const provider = iter['value']['id'];
-        const targets = iter['value']['targets'];
-        availableTargets[provider] = targets;
+        if(targets.length >0){
+            availableTargets[provider] = targets;
+        }
     }
 
     // job name not required
