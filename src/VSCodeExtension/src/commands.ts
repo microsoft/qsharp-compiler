@@ -4,14 +4,38 @@
 'use strict';
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
+import * as https from 'https';
+
+import { DefaultAzureCredential } from "@azure/identity";
+import { QuantumJobClient } from "@azure/quantum-jobs";
+
 
 import { DotnetInfo, findIQSharpVersion } from './dotnet';
 import { IPackageInfo } from './packageInfo';
 import * as semver from 'semver';
 import { promisify } from 'util';
 import { QSharpGenerator } from './yeoman-generator';
+import {LocalSubmissionItem, LocalSubmissionsProvider} from './localSubmissionsProvider';
+
+import * as excludedTargets from "./utils/excludedTargets.json";
 
 import * as yeoman from 'yeoman-environment';
+import {openReadOnlyJson } from '@microsoft/vscode-azext-utils';
+
+
+type accountInfo = {
+    subscriptionId: string;
+    resourceGroupName: string;
+    workspaceName: string,
+    location: string
+  };
+
+type target = {
+    id: string,
+    currentAvailability:string,
+    averageQueueTime: number,
+    statusPage: string
+};
 
 export function registerCommand(context: vscode.ExtensionContext, name: string, action: () => void) {
     context.subscriptions.push(
@@ -21,7 +45,7 @@ export function registerCommand(context: vscode.ExtensionContext, name: string, 
                 action();
             }
         )
-    )
+    );
 }
 
 export async function createNewProject(context: vscode.ExtensionContext) {
@@ -60,7 +84,7 @@ export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageIn
         'data', data => {
             console.log("" + data);
         }
-    )
+    );
 
     proc.on(
         'exit',
@@ -141,3 +165,281 @@ export function installOrUpdateIQSharp(dotNetSdk: DotnetInfo, requiredVersion?: 
             }
         );
 }
+
+export async function storeAzureAccount(context: vscode.ExtensionContext) {
+    const subscriptionId = await vscode.window.showInputBox({prompt:"Enter subscription ID",ignoreFocusOut:true});
+    const resourceGroupName = subscriptionId && await vscode.window.showInputBox({prompt:"Enter Resource Group Name",ignoreFocusOut:true});
+    const workspaceName = resourceGroupName && await vscode.window.showInputBox({prompt:"Enter Workspace Name",ignoreFocusOut:true});
+    const location = workspaceName && await vscode.window.showInputBox({prompt:"Enter location",ignoreFocusOut:true});
+
+    // do not update accountInfo if any of the fields are empty
+    if (!location){
+        return;
+    }
+
+    context.workspaceState.update("accountInfo",
+    {"subscriptionId": subscriptionId,
+    "resourceGroupName": resourceGroupName,
+    "workspaceName": workspaceName,
+    "location": location
+    });
+
+}
+export async function deleteAzureAccountInfo(context: vscode.ExtensionContext) {
+    context.workspaceState.update("accountInfo", undefined);
+    vscode.window.showInformationMessage("Successfully Disconnected");
+}
+
+function getQuantumJobClient(accountInfo:accountInfo, credential:DefaultAzureCredential){
+    const endpoint = "https://" + accountInfo["location"] + ".quantum.azure.com";
+    return new QuantumJobClient(
+        credential,
+        accountInfo["subscriptionId"],
+        accountInfo["resourceGroupName"],
+        accountInfo["workspaceName"],
+        {
+        endpoint: endpoint,
+        credentialScopes: "https://quantum.microsoft.com/.default"
+        }
+    );
+
+}
+
+export async function submitJob(context: vscode.ExtensionContext, dotNetSdk: DotnetInfo, jobsSubmittedProvider: LocalSubmissionsProvider) {
+    let accountInfo: accountInfo | undefined = context.workspaceState.get("accountInfo");
+
+    if (accountInfo === undefined){
+        await storeAzureAccount(context);
+        accountInfo = context.workspaceState.get("accountInfo");
+    }
+    // TODO ADD FUNCTIONALITY TO ALLOW USER TO RETRY LOGIN STEP
+    if (accountInfo ===undefined){
+        vscode.window.showWarningMessage(`Could not connect to Azure Account`);
+        return;
+    }
+
+    const credential = new DefaultAzureCredential();
+    const quantumJobClient = getQuantumJobClient(accountInfo, credential);
+
+
+    // find project file
+    const projectFile = await vscode.workspace.findFiles('**/*.csproj');
+
+    // get project file path
+    let projectFilePath = (projectFile && projectFile[0] && projectFile[0]['path'])? projectFile[0]['path']: undefined;
+    if (!projectFilePath){
+        vscode.window.showWarningMessage(`Could not find .csproj`);
+        return;
+    }
+    projectFilePath = projectFilePath.replace(/[/]/g,"\\").substring(1);
+
+    // retrieve targets available in workspace
+    const availableTargets: { [key: string]: any } = {};
+    const providerStatuses = await quantumJobClient.providers.listStatus();
+    let iter;
+    while(iter = await providerStatuses.next()){
+        if (iter && !iter.value){
+            break;
+        }
+    // For now, only concern is .qs programs, not json optimization programs
+    // so filter out optimization targets
+    const targets = iter['value']['targets'].filter((target:any)=>{
+        if (excludedTargets["optimizationTargets"].includes(target["id"])){
+            return false;
+        }
+        return true;
+    });
+        const provider = iter['value']['id'];
+        if(targets.length >0){
+            availableTargets[provider] = targets;
+        }
+    }
+
+    // job name not required
+    const jobName = await vscode.window.showInputBox({placeHolder:"Enter a name for the job",ignoreFocusOut:true, title:"Job Name"});
+    const providerName = await vscode.window.showQuickPick(Object.keys(availableTargets),{placeHolder:"Select Provider",ignoreFocusOut:true});
+    if (!providerName){
+        return;
+    }
+
+
+    const target = await vscode.window.showQuickPick((availableTargets as { [key: string]: any })[providerName].map((t:target)=>t['id']),{placeHolder:"Select Target",ignoreFocusOut:true});
+    if(!target){
+        return;
+    }
+
+    const additionalArgs =  await vscode.window.showInputBox({placeHolder:"--n-qubits=2",ignoreFocusOut:true, title:"Additional Arguments"});
+    // if user does not provide job name, generate one
+    const randomId = `${Math.floor(Math.random() * 10000 + 1)}`;
+    const alternateJobName = `jobName-${randomId}`;
+
+    const token = await credential.getToken('https://quantum.microsoft.com');
+
+    await promisify(cp.execFile)(`${dotNetSdk.path}`, ["build",`${projectFilePath}`, `-property:ExecutionTarget=${target}`])
+    .then(edit => {
+        if (!edit || !accountInfo){
+            throw Error;
+        }
+
+
+    let args = ["dotnet", "run", "--no-build"];
+
+    args.push("--project");
+    args.push(projectFilePath  as string);
+
+    args.push("--");
+    args.push("submit");
+
+    args.push("--subscription");
+    args.push(accountInfo["subscriptionId"]);
+
+    args.push("--resource-group");
+    args.push(accountInfo["resourceGroupName"]);
+
+    args.push("--workspace");
+    args.push(accountInfo["workspaceName"]);
+
+    args.push("--target");
+    args.push(target);
+
+    args.push("--output");
+    args.push("Id");
+
+    args.push("--job-name");
+    args.push(jobName||alternateJobName);
+
+    args.push("--aad-token");
+    args.push(token.token);
+
+    args.push("--location");
+    args.push(accountInfo["location"]);
+
+    args.push("--user-agent");
+    args.push("VSCODE");
+
+    if(additionalArgs){
+        args = args.concat(additionalArgs.split(" "));
+    }
+
+    promisify(cp.execFile)(`${dotNetSdk.path}`, args)
+    .then(job => {
+        if (!job || !accountInfo){
+            throw Error;
+        }
+        // job.stdout returns job id with an unnecessary space and new line char
+        const jobId =job.stdout.slice(0,-2);
+        vscode.window.showInformationMessage(`Job Id: ${jobId}`);
+
+        const timeStamp = new Date().toLocaleString('en',
+            {day:"2-digit",
+            month: "2-digit",
+            year: "2-digit",
+            hour:"2-digit",
+            minute:"2-digit"
+        });
+
+        const jobDetails = {
+            "Date": timeStamp,
+            "Subscription Id":accountInfo["subscriptionId"],
+            "Resource Group":accountInfo["resourceGroupName"],
+            "Workspace": accountInfo["workspaceName"],
+            "Location": accountInfo["location"],
+            "Job Id": jobId,
+            "Job Name": jobName? jobName: "NA",
+            "Provider": providerName,
+            "Target":target,
+            "Additional Args":  additionalArgs?additionalArgs:"NA"
+        };
+
+        // Add job to the extension's panel
+        const locallySubmittedJobs: any = context.workspaceState.get("locallySubmittedJobs");
+        const updatedSubmittedJobIds = locallySubmittedJobs?[jobDetails, ...locallySubmittedJobs]: [jobDetails];
+        context.workspaceState.update("locallySubmittedJobs",updatedSubmittedJobIds);
+        jobsSubmittedProvider.refresh(context);
+        vscode.commands.executeCommand("quantum-jobs.focus");
+
+        }).then(undefined, err => {
+            console.error('I am a runtime error ');
+            });
+
+    }).then(undefined, err => {
+       console.error('I am a compilation error');
+    });
+
+}
+
+// getJobResults helper function
+function outputResults(context: vscode.ExtensionContext, jobName: string, jobId: string, results: string){
+    let outputChannel = context.workspaceState.get("jobOutputChannel")  as vscode.OutputChannel;
+    if (!outputChannel || !outputChannel["appendLine"]){
+        outputChannel = vscode.window.createOutputChannel("Quantum Job Results");
+        context.workspaceState.update("jobOutputChannel", outputChannel);
+    }
+
+    outputChannel.appendLine(`Results for job ${jobName}(${jobId}):`);
+    outputChannel.appendLine(results);
+    outputChannel.show();
+}
+
+// if users requests job results from the Command Palette, jobId param will be undefined
+// if users requests job results from the panel, jobId will be passed
+export async function getJobResults(context: vscode.ExtensionContext, jobId?: string) {
+    let accountInfo: accountInfo | undefined = context.workspaceState.get("accountInfo");
+    if (accountInfo ===undefined){
+        vscode.window.showWarningMessage(`Could not connect to Azure Account`);
+        return;
+    }
+
+    // inputBox for a user calling from Command Palette
+    if (!jobId){
+        jobId = await vscode.window.showInputBox({prompt:"Enter Job Id",ignoreFocusOut:true});
+    }
+    if (!jobId){
+        return;
+    }
+    // caches job results, so if user requests the same job results they can avoid load time
+    let cachedJobs = context.workspaceState.get("cachedJobs") as any;
+
+
+    if (cachedJobs && cachedJobs[jobId]){
+        outputResults(context, cachedJobs[jobId]["jobName"], jobId, cachedJobs[jobId]["result"]);
+        return;
+    }
+
+    if (!cachedJobs){
+        cachedJobs = {};
+    }
+
+    const credential = new DefaultAzureCredential();
+    const quantumJobClient = getQuantumJobClient(accountInfo, credential);
+
+    const jobResponse = await quantumJobClient.jobs.get(jobId);
+
+      https.get(jobResponse.outputDataUri||"", function(response){
+        response.on('data', (chunk : number[]) => {
+            const outputString = String.fromCharCode(...chunk) +"\n";
+            outputResults(context, jobResponse.name as string, jobId as string, outputString);
+            // cache job results
+            if (!outputString.includes("Error")){
+                const cacheDetails = {"jobName":jobResponse.name,"result":outputString};
+                cachedJobs[jobId as string] = cacheDetails;
+                context.workspaceState.update("cachedJobs", cachedJobs);
+            }
+        });
+
+      }).on('error', function(err){
+        console.log(err);
+      });
+
+}
+
+
+
+export async function getJobDetails(context: vscode.ExtensionContext, node: LocalSubmissionItem): Promise<void> {
+    await openReadOnlyJson({'label': node.jobDetails["Job Id"], 'fullId':node.jobDetails["Job Id"]}, node.jobDetails);
+}
+
+
+
+
+
