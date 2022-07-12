@@ -119,7 +119,7 @@
                         "null"
                     ],
                     "description": "Path to the language server assembly for Q#.",
-                    "default": "C:/Users/t-jackmonas/work/qsharp-compiler/src/QsCompiler/LanguageServer/bin/Debug/net6.0/win10-x64/publish/Microsoft.Quantum.QsLanguageServer.exe"
+                    "default": null
                 }
             }
         },
