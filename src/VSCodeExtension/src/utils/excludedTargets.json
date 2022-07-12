@@ -1,0 +1,31 @@
+{
+    "optimizationTargets":[
+        "microsoft.simulatedannealing.fpga",
+        "microsoft.simulatedannealing-parameterfree.fpga",
+        "microsoft.paralleltempering-parameterfree.cpu",
+        "microsoft.paralleltempering.cpu",
+        "microsoft.simulatedannealing-parameterfree.cpu",
+        "microsoft.simulatedannealing.cpu",
+        "microsoft.tabu-parameterfree.cpu",
+        "microsoft.tabu.cpu",
+        "microsoft.qmc.cpu",
+        "microsoft.populationannealing.cpu",
+        "microsoft.populationannealing-parameterfree.cpu",
+        "microsoft.substochasticmontecarlo.cpu",
+        "microsoft.substochasticmontecarlo-parameterfree.cpu",
+        "microsoft.paralleltempering-parameterfree.cpu.legacy",
+        "microsoft.paralleltempering.cpu.legacy",
+        "microsoft.simulatedannealing-parameterfree.cpu.legacy",
+        "microsoft.simulatedannealing.cpu.legacy",
+        "microsoft.tabu-parameterfree.cpu.legacy",
+        "microsoft.tabu.cpu.legacy",
+        "microsoft.qmc.cpu.legacy",
+        "microsoft.paralleltempering-parameterfree.cpu.experimental",
+        "microsoft.paralleltempering.cpu.experimental",
+        "microsoft.simulatedannealing-parameterfree.cpu.experimental",
+        "microsoft.simulatedannealing.cpu.experimental",
+        "microsoft.tabu-parameterfree.cpu.experimental",
+        "microsoft.tabu.cpu.experimental",
+        "microsoft.qmc.cpu.experimental"
+    ]
+}
