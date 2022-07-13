@@ -21,11 +21,15 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         /* basic setup */
 
         private Connection? connection;
-        private QsLanguageServer server = null!; // Initialized in SetupServerConnectionAsync
         private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
         private readonly RandomInput inputGenerator = new RandomInput();
         private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
         private readonly ManualResetEvent projectLoaded = new ManualResetEvent(false);
+
+        public Task<bool> GetFileIsNotebookCellAsync(string? filename = null, Uri? uri = null) =>
+            this.rpc.InvokeWithParameterObjectAsync<bool>(
+                Methods.WorkspaceExecuteCommand.Name,
+                TestUtils.ServerCommand(CommandIds.FileIsNotebookCell, filename == null ? new TextDocumentIdentifier { Uri = uri ?? new Uri("file://unknown") } : TestUtils.GetTextDocumentIdentifier(filename)));
 
         public Task<string[]> GetFileContentInMemoryAsync(string filename) =>
             this.rpc.InvokeWithParameterObjectAsync<string[]>(
@@ -74,7 +78,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
                 var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
-                this.server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
+                var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
                 await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 this.connection = new Connection(readerPipe, writerPipe);
@@ -84,7 +88,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new System.IO.Pipelines.Pipe();
                 var writerPipe = new System.IO.Pipelines.Pipe();
 
-                this.server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
+                var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
                 this.connection = new Connection(writerPipe.Reader.AsStream(), readerPipe.Writer.AsStream());
             }
 

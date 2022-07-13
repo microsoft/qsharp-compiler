@@ -31,8 +31,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         internal bool EnableVerification { get; private set; }
 
-        public BuildConfiguration BuildConfiguration { get; }
-
         internal ProjectProperties BuildProperties => this.compilationUnit.BuildProperties;
 
         /// <summary>
@@ -88,8 +86,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Exception>? exceptionLogger = null,
             Action<string, MessageType>? log = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            bool syntaxCheckOnly = false,
-            BuildConfiguration? buildConfiguration = null)
+            bool syntaxCheckOnly = false)
         {
             this.EnableVerification = !syntaxCheckOnly;
             this.compilationUnit = new CompilationUnit(buildProperties);
@@ -98,7 +95,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.PublishDiagnostics = publishDiagnostics ?? (_ => { });
             this.Log = log ?? ((_, __) => { });
             this.LogException = exceptionLogger ?? Console.Error.WriteLine;
-            this.BuildConfiguration = buildConfiguration ?? BuildConfiguration.DefaultConfiguration();
             this.Processing = new ProcessingQueue(this.LogException);
             this.waitForTypeCheck = new CancellationTokenSource();
         }
@@ -262,9 +258,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string fileContent,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
             Action<Exception>? onException = null,
-            BuildConfiguration? buildConfiguration = null)
+            bool isNotebook = false)
         {
-            var file = new FileContentManager(uri, GetFileId(uri), buildConfiguration);
+            var file = new FileContentManager(uri, GetFileId(uri), isNotebook);
             try
             {
                 file.ReplaceFileContent(fileContent);
@@ -288,8 +284,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static ImmutableHashSet<FileContentManager> InitializeFileManagers(
             IDictionary<Uri, string> files,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            Action<Exception>? onException = null,
-            BuildConfiguration? buildConfiguration = null)
+            Action<Exception>? onException = null)
         {
             if (files.Any(item => !item.Key.IsAbsoluteUri || !item.Key.IsFile))
             {
@@ -299,7 +294,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return files.AsParallel()
                 .WithDegreeOfParallelism(Environment.ProcessorCount > 1 ? Environment.ProcessorCount - 1 : Environment.ProcessorCount)
                 .WithExecutionMode(ParallelExecutionMode.ForceParallelism) // we are fine with a slower performance if the work is trivial
-                .Select(entry => InitializeFileManager(entry.Key, entry.Value, publishDiagnostics, onException, buildConfiguration))
+                .Select(entry => InitializeFileManager(entry.Key, entry.Value, publishDiagnostics, onException))
                 .ToImmutableHashSet();
         }
 
@@ -946,6 +941,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         public IEnumerable<Uri>? GetSourceFiles() =>
             this.FlushAndExecute(() => this.fileContentManagers.Keys.Select(id => new Uri(id)).ToImmutableArray().AsEnumerable());
+
+        /// <summary>
+        /// Gets whether a file is a notebook cell
+        /// </summary>
+        /// <returns>
+        /// A boxed bool holding true if it is a notebook cell, else false
+        /// </returns>
+        /// <remarks>
+        /// Waits for all currently running or queued tasks to finish
+        /// before getting the file content by calling <see cref="FlushAndExecute"/>.
+        /// </remarks>
+        public object? FileIsNotebookCell(TextDocumentIdentifier textDocument) =>
+
+            // Boxing needed here because FileQuery() is generic:
+            // https://devblogs.microsoft.com/dotnet/try-out-nullable-reference-types/#the-issue-with-t
+            this.FlushAndExecute(() =>
+                this.FileQuery(textDocument, (file, _) => (object)file.IsNotebook));
 
         /// <summary>
         /// Gets the current file content (text representation) in memory.

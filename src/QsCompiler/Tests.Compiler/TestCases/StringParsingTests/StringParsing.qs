@@ -32,14 +32,6 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         let str = "//";
     }
 
-    operation NotebookStringParsingTest1 () : Unit {
-        let str = "hi"; %
-    }
-
-    operation NotebookStringParsingTest2 () : Unit {
-%simulate SampleRandomNumber nQubits=3
-    }
-
     operation MultiLineStringTest1 () : Unit {
         let str = "
         ";

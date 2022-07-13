@@ -66,20 +66,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var initParams = TestUtils.GetInitializeParams();
             var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
             Assert.IsNotNull(initReply);
-            Assert.IsFalse(this.server.IsNotebook);
 
             var init = await this.rpc.InvokeWithParameterObjectAsync<JToken>(Methods.Initialize.Name, initParams);
             var initializeError = Utils.TryJTokenAs<InitializeError>(init);
             Assert.IsTrue(initializeError != null ? initializeError.Retry : false);
-        }
-
-        [TestMethod]
-        public async Task NotebookInitializationAsync()
-        {
-            var initParams = TestUtils.GetInitializeParams(addNotebookConfig: true);
-            var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
-            Assert.IsNotNull(initReply);
-            Assert.IsTrue(this.server.IsNotebook);
         }
 
         [TestMethod]
@@ -559,17 +549,20 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var programFileWithoutNamespace = Path.Combine(projDir, "Bell.qs");
             var programFileWithNamespace = Path.Combine(projDir, "Parity.qs");
 
-            // initParams.InitializationOptions.isNotebook will be false by default
             var initParams = TestUtils.GetInitializeParams();
             initParams.RootUri = new Uri(projDir);
             await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
 
+            // By default, LanguageId will not contain "notebook"
             var openParams1 = TestUtils.GetOpenFileParams(programFileWithoutNamespace);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams1);
+            Assert.IsFalse(await this.GetFileIsNotebookCellAsync(programFileWithoutNamespace));
             var diagnostics1 = await this.GetFileDiagnosticsAsync(programFileWithoutNamespace);
 
+            // By default, LanguageId will not contain "notebook"
             var openParams2 = TestUtils.GetOpenFileParams(programFileWithNamespace);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
+            Assert.IsFalse(await this.GetFileIsNotebookCellAsync(programFileWithNamespace));
             var diagnostics2 = await this.GetFileDiagnosticsAsync(programFileWithNamespace);
 
             Assert.IsNotNull(diagnostics1);
@@ -592,20 +585,25 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var programFileWithoutNamespace = Path.Combine(projDir, "Bell.qs");
             var programFileWithNamespace = Path.Combine(projDir, "Parity.qs");
 
+            // Same value sent by Azure Notebooks
+            var languageId = "qsharp-notebook";
+
             var notebookGuid = Guid.NewGuid();
             var uriWithoutNamespace = TestUtils.GenerateNotebookCellUri(notebookGuid);
             var uriWithNamespace = TestUtils.GenerateNotebookCellUri(notebookGuid);
 
             // Azure Notebooks leaves RootUri=null, so do the same here
-            var initParams = TestUtils.GetInitializeParams(addNotebookConfig: true);
+            var initParams = TestUtils.GetInitializeParams();
             await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
 
-            var openParams1 = TestUtils.GetOpenFileParams(programFileWithoutNamespace, uriWithoutNamespace);
+            var openParams1 = TestUtils.GetOpenFileParams(programFileWithoutNamespace, uriWithoutNamespace, languageId);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams1);
+            Assert.IsTrue(await this.GetFileIsNotebookCellAsync(uri: uriWithoutNamespace));
             var diagnostics1 = await this.GetFileDiagnosticsAsync(uri: uriWithoutNamespace);
 
-            var openParams2 = TestUtils.GetOpenFileParams(programFileWithNamespace, uriWithNamespace);
+            var openParams2 = TestUtils.GetOpenFileParams(programFileWithNamespace, uriWithNamespace, languageId);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
+            Assert.IsTrue(await this.GetFileIsNotebookCellAsync(uri: uriWithNamespace));
             var diagnostics2 = await this.GetFileDiagnosticsAsync(uri: uriWithNamespace);
 
             Assert.IsNotNull(diagnostics1);

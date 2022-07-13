@@ -32,15 +32,6 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         internal bool ReadyForExit { get; private set; }
 
-        // Used in unit tests
-        internal bool IsNotebook
-        {
-            get
-            {
-                return this.editorState != null && this.editorState.IsNotebook;
-            }
-        }
-
         private readonly System.Timers.Timer internalErrorTimer; // used to avoid spamming users with a lot of errors at once
         private bool showInteralErrorMessage = true; // set via timer as needed
 
@@ -52,7 +43,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         private string? clientName;
         private Version? clientVersion;
         private ClientCapabilities? clientCapabilities;
-        private EditorState? editorState;
+        private readonly EditorState editorState;
 
         /// <summary>
         /// Returns true if the client name matches the given name.
@@ -97,7 +88,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 this.OnDidChangeWatchedFiles(JToken.Parse(JsonConvert.SerializeObject(
                     new DidChangeWatchedFilesParams { Changes = e.ToArray() })));
             this.fileWatcher = new FileWatcher(_ =>
-                this.LogToWindow("FileSystemWatcher encountered an error", MessageType.Error));
+                this.LogToWindow($"FileSystemWatcher encountered and error", MessageType.Error));
             var fileEvents = Observable.FromEvent<FileWatcher.FileEventHandler, FileEvent>(
                     handler => this.fileWatcher.FileEvent += handler,
                     handler => this.fileWatcher.FileEvent -= handler)
@@ -106,6 +97,12 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.projectsInWorkspace = new HashSet<Uri>();
             this.fileEvents = new CoalesceingQueue();
             this.fileEvents.Subscribe(fileEvents, observable => ProcessFileEvents(observable));
+            this.editorState = new EditorState(
+                MSBuildLocator.IsRegistered ? new ProjectLoader(this.LogToWindow) : null,
+                diagnostics => this.PublishDiagnosticsAsync(diagnostics),
+                (name, props, meas) => this.SendTelemetryAsync(name, props, meas),
+                this.LogToWindow,
+                this.OnInternalError);
 
             if (!MSBuildLocator.IsRegistered)
             {
@@ -123,7 +120,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <inheritdoc/>
         public void Dispose()
         {
-            this.editorState?.Dispose();
+            this.editorState.Dispose();
             this.rpc.Dispose();
             this.disconnectEvent.Dispose();
             this.waitForInit?.Dispose();
@@ -242,11 +239,6 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private Task InitializeWorkspaceAsync(ImmutableDictionary<Uri, ImmutableHashSet<string>> folders)
         {
-            if (this.editorState == null)
-            {
-                throw new InvalidOperationException("editorState not yet initialized. Is this method being called before the LSP initialize message?");
-            }
-
             var folderItems = folders.SelectMany(entry => entry.Value.Select(name => Path.Combine(entry.Key.LocalPath, name)));
             var initialProjects = folderItems.Select(item =>
             {
@@ -259,7 +251,6 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return uri;
             })
             .Where(fileEvent => fileEvent != null).ToImmutableArray();
-
             return this.editorState.LoadProjectsAsync(initialProjects);
         }
 
@@ -279,7 +270,6 @@ namespace Microsoft.Quantum.QsLanguageServer
             var param = Utils.TryJTokenAs<InitializeParams>(arg);
             this.clientCapabilities = param?.Capabilities;
 
-            bool isNotebook = false;
             if (param?.InitializationOptions is JObject options)
             {
                 if (options.TryGetValue("name", out var name))
@@ -292,21 +282,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     this.clientVersion = null;
                 }
-
-                if (options.TryGetValue("isNotebook", out var isNotebookOption)
-                        && isNotebookOption.Type == JTokenType.Boolean)
-                {
-                    isNotebook = (bool)isNotebookOption;
-                }
             }
-
-            this.editorState = new EditorState(
-                MSBuildLocator.IsRegistered ? new ProjectLoader(this.LogToWindow) : null,
-                diagnostics => this.PublishDiagnosticsAsync(diagnostics),
-                (name, props, meas) => this.SendTelemetryAsync(name, props, meas),
-                this.LogToWindow,
-                this.OnInternalError,
-                isNotebook);
 
             bool supportsCompletion = !this.ClientNameIs("VisualStudio") || this.ClientVersionIsAtLeast(new Version(16, 3));
             bool useTriggerCharWorkaround = this.ClientNameIs("VisualStudio") && !this.ClientVersionIsAtLeast(new Version(16, 4));
@@ -380,7 +356,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDidOpenName)]
         public Task OnTextDocumentDidOpenAsync(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return Task.CompletedTask;
             }
@@ -400,7 +376,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDidCloseName)]
         public Task OnTextDocumentDidCloseAsync(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return Task.CompletedTask;
             }
@@ -417,7 +393,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDidSaveName)]
         public Task OnTextDocumentDidSaveAsync(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return Task.CompletedTask;
             }
@@ -434,7 +410,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDidChangeName)]
         public Task OnTextDocumentChangedAsync(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return Task.CompletedTask;
             }
@@ -451,7 +427,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentRenameName)]
         public object? OnTextDocumentRename(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
             }
@@ -473,7 +449,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentFormattingName)]
         public object OnFormatting(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
             }
@@ -500,7 +476,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDefinitionName)]
         public object OnTextDocumentDefinition(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
             }
@@ -531,7 +507,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDocumentHighlightName)]
         public object OnHighlightRequest(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
             }
@@ -557,7 +533,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentReferencesName)]
         public object OnTextDocumentReferences(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
             }
@@ -583,7 +559,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentHoverName)]
         public object? OnHoverRequest(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
             }
@@ -611,7 +587,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentSignatureHelpName)]
         public Task<object?> OnSignatureHelpAsync(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
             }
@@ -647,7 +623,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDocumentSymbolName)]
         public object OnTextDocumentSymbol(JToken arg) // list all symbols found in a given text document
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
             }
@@ -673,7 +649,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
         public Task<object?> OnTextDocumentCompletionAsync(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
             }
@@ -707,7 +683,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCompletionResolveName)]
         public object? OnTextDocumentCompletionResolve(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
             }
@@ -736,7 +712,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCodeActionName)]
         public object OnCodeAction(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return ProtocolError.AwaitingInitialization;
             }
@@ -783,17 +759,14 @@ namespace Microsoft.Quantum.QsLanguageServer
                 QsCompilerError.RaiseOnFailure(
                     () => command(Utils.TryJTokenAs<T>(argument) ?? throw new Exception($"Expected a command argument of type {typeof(T)}.")),
                     "ExecuteCommand threw an exception");
-
             try
             {
                 return
-                    param.Command == CommandIds.ApplyEdit ?
-                        CastAndExecute<ApplyWorkspaceEditParams>(edit =>
-                            this.rpc.InvokeWithParameterObjectAsync<ApplyWorkspaceEditResponse>(Methods.WorkspaceApplyEditName, edit)) :
-                    param.Command == CommandIds.FileContentInMemory && this.editorState != null ?
-                        CastAndExecute<TextDocumentIdentifier>(this.editorState.FileContentInMemory) :
-                    param.Command == CommandIds.FileDiagnostics && this.editorState != null ?
-                        CastAndExecute<TextDocumentIdentifier>(this.editorState.FileDiagnostics) :
+                    param.Command == CommandIds.ApplyEdit ? CastAndExecute<ApplyWorkspaceEditParams>(edit =>
+                        this.rpc.InvokeWithParameterObjectAsync<ApplyWorkspaceEditResponse>(Methods.WorkspaceApplyEditName, edit)) :
+                    param.Command == CommandIds.FileIsNotebookCell ? CastAndExecute<TextDocumentIdentifier>(this.editorState.FileIsNotebookCell) :
+                    param.Command == CommandIds.FileContentInMemory ? CastAndExecute<TextDocumentIdentifier>(this.editorState.FileContentInMemory) :
+                    param.Command == CommandIds.FileDiagnostics ? CastAndExecute<TextDocumentIdentifier>(this.editorState.FileDiagnostics) :
                     null;
             }
             catch
@@ -805,7 +778,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.WorkspaceDidChangeWatchedFilesName)]
         public void OnDidChangeWatchedFiles(JToken arg)
         {
-            if (this.waitForInit != null || this.editorState == null)
+            if (this.waitForInit != null)
             {
                 return;
             }

@@ -11,6 +11,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         public const string ApplyEdit = "qsLanguageServer/applyEdit";
 
         // commands for diagnostic purposes
+        internal const string FileIsNotebookCell = "qsLanguageServer/fileIsNotebookCell";
         internal const string FileContentInMemory = "qsLanguageServer/fileContentInMemory";
         internal const string FileDiagnostics = "qsLanguageServer/fileDiagnostics";
     }

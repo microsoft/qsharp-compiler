@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public string FileName { get; }
 
-        public BuildConfiguration BuildConfiguration { get; }
+        public bool IsNotebook { get; }
 
         /// <summary>
         /// An arbitrary integer representing the current version number of the file, or null if no version number is available.
@@ -116,12 +116,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /* constructors, "destructors" & property access: */
 
-        internal FileContentManager(Uri uri, string fileName, BuildConfiguration? buildConfiguration = null)
+        internal FileContentManager(Uri uri, string fileName, bool isNotebook = false)
         {
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.Uri = uri;
             this.FileName = fileName;
-            this.BuildConfiguration = buildConfiguration ?? BuildConfiguration.DefaultConfiguration();
+            this.IsNotebook = isNotebook;
             this.Version = null;
 
             this.content = new ManagedList<CodeLine>(this.SyncRoot);

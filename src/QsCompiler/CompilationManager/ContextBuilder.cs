@@ -484,7 +484,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var fragment = tokenIndex.GetFragment();
                 var context = tokenIndex.GetContext();
 
-                var (include, verifications) = Context.VerifySyntaxTokenContext(context, file.BuildConfiguration.IsNotebook);
+                var (include, verifications) = Context.VerifySyntaxTokenContext(context, file.IsNotebook);
                 foreach (var msg in verifications)
                 {
                     messages.Add(Diagnostics.Generate(file.FileName, msg, fragment.Range.Start));
@@ -538,7 +538,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // invalid namespace names default to an unknown namespace name, but remain included in the compilation
                 QsCompilerError.Verify(
-                    file.BuildConfiguration.IsNotebook == (ns == null),
+                    file.IsNotebook == (ns == null),
                     "namespace for callable declaration should be null if and only if this is a notebook");
                 return (tuple.Item2.Start, new QsQualifiedName(ns ?? InternalUse.NotebookNamespace, tuple.Item1));
             }).ToList();

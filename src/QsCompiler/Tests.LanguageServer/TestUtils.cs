@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json.Linq;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
 using Range = Microsoft.VisualStudio.LanguageServer.Protocol.Range;
 
@@ -47,13 +46,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         internal static Uri GenerateNotebookCellUri(Guid notebookGuid) =>
             new Uri("file:///" + notebookGuid.ToString() + "/" + Guid.NewGuid().ToString() + ".qs");
 
-        internal static InitializeParams GetInitializeParams(bool addNotebookConfig = false)
+        internal static InitializeParams GetInitializeParams()
         {
             return new InitializeParams
             {
                 ProcessId = -1,
-                InitializationOptions = addNotebookConfig ? JObject.FromObject(new { isNotebook = true })
-                                                          : null,
+                InitializationOptions = null,
                 Capabilities = new ClientCapabilities
                 {
                     Workspace = new WorkspaceClientCapabilities(),
@@ -63,12 +61,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             };
         }
 
-        internal static DidOpenTextDocumentParams GetOpenFileParams(string filename, Uri? uri = null)
+        internal static DidOpenTextDocumentParams GetOpenFileParams(string filename, Uri? uri = null, string languageId = "")
         {
             var file = Path.GetFullPath(filename);
             var content = File.ReadAllText(file);
             return new DidOpenTextDocumentParams
-            { TextDocument = new TextDocumentItem { Uri = uri ?? GetUri(filename), Text = content } };
+            { TextDocument = new TextDocumentItem { Uri = uri ?? GetUri(filename), LanguageId = languageId, Text = content } };
         }
 
         internal static DidCloseTextDocumentParams GetCloseFileParams(string filename)
