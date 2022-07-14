@@ -423,8 +423,7 @@ type QsExpression with
 
             let validSlicing step =
                 match array.ResolvedType.Resolution with
-                | ArrayType _ ->
-                    step |> Option.forall (fun expr -> Int = (inference.Resolve expr.ResolvedType).Resolution)
+                | ArrayType _ -> step |> Option.forall (fun expr -> Int = expr.ResolvedType.Resolution)
                 | _ -> false
 
             let conditionalIntExpr (cond: TypedExpression) ifTrue ifFalse =
@@ -444,15 +443,14 @@ type QsExpression with
                 | ex -> if validSlicing ex then LengthMinusOne array else invalidRangeDelimiter
 
             let resolveSlicingRange start step end_ =
-                let integerExpr ex =
+                let toResolvedExpr ex =
                     let ex = resolve context ex
-                    inference.Constrain(ResolvedType.New Int .> ex.ResolvedType) |> List.iter diagnose
-                    ex
+                    { ex with ResolvedType = inference.Resolve ex.ResolvedType }
 
-                let resolvedStep = step |> Option.map integerExpr
+                let resolvedStep = step |> Option.map toResolvedExpr
 
                 let resolveWith build (ex: QsExpression) =
-                    if ex.isMissing then build resolvedStep else integerExpr ex
+                    if ex.isMissing then build resolvedStep else toResolvedExpr ex
 
                 let resolvedStart, resolvedEnd =
                     start |> resolveWith openStartInSlicing, end_ |> resolveWith openEndInSlicing
