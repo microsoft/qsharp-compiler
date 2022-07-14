@@ -31,3 +31,4 @@ steps:
   condition: succeededOrFailed()
   inputs:
     failOnAlert: true
+    ignoreDirectories: 'src/QsCompiler/Tests.LanguageServer,src/QsCompiler/TestProjects'
