@@ -39,20 +39,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-        public async Task InitializationAsync()
-        {
-            // the initialization request may only be sent once according to speccs
-            // -> the content of initReply is verified in the ServerCapabilities test
-            var initParams = TestUtils.GetInitializeParams();
-            var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
-            Assert.IsNotNull(initReply);
-
-            var init = await this.rpc.InvokeWithParameterObjectAsync<JToken>(Methods.Initialize.Name, initParams);
-            var initializeError = Utils.TryJTokenAs<InitializeError>(init);
-            Assert.IsTrue(initializeError != null ? initializeError.Retry : false);
-        }
-
-        [TestMethod]
         public async Task ServerCapabilitiesAsync()
         {
             // NOTE: these assertions need to be adapted when the server capabilities are changed
