@@ -39,6 +39,40 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
+        public async Task InitializationAsync()
+        {
+            // any message sent before the initialization request needs to result in an error
+            async Task AssertNotInitializedErrorUponInvokeAsync(string method) // argument here should not matter
+            {
+                var reply = await this.rpc.InvokeWithParameterObjectAsync<JToken>(method, new object());
+                var protocolError = Utils.TryJTokenAs<ProtocolError>(reply);
+                Assert.IsNotNull(protocolError);
+                if (protocolError != null)
+                {
+                    Assert.AreEqual(ProtocolError.Codes.AwaitingInitialization, protocolError.Code);
+                }
+            }
+
+            await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentHover.Name);
+            await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentSignatureHelp.Name);
+            await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentDefinition.Name);
+            await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentReferences.Name);
+            await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentDocumentSymbol.Name);
+            await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentRename.Name);
+            await AssertNotInitializedErrorUponInvokeAsync(Methods.TextDocumentCodeAction.Name);
+
+            // the initialization request may only be sent once according to speccs
+            // -> the content of initReply is verified in the ServerCapabilities test
+            var initParams = TestUtils.GetInitializeParams();
+            var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
+            Assert.IsNotNull(initReply);
+
+            var init = await this.rpc.InvokeWithParameterObjectAsync<JToken>(Methods.Initialize.Name, initParams);
+            var initializeError = Utils.TryJTokenAs<InitializeError>(init);
+            Assert.IsTrue(initializeError != null ? initializeError.Retry : false);
+        }
+
+        [TestMethod]
         public async Task ServerCapabilitiesAsync()
         {
             // NOTE: these assertions need to be adapted when the server capabilities are changed

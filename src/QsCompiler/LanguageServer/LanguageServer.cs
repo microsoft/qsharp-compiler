@@ -28,6 +28,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private readonly JsonRpc rpc;
         private readonly ManualResetEvent disconnectEvent; // used to keep the server running until it is no longer needed
+        private bool initReceived = false;
 
         internal bool ReadyForExit { get; private set; }
 
@@ -252,6 +253,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.InitializeName)]
         public object Initialize(JToken arg)
         {
+            if (this.initReceived)
+            {
+                return new InitializeError { Retry = false };
+            }
+
             // setting this to null for now, since we are not using it and the deserialization causes issues
             // Note that we must do so by creating an object that represents the
             // JSON `null` keyword, rather than a C# null.
@@ -316,6 +322,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     useTriggerCharWorkaround ? new[] { " ", ".", "(" } : new[] { ".", "(" };
             }
 
+            this.initReceived = true;
             return new InitializeResult { Capabilities = capabilities };
         }
 
@@ -344,6 +351,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDidOpenName)]
         public Task OnTextDocumentDidOpenAsync(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return Task.CompletedTask;
+            }
+
             var param = Utils.TryJTokenAs<DidOpenTextDocumentParams>(arg);
             if (param == null)
             {
@@ -359,6 +371,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDidCloseName)]
         public Task OnTextDocumentDidCloseAsync(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return Task.CompletedTask;
+            }
+
             var param = Utils.TryJTokenAs<DidCloseTextDocumentParams>(arg);
             if (param == null)
             {
@@ -371,6 +388,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDidSaveName)]
         public Task OnTextDocumentDidSaveAsync(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return Task.CompletedTask;
+            }
+
             var param = Utils.TryJTokenAs<DidSaveTextDocumentParams>(arg);
 
             // NB: if param.Text is null, then there's nothing to actually
@@ -383,6 +405,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDidChangeName)]
         public Task OnTextDocumentChangedAsync(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return Task.CompletedTask;
+            }
+
             var param = Utils.TryJTokenAs<DidChangeTextDocumentParams>(arg);
             if (param == null)
             {
@@ -395,6 +422,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentRenameName)]
         public object? OnTextDocumentRename(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
             var param = Utils.TryJTokenAs<RenameParams>(arg);
             var versionedChanges = this.clientCapabilities?.Workspace?.WorkspaceEdit?.DocumentChanges ?? false;
             try
@@ -412,6 +444,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentFormattingName)]
         public object OnFormatting(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
             var param = Utils.TryJTokenAs<DocumentFormattingParams>(arg);
             if (param == null)
             {
@@ -434,6 +471,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDefinitionName)]
         public object OnTextDocumentDefinition(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             if (param == null)
             {
@@ -460,6 +502,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDocumentHighlightName)]
         public object OnHighlightRequest(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             if (param == null)
             {
@@ -481,6 +528,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentReferencesName)]
         public object OnTextDocumentReferences(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
             var param = Utils.TryJTokenAs<ReferenceParams>(arg);
             if (param == null)
             {
@@ -502,6 +554,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentHoverName)]
         public object? OnHoverRequest(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             if (param == null)
             {
@@ -525,6 +582,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentSignatureHelpName)]
         public Task<object?> OnSignatureHelpAsync(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
+            }
+
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             if (param == null)
             {
@@ -556,6 +618,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentDocumentSymbolName)]
         public object OnTextDocumentSymbol(JToken arg) // list all symbols found in a given text document
         {
+            if (!this.initReceived)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
             var param = Utils.TryJTokenAs<DocumentSymbolParams>(arg);
             if (param != null)
             {
@@ -577,6 +644,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
         public Task<object?> OnTextDocumentCompletionAsync(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
+            }
+
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             if (param == null)
             {
@@ -606,6 +678,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCompletionResolveName)]
         public object? OnTextDocumentCompletionResolve(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
             var param = Utils.TryJTokenAs<CompletionItem>(arg);
             if (param?.Data == null)
             {
@@ -630,6 +707,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCodeActionName)]
         public object OnCodeAction(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
             var param = Utils.TryJTokenAs<Workarounds.CodeActionParams>(arg)?.ToCodeActionParams();
             if (param == null)
             {
@@ -690,6 +772,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.WorkspaceDidChangeWatchedFilesName)]
         public void OnDidChangeWatchedFiles(JToken arg)
         {
+            if (!this.initReceived)
+            {
+                return;
+            }
+
             var param = Utils.TryJTokenAs<DidChangeWatchedFilesParams>(arg);
 
             FileEvent[] PreprocessEvent(FileEvent fileEvent)
