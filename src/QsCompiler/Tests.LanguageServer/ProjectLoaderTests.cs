@@ -4,8 +4,8 @@
 using System;
 using System.IO;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler;
 using System.Runtime.Loader;
+using Microsoft.Quantum.QsCompiler;
 using Microsoft.Build.Locator;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
