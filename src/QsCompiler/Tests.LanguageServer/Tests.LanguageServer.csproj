@@ -21,7 +21,7 @@
     <PackageReference Include="System.IO.Pipelines" Version="6.0.1" />
     <PackageReference Include="System.IO.Pipes" Version="4.3.0" />
 
-    <PackageReference Include="NuGet.Frameworks" Version="6.2.1-rc" />
+    <PackageReference Include="NuGet.Frameworks" Version="6.2.1" />
   </ItemGroup>
 
   <ItemGroup>
