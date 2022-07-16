@@ -44,9 +44,10 @@
     <Message Importance="high" Text="Publishing QsFmt"/>
     <PropertyGroup>
       <QsFmtPublishPath>$(OutputPath)\qsfmt\</QsFmtPublishPath>
+      <QsFmtPublishCommand>dotnet publish "$(EnlistmentRoot)src/QsFmt/App/App.fsproj" -o "$(QsFmtPublishPath)"</QsFmtPublishCommand>
     </PropertyGroup>
     <MakeDir Directories="$(OutputPath)\qsfmt" />
-    <Exec Command="dotnet publish $(EnlistmentRoot)src/QsFmt/App/App.fsproj -o $(QsFmtPublishPath)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
+    <Exec Command="$(QsFmtPublishCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="QsFmtPublishExitCode" />
     </Exec>
     <Error Condition="'$(QsFmtPublishExitCode)' != '0'" Text="Publishing QsFmt failed." />
