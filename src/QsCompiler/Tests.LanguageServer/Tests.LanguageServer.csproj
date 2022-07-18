@@ -16,10 +16,11 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Client" Version="17.2.2105" />
-    <PackageReference Include="MSTest.TestAdapter" Version="2.0.0" />
-    <PackageReference Include="MSTest.TestFramework" Version="2.0.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
+    <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
     <PackageReference Include="System.IO.Pipelines" Version="6.0.1" />
     <PackageReference Include="System.IO.Pipes" Version="4.3.0" />
+    <PackageReference Include="NuGet.Frameworks" Version="6.2.1-rc.7" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,9 +44,10 @@
     <Message Importance="high" Text="Publishing QsFmt"/>
     <PropertyGroup>
       <QsFmtPublishPath>$(OutputPath)\qsfmt\</QsFmtPublishPath>
+      <QsFmtPublishCommand>dotnet publish "$(EnlistmentRoot)src/QsFmt/App/App.fsproj" -o "$(QsFmtPublishPath)"</QsFmtPublishCommand>
     </PropertyGroup>
     <MakeDir Directories="$(OutputPath)\qsfmt" />
-    <Exec Command="dotnet publish $(EnlistmentRoot)src/QsFmt/App/App.fsproj -o $(QsFmtPublishPath)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
+    <Exec Command="$(QsFmtPublishCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="QsFmtPublishExitCode" />
     </Exec>
     <Error Condition="'$(QsFmtPublishExitCode)' != '0'" Text="Publishing QsFmt failed." />
