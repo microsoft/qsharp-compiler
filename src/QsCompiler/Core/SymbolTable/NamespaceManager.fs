@@ -67,6 +67,9 @@ type NamespaceManager
                 new Namespace(nsName, [], callables.[nsName], specializations.[nsName], types.[nsName])
             )
 
+        // Add stand-in namespace used for notebooks
+        namespaces.Add(InternalUse.NotebookNamespace, new Namespace(InternalUse.NotebookNamespace, [], [], [], []))
+
         namespaces
 
     /// <summary>
@@ -1161,7 +1164,7 @@ type NamespaceManager
             let keys = Namespaces.Keys |> List.ofSeq
 
             for key in keys do
-                if Namespaces.[key].IsEmpty then Namespaces.Remove key |> ignore
+                if Namespaces.[key].IsEmpty && Namespaces.[key].Name <> InternalUse.NotebookNamespace then Namespaces.Remove key |> ignore
 
             this.ClearResolutions()
         finally
@@ -1175,6 +1178,10 @@ type NamespaceManager
         try
             this.ContainsResolutions <- true
             Namespaces.Clear()
+            // TODO: eprintf "%a" <- handles anyone
+            // The stand-in/implicit namespace for notebooks always
+            // needs to be in the symbol table, so add it back again
+            Namespaces.Add(InternalUse.NotebookNamespace, new Namespace(InternalUse.NotebookNamespace, [], [], [], []))
         finally
             syncRoot.ExitWriteLock()
 
@@ -1243,7 +1250,7 @@ type NamespaceManager
             this.ClearResolutions()
 
             match Namespaces.TryGetValue nsName with
-            | true, ns when ns.Sources.Contains source ->
+            | true, ns when ns.Sources.Contains source || ns.Name = InternalUse.NotebookNamespace ->
                 let validAlias = String.IsNullOrWhiteSpace alias || alias.Trim() |> Namespaces.ContainsKey |> not
 
                 if validAlias && Namespaces.ContainsKey opened then

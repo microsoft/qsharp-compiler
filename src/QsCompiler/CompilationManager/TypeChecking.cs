@@ -172,7 +172,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <para/>
         /// The function returns null if the <see cref="CodeFragment.Kind"/> of <paramref name="fragment"/> is null.
         /// </remarks>
-        /// <!-- TODO: help -->
         private static QsNullable<Tuple<QsSymbol, (QsSpecializationKind, QsSpecializationGenerator, Range)>> SpecializationDeclaration(
             HeaderEntry<Tuple<QsCallableKind, CallableDeclaration>> parent, CodeFragment fragment)
         {
@@ -205,12 +204,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <param name="items">A collection of positioned items.</param>
         /// <exception cref="ArgumentException">No item precedes <paramref name="pos"/>.</exception>
-        private static T ContainingParent<T>(Position pos, IReadOnlyCollection<(Position, T)> items)
+        private static T ContainingParent<T>(Position pos, IReadOnlyCollection<(Position, T)> items, T? fallback = null)
+            where T : class
         {
             var preceding = items.TakeWhile(tuple => tuple.Item1 < pos);
             return preceding.Any()
                 ? preceding.Last().Item2
-                : throw new ArgumentException("no preceding item exists");
+                : fallback ?? throw new ArgumentException("no preceding item exists");
         }
 
         /// <summary>
@@ -280,6 +280,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .Select(headers => compilation.GlobalSymbols.CopyForExtension(headers.First().SymbolName, file.FileName))
                     .ToImmutableDictionary(ns => ns.Name); // making sure the namespaces are extended even if they occur multiple times in the same file
                 var namespaces = namespaceHeaders.Select(tuple => (tuple.Item2.Position, distinctNamespaces[tuple.Item2.SymbolName])).ToList();
+                Namespace? fallbackNamespace = null;
+
+                if (file.IsNotebookCell)
+                {
+                    // TODO: try adding notebook namespace here? AddOrReplace()
+                    fallbackNamespace = compilation.GlobalSymbols.CopyForExtension(ReservedKeywords.InternalUse.NotebookNamespace, file.FileName);
+                }
 
                 // add documenting comments to the namespace declarations
                 foreach (var header in namespaceHeaders)
@@ -291,7 +298,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var typesToCompile = AddItems(
                     file.GetTypeDeclarationHeaderItems(),
                     (pos, name, decl, att, doc) =>
-                        ContainingParent(pos, namespaces).TryAddType(
+                        ContainingParent(pos, namespaces, fallbackNamespace).TryAddType(
                             file.FileName,
                             new QsLocation(pos, name.Item2),
                             name,
@@ -305,7 +312,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var tokensToCompile = new List<(QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>?))>();
                 foreach (var headerItem in typesToCompile)
                 {
-                    var ns = ContainingParent(headerItem.Item2.Position, namespaces);
+                    var ns = ContainingParent(headerItem.Item2.Position, namespaces, fallbackNamespace);
                     tokensToCompile.Add((new QsQualifiedName(ns.Name, headerItem.Item2.SymbolName), (headerItem.Item2.Comments, null)));
                 }
 
@@ -313,7 +320,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var callablesToCompile = AddItems(
                     file.GetCallableDeclarationHeaderItems(),
                     (pos, name, decl, att, doc) =>
-                        ContainingParent(pos, namespaces).TryAddCallableDeclaration(
+                        ContainingParent(pos, namespaces, fallbackNamespace).TryAddCallableDeclaration(
                             file.FileName,
                             new QsLocation(pos, name.Item2),
                             name,
@@ -327,7 +334,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // add all callable specilizations -> TOOD: needs to be adapted for specializations outside the declaration body (not yet supported)
                 foreach (var headerItem in callablesToCompile)
                 {
-                    var ns = ContainingParent(headerItem.Item2.Position, namespaces);
+                    var ns = ContainingParent(headerItem.Item2.Position, namespaces, fallbackNamespace);
                     var tIndicesToCompile = AddSpecializationsToNamespace(file, ns, headerItem, diagnostics);
                     var (nsName, cName) = (ns.Name, headerItem.Item2.SymbolName);
                     var callableDeclComments = headerItem.Item2.Comments;
@@ -338,6 +345,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 foreach (var ns in distinctNamespaces.Values)
                 {
                     compilation.GlobalSymbols.AddOrReplaceNamespace(ns);
+                }
+
+                // The stand-in notebook namespace will be missing from the above, so update it manually
+                if (file.IsNotebookCell)
+                {
+                    compilation.GlobalSymbols.AddOrReplaceNamespace(fallbackNamespace);
                 }
 
                 return tokensToCompile.ToImmutableDictionary(entry => entry.Item1, entry => entry.Item2);
@@ -491,9 +504,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 var namespaces = file.GetNamespaceHeaderItems().Select(tuple => (tuple.Item2.Position, tuple.Item2.SymbolName)).ToList();
+                var fallbackNamespace = file.IsNotebookCell ? ReservedKeywords.InternalUse.NotebookNamespace : null;
                 AddItems(
                     file.GetOpenDirectivesHeaderItems(),
-                    (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces), file.FileName),
+                    (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces, fallbackNamespace), file.FileName),
                     file.FileName,
                     diagnostics);
             }

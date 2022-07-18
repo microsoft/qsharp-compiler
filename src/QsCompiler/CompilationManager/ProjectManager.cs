@@ -215,8 +215,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// IMPORTANT: This routine queries the current state of the project and does *not* wait for queued or running tasks to finish!
             /// </remarks>
             internal bool ContainsSourceFile(Uri sourceFile) =>
-                this.ProjectFile == NotebookProjectUri ||
-                (this.specifiedSourceFiles?.Contains(sourceFile) ?? false);
+                this.specifiedSourceFiles?.Contains(sourceFile) ?? false;
 
             /// <summary>
             /// Returns true if any of the currently specified source files of this project satisfies <paramref name="filter"/>.
@@ -228,6 +227,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// </remarks>
             internal bool ContainsAnySourceFiles(Func<Uri, bool>? filter = null) =>
                 this.specifiedSourceFiles?.Any(filter ?? (_ => true)) ?? false; // keep this as specified, *not* loaded!
+
+            internal bool IsNotebookProject() =>
+                this.ProjectFile == NotebookProjectUri;
 
             public void Dispose() =>
                 this.processing.QueueForExecutionAsync(() => this.Manager.Dispose());
@@ -615,6 +617,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // -> i.e. asynchronous tasks that are queued into the Processing queue
 
             /// <summary>
+            /// Adds a file to the project dedicated to notebook cells
+            /// </summary>
+            /// <param name="cellUri">The uri of the file (cell) to add</param>
+            public Task AddNotebookCellAsync(Uri cellUri)
+            {
+                QsCompilerError.Verify(this.IsNotebookProject(), "must add notebook cells only to the notebook project");
+
+                return this.processing.QueueForExecutionAsync(() =>
+                {
+                    this.specifiedSourceFiles = this.specifiedSourceFiles.Add(cellUri);
+                });
+            }
+
+            /// <summary>
             /// Reloads all project references with output path <paramref name="dllPath"/> and/or any reference to that dll.
             /// </summary>
             /// <param name="projectOutputPaths">A dictionary mapping each project file to the corresponding output path of the built project dll.</param>
@@ -726,7 +742,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             }
                         }
 
-                        if (!this.loadedSourceFiles.Contains(file))
+                        if (!this.loadedSourceFiles.Contains(file) && !this.IsNotebookProject())
                         {
                             return false;
                         }
@@ -1054,6 +1070,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? includedIn.Single().Manager
                 : this.defaultManager;
         }
+
+        /// <summary>
+        /// Add the file <paramref name="file"/> to the stand-in notebook project
+        /// </summary>
+        public Task RegisterNotebookCellAsync(Uri file) =>
+            this.load.QueueForExecutionAsync(() =>
+            {
+                _ = this.projects.Values.Where(project => project.IsNotebookProject()).Single().AddNotebookCellAsync(file);
+            });
 
         /// <summary>
         /// If <paramref name="file"/> can be uniquely associated with a compilation unit,
