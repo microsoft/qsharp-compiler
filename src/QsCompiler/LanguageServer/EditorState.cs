@@ -212,7 +212,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             buildProperties.Add(MSBuildProperties.QsharpLangVersion, null);
 
             // TODO: Want to propagate the runtime capability from the notebook
-            buildProperties.Add(MSBuildProperties.ResolvedRuntimeCapabilities, null);
+            buildProperties.Add(MSBuildProperties.ResolvedTargetCapability, null);
             buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, "QSharpLibrary");
             buildProperties.Add(MSBuildProperties.ExposeReferencesViaTestNames, null);
 
@@ -223,8 +223,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 sourceFiles: ImmutableArray<string>.Empty,
                 projectReferences: ImmutableArray<string>.Empty,
                 references: ImmutableArray<string>.Empty,
-                buildProperties: buildProperties,
-                buildConfiguration: this.buildConfiguration);
+                buildProperties: buildProperties);
             return true;
         }
 
@@ -287,14 +286,19 @@ namespace Microsoft.Quantum.QsLanguageServer
                 throw new ArgumentException("invalid text document identifier");
             }
 
+            DocumentKind documentKind = textDocument.LanguageId == "qsharp-notebook" ? DocumentKind.NotebookCell : DocumentKind.File;
+
+            if (documentKind == DocumentKind.NotebookCell)
+            {
+                _ = this.projects.RegisterNotebookCellAsync(textDocument.Uri);
+            }
+
             _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
                 {
                     return;
                 }
-
-                DocumentKind documentKind = textDocument.LanguageId == "qsharp-notebook" ? DocumentKind.NotebookCell : DocumentKind.File;
 
                 var onException = (Exception ex) =>
                 {
