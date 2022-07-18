@@ -1432,7 +1432,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a boxed bool (or null) representing if <paramref name="textDocument"/>
+        /// Returns a bool (or null) representing if <paramref name="textDocument"/>
         /// is a notebook cell or not.
         /// </summary>
         /// <remarks>
@@ -1441,7 +1441,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This method waits for all currently running or queued tasks to finish
         /// before getting the file content.
         /// </remarks>
-        public object? FileIsNotebookCell(TextDocumentIdentifier textDocument)
+        public bool? FileIsNotebookCell(TextDocumentIdentifier textDocument)
         {
             if (textDocument?.Uri == null)
             {
@@ -1457,7 +1457,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return manager?.FileIsNotebookCell(textDocument);
                 },
                 out var content);
-            return content;
+            return (bool?)content;
         }
 
         /// <summary>

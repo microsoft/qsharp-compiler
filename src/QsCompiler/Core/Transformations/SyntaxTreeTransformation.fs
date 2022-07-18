@@ -34,6 +34,7 @@ type SyntaxTreeTransformation<'T>(state, options) as this =
 
     /// Invokes the transformation for all namespaces in the given compilation.
     abstract OnCompilation: compilation: QsCompilation -> QsCompilation
+
     default this.OnCompilation compilation =
 
         if options.Rebuild then
@@ -262,6 +263,7 @@ type SyntaxTreeTransformation(options) as this =
 
     /// Invokes the transformation for all namespaces in the given compilation.
     abstract OnCompilation: compilation: QsCompilation -> QsCompilation
+
     default this.OnCompilation compilation =
         if options.Rebuild then
             let namespaces =

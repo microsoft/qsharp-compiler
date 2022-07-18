@@ -261,7 +261,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     return;
                 }
 
-                bool isNotebook = textDocument.LanguageId.Contains("notebook");
+                bool isNotebook = textDocument.LanguageId == "qsharp-notebook";
 
                 var onException = (Exception ex) =>
                 {

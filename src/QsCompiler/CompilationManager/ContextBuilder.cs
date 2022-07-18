@@ -165,10 +165,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-
-            var namespaces = file.GetNamespaceDeclarations();
-            var preceding = namespaces.TakeWhile(tuple => tuple.Item2.Start < pos);
-            return preceding.Any() ? preceding.Last().Item1 : null;
+            else if (file.IsNotebookCell)
+            {
+                return InternalUse.NotebookNamespace;
+            }
+            else
+            {
+                var namespaces = file.GetNamespaceDeclarations();
+                var preceding = namespaces.TakeWhile(tuple => tuple.Item2.Start < pos);
+                return preceding.Any() ? preceding.Last().Item1 : null;
+            }
         }
 
         /// <summary>
@@ -484,7 +490,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var fragment = tokenIndex.GetFragment();
                 var context = tokenIndex.GetContext();
 
-                var (include, verifications) = Context.VerifySyntaxTokenContext(context, file.IsNotebook);
+                var (include, verifications) = Context.VerifySyntaxTokenContext(context, file.IsNotebookCell ? DocumentKind.NotebookCell : DocumentKind.File);
                 foreach (var msg in verifications)
                 {
                     messages.Add(Diagnostics.Generate(file.FileName, msg, fragment.Range.Start));
@@ -535,12 +541,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var callables = file.GetCallableDeclarations().Select(tuple => // these are sorted according to their line number
             {
                 var ns = file.TryGetNamespaceAt(tuple.Item2.Start);
-
-                // invalid namespace names default to an unknown namespace name, but remain included in the compilation
-                QsCompilerError.Verify(
-                    file.IsNotebook == (ns == null),
-                    "namespace for callable declaration should be null if and only if this is a notebook");
-                return (tuple.Item2.Start, new QsQualifiedName(ns ?? InternalUse.NotebookNamespace, tuple.Item1));
+                QsCompilerError.Verify(ns != null, "namespace for callable declaration should not be null"); // invalid namespace names default to an unknown namespace name, but remain included in the compilation
+                return (tuple.Item2.Start, new QsQualifiedName(ns, tuple.Item1));
             }).ToList();
 
             // NOTE: The range of modifications that has to trigger an update of the syntax tree for a callable

@@ -946,18 +946,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Gets whether a file is a notebook cell
         /// </summary>
         /// <returns>
-        /// A boxed bool holding true if it is a notebook cell, else false
+        /// true if this file is a notebook cell, else false
         /// </returns>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
         /// before getting the file content by calling <see cref="FlushAndExecute"/>.
         /// </remarks>
-        public object? FileIsNotebookCell(TextDocumentIdentifier textDocument) =>
+        public bool? FileIsNotebookCell(TextDocumentIdentifier textDocument) =>
+            (bool?)this.FlushAndExecute(() =>
 
-            // Boxing needed here because FileQuery() is generic:
-            // https://devblogs.microsoft.com/dotnet/try-out-nullable-reference-types/#the-issue-with-t
-            this.FlushAndExecute(() =>
-                this.FileQuery(textDocument, (file, _) => (object)file.IsNotebook));
+                // Boxing needed here because FileQuery() is generic:
+                // https://devblogs.microsoft.com/dotnet/try-out-nullable-reference-types/#the-issue-with-t
+                this.FileQuery(textDocument, (file, _) => (object)file.IsNotebookCell));
 
         /// <summary>
         /// Gets the current file content (text representation) in memory.
