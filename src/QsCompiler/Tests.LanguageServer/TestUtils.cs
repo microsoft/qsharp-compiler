@@ -43,6 +43,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return new TextDocumentIdentifier { Uri = GetUri(filename) };
         }
 
+        internal static Uri GenerateNotebookCellUri(Guid notebookGuid) =>
+            new Uri("file:///" + notebookGuid.ToString() + "/" + Guid.NewGuid().ToString() + ".qs");
+
         internal static InitializeParams GetInitializeParams()
         {
             return new InitializeParams
@@ -58,12 +61,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             };
         }
 
-        internal static DidOpenTextDocumentParams GetOpenFileParams(string filename)
+        internal static DidOpenTextDocumentParams GetOpenFileParams(string filename, Uri? uri = null, string languageId = "")
         {
             var file = Path.GetFullPath(filename);
             var content = File.ReadAllText(file);
             return new DidOpenTextDocumentParams
-            { TextDocument = new TextDocumentItem { Uri = GetUri(filename), Text = content } };
+            { TextDocument = new TextDocumentItem { Uri = uri ?? GetUri(filename), LanguageId = languageId, Text = content } };
         }
 
         internal static DidCloseTextDocumentParams GetCloseFileParams(string filename)

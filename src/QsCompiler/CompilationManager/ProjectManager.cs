@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Transformations;
@@ -1429,6 +1430,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 },
                 out var diagnostics);
             return diagnostics;
+        }
+
+        /// <summary>
+        /// Returns a bool (or null) representing if <paramref name="textDocument"/>
+        /// is a notebook cell or not.
+        /// </summary>
+        /// <remarks>
+        /// Returns null if the given file is null or does not correspond to a known file.
+        /// <para/>
+        /// This method waits for all currently running or queued tasks to finish
+        /// before getting the file content.
+        /// </remarks>
+        public DocumentKind? FileDocumentKind(TextDocumentIdentifier textDocument)
+        {
+            if (textDocument?.Uri == null)
+            {
+                return null;
+            }
+
+            this.load.QueueForExecution(
+                () =>
+                {
+                    // NOTE: the call below prevents any consolidating of the processing queues
+                    // of the project manager and the compilation unit manager (dead locks)!
+                    var manager = this.Manager(textDocument.Uri);
+                    return manager?.FileDocumentKind(textDocument);
+                },
+                out var content);
+            return content;
         }
 
         /// <summary>

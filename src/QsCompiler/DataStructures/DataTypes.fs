@@ -311,6 +311,9 @@ type QsCompilerDiagnostic =
         | Warning code -> DiagnosticItem.Message(code, this.Arguments)
         | Information code -> DiagnosticItem.Message(code, this.Arguments)
 
+type DocumentKind =
+    | File
+    | NotebookCell
 
 /// interface used to pass anything lock-like to the symbol table (could not find an existing one??)
 type IReaderWriterLock =

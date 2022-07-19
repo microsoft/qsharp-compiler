@@ -32,7 +32,7 @@ type QsSpecializationKind =
     | QsAdjoint
     /// indicates the specialization of a declared operation that is executed when the callable is called after applying one or more Controlled functors
     | QsControlled
-    /// indicates the specialization of a declared operation that is executed when the callable is called after applying an odd number of Adjoint functors and one ore more Controlled functors
+    /// indicates the specialization of a declared operation that is executed when the callable is called after applying an odd number of Adjoint functors and one or more Controlled functors
     | QsControlledAdjoint
 
 

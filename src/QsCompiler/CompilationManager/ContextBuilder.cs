@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -164,10 +165,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-
-            var namespaces = file.GetNamespaceDeclarations();
-            var preceding = namespaces.TakeWhile(tuple => tuple.Item2.Start < pos);
-            return preceding.Any() ? preceding.Last().Item1 : null;
+            else if (file.DocumentKind == DocumentKind.NotebookCell)
+            {
+                return InternalUse.NotebookNamespace;
+            }
+            else
+            {
+                var namespaces = file.GetNamespaceDeclarations();
+                var preceding = namespaces.TakeWhile(tuple => tuple.Item2.Start < pos);
+                return preceding.Any() ? preceding.Last().Item1 : null;
+            }
         }
 
         /// <summary>
@@ -483,7 +490,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var fragment = tokenIndex.GetFragment();
                 var context = tokenIndex.GetContext();
 
-                var (include, verifications) = Context.VerifySyntaxTokenContext(context);
+                var (include, verifications) = Context.VerifySyntaxTokenContext(context, file.DocumentKind);
                 foreach (var msg in verifications)
                 {
                     messages.Add(Diagnostics.Generate(file.FileName, msg, fragment.Range.Start));

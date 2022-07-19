@@ -764,6 +764,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return
                     param.Command == CommandIds.ApplyEdit ? CastAndExecute<ApplyWorkspaceEditParams>(edit =>
                         this.rpc.InvokeWithParameterObjectAsync<ApplyWorkspaceEditResponse>(Methods.WorkspaceApplyEditName, edit)) :
+                    param.Command == CommandIds.FileDocumentKind ? CastAndExecute<TextDocumentIdentifier>(this.editorState.FileDocumentKind) :
                     param.Command == CommandIds.FileContentInMemory ? CastAndExecute<TextDocumentIdentifier>(this.editorState.FileContentInMemory) :
                     param.Command == CommandIds.FileDiagnostics ? CastAndExecute<TextDocumentIdentifier>(this.editorState.FileDiagnostics) :
                     null;

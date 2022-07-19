@@ -198,6 +198,9 @@ module InternalUse =
     /// to be used as name for all namespaces that do not have a valid name
     let UnknownNamespace = "__UnknownNamespaceName__"
 
+    /// the implicit namespace in notebooks
+    let NotebookNamespace = "__NotebookNamespace__"
+
     /// name for the control qubits used for compiler-generated controlled specializations (argument to the controlled functor)
     let ControlQubitsName = "__controlQubits__"
 
@@ -245,8 +248,10 @@ module MSBuildProperties =
     let QuantumSdkVersion = "QuantumSdkVersion"
     let TargetPath = "TargetPath"
     let ResolvedProcessorArchitecture = "ResolvedProcessorArchitecture"
+
     [<Obsolete("Replaced by ResolvedTargetCapability for Microsoft.Quantum.Sdk version 0.25 and newer.")>]
     let ResolvedRuntimeCapabilities = "ResolvedRuntimeCapabilities"
+
     let ResolvedTargetCapability = "ResolvedTargetCapability"
     let ResolvedQsharpOutputType = "ResolvedQSharpOutputType"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
@@ -261,8 +266,10 @@ module AssemblyConstants =
     let QsharpExe = "QSharpExe"
     let QsharpLibrary = "QSharpLibrary"
     let ProcessorArchitecture = "ProcessorArchitecture"
+
     [<Obsolete("Replaced by QuantinuumProcessor for Microsoft.Quantum.Sdk version 0.25 and newer.")>]
     let HoneywellProcessor = "HoneywellProcessor"
+
     let IonQProcessor = "IonQProcessor"
     let QCIProcessor = "QCIProcessor"
     let QuantinuumProcessor = "QuantinuumProcessor"
