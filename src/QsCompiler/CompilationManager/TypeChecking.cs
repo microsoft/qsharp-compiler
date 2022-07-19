@@ -282,7 +282,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var namespaces = namespaceHeaders.Select(tuple => (tuple.Item2.Position, distinctNamespaces[tuple.Item2.SymbolName])).ToList();
                 Namespace? fallbackNamespace = null;
 
-                if (file.IsNotebookCell)
+                if (file.DocumentKind == DocumentKind.NotebookCell)
                 {
                     // TODO: try adding notebook namespace here? AddOrReplace()
                     fallbackNamespace = compilation.GlobalSymbols.CopyForExtension(ReservedKeywords.InternalUse.NotebookNamespace, file.FileName);
@@ -348,7 +348,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 // The stand-in notebook namespace will be missing from the above, so update it manually
-                if (file.IsNotebookCell)
+                if (file.DocumentKind == DocumentKind.NotebookCell)
                 {
                     compilation.GlobalSymbols.AddOrReplaceNamespace(fallbackNamespace);
                 }
@@ -504,7 +504,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 var namespaces = file.GetNamespaceHeaderItems().Select(tuple => (tuple.Item2.Position, tuple.Item2.SymbolName)).ToList();
-                var fallbackNamespace = file.IsNotebookCell ? ReservedKeywords.InternalUse.NotebookNamespace : null;
+                var fallbackNamespace = file.DocumentKind == DocumentKind.NotebookCell ? ReservedKeywords.InternalUse.NotebookNamespace : null;
                 AddItems(
                     file.GetOpenDirectivesHeaderItems(),
                     (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces, fallbackNamespace), file.FileName),
