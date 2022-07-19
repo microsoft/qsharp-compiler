@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 
@@ -261,7 +262,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     return;
                 }
 
-                bool isNotebook = textDocument.LanguageId == "qsharp-notebook";
+                DocumentKind documentKind = textDocument.LanguageId == "qsharp-notebook" ? DocumentKind.NotebookCell : DocumentKind.File;
 
                 var onException = (Exception ex) =>
                 {
@@ -269,7 +270,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     manager.LogException(ex);
                 };
 
-                var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, onException, isNotebook);
+                var newManager = CompilationUnitManager.InitializeFileManager(textDocument.Uri, textDocument.Text, this.publish, onException, documentKind);
 
                 // Currently it is not possible to handle both the behavior of VS and VS Code for changes on disk in a manner that will never fail.
                 // To mitigate the impact of failures we choose to just log them as info.
@@ -543,11 +544,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.projects.FileContentInMemory(textDocument);
 
         /// <summary>
-        /// Waits for all currently running or queued tasks to finish before returning if this file is a cell in a notebook
+        /// Waits for all currently running or queued tasks to finish before returning the
+        /// DocumentKind of this file, which represents whether is a cell in a notebook or an
+        /// ordinary .qs file. Returns null for unknown files.
         /// -> Method to be used for testing/diagnostic purposes only!
         /// </summary>
-        internal object? FileIsNotebookCell(TextDocumentIdentifier textDocument) =>
-            this.projects.FileIsNotebookCell(textDocument);
+        internal DocumentKind? FileDocumentKind(TextDocumentIdentifier textDocument) =>
+            this.projects.FileDocumentKind(textDocument);
 
         /// <summary>
         /// Waits for all currently running or queued tasks to finish before getting the diagnostics for the given file.

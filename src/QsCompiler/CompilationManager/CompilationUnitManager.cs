@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -258,9 +259,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string fileContent,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
             Action<Exception>? onException = null,
-            bool isNotebook = false)
+            DocumentKind? documentKind = null)
         {
-            var file = new FileContentManager(uri, GetFileId(uri), isNotebook);
+            var file = new FileContentManager(uri, GetFileId(uri), documentKind);
             try
             {
                 file.ReplaceFileContent(fileContent);
@@ -943,21 +944,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.FlushAndExecute(() => this.fileContentManagers.Keys.Select(id => new Uri(id)).ToImmutableArray().AsEnumerable());
 
         /// <summary>
-        /// Gets whether a file is a notebook cell
+        /// Returns whether this is a notebook cell or an ordinary .qs file (or null if
+        /// <paramref name="textDocument"/> is not listed as a source file)
         /// </summary>
         /// <returns>
-        /// true if this file is a notebook cell, else false
+        /// The DocumentKind for the provided <paramref name="textDocument"/>, or null if it is not
+        /// a source file
         /// </returns>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
         /// before getting the file content by calling <see cref="FlushAndExecute"/>.
         /// </remarks>
-        public bool? FileIsNotebookCell(TextDocumentIdentifier textDocument) =>
-            (bool?)this.FlushAndExecute(() =>
-
-                // Boxing needed here because FileQuery() is generic:
-                // https://devblogs.microsoft.com/dotnet/try-out-nullable-reference-types/#the-issue-with-t
-                this.FileQuery(textDocument, (file, _) => (object)file.IsNotebookCell));
+        public DocumentKind? FileDocumentKind(TextDocumentIdentifier textDocument) =>
+            this.FlushAndExecute(() =>
+                this.FileQuery(textDocument, (file, _) => file.DocumentKind));
 
         /// <summary>
         /// Gets the current file content (text representation) in memory.

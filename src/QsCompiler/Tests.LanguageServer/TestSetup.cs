@@ -8,6 +8,7 @@ using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.VisualStudio.LanguageServer.Client;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -26,10 +27,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
         private readonly ManualResetEvent projectLoaded = new ManualResetEvent(false);
 
-        public Task<bool> GetFileIsNotebookCellAsync(string? filename = null, Uri? uri = null) =>
-            this.rpc.InvokeWithParameterObjectAsync<bool>(
+        public Task<DocumentKind> GetFileDocumentKindAsync(string? filename = null, Uri? uri = null) =>
+            this.rpc.InvokeWithParameterObjectAsync<DocumentKind>(
                 Methods.WorkspaceExecuteCommand.Name,
-                TestUtils.ServerCommand(CommandIds.FileIsNotebookCell, filename == null ? new TextDocumentIdentifier { Uri = uri ?? new Uri("file://unknown") } : TestUtils.GetTextDocumentIdentifier(filename)));
+                TestUtils.ServerCommand(CommandIds.FileDocumentKind, filename == null ? new TextDocumentIdentifier { Uri = uri ?? new Uri("file://unknown") } : TestUtils.GetTextDocumentIdentifier(filename)));
 
         public Task<string[]> GetFileContentInMemoryAsync(string filename) =>
             this.rpc.InvokeWithParameterObjectAsync<string[]>(

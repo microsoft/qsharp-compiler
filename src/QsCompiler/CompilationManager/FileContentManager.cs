@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
@@ -32,7 +33,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public string FileName { get; }
 
-        public bool IsNotebookCell { get; }
+        /// <summary>
+        /// Represents whether this is a notebook cell or an ordinary .qs file
+        /// </summary>
+        public DocumentKind DocumentKind { get; }
 
         /// <summary>
         /// An arbitrary integer representing the current version number of the file, or null if no version number is available.
@@ -116,12 +120,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /* constructors, "destructors" & property access: */
 
-        internal FileContentManager(Uri uri, string fileName, bool isNotebookCell = false)
+        internal FileContentManager(Uri uri, string fileName, DocumentKind? documentKind = null)
         {
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.Uri = uri;
             this.FileName = fileName;
-            this.IsNotebookCell = isNotebookCell;
+            this.DocumentKind = documentKind ?? DocumentKind.File;
             this.Version = null;
 
             this.content = new ManagedList<CodeLine>(this.SyncRoot);

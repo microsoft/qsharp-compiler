@@ -165,7 +165,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
-            else if (file.IsNotebookCell)
+            else if (file.DocumentKind == DocumentKind.NotebookCell)
             {
                 return InternalUse.NotebookNamespace;
             }
@@ -490,7 +490,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var fragment = tokenIndex.GetFragment();
                 var context = tokenIndex.GetContext();
 
-                var (include, verifications) = Context.VerifySyntaxTokenContext(context, file.IsNotebookCell ? DocumentKind.NotebookCell : DocumentKind.File);
+                var (include, verifications) = Context.VerifySyntaxTokenContext(context, file.DocumentKind);
                 foreach (var msg in verifications)
                 {
                     messages.Add(Diagnostics.Generate(file.FileName, msg, fragment.Range.Start));

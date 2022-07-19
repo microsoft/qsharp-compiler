@@ -9,10 +9,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
+using Position = Microsoft.VisualStudio.LanguageServer.Protocol.Position;
 using Range = Microsoft.VisualStudio.LanguageServer.Protocol.Range;
 
 namespace Microsoft.Quantum.QsLanguageServer.Testing
@@ -556,13 +558,13 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             // By default, LanguageId will not contain "notebook"
             var openParams1 = TestUtils.GetOpenFileParams(programFileWithoutNamespace);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams1);
-            Assert.IsFalse(await this.GetFileIsNotebookCellAsync(programFileWithoutNamespace));
+            Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(programFileWithoutNamespace));
             var diagnostics1 = await this.GetFileDiagnosticsAsync(programFileWithoutNamespace);
 
             // By default, LanguageId will not contain "notebook"
             var openParams2 = TestUtils.GetOpenFileParams(programFileWithNamespace);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
-            Assert.IsFalse(await this.GetFileIsNotebookCellAsync(programFileWithNamespace));
+            Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(programFileWithNamespace));
             var diagnostics2 = await this.GetFileDiagnosticsAsync(programFileWithNamespace);
 
             Assert.IsNotNull(diagnostics1);
@@ -598,12 +600,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             var openParams1 = TestUtils.GetOpenFileParams(programFileWithoutNamespace, uriWithoutNamespace, languageId);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams1);
-            Assert.IsTrue(await this.GetFileIsNotebookCellAsync(uri: uriWithoutNamespace));
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uriWithoutNamespace));
             var diagnostics1 = await this.GetFileDiagnosticsAsync(uri: uriWithoutNamespace);
 
             var openParams2 = TestUtils.GetOpenFileParams(programFileWithNamespace, uriWithNamespace, languageId);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
-            Assert.IsTrue(await this.GetFileIsNotebookCellAsync(uri: uriWithNamespace));
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uriWithNamespace));
             var diagnostics2 = await this.GetFileDiagnosticsAsync(uri: uriWithNamespace);
 
             Assert.IsNotNull(diagnostics1);
