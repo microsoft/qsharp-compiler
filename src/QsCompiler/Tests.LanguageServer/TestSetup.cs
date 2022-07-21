@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
@@ -55,9 +56,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestInitialize]
         public async Task SetupServerConnectionAsync()
         {
-            // Need to run MSBuildLocator for some tests like UpdateProjectFileAsync
-            _ = VisualStudioInstanceWrapper.LazyVisualStudioInstance.Value;
-
+            var logFile = Path.GetTempFileName();
             Directory.CreateDirectory(RandomInput.TestInputDirectory);
             var outputDir = new DirectoryInfo(RandomInput.TestInputDirectory);
             foreach (var file in outputDir.GetFiles())
@@ -73,7 +72,25 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
                 var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
-                var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
+                var languageServerPath = Path.Combine(
+                    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
+                    "LanguageServer",
+                    "Microsoft.Quantum.QsLanguageServer.exe");
+
+                ProcessStartInfo info = new()
+                {
+                    FileName = languageServerPath,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    Arguments = $"--writer={serverWriterPipe} --reader={serverReaderPipe} --log={logFile}",
+                };
+
+                Process process = new() { StartInfo = info };
+                if (!process.Start() || process.HasExited)
+                {
+                    throw new Exception("failed to launch language server");
+                }
+
                 await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 this.connection = new Connection(readerPipe, writerPipe);
@@ -83,7 +100,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new System.IO.Pipelines.Pipe();
                 var writerPipe = new System.IO.Pipelines.Pipe();
 
-                var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
+                // This test setup may encounter issues with NuGet.* packages not being correctly found for the in-memory build.
+                // These are expected to be an artifact of the in-process invocation here.
+                _ = VisualStudioInstanceWrapper.LazyVisualStudioInstance.Value;
+                _ = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
                 this.connection = new Connection(writerPipe.Reader.AsStream(), readerPipe.Writer.AsStream());
             }
 

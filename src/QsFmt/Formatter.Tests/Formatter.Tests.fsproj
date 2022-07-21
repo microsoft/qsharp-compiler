@@ -6,9 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="$(SolutionDir)src\QsCompiler\Tests.Compiler\TestCases\**\*.qs">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\QsCompiler\Tests.Compiler\TestCases\**\*.qs">
       <Link>TestCases\%(FileName)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Compile Include="Tests.fs" />
   </ItemGroup>

@@ -14,13 +14,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0" />
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Client" Version="17.2.2105" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
     <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
     <PackageReference Include="System.IO.Pipelines" Version="6.0.1" />
     <PackageReference Include="System.IO.Pipes" Version="4.3.0" />
-    <PackageReference Include="NuGet.Frameworks" Version="6.2.1-rc.7" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,25 +31,36 @@
   <ItemGroup>
     <Content Include="..\TestProjects\**\*proj">
       <Link>TestProjects\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="..\TestProjects\**\*.qs">
       <Link>TestProjects\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
-  <Target Name="PublishQsFmt" BeforeTargets="BeforeCompile">
+  <Target Name="PublishTools" BeforeTargets="BeforeCompile">
     <Message Importance="high" Text="Publishing QsFmt"/>
     <PropertyGroup>
       <QsFmtPublishPath>$(OutputPath)\qsfmt\</QsFmtPublishPath>
       <QsFmtPublishCommand>dotnet publish "$(EnlistmentRoot)src/QsFmt/App/App.fsproj" -o "$(QsFmtPublishPath)"</QsFmtPublishCommand>
     </PropertyGroup>
-    <MakeDir Directories="$(OutputPath)\qsfmt" />
+    <MakeDir Directories="$(QsFmtPublishPath)" />
     <Exec Command="$(QsFmtPublishCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="QsFmtPublishExitCode" />
     </Exec>
     <Error Condition="'$(QsFmtPublishExitCode)' != '0'" Text="Publishing QsFmt failed." />
+
+    <Message Importance="high" Text="Publishing QsLanguageServer"/>
+    <PropertyGroup>
+      <QsLanguageServerPublishPath>$(OutputPath)\LanguageServer\</QsLanguageServerPublishPath>
+      <QsLanguageServerPublishCommand>dotnet publish "$(EnlistmentRoot)src/QsCompiler/LanguageServer/LanguageServer.csproj" -o "$(QsLanguageServerPublishPath)"</QsLanguageServerPublishCommand>
+    </PropertyGroup>
+    <MakeDir Directories="$(QsLanguageServerPublishPath)" />
+    <Exec Command="$(QsLanguageServerPublishCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
+      <Output TaskParameter="ExitCode" PropertyName="QsLanguageServerPublishExitCode" />
+    </Exec>
+    <Error Condition="'$(QsLanguageServerPublishExitCode)' != '0'" Text="Publishing QsLanguageServer failed." />
   </Target>
 
 </Project>
