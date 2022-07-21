@@ -219,6 +219,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             // TODO: In the future if we add formatting support, this will need to be updated
             buildProperties.Add(MSBuildProperties.QsFmtExe, null);
 
+            // TODO: To allow access to the standard library, need to include references to:
+            // * Microsoft.Quantum.Standard.dll
+            // * Microsoft.Quantum.QSharp.Foundation.dll
+            // * Microsoft.Quantum.QSharp.Core.dll
+            // (This is normally handled by the Quantum SDK MSBuild scripts, which we have bypassed)
             info = new ProjectInformation(
                 sourceFiles: ImmutableArray<string>.Empty,
                 projectReferences: ImmutableArray<string>.Empty,

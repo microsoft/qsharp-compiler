@@ -284,7 +284,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 if (file.DocumentKind == DocumentKind.NotebookCell)
                 {
-                    // TODO: try adding notebook namespace here? AddOrReplace()
+                    compilation.GlobalSymbols.AddEmptyNamespaceIfNotExists(ReservedKeywords.InternalUse.NotebookNamespace);
                     fallbackNamespace = compilation.GlobalSymbols.CopyForExtension(ReservedKeywords.InternalUse.NotebookNamespace, file.FileName);
                 }
 
@@ -347,8 +347,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     compilation.GlobalSymbols.AddOrReplaceNamespace(ns);
                 }
 
-                // The stand-in notebook namespace will be missing from the above, so update it manually
-                if (file.DocumentKind == DocumentKind.NotebookCell)
+                // The stand-in notebook namespace will be missing from the distinctNamespaces above
+                // because it is not actually present in the file, so update it manually
+                if (fallbackNamespace != null)
                 {
                     compilation.GlobalSymbols.AddOrReplaceNamespace(fallbackNamespace);
                 }
@@ -504,10 +505,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 var namespaces = file.GetNamespaceHeaderItems().Select(tuple => (tuple.Item2.Position, tuple.Item2.SymbolName)).ToList();
-                var fallbackNamespace = file.DocumentKind == DocumentKind.NotebookCell ? ReservedKeywords.InternalUse.NotebookNamespace : null;
+                var fallbackNamespaceName = file.DocumentKind == DocumentKind.NotebookCell ? ReservedKeywords.InternalUse.NotebookNamespace : null;
                 AddItems(
                     file.GetOpenDirectivesHeaderItems(),
-                    (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces, fallbackNamespace), file.FileName),
+                    (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingParent(pos, namespaces, fallbackNamespaceName), file.FileName),
                     file.FileName,
                     diagnostics);
             }
