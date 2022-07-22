@@ -49,7 +49,7 @@ if ("$VsCodeVsixVersion".Trim().Length -eq 0) {
 }
 
 
-$Telemetry = "$($Env:ASSEMBLY_CONSTANTS)".Contains("TELEMETRY").ToString().ToLower();
+$Telemetry = "true";
 Write-Host "Enable telemetry: $Telemetry";
 
 Get-ChildItem -Recurse *.v.template `
