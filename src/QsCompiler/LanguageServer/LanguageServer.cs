@@ -177,16 +177,12 @@ namespace Microsoft.Quantum.QsLanguageServer
                 string eventName,
                 Dictionary<string, string?> properties,
                 Dictionary<string, int> measurements) =>
-            #if TELEMETRY
             this.NotifyClientAsync(Methods.TelemetryEventName, new Dictionary<string, object>
             {
                 ["event"] = eventName,
                 ["properties"] = properties,
                 ["measurements"] = measurements,
             });
-            #else
-            Task.CompletedTask;
-            #endif
 
         /// <summary>
         /// to be called when the server encounters an internal error (i.e. a QsCompilerError is raised)

@@ -46,7 +46,6 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         /// Adds the version of the extension assembly as version. 
         public static void SendEvent(string name, IEnumerable<KeyValuePair<string, object>> props = null)
         {
-#if TELEMETRY
             props = props ?? Enumerable.Empty<KeyValuePair<string, object>>();
             var evt = new TelemetryEvent(PrefixEventName(name));
             foreach (var entry in props.Where(p => !string.IsNullOrEmpty(p.Key)))
@@ -58,7 +57,6 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             try { TelemetryService.DefaultSession.PostEvent(evt); }
             catch (Exception ex)
             { Debug.Assert(false, $"error sending telemetry: \n{ex}"); }
-#endif
         }
 
         public static void SendEvent(ExtensionEvent id, params (string, object)[] props) =>
