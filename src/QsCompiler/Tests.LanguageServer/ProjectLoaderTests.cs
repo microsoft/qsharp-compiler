@@ -329,7 +329,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Console.WriteLine($"[{level}]: {msg}");
 
         internal static EditorState Editor =>
-            new EditorState(new ProjectLoader(LogOutput), null, null, null, null);
+            new(new ProjectLoader(LogOutput), null, null, null, null);
 
         internal static ProjectInformation? Load(Uri projectFile) =>
             Editor.QsProjectLoader(projectFile, out var loaded) ? loaded : null;
