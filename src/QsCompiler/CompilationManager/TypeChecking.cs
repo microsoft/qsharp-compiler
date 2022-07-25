@@ -284,7 +284,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 if (file.DocumentKind == DocumentKind.NotebookCell)
                 {
-                    compilation.GlobalSymbols.AddEmptyNamespaceIfNotExists(ReservedKeywords.InternalUse.NotebookNamespace);
                     fallbackNamespace = compilation.GlobalSymbols.CopyForExtension(ReservedKeywords.InternalUse.NotebookNamespace, file.FileName);
                 }
 

@@ -1226,20 +1226,6 @@ type NamespaceManager
         finally
             syncRoot.ExitWriteLock()
 
-    /// Add an empty namespace named nsName if it does not already exist. Useful for adding the
-    /// stand-in namespace for notebooks.
-    member this.AddEmptyNamespaceIfNotExists(nsName) =
-        syncRoot.EnterWriteLock()
-
-        try
-            match Namespaces.TryGetValue nsName with
-            | true, _ -> ()
-            | false, _ ->
-                versionNumber <- versionNumber + 1
-                Namespaces.Add(nsName, new Namespace(nsName, [], [], [], []))
-        finally
-            syncRoot.ExitWriteLock()
-
     /// <summary>
     /// Adds the opened namespace to the list of imported namespaces for the given source and namespace.
     /// If the namespace to list as imported does not exists, or if the given alias cannot be used as namespace short name,
