@@ -23,9 +23,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
         private Connection? connection;
         private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
-        private readonly RandomInput inputGenerator = new RandomInput();
-        private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
-        private readonly ManualResetEvent projectLoaded = new ManualResetEvent(false);
+        private readonly RandomInput inputGenerator = new();
+        private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new();
+        private readonly ManualResetEvent projectLoaded = new(false);
 
         public Task<string[]> GetFileContentInMemoryAsync(string filename) =>
             this.rpc.InvokeWithParameterObjectAsync<string[]>(
