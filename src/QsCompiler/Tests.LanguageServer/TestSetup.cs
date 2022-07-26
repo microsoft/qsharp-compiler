@@ -97,14 +97,36 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
             else
             {
-                var readerPipe = new System.IO.Pipelines.Pipe();
-                var writerPipe = new System.IO.Pipelines.Pipe();
+                var readerPipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+                var writerPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 
-                // This test setup may encounter issues with NuGet.* packages not being correctly found for the in-memory build.
-                // These are expected to be an artifact of the in-process invocation here.
-                _ = VisualStudioInstanceWrapper.LazyVisualStudioInstance.Value;
-                _ = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
-                this.connection = new Connection(writerPipe.Reader.AsStream(), readerPipe.Writer.AsStream());
+                var languageServerPath = Path.Combine(
+                    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
+                    "LanguageServer",
+                    "Microsoft.Quantum.QsLanguageServer.dll");
+
+                ProcessStartInfo info = new()
+                {
+                    FileName = "dotnet",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    Arguments = $"{languageServerPath} --unnamed --writer={readerPipe.GetClientHandleAsString()} --reader={writerPipe.GetClientHandleAsString()} --log={logFile}",
+                };
+
+                Process process = new() { StartInfo = info };
+                if (!process.Start() || process.HasExited)
+                {
+                    throw new Exception("failed to launch language server");
+                }
+
+                readerPipe.DisposeLocalCopyOfClientHandle();
+                writerPipe.DisposeLocalCopyOfClientHandle();
+                if (!writerPipe.IsConnected || !readerPipe.IsConnected)
+                {
+                    throw new Exception("not connected");
+                }
+
+                this.connection = new Connection(readerPipe, writerPipe);
             }
 
             this.rpc = new JsonRpc(this.connection.Writer, this.connection.Reader, this)
