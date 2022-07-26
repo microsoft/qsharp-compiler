@@ -32,6 +32,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         private readonly Action<PublishDiagnosticParams> publish;
         private readonly SendTelemetryHandler? sendTelemetry;
 
+        private readonly string? notebookReferencesPath;
+
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
         /// or whether its current state as it is in the editor needs to be preserved
@@ -62,7 +64,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             Action<PublishDiagnosticParams>? publishDiagnostics,
             SendTelemetryHandler? sendTelemetry,
             Action<string, MessageType>? log,
-            Action<Exception>? onException)
+            Action<Exception>? onException,
+            string? notebookReferencesPath = null)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
             this.sendTelemetry = sendTelemetry;
@@ -87,6 +90,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry);
+            this.notebookReferencesPath = notebookReferencesPath;
         }
 
         /// <summary>
@@ -219,15 +223,29 @@ namespace Microsoft.Quantum.QsLanguageServer
             // TODO: In the future if we add formatting support, this will need to be updated
             buildProperties.Add(MSBuildProperties.QsFmtExe, null);
 
-            // TODO: To allow access to the standard library, need to include references to:
-            // * Microsoft.Quantum.Standard.dll
-            // * Microsoft.Quantum.QSharp.Foundation.dll
-            // * Microsoft.Quantum.QSharp.Core.dll
-            // (This is normally handled by the Quantum SDK MSBuild scripts, which we have bypassed)
+            // Adding references normally handled by the Quantum SDK MSBuild scripts, which we have
+            // bypassed by not invoking MSBuild.
+            // The qsharp-dev.ps1 script in the aadams/qsharp-tweaks branch of the AzureNotebooks repository will download the dlls from NuGet for you
+            IEnumerable<string> references = Enumerable.Empty<string>();
+            if (!string.IsNullOrEmpty(this.notebookReferencesPath))
+            {
+                try
+                {
+                    var dir = new DirectoryInfo(this.notebookReferencesPath);
+                    references = dir.GetFiles()
+                        .Select(file => file.FullName)
+                        .Where(path => path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase));
+                }
+                catch (IOException err)
+                {
+                    Console.Error.WriteLine($"Warning: Cannot access references directory for notebook: {err}");
+                }
+            }
+
             info = new ProjectInformation(
                 sourceFiles: ImmutableArray<string>.Empty,
                 projectReferences: ImmutableArray<string>.Empty,
-                references: ImmutableArray<string>.Empty,
+                references: references,
                 buildProperties: buildProperties);
             return true;
         }
