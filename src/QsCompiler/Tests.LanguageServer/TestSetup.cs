@@ -62,7 +62,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestInitialize]
         public async Task SetupServerConnectionAsync()
         {
-            MSBuildLocator.RegisterDefaults();
+            // Need to run MSBuildLocator for some tests.
+            _ = MsBuildDefaults.LazyRegistration.Value;
 
             var logFile = Path.GetTempFileName();
             Directory.CreateDirectory(RandomInput.TestInputDirectory);
