@@ -48,6 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal static Generator CreateAndPopulateGenerator(QsCompilation compilation, IDictionary<string, string?> assemblyConstants)
         {
+            // Note: In the future, we would like always run the output recording, and not have to do this conditionally on the target.
             var targetCapability = assemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.TargetCapability, out var capability) && !string.IsNullOrWhiteSpace(capability)
                 ? TargetCapability.TryParse(capability) // null if parsing fails
                 : null;
