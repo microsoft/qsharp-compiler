@@ -546,5 +546,46 @@ namespace Microsoft.Quantum.QsLanguageServer
             var allDiagnostics = this.projects.GetDiagnostics(textDocument?.Uri);
             return allDiagnostics?.Length == 1 ? allDiagnostics.Single().Diagnostics : null; // count is > 1 if the given uri corresponds to a project file
         }
+
+        /// <summary>
+        /// Waits for all currently running or queued tasks to finish before getting the project information.
+        /// -> Method to be used for testing/diagnostic purposes only!
+        /// </summary>
+        internal string? ProjectInformation(TextDocumentIdentifier textDocument)
+        {
+            var projectInfo = this.projects.GetProjectInformation(textDocument);
+            if (projectInfo is null)
+            {
+                return null;
+            }
+
+            var stringWriter = new StringWriter();
+            var writer = System.Xml.XmlWriter.Create(stringWriter);
+            void WriteElementGroup(string groupName, IEnumerable<string> paths)
+            {
+                writer.WriteStartElement(groupName);
+                foreach (var path in paths)
+                {
+                    writer.WriteStartElement("File");
+                    writer.WriteAttributeString("Path", path);
+                    writer.WriteEndElement();
+                }
+
+                writer.WriteEndElement();
+            }
+
+            writer.WriteStartDocument();
+            writer.WriteStartElement("ProjectInfo");
+            writer.WriteAttributeString("OutputPath", projectInfo.Properties.DllOutputPath);
+            writer.WriteAttributeString("TargetCapability", projectInfo.Properties.TargetCapability.Name);
+            writer.WriteAttributeString("ProcessorArchitecture", projectInfo.Properties.ProcessorArchitecture);
+            WriteElementGroup("Sources", projectInfo.SourceFiles);
+            WriteElementGroup("ProjectReferences", projectInfo.ProjectReferences);
+            WriteElementGroup("References", projectInfo.References);
+            writer.WriteEndElement();
+            writer.WriteEndDocument();
+            writer.Flush();
+            return stringWriter.ToString();
+        }
     }
 }

@@ -9,6 +9,7 @@ using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Build.Locator;
 using Microsoft.VisualStudio.LanguageServer.Client;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -37,6 +38,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Methods.WorkspaceExecuteCommand.Name,
                 TestUtils.ServerCommand(CommandIds.FileDiagnostics, filename == null ? new TextDocumentIdentifier { Uri = new Uri("file://unknown") } : TestUtils.GetTextDocumentIdentifier(filename)));
 
+        public Task<string> GetProjectInformationAsync(Uri projectFile) =>
+            this.rpc.InvokeWithParameterObjectAsync<string>(
+                Methods.WorkspaceExecuteCommand.Name,
+                TestUtils.ServerCommand(CommandIds.ProjectInformation, new TextDocumentIdentifier() { Uri = projectFile }));
+
         public Task SetupAsync()
         {
             var initParams = TestUtils.GetInitializeParams();
@@ -56,6 +62,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestInitialize]
         public async Task SetupServerConnectionAsync()
         {
+            MSBuildLocator.RegisterDefaults();
+
             var logFile = Path.GetTempFileName();
             Directory.CreateDirectory(RandomInput.TestInputDirectory);
             var outputDir = new DirectoryInfo(RandomInput.TestInputDirectory);
