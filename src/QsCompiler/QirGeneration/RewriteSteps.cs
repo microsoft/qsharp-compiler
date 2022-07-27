@@ -48,10 +48,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            var targetCapability = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.TargetCapability, out var capability) && !string.IsNullOrWhiteSpace(capability)
-                ? TargetCapability.TryParse(capability) // null if parsing fails
-                : null;
-            using var generator = CompilationSteps.CreateAndPopulateGenerator(compilation, targetCapability);
+            using var generator = CompilationSteps.CreateAndPopulateGenerator(compilation, this.AssemblyConstants);
 
             // write generated QIR to disk
             var assemblyName = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.AssemblyName, out var asmName) ? asmName : null;
