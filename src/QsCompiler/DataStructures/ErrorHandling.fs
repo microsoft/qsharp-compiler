@@ -11,8 +11,8 @@ open System.Runtime.CompilerServices
 /// Exception raised for compiler internal errors (i.e. failures of the Q# compiler).
 type private QsCompilerException(message, innerException: Exception) =
     inherit Exception(message, innerException)
-    new(message) = new QsCompilerException(message, null)
-    new() = new QsCompilerException(null, null)
+    new(message) = QsCompilerException(message, null)
+    new() = QsCompilerException(null, null)
 
 
 /// used much like a static class in C# for handling all internal errors in the Q# compiler
@@ -23,10 +23,10 @@ type QsCompilerError = QsCompilerError
         /// that allows to easily modify the behavior for such errors.
         [<DoesNotReturn>]
         static member Raise(message, innerException: Exception) : unit =
-            if innerException = null then
-                new QsCompilerException(message) |> raise
+            if isNull innerException then
+                QsCompilerException(message) |> raise
             else
-                new QsCompilerException(message, innerException) |> raise
+                QsCompilerException(message, innerException) |> raise
 
         /// Method that wraps all handling of inner errors (i.e. a failure of the Q# compiler)
         /// that allows to easily modify the behavior for such errors.
@@ -45,7 +45,7 @@ type QsCompilerError = QsCompilerError
             let outer = sprintf "%s: %s\n" (ex.GetType().Name) ex.Message
 
             let inner =
-                if ex.InnerException = null then
+                if isNull ex.InnerException then
                     ""
                 else
                     sprintf "Inner Exception: %s - %s\n" (ex.InnerException.GetType().Name) ex.InnerException.Message
@@ -66,12 +66,12 @@ type QsCompilerError = QsCompilerError
         /// Calls QsCompilerError.Raise with a message detailing the any caught exception,
         /// and returns null if an exception occurred.
         static member RaiseOnFailure<'T when 'T: null>(func: Func<'T>, header) =
-            let RaiseAndReturnNull msg =
+            let raiseAndReturnNull msg =
                 QsCompilerError.Raise msg
                 null
 
             try
                 func.Invoke()
             with
-            | :? RuntimeWrappedException as ex -> QsCompilerError.Log(ex, header) |> RaiseAndReturnNull
-            | ex -> QsCompilerError.Log(ex, header) |> RaiseAndReturnNull
+            | :? RuntimeWrappedException as ex -> QsCompilerError.Log(ex, header) |> raiseAndReturnNull
+            | ex -> QsCompilerError.Log(ex, header) |> raiseAndReturnNull
