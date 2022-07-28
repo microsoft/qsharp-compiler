@@ -206,7 +206,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // construct a suitable edit
             return namespaces.Distinct().Where(ns => !openDirs.Contains(ns, null)).Select(suggestedNS => // filter all namespaces that are already open
             {
-                var directive = $"{Keywords.importDirectiveHeader.id} {suggestedNS}";
+                var directive = $"{Keywords.importDirectiveHeader.Id} {suggestedNS}";
                 return new TextEdit
                 {
                     Range = new Lsp.Range { Start = insertOpenDirAt.ToLsp(), End = insertOpenDirAt.ToLsp() },
@@ -346,10 +346,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         var overlappingFragments = file
                             .FragmentsOverlappingWithRange(declarationLocation.Range.ToQSharp())
                             .Where(f => f.Text != null && f.Text.TrimStart()
-                            .StartsWith(Keywords.qsImmutableBinding.id));
+                            .StartsWith(Keywords.qsImmutableBinding.Id));
                         foreach (var fragment in overlappingFragments)
                         {
-                            var newText = Keywords.qsMutableBinding.id + fragment.Text.TrimStart()[Keywords.qsImmutableBinding.id.Length..];
+                            var newText = Keywords.qsMutableBinding.Id + fragment.Text.TrimStart()[Keywords.qsImmutableBinding.Id.Length..];
                             edits.Add(($"Replace with mutable binding: \"{newText}\".", file.GetWorkspaceEdit(new TextEdit { Range = fragment.Range.ToLsp(), NewText = newText })));
                         }
                     }
@@ -396,13 +396,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // update deprecated keywords and operators
             var unitSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedUnitType))
-                .Select(d => ReplaceWith(Keywords.qsUnit.id, d.Range));
+                .Select(d => ReplaceWith(Keywords.qsUnit.Id, d.Range));
             var notSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedNOToperator))
-                .Select(d => ReplaceWith(Keywords.qsNOTop.op, d.Range));
+                .Select(d => ReplaceWith(Keywords.qsNOTop.Op, d.Range));
             var andSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedANDoperator))
-                .Select(d => ReplaceWith(Keywords.qsANDop.op, d.Range));
+                .Select(d => ReplaceWith(Keywords.qsANDop.Op, d.Range));
             var orSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedORoperator))
-                .Select(d => ReplaceWith(Keywords.qsORop.op, d.Range));
+                .Select(d => ReplaceWith(Keywords.qsORop.Op, d.Range));
 
             var qubitBindingSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedQubitBindingKeyword))
                 .Select(d =>
@@ -414,7 +414,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         if (match.Success && match.Groups.Count == 3)
                         {
 #pragma warning disable 0618
-                            var newText = (match.Groups[1].Value == Keywords.qsUsing.id ? Keywords.qsUse.id : Keywords.qsBorrow.id) + " " + match.Groups[2].Value.Trim();
+                            var newText = (match.Groups[1].Value == Keywords.qsUsing.Id ? Keywords.qsUse.Id : Keywords.qsBorrow.Id) + " " + match.Groups[2].Value.Trim();
 #pragma warning restore 0618
                             var edit = new TextEdit { Range = fragment.Range.ToLsp(), NewText = newText };
                             return ($"Replace with \"{edit.NewText.Trim()}\".", file.GetWorkspaceEdit(edit));
@@ -422,7 +422,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     }
 
 #pragma warning disable 0618
-                    return d.Message.Contains($"\"{Keywords.qsUsing.id}\"") ? ReplaceWith(Keywords.qsUse.id, d.Range) : ReplaceWith(Keywords.qsBorrow.id, d.Range);
+                    return d.Message.Contains($"\"{Keywords.qsUsing.Id}\"") ? ReplaceWith(Keywords.qsUse.Id, d.Range) : ReplaceWith(Keywords.qsBorrow.Id, d.Range);
 #pragma warning restore 0618
                 });
 
@@ -435,7 +435,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             static string CharacteristicsAnnotation(Characteristics c)
             {
                 var charEx = SyntaxTreeToQsharp.CharacteristicsExpression(SymbolResolution.ResolveCharacteristics(c));
-                return charEx == null ? "" : $"{Keywords.qsCharacteristics.id} {charEx}";
+                return charEx == null ? "" : $"{Keywords.qsCharacteristics.Id} {charEx}";
             }
 
             var characteristicsSuggestions = diagnostics
@@ -496,8 +496,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 // Convert set <identifier>[<index>] = <rhs> to set <identifier> w/= <index> <- <rhs>
-                var rhs = $"{exprInfo.Item3} {Keywords.qsCopyAndUpdateOp.cont} {exprInfo.Item4}";
-                var outputStr = $"{Keywords.qsValueUpdate.id} {exprInfo.Item2} {Keywords.qsCopyAndUpdateOp.op}= {rhs}";
+                var rhs = $"{exprInfo.Item3} {Keywords.qsCopyAndUpdateOp.Cont} {exprInfo.Item4}";
+                var outputStr = $"{Keywords.qsValueUpdate.Id} {exprInfo.Item2} {Keywords.qsCopyAndUpdateOp.Op}= {rhs}";
                 var edit = new TextEdit { Range = fragment.Range.ToLsp(), NewText = outputStr };
                 return ("Replace with an update-and-reassign statement.", file.GetWorkspaceEdit(edit));
             }

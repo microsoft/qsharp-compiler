@@ -61,11 +61,11 @@ let private wordContainedIn (strings: ImmutableHashSet<_>) =
 
 /// parses any QsFragmentHeader and return unit
 let internal qsFragmentHeader =
-    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.FragmentHeaders
+    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.fragmentHeaders
 
 /// parses any QsLanguageKeyword and return unit
 let internal qsLanguageKeyword =
-    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.LanguageKeywords
+    previousCharSatisfiesNot isLetter >>. wordContainedIn Keywords.languageKeywords
 
 /// parses any QsReservedKeyword and return unit
 let internal qsReservedKeyword =
