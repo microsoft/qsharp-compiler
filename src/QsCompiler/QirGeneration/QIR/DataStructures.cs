@@ -273,6 +273,9 @@ namespace Microsoft.Quantum.QIR.Emission
 
         internal ImmutableArray<ResolvedType> ElementTypes { get; }
 
+        public IReadOnlyList<ITypeRef> LlvmElementTypes =>
+            this.StructType.Members;
+
         public ResolvedType QSharpType => this.TypeName != null
             ? ResolvedType.New(QsResolvedTypeKind.NewUserDefinedType(
                 new UserDefinedType(this.TypeName.Namespace, this.TypeName.Name, QsNullable<QsCompiler.DataTypes.Range>.Null)))
@@ -306,7 +309,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.LlvmNativeValue = value.NativeType is IStructType ? value : null;
             this.opaquePointer = this.CreateOpaquePointerCache(Types.IsTupleOrUnit(value.NativeType) && !value.IsNull ? value : null);
             this.typedPointer = this.CreateTypedPointerCache(Types.IsTypedTuple(value.NativeType) ? value : null);
-            this.tupleElementPointers = this.CreateTupleElementPointersCaches(elementTypes);
+            this.tupleElementPointers = this.CreateTupleElementPointersCaches();
 
             if (tupleElements != null)
             {
@@ -369,6 +372,32 @@ namespace Microsoft.Quantum.QIR.Emission
         {
         }
 
+        /// <summary>
+        /// Creates an new tuple value that is a copy of the given value.
+        /// Does *not* increase the reference count of the tuple elements.
+        /// </summary>
+        internal TupleValue(TupleValue tuple, bool alwaysCopy = false)
+        {
+            this.sharedState = tuple.sharedState;
+            this.TypeName = tuple.TypeName;
+            this.ElementTypes = tuple.ElementTypes;
+            this.StructType = tuple.StructType;
+
+            var value = tuple.sharedState.TargetQirProfile // FIXME: SOLVE THIS DIFFERENTLY
+                    ? tuple.Value
+                    : tuple.sharedState.CurrentBuilder.Call(
+                        tuple.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy),
+                        tuple.OpaquePointer,
+                        tuple.sharedState.Context.CreateConstant(alwaysCopy));
+
+            this.LlvmNativeValue = value.NativeType is IStructType ? value : null;
+            this.opaquePointer = this.CreateOpaquePointerCache(Types.IsTupleOrUnit(value.NativeType) && !value.IsNull ? value : null);
+            this.typedPointer = this.CreateTypedPointerCache(Types.IsTypedTuple(value.NativeType) ? value : null);
+
+            this.tupleElementPointers = tuple.tupleElementPointers
+                .Select((cache, idx) => this.CreateTupleElementPointerCache(idx, cache.IsCached ? cache.Load() : null)).ToArray();
+        }
+
         /* private helpers */
 
         private IValue.Cached<Value> CreateOpaquePointerCache(Value? pointer = null) =>
@@ -383,25 +412,36 @@ namespace Microsoft.Quantum.QIR.Emission
                 ? this.sharedState.CurrentBuilder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType())
                 : throw new InvalidOperationException("tuple pointer is undefined"));
 
-        private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches(IReadOnlyList<(ResolvedType, ITypeRef)>? elementTypes = null) =>
-            Enumerable.ToArray(elementTypes.Select((type, index) => new IValue.Cached<PointerValue>(this.sharedState, () =>
+        private PointerValue CreateTupleElementPointer(int index, IValue? element = null)
+        {
+            if (this.LlvmNativeValue is null)
             {
-                if (this.LlvmNativeValue is null)
-                {
-                    var elementPtr = this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, (uint)index);
-                    return new PointerValue(elementPtr, type.Item1, type.Item2, this.sharedState);
-                }
-                else
-                {
-                    void Store(IValue v) =>
-                        this.LlvmNativeValue = this.sharedState.CurrentBuilder.InsertValue(this.Value, v.Value, (uint)index);
+                var elementPtr = this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, (uint)index);
+                return new PointerValue(elementPtr, this.ElementTypes[index], this.LlvmElementTypes[index], this.sharedState);
+            }
+            else
+            {
+                void Store(IValue v) =>
+                    this.LlvmNativeValue = this.sharedState.CurrentBuilder.InsertValue(this.Value, v.Value, (uint)index);
 
-                    IValue Reload() =>
-                        this.sharedState.Values.From(this.sharedState.CurrentBuilder.ExtractValue(this.Value, (uint)index), type.Item1);
+                IValue Reload() =>
+                    this.sharedState.Values.From(this.sharedState.CurrentBuilder.ExtractValue(this.Value, (uint)index), this.ElementTypes[index]);
 
-                    return new PointerValue(type.Item1, type.Item2, this.sharedState, Reload, Store);
-                }
-            })));
+                return element is null
+                    ? new PointerValue(this.ElementTypes[index], this.LlvmElementTypes[index], this.sharedState, Reload, Store)
+                    : new PointerValue(element, this.sharedState, Reload, Store);
+            }
+        }
+
+        private IValue.Cached<PointerValue> CreateTupleElementPointerCache(int index, PointerValue? pointer = null) =>
+            new(pointer is null || this.LlvmNativeValue is null
+                    ? null
+                    : this.CreateTupleElementPointer(index, pointer.CurrentCache()),
+                this.sharedState,
+                () => this.CreateTupleElementPointer(index));
+
+        private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches() =>
+            Enumerable.ToArray(Enumerable.Range(0, this.ElementTypes.Length).Select(index => this.CreateTupleElementPointerCache(index)));
 
         private Value AllocateTuple(bool registerWithScopeManager)
         {
@@ -510,7 +550,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 this.Value = this.AllocateArray(registerWithScopeManager);
             }
 
-            this.arrayElementPointers = this.CreateArrayElementPointersCaches();
+            this.arrayElementPointers = this.CreateArrayElementPointerCaches();
             var itemPointers = this.GetArrayElementPointers();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
@@ -549,26 +589,28 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates an new array value that is a copy of the given value.
+        /// Does *not* increase the reference count of the array elements.
         /// </summary>
-        internal ArrayValue(ArrayValue value, bool alwaysCopy = false)
+        internal ArrayValue(ArrayValue array, bool alwaysCopy = false)
         {
-            this.sharedState = value.sharedState;
-            this.Count = value.Count;
-            this.length = this.CreateLengthCache(value.length.IsCached ? value.length.Load() : null);
-            this.QSharpElementType = value.QSharpElementType;
-            this.LlvmType = value.LlvmType;
-            this.LlvmElementType = value.LlvmElementType;
-            this.Value = value.Value;
+            this.sharedState = array.sharedState;
+            this.Count = array.Count;
+            this.length = this.CreateLengthCache(array.length.IsCached ? array.length.Load() : null);
+            this.QSharpElementType = array.QSharpElementType;
+            this.LlvmType = array.LlvmType;
+            this.LlvmElementType = array.LlvmElementType;
+            this.Value = array.Value;
 
-            if (Types.IsArray(value.LlvmType))
+            // FIXME: WE SHOULD SEPARATELY CONFIGURE WHETHER TO STACK ALLOCATE OR NOT
+            if (Types.IsArray(array.LlvmType))
             {
                 var createShallowCopy = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
                 var forceCopy = this.sharedState.Context.CreateConstant(alwaysCopy);
-                this.Value = this.sharedState.CurrentBuilder.Call(createShallowCopy, value.OpaquePointer, forceCopy);
+                this.Value = this.sharedState.CurrentBuilder.Call(createShallowCopy, array.OpaquePointer, forceCopy);
             }
 
-            this.arrayElementPointers = value.arrayElementPointers?.Select((cache, idx) =>
-                this.CreateArrayElementPointersCache(idx, cache.IsCached ? cache.Load() : null)).ToArray();
+            this.arrayElementPointers = array.arrayElementPointers?.Select((cache, idx) =>
+                this.CreateArrayElementPointerCache(idx, cache.IsCached ? cache.Load() : null)).ToArray();
         }
 
         /// <summary>
@@ -584,6 +626,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.LlvmType = value.NativeType;
             this.Count = count;
 
+            // FIXME: WE SHOULD SEPARATELY CONFIGURE WHETHER TO STACK ALLOCATE OR NOT
             if (this.IsNativeValue(out var constArr, out var length, value: value))
             {
                 this.Count ??= QirValues.AsConstantUInt32(length);
@@ -596,7 +639,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 this.Value = Types.IsArray(value.NativeType) ? value : throw new ArgumentException("expecting an opaque array");
             }
 
-            this.arrayElementPointers = this.Count is null ? null : this.CreateArrayElementPointersCaches();
+            this.arrayElementPointers = this.Count is null ? null : this.CreateArrayElementPointerCaches();
         }
 
         /// <summary>
@@ -614,7 +657,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
             this.LlvmType = this.sharedState.Types.Array;
             this.Value = this.AllocateArray(registerWithScopeManager);
-            this.arrayElementPointers = this.Count is null ? null : this.CreateArrayElementPointersCaches();
+            this.arrayElementPointers = this.Count is null ? null : this.CreateArrayElementPointerCaches();
         }
 
         /// <inheritdoc cref="ArrayValue(ResolvedType, Value, GenerationContext, bool)"/>
@@ -665,6 +708,7 @@ namespace Microsoft.Quantum.QIR.Emission
         private static Value CreateNativeValue(ITypeRef elementType, uint nrElements, uint count, GenerationContext context) =>
             CreateNativeValue(elementType.CreateArrayType(nrElements).GetNullValue(), count, context);
 
+        // FIXME: SIMPLIFY UPDATES
         private Value UpdateNativeValue(Func<Value, Value>? transformConstArr = null) =>
             this.IsNativeValue(out var constArr, out var length)
                 ? CreateNativeValue(
@@ -698,15 +742,15 @@ namespace Microsoft.Quantum.QIR.Emission
                     this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
                     this.OpaquePointer));
 
-        private IValue.Cached<PointerValue> CreateArrayElementPointersCache(int index, PointerValue? pointer = null) =>
+        private IValue.Cached<PointerValue> CreateArrayElementPointerCache(int index, PointerValue? pointer = null) =>
             new(pointer is null || Types.IsArray(this.LlvmType)
                     ? null
                     : this.CreateArrayElementPointer(index, pointer.CurrentCache()),
                 this.sharedState,
                 () => this.CreateArrayElementPointer(index));
 
-        private IValue.Cached<PointerValue>[] CreateArrayElementPointersCaches() =>
-            Enumerable.ToArray(Enumerable.Range(0, (int)this.Count!).Select(idx => this.CreateArrayElementPointersCache(idx)));
+        private IValue.Cached<PointerValue>[] CreateArrayElementPointerCaches() =>
+            Enumerable.ToArray(Enumerable.Range(0, (int)this.Count!).Select(idx => this.CreateArrayElementPointerCache(idx)));
 
         private Value AllocateArray(bool registerWithScopeManager)
         {
@@ -748,6 +792,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
             if (eltype.Resolution is QsResolvedTypeKind.ArrayType it)
             {
+                // FIXME: GET RID OF THE EXCEPTION
                 var arrs = elements.Select(e => (ArrayValue)e).ToArray();
                 var sizes = arrs.Select(a =>
                     a.IsNativeValue(out var constArr, out var _) && constArr.NativeType is IArrayType iat
@@ -760,6 +805,7 @@ namespace Microsoft.Quantum.QIR.Emission
                     ? array.GetArrayElement(idx)
                     : this.sharedState.Values.From(array.LlvmElementType.GetNullValue(), array.QSharpElementType);
 
+                // FIXME: GET RID OF THE EXCEPTION
                 return NormalizeItems(innerArrSize, arrs, GetInnerElements, _ => it.Item, (idx, newElements) =>
                     arrs[idx].Count is uint count
 

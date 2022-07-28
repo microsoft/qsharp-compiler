@@ -371,27 +371,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateUdt(TupleValue originalTuple)
             {
-                TupleValue GetTupleCopy(TupleValue original)
-                {
-                    if (sharedState.TargetQirProfile)
-                    {
-                        return original.TypeName == null
-                            ? sharedState.Values.FromTuple(original.Value, original.ElementTypes)
-                            : sharedState.Values.FromCustomType(original.Value, original.TypeName);
-                    }
-                    else
-                    {
-                        // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
-                        // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
-                        // alias count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
-                        var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
-                        var forceCopy = sharedState.Context.CreateConstant(false);
-                        var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
-                        return original.TypeName == null
-                            ? sharedState.Values.FromTuple(copy, original.ElementTypes)
-                            : sharedState.Values.FromCustomType(copy, original.TypeName);
-                    }
-                }
+                // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
+                // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
+                // alias count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
+                TupleValue GetTupleCopy(TupleValue original) =>
+                    sharedState.Values.FromTuple(original, false);
 
                 var udtName = originalTuple.TypeName;
                 if (udtName == null || !sharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))

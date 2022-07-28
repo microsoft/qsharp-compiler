@@ -178,6 +178,12 @@ namespace Microsoft.Quantum.QIR.Emission
         internal TupleValue FromTuple(Value value, ImmutableArray<ResolvedType> elementTypes) =>
             new(value, elementTypes, this.sharedState);
 
+        /// <inheritdoc cref="TupleValue(TupleValue, bool)"/>
+        /// <param name="value">The tuple value to copy.</param>
+        /// <param name="alwaysCopy">Whether to force the runtime to make a copy of the contained LLVM value even if the alias count is zero.</param>
+        internal TupleValue FromTuple(TupleValue value, bool alwaysCopy) =>
+            new(value, alwaysCopy);
+
         /// <summary>
         /// Creates an array value that represents a Q# value of array type and contains
         /// the given LLVM value as well as additional infos used for optimization
@@ -189,9 +195,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue FromArray(Value value, ResolvedType elementType, uint? count) =>
             new(value, elementType, count, this.sharedState);
 
-        /// <summary>
-        /// Creates an new array value that is a copy of the given value.
-        /// </summary>
+        /// <inheritdoc cref="ArrayValue(ArrayValue, bool)"/>
         /// <param name="value">The array value to copy.</param>
         /// <param name="alwaysCopy">Whether to force the runtime to make a copy of the contained LLVM value even if the alias count is zero.</param>
         internal ArrayValue FromArray(ArrayValue value, bool alwaysCopy) =>
