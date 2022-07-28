@@ -371,7 +371,6 @@
             "Array.length x >= 0 ===> true",
             "Seq.length x >= 0 ===> true",
 
-            "x = true ===> x",
             "x = false ===> not x",
             "true = a ===> a",
             "false = a ===> not a",
