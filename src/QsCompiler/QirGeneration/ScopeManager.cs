@@ -32,25 +32,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// Maps variable names to the corresponding value.
             /// Mutable variables are represented as PointerValues.
             /// </summary>
-            private readonly Dictionary<string, IValue> variables = new Dictionary<string, IValue>();
+            private readonly Dictionary<string, IValue> variables = new();
 
             /// <summary>
             /// Contains all values whose reference count has been increased.
             /// The first items contains the value, and the second item indicates whether to recursively reference inner items.
             /// </summary>
-            private readonly List<(IValue, bool)> pendingReferences = new List<(IValue, bool)>();
+            private readonly List<(IValue, bool)> pendingReferences = new();
 
             /// <summary>
             /// Contains all values that require unreferencing upon closing the scope.
             /// The first items contains the value, and the second item indicates whether to recursively unreference inner items.
             /// </summary>
-            private readonly List<(IValue, bool)> requiredUnreferences = new List<(IValue, bool)>();
+            private readonly List<(IValue, bool)> requiredUnreferences = new();
 
             /// <summary>
             /// Contains the values that require invoking a release function upon closing the scope,
             /// as well as the name of the release function to invoke.
             /// </summary>
-            private readonly List<Action> requiredReleases = new List<Action>();
+            private readonly List<Action> requiredReleases = new();
 
             public Scope(Action<Func<ITypeRef, string?>, (IValue, bool)[]> increaseCounts, Action<Func<ITypeRef, string?>, (IValue, bool)[]> decreaseCounts)
             {
@@ -99,9 +99,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     if (value is TupleValue tuple)
                     {
-                        for (var i = 0; i < tuple.StructType.Members.Count && recurIntoInnerItems; ++i)
+                        for (var i = 0; i < tuple.LlvmElementTypes.Count && recurIntoInnerItems; ++i)
                         {
-                            var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
+                            var itemFuncName = getFunctionName(tuple.LlvmElementTypes[i]);
                             if (itemFuncName != null)
                             {
                                 var item = tuple.GetTupleElement(i);
@@ -367,7 +367,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// New variables and values are always added to the scope on top of the stack.
         /// When looking for a name, the stack is searched top-down.
         /// </summary>
-        private readonly Stack<Scope> scopes = new Stack<Scope>();
+        private readonly Stack<Scope> scopes = new();
 
         /// <summary>
         /// Is true when there are currently no stack frames tracked.
@@ -483,9 +483,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     Value arg;
                     if (value is TupleValue tuple)
                     {
-                        for (var i = 0; i < tuple.StructType.Members.Count && recurIntoInnerItems; ++i)
+                        for (var i = 0; i < tuple.LlvmElementTypes.Count && recurIntoInnerItems; ++i)
                         {
-                            var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
+                            var itemFuncName = getFunctionName(tuple.LlvmElementTypes[i]);
                             if (itemFuncName != null)
                             {
                                 var item = tuple.GetTupleElement(i);
@@ -754,7 +754,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             IValue? value = null;
             this.scopes.FirstOrDefault(scope => scope.TryGetVariable(name, out value));
-            return value != null ? value : throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
+            return value ?? throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
         }
 
         /// <summary>
