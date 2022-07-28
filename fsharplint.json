@@ -1,6 +1,11 @@
 {
     "ignoreFiles": [
-        "assemblyinfo.*"
+        "AssemblyInfo.*",
+        "src/QsCompiler/CSharpGeneration/",
+        "src/QsCompiler/Optimizations/",
+        "src/QsCompiler/RoslynWrapper/",
+        "src/QsCompiler/Tests.CSharpGeneration/",
+        "src/QsCompiler/Tests.RoslynWrapper/"
     ],
     "global": {
         "numIndentationSpaces": 4
