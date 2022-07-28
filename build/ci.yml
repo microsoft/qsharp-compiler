@@ -63,4 +63,4 @@ jobs:
       dotnet tool run dotnet-fsharplint lint QsCompiler.sln
     displayName: F# lint
   pool:
-    vmImage: windows-latest
+    vmImage: ubuntu-latest
