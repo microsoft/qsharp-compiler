@@ -23,29 +23,29 @@
   <!-- Q# package references included by default. -->
   <ItemGroup>
     <!-- Packages and libraries included for all execution targets. -->
-    <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.24.217480-beta" />
-    <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.24.217480-beta" />
+    <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.25.222597" />
+    <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.25.222597" />
     <!-- Provider packages included for specific execution targets. -->
-    <PackageReference Condition="$(EnableQirSubmission) And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Core" Version="0.24.217480-beta" />
-    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.24.217480-beta" />
-    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.24.217480-beta" />
-    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.24.217480-beta" />
-    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Rigetti" Version="0.24.217480-beta" />
+    <PackageReference Condition="$(EnableQirSubmission) And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Core" Version="0.25.222597" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.25.222597" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.25.222597" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.25.222597" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Rigetti" Version="0.25.222597" />
     <!-- Target packages included for specific execution targets. -->
-    <PackageReference Condition="'$(ResolvedQuantumInstructionSet)' == 'Type1' And $(EnableQirSubmission) And $(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Type1.Core" Version="0.24.217480-beta" IsTargetPackage='true' />
-    <PackageReference Condition="'$(ResolvedQuantumInstructionSet)' == 'Type2' And $(EnableQirSubmission) And $(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Type2.Core" Version="0.24.217480-beta" IsTargetPackage='true' />
-    <PackageReference Condition="'$(ResolvedQuantumInstructionSet)' == 'Type3' And $(EnableQirSubmission) And $(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Type3.Core" Version="0.24.217480-beta" IsTargetPackage='true' />
-    <PackageReference Condition="'$(ResolvedQuantumInstructionSet)' == 'Type4' And $(EnableQirSubmission) And $(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Type4.Core" Version="0.24.217480-beta" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumInstructionSet)' == 'Type1' And $(EnableQirSubmission) And $(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Type1.Core" Version="0.25.222597" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumInstructionSet)' == 'Type2' And $(EnableQirSubmission) And $(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Type2.Core" Version="0.25.222597" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumInstructionSet)' == 'Type3' And $(EnableQirSubmission) And $(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Type3.Core" Version="0.25.222597" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumInstructionSet)' == 'Type4' And $(EnableQirSubmission) And $(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Type4.Core" Version="0.25.222597" IsTargetPackage='true' />
   </ItemGroup>
 
   <!-- Include the qir generation and docs generation compiler extensions if needed. -->
   <ItemGroup>
     <PackageReference Condition="$(QSharpDocsGeneration)"
-                      Include="Microsoft.Quantum.DocumentationGenerator" Version="0.24.217480-beta"
+                      Include="Microsoft.Quantum.DocumentationGenerator" Version="0.25.222597"
                       IsImplicitlyDefined="true" 
                       IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
     <PackageReference Condition="$(QirGeneration) Or $(EnableQirSubmission)"
-                      Include="Microsoft.Quantum.QirGeneration" Version="0.24.217480-beta"
+                      Include="Microsoft.Quantum.QirGeneration" Version="0.25.222597"
                       IsImplicitlyDefined="true" 
                       IsQscReference="true" ExecutionTarget="Any" Priority="-2" PrivateAssets="All" />
   </ItemGroup>
@@ -53,13 +53,13 @@
   <!-- Packages for execution on the simulation framework. -->
   <ItemGroup>
     <PackageReference Condition="$(CSharpGeneration) And $(IncludeCSharpRuntime)" 
-                      Include="Microsoft.Quantum.Runtime.Core" Version="0.24.217480-beta" IsImplicitlyDefined="true" />
+                      Include="Microsoft.Quantum.Runtime.Core" Version="0.25.222597" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CSharpGeneration) And $(IncludeCSharpRuntime) And '$(ResolvedQSharpOutputType)' == 'QSharpExe'"
-                      Include="Microsoft.Quantum.EntryPointDriver" Version="0.24.217480-beta" IsImplicitlyDefined="true" />
+                      Include="Microsoft.Quantum.EntryPointDriver" Version="0.25.222597" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CSharpGeneration) And $(IncludeCSharpRuntime)"
-                      Include="Microsoft.Quantum.Targets.Interfaces" Version="0.24.217480-beta" IsImplicitlyDefined="true" />
+                      Include="Microsoft.Quantum.Targets.Interfaces" Version="0.25.222597" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CSharpGeneration)"
-                      Include="Microsoft.Quantum.CSharpGeneration" Version="0.24.217480-beta" IsImplicitlyDefined="true"
+                      Include="Microsoft.Quantum.CSharpGeneration" Version="0.25.222597" IsImplicitlyDefined="true"
                       IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
   </ItemGroup>
 
