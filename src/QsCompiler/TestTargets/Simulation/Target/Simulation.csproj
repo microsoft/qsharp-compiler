@@ -18,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.24.217480-alpha" ExcludeAssets="compile" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.217480-beta" ExcludeAssets="compile" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.25.222597-alpha" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.25.222597" ExcludeAssets="compile" GeneratePathProperty="true" />
   </ItemGroup>
 
   <Target Name="PrepareReferenceTests" Condition="'$(DesignTimeBuild)' != 'true' And $([MSBuild]::IsOsPlatform('OSX'))" BeforeTargets="CoreCompile">
