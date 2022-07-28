@@ -160,7 +160,7 @@ type TypeDeclarationHeader =
     }
 
     [<JsonIgnore>]
-    member this.Location = DeclarationHeader.createLocation(this.Position, this.SymbolRange)
+    member this.Location = DeclarationHeader.createLocation (this.Position, this.SymbolRange)
 
     member this.FromSource source = { this with Source = source }
 
@@ -274,7 +274,7 @@ type CallableDeclarationHeader =
     }
 
     [<JsonIgnore>]
-    member this.Location = DeclarationHeader.createLocation(this.Position, this.SymbolRange)
+    member this.Location = DeclarationHeader.createLocation (this.Position, this.SymbolRange)
 
     member this.FromSource source = { this with Source = source }
 
@@ -401,7 +401,7 @@ type SpecializationDeclarationHeader =
     }
 
     [<JsonIgnore>]
-    member this.Location = DeclarationHeader.createLocation(this.Position, this.HeaderRange)
+    member this.Location = DeclarationHeader.createLocation (this.Position, this.HeaderRange)
 
     member this.FromSource source = { this with Source = source }
 
