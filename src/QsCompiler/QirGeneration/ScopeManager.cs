@@ -452,6 +452,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return null;
         }
 
+        private static bool IsStackAlloctedContainer(ITypeRef t) =>
+            t.Kind == TypeKind.Array || t.Kind == TypeKind.Struct || t.Kind == TypeKind.Vector;
+
         /// <summary>
         /// For each value for which the given function returns a function name,
         /// applies the runtime function with that name to the value, casting the value if necessary.
@@ -472,7 +475,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, Value change, IValue value, bool recurIntoInnerItems)
         {
-            void ProcessValue(string funcName, IValue value)
+            void ProcessValue(string? funcName, IValue value)
             {
                 if (value is PointerValue pointer)
                 {
@@ -480,32 +483,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    Value arg;
+                    Func<Value> getArg;
                     if (value is TupleValue tuple)
                     {
-                        for (var i = 0; i < tuple.LlvmElementTypes.Count && recurIntoInnerItems; ++i)
+                        for (var i = 0; recurIntoInnerItems && i < tuple.LlvmElementTypes.Count; ++i)
                         {
                             var itemFuncName = getFunctionName(tuple.LlvmElementTypes[i]);
-                            if (itemFuncName != null)
+                            if (itemFuncName != null || IsStackAlloctedContainer(tuple.LlvmElementTypes[i]))
                             {
                                 var item = tuple.GetTupleElement(i);
                                 ProcessValue(itemFuncName, item);
                             }
                         }
 
-                        arg = tuple.OpaquePointer;
+                        getArg = () => tuple.OpaquePointer;
                     }
                     else if (value is ArrayValue array)
                     {
                         var itemFuncName = getFunctionName(array.LlvmElementType);
-                        if (itemFuncName != null && recurIntoInnerItems)
+                        if (recurIntoInnerItems && (itemFuncName != null || IsStackAlloctedContainer(array.LlvmElementType)))
                         {
                             this.sharedState.IterateThroughArray(array, arrItem => ProcessValue(itemFuncName, arrItem));
                         }
 
-                        arg = array.OpaquePointer;
+                        getArg = () => array.OpaquePointer;
                     }
-                    else if (value is CallableValue callable && recurIntoInnerItems)
+                    else if (recurIntoInnerItems && value is CallableValue callable)
                     {
                         var captureCountChange =
                             funcName == RuntimeLibrary.CallableUpdateReferenceCount ? RuntimeLibrary.CaptureUpdateReferenceCount :
@@ -514,20 +517,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                         var invokeMemoryManagment = this.sharedState.GetOrCreateRuntimeFunction(captureCountChange);
                         this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, callable.Value, change);
-                        arg = callable.Value;
+                        getArg = () => callable.Value;
                     }
                     else
                     {
-                        arg = value.Value;
+                        getArg = () => value.Value;
                     }
 
-                    var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    this.sharedState.CurrentBuilder.Call(func, arg, change);
+                    if (funcName is not null)
+                    {
+                        var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
+                        this.sharedState.CurrentBuilder.Call(func, getArg(), change);
+                    }
                 }
             }
 
             var func = getFunctionName(value.LlvmType);
-            if (func != null)
+            if (func != null || IsStackAlloctedContainer(value.LlvmType))
             {
                 ProcessValue(func, value);
             }

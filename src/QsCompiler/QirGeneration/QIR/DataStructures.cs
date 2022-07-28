@@ -331,8 +331,13 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/> is set to false.
         /// </summary>
         internal TupleValue(QsQualifiedName? type, IReadOnlyList<IValue> tupleElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(type, self => allocOnStack ? self.StructType.GetNullValue() : self.AllocateTuple(registerWithScopeManager), null, tupleElements, context)
+            : this(type, self => self.AllocateTuple(allocOnStack: allocOnStack), null, tupleElements, context)
         {
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
+
             foreach (var element in tupleElements)
             {
                 this.sharedState.ScopeMgr.IncreaseReferenceCount(element);
@@ -341,14 +346,22 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <inheritdoc cref="TupleValue(QsQualifiedName?, IReadOnlyList{IValue}, GenerationContext, bool, bool)"/>
         internal TupleValue(QsQualifiedName? type, ImmutableArray<TypedExpression> tupleElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(type, self => allocOnStack ? self.StructType.GetNullValue() : self.AllocateTuple(registerWithScopeManager), null, tupleElements.Select(context.BuildSubitem).ToArray(), context)
+            : this(type, self => self.AllocateTuple(allocOnStack: allocOnStack), null, tupleElements.Select(context.BuildSubitem).ToArray(), context)
         {
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
         }
 
         /// <inheritdoc cref="TupleValue(QsQualifiedName?, IReadOnlyList{IValue}, GenerationContext, bool, bool)"/>
         internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager)
-            : this(null, self => self.AllocateTuple(registerWithScopeManager), elementTypes, null, context)
+            : this(null, self => self.AllocateTuple(allocOnStack: false), elementTypes, null, context)
         {
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
         }
 
         /// <summary>
@@ -370,7 +383,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Creates an new tuple value that is a copy of the given value.
         /// The new tuple will be allocated on the stack if the value to copy is.
-        /// Does *not* increase the reference count of the tuple elements.
+        /// Does *not* increase the reference count of the tuple elements, nor does it register the new value with the scope manager.
         /// </summary>
         internal TupleValue(TupleValue tuple, bool alwaysCopy = false)
         {
@@ -439,19 +452,14 @@ namespace Microsoft.Quantum.QIR.Emission
         private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches() =>
             Enumerable.ToArray(Enumerable.Range(0, this.ElementTypes.Length).Select(index => this.CreateTupleElementPointerCache(index)));
 
-        private Value AllocateTuple(bool registerWithScopeManager)
-        {
-            // The runtime function TupleCreate creates a new value with reference count 1 and alias count 0.
-            var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
-            var size = this.sharedState.ComputeSizeForType(this.StructType);
-            var tuple = this.sharedState.CurrentBuilder.Call(constructor, size);
-            if (registerWithScopeManager)
-            {
-                this.sharedState.ScopeMgr.RegisterValue(this);
-            }
+        private Value AllocateTuple(bool allocOnStack) =>
+            allocOnStack
+            ? this.StructType.GetNullValue()
 
-            return tuple;
-        }
+            // The runtime function TupleCreate creates a new value with reference count 1 and alias count 0.
+            : this.sharedState.CurrentBuilder.Call(
+                this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate),
+                this.sharedState.ComputeSizeForType(this.StructType));
 
         // methods for item access
 
@@ -518,14 +526,13 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Creates an array value that represents a Q# value of array type and contains additional infos used
         /// for optimization during QIR generation as well as the LLVM representation of the value.
         /// Accessing the opaque pointer will throw an <see cref="InvalidOperationException"/> if the value is stack allocated.
-        /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/> is set to false.
         /// </summary>
         /// <remarks>
         /// IMPORTANT:
         /// Does *not* increase the reference count of the given <paramref name="arrayElements"/>.
         /// This constructor should remain private.
         /// </remarks>
-        private ArrayValue(ResolvedType elementType, uint count, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+        private ArrayValue(ResolvedType elementType, uint count, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack)
         {
             this.sharedState = context;
             this.Count = count < arrayElements.Count ? count : (uint)arrayElements.Count;
@@ -546,7 +553,7 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
                 this.LlvmType = this.sharedState.Types.Array;
-                this.Value = this.AllocateArray(registerWithScopeManager);
+                this.Value = this.AllocateArray();
             }
 
             this.arrayElementPointers = this.CreateArrayElementPointerCaches();
@@ -564,14 +571,23 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/> is set to false.
         /// </summary>
         internal ArrayValue(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(elementType, (uint)arrayElements.Length, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
+            : this(elementType, (uint)arrayElements.Length, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack)
         {
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
         }
 
         /// <inheritdoc cref="ArrayValue(ResolvedType, ImmutableArray{TypedExpression}, GenerationContext, bool, bool)"/>
         internal ArrayValue(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(elementType, (uint)arrayElements.Count, arrayElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
+            : this(elementType, (uint)arrayElements.Count, arrayElements, context, allocOnStack: allocOnStack)
         {
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
+
             foreach (var element in arrayElements)
             {
                 // We need to make sure the reference count increase is applied here;
@@ -589,7 +605,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Creates an new array value that is a copy of the given value.
         /// The new array will be allocated on the stack if the value to copy is.
-        /// Does *not* increase the reference count of the array elements.
+        /// Does *not* increase the reference count of the array elements, nor does it register the new value with the scope manager.
         /// </summary>
         internal ArrayValue(ArrayValue array, bool alwaysCopy = false)
         {
@@ -653,8 +669,13 @@ namespace Microsoft.Quantum.QIR.Emission
             this.QSharpElementType = elementType;
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
             this.LlvmType = this.sharedState.Types.Array;
-            this.Value = this.AllocateArray(registerWithScopeManager);
+            this.Value = this.AllocateArray();
             this.arrayElementPointers = this.Count is null ? null : this.CreateArrayElementPointerCaches();
+
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
         }
 
         /// <inheritdoc cref="ArrayValue(ResolvedType, Value, GenerationContext, bool)"/>
@@ -751,19 +772,13 @@ namespace Microsoft.Quantum.QIR.Emission
         private IValue.Cached<PointerValue>[] CreateArrayElementPointerCaches() =>
             Enumerable.ToArray(Enumerable.Range(0, (int)this.Count!).Select(idx => this.CreateArrayElementPointerCache(idx)));
 
-        private Value AllocateArray(bool registerWithScopeManager)
-        {
-            // The runtime function ArrayCreate1d creates a new value with reference count 1 and alias count 0.
-            var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
-            var elementSize = this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type);
-            var pointer = this.sharedState.CurrentBuilder.Call(constructor, elementSize, this.Length);
-            if (registerWithScopeManager)
-            {
-                this.sharedState.ScopeMgr.RegisterValue(this);
-            }
+        private Value AllocateArray() =>
 
-            return pointer;
-        }
+            // The runtime function ArrayCreate1d creates a new value with reference count 1 and alias count 0.
+            this.sharedState.CurrentBuilder.Call(
+                this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d),
+                this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type),
+                this.Length);
 
         private IReadOnlyList<IValue> NormalizeArrayElements(ResolvedType eltype, IReadOnlyList<IValue> elements)
         {
@@ -806,7 +821,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
                     // elements are processed as part of the scope management of the containing array -
                     // no need to register them separately
-                    ? new ArrayValue(it.Item, count, newElements, this.sharedState, allocOnStack: true, registerWithScopeManager: false)
+                    ? new ArrayValue(it.Item, count, newElements, this.sharedState, allocOnStack: true)
                     : throw new InvalidOperationException("cannot resize array of unknown length to match the size of a new item"));
             }
             else if (eltype.Resolution is QsResolvedTypeKind.TupleType ts)

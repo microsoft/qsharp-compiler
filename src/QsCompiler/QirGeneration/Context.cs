@@ -106,15 +106,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// returns unit or has exactly one return statement, this restriction could be lifted in the future.
         /// </summary>
         private readonly Stack<IValue> inlineLevels;
-        private readonly Dictionary<string, int> uniqueLocalNames = new Dictionary<string, int>();
-        private readonly Dictionary<string, int> uniqueGlobalNames = new Dictionary<string, int>();
-        private readonly Dictionary<string, GlobalVariable> definedStrings = new Dictionary<string, GlobalVariable>();
+        private readonly Dictionary<string, int> uniqueLocalNames = new();
+        private readonly Dictionary<string, int> uniqueGlobalNames = new();
+        private readonly Dictionary<string, GlobalVariable> definedStrings = new();
 
-        private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
-        private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new Dictionary<string, (QsCallable, GlobalVariable)>();
-        private readonly List<string> pendingCallableTables = new List<string>();
-        private readonly Dictionary<ResolvedType, GlobalVariable> memoryManagementTables = new Dictionary<ResolvedType, GlobalVariable>();
-        private readonly List<ResolvedType> pendingMemoryManagementTables = new List<ResolvedType>();
+        private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new();
+        private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new();
+        private readonly List<string> pendingCallableTables = new();
+        private readonly Dictionary<ResolvedType, GlobalVariable> memoryManagementTables = new();
+        private readonly List<ResolvedType> pendingMemoryManagementTables = new();
 
         #endregion
 
@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private int uniqueControlFlowId = 0;
 
         // Contains the ids of all currently open branches.
-        private readonly Stack<int> branchIds = new Stack<int>(new[] { 0 });
+        private readonly Stack<int> branchIds = new(new[] { 0 });
         internal int CurrentBranch => this.branchIds.Peek();
         internal bool IsOpenBranch(int id) => this.branchIds.Contains(id);
 
@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.branchIds.Pop();
 
         // Contains the ids of all currently executing loops.
-        private readonly Stack<int> loopIds = new Stack<int>();
+        private readonly Stack<int> loopIds = new();
         internal bool IsWithinLoop => this.loopIds.Any();
         internal bool IsWithinCurrentLoop(int branchId)
         {
@@ -1140,7 +1140,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             foreach (var type in this.pendingMemoryManagementTables)
             {
                 var table = this.memoryManagementTables[type];
-                var name = table.Name.Substring(0, table.Name.Length - "__FunctionTable".Length);
+                var name = table.Name[..^"__FunctionTable".Length];
                 var functions = new List<(string, Action<Value, IValue>)>
                 {
                     ($"{name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
