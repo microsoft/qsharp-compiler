@@ -48,9 +48,9 @@ jobs:
 - job: Style
   steps:
   - task: UseDotNet@2
-    displayName: Use .NET SDK 6.0.105
+    displayName: Use .NET SDK 6.0.300
     inputs:
-      version: 6.0.105
+      useGlobalJson: true
 
   - script: dotnet tool restore
     displayName: Restore .NET tools
