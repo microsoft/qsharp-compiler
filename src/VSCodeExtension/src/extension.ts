@@ -8,11 +8,19 @@ import * as vscode from 'vscode';
 import { startTelemetry, EventNames, sendTelemetryEvent, reporter } from './telemetry';
 import { DotnetInfo, requireDotNetSdk, findDotNetSdk } from './dotnet';
 import { getPackageInfo } from './packageInfo';
-import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp, storeAzureAccount, deleteAzureAccountInfo, submitJob, getJobResults, getJobDetails } from './commands';
+import { installTemplates, createNewProject, registerCommand, openDocumentationHome, installOrUpdateIQSharp, submitJob, getJobResults, getJobDetails } from './commands';
 import { LanguageServer } from './languageServer';
 import {LocalSubmissionsProvider} from './localSubmissionsProvider';
 import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVariables } from '@microsoft/vscode-azext-utils';
+import { AzureCliCredential, InteractiveBrowserCredential, AccessToken } from '@azure/identity';
+import {getWorkspaceFromUser} from "./quickPickWorkspace";
+import {workspaceInfo} from "./commands";
 
+let credential:AzureCliCredential|InteractiveBrowserCredential;
+let authSource: string;
+let accountAuthStatusBarItem: vscode.StatusBarItem;
+let workSpaceStatusBarItem: vscode.StatusBarItem;
+let submitJobStatusBarItem: vscode.StatusBarItem;
 
 /**
  * Returns the root folder for the current workspace.
@@ -27,6 +35,41 @@ function findRootFolder() : string {
     }
 }
 
+// required before any interaction with Azure
+// try to authenticate though AzureCliCredential first. If fails, authenticate through InteractiveBrowserCredential
+async function getCredential(context: vscode.ExtensionContext, changeAccount=false ){
+    let token:AccessToken;
+    if (credential && !changeAccount){
+        return credential;
+    }
+        await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Authenticating...",
+        }, async (progress, token2) => {
+    let tempCredential:any  = new AzureCliCredential();
+    try{
+        // if a user is changing their account always trigger InteractiveBrowserCredential
+        if(changeAccount){
+            // tslint:disable-next-line:no-unused-expression
+            (token as any)["THROWERROR"];
+        }
+    // need to call getToken to validate if user is logged in through Az CLI
+    token = await tempCredential.getToken(["https://management.azure.com/.default","https://quantum.microsoft.com/.default"]);
+    authSource = "Az CLI";
+    }
+    catch{
+        // login through browser if user is not logged in through Az CLI
+        tempCredential = new InteractiveBrowserCredential();
+        token = await tempCredential.getToken("https://management.azure.com/.default");
+        authSource = "browser";
+    }
+    accountAuthStatusBarItem.tooltip = `Authenticated from ${authSource}`;
+    accountAuthStatusBarItem.show();
+    credential = tempCredential;
+    });
+    return;
+}
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
@@ -38,8 +81,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
     startTelemetry(context);
 
+
     let packageInfo = getPackageInfo(context);
     let dotNetSdkVersion = packageInfo === undefined ? undefined : packageInfo.requiredDotNetCoreSDK;
+
 
     // Get any .NET Core SDK version number to report in telemetry.
     var dotNetSdk : DotnetInfo | undefined;
@@ -48,6 +93,8 @@ export async function activate(context: vscode.ExtensionContext) {
     } catch {
         dotNetSdk = undefined;
     }
+
+
 
     sendTelemetryEvent(
         EventNames.activate,
@@ -59,17 +106,46 @@ export async function activate(context: vscode.ExtensionContext) {
         {}
     );
 
+
     // creates treeview of locally submitted jobs in custom panel
     const localSubmissionsProvider = new LocalSubmissionsProvider(context);
     vscode.window.createTreeView("quantum-jobs",  {
         treeDataProvider: localSubmissionsProvider,
     });
-    // need to registerUIExtensionVariables to use openReadOnlyJson from
+
+    // need to call registerUIExtensionVariables to use openReadOnlyJson from
     // @microsoft/vscode-azext-utils package
     const AzExtOutputChannel = await createAzExtOutputChannel("trial", "quantum-devkit-vscode");
     const args: UIExtensionVariables = {context: context, outputChannel:AzExtOutputChannel};
     registerUIExtensionVariables(args);
 
+
+    accountAuthStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 202);
+    accountAuthStatusBarItem.command = "quantum.changeAzureAccount";
+    context.subscriptions.push(accountAuthStatusBarItem);
+    accountAuthStatusBarItem.text = `$(verified)`;
+
+    if(authSource){
+        accountAuthStatusBarItem.tooltip = `Azure Quantum Auth: ${authSource}`;
+        accountAuthStatusBarItem.show();
+    }
+
+    submitJobStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 201);
+    submitJobStatusBarItem.command = "quantum.submitJob";
+    context.subscriptions.push(submitJobStatusBarItem);
+    submitJobStatusBarItem.text = `$(run-above) Submit Job to Azure Quantum`;
+    submitJobStatusBarItem.show();
+
+
+
+    workSpaceStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 200);
+    const workspaceInfo: workspaceInfo | undefined = context.workspaceState.get("workspaceInfo");
+    workSpaceStatusBarItem.command = "quantum.changeWorkspace";
+    context.subscriptions.push(workSpaceStatusBarItem);
+    if (workspaceInfo && workspaceInfo["workspace"]){
+        workSpaceStatusBarItem.text = `Azure Workspace: ${workspaceInfo["workspace"]}`;
+        workSpaceStatusBarItem.show();
+    }
 
     // Register commands that use the .NET Core SDK.
     // We do so as early as possible so that we can handle if someone calls
@@ -113,40 +189,45 @@ export async function activate(context: vscode.ExtensionContext) {
 
     registerCommand(
         context,
-        "quantum.connectToAzureAccount",
-        () => {
-            storeAzureAccount(context);
-        }
-    );
-    registerCommand(
-        context,
-        "quantum.disconnectFromAzureAccount",
-        () => {
-            deleteAzureAccountInfo(context);
-        }
-    );
-
-    registerCommand(
-        context,
         "quantum.submitJob",
-        () => {
+        async() => {
+            sendTelemetryEvent(EventNames.jobSubmissionStarted, {},{});
+            await getCredential(context);
             requireDotNetSdk(dotNetSdkVersion).then(
-                dotNetSdk => submitJob(context, dotNetSdk, localSubmissionsProvider)
+                dotNetSdk => submitJob(context, dotNetSdk, localSubmissionsProvider, credential,workSpaceStatusBarItem )
             );
         }
     );
 
+    // registerCommand(
+    //     context,
+    //     "quantum.disconnectFromAzureAccount",
+    //     () => {
+    //         deleteAzureWorkspaceInfo(context);
+    //     }
+    // );
+
     registerCommand(
         context,
-        "quantum.getJob",
-        () => {
-            getJobResults(context);
+        "quantum.changeWorkspace",
+        async() => {
+            sendTelemetryEvent(EventNames.changeWorkspace, {},{});
+            await getCredential(context);
+            await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem);
         }
     );
 
-//     vscode.commands.registerCommand('quantum-jobs.refreshEntry', () =>
-//     jobsSubmittedProvider.refresh(context)
-//   );
+
+
+    registerCommand(
+        context,
+        "quantum.getJob",
+        async() => {
+            sendTelemetryEvent(EventNames.getJobResults, {"method": "command line"},{});
+            await getCredential(context);
+            getJobResults(context, credential,workSpaceStatusBarItem);
+        }
+    );
 
 
     vscode.commands.registerCommand('quantum-jobs.clearJobs', async () =>{
@@ -158,16 +239,31 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    vscode.commands.registerCommand('quantum-jobs.jobDetails', (job) =>{
-        getJobDetails(context, job);
+    vscode.commands.registerCommand('quantum-jobs.jobDetails', async (job) =>{
+        sendTelemetryEvent(EventNames.getJobDetails, {},{});
+        await getCredential(context);
+        const jobId = job['jobDetails']['jobId'];
+        getJobDetails(context, credential, jobId, workSpaceStatusBarItem);
     });
 
 
-    vscode.commands.registerCommand('quantum-jobs.jobResults', (job) =>{
-        const jobId = job['jobDetails']['Job Id'];
-        getJobResults(context, jobId);
+    vscode.commands.registerCommand('quantum-jobs.jobResults', async (job) =>{
+        await getCredential(context);
+        const jobId = job['jobDetails']['jobId'];
+        sendTelemetryEvent(
+            EventNames.results,
+            {
+                'method': "Results button"
+            },
+        );
+        getJobResults(context, credential,workSpaceStatusBarItem, jobId);
     }
     );
+    vscode.commands.registerCommand('quantum.changeAzureAccount', async () =>{
+        sendTelemetryEvent(EventNames.changeAzureAccount, {},{});
+        await getCredential(context, true);
+    });
+
 
 
     let rootFolder = findRootFolder();
@@ -201,3 +297,5 @@ export async function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
     if (reporter) { reporter.dispose(); }
 }
+
+

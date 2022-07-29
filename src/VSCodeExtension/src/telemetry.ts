@@ -29,6 +29,12 @@ export namespace EventNames {
     export const lspReady = "lsp-ready";
     export const lspStopped = "lsp-stopped";
     export const error = "error";
+    export const results = "results";
+    export const jobSubmissionStarted = "job-submission-started";
+    export const changeWorkspace = "change-workspace";
+    export const getJobResults = "get-job-results";
+    export const getJobDetails = "get-job-details";
+    export const changeAzureAccount = "change-azure-account";
 }
 
 // @ts-ignore
@@ -157,5 +163,5 @@ export function forwardServerTelemetry(telemetryRequest : any) {
     }
 
     // TODO: pass more than just the event name.
-    sendTelemetryEvent(name, properties, measurements); 
+    sendTelemetryEvent(name, properties, measurements);
 }

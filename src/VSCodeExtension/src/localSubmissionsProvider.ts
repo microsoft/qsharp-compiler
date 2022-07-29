@@ -37,15 +37,17 @@ export class LocalSubmissionsProvider implements vscode.TreeDataProvider<LocalSu
 
 export class LocalSubmissionItem extends vscode.TreeItem{
     jobDetails: any;
-    // need parameter to use openReadOnlyJson from @microsoft/vscode-azext-utils package
+    // need fullId parameter to use openReadOnlyJson from @microsoft/vscode-azext-utils package
     fullId: string;
     constructor(job: any) {
-        const label = `${job['Date']} | ${job['Job Id']}`;
+        const time = job["submissionTime"];
+        const displayTime = `${time.substring(0,10)}, ${time.substring(11,16)}`;
+        const label = `${displayTime} | ${job['jobId']}`;
         super(label);
-        this.description = job['Job Name']? `${job['Job Name']} ~ ${job['Target']}`: `${job['Target']}`;
-        this.tooltip = `${job['Job Name']} ${job['Target']}`;
+        this.description = job['jobName']? `${job['jobName']}` :``;
+        this.tooltip = `${job['jobName']||""} ${job['target']}`;
         this.contextValue = "LocalSubmissionItem";
         this.jobDetails = job;
-        this.fullId = job['Job Id'];
+        this.fullId = job['jobId'];
 }
 }
