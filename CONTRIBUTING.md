@@ -78,7 +78,7 @@ You can install both by running `dotnet tool restore`.
 To format a specific file, run `dotnet fantomas MyFile`.
 To format every file in a folder, run `dotnet fantomas -r MyFolder`.
 
-To lint a specific file, project, or the whole solution, run `dotnet fsharplint MyFile`.
+To lint a specific file, project, or the whole solution, run `dotnet fsharplint lint MyFile`.
 
 You can also configure your editor to run tools on the current file.
 For example, to run Fantomas in Visual Studio, open Tools - External Tools.
