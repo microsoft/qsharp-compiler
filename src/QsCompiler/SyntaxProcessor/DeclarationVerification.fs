@@ -29,7 +29,7 @@ let public AsDeclarationName sym onInvalid =
     | InvalidSymbol -> onInvalid
     | _ -> null
 
-let private NameOnly onInvalid arg =
+let private nameOnly onInvalid arg =
     (arg |> QsNullable<_>.Map (fun (sym, _) -> AsDeclarationName sym.Symbol onInvalid)).ValueOr null
 
 /// If the given fragment kind is a namespace declaration,
@@ -47,7 +47,7 @@ let public DeclaredNamespace this : QsNullable<QsSymbol * obj> =
 /// Returns null otherwise.
 [<Extension>]
 let public DeclaredNamespaceName this onInvalid =
-    this |> DeclaredNamespace |> NameOnly onInvalid
+    this |> DeclaredNamespace |> nameOnly onInvalid
 
 /// If the given fragment kind is an open directive,
 /// returns a tuple with the symbol of the opened namespace and the defined short name (if any) as Value.
@@ -64,7 +64,7 @@ let public OpenedNamespace this : QsNullable<QsSymbol * QsNullable<QsSymbol>> =
 /// Returns null otherwise.
 [<Extension>]
 let public OpenedNamespaceName this onInvalid =
-    this |> OpenedNamespace |> NameOnly onInvalid
+    this |> OpenedNamespace |> nameOnly onInvalid
 
 /// If the given fragment kind is a type declaration,
 /// returns the symbol for the type as well as the declared underlying type and modifiers as Value.
@@ -81,7 +81,7 @@ let public DeclaredType this =
 /// Returns null otherwise.
 [<Extension>]
 let public DeclaredTypeName this onInvalid =
-    this |> DeclaredType |> NameOnly onInvalid
+    this |> DeclaredType |> nameOnly onInvalid
 
 /// If the given fragment kind is a callable declaration,
 /// returns the symbol for the callable as well as its declared kind, signature and modifiers as Value.
@@ -99,7 +99,7 @@ let public DeclaredCallable this =
 /// Returns null otherwise.
 [<Extension>]
 let public DeclaredCallableName this onInvalid =
-    this |> DeclaredCallable |> NameOnly onInvalid
+    this |> DeclaredCallable |> nameOnly onInvalid
 
 /// If the given fragment kind is a specialization declaration,
 /// returns its kind and generator as well as its type specializations as Value.
@@ -182,7 +182,7 @@ let rec private singleAdditionalArg mismatchErr (qsSym: QsSymbol) =
     | sym -> sym |> singleAndOmitted |> nameAndRange false
 
 
-let private StripRangeInfo = StripPositionInfo.Default.OnArgumentTuple
+let private stripRangeInfo = StripPositionInfo.Default.OnArgumentTuple
 
 /// Given the declared argument tuple of a callable, and the declared symbol tuple for the corresponding body specialization,
 /// verifies that the symbol tuple indeed has the expected shape for that specialization.
@@ -190,7 +190,7 @@ let private StripRangeInfo = StripPositionInfo.Default.OnArgumentTuple
 /// as well as an array of diagnostics.
 [<Extension>]
 let public BuildArgumentBody (this: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>) (arg: QsSymbol) =
-    this |> StripRangeInfo, arg |> verifyIsOmittedOrUnit (ErrorCode.BodyGenArgMismatch, [])
+    this |> stripRangeInfo, arg |> verifyIsOmittedOrUnit (ErrorCode.BodyGenArgMismatch, [])
 
 /// Given the declared argument tuple of a callable, and the declared symbol tuple for the corresponding ajoint specialization,
 /// verifies that the symbol tuple indeed has the expected shape for that specialization.
@@ -198,7 +198,7 @@ let public BuildArgumentBody (this: QsTuple<LocalVariableDeclaration<QsLocalSymb
 /// as well as an array of diagnostics.
 [<Extension>]
 let public BuildArgumentAdjoint (this: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>) (arg: QsSymbol) =
-    this |> StripRangeInfo, arg |> verifyIsOmittedOrUnit (ErrorCode.AdjointGenArgMismatch, [])
+    this |> stripRangeInfo, arg |> verifyIsOmittedOrUnit (ErrorCode.AdjointGenArgMismatch, [])
 
 /// Given the declared argument tuple of a callable, and the declared symbol tuple for the corresponding controlled specialization,
 /// verifies that the symbol tuple indeed has the expected shape for that specialization.
@@ -206,7 +206,7 @@ let public BuildArgumentAdjoint (this: QsTuple<LocalVariableDeclaration<QsLocalS
 [<Extension>]
 let public BuildArgumentControlled (this: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>) (arg: QsSymbol, pos) =
     let ctrlQs, diagnostics = arg |> singleAdditionalArg (ErrorCode.ControlledGenArgMismatch, [])
-    SyntaxGenerator.WithControlQubits this pos ctrlQs |> StripRangeInfo, diagnostics
+    SyntaxGenerator.WithControlQubits this pos ctrlQs |> stripRangeInfo, diagnostics
 
 /// Given the declared argument tuple of a callable, and the declared symbol tuple for the corresponding controlled adjoint specialization,
 /// verifies that the symbol tuple indeed has the expected shape for that specialization.
@@ -217,7 +217,7 @@ let public BuildArgumentControlledAdjoint
     (arg: QsSymbol, pos)
     =
     let ctrlQs, diagnostics = arg |> singleAdditionalArg (ErrorCode.ControlledAdjointGenArgMismatch, [])
-    SyntaxGenerator.WithControlQubits this pos ctrlQs |> StripRangeInfo, diagnostics
+    SyntaxGenerator.WithControlQubits this pos ctrlQs |> stripRangeInfo, diagnostics
 
 
 // some utils related to providing information on declared arguments

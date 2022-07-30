@@ -46,41 +46,40 @@ type private PartialNamespace
 
     /// list containing all documentation for this namespace within this source file
     /// -> a list since the namespace can in principle occur several times in the same file each time with documentation
-    let AssociatedDocumentation = documentation.ToList()
+    let associatedDocumentation = documentation.ToList()
 
     /// list of namespaces open or aliased within this namespace and file
-    let OpenNamespaces = openNS.ToDictionary(keySelector, valueSelector)
+    let openNamespaces = openNS.ToDictionary(keySelector, valueSelector)
 
     /// dictionary of types declared within this namespace and file
     /// the key is the name of the type
-    let TypeDeclarations = typeDecl.ToDictionary(keySelector, valueSelector)
+    let typeDeclarations = typeDecl.ToDictionary(keySelector, valueSelector)
 
     /// dictionary of callables declared within this namespace and file
     /// includes functions, operations, *and* (auto-generated) type constructors
     /// the key is the name of the callable
-    let CallableDeclarations = callableDecl.ToDictionary(keySelector, valueSelector)
+    let callableDeclarations = callableDecl.ToDictionary(keySelector, valueSelector)
 
     /// dictionary of callable specializations declared within this namespace and file
     /// -> note that all specializations that are declared in a namespace *have* to extend a declarations in the same namespace,
     /// -> however, they may be declared in a source file (or even compilation unit) that is different from the one of the original declaration
     /// the key is the name of the callable, and the key to the returned map is the specialization kind (body, adjoint, controlled, or controlled adjoint)
-    let CallableSpecializations =
+    let callableSpecializations =
         let specs = specializations |> Seq.map (fun entry -> entry.Key, (entry.Value.ToList()))
         specs.ToDictionary(fst, snd)
 
     /// constructor taking the name of the namespace as well as the name of the file it is declared in as arguments
-    internal new(name, source) =
-        new PartialNamespace(name, source, [], [ new KeyValuePair<_, _>(name, null) ], [], [], [])
+    internal new(name, source) = PartialNamespace(name, source, [], [ new KeyValuePair<_, _>(name, null) ], [], [], [])
 
     /// returns a new PartialNamespace that is an exact copy of this one
     /// -> any modification of the returned PartialNamespace is not reflected in this one
     member this.Copy() =
-        let openNS = OpenNamespaces
-        let doc = AssociatedDocumentation
-        let typeDecl = TypeDeclarations
-        let callableDecl = CallableDeclarations
-        let specializations = CallableSpecializations
-        new PartialNamespace(name, source, doc, openNS, typeDecl, callableDecl, specializations)
+        let openNS = openNamespaces
+        let doc = associatedDocumentation
+        let typeDecl = typeDeclarations
+        let callableDecl = callableDeclarations
+        let specializations = callableSpecializations
+        PartialNamespace(name, source, doc, openNS, typeDecl, callableDecl, specializations)
 
 
     /// name of the namespace
@@ -88,50 +87,50 @@ type private PartialNamespace
     /// name of the source file this (part of) the namespace if declared in
     member this.Source = source
     /// contains all documentation associated with this namespace within this source file
-    member this.Documentation = AssociatedDocumentation.ToImmutableArray()
+    member this.Documentation = associatedDocumentation.ToImmutableArray()
     /// namespaces open or aliased within this part of the namespace - this includes the namespace itself
-    member this.ImportedNamespaces = OpenNamespaces.ToImmutableDictionary()
+    member this.ImportedNamespaces = openNamespaces.ToImmutableDictionary()
 
     /// types defined within this (part of) the namespace
     /// -> NOTE: the returned enumerable is *not* immutable and may change over time!
-    member internal this.DefinedTypes = TypeDeclarations.Select(fun item -> item.Key, item.Value)
+    member internal this.DefinedTypes = typeDeclarations.Select(fun item -> item.Key, item.Value)
 
     /// callables defined within this (part of) the namespace (includes auto-generated type constructors)
     /// -> NOTE: the returned enumerable is *not* immutable and may change over time!
-    member internal this.DefinedCallables = CallableDeclarations.Select(fun item -> item.Key, item.Value)
+    member internal this.DefinedCallables = callableDeclarations.Select(fun item -> item.Key, item.Value)
 
     /// returns a dictionary with all currently known namespace short names and which namespace they represent
     member internal this.NamespaceShortNames =
-        let shortNames = this.ImportedNamespaces |> Seq.filter (fun kv -> kv.Value <> null)
+        let shortNames = this.ImportedNamespaces |> Seq.filter (fun kv -> not (isNull kv.Value))
         shortNames.ToImmutableDictionary((fun kv -> kv.Value), (fun kv -> kv.Key))
 
     /// <summary>Gets the type with the given name from the dictionary of declared types.</summary>
     /// <exception cref="SymbolNotFoundException">A type with the given name was not found.</exception>
     member internal this.GetType tName =
-        TypeDeclarations.TryGetValue tName
+        typeDeclarations.TryGetValue tName
         |> tryOption
         |> Option.defaultWith (fun () -> SymbolNotFoundException "A type with the given name was not found." |> raise)
 
-    member internal this.ContainsType = TypeDeclarations.ContainsKey
+    member internal this.ContainsType = typeDeclarations.ContainsKey
 
-    member internal this.TryGetType = TypeDeclarations.TryGetValue
+    member internal this.TryGetType = typeDeclarations.TryGetValue
 
     /// <summary>Gets the callable with the given name from the dictionary of declared callable.</summary>
     /// <exception cref="SymbolNotFoundException">A callable with the given name was not found.</exception>
     member internal this.GetCallable cName =
-        CallableDeclarations.TryGetValue cName
+        callableDeclarations.TryGetValue cName
         |> tryOption
         |> Option.defaultWith (fun () ->
             SymbolNotFoundException "A callable with the given name was not found." |> raise)
 
-    member internal this.ContainsCallable = CallableDeclarations.ContainsKey
+    member internal this.ContainsCallable = callableDeclarations.ContainsKey
 
-    member internal this.TryGetCallable = CallableDeclarations.TryGetValue
+    member internal this.TryGetCallable = callableDeclarations.TryGetValue
 
     /// Given a callable name, returns all specializations for it defined within this part of the namespace.
     /// NOTE: The verification of whether a callable with that name has been declared in this namespace needs to be done by the calling routine.
     member internal this.GetSpecializations cName =
-        match CallableSpecializations.TryGetValue cName with
+        match callableSpecializations.TryGetValue cName with
         | true, specs -> specs.ToImmutableArray()
         | false, _ -> ImmutableArray.Empty // mustn't fail, since the query is valid even if the callable is declared in another file
 
@@ -139,12 +138,12 @@ type private PartialNamespace
     /// Adds the given lines of documentation to the list of documenting sections
     /// associated with this namespace within this source file.
     member this.AddDocumentation(doc: IEnumerable<_>) =
-        AssociatedDocumentation.Add(doc.ToImmutableArray())
+        associatedDocumentation.Add(doc.ToImmutableArray())
 
     /// If the given namespace name is not already listened as imported, adds the given namespace name to the list of open namespaces.
     /// -> Note that this routine will fail with the standard dictionary.Add error if an open directive for the given namespace name already exists.
     /// -> The verification of whether a namespace with the given name exists in the first place needs to be done by the calling routine.
-    member this.AddOpenDirective(openedNS, alias) = OpenNamespaces.Add(openedNS, alias)
+    member this.AddOpenDirective(openedNS, alias) = openNamespaces.Add(openedNS, alias)
 
     /// Adds the given type declaration for the given type name to the dictionary of declared types.
     /// Adds the corresponding type constructor to the dictionary of declared callables.
@@ -199,12 +198,12 @@ type private PartialNamespace
             let validDeprecatedQualification qual =
                 String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace
 
-            if attributes |> Seq.exists (SymbolResolution.IndicatesDeprecation validDeprecatedQualification) then
+            if attributes |> Seq.exists (SymbolResolution.indicatesDeprecation validDeprecatedQualification) then
                 ImmutableArray.Create deprecationWithoutRedirect
             else
                 ImmutableArray.Empty
 
-        TypeDeclarations.Add(tName, (typeTuple, attributes, access, documentation) |> unresolved location)
+        typeDeclarations.Add(tName, (typeTuple, attributes, access, documentation) |> unresolved location)
 
         this.AddCallableDeclaration
             location
@@ -227,7 +226,7 @@ type private PartialNamespace
     /// The given location is associated with the callable declaration and accessible via the record properties Position and SymbolRange.
     /// -> Note that this routine will fail with the standard dictionary.Add error if a callable with that name already exists.
     member this.AddCallableDeclaration location (cName, (kind, signature), attributes, modifiers, documentation) =
-        CallableDeclarations.Add(
+        callableDeclarations.Add(
             cName,
             (kind, (signature, attributes, modifiers, documentation) |> unresolved location)
         )
@@ -247,9 +246,9 @@ type private PartialNamespace
         // but all specialized types need to be resolved according to *this* file
         let spec = kind, (generator, attributes, access, documentation) |> unresolved location
 
-        match CallableSpecializations.TryGetValue cName with
+        match callableSpecializations.TryGetValue cName with
         | true, specs -> specs.Add spec // it is up to the namespace to verify the type specializations
-        | false, _ -> CallableSpecializations.Add(cName, new List<_>([ spec ]))
+        | false, _ -> callableSpecializations.Add(cName, new List<_>([ spec ]))
 
     /// <summary>
     /// Deletes the *explicitly* defined specialization at the specified location for the callable with the given name.
@@ -258,10 +257,10 @@ type private PartialNamespace
     /// <returns>The number of removed specializations.</returns>
     /// <exception cref="SymbolNotFoundException">A callable with the given name was not found.</exception>
     member internal this.RemoveCallableSpecialization (location: QsLocation) cName =
-        match CallableDeclarations.TryGetValue cName with
+        match callableDeclarations.TryGetValue cName with
         | true, (_, decl) when decl.Position = location.Offset && decl.Range = location.Range -> 0
         | _ ->
-            match CallableSpecializations.TryGetValue cName with
+            match callableSpecializations.TryGetValue cName with
             | true, specs ->
                 specs.RemoveAll(fun (_, res) -> location.Offset = res.Position && location.Range = res.Range)
             | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
@@ -271,9 +270,9 @@ type private PartialNamespace
     /// </summary>
     /// <exception cref="SymbolNotFoundException">A type with the given name was not found.</exception>
     member internal this.SetTypeResolution(tName, resolvedType, resAttributes) =
-        match TypeDeclarations.TryGetValue tName with
+        match typeDeclarations.TryGetValue tName with
         | true, qsType ->
-            TypeDeclarations.[tName] <- { qsType with Resolved = resolvedType; ResolvedAttributes = resAttributes }
+            typeDeclarations.[tName] <- { qsType with Resolved = resolvedType; ResolvedAttributes = resAttributes }
         | false, _ -> SymbolNotFoundException "A type with the given name was not found." |> raise
 
     /// <summary>
@@ -282,10 +281,10 @@ type private PartialNamespace
     /// </summary>
     /// <exception cref="SymbolNotFoundException">A callable with the given name was not found.</exception>
     member internal this.SetCallableResolution(cName, resolvedSignature, resAttributes) =
-        match CallableDeclarations.TryGetValue cName with
+        match callableDeclarations.TryGetValue cName with
         | true, (kind, signature) ->
             let signature' = { signature with Resolved = resolvedSignature; ResolvedAttributes = resAttributes }
-            CallableDeclarations.[cName] <- (kind, signature')
+            callableDeclarations.[cName] <- (kind, signature')
         | false, _ -> SymbolNotFoundException "A callable with the given name was not found." |> raise
 
     /// Applies the given functions computing the resolution of attributes and the generation directive
@@ -294,7 +293,7 @@ type private PartialNamespace
     /// Collects and returns an array of all diagnostics generated by computeResolution.
     /// Does nothing and returns an empty array if no specialization for a callable with the given name exists within this partial namespace.
     member internal this.SetSpecializationResolutions(cName, computeResolution, getResAttributes) =
-        match CallableSpecializations.TryGetValue cName with
+        match callableSpecializations.TryGetValue cName with
         | true, specs ->
             [| 0 .. specs.Count - 1 |]
             |> Array.collect (fun index ->

@@ -66,23 +66,23 @@ module internal Terminal =
     val mapPrefix: mapper: (Trivia list -> Trivia list) -> terminal: Terminal -> Terminal
 
 /// An item in a comma-separated sequence.
-type internal 'a SequenceItem =
+type internal 'T SequenceItem =
     {
         /// The item.
-        Item: 'a option
+        Item: 'T option
 
         /// The comma following the item.
         Comma: Terminal option
     }
 
 /// A tuple.
-type internal 'a Tuple =
+type internal 'T Tuple =
     {
         /// The opening parenthesis.
         OpenParen: Terminal
 
         /// The items in the tuple.
-        Items: 'a SequenceItem list
+        Items: 'T SequenceItem list
 
         /// The closing parenthesis.
         CloseParen: Terminal
@@ -92,49 +92,49 @@ module internal Tuple =
     /// <summary>
     /// Maps <paramref name="tuple"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
-    val mapPrefix: mapper: (Trivia list -> Trivia list) -> tuple: 'a Tuple -> 'a Tuple
+    val mapPrefix: mapper: (Trivia list -> Trivia list) -> tuple: 'T Tuple -> 'T Tuple
 
 /// A prefix operator. The operator is in the front of the operand.
-type internal 'a PrefixOperator =
+type internal 'T PrefixOperator =
     {
         /// The operator.
         PrefixOperator: Terminal
 
         /// The operand.
-        Operand: 'a
+        Operand: 'T
     }
 
 /// A prefix operator. The operator is after the operand.
-type internal 'a PostfixOperator =
+type internal 'T PostfixOperator =
     {
         /// The operand.
-        Operand: 'a
+        Operand: 'T
 
         /// The operator.
         PostfixOperator: Terminal
     }
 
 /// An infix operator.
-type internal 'a InfixOperator =
+type internal 'T InfixOperator =
     {
         /// The left-hand side.
-        Left: 'a
+        Left: 'T
 
         /// The operator.
         InfixOperator: Terminal
 
         /// The right-hand side.
-        Right: 'a
+        Right: 'T
     }
 
 /// A block.
-type internal 'a Block =
+type internal 'T Block =
     {
         /// The opening brace.
         OpenBrace: Terminal
 
         /// The items in the block.
-        Items: 'a list
+        Items: 'T list
 
         /// The closing brace.
         CloseBrace: Terminal
@@ -144,4 +144,4 @@ module internal Block =
     /// <summary>
     /// Maps <paramref name="block"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
-    val mapPrefix: mapper: (Trivia list -> Trivia list) -> block: 'a Block -> 'a Block
+    val mapPrefix: mapper: (Trivia list -> Trivia list) -> block: 'T Block -> 'T Block
