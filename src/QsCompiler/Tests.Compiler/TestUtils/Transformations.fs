@@ -15,22 +15,19 @@ type private GlobalDeclarations(parent: CheckDeclarations) =
 
     override this.OnSpecializationDeclaration s = parent.CheckSpecializationDeclaration s
 
-and private CheckDeclarations private (_internal_, onTypeDecl, onCallableDecl, onSpecDecl) =
+and private CheckDeclarations(?onTypeDecl, ?onCallableDecl, ?onSpecDecl) as this =
     inherit SyntaxTreeTransformation()
+
+    let onTypeDecl = defaultArg onTypeDecl id
+    let onCallableDecl = defaultArg onCallableDecl id
+    let onSpecDecl = defaultArg onSpecDecl id
+
+    do
+        this.Types <- TypeTransformation(this, TransformationOptions.Disabled)
+        this.Expressions <- ExpressionTransformation(this, TransformationOptions.Disabled)
+        this.Statements <- StatementTransformation(this, TransformationOptions.Disabled)
+        this.Namespaces <- GlobalDeclarations(this)
 
     member internal this.CheckTypeDeclaration = onTypeDecl
     member internal this.CheckCallableDeclaration = onCallableDecl
     member internal this.CheckSpecializationDeclaration = onSpecDecl
-
-    new(?onTypeDecl, ?onCallableDecl, ?onSpecDecl) as this =
-        CheckDeclarations(
-            "_internal_",
-            defaultArg onTypeDecl id,
-            defaultArg onCallableDecl id,
-            defaultArg onSpecDecl id
-        )
-        then
-            this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
-            this.Expressions <- new ExpressionTransformation(this, TransformationOptions.Disabled)
-            this.Statements <- new StatementTransformation(this, TransformationOptions.Disabled)
-            this.Namespaces <- new GlobalDeclarations(this)

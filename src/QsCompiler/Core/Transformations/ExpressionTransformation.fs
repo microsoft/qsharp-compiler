@@ -473,11 +473,12 @@ and ExpressionTransformationBase(exkindTransformation, typeTransformation, optio
     default this.OnTypeParamResolutions typeParams =
         let filteredTypeParams =
             typeParams
-            |> Seq.map (fun kv -> QsTypeParameter.New(fst kv.Key, snd kv.Key) |> this.Types.OnTypeParameter, kv.Value)
-            |> Seq.choose (function
-                | TypeParameter tp, value -> Some((tp.Origin, tp.TypeName), this.Types.OnType value)
+            |> Seq.choose (fun item ->
+                let origin, name = item.Key
+
+                match QsTypeParameter.New(origin, name) |> this.Types.OnTypeParameter with
+                | TypeParameter p -> Some(KeyValuePair.Create((p.Origin, p.TypeName), this.Types.OnType item.Value))
                 | _ -> None)
-            |> Seq.map (fun (key, value) -> new KeyValuePair<_, _>(key, value))
 
         if options.Rebuild then
             ImmutableDictionary.CreateRange filteredTypeParams

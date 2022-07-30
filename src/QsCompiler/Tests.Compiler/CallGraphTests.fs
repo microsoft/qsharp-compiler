@@ -26,10 +26,10 @@ type CallGraphTests(output: ITestOutputHelper) =
     let compilationManagerExe =
         let props = ImmutableDictionary.CreateBuilder()
         props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
-        new CompilationUnitManager(new ProjectProperties(props), (fun ex -> failwith ex.Message))
+        new CompilationUnitManager(ProjectProperties(props), (fun ex -> failwith ex.Message))
 
     let getTempFile () =
-        new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+        Uri(Path.GetFullPath(Path.GetRandomFileName()))
 
     let getManager uri content =
         CompilationUnitManager.InitializeFileManager(
@@ -42,35 +42,29 @@ type CallGraphTests(output: ITestOutputHelper) =
     // Adds Core to the compilation
     do
         let addOrUpdateSourceFile filePath =
-            getManager (new Uri(filePath)) (File.ReadAllText filePath)
+            getManager (Uri(filePath)) (File.ReadAllText filePath)
             |> compilationManager.AddOrUpdateSourceFileAsync
             |> ignore
 
-            getManager (new Uri(filePath)) (File.ReadAllText filePath)
+            getManager (Uri(filePath)) (File.ReadAllText filePath)
             |> compilationManagerExe.AddOrUpdateSourceFileAsync
             |> ignore
 
         Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
-    let MakeNode name specKind (paramRes: _ list) =
+    let makeGraphNode name specKind (paramRes: _ list) =
         let qualifiedName = { Namespace = Signatures.PopulateCallGraphNS; Name = name }
-
-        let res =
-            paramRes.ToImmutableDictionary(
-                (fun kvp -> (qualifiedName, fst kvp)),
-                (fun kvp -> ResolvedType.New(snd kvp))
-            )
-
+        let res = paramRes.ToImmutableDictionary((fun kvp -> qualifiedName, fst kvp), snd >> ResolvedType.New)
         ConcreteCallGraphNode(qualifiedName, specKind, res)
 
-    let DecorateWithNamespace (ns: string) (input: string list list) =
+    let decorateWithNamespace (ns: string) (input: string list list) =
         List.map (List.map (fun name -> { Namespace = ns; Name = name })) input
 
-    let ReadAndChunkSourceFile fileName =
+    let readAndChunkSourceFile fileName =
         let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText
         sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
-    let BuildContent content =
+    let buildContent content =
 
         let fileId = getTempFile ()
         let file = getManager fileId content
@@ -84,7 +78,7 @@ type CallGraphTests(output: ITestOutputHelper) =
 
         compilationDataStructures
 
-    let BuildContentWithErrors content (expectedErrors: seq<_>) =
+    let buildContentWithErrors content (expectedErrors: seq<_>) =
 
         let fileId = getTempFile ()
         let file = getManager fileId content
@@ -93,7 +87,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let compilationDataStructures = compilationManager.Build()
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
-        let expected = Seq.map (fun code -> int code) expectedErrors
+        let expected = Seq.map int expectedErrors
 
         let got =
             compilationDataStructures.Diagnostics()
@@ -117,41 +111,41 @@ type CallGraphTests(output: ITestOutputHelper) =
                 (String.Join(", ", got))
         )
 
-    let CompileTest testNumber fileName =
-        let srcChunks = ReadAndChunkSourceFile fileName
+    let compileTest testNumber fileName =
+        let srcChunks = readAndChunkSourceFile fileName
         srcChunks.Length >= testNumber |> Assert.True
-        let compilationDataStructures = BuildContent srcChunks.[testNumber - 1]
+        let compilationDataStructures = buildContent srcChunks.[testNumber - 1]
         Assert.NotNull compilationDataStructures.BuiltCompilation
         compilationDataStructures.BuiltCompilation
 
-    let BuildTrimmedGraph (compilation: QsCompilation) = CallGraph(compilation, true)
+    let buildTrimmedGraph (compilation: QsCompilation) = CallGraph(compilation, true)
 
-    let CompileTestExpectingErrors testNumber fileName expect =
-        let srcChunks = ReadAndChunkSourceFile fileName
+    let compileTestExpectingErrors testNumber fileName expect =
+        let srcChunks = readAndChunkSourceFile fileName
         srcChunks.Length >= testNumber |> Assert.True
-        BuildContentWithErrors srcChunks.[testNumber - 1] expect
+        buildContentWithErrors srcChunks.[testNumber - 1] expect
 
-    let CompileCycleDetectionTest testNumber =
-        let CallGraph = CompileTest testNumber "CycleDetection.qs" |> CallGraph
-        CallGraph.GetCallCycles()
+    let compileCycleDetectionTest testNumber =
+        let callGraph = compileTest testNumber "CycleDetection.qs" |> CallGraph
+        callGraph.GetCallCycles()
 
-    let CompileCycleValidationTest testNumber =
-        CompileTest testNumber "CycleValidation.qs" |> ignore
+    let compileCycleValidationTest testNumber =
+        compileTest testNumber "CycleValidation.qs" |> ignore
 
-    let CompileInvalidCycleTest testNumber expected =
+    let compileInvalidCycleTest testNumber expected =
         let errors =
             expected
             |> Seq.choose (function
                 | Error error -> Some error
                 | _ -> None)
 
-        CompileTestExpectingErrors testNumber "CycleValidation.qs" errors
+        compileTestExpectingErrors testNumber "CycleValidation.qs" errors
 
-    let PopulateCallGraph testNumber =
-        CompileTest testNumber "PopulateCallGraph.qs"
+    let populateCallGraph testNumber =
+        compileTest testNumber "PopulateCallGraph.qs"
 
-    let PopulateCallGraphWithExe testNumber =
-        let srcChunks = ReadAndChunkSourceFile "PopulateCallGraph.qs"
+    let populateCallGraphWithExe testNumber =
+        let srcChunks = readAndChunkSourceFile "PopulateCallGraph.qs"
         srcChunks.Length >= testNumber |> Assert.True
 
         let fileId = getTempFile ()
@@ -164,7 +158,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         compilationDataStructures.BuiltCompilation
 
     /// Checks if one of the given lists can be rotated into the other given list
-    let CyclicEquivalence lst1 lst2 =
+    let cyclicEquivalence lst1 lst2 =
         let size1 = List.length lst1
 
         if size1 <> List.length lst2 then
@@ -176,8 +170,8 @@ type CallGraphTests(output: ITestOutputHelper) =
             let rotations = [ 0 .. size1 - 1 ] |> List.map rotate
             List.contains lst2 rotations
 
-    let CheckForExpectedCycles (actualCycles: seq<#seq<CallGraphNode>>) expectedCycles =
-        let expected = expectedCycles |> DecorateWithNamespace Signatures.CycleDetectionNS
+    let checkForExpectedCycles (actualCycles: seq<#seq<CallGraphNode>>) expectedCycles =
+        let expected = expectedCycles |> decorateWithNamespace Signatures.CycleDetectionNS
         let actual = actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
 
         Assert.True(
@@ -190,11 +184,11 @@ type CallGraphTests(output: ITestOutputHelper) =
 
         for cycle in expected do
             Assert.True(
-                List.exists (CyclicEquivalence cycle) actual,
+                List.exists (cyclicEquivalence cycle) actual,
                 sprintf "Did not find expected cycle: %s" (cycleToString cycle)
             )
 
-    let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph: CallGraph) =
+    let assertExpectedDirectDependencies nameFrom nameToList (givenGraph: CallGraph) =
         let strToNode name =
             let nodeName = { Namespace = Signatures.PopulateCallGraphNS; Name = name }
             CallGraphNode(nodeName)
@@ -209,17 +203,17 @@ type CallGraphTests(output: ITestOutputHelper) =
                 sprintf "Expected %s to take dependency on %s." nameFrom nameTo
             )
 
-    let AssertInGraph (givenGraph: CallGraph) name =
+    let assertInGraph (givenGraph: CallGraph) name =
         let nodeName = { Namespace = Signatures.PopulateCallGraphNS; Name = name }
         let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
         Assert.True(found, sprintf "Expected %s to be in the call graph." name)
 
-    let AssertNotInGraph (givenGraph: CallGraph) name =
+    let assertNotInGraph (givenGraph: CallGraph) name =
         let nodeName = { Namespace = Signatures.PopulateCallGraphNS; Name = name }
         let found = givenGraph.Nodes |> Seq.exists (fun x -> x.CallableName = nodeName)
         Assert.False(found, sprintf "Expected %s to not be in the call graph." name)
 
-    let AssertInConcreteGraph (givenGraph: ConcreteCallGraph) node =
+    let assertInConcreteGraph (givenGraph: ConcreteCallGraph) node =
         Assert.True(
             givenGraph.Nodes.Contains(node),
             sprintf
@@ -229,7 +223,7 @@ type CallGraphTests(output: ITestOutputHelper) =
                 node.ParamResolutions
         )
 
-    let AssertNotInConcreteGraph (givenGraph: ConcreteCallGraph) node =
+    let assertNotInConcreteGraph (givenGraph: ConcreteCallGraph) node =
         Assert.False(
             givenGraph.Nodes.Contains(node),
             sprintf
@@ -244,104 +238,104 @@ type CallGraphTests(output: ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Basic Entry Point``() =
-        let graph = PopulateCallGraphWithExe 1 |> BuildTrimmedGraph
+        let graph = populateCallGraphWithExe 1 |> buildTrimmedGraph
 
         [ "Main", [ "Foo"; "Bar" ]; "Foo", []; "Bar", [ "Baz" ]; "Baz", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> assertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Unrelated To Entry Point``() =
-        let graph = PopulateCallGraphWithExe 2 |> BuildTrimmedGraph
+        let graph = populateCallGraphWithExe 2 |> buildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> assertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
-        [ "Bar"; "Baz" ] |> List.map (AssertNotInGraph graph) |> ignore
+        [ "Bar"; "Baz" ] |> List.map (assertNotInGraph graph) |> ignore
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Not Called With Entry Point``() =
-        let graph = PopulateCallGraphWithExe 3 |> BuildTrimmedGraph
+        let graph = populateCallGraphWithExe 3 |> buildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> assertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
-        AssertNotInGraph graph "NotCalled"
+        assertNotInGraph graph "NotCalled"
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Not Called Without Entry Point``() =
-        let graph = PopulateCallGraph 4 |> CallGraph
+        let graph = populateCallGraph 4 |> CallGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> assertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
-        AssertInGraph graph "NotCalled"
+        assertInGraph graph "NotCalled"
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Unrelated Without Entry Point``() =
-        let graph = PopulateCallGraph 5 |> CallGraph
+        let graph = populateCallGraph 5 |> CallGraph
 
         [ "Main", [ "Foo" ]; "Foo", []; "Bar", [ "Baz" ]; "Baz", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> assertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Entry Point No Descendants``() =
-        let graph = PopulateCallGraphWithExe 6 |> BuildTrimmedGraph
-        AssertInGraph graph "Main"
+        let graph = populateCallGraphWithExe 6 |> buildTrimmedGraph
+        assertInGraph graph "Main"
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Calls Entry Point From Entry Point``() =
-        let graph = PopulateCallGraphWithExe 7 |> BuildTrimmedGraph
+        let graph = populateCallGraphWithExe 7 |> buildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [ "Main" ] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> assertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Entry Point Ancestor And Descendant``() =
-        let graph = PopulateCallGraphWithExe 8 |> BuildTrimmedGraph
+        let graph = populateCallGraphWithExe 8 |> buildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> assertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
-        AssertNotInGraph graph "Bar"
+        assertNotInGraph graph "Bar"
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Multiple Entry Points``() =
-        let graph = PopulateCallGraphWithExe 9 |> BuildTrimmedGraph
+        let graph = populateCallGraphWithExe 9 |> buildTrimmedGraph
 
         [ "Main1", [ "Foo" ]; "Main2", [ "Bar" ]; "Foo", []; "Bar", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> assertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Unit Test as Starting Point``() =
-        let graph = PopulateCallGraphWithExe 10 |> BuildTrimmedGraph
+        let graph = populateCallGraphWithExe 10 |> buildTrimmedGraph
 
         [ "Test", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> assertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
-        AssertNotInGraph graph "Bar"
+        assertNotInGraph graph "Bar"
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Entry Points and Unit Tests``() =
-        let graph = PopulateCallGraphWithExe 11 |> BuildTrimmedGraph
+        let graph = populateCallGraphWithExe 11 |> buildTrimmedGraph
 
         [
             "Main1", [ "Foo" ]
@@ -349,163 +343,163 @@ type CallGraphTests(output: ITestOutputHelper) =
             "Test1", [ "Zip" ]
             "Test2", [ "Zap" ]
         ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> assertExpectedDirectDependencies (fst x) (snd x) graph)
         |> ignore
 
-        AssertNotInGraph graph "Unused"
+        assertNotInGraph graph "Unused"
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph has Concretizations``() =
-        let graph = PopulateCallGraphWithExe 12 |> ConcreteCallGraph
+        let graph = populateCallGraphWithExe 12 |> ConcreteCallGraph
 
         let makeNode name resType =
-            MakeNode name QsSpecializationKind.QsBody [ ("A", resType) ]
+            makeGraphNode name QsSpecializationKind.QsBody [ ("A", resType) ]
 
         let makeNodeNoRes name =
-            MakeNode name QsSpecializationKind.QsBody []
+            makeGraphNode name QsSpecializationKind.QsBody []
 
-        let FooDouble = makeNode "Foo" Double
-        let FooString = makeNode "Foo" String
-        let FooEmpty = makeNodeNoRes "Foo"
-        let BarString = makeNode "Bar" String
-        let BarEmpty = makeNodeNoRes "Bar"
+        let fooDouble = makeNode "Foo" Double
+        let fooString = makeNode "Foo" String
+        let fooEmpty = makeNodeNoRes "Foo"
+        let barString = makeNode "Bar" String
+        let barEmpty = makeNodeNoRes "Bar"
 
-        AssertInConcreteGraph graph FooDouble
-        AssertInConcreteGraph graph FooString
-        AssertInConcreteGraph graph BarString
+        assertInConcreteGraph graph fooDouble
+        assertInConcreteGraph graph fooString
+        assertInConcreteGraph graph barString
 
-        AssertNotInConcreteGraph graph FooEmpty
-        AssertNotInConcreteGraph graph BarEmpty
+        assertNotInConcreteGraph graph fooEmpty
+        assertNotInConcreteGraph graph barEmpty
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Contains All Specializations``() =
-        let graph = PopulateCallGraphWithExe 13 |> ConcreteCallGraph
+        let graph = populateCallGraphWithExe 13 |> ConcreteCallGraph
 
-        let makeNode name spec = MakeNode name spec []
+        let makeNode name spec = makeGraphNode name spec []
 
-        let FooAdj = makeNode "FooAdj" QsAdjoint
-        let FooCtl = makeNode "FooCtl" QsControlled
-        let FooCtlAdj = makeNode "FooCtlAdj" QsControlledAdjoint
-        let BarAdj = makeNode "BarAdj" QsBody
-        let BarCtl = makeNode "BarCtl" QsBody
-        let BarCtlAdj = makeNode "BarCtlAdj" QsBody
-        let Unused = makeNode "Unused" QsBody
+        let fooAdj = makeNode "FooAdj" QsAdjoint
+        let fooCtl = makeNode "FooCtl" QsControlled
+        let fooCtlAdj = makeNode "FooCtlAdj" QsControlledAdjoint
+        let barAdj = makeNode "BarAdj" QsBody
+        let barCtl = makeNode "BarCtl" QsBody
+        let barCtlAdj = makeNode "BarCtlAdj" QsBody
+        let unused = makeNode "Unused" QsBody
 
-        AssertInConcreteGraph graph FooAdj
-        AssertInConcreteGraph graph FooCtl
-        AssertInConcreteGraph graph FooCtlAdj
-        AssertInConcreteGraph graph BarAdj
-        AssertInConcreteGraph graph BarCtl
-        AssertInConcreteGraph graph BarCtlAdj
-        AssertInConcreteGraph graph Unused
+        assertInConcreteGraph graph fooAdj
+        assertInConcreteGraph graph fooCtl
+        assertInConcreteGraph graph fooCtlAdj
+        assertInConcreteGraph graph barAdj
+        assertInConcreteGraph graph barCtl
+        assertInConcreteGraph graph barCtlAdj
+        assertInConcreteGraph graph unused
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Double Reference Resolution``() =
-        let graph = PopulateCallGraphWithExe 14 |> ConcreteCallGraph
+        let graph = populateCallGraphWithExe 14 |> ConcreteCallGraph
 
         let makeNode resType =
-            MakeNode "Foo" QsSpecializationKind.QsBody [ "A", resType ]
+            makeGraphNode "Foo" QsSpecializationKind.QsBody [ "A", resType ]
 
-        let FooInt = makeNode Int
-        let FooFunc = makeNode (QsTypeKind.Function(ResolvedType.New Int, ResolvedType.New Int))
+        let fooInt = makeNode Int
+        let fooFunc = makeNode (QsTypeKind.Function(ResolvedType.New Int, ResolvedType.New Int))
 
-        AssertInConcreteGraph graph FooInt
-        AssertInConcreteGraph graph FooFunc
+        assertInConcreteGraph graph fooInt
+        assertInConcreteGraph graph fooFunc
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Non-Call Reference Only Body``() =
-        let graph = PopulateCallGraphWithExe 15 |> ConcreteCallGraph
+        let graph = populateCallGraphWithExe 15 |> ConcreteCallGraph
 
-        let makeNode spec = MakeNode "Foo" spec []
+        let makeNode spec = makeGraphNode "Foo" spec []
 
-        let Foo = makeNode QsBody
-        let FooAdj = makeNode QsAdjoint
-        let FooCtl = makeNode QsControlled
-        let FooCtlAdj = makeNode QsControlledAdjoint
+        let foo = makeNode QsBody
+        let fooAdj = makeNode QsAdjoint
+        let fooCtl = makeNode QsControlled
+        let fooCtlAdj = makeNode QsControlledAdjoint
 
-        AssertInConcreteGraph graph Foo
+        assertInConcreteGraph graph foo
 
-        AssertNotInConcreteGraph graph FooAdj
-        AssertNotInConcreteGraph graph FooCtl
-        AssertNotInConcreteGraph graph FooCtlAdj
+        assertNotInConcreteGraph graph fooAdj
+        assertNotInConcreteGraph graph fooCtl
+        assertNotInConcreteGraph graph fooCtlAdj
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Non-Call Reference With Adjoint``() =
-        let graph = PopulateCallGraphWithExe 16 |> ConcreteCallGraph
+        let graph = populateCallGraphWithExe 16 |> ConcreteCallGraph
 
-        let makeNode spec = MakeNode "Foo" spec []
+        let makeNode spec = makeGraphNode "Foo" spec []
 
-        let Foo = makeNode QsBody
-        let FooAdj = makeNode QsAdjoint
-        let FooCtl = makeNode QsControlled
-        let FooCtlAdj = makeNode QsControlledAdjoint
+        let foo = makeNode QsBody
+        let fooAdj = makeNode QsAdjoint
+        let fooCtl = makeNode QsControlled
+        let fooCtlAdj = makeNode QsControlledAdjoint
 
-        AssertInConcreteGraph graph Foo
-        AssertInConcreteGraph graph FooAdj
+        assertInConcreteGraph graph foo
+        assertInConcreteGraph graph fooAdj
 
-        AssertNotInConcreteGraph graph FooCtl
-        AssertNotInConcreteGraph graph FooCtlAdj
+        assertNotInConcreteGraph graph fooCtl
+        assertNotInConcreteGraph graph fooCtlAdj
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Non-Call Reference With All``() =
-        let graph = PopulateCallGraphWithExe 17 |> ConcreteCallGraph
+        let graph = populateCallGraphWithExe 17 |> ConcreteCallGraph
 
-        let makeNode spec = MakeNode "Foo" spec []
+        let makeNode spec = makeGraphNode "Foo" spec []
 
-        let Foo = makeNode QsBody
-        let FooAdj = makeNode QsAdjoint
-        let FooCtl = makeNode QsControlled
-        let FooCtlAdj = makeNode QsControlledAdjoint
+        let foo = makeNode QsBody
+        let fooAdj = makeNode QsAdjoint
+        let fooCtl = makeNode QsControlled
+        let fooCtlAdj = makeNode QsControlledAdjoint
 
-        AssertInConcreteGraph graph Foo
-        AssertInConcreteGraph graph FooAdj
-        AssertInConcreteGraph graph FooCtl
-        AssertInConcreteGraph graph FooCtlAdj
+        assertInConcreteGraph graph foo
+        assertInConcreteGraph graph fooAdj
+        assertInConcreteGraph graph fooCtl
+        assertInConcreteGraph graph fooCtlAdj
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Call Self-Adjoint Reference``() =
-        let compilation = PopulateCallGraphWithExe 18
+        let compilation = populateCallGraphWithExe 18
         let mutable transformed = { Namespaces = ImmutableArray.Empty; EntryPoints = ImmutableArray.Empty }
         Assert.True(CodeGeneration.GenerateFunctorSpecializations(compilation, &transformed))
         let graph = transformed |> ConcreteCallGraph
 
-        let makeNode spec = MakeNode "Foo" spec []
+        let makeNode spec = makeGraphNode "Foo" spec []
 
-        let Foo = makeNode QsBody
-        let FooAdj = makeNode QsAdjoint
-        let FooCtl = makeNode QsControlled
-        let FooCtlAdj = makeNode QsControlledAdjoint
+        let foo = makeNode QsBody
+        let fooAdj = makeNode QsAdjoint
+        let fooCtl = makeNode QsControlled
+        let fooCtlAdj = makeNode QsControlledAdjoint
 
-        AssertInConcreteGraph graph Foo
-        AssertInConcreteGraph graph FooAdj
-        AssertInConcreteGraph graph FooCtl
-        AssertInConcreteGraph graph FooCtlAdj
+        assertInConcreteGraph graph foo
+        assertInConcreteGraph graph fooAdj
+        assertInConcreteGraph graph fooCtl
+        assertInConcreteGraph graph fooCtlAdj
 
-        let dependencies = graph.GetDirectDependencies FooAdj
+        let dependencies = graph.GetDirectDependencies fooAdj
 
         Assert.True(
-            dependencies.Contains(Foo),
+            dependencies.Contains(foo),
             "Expected adjoint specialization to take dependency on body specialization."
         )
 
-        let dependencies = graph.GetDirectDependencies FooCtlAdj
+        let dependencies = graph.GetDirectDependencies fooCtlAdj
 
         Assert.True(
-            dependencies.Contains(FooCtl),
+            dependencies.Contains(fooCtl),
             "Expected controlled-adjoint specialization to take dependency on controlled specialization."
         )
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Clears Type Param Resolutions After Statements``() =
-        let compilation = PopulateCallGraphWithExe 19
+        let compilation = populateCallGraphWithExe 19
         let mutable transformed = { Namespaces = ImmutableArray.Empty; EntryPoints = ImmutableArray.Empty }
         Assert.True(CodeGeneration.GenerateFunctorSpecializations(compilation, &transformed))
         let graph = transformed |> ConcreteCallGraph
@@ -523,132 +517,132 @@ type CallGraphTests(output: ITestOutputHelper) =
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Multiple Entry Points``() =
-        let graph = PopulateCallGraphWithExe 20 |> ConcreteCallGraph
+        let graph = populateCallGraphWithExe 20 |> ConcreteCallGraph
 
         let makeNode name resType =
-            MakeNode name QsSpecializationKind.QsBody [ ("A", resType) ]
+            makeGraphNode name QsSpecializationKind.QsBody [ ("A", resType) ]
 
         let makeNodeNoRes name =
-            MakeNode name QsSpecializationKind.QsBody []
+            makeGraphNode name QsSpecializationKind.QsBody []
 
-        let Main1 = makeNodeNoRes "Main1"
-        let Main2 = makeNodeNoRes "Main2"
-        let FooDouble = makeNode "Foo" Double
-        let FooString = makeNode "Foo" String
-        let FooEmpty = makeNodeNoRes "Foo"
+        let main1 = makeNodeNoRes "Main1"
+        let main2 = makeNodeNoRes "Main2"
+        let fooDouble = makeNode "Foo" Double
+        let fooString = makeNode "Foo" String
+        let fooEmpty = makeNodeNoRes "Foo"
 
-        AssertInConcreteGraph graph Main1
-        AssertInConcreteGraph graph Main2
-        AssertInConcreteGraph graph FooDouble
-        AssertInConcreteGraph graph FooString
+        assertInConcreteGraph graph main1
+        assertInConcreteGraph graph main2
+        assertInConcreteGraph graph fooDouble
+        assertInConcreteGraph graph fooString
 
-        AssertNotInConcreteGraph graph FooEmpty
+        assertNotInConcreteGraph graph fooEmpty
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Unit Tests``() =
-        let graph = PopulateCallGraphWithExe 21 |> ConcreteCallGraph
+        let graph = populateCallGraphWithExe 21 |> ConcreteCallGraph
 
         let makeNode name resType =
-            MakeNode name QsSpecializationKind.QsBody [ ("A", resType) ]
+            makeGraphNode name QsSpecializationKind.QsBody [ ("A", resType) ]
 
         let makeNodeNoRes name =
-            MakeNode name QsSpecializationKind.QsBody []
+            makeGraphNode name QsSpecializationKind.QsBody []
 
-        let Test1 = makeNodeNoRes "Test1"
-        let Test2 = makeNodeNoRes "Test2"
-        let FooDouble = makeNode "Foo" Double
-        let FooString = makeNode "Foo" String
-        let FooEmpty = makeNodeNoRes "Foo"
+        let test1 = makeNodeNoRes "Test1"
+        let test2 = makeNodeNoRes "Test2"
+        let fooDouble = makeNode "Foo" Double
+        let fooString = makeNode "Foo" String
+        let fooEmpty = makeNodeNoRes "Foo"
 
-        AssertInConcreteGraph graph Test1
-        AssertInConcreteGraph graph Test2
-        AssertInConcreteGraph graph FooDouble
-        AssertInConcreteGraph graph FooString
+        assertInConcreteGraph graph test1
+        assertInConcreteGraph graph test2
+        assertInConcreteGraph graph fooDouble
+        assertInConcreteGraph graph fooString
 
-        AssertNotInConcreteGraph graph FooEmpty
+        assertNotInConcreteGraph graph fooEmpty
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Entry Points and Unit Tests``() =
-        let graph = PopulateCallGraphWithExe 22 |> ConcreteCallGraph
+        let graph = populateCallGraphWithExe 22 |> ConcreteCallGraph
 
         let makeNode name resType =
-            MakeNode name QsSpecializationKind.QsBody [ ("A", resType) ]
+            makeGraphNode name QsSpecializationKind.QsBody [ ("A", resType) ]
 
         let makeNodeNoRes name =
-            MakeNode name QsSpecializationKind.QsBody []
+            makeGraphNode name QsSpecializationKind.QsBody []
 
-        let Main1 = makeNodeNoRes "Main1"
-        let Main2 = makeNodeNoRes "Main2"
-        let Test1 = makeNodeNoRes "Test1"
-        let Test2 = makeNodeNoRes "Test2"
-        let FooDouble = makeNode "Foo" Double
-        let FooString = makeNode "Foo" String
-        let FooEmpty = makeNodeNoRes "Foo"
-        let BarDouble = makeNode "Bar" Double
-        let BarString = makeNode "Bar" String
-        let BarEmpty = makeNodeNoRes "Bar"
-        let Unused = makeNodeNoRes "Unused"
+        let main1 = makeNodeNoRes "Main1"
+        let main2 = makeNodeNoRes "Main2"
+        let test1 = makeNodeNoRes "Test1"
+        let test2 = makeNodeNoRes "Test2"
+        let fooDouble = makeNode "Foo" Double
+        let fooString = makeNode "Foo" String
+        let fooEmpty = makeNodeNoRes "Foo"
+        let barDouble = makeNode "Bar" Double
+        let barString = makeNode "Bar" String
+        let barEmpty = makeNodeNoRes "Bar"
+        let unused = makeNodeNoRes "Unused"
 
-        AssertInConcreteGraph graph Main1
-        AssertInConcreteGraph graph Main2
-        AssertInConcreteGraph graph Test1
-        AssertInConcreteGraph graph Test2
-        AssertInConcreteGraph graph FooDouble
-        AssertInConcreteGraph graph FooString
-        AssertInConcreteGraph graph BarDouble
-        AssertInConcreteGraph graph BarString
+        assertInConcreteGraph graph main1
+        assertInConcreteGraph graph main2
+        assertInConcreteGraph graph test1
+        assertInConcreteGraph graph test2
+        assertInConcreteGraph graph fooDouble
+        assertInConcreteGraph graph fooString
+        assertInConcreteGraph graph barDouble
+        assertInConcreteGraph graph barString
 
-        AssertNotInConcreteGraph graph FooEmpty
-        AssertNotInConcreteGraph graph BarEmpty
-        AssertNotInConcreteGraph graph Unused
+        assertNotInConcreteGraph graph fooEmpty
+        assertNotInConcreteGraph graph barEmpty
+        assertNotInConcreteGraph graph unused
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``No Cycles``() =
-        let cycles = CompileCycleDetectionTest 1
+        let cycles = compileCycleDetectionTest 1
         Assert.Empty cycles
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Simple Cycle``() =
-        let result = CompileCycleDetectionTest 2
+        let result = compileCycleDetectionTest 2
 
-        [ [ "Foo"; "Bar" ] ] |> CheckForExpectedCycles result
+        [ [ "Foo"; "Bar" ] ] |> checkForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Longer Cycle``() =
-        let result = CompileCycleDetectionTest 3
+        let result = compileCycleDetectionTest 3
 
-        [ [ "Foo"; "Bar"; "Baz" ] ] |> CheckForExpectedCycles result
+        [ [ "Foo"; "Bar"; "Baz" ] ] |> checkForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Direct Recursion Cycle``() =
-        let result = CompileCycleDetectionTest 4
+        let result = compileCycleDetectionTest 4
 
-        [ [ "Foo" ] ] |> CheckForExpectedCycles result
+        [ [ "Foo" ] ] |> checkForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Loop In Sequence``() =
-        let result = CompileCycleDetectionTest 5
+        let result = compileCycleDetectionTest 5
 
-        [ [ "Bar" ] ] |> CheckForExpectedCycles result
+        [ [ "Bar" ] ] |> checkForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Figure-Eight Cycles``() =
-        let result = CompileCycleDetectionTest 6
+        let result = compileCycleDetectionTest 6
 
-        [ [ "Foo"; "Bar" ]; [ "Foo"; "Baz" ] ] |> CheckForExpectedCycles result
+        [ [ "Foo"; "Bar" ]; [ "Foo"; "Baz" ] ] |> checkForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Fully Connected Cycles``() =
-        let result = CompileCycleDetectionTest 7
+        let result = compileCycleDetectionTest 7
 
         [
             [ "Foo" ]
@@ -660,19 +654,19 @@ type CallGraphTests(output: ITestOutputHelper) =
             [ "Foo"; "Bar"; "Baz" ]
             [ "Baz"; "Bar"; "Foo" ]
         ]
-        |> CheckForExpectedCycles result
+        |> checkForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Sausage Link Graph Cycles``() =
-        let result = CompileCycleDetectionTest 8
+        let result = compileCycleDetectionTest 8
 
-        [ [ "_1"; "_2" ]; [ "_2"; "_3" ]; [ "_3"; "_4" ] ] |> CheckForExpectedCycles result
+        [ [ "_1"; "_2" ]; [ "_2"; "_3" ]; [ "_3"; "_4" ] ] |> checkForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Double Link Graph Cycles``() =
-        let result = CompileCycleDetectionTest 9
+        let result = compileCycleDetectionTest 9
 
         [
             [ "_1"; "_2"; "_6"; "_5" ]
@@ -680,12 +674,12 @@ type CallGraphTests(output: ITestOutputHelper) =
             [ "_1"; "_2"; "_6"; "_3" ]
             [ "_1"; "_4"; "_6"; "_5" ]
         ]
-        |> CheckForExpectedCycles result
+        |> checkForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Multiple SCC Cycles``() =
-        let result = CompileCycleDetectionTest 10
+        let result = compileCycleDetectionTest 10
 
         [
             [ "SCC1_1" ]
@@ -693,12 +687,12 @@ type CallGraphTests(output: ITestOutputHelper) =
             [ "SCC3_2"; "SCC3_3" ]
             [ "SCC3_1"; "SCC3_2"; "SCC3_3" ]
         ]
-        |> CheckForExpectedCycles result
+        |> checkForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Detection")>]
     member this.``Johnson's Graph Cycles``() =
-        let result = CompileCycleDetectionTest 11
+        let result = compileCycleDetectionTest 11
 
         [
             [ "_1"; "_2"; "_k2"; "_k3"; "_2k"; "_2k1" ]
@@ -714,41 +708,41 @@ type CallGraphTests(output: ITestOutputHelper) =
             [ "_2k2"; "_2k4"; "_3k3" ]
             [ "_2k2"; "_3k2"; "_3k3" ]
         ]
-        |> CheckForExpectedCycles result
+        |> checkForExpectedCycles result
 
     [<Fact>]
     [<Trait("Category", "Cycle Validation")>]
-    member this.``Cycle with Generic Resolution``() = CompileCycleValidationTest 1
+    member this.``Cycle with Generic Resolution``() = compileCycleValidationTest 1
 
     [<Fact>]
     [<Trait("Category", "Cycle Validation")>]
-    member this.``Cycle with Concrete Resolution``() = CompileCycleValidationTest 2
+    member this.``Cycle with Concrete Resolution``() = compileCycleValidationTest 2
 
     [<Fact>]
     [<Trait("Category", "Cycle Validation")>]
     member this.``Constricting Cycle``() =
         Error ErrorCode.InvalidCyclicTypeParameterResolution
         |> List.replicate 3
-        |> CompileInvalidCycleTest 3
+        |> compileInvalidCycleTest 3
 
     [<Fact>]
     [<Trait("Category", "Cycle Validation")>]
-    member this.``Cycle with Rotating Parameters``() = CompileCycleValidationTest 4
+    member this.``Cycle with Rotating Parameters``() = compileCycleValidationTest 4
 
     [<Fact>]
     [<Trait("Category", "Cycle Validation")>]
     member this.``Cycle with Mutated Forwarding``() =
         Error ErrorCode.InvalidCyclicTypeParameterResolution
         |> List.replicate 3
-        |> CompileInvalidCycleTest 5
+        |> compileInvalidCycleTest 5
 
     [<Fact>]
     [<Trait("Category", "Cycle Validation")>]
-    member this.``Cycle with Multiple Concrete Resolutions``() = CompileCycleValidationTest 6
+    member this.``Cycle with Multiple Concrete Resolutions``() = compileCycleValidationTest 6
 
     [<Fact>]
     [<Trait("Category", "Cycle Validation")>]
     member this.``Cycle with Rotating Constriction``() =
         Error ErrorCode.InvalidCyclicTypeParameterResolution
         |> List.replicate 18
-        |> CompileInvalidCycleTest 7
+        |> compileInvalidCycleTest 7
