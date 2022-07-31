@@ -1,6 +1,6 @@
 {
     "name": "quantum-devkit-vscode",
-    "version": "0.9999.22060152",
+    "version": "#VSCODEVSIX_VERSION#",
     "displayName": "Microsoft Quantum Development Kit for Visual Studio Code",
     "description": "Microsoft Quantum Development Kit for Visual Studio Code provides support for developing quantum algorithms in the Q# programming language.",
     "publisher": "quantum",
@@ -122,7 +122,7 @@
                         "null"
                     ],
                     "description": "Path to the language server assembly for Q#.",
-                    "default": "C:/Users/t-jackmonas/work/qsharp-compiler/src/QsCompiler/LanguageServer/bin/Debug/net6.0/win10-x64/publish/Microsoft.Quantum.QsLanguageServer.exe"
+                    "default": null
                 }
             }
         },
