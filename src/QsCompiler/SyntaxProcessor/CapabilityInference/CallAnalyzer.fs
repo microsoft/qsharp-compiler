@@ -183,4 +183,4 @@ module CallAnalyzer =
 
     let deep callables graph syntaxAnalyzer : Analyzer<_, _> =
         let analyzer = DeepCallAnalyzer(callables, graph, syntaxAnalyzer)
-        fun callable -> analyzer.Analyze callable
+        fun callable -> upcast analyzer.Analyze callable

@@ -314,12 +314,12 @@ module SerializationTests =
         let types = attrs.Types |> Seq.map (fun t -> t.ToJson()) |> Seq.toList
         let specs = attrs.Specializations |> Seq.map (fun s -> (s.ToTuple() |> fst).ToJson()) |> Seq.toList
 
-        let AssertEqual expected got =
+        let assertEqual expected got =
             List.zip expected got |> List.iter Assert.Equal
 
-        AssertEqual [ CALLABLE_1; CALLABLE_2; CALLABLE_3 ] callables
-        AssertEqual [ SPECIALIZATION_1; SPECIALIZATION_3 ] specs
-        AssertEqual [ TYPE_1 ] types
+        assertEqual [ CALLABLE_1; CALLABLE_2; CALLABLE_3 ] callables
+        assertEqual [ SPECIALIZATION_1; SPECIALIZATION_3 ] specs
+        assertEqual [ TYPE_1 ] types
 
 
     // These attributes are used to test the AttributeReader.
