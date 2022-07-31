@@ -261,9 +261,9 @@
     },
     "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",
     "requiredDotNetCoreSDK": "2.1.0",
-    "enableTelemetry": true,
-    "nugetVersion": "0.9999.2206.0152-alpha",
-    "assemblyVersion": "0.9999.2206.0152",
+    "enableTelemetry": #ENABLE_TELEMETRY#,
+    "nugetVersion": "#NUGET_VERSION#",
+    "assemblyVersion": "#ASSEMBLY_VERSION#",
     "files": [
         "*",
         "../../NOTICE.txt"
