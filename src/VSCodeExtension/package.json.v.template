@@ -244,6 +244,9 @@
         "yeoman-assert": "^3.1.0",
         "yeoman-test": "^6.1.0"
     },
+    "overrides": {
+        "node-fetch": "^2.6.7"
+    },
     "blobs": {
         "win32": {
             "url": "https://msquantumpublic.blob.core.windows.net/qsharp-compiler/LanguageServer-win10-x64-0.9999.22060152.zip",
