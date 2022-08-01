@@ -6,7 +6,8 @@ import {
 } from "@azure/identity";
 import { TextEncoder } from "util";
 import {workspaceInfo} from "./commands";
-import fetch from 'node-fetch';
+// import fetch from 'node-fetch';
+import * as https from "https";
 
 
 export async function getWorkspaceFromUser(
@@ -142,11 +143,29 @@ export async function getWorkspaceFromUser(
     quickPick.busy = true;
     quickPick.show();
 
-    const rgResponse = await fetch(`https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups?api-version=2020-01-01`,options);
-    const rgJson = await rgResponse.json();
+
+    const rgJSON:any = await new Promise((resolve, reject)=>{
+            //@ts-ignore
+      const req = https.get(`https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups?api-version=2020-01-01`, options, (res:any) => {
+        let responseBody = '';
+
+        res.on('data', (chunk:any) => {
+            responseBody += chunk;
+        });
+
+        res.on('end', () => {
+            resolve(JSON.parse(responseBody));
+        });
+    });
+
+    req.on('error', (err) => {
+        reject(err);
+    });
+    });
+
     quickPick.value = "";
     if (quickPick.step===2){
-      quickPick.items = rgJson.value.map((rg: any) => {
+      quickPick.items = rgJSON.value.map((rg: any) => {
           if (
           currentworkspaceInfo &&
           (currentworkspaceInfo as any)["resourceGroup"] === rg.name && quickPick.step ===2
@@ -176,11 +195,27 @@ export async function getWorkspaceFromUser(
     quickPick.value = "";
     quickPick.show();
 
-    const subscriptionsResponse = await fetch("https://management.azure.com/subscriptions?api-version=2020-01-01",options);
-    const subscriptionsJson = await subscriptionsResponse.json();
+    const subscriptionsJSON:any = await new Promise((resolve, reject)=>{
+            //@ts-ignore
+      const req = https.get("https://management.azure.com/subscriptions?api-version=2020-01-01", options, (res:any) => {
+        let responseBody = '';
+
+        res.on('data', (chunk:any) => {
+            responseBody += chunk;
+        });
+
+        res.on('end', () => {
+            resolve(JSON.parse(responseBody));
+        });
+    });
+
+    req.on('error', (err) => {
+        reject(err);
+    });
+    });
 
     if (quickPick.step===1){
-      quickPick.items = subscriptionsJson.value.map((subscription: any) => {
+      quickPick.items = subscriptionsJSON.value.map((subscription: any) => {
           if (
           currentworkspaceInfo &&
           (currentworkspaceInfo as any)["subscriptionId"] ===
@@ -210,10 +245,26 @@ export async function getWorkspaceFromUser(
     quickPick.busy = true;
     quickPick.show();
 
-    const workspaceResponse = await fetch(`https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/resources?api-version=2020-01-01`,options);
-    const workspacesJson = await workspaceResponse.json();
+    const workspacesJSON:any = await new Promise((resolve, reject)=>{
+      //@ts-ignore
+      const req = https.get(`https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/resources?api-version=2020-01-01`, options, (res:any) => {
+        let responseBody = '';
 
-    const quantumWorkspaces = workspacesJson.value.filter((workspace: any) => {
+        res.on('data', (chunk:any) => {
+            responseBody += chunk;
+        });
+
+        res.on('end', () => {
+            resolve(JSON.parse(responseBody));
+        });
+    });
+
+    req.on('error', (err) => {
+        reject(err);
+    });
+    });
+
+    const quantumWorkspaces = workspacesJSON.value.filter((workspace: any) => {
       if (workspace["type"].includes("Quantum")) {
         return true;
       }
