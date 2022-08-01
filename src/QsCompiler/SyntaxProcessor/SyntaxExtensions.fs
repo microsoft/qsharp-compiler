@@ -20,7 +20,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 // utils for providing information for editor commands based on syntax tokens
 
-let private AttributeAsCallExpr (sym: QsSymbol, ex: QsExpression) =
+let private attributeAsCallExpr (sym: QsSymbol, ex: QsExpression) =
     let combinedRange = QsNullable.Map2 Range.Span sym.Range ex.Range
     let id = { Expression = QsExpressionKind.Identifier(sym, Null); Range = sym.Range }
     { Expression = QsExpressionKind.CallLikeExpression(id, ex); Range = combinedRange }
@@ -68,10 +68,10 @@ let public SymbolInformation fragmentKind =
         UsedLiterals = Seq.choose tryLiteral occurrences |> ImmutableHashSet.CreateRange
     }
 
-let rec private ExpressionsInInitializer item =
+let rec private expressionsInInitializer item =
     match item.Initializer with
     | QsInitializerKind.QubitRegisterAllocation ex -> seq { yield ex }
-    | QsInitializerKind.QubitTupleAllocation items -> items |> Seq.collect ExpressionsInInitializer
+    | QsInitializerKind.QubitTupleAllocation items -> items |> Seq.collect expressionsInInitializer
     | _ -> Seq.empty
 
 [<Extension>]
@@ -98,8 +98,8 @@ let public CallExpressions fragmentKind =
     | QsFragmentKind.UntilSuccess (ex, _) -> callExpressions ex
     | QsFragmentKind.UsingBlockIntro (_, init)
     | QsFragmentKind.BorrowingBlockIntro (_, init) ->
-        (ExpressionsInInitializer init |> Seq.collect callExpressions).ToImmutableArray()
-    | QsFragmentKind.DeclarationAttribute (sym, ex) -> AttributeAsCallExpr(sym, ex) |> ImmutableArray.Create
+        (expressionsInInitializer init |> Seq.collect callExpressions).ToImmutableArray()
+    | QsFragmentKind.DeclarationAttribute (sym, ex) -> attributeAsCallExpr (sym, ex) |> ImmutableArray.Create
     | _ -> ImmutableArray.Empty
 
 let private tryResolveWith resolve extract (currentNS, source) =
@@ -132,20 +132,20 @@ let private withNewLine line = sprintf "%s%s" line newLine
 /// Converts the first character of the string to uppercase.
 let private toUpperFirst (s: string) = s.[0..0].ToUpper() + s.[1..]
 
-let private AsDocComment (doc: string seq) =
-    if doc = null then
+let private asDocComment (doc: string seq) =
+    if isNull doc then
         null
     elif doc.Any() then
         let minAmountOfLeadingWS = doc |> Seq.map (fun line -> line.Length - line.TrimStart().Length) |> Seq.min
-        new DocComment(doc |> Seq.map (fun line -> line.Substring(minAmountOfLeadingWS).TrimEnd()))
+        DocComment(doc |> Seq.map (fun line -> line.Substring(minAmountOfLeadingWS).TrimEnd()))
     else
-        new DocComment(doc)
+        DocComment(doc)
 
 [<Extension>]
 let public ParameterDescription (doc: string seq) paramName =
-    let docComment = AsDocComment doc
+    let docComment = asDocComment doc
 
-    if docComment <> null then
+    if not (isNull docComment) then
         match docComment.Input.TryGetValue paramName with
         | true, description -> if String.IsNullOrWhiteSpace description then "" else description
         | false, _ -> ""
@@ -154,9 +154,9 @@ let public ParameterDescription (doc: string seq) paramName =
 
 [<Extension>]
 let public PrintSummary (doc: string seq) markdown =
-    let docComment = AsDocComment doc
+    let docComment = asDocComment doc
 
-    if docComment <> null then
+    if not (isNull docComment) then
         let info = if markdown then docComment.FullSummary else docComment.ShortSummary
         if String.IsNullOrWhiteSpace info then "" else sprintf "%s%s%s" newLine newLine info
     else
@@ -195,10 +195,10 @@ type private TName() =
         this.OnType t |> ignore
         this.Output
 
-let private TypeString = new TName()
-let private TypeName = TypeString.Apply
+let private typeString = TName()
+let private typeName = typeString.Apply
 
-let private CharacteristicsAnnotation (ex, format) =
+let private characteristicsAnnotation (ex, format) =
     let charEx = SyntaxTreeToQsharp.CharacteristicsExpression ex
     if String.IsNullOrWhiteSpace charEx then "" else sprintf "is %s" charEx |> format
 
@@ -210,7 +210,7 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
             let kind = showAccess "user-defined type" decl.Access |> toUpperFirst
             let name = decl.QualifiedName.Name |> withNewLine
             let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
-            let info = sprintf "Underlying type: %s" (TypeName decl.Type)
+            let info = sprintf "Underlying type: %s" (typeName decl.Type)
             let doc = PrintSummary decl.Documentation markdown
             sprintf "%s %s%s%s%s" kind name ns info doc
         | None, Some sym -> sprintf "Type %s" sym
@@ -224,49 +224,49 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
 
         if String.IsNullOrWhiteSpace name then onUnknown else sprintf "'%s" name
 
-    let rec typeName tKind =
+    let rec typeKindName tKind =
         let udtName udt =
             match udt |> globalTypeResolution symbolTable (currentNS, source) with
             | Some _, Some sym -> sym // hovering over the udt will show its namespace and source
             | _ -> "?"
 
         let characteristics ex =
-            CharacteristicsAnnotation(QsType.TryResolve ex, sprintf " %s")
+            characteristicsAnnotation (QsType.TryResolve ex, sprintf " %s")
 
         let inner (ts: ImmutableArray<QsType>) =
             [
                 for t in ts do
                     yield t.Type
             ]
-            |> List.map typeName
+            |> List.map typeKindName
 
         match tKind with
         | QsTypeKind.UserDefinedType udt -> udt |> udtName
-        | QsTypeKind.ArrayType b -> sprintf "%s[]" (b.Type |> typeName)
+        | QsTypeKind.ArrayType b -> sprintf "%s[]" (b.Type |> typeKindName)
         | QsTypeKind.TupleType ts -> sprintf "(%s)" (ts |> inner |> String.concat ", ")
         | QsTypeKind.TypeParameter p -> p |> typeParamName "?"
         | QsTypeKind.Operation ((it, ot), cs) ->
-            sprintf "(%s => %s%s)" (it.Type |> typeName) (ot.Type |> typeName) (cs |> characteristics)
-        | QsTypeKind.Function (it, ot) -> sprintf "(%s -> %s)" (it.Type |> typeName) (ot.Type |> typeName)
-        | QsTypeKind.UnitType -> QsTypeKind.UnitType |> ResolvedType.New |> TypeName
-        | QsTypeKind.Int -> QsTypeKind.Int |> ResolvedType.New |> TypeName
-        | QsTypeKind.BigInt -> QsTypeKind.BigInt |> ResolvedType.New |> TypeName
-        | QsTypeKind.Double -> QsTypeKind.Double |> ResolvedType.New |> TypeName
-        | QsTypeKind.Bool -> QsTypeKind.Bool |> ResolvedType.New |> TypeName
-        | QsTypeKind.String -> QsTypeKind.String |> ResolvedType.New |> TypeName
-        | QsTypeKind.Qubit -> QsTypeKind.Qubit |> ResolvedType.New |> TypeName
-        | QsTypeKind.Result -> QsTypeKind.Result |> ResolvedType.New |> TypeName
-        | QsTypeKind.Pauli -> QsTypeKind.Pauli |> ResolvedType.New |> TypeName
-        | QsTypeKind.Range -> QsTypeKind.Range |> ResolvedType.New |> TypeName
-        | QsTypeKind.MissingType -> QsTypeKind.MissingType |> ResolvedType.New |> TypeName
-        | QsTypeKind.InvalidType -> QsTypeKind.InvalidType |> ResolvedType.New |> TypeName
+            sprintf "(%s => %s%s)" (it.Type |> typeKindName) (ot.Type |> typeKindName) (cs |> characteristics)
+        | QsTypeKind.Function (it, ot) -> sprintf "(%s -> %s)" (it.Type |> typeKindName) (ot.Type |> typeKindName)
+        | QsTypeKind.UnitType -> QsTypeKind.UnitType |> ResolvedType.New |> typeName
+        | QsTypeKind.Int -> QsTypeKind.Int |> ResolvedType.New |> typeName
+        | QsTypeKind.BigInt -> QsTypeKind.BigInt |> ResolvedType.New |> typeName
+        | QsTypeKind.Double -> QsTypeKind.Double |> ResolvedType.New |> typeName
+        | QsTypeKind.Bool -> QsTypeKind.Bool |> ResolvedType.New |> typeName
+        | QsTypeKind.String -> QsTypeKind.String |> ResolvedType.New |> typeName
+        | QsTypeKind.Qubit -> QsTypeKind.Qubit |> ResolvedType.New |> typeName
+        | QsTypeKind.Result -> QsTypeKind.Result |> ResolvedType.New |> typeName
+        | QsTypeKind.Pauli -> QsTypeKind.Pauli |> ResolvedType.New |> typeName
+        | QsTypeKind.Range -> QsTypeKind.Range |> ResolvedType.New |> typeName
+        | QsTypeKind.MissingType -> QsTypeKind.MissingType |> ResolvedType.New |> typeName
+        | QsTypeKind.InvalidType -> QsTypeKind.InvalidType |> ResolvedType.New |> typeName
 
     let doc = PrintSummary qsType.Documentation markdown
 
     match qsType.Type with
     | QsTypeKind.UserDefinedType udt -> udtInfo udt
     | QsTypeKind.TypeParameter p -> sprintf "Type parameter %s%s" (p |> typeParamName "") doc
-    | _ -> sprintf "Built-in type %s%s" (typeName qsType.Type) doc
+    | _ -> sprintf "Built-in type %s%s" (typeKindName qsType.Type) doc
 
 let private printCallableKind =
     function
@@ -276,7 +276,7 @@ let private printCallableKind =
 
 [<Extension>]
 let public PrintArgumentTuple item =
-    SyntaxTreeToQsharp.ArgumentTuple(item, new Func<_, _>(TypeName)) // note: needs to match the corresponding part of the output constructed by PrintSignature below!
+    SyntaxTreeToQsharp.ArgumentTuple(item, new Func<_, _>(typeName)) // note: needs to match the corresponding part of the output constructed by PrintSignature below!
 
 [<Extension>]
 let public PrintSignature (header: CallableDeclarationHeader) =
@@ -293,10 +293,10 @@ let public PrintSignature (header: CallableDeclarationHeader) =
              ImmutableArray.Empty,
              QsComments.Empty)
 
-    let signature = SyntaxTreeToQsharp.DeclarationSignature(callable, new Func<_, _>(TypeName))
+    let signature = SyntaxTreeToQsharp.DeclarationSignature(callable, new Func<_, _>(typeName))
 
     let annotation =
-        CharacteristicsAnnotation(header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
+        characteristicsAnnotation (header.Signature.Information.Characteristics, sprintf "%s%s" newLine)
 
     sprintf "%s%s" signature annotation
 
@@ -321,7 +321,7 @@ let public VariableInfo
         if localVars.ContainsKey sym then
             let decl = localVars.[sym]
             let kind = if decl.InferredInformation.IsMutable then "Mutable" else "Immutable"
-            sprintf "%s variable %s%sType: %s" kind sym newLine (TypeName decl.Type)
+            sprintf "%s variable %s%sType: %s" kind sym newLine (typeName decl.Type)
         else
             match symbolTable.Documentation().TryGetValue(sym) with
             | true, docs -> sprintf "Namespace %s%s" sym (namespaceDocumentation (docs, markdown))
@@ -339,7 +339,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
         | true, decl ->
             let kind = if decl.InferredInformation.IsMutable then "a mutable" else "an immutable"
             let name = name |> withNewLine
-            let info = sprintf "Type: %s" (TypeName decl.Type)
+            let info = sprintf "Type: %s" (typeName decl.Type)
             sprintf "Declaration of %s variable %s%s" kind name info
         | false, _ ->
             match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be before querying callables
@@ -347,7 +347,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
                 let kind = showAccess "user-defined type" decl.Access
                 let name = decl.QualifiedName.Name |> withNewLine
                 let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
-                let info = sprintf "Underlying type: %s" (decl.Type |> TypeName)
+                let info = sprintf "Underlying type: %s" (decl.Type |> typeName)
                 let doc = PrintSummary decl.Documentation markdown
                 sprintf "Declaration of %s %s%s%s%s" kind name ns info doc
             | None, _ ->
@@ -356,8 +356,8 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
                     let kind = showAccess (printCallableKind decl.Kind) decl.Access
                     let name = decl.QualifiedName.Name |> withNewLine
                     let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
-                    let input = sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName) |> withNewLine
-                    let output = sprintf "Output type: %s" (decl.Signature.ReturnType |> TypeName) |> withNewLine
+                    let input = sprintf "Input type: %s" (decl.Signature.ArgumentType |> typeName) |> withNewLine
+                    let output = sprintf "Output type: %s" (decl.Signature.ReturnType |> typeName) |> withNewLine
 
                     let functorSupport characteristics =
                         let charEx = SyntaxTreeToQsharp.CharacteristicsExpression characteristics

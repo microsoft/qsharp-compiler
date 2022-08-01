@@ -20,7 +20,7 @@ type SyntaxTokenContext =
         Parents: QsNullable<QsFragmentKind> []
     }
 
-let private ApplyOrDefaultTo fallback nullable apply =
+let private applyOrDefaultTo fallback nullable apply =
     match nullable with
     | Null -> fallback
     | Value v -> apply v
@@ -132,7 +132,7 @@ let private verifySpecialization (context: SyntaxTokenContext) =
             false, [| (ErrorCode.ControlledAdjointDeclInFunction |> Error, context.Range) |]
         | decl -> checkGenerator decl
 
-    let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
+    let nullOr = applyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
 
     let errMsg = false, [| (ErrorCode.NotWithinCallable |> Error, context.Range) |]
 
@@ -141,8 +141,8 @@ let private verifySpecialization (context: SyntaxTokenContext) =
         | [] -> errMsg
         | parent :: _ ->
             match parent with
-            | Value (OperationDeclaration _) -> NullOr checkGenerator
-            | Value (FunctionDeclaration _) -> NullOr checkForNotValidInFunctionAndGenerator
+            | Value (OperationDeclaration _) -> nullOr checkGenerator
+            | Value (FunctionDeclaration _) -> nullOr checkForNotValidInFunctionAndGenerator
             | Value (InvalidFragment) -> false, [||]
             | _ -> errMsg
 
@@ -180,7 +180,7 @@ let private verifyStatement (context: SyntaxTokenContext) =
         | ReturnStatement _ -> false, [| (ErrorCode.ReturnFromWithinApplyBlock |> Error, context.Range) |]
         | _ -> true, [||]
 
-    let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
+    let nullOr = applyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
 
     let notWithinSpecialization = false, [| (ErrorCode.NotWithinSpecialization |> Error, context.Range) |]
 
@@ -190,9 +190,9 @@ let private verifyStatement (context: SyntaxTokenContext) =
         | parent :: tail ->
             match parent with
             // (potentially) valid parents for statements
-            | Value (ApplyBlockIntro _) -> NullOr checkForNotValidInApply
-            | Value (FunctionDeclaration _) -> NullOr checkForNotValidInFunction
-            | Value (OperationDeclaration _) -> NullOr checkForNotValidInOperation
+            | Value (ApplyBlockIntro _) -> nullOr checkForNotValidInApply
+            | Value (FunctionDeclaration _) -> nullOr checkForNotValidInFunction
+            | Value (OperationDeclaration _) -> nullOr checkForNotValidInOperation
             | Value (BodyDeclaration _)
             | Value (AdjointDeclaration _)
             | Value (ControlledDeclaration _)
@@ -205,7 +205,7 @@ let private verifyStatement (context: SyntaxTokenContext) =
                         | Value (FunctionDeclaration _) -> true
                         | _ -> false
 
-                if isInFunction then NullOr checkForNotValidInFunction else true, [||]
+                if isInFunction then nullOr checkForNotValidInFunction else true, [||]
             // because we are doing a recursion we need to break if we reach an "invalid" parent
             | Value (NamespaceDeclaration _)
             | Value (TypeDefinition _)

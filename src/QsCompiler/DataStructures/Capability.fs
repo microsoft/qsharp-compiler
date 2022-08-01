@@ -95,55 +95,55 @@ module ClassicalCompute =
 [<NoComparison>]
 type TargetCapability =
     {
-        resultOpacity: ResultOpacity
-        classicalCompute: ClassicalCompute
+        _ResultOpacity: ResultOpacity
+        _ClassicalCompute: ClassicalCompute
     }
 
-    member capability.ResultOpacity = capability.resultOpacity
+    member capability.ResultOpacity = capability._ResultOpacity
 
-    member capability.ClassicalCompute = capability.classicalCompute
+    member capability.ClassicalCompute = capability._ClassicalCompute
 
 module TargetCapability =
     [<CompiledName "Top">]
-    let top = { resultOpacity = Transparent; classicalCompute = Full }
+    let top = { _ResultOpacity = Transparent; _ClassicalCompute = Full }
 
     [<CompiledName "Bottom">]
-    let bottom = { resultOpacity = Opaque; classicalCompute = Empty }
+    let bottom = { _ResultOpacity = Opaque; _ClassicalCompute = Empty }
 
     [<CompiledName "BasicExecution">]
-    let basicExecution = { resultOpacity = Opaque; classicalCompute = Empty }
+    let basicExecution = { _ResultOpacity = Opaque; _ClassicalCompute = Empty }
 
     [<CompiledName "AdaptiveExecution">]
-    let adaptiveExecution = { resultOpacity = Transparent; classicalCompute = Integral }
+    let adaptiveExecution = { _ResultOpacity = Transparent; _ClassicalCompute = Integral }
 
     [<CompiledName "BasicQuantumFunctionality">]
-    let basicQuantumFunctionality = { resultOpacity = Opaque; classicalCompute = Full }
+    let basicQuantumFunctionality = { _ResultOpacity = Opaque; _ClassicalCompute = Full }
 
     [<CompiledName "BasicMeasurementFeedback">]
-    let basicMeasurementFeedback = { resultOpacity = Controlled; classicalCompute = Full }
+    let basicMeasurementFeedback = { _ResultOpacity = Controlled; _ClassicalCompute = Full }
 
     [<CompiledName "FullComputation">]
-    let fullComputation = { resultOpacity = Transparent; classicalCompute = Full }
+    let fullComputation = { _ResultOpacity = Transparent; _ClassicalCompute = Full }
 
     [<CompiledName "Subsumes">]
-    let subsumes c1 c2 =
-        c1.resultOpacity >= c2.resultOpacity
-        && ClassicalCompute.subsumes c1.classicalCompute c2.classicalCompute
+    let subsumes (c1: TargetCapability) (c2: TargetCapability) =
+        c1.ResultOpacity >= c2.ResultOpacity
+        && ClassicalCompute.subsumes c1.ClassicalCompute c2.ClassicalCompute
 
     [<CompiledName "Merge">]
-    let merge c1 c2 =
+    let merge (c1: TargetCapability) (c2: TargetCapability) =
         {
-            resultOpacity = max c1.resultOpacity c2.resultOpacity
-            classicalCompute = ClassicalCompute.merge c1.classicalCompute c2.classicalCompute
+            _ResultOpacity = max c1.ResultOpacity c2.ResultOpacity
+            _ClassicalCompute = ClassicalCompute.merge c1.ClassicalCompute c2.ClassicalCompute
         }
 
     [<CompiledName "WithResultOpacity">]
     let withResultOpacity opacity capability =
-        { capability with resultOpacity = opacity }
+        { capability with _ResultOpacity = opacity }
 
     [<CompiledName "WithClassicalCompute">]
     let withClassicalCompute classical capability =
-        { capability with classicalCompute = classical }
+        { capability with _ClassicalCompute = classical }
 
     let names =
         Map [ CaseInsensitive "BasicExecution", basicExecution

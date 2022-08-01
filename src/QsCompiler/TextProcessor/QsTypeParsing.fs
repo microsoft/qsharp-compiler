@@ -34,14 +34,14 @@ let private applyBinary operator _ (left: Characteristics) (right: Characteristi
     buildCombinedExpression (operator (left, right)) (left.Range, right.Range)
 
 characteristicsExpression.AddOperator(
-    InfixOperator(qsSetUnion.op, emptySpace, qsSetUnion.prec, qsSetUnion.Associativity, (), applyBinary Union)
+    InfixOperator(qsSetUnion.Op, emptySpace, qsSetUnion.Prec, qsSetUnion.Associativity, (), applyBinary Union)
 )
 
 characteristicsExpression.AddOperator(
     InfixOperator(
-        qsSetIntersection.op,
+        qsSetIntersection.Op,
         emptySpace,
-        qsSetIntersection.prec,
+        qsSetIntersection.Prec,
         qsSetIntersection.Associativity,
         (),
         applyBinary Intersection
@@ -80,8 +80,8 @@ characteristicsExpression.TermParser <-
     let tupledSetExpr = tupleBrackets (expectedCharacteristics eof |> withExcessContinuation eof)
 
     choice [ tupledSetExpr |>> fst
-             qsCtlSet.parse |>> buildCharacteristics (SimpleSet Controllable)
-             qsAdjSet.parse |>> buildCharacteristics (SimpleSet Adjointable)
+             qsCtlSet.Parse |>> buildCharacteristics (SimpleSet Controllable)
+             qsAdjSet.Parse |>> buildCharacteristics (SimpleSet Adjointable)
              unknownSet >>% invalidCharacteristics ] // needs to be at the end!
 
 
@@ -105,7 +105,7 @@ let internal expectedQsType continuation =
 /// returns a parser for the Q# Unit type that raises a warning upon using deprecated syntax
 let private unitType =
     let deprecated = buildWarning (tupleBrackets emptySpace |>> snd) WarningCode.DeprecatedUnitType
-    (qsUnit.parse <|> deprecated) |>> fun range -> (UnitType, range) |> QsType.New
+    (qsUnit.Parse <|> deprecated) |>> fun range -> (UnitType, range) |> QsType.New
 
 /// Parses a Q# atomic type - i.e. non-array, non-tuple, and not function or operation types.
 /// NOTE: does *not* parse Unit, since Unit must be parsed before trying to parse a tuple type, but after operation and function types.
@@ -113,15 +113,15 @@ let private unitType =
 let private atomicType =
     let buildType t (range: Range) = (t, range) |> QsType.New
 
-    choice [ qsInt.parse |>> buildType Int
-             qsBigInt.parse |>> buildType BigInt
-             qsDouble.parse |>> buildType Double
-             qsBool.parse |>> buildType Bool
-             qsQubit.parse |>> buildType Qubit
-             qsResult.parse |>> buildType Result
-             qsPauli.parse |>> buildType Pauli
-             qsRange.parse |>> buildType Range
-             qsString.parse |>> buildType String ]
+    choice [ qsInt.Parse |>> buildType Int
+             qsBigInt.Parse |>> buildType BigInt
+             qsDouble.Parse |>> buildType Double
+             qsBool.Parse |>> buildType Bool
+             qsQubit.Parse |>> buildType Qubit
+             qsResult.Parse |>> buildType Result
+             qsPauli.Parse |>> buildType Pauli
+             qsRange.Parse |>> buildType Range
+             qsString.Parse |>> buildType String ]
 
 /// Parses a Q# user defined type (possibly qualified symbol), raising an InvalidTypeName error if needed.
 /// Note: As long as the parser succeeds, the returned Q# type is of kind UserDefinedType even if the parsed qualified symbol is invalid.
@@ -141,10 +141,10 @@ let private userDefinedType =
 /// <remarks>Uses leftRecursionByInfix to process the signature and raise suitable errors.</remarks>
 let private operationType =
     let inAndOutputType =
-        let continuation = isTupleContinuation <|> followedBy qsCharacteristics.parse
+        let continuation = isTupleContinuation <|> followedBy qsCharacteristics.Parse
         leftRecursionByInfix opArrow qsType (expectedQsType continuation)
 
-    let characteristics = qsCharacteristics.parse >>. expectedCharacteristics isTupleContinuation
+    let characteristics = qsCharacteristics.Parse >>. expectedCharacteristics isTupleContinuation
 
     inAndOutputType .>>. (characteristics <|>% Characteristics.New(EmptySet, Null)) |> term
     |>> asType QsTypeKind.Operation

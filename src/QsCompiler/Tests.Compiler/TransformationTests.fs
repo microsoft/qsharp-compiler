@@ -34,11 +34,11 @@ type private SyntaxCounter private (counter: Counter, ?options) =
     member this.Counter = counter
 
     new(?options) as this =
-        new SyntaxCounter(new Counter())
+        SyntaxCounter(Counter())
         then
-            this.Namespaces <- new SyntaxCounterNamespaces(this)
-            this.StatementKinds <- new SyntaxCounterStatementKinds(this)
-            this.ExpressionKinds <- new SyntaxCounterExpressionKinds(this)
+            this.Namespaces <- SyntaxCounterNamespaces(this)
+            this.StatementKinds <- SyntaxCounterStatementKinds(this)
+            this.ExpressionKinds <- SyntaxCounterExpressionKinds(this)
 
 and private SyntaxCounterNamespaces(parent: SyntaxCounter) =
     inherit NamespaceTransformation(parent)
@@ -75,7 +75,7 @@ and private SyntaxCounterExpressionKinds(parent: SyntaxCounter) =
 
 
 let private buildSyntaxTree code =
-    let fileId = new Uri(Path.GetFullPath "test-file.qs")
+    let fileId = Uri(Path.GetFullPath "test-file.qs")
 
     let compilationUnit =
         new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
@@ -98,7 +98,7 @@ let ``basic walk`` () =
         |> File.ReadAllText
         |> buildSyntaxTree
 
-    let walker = new SyntaxCounter(TransformationOptions.NoRebuild)
+    let walker = SyntaxCounter(TransformationOptions.NoRebuild)
     compilation.Namespaces |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
 
     Assert.Equal(4, walker.Counter.udtCount)
@@ -116,7 +116,7 @@ let ``basic transformation`` () =
         |> File.ReadAllText
         |> buildSyntaxTree
 
-    let walker = new SyntaxCounter()
+    let walker = SyntaxCounter()
     compilation.Namespaces |> Seq.iter (walker.Namespaces.OnNamespace >> ignore)
 
     Assert.Equal(4, walker.Counter.udtCount)
@@ -129,9 +129,9 @@ let ``basic transformation`` () =
 
 [<Fact>]
 let ``attaching attributes to callables`` () =
-    let WithinNamespace nsName (c: QsNamespaceElement) = c.GetFullName().Namespace = nsName
+    let withinNamespace nsName (c: QsNamespaceElement) = c.GetFullName().Namespace = nsName
     let attGenNs = "Microsoft.Quantum.Testing.AttributeGeneration"
-    let predicate = QsCallable >> WithinNamespace attGenNs
+    let predicate = QsCallable >> withinNamespace attGenNs
 
     let sources =
         [
@@ -149,12 +149,12 @@ let ``attaching attributes to callables`` () =
         spec
 
     let checkType (customType: QsCustomType) =
-        if customType |> QsCustomType |> WithinNamespace attGenNs then Assert.Empty customType.Attributes
+        if customType |> QsCustomType |> withinNamespace attGenNs then Assert.Empty customType.Attributes
 
         customType
 
     let checkCallable limitedToNs nrAtts (callable: QsCallable) =
-        if limitedToNs = null || callable |> QsCallable |> WithinNamespace limitedToNs then
+        if isNull limitedToNs || callable |> QsCallable |> withinNamespace limitedToNs then
             Assert.Equal(nrAtts, callable.Attributes.Length)
 
             for att in callable.Attributes do
@@ -165,15 +165,15 @@ let ``attaching attributes to callables`` () =
         callable
 
     let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, predicate)
-    let checker = new CheckDeclarations(checkType, checkCallable attGenNs 1, checkSpec)
+    let checker = CheckDeclarations(checkType, checkCallable attGenNs 1, checkSpec)
     checker.OnCompilation transformed |> ignore
 
     let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, null)
-    let checker = new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
+    let checker = CheckDeclarations(checkType, checkCallable null 1, checkSpec)
     checker.OnCompilation transformed |> ignore
 
     let transformed = AttributeUtils.AddToCallables(compilation, testAttribute)
-    let checker = new CheckDeclarations(checkType, checkCallable null 1, checkSpec)
+    let checker = CheckDeclarations(checkType, checkCallable null 1, checkSpec)
     checker.OnCompilation transformed |> ignore
 
     let transformed =
@@ -183,11 +183,11 @@ let ``attaching attributes to callables`` () =
             struct (testAttribute, new Func<_, _>(predicate))
         )
 
-    let checker = new CheckDeclarations(checkType, checkCallable attGenNs 2, checkSpec)
+    let checker = CheckDeclarations(checkType, checkCallable attGenNs 2, checkSpec)
     checker.OnCompilation transformed |> ignore
 
     let transformed = AttributeUtils.AddToCallables(compilation, testAttribute, testAttribute)
-    let checker = new CheckDeclarations(checkType, checkCallable null 2, checkSpec)
+    let checker = CheckDeclarations(checkType, checkCallable null 2, checkSpec)
     checker.OnCompilation transformed |> ignore
 
 
