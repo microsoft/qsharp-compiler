@@ -86,7 +86,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             };
 
             this.projectLoader = projectLoader;
-            this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry);
+            this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry, this.NotebookProjectLoader);
         }
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns null if it isn't, or if the project file itself has been listed as to be ignored.
         /// Calls SendTelemetry with suitable data if the project is a recognized Q# project.
         /// </summary>
-        internal bool QsProjectLoader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? info)
+        internal bool QsProjectLoader(Uri? projectFile, [NotNullWhen(true)] out ProjectInformation? info)
         {
             info = null;
 
@@ -200,7 +200,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
-        internal bool NotebookProjectLoader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? info)
+        internal bool NotebookProjectLoader(Uri? projectFile, [NotNullWhen(true)] out ProjectInformation? info)
         {
             var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
             buildProperties.Add(MSBuildProperties.TargetPath, null);
@@ -240,9 +240,6 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.projectLoader is object ?
                 this.projects.LoadProjectsAsync(projects, this.QsProjectLoader, this.GetOpenFile) :
                 Task.CompletedTask;
-
-        internal Task CreateNotebookProjectAsync() =>
-            this.projects.CreateNotebookProjectAsync(this.NotebookProjectLoader);
 
         /// <summary>
         /// If the given uri corresponds to the project file for a Q# project,

@@ -122,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
     public class ProjectInformation
     {
-        public delegate bool Loader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? projectInfo);
+        public delegate bool Loader(Uri? projectFile, [NotNullWhen(true)] out ProjectInformation? projectInfo);
 
         internal ProjectProperties Properties { get; }
 
@@ -157,15 +157,152 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
     public class ProjectManager : IDisposable
     {
-        private class Project : IDisposable
+        private abstract class Project : IDisposable
         {
-            public static readonly Uri NotebookProjectUri = new Uri("notebook:///NotebookProject");
+            public ProjectProperties Properties { get; protected set; }
 
+            public Uri? OutputPath { get; protected set; }
+
+            internal CompilationUnitManager Manager { get; }
+
+            protected ProcessingQueue Processing { get; }
+
+            protected Action<string, MessageType> Log { get; }
+
+            protected Project(
+                ProjectInformation projectInfo,
+                Action<Exception>? onException,
+                Action<PublishDiagnosticParams>? publishDiagnostics,
+                Action<string, MessageType>? log)
+            {
+                this.Properties = projectInfo.Properties;
+                this.OutputPath = null;
+
+                var version = projectInfo.Properties.LanguageVersion;
+                var ignore = version == null || version < new Version(0, 3);
+
+                // We track the file contents for unsupported projects in case the files are migrated to newer projects while editing,
+                // but we don't do any semantic verification, and we don't publish diagnostics for them.
+                this.Processing = new ProcessingQueue(onException);
+                this.Log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
+                this.Manager = new CompilationUnitManager(
+                    this.Properties,
+                    onException,
+                    ignore ? null : this.Log,
+                    ignore ? null : publishDiagnostics,
+                    syntaxCheckOnly: ignore);
+            }
+
+            internal abstract bool ContainsSourceFile(Uri sourceFile);
+
+            internal abstract bool ContainsAnySourceFiles(Func<Uri, bool>? filter = null);
+
+            public abstract bool ManagerTask(Uri file, Action<CompilationUnitManager> executeTask);
+
+            public void Dispose() =>
+                this.Processing.QueueForExecutionAsync(() => this.Manager.Dispose());
+        }
+
+        private class NotebookProject : Project
+        {
+            private ImmutableHashSet<Uri> cells;
+            private bool isLoaded;
+
+            internal NotebookProject(
+                ProjectInformation projectInfo,
+                Action<Exception>? onException,
+                Action<PublishDiagnosticParams>? publishDiagnostics,
+                Action<string, MessageType>? log)
+                : base(projectInfo, onException, publishDiagnostics, log)
+            {
+                this.cells = ImmutableHashSet<Uri>.Empty;
+                this.isLoaded = false;
+            }
+
+            internal override bool ContainsSourceFile(Uri sourceFile) =>
+                this.cells.Contains(sourceFile);
+
+            internal override bool ContainsAnySourceFiles(Func<Uri, bool>? filter = null) =>
+                this.cells.Any(filter ?? (_ => true));
+
+            /// <summary>
+            /// If <paramref name="file"/> is a loaded source file of this project,
+            /// executes <paramref name="executeTask"/> for that file on the <see cref="CompilationUnitManager"/>.
+            /// </summary>
+            public override bool ManagerTask(Uri file, Action<CompilationUnitManager> executeTask)
+            {
+                this.Processing.QueueForExecution(
+                    () =>
+                    {
+                        if (!this.ContainsSourceFile(file))
+                        {
+                            return false;
+                        }
+
+                        if (!this.isLoaded)
+                        {
+                            try
+                            {
+                                QsCompilerError.RaiseOnFailure(() => this.LoadProject(), $"failed to load notebook project");
+                            }
+                            catch (Exception ex)
+                            {
+                                this.Manager.LogException(ex);
+                            }
+                        }
+
+                        executeTask(this.Manager);
+                        return true;
+                    },
+                    out bool didExecute);
+                return didExecute;
+            }
+
+            /// <summary>
+            /// Adds a file to the project dedicated to notebook cells
+            /// </summary>
+            /// <param name="cellUri">The uri of the file (cell) to add</param>
+            public Task AddNotebookCellAsync(Uri cellUri)
+            {
+                return this.Processing.QueueForExecutionAsync(() =>
+                {
+                    this.cells = this.cells.Add(cellUri);
+                });
+            }
+
+            /// <summary>
+            /// If the project is not yet loaded, loads all dll references
+            /// </summary>
+            /// <remarks>
+            /// Generates suitable load diagnostics.
+            /// </remarks>
+            private void LoadProject()
+            {
+                if (this.isLoaded)
+                {
+                    return;
+                }
+
+                this.isLoaded = true;
+
+                this.Log($"Loading notebook project.", MessageType.Log);
+                if (!this.Manager.EnableVerification)
+                {
+                    this.Log(
+                        $"The Q# language server functionality is partially disabled for notebook project. " +
+                        $"The full functionality will be available after updating the project to Q# version 0.3 or higher.",
+                        MessageType.Warning);
+                }
+
+                // TODO: need to enable these for notebook project!
+                // this.LoadReferencedAssembliesAsync(this.references.Select(uri => uri.LocalPath), skipVerification: true);
+                // this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
+            }
+        }
+
+        private class MSBuildProject : Project
+        {
             public Uri ProjectFile { get; }
-
-            public Uri? OutputPath { get; private set; }
-
-            public ProjectProperties Properties { get; private set; }
 
             private bool isLoaded;
 
@@ -202,19 +339,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// </summary>
             private References loadedProjectReferences;
 
-            private readonly ProcessingQueue processing;
-
-            internal CompilationUnitManager Manager { get; }
-
-            private readonly Action<string, MessageType> log;
-
             /// <summary>
             /// Returns true if the file identified by <paramref name="sourceFile"/> has been specified to be a source file of this project.
             /// </summary>
             /// <remarks>
             /// IMPORTANT: This routine queries the current state of the project and does *not* wait for queued or running tasks to finish!
             /// </remarks>
-            internal bool ContainsSourceFile(Uri sourceFile) =>
+            internal override bool ContainsSourceFile(Uri sourceFile) =>
                 this.specifiedSourceFiles?.Contains(sourceFile) ?? false;
 
             /// <summary>
@@ -225,14 +356,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <para/>
             /// IMPORTANT: This routine queries the current state of the project and does *not* wait for queued or running tasks to finish!
             /// </remarks>
-            internal bool ContainsAnySourceFiles(Func<Uri, bool>? filter = null) =>
+            internal override bool ContainsAnySourceFiles(Func<Uri, bool>? filter = null) =>
                 this.specifiedSourceFiles?.Any(filter ?? (_ => true)) ?? false; // keep this as specified, *not* loaded!
 
-            internal bool IsNotebookProject() =>
-                this.ProjectFile == NotebookProjectUri;
-
-            public void Dispose() =>
-                this.processing.QueueForExecutionAsync(() => this.Manager.Dispose());
+            private Func<IDictionary<Uri, Uri?>> projectOutputPaths;
 
             private ImmutableArray<Diagnostic> generalDiagnostics;
             private ImmutableArray<Diagnostic> sourceFileDiagnostics;
@@ -245,31 +372,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <param name="publishDiagnostics">
             /// If provided, called whenever diagnostics for the project have changed and are ready for publishing.
             /// </param>
-            internal Project(
+            internal MSBuildProject(
                 Uri projectFile,
                 ProjectInformation projectInfo,
+                Func<IDictionary<Uri, Uri?>> projectOutputPaths,
                 Action<Exception>? onException,
                 Action<PublishDiagnosticParams>? publishDiagnostics,
                 Action<string, MessageType>? log)
+                : base(projectInfo, onException, publishDiagnostics, log)
             {
                 this.ProjectFile = projectFile;
-                this.Properties = projectInfo.Properties;
                 this.SetProjectInformation(projectInfo);
 
-                var version = projectInfo.Properties.LanguageVersion;
-                var ignore = version == null || version < new Version(0, 3);
-
-                // We track the file contents for unsupported projects in case the files are migrated to newer projects while editing,
-                // but we don't do any semantic verification, and we don't publish diagnostics for them.
-                this.processing = new ProcessingQueue(onException);
-                this.log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
-                this.Manager = new CompilationUnitManager(
-                    this.Properties,
-                    onException,
-                    ignore ? null : this.log,
-                    ignore ? null : publishDiagnostics,
-                    syntaxCheckOnly: ignore);
-
+                this.projectOutputPaths = projectOutputPaths;
                 this.loadedSourceFiles = ImmutableHashSet<Uri>.Empty;
                 this.loadedReferences = References.Empty;
                 this.loadedProjectReferences = References.Empty;
@@ -338,10 +453,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 this.isLoaded = true;
 
-                this.log($"Loading project '{this.ProjectFile.LocalPath}'.", MessageType.Log);
+                this.Log($"Loading project '{this.ProjectFile.LocalPath}'.", MessageType.Log);
                 if (!this.Manager.EnableVerification)
                 {
-                    this.log(
+                    this.Log(
                         $"The Q# language server functionality is partially disabled for project {this.ProjectFile.LocalPath}. " +
                         $"The full functionality will be available after updating the project to Q# version 0.3 or higher.",
                         MessageType.Warning);
@@ -350,7 +465,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.LoadReferencedAssembliesAsync(this.specifiedReferences.Select(uri => uri.LocalPath), skipVerification: true);
                 this.LoadProjectReferencesAsync(projectOutputPaths, this.specifiedProjectReferences.Select(uri => uri.LocalPath), skipVerification: true);
                 this.LoadSourceFilesAsync(this.specifiedSourceFiles.Select(uri => uri.LocalPath), getExistingFileManagers, removeFiles, skipIfAlreadyLoaded: true)
-                .ContinueWith(_ => this.log($"Done loading project '{this.ProjectFile.LocalPath}'", MessageType.Log), TaskScheduler.Default);
+                .ContinueWith(_ => this.Log($"Done loading project '{this.ProjectFile.LocalPath}'", MessageType.Log), TaskScheduler.Default);
                 this.Manager.PublishDiagnostics(this.CurrentLoadDiagnostics());
             }
 
@@ -371,7 +486,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Func<ImmutableHashSet<Uri>, Uri, IEnumerable<FileContentManager>>? getExistingFileManagers,
                 Action<ImmutableHashSet<Uri>, Task>? removeFiles,
                 ProjectInformation? projectInfo = null) =>
-                this.processing.QueueForExecutionAsync(() =>
+                this.Processing.QueueForExecutionAsync(() =>
                 {
                     if (projectInfo != null)
                     {
@@ -433,10 +548,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// Reloads <paramref name="projectReference"/> using <paramref name="projectOutputPaths"/>,
-            /// adapting all load diagnostics accordingly.
+            /// Reloads <paramref name="projectReference"/>, adapting all load diagnostics accordingly.
             /// </summary>
-            /// <param name="projectOutputPaths">A mapping of each project file to the corresponding output path of the built project dll.</param>
             /// <param name="projectReference">A uri to the project file of the project reference to reload.</param>
             /// <exception cref="ArgumentException"><paramref name="projectReference"/> is not an absolute file URI.</exception>
             /// <remarks>
@@ -446,7 +559,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <para/>
             /// Does nothing if <paramref name="projectReference"/> is not referenced by this project.
             /// </remarks>
-            private void ReloadProjectReference(IDictionary<Uri, Uri?> projectOutputPaths, Uri projectReference)
+            private void ReloadProjectReference(Uri projectReference)
             {
                 if (!this.specifiedProjectReferences.Contains(projectReference) || !this.isLoaded)
                 {
@@ -455,6 +568,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 var projRefId = CompilationUnitManager.GetFileId(projectReference);
                 var diagnostics = new List<Diagnostic>();
+                var projectOutputPaths = this.projectOutputPaths();
                 var loadedHeaders = LoadProjectReferences(
                     new string[] { projectReference.LocalPath },
                     GetProjectOutputPath(projectOutputPaths, diagnostics),
@@ -617,36 +731,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // -> i.e. asynchronous tasks that are queued into the Processing queue
 
             /// <summary>
-            /// Adds a file to the project dedicated to notebook cells
-            /// </summary>
-            /// <param name="cellUri">The uri of the file (cell) to add</param>
-            public Task AddNotebookCellAsync(Uri cellUri)
-            {
-                QsCompilerError.Verify(this.IsNotebookProject(), "must add notebook cells only to the notebook project");
-
-                return this.processing.QueueForExecutionAsync(() =>
-                {
-                    this.specifiedSourceFiles = this.specifiedSourceFiles.Add(cellUri);
-                });
-            }
-
-            /// <summary>
             /// Reloads all project references with output path <paramref name="dllPath"/> and/or any reference to that dll.
             /// </summary>
-            /// <param name="projectOutputPaths">A dictionary mapping each project file to the corresponding output path of the built project dll.</param>
             /// <param name="dllPath">The uri to the assembly to reload.</param>
             /// <remarks>
             /// Updates the load diagnostics accordingly, and publishes them using the publisher of the <see cref="CompilationUnitManager"/>.
             /// </remarks>
-            public Task ReloadAssemblyAsync(IDictionary<Uri, Uri?> projectOutputPaths, Uri dllPath)
+            public Task ReloadAssemblyAsync(Uri dllPath)
             {
+                var projectOutputPaths = this.projectOutputPaths();
                 var projectsWithThatOutputDll = projectOutputPaths.Where(pair => pair.Value == dllPath).Select(pair => pair.Key);
-                return this.processing.QueueForExecutionAsync(() =>
+                return this.Processing.QueueForExecutionAsync(() =>
                 {
                     var updatedProjectReferences = this.specifiedProjectReferences.Intersect(projectsWithThatOutputDll);
                     foreach (var projFile in updatedProjectReferences)
                     {
-                        this.ReloadProjectReference(projectOutputPaths, projFile);
+                        this.ReloadProjectReference(projFile);
                     }
 
                     this.ReloadReferencedAssembly(dllPath);
@@ -654,9 +754,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// Reloads <paramref name="projectReference"/> using <paramref name="projectOutputPaths"/> and adapts all load diagnostics accordingly.
+            /// Reloads <paramref name="projectReference"/> and adapts all load diagnostics accordingly.
             /// </summary>
-            /// <param name="projectOutputPaths">A dictionary mapping each project file to the corresponding output path of the built project dll.</param>
             /// <param name="projectReference">A uri to the project file of the project reference to reload.</param>
             /// <remarks>
             /// Updates the reloaded reference in the <see cref="CompilationUnitManager"/>.
@@ -665,9 +764,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <para/>
             /// Does nothing if <paramref name="projectReference"/> is not referenced by this project.
             /// </remarks>
-            public Task ReloadProjectReferenceAsync(IDictionary<Uri, Uri?> projectOutputPaths, Uri projectReference) =>
-                this.processing.QueueForExecutionAsync(() =>
-                    this.ReloadProjectReference(projectOutputPaths, projectReference));
+            public Task ReloadProjectReferenceAsync(Uri projectReference) =>
+                this.Processing.QueueForExecutionAsync(() =>
+                    this.ReloadProjectReference(projectReference));
 
             /// <summary>
             /// Reloads <paramref name="sourceFile"/> and updates all load diagnostics accordingly,
@@ -686,7 +785,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 openInEditor ??= _ => null;
 
-                return this.processing.QueueForExecutionAsync(() =>
+                return this.Processing.QueueForExecutionAsync(() =>
                 {
                     if (!this.ContainsSourceFile(sourceFile) || !this.isLoaded || openInEditor(sourceFile) != null)
                     {
@@ -720,9 +819,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// If <paramref name="file"/> is a loaded source file of this project,
             /// executes <paramref name="executeTask"/> for that file on the <see cref="CompilationUnitManager"/>.
             /// </summary>
-            public bool ManagerTask(Uri file, Action<CompilationUnitManager> executeTask, IDictionary<Uri, Uri?> projectOutputPaths)
+            public override bool ManagerTask(Uri file, Action<CompilationUnitManager> executeTask)
             {
-                this.processing.QueueForExecution(
+                this.Processing.QueueForExecution(
                     () =>
                     {
                         if (!this.ContainsSourceFile(file))
@@ -732,6 +831,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                         if (!this.isLoaded)
                         {
+                            var projectOutputPaths = this.projectOutputPaths();
                             try
                             {
                                 QsCompilerError.RaiseOnFailure(() => this.LoadProject(projectOutputPaths, null, null), $"failed to load {this.ProjectFile.LocalPath}");
@@ -742,7 +842,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             }
                         }
 
-                        if (!this.loadedSourceFiles.Contains(file) && !this.IsNotebookProject())
+                        if (!this.loadedSourceFiles.Contains(file))
                         {
                             return false;
                         }
@@ -761,14 +861,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// This method waits for all currently running or queued tasks to finish before accumulating the diagnostics.
             /// </remarks>
             public PublishDiagnosticParams? GetLoadDiagnostics() =>
-                this.processing.QueueForExecution(
+                this.Processing.QueueForExecution(
                     this.CurrentLoadDiagnostics,
                     out var param)
                 ? param : null;
         }
 
         private readonly ProcessingQueue load;
-        private readonly ConcurrentDictionary<Uri, Project> projects;
+        private readonly NotebookProject? notebookProject;
+        private readonly ConcurrentDictionary<Uri, MSBuildProject> projects;
         private readonly CompilationUnitManager defaultManager;
 
         /// <summary>
@@ -813,26 +914,37 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Action<Exception>? exceptionLogger,
             Action<string, MessageType>? log = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
-            SendTelemetryHandler? sendTelemetry = null)
+            SendTelemetryHandler? sendTelemetry = null,
+            ProjectInformation.Loader? notebookProjectInfoLoader = null)
         {
             this.load = new ProcessingQueue(exceptionLogger);
-            this.projects = new ConcurrentDictionary<Uri, Project>();
+            this.projects = new ConcurrentDictionary<Uri, MSBuildProject>();
             this.defaultManager = new CompilationUnitManager(ProjectProperties.Empty, exceptionLogger, log, publishDiagnostics, syntaxCheckOnly: true);
             this.publishDiagnostics = publishDiagnostics;
             this.logException = exceptionLogger;
             this.log = log;
             this.sendTelemetry = sendTelemetry;
+
+            if (notebookProjectInfoLoader != null)
+            {
+                QsCompilerError.Verify(notebookProjectInfoLoader(null, out var info), "notebookProjectInfoLoader() to ProjectManager constructor should not fail");
+                this.notebookProject = new NotebookProject(info, this.logException, this.publishDiagnostics, this.log);
+            }
         }
 
         /// <inheritdoc/>
         public void Dispose() =>
             this.load.QueueForExecution(() =>
             {
+                this.notebookProject?.Dispose();
+
                 foreach (var project in this.projects.Values)
                 {
                     project.Dispose();
                 }
             });
+
+        private IDictionary<Uri, Uri?> ProjectOutputPaths() => this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
 
         /// <summary>
         /// Returns a function that given the uris of all files that have been added to a project,
@@ -917,7 +1029,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         continue;
                     }
 
-                    var project = new Project(file, info, this.logException, this.publishDiagnostics, this.log);
+                    var project = new MSBuildProject(file, info, this.ProjectOutputPaths, this.logException, this.publishDiagnostics, this.log);
                     this.projects.AddOrUpdate(file, project, (k, v) => project);
                 }
 
@@ -937,16 +1049,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
         }
 
-        public Task CreateNotebookProjectAsync(ProjectInformation.Loader projectInfoLoader)
-        {
-            return this.load.QueueForExecutionAsync(() =>
-            {
-                QsCompilerError.Verify(projectInfoLoader(Project.NotebookProjectUri, out var info), "projectInfoLoader() to CreateNotebookProject() should not fail");
-                var project = new Project(Project.NotebookProjectUri, info, this.logException, this.publishDiagnostics, this.log);
-                this.projects.AddOrUpdate(Project.NotebookProjectUri, project, (k, v) => project);
-            });
-        }
-
         /// <summary>
         /// To be used whenever a project file is added, removed or updated.
         /// </summary>
@@ -963,7 +1065,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // TODO: allow to cancel this task via cancellation token?
             return this.load.QueueForExecutionAsync(() =>
             {
-                var existing = this.projects.TryRemove(projectFile, out Project current) ? current : null;
+                var existing = this.projects.TryRemove(projectFile, out var current) ? current : null;
 
                 if (!projectLoader(projectFile, out var info))
                 {
@@ -989,7 +1091,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // We could potentially update the existing project for the sake of saving some compilation,
                 // but the cleaner version is to just recompile it entirely. For now, we recompile it,
                 // given that this seems like a reasonable behavior after updates to the project itself.
-                var updated = new Project(projectFile, info, this.logException, this.publishDiagnostics, this.log);
+                var updated = new MSBuildProject(projectFile, info, this.ProjectOutputPaths, this.logException, this.publishDiagnostics, this.log);
                 this.projects.AddOrUpdate(projectFile, updated, (_, __) => updated);
 
                 // If any of the files that are currently open in the editor is part of the project,
@@ -1011,10 +1113,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private Task ProjectReferenceChangedOnDiskChangeAsync(Uri projFile) =>
             this.load.QueueForExecutionAsync(() =>
             {
-                var projectOutputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
                 foreach (var project in this.projects.Values)
                 {
-                    project.ReloadProjectReferenceAsync(projectOutputPaths, projFile);
+                    project.ReloadProjectReferenceAsync(projFile);
                 }
             });
 
@@ -1025,10 +1126,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public Task AssemblyChangedOnDiskAsync(Uri dllPath) =>
             this.load.QueueForExecutionAsync(() =>
             {
-                var projectOutputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
                 foreach (var project in this.projects.Values)
                 {
-                    project.ReloadAssemblyAsync(projectOutputPaths, dllPath);
+                    project.ReloadAssemblyAsync(dllPath);
                 }
             });
 
@@ -1065,7 +1165,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return null;
             }
 
-            var includedIn = this.projects.Values.Where(project => project.ContainsSourceFile(file));
+            IEnumerable<Project> includedIn = this.projects.Values.Where(project => project.ContainsSourceFile(file));
+            if (this.notebookProject?.ContainsSourceFile(file) ?? false)
+            {
+                includedIn = includedIn.Append(this.notebookProject);
+            }
+
             return includedIn.Count() == 1
                 ? includedIn.Single().Manager
                 : this.defaultManager;
@@ -1074,11 +1179,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Add the file <paramref name="file"/> to the stand-in notebook project
         /// </summary>
-        public Task RegisterNotebookCellAsync(Uri file) =>
-            this.load.QueueForExecutionAsync(() =>
-            {
-                _ = this.projects.Values.Where(project => project.IsNotebookProject()).Single().AddNotebookCellAsync(file);
-            });
+        public Task RegisterNotebookCellAsync(Uri file)
+        {
+            // TODO: need to handle this gracefully: pass cell to default manager in this case
+            QsCompilerError.Verify(this.notebookProject != null, "no notebook project configured");
+            return this.notebookProject.AddNotebookCellAsync(file);
+        }
 
         /// <summary>
         /// If <paramref name="file"/> can be uniquely associated with a compilation unit,
@@ -1091,14 +1197,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var didExecute = false;
                 var options = new ParallelOptions { TaskScheduler = TaskScheduler.Default };
-                var projectOutputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
                 Parallel.ForEach(this.projects.Values, options, project =>
                 {
-                    if (project.ManagerTask(file, m => executeTask(m, true), projectOutputPaths))
+                    if (project.ManagerTask(file, m => executeTask(m, true)))
                     {
                         didExecute = true;
                     }
                 });
+                if (this.notebookProject != null && this.notebookProject.ManagerTask(file, m => executeTask(m, true)))
+                {
+                    didExecute = true;
+                }
+
                 if (!didExecute)
                 {
                     executeTask(this.defaultManager, false);
@@ -1127,12 +1237,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 () =>
                 {
                     var options = new ParallelOptions { TaskScheduler = TaskScheduler.Default };
-                    var projectOutputPaths = this.projects.ToImmutableDictionary(p => p.Key, p => p.Value.OutputPath);
                     var results = new ConcurrentBag<WorkspaceEdit>();
 
                     Parallel.ForEach(this.projects.Values, options, project => // the default manager does not support rename operations
                         {
-                            project.ManagerTask(param.TextDocument.Uri, m => m.Rename(param)?.Apply(results.Add), projectOutputPaths);
+                            project.ManagerTask(param.TextDocument.Uri, m => m.Rename(param)?.Apply(results.Add));
                         });
                     return results;
                 },
@@ -1415,7 +1524,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.load.QueueForExecution(
                 () =>
                 {
-                    if (!this.projects.TryGetValue(projectId, out Project project))
+                    if (!this.projects.TryGetValue(projectId, out var project))
                     {
                         return null;
                     }
@@ -1456,7 +1565,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         return this.defaultManager.GetDiagnostics();
                     }
 
-                    if (this.projects.TryGetValue(file, out Project project))
+                    if (this.projects.TryGetValue(file, out var project))
                     {
                         return project.Manager?.GetDiagnostics();
                     }
