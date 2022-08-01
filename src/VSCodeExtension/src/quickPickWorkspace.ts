@@ -5,8 +5,9 @@ import {
   AccessToken
 } from "@azure/identity";
 import { TextEncoder } from "util";
-import axios, { AxiosRequestConfig } from "axios";
 import {workspaceInfo} from "./commands";
+import fetch from 'node-fetch';
+
 
 export async function getWorkspaceFromUser(
     context: vscode.ExtensionContext,
@@ -30,10 +31,11 @@ export async function getWorkspaceFromUser(
       return new Promise<void>( async (resolve, reject)=>{
 
     const currentworkspaceInfo: workspaceInfo | unknown = context.workspaceState.get("workspaceInfo");
-    const options:AxiosRequestConfig<any> = {
+    const options:any = {
       headers: {
         Authorization: `Bearer ${token.token}`,
       },
+      resolveWithFullResponse:true
     };
 
     let subscriptionId: any;
@@ -129,9 +131,8 @@ export async function getWorkspaceFromUser(
     quickPick: vscode.QuickPick<vscode.QuickPickItem>,
     currentworkspaceInfo: workspaceInfo | unknown,
     subscriptionId: string,
-    options:AxiosRequestConfig<any>
+    options:any
   ) {
-    let rgJson: any;
     quickPick.items = [];
     quickPick.step = 2;
     quickPick.title = "Select Resource Group";
@@ -141,14 +142,11 @@ export async function getWorkspaceFromUser(
     quickPick.busy = true;
     quickPick.show();
 
-    const rgResponse = await axios.get(
-      `https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups?api-version=2020-01-01`,
-      options
-    );
-    rgJson = rgResponse.data.value;
+    const rgResponse = await fetch(`https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups?api-version=2020-01-01`,options);
+    const rgJson = await rgResponse.json();
     quickPick.value = "";
     if (quickPick.step===2){
-      quickPick.items = rgJson.map((rg: any) => {
+      quickPick.items = rgJson.value.map((rg: any) => {
           if (
           currentworkspaceInfo &&
           (currentworkspaceInfo as any)["resourceGroup"] === rg.name && quickPick.step ===2
@@ -166,9 +164,8 @@ export async function getWorkspaceFromUser(
   async function setupSubscriptionIdQuickPick(
     quickPick: vscode.QuickPick<vscode.QuickPickItem>,
     currentworkspaceInfo: workspaceInfo | unknown,
-    options: AxiosRequestConfig<any>
+    options: any
   ) {
-    let jsonResponse: any;
     quickPick.items = [];
     quickPick.step = 1;
     quickPick.title = "Select Subscription";
@@ -179,14 +176,11 @@ export async function getWorkspaceFromUser(
     quickPick.value = "";
     quickPick.show();
 
+    const subscriptionsResponse = await fetch("https://management.azure.com/subscriptions?api-version=2020-01-01",options);
+    const subscriptionsJson = await subscriptionsResponse.json();
 
-    const response = await axios.get(
-      "https://management.azure.com/subscriptions?api-version=2020-01-01",
-      options
-    );
-    jsonResponse = response.data.value;
     if (quickPick.step===1){
-      quickPick.items = jsonResponse.map((subscription: any) => {
+      quickPick.items = subscriptionsJson.value.map((subscription: any) => {
           if (
           currentworkspaceInfo &&
           (currentworkspaceInfo as any)["subscriptionId"] ===
@@ -206,7 +200,7 @@ export async function getWorkspaceFromUser(
     quickPick.show();
   }
 
-  async function setupWorkspaceQuickPick(quickPick: vscode.QuickPick<vscode.QuickPickItem>, subscriptionId:string, resourceGroup:string, options:AxiosRequestConfig<any>){
+  async function setupWorkspaceQuickPick(quickPick: vscode.QuickPick<vscode.QuickPickItem>, subscriptionId:string, resourceGroup:string, options:any){
     quickPick.items = [];
     quickPick.step = 3;
     quickPick.title = "Select Workspace";
@@ -215,13 +209,11 @@ export async function getWorkspaceFromUser(
     quickPick.enabled = false;
     quickPick.busy = true;
     quickPick.show();
-    const workspaceResponse = await axios.get(
-      `https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/resources?api-version=2020-01-01`,
-      options
-    );
-    const workspacesJson = workspaceResponse.data.value;
 
-    const quantumWorkspaces = workspacesJson.filter((workspace: any) => {
+    const workspaceResponse = await fetch(`https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/resources?api-version=2020-01-01`,options);
+    const workspacesJson = await workspaceResponse.json();
+
+    const quantumWorkspaces = workspacesJson.value.filter((workspace: any) => {
       if (workspace["type"].includes("Quantum")) {
         return true;
       }
