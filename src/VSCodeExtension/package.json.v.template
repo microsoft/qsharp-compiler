@@ -228,7 +228,7 @@
         "@azure/identity-vscode": "^1.0.0",
         "@types/jsonwebtoken": "^8.5.8",
         "@types/mocha": "^5.2.0",
-        "@types/node": "^9.6.57",
+        "@types/node": "^17.0.21",
         "@types/pako": "^2.0.0",
         "@types/request": "^2.48.3",
         "@types/semver": "^6.0.0",
