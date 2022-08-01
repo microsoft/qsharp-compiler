@@ -144,7 +144,7 @@ export async function getWorkspaceFromUser(
     quickPick.show();
 
 
-    const rgJSON:any = new Promise((resolve, reject)=>{
+    const rgJSON:any = await new Promise((resolve, reject)=>{
             //@ts-ignore
       const req = https.get(`https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups?api-version=2020-01-01`, options, (res:any) => {
         let responseBody = '';
@@ -247,7 +247,7 @@ export async function getWorkspaceFromUser(
 
     const workspacesJSON:any = await new Promise((resolve, reject)=>{
       //@ts-ignore
-      const req = https.get("https://management.azure.com/subscriptions?api-version=2020-01-01", options, (res:any) => {
+      const req = https.get(`https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/resources?api-version=2020-01-01`, options, (res:any) => {
         let responseBody = '';
 
         res.on('data', (chunk:any) => {
