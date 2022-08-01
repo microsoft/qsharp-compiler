@@ -480,8 +480,8 @@ module TypeRange =
 type ResolvedType =
     private
         {
-            kind: QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
-            range: TypeRange
+            _Kind: QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+            _Range: TypeRange
         }
 
     interface ITuple
@@ -489,24 +489,24 @@ type ResolvedType =
     interface IComparable with
         member this.CompareTo that =
             match that with
-            | :? ResolvedType as that -> compare this.kind that.kind
+            | :? ResolvedType as that -> compare this._Kind that._Kind
             | _ -> ArgumentException "Types are different." |> raise
 
     override this.Equals that =
         match that with
-        | :? ResolvedType as that -> this.kind = that.kind
+        | :? ResolvedType as that -> this._Kind = that._Kind
         | _ -> false
 
-    override this.GetHashCode() = hash this.kind
+    override this.GetHashCode() = hash this._Kind
 
     /// Contains the fully resolved Q# type,
     /// where type parameters are represented as QsTypeParameters containing their origin (the namespace and the callable they belong to) and their name,
     /// and user defined types are resolved to their fully qualified name.
     /// By construction never contains any arity-0 or arity-1 tuple types.
-    member this.Resolution = this.kind
+    member this.Resolution = this._Kind
 
     /// The source code range where this type originated. Range is ignored when comparing resolved types.
-    member this.Range = this.range
+    member this.Range = this._Range
 
 module ResolvedType =
     /// <summary>
@@ -525,20 +525,20 @@ module ResolvedType =
     /// <exception cref="ArgumentException"><paramref name="kind"/> is an empty tuple.</exception>
     [<CompiledName "Create">]
     let create range kind =
-        { kind = normalizeTuple kind; range = range }
+        { _Kind = normalizeTuple kind; _Range = range }
 
     /// <summary>
     /// Replaces the type kind of <paramref name="resolvedType"/> with <paramref name="kind"/>.
     /// </summary>
     [<CompiledName "WithKind">]
     let withKind kind resolvedType =
-        { resolvedType with ResolvedType.kind = normalizeTuple kind }
+        { resolvedType with ResolvedType._Kind = normalizeTuple kind }
 
     /// <summary>
     /// Replaces the range of <paramref name="resolvedType"/> with <paramref name="range"/>.
     /// </summary>
     [<CompiledName "WithRange">]
-    let withRange range resolvedType = { resolvedType with range = range }
+    let withRange range resolvedType = { resolvedType with _Range = range }
 
     /// <summary>
     /// Recursively replaces every range in <paramref name="resolvedType"/> with <paramref name="range"/>.
@@ -635,25 +635,25 @@ type ResolvedInitializer =
         {
             // the private constructor enforces that the guarantees given for any instance of ResolvedInitializer
             // -> the static member New replaces the record constructor
-            kind: QsInitializerKind<ResolvedInitializer, TypedExpression>
-            resolvedType: ResolvedType
+            _Resolution: QsInitializerKind<ResolvedInitializer, TypedExpression>
+            _Type: ResolvedType
         }
 
     interface ITuple
 
     /// Contains the fully resolved Q# initializer.
     /// By construction never contains any arity-0 or arity-1 tuple types.
-    member this.Resolution = this.kind
+    member this.Resolution = this._Resolution
 
     /// the fully resolved Q# type of the initializer.
-    member this.Type = this.resolvedType
+    member this.Type = this._Type
 
 module ResolvedInitializer =
     let create range kind =
         let arrayType = Qubit |> ResolvedType.create range |> ArrayType |> ResolvedType.create range
 
         let tupleType =
-            Seq.map (fun init -> init.resolvedType)
+            Seq.map (fun (init: ResolvedInitializer) -> init.Type)
             >> ImmutableArray.CreateRange
             >> TupleType
             >> ResolvedType.create range
@@ -662,10 +662,10 @@ module ResolvedInitializer =
         | QsInitializerKind.QubitTupleAllocation items when items.IsEmpty ->
             ArgumentException "Tuple initializer is empty." |> raise
         | QsInitializerKind.QubitTupleAllocation items when items.Length = 1 -> items.[0]
-        | QsInitializerKind.QubitTupleAllocation items -> { kind = kind; resolvedType = tupleType items }
-        | QsInitializerKind.QubitRegisterAllocation _ -> { kind = kind; resolvedType = arrayType }
-        | QsInitializerKind.SingleQubitAllocation -> { kind = kind; resolvedType = ResolvedType.create range Qubit }
-        | QsInitializerKind.InvalidInitializer -> { kind = kind; resolvedType = ResolvedType.create range InvalidType }
+        | QsInitializerKind.QubitTupleAllocation items -> { _Resolution = kind; _Type = tupleType items }
+        | QsInitializerKind.QubitRegisterAllocation _ -> { _Resolution = kind; _Type = arrayType }
+        | QsInitializerKind.SingleQubitAllocation -> { _Resolution = kind; _Type = ResolvedType.create range Qubit }
+        | QsInitializerKind.InvalidInitializer -> { _Resolution = kind; _Type = ResolvedType.create range InvalidType }
 
 type ResolvedInitializer with
     /// <summary>

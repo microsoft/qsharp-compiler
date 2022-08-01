@@ -10,8 +10,8 @@ open System.Reflection
 open System.Text.RegularExpressions
 open System
 
-let private GUID =
-    new Regex(@"[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?", RegexOptions.IgnoreCase)
+let private guid =
+    Regex(@"[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?", RegexOptions.IgnoreCase)
 
 /// <summary>
 /// Ensures that the new line characters will conform to the standard of the environment's new line character.
@@ -28,7 +28,7 @@ let private clearOutput name =
 
 let private checkAltOutput name actualText =
     let expectedText = ("TestCases", "QirTests", name) |> Path.Combine |> File.ReadAllText
-    let replacedGUID = GUID.Replace(actualText, "__GUID__")
+    let replacedGUID = guid.Replace(actualText, "__GUID__")
     Assert.Contains(standardizeNewLines expectedText, standardizeNewLines replacedGUID)
 
 let private compilerArgs target (name: string) =

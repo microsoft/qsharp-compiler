@@ -43,11 +43,11 @@ type CompilationLoaderTests(output: ITestOutputHelper) =
         // Create and add files to the compilation.
         let corePath = Path.GetFullPath(Path.Combine("TestCases", "LinkingTests", "Core.qs"))
 
-        fileManager (new Uri(corePath)) (File.ReadAllText corePath)
+        fileManager (Uri(corePath)) (File.ReadAllText corePath)
         |> compilationManager.AddOrUpdateSourceFileAsync
         |> ignore
 
-        let sourceUri = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+        let sourceUri = Uri(Path.GetFullPath(Path.GetRandomFileName()))
         fileManager sourceUri source |> compilationManager.AddOrUpdateSourceFileAsync |> ignore
         let compilation = compilationManager.Build()
 
