@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         /* methods required for basic functionality */
 
-        public QsLanguageServer(Stream? sender, Stream? reader, string? notebookReferencesPath = null)
+        public QsLanguageServer(Stream? sender, Stream? reader)
         {
             this.waitForInit = new ManualResetEvent(false);
             this.rpc = new JsonRpc(sender, reader, this)
@@ -102,8 +102,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 diagnostics => this.PublishDiagnosticsAsync(diagnostics),
                 (name, props, meas) => this.SendTelemetryAsync(name, props, meas),
                 this.LogToWindow,
-                this.OnInternalError,
-                notebookReferencesPath);
+                this.OnInternalError);
 
             if (!MSBuildLocator.IsRegistered)
             {

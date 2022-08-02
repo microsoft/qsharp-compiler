@@ -60,13 +60,6 @@ namespace Microsoft.Quantum.QsLanguageServer
                 SetName = ConnectionViaStdInOut,
                 HelpText = "Connect via stdin and stdout.")]
             public bool UseStdInOut { get; set; }
-
-            [Option(
-                "notebook-references-path",
-                Required = false,
-                Default = null,
-                HelpText = "Path to a directory with dlls to use as references for notebooks")]
-            public string? NotebookReferencesPath { get; set; }
         }
 
         public enum ReturnCode
@@ -138,10 +131,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             try
             {
                 server = options.UseStdInOut
-                         ? ConnectViaStdInOut(options.LogFile, options.NotebookReferencesPath)
+                         ? ConnectViaStdInOut(options.LogFile)
                          : options.ReaderPipeName != null && options.WriterPipeName != null
-                         ? ConnectViaNamedPipe(options.WriterPipeName, options.ReaderPipeName, options.LogFile, options.NotebookReferencesPath)
-                         : ConnectViaSocket(port: options.Port, logFile: options.LogFile, notebookReferencesPath: options.NotebookReferencesPath);
+                         ? ConnectViaNamedPipe(options.WriterPipeName, options.ReaderPipeName, options.LogFile)
+                         : ConnectViaSocket(port: options.Port, logFile: options.LogFile);
             }
             catch (Exception ex)
             {
@@ -182,13 +175,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
         }
 
-        internal static QsLanguageServer ConnectViaStdInOut(string? logFile = null, string? notebookReferencesPath = null)
+        internal static QsLanguageServer ConnectViaStdInOut(string? logFile = null)
         {
             Log($"Connecting via stdin and stdout.", logFile);
-            return new QsLanguageServer(Console.OpenStandardOutput(), Console.OpenStandardInput(), notebookReferencesPath);
+            return new QsLanguageServer(Console.OpenStandardOutput(), Console.OpenStandardInput());
         }
 
-        internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string? logFile = null, string? notebookReferencesPath = null)
+        internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string? logFile = null)
         {
             Log($"Connecting via named pipe. {Environment.NewLine}ReaderPipe: \"{readerName}\" {Environment.NewLine}WriterPipe: \"{writerName}\"", logFile);
             var writerPipe = new NamedPipeClientStream(writerName);
@@ -206,10 +199,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 Log($"[ERROR] Connection attempted timed out.", logFile);
             }
 
-            return new QsLanguageServer(writerPipe, readerPipe, notebookReferencesPath);
+            return new QsLanguageServer(writerPipe, readerPipe);
         }
 
-        internal static QsLanguageServer ConnectViaSocket(string hostname = "localhost", int port = 8008, string? logFile = null, string? notebookReferencesPath = null)
+        internal static QsLanguageServer ConnectViaSocket(string hostname = "localhost", int port = 8008, string? logFile = null)
         {
             Log($"Connecting via socket. {Environment.NewLine}Port number: {port}", logFile);
             Stream? stream = null;
@@ -223,7 +216,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 Log(ex.ToString(), logFile);
             }
 
-            return new QsLanguageServer(stream, stream, notebookReferencesPath);
+            return new QsLanguageServer(stream, stream);
         }
     }
 }

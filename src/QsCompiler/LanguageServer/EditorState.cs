@@ -32,8 +32,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         private readonly Action<PublishDiagnosticParams> publish;
         private readonly SendTelemetryHandler? sendTelemetry;
 
-        private readonly string? notebookReferencesPath;
-
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
         /// or whether its current state as it is in the editor needs to be preserved
@@ -47,6 +45,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// any edits in the editor to the listed files (keys) are ignored, while changes on disk are still being processed
         /// </summary>
         private readonly ConcurrentDictionary<Uri, byte> ignoreEditorUpdatesForFiles;
+
+        /// <summary>
+        /// General purpose logging routine used for major loading events.
+        /// </summary>
+        private readonly Action<string, MessageType> log;
 
         internal void IgnoreEditorUpdatesFor(Uri uri) => this.ignoreEditorUpdatesForFiles.TryAdd(uri, default);
 
@@ -64,8 +67,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             Action<PublishDiagnosticParams>? publishDiagnostics,
             SendTelemetryHandler? sendTelemetry,
             Action<string, MessageType>? log,
-            Action<Exception>? onException,
-            string? notebookReferencesPath = null)
+            Action<Exception>? onException)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
             this.sendTelemetry = sendTelemetry;
@@ -90,7 +92,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry);
-            this.notebookReferencesPath = notebookReferencesPath;
+            this.log = log ?? ((msg, severity) => Console.Error.WriteLine($"{severity}: {msg}"));
         }
 
         /// <summary>
@@ -204,6 +206,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
+        /// <summary>
+        /// Create a stand-in notebook project. If a directory named "notebookReferences" exists
+        /// alongside the binary for the executable, all dlls in it will be added as references to
+        /// the notebook project. For a usable experience, the key references to include are
+        /// Microsoft.Quantum.Standard.dll, Microsoft.Quantum.QSharp.Foundation.dll, and
+        /// Microsoft.Quantum.QSharp.Core.dll; the language server docker image should ship these.
+        /// </summary>
         internal bool NotebookProjectLoader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? info)
         {
             var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
@@ -227,24 +236,25 @@ namespace Microsoft.Quantum.QsLanguageServer
             // bypassed by not invoking MSBuild.
             // The qsharp-dev.ps1 script in the aadams/qsharp-tweaks branch of the AzureNotebooks repository will download the dlls from NuGet for you
             IEnumerable<string> references = Enumerable.Empty<string>();
-            if (!string.IsNullOrEmpty(this.notebookReferencesPath))
+            var notebookReferencesPath = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location), "notebookReferences");
+            if (!string.IsNullOrEmpty(notebookReferencesPath))
             {
                 try
                 {
-                    var dir = new DirectoryInfo(this.notebookReferencesPath);
+                    var dir = new DirectoryInfo(notebookReferencesPath);
                     references = dir.GetFiles()
                         .Select(file => file.FullName)
                         .Where(path => path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase));
                 }
                 catch (IOException err)
                 {
-                    Console.Error.WriteLine($"Warning: Cannot access references directory for notebook: {err}");
+                    this.log($"Cannot access references directory for notebook: {err}", MessageType.Warning);
                 }
             }
 
             info = new ProjectInformation(
-                sourceFiles: ImmutableArray<string>.Empty,
-                projectReferences: ImmutableArray<string>.Empty,
+                sourceFiles: Enumerable.Empty<string>(),
+                projectReferences: Enumerable.Empty<string>(),
                 references: references,
                 buildProperties: buildProperties);
             return true;
