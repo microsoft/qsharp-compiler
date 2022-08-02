@@ -298,8 +298,6 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.LogToWindow($"workspace folder: {this.workspaceFolder ?? "(Null)"}", MessageType.Info);
             this.fileWatcher.ListenAsync(this.workspaceFolder, true, dict => this.InitializeWorkspaceAsync(dict), "*.csproj", "*.dll", "*.qs").Wait(); // not strictly necessary to wait but less confusing
 
-            this.editorState.CreateNotebookProjectAsync().Wait();
-
             var capabilities = new ServerCapabilities
             {
                 TextDocumentSync = new TextDocumentSyncOptions(),

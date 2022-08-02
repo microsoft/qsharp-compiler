@@ -228,6 +228,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             internal bool ContainsAnySourceFiles(Func<Uri, bool>? filter = null) =>
                 this.specifiedSourceFiles?.Any(filter ?? (_ => true)) ?? false; // keep this as specified, *not* loaded!
 
+            // TODO: Going forward, instead of having the notebook project masquerade as a msbuild
+            //       project, it would be better to have e.g. an abstract Project base class with
+            //       subclasses NotebookProject and MSBuildProject. There is some work on this in
+            //       the aadams/notebook-project-refactor-wip branch
             internal bool IsNotebookProject() =>
                 this.ProjectFile == NotebookProjectUri;
 
@@ -937,16 +941,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
         }
 
-        public Task CreateNotebookProjectAsync(ProjectInformation.Loader projectInfoLoader)
-        {
-            return this.load.QueueForExecutionAsync(() =>
-            {
-                QsCompilerError.Verify(projectInfoLoader(Project.NotebookProjectUri, out var info), "projectInfoLoader() to CreateNotebookProject() should not fail");
-                var project = new Project(Project.NotebookProjectUri, info, this.logException, this.publishDiagnostics, this.log);
-                this.projects.AddOrUpdate(Project.NotebookProjectUri, project, (k, v) => project);
-            });
-        }
-
         /// <summary>
         /// To be used whenever a project file is added, removed or updated.
         /// </summary>
@@ -1071,13 +1065,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : this.defaultManager;
         }
 
+        private Project CreateNotebookProject(ProjectInformation.Loader notebookProjectLoader)
+        {
+            QsCompilerError.Verify(notebookProjectLoader(Project.NotebookProjectUri, out var info), "projectInfoLoader() to CreateNotebookProject() should not fail");
+            var project = new Project(Project.NotebookProjectUri, info, this.logException, this.publishDiagnostics, this.log);
+            this.projects.AddOrUpdate(Project.NotebookProjectUri, project, (k, v) => project);
+            return project;
+        }
+
         /// <summary>
-        /// Add the file <paramref name="file"/> to the stand-in notebook project
+        /// Add the file <paramref name="file"/> to the stand-in notebook project. The notebook
+        /// project will be created with <paramref name="notebookProjectLoader"/> if it does not
+        /// already exist.
         /// </summary>
-        public Task RegisterNotebookCellAsync(Uri file) =>
+        public Task RegisterNotebookCellAsync(Uri file, ProjectInformation.Loader notebookProjectLoader) =>
             this.load.QueueForExecutionAsync(() =>
             {
-                _ = this.projects.Values.Where(project => project.IsNotebookProject()).Single().AddNotebookCellAsync(file);
+                var notebookProject =
+                    this.projects.Values.Where(project => project.IsNotebookProject()).SingleOrDefault()
+                    ?? this.CreateNotebookProject(notebookProjectLoader);
+
+                notebookProject.AddNotebookCellAsync(file);
             });
 
         /// <summary>

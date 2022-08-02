@@ -241,9 +241,6 @@ namespace Microsoft.Quantum.QsLanguageServer
                 this.projects.LoadProjectsAsync(projects, this.QsProjectLoader, this.GetOpenFile) :
                 Task.CompletedTask;
 
-        internal Task CreateNotebookProjectAsync() =>
-            this.projects.CreateNotebookProjectAsync(this.NotebookProjectLoader);
-
         /// <summary>
         /// If the given uri corresponds to the project file for a Q# project,
         /// updates that project in the list of tracked projects or adds it if needed, and publishes suitable diagnostics for it.
@@ -295,7 +292,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             if (documentKind == DocumentKind.NotebookCell)
             {
-                _ = this.projects.RegisterNotebookCellAsync(textDocument.Uri);
+                _ = this.projects.RegisterNotebookCellAsync(textDocument.Uri, this.NotebookProjectLoader);
             }
 
             _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
