@@ -226,12 +226,12 @@ export async function getWorkspaceFromUser(
 
     if (quickPick.step===selectionStepEnum.SUBSCRIPTION){
       quickPick.items = subscriptionsJSON.value.map((subscription: any) => {
-          if (
+        if (
           currentworkspaceInfo &&
           (currentworkspaceInfo as any)["subscriptionId"] ===
-              subscription.subscriptionId && quickPick.step ===1
+              subscription.subscriptionId && quickPick.step ===selectionStepEnum.SUBSCRIPTION
           ) {
-            subscription.subscriptionId && quickPick.step ===selectionStepEnum.SUBSCRIPTION
+              quickPick.value = subscription.displayName;
           }
           return {
           label: subscription.displayName,
