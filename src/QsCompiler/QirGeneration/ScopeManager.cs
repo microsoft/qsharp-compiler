@@ -407,6 +407,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (Types.IsCallable(t))
                 {
+                    // We need to alias count callables to ensure that
+                    // the alias counts for captured value are accurate.
                     return RuntimeLibrary.CallableUpdateAliasCount;
                 }
             }
