@@ -31,6 +31,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private readonly Action<PublishDiagnosticParams> publish;
         private readonly SendTelemetryHandler? sendTelemetry;
+        private readonly string notebookReferencesDir;
 
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
@@ -57,6 +58,8 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private bool IgnoreFile(Uri? file) => file == null || this.ignoreEditorUpdatesForFiles.ContainsKey(file) || file.LocalPath.ToLowerInvariant().Contains("vctmp");
 
+        private static string DefaultNotebookReferencesDir() => Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location), "notebookReferences");
+
         /// <summary>
         /// Calls the given publishDiagnostics Action with the changed diagnostics whenever they have changed,
         /// calls the given onException Action whenever the compiler encounters an internal error, and
@@ -67,7 +70,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             Action<PublishDiagnosticParams>? publishDiagnostics,
             SendTelemetryHandler? sendTelemetry,
             Action<string, MessageType>? log,
-            Action<Exception>? onException)
+            Action<Exception>? onException,
+            string? notebookReferencesDir = null)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
             this.sendTelemetry = sendTelemetry;
@@ -93,6 +97,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry);
             this.log = log ?? ((msg, severity) => Console.Error.WriteLine($"{severity}: {msg}"));
+            this.notebookReferencesDir = notebookReferencesDir ?? DefaultNotebookReferencesDir();
         }
 
         /// <summary>
@@ -236,12 +241,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             // bypassed by not invoking MSBuild.
             // The qsharp-dev.ps1 script in the aadams/qsharp-tweaks branch of the AzureNotebooks repository will download the dlls from NuGet for you
             IEnumerable<string> references = Enumerable.Empty<string>();
-            var notebookReferencesPath = Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location), "notebookReferences");
-            if (!string.IsNullOrEmpty(notebookReferencesPath))
+            if (!string.IsNullOrEmpty(this.notebookReferencesDir))
             {
                 try
                 {
-                    var dir = new DirectoryInfo(notebookReferencesPath);
+                    var dir = new DirectoryInfo(this.notebookReferencesDir);
                     references = dir.GetFiles()
                         .Select(file => file.FullName)
                         .Where(path => path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase));

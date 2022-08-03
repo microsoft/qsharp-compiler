@@ -23,6 +23,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
         private Connection? connection;
         private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
+        private string tempNotebookReferencesDir = null!; // Initialized in SetupServerConnectionAsync.
         private readonly RandomInput inputGenerator = new RandomInput();
         private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
         private readonly ManualResetEvent projectLoaded = new ManualResetEvent(false);
@@ -71,6 +72,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 file.Delete(); // deletes the files from previous test runs but not subfolders
             }
 
+            this.tempNotebookReferencesDir = TestUtils.MakeTempDirectory();
+
             var id = this.inputGenerator.GetRandom();
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -79,7 +82,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
                 var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
-                var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
+                var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe, notebookReferencesDir: this.tempNotebookReferencesDir);
                 await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 this.connection = new Connection(readerPipe, writerPipe);
@@ -89,7 +92,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new System.IO.Pipelines.Pipe();
                 var writerPipe = new System.IO.Pipelines.Pipe();
 
-                var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
+                var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream(), notebookReferencesDir: this.tempNotebookReferencesDir);
                 this.connection = new Connection(writerPipe.Reader.AsStream(), readerPipe.Writer.AsStream());
             }
 
@@ -101,6 +104,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestCleanup]
         public async Task TerminateServerConnectionAsync()
         {
+            Directory.Delete(this.tempNotebookReferencesDir, true);
             await this.GetFileDiagnosticsAsync(); // forces a flush in the default compilation manager
             this.receivedDiagnostics.Clear();
             this.Dispose();

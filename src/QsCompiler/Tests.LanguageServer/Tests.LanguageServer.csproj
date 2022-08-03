@@ -27,6 +27,9 @@
     <ProjectReference Include="..\LanguageServer\LanguageServer.csproj">
       <Private>true</Private>
     </ProjectReference>
+    <ProjectReference Include="..\Compiler\Compiler.csproj">
+      <Private>true</Private>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>

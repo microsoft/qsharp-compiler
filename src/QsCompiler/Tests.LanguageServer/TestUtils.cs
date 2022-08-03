@@ -3,11 +3,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
@@ -244,6 +249,38 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             eventSignal.WaitOne();
             eventSignal.Reset();
             return projectManager;
+        }
+
+        internal static string MakeTempDirectory()
+        {
+            string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            Directory.CreateDirectory(tempDirectory);
+            return tempDirectory;
+        }
+
+        /// <summary>
+        /// Builds a dll containing the serialized syntax tree for the source files provided
+        /// </summary>
+        internal static void BuildDll(IEnumerable<string> sourceFiles, string outputDllPath)
+        {
+            var loader = new CompilationLoader(sources: sourceFiles, references: Enumerable.Empty<string>());
+            var syntaxTree = loader.CompilationOutput;
+            Assert.IsNotNull(syntaxTree);
+
+            using var stream = new MemoryStream();
+            Assert.IsTrue(CompilationLoader.WriteBinary(syntaxTree, stream));
+
+            var compilation = CSharpCompilation.Create(
+                assemblyName: Path.GetFileNameWithoutExtension(outputDllPath),
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            var manifestResources = ImmutableArray.Create<ResourceDescription>(new ResourceDescription(
+                resourceName: DotnetCoreDll.SyntaxTreeResourceName,
+                dataProvider: () => stream,
+                isPublic: true));
+
+            using var dllFileStream = File.Create(outputDllPath);
+            var result = compilation.Emit(dllFileStream, manifestResources: manifestResources);
+            Assert.IsTrue(result.Success);
         }
     }
 }

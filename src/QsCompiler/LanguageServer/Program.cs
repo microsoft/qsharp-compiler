@@ -181,7 +181,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             return new QsLanguageServer(Console.OpenStandardOutput(), Console.OpenStandardInput());
         }
 
-        internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string? logFile = null)
+        internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string? logFile = null, string? notebookReferencesDir = null)
         {
             Log($"Connecting via named pipe. {Environment.NewLine}ReaderPipe: \"{readerName}\" {Environment.NewLine}WriterPipe: \"{writerName}\"", logFile);
             var writerPipe = new NamedPipeClientStream(writerName);
@@ -199,7 +199,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 Log($"[ERROR] Connection attempted timed out.", logFile);
             }
 
-            return new QsLanguageServer(writerPipe, readerPipe);
+            return new QsLanguageServer(writerPipe, readerPipe, notebookReferencesDir);
         }
 
         internal static QsLanguageServer ConnectViaSocket(string hostname = "localhost", int port = 8008, string? logFile = null)

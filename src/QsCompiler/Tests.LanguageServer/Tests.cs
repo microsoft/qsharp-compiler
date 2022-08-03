@@ -696,6 +696,36 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.AreEqual(TestUtils.GetRange(startLine: 4, startCol: 10, endLine: 4, endCol: 19), ranges[1]);
         }
 
+        [TestMethod]
+        public async Task NotebookReferencesAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test19");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var refQsFile = Path.Combine(projDir, "exampleReference", "Complex.qs");
+            var refDllPath = Path.Combine(this.tempNotebookReferencesDir, "Test19.Imaginary.dll");
+            TestUtils.BuildDll(ImmutableArray.Create<string>(refQsFile), refDllPath);
+
+            // Same value sent by Azure Notebooks
+            var languageId = "qsharp-notebook";
+            var qsFile = Path.Combine(projDir, "NotebookCell.qs");
+
+            var notebookGuid = Guid.NewGuid();
+            var uri = TestUtils.GenerateNotebookCellUri(notebookGuid);
+
+            // Azure Notebooks leaves RootUri=null, so do the same here
+            var initParams = TestUtils.GetInitializeParams();
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParams = TestUtils.GetOpenFileParams(qsFile, uri, languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uri));
+
+            // NotebookCell.qs uses types, functions, and operations referenced in the dll created above
+            var diagnostics = await this.GetFileDiagnosticsAsync(uri: uri);
+            Assert.IsNotNull(diagnostics);
+            Assert.AreEqual(0, diagnostics!.Length);
+        }
+
         private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)
         {
             var projectManager = new ProjectManager(e => throw e);
