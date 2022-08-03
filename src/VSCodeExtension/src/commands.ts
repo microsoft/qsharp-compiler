@@ -191,11 +191,13 @@ async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:Int
         userInputNeeded = true;
         // if this function is called from job submission command, submitJobCommand flag makes
         // total steps 7 instead of 3 for the workspace entries required.
-        await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem, submitJobCommand);
+        await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem, submitJobCommand).catch(()=>{
+          throw Error;
+        });
         workspaceInfo = context.workspaceState.get("workspaceInfo");
         }
         catch{
-            vscode.window.showWarningMessage(`Could not connect to Azure Account`);
+            vscode.window.showWarningMessage(`Could not connect to Azure Workspace`);
             return;
         }
       }
@@ -207,18 +209,6 @@ async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:Int
       // if this function is called from job submission command, userInputNeeded flag makes
       // total steps 7 instead of 4 for the job entries required.
       return [workspaceInfo,userInputNeeded];
-}
-
-
-
-
-
-
-
-
-export async function deleteAzureWorkspaceInfo(context: vscode.ExtensionContext) {
-  context.workspaceState.update("workspaceInfo", undefined);
-  vscode.window.showInformationMessage("Successfully Disconnected");
 }
 
 
@@ -375,8 +365,11 @@ export async function submitJob(
               // update targetsSubmissionDates with new time stamp for target
               // this enables users to see most recent targets first when submitting jobs
               let targetSubmissionDates: any = context.workspaceState.get(
-                "targetSubmissionDates" || {}
+                "targetSubmissionDates"
               );
+              if (!targetSubmissionDates){
+                targetSubmissionDates = {};
+              }
               targetSubmissionDates[target] = timeStamp;
               context.workspaceState.update(
                 "targetSubmissionDates",
@@ -480,38 +473,9 @@ export async function getJobResults(
   if (job === undefined) {
     return;
   }
-// cancelling or cancelled jobs will just create a notification
-  if(job.status ==="Cancelled"){
-    vscode.window.showInformationMessage(`Job status: ${job.status}`);
-    return;
-  }
 
-  else if (job.isCancelling){
-    vscode.window.showInformationMessage(`Job status: Cancellation Requested`);
-    return;
-  }
-// other unsuccessful jobs will result in a notification with the option to cancel
-  else if(job.status !=="Succeeded"){
-    const userInput = await vscode.window.showInformationMessage(`Job status: ${job.status}`,{}, ...["Cancel Job","Done"]);
-
-    if (userInput === "Cancel Job"){
-
-        const userInputConfirmation = await vscode.window.showInformationMessage(`Are you sure you want to cancel your job?`,{}, ...["Yes","No"]);
-
-        if(userInputConfirmation==="Yes"){
-        let workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem);
-        if (!workspaceInfo){
-          return;
-        }
-
-        const quantumJobClient = getQuantumJobClient(workspaceInfo[0], credential);
-        await quantumJobClient.jobs.cancel(jobId);
-  }
-
-    }
-    return;
-  }
-  // Succeeded jobs will call the output data uri for the result data
+  if (job.status === "Succeeded"){
+      // Succeeded jobs will call the output data uri for the result data
   https
   .get(job.outputDataUri || "", function (response) {
     response.on("data", (chunk: number[]) => {
@@ -533,7 +497,39 @@ export async function getJobResults(
           vscode.window.showErrorMessage(err.message);
           });
     });
+
+  }
+// cancelling or cancelled jobs will just create a notification
+  else if(job.status ==="Cancelled"){
+    vscode.window.showInformationMessage(`Job status: ${job.status}`);
+    return;
+  }
+
+  else if (job.isCancelling){
+    vscode.window.showInformationMessage(`Job status: Cancellation Requested`);
+    return;
+  }
+// other unsuccessful jobs will result in a notification with the option to cancel
+  else{
+    const userInput = await vscode.window.showInformationMessage(`Job status: ${job.status}`,{}, ...["Cancel Job","Done"]);
+
+    if (userInput === "Cancel Job"){
+
+        const userInputConfirmation = await vscode.window.showInformationMessage(`Are you sure you want to cancel your job?`,{}, ...["Yes","No"]);
+
+        if(userInputConfirmation==="Yes"){
+        let workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem);
+        if (!workspaceInfo){
+          return;
+        }
+
+        const quantumJobClient = getQuantumJobClient(workspaceInfo[0], credential);
+        await quantumJobClient.jobs.cancel(jobId);
+  }
+
     }
+  }
+}
 
 
 export async function getJobDetails(

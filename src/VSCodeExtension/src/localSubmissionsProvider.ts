@@ -44,8 +44,8 @@ export class LocalSubmissionItem extends vscode.TreeItem{
         const displayTime = `${time.substring(0,10)}, ${time.substring(11,16)}`;
         const label = `${displayTime} | ${job['jobId']}`;
         super(label);
-        this.description = job['jobName']? `${job['jobName']}` :``;
-        this.tooltip = `${job['jobName']||""} ${job['target']}`;
+        this.description = job['name']? `${job['name']}` :``;
+        this.tooltip = `${job['name']||""} ${job['target']}`;
         this.contextValue = "LocalSubmissionItem";
         this.jobDetails = job;
         this.fullId = job['jobId'];

@@ -29,7 +29,6 @@ export namespace EventNames {
     export const lspReady = "lsp-ready";
     export const lspStopped = "lsp-stopped";
     export const error = "error";
-    export const results = "results";
     export const jobSubmissionStarted = "job-submission-started";
     export const changeWorkspace = "change-workspace";
     export const getJobResults = "get-job-results";

@@ -12,7 +12,7 @@ import { installTemplates, createNewProject, registerCommand, openDocumentationH
 import { LanguageServer } from './languageServer';
 import {LocalSubmissionsProvider} from './localSubmissionsProvider';
 import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVariables } from '@microsoft/vscode-azext-utils';
-import { AzureCliCredential, InteractiveBrowserCredential, AccessToken } from '@azure/identity';
+import { AzureCliCredential, InteractiveBrowserCredential,ChainedTokenCredential } from '@azure/identity';
 import {getWorkspaceFromUser} from "./quickPickWorkspace";
 import {workspaceInfo} from "./commands";
 
@@ -38,7 +38,6 @@ function findRootFolder() : string {
 // required before any interaction with Azure
 // try to authenticate though AzureCliCredential first. If fails, authenticate through InteractiveBrowserCredential
 async function getCredential(context: vscode.ExtensionContext, changeAccount=false ){
-    let token:AccessToken;
     if (credential && !changeAccount){
         return credential;
     }
@@ -46,22 +45,28 @@ async function getCredential(context: vscode.ExtensionContext, changeAccount=fal
         location: vscode.ProgressLocation.Notification,
         title: "Authenticating...",
         }, async (progress, token2) => {
-    let tempCredential:any  = new AzureCliCredential();
+        let tempCredential:any;
     try{
-        // if a user is changing their account always trigger InteractiveBrowserCredential
-        if(changeAccount){
-            // tslint:disable-next-line:no-unused-expression
-            (token as any)["THROWERROR"];
+        if (changeAccount){
+            tempCredential = new InteractiveBrowserCredential();
+
         }
-    // need to call getToken to validate if user is logged in through Az CLI
-    token = await tempCredential.getToken(["https://management.azure.com/.default","https://quantum.microsoft.com/.default"]);
-    authSource = "Az CLI";
+        else{
+        tempCredential = new ChainedTokenCredential(new AzureCliCredential(), new InteractiveBrowserCredential());
+        }
+        await tempCredential.getToken("https://management.azure.com/.default");
+        // only successful authentication through browser will have the field below
+        if(tempCredential["_sources"][1]["msalFlow"]["account"]["username"]){
+            authSource = "browser";
+        }
+        else{
+            authSource = "Az CLI";
+        }
     }
     catch{
-        // login through browser if user is not logged in through Az CLI
-        tempCredential = new InteractiveBrowserCredential();
-        token = await tempCredential.getToken("https://management.azure.com/.default");
-        authSource = "browser";
+        vscode.window.showErrorMessage("Unable to connect to authenticate.");
+        accountAuthStatusBarItem.hide();
+        return;
     }
     accountAuthStatusBarItem.tooltip = `Authenticated from ${authSource}`;
     accountAuthStatusBarItem.show();
@@ -199,14 +204,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    // registerCommand(
-    //     context,
-    //     "quantum.disconnectFromAzureAccount",
-    //     () => {
-    //         deleteAzureWorkspaceInfo(context);
-    //     }
-    // );
-
     registerCommand(
         context,
         "quantum.changeWorkspace",
@@ -217,13 +214,11 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
-
-
     registerCommand(
         context,
         "quantum.getJob",
         async() => {
-            sendTelemetryEvent(EventNames.getJobResults, {"method": "command line"},{});
+            sendTelemetryEvent(EventNames.getJobResults, {"method": "command-palette"},{});
             await getCredential(context);
             getJobResults(context, credential,workSpaceStatusBarItem);
         }
@@ -251,9 +246,9 @@ export async function activate(context: vscode.ExtensionContext) {
         await getCredential(context);
         const jobId = job['jobDetails']['jobId'];
         sendTelemetryEvent(
-            EventNames.results,
+            EventNames.getJobResults,
             {
-                'method': "Results button"
+                'method': "results-button"
             },
         );
         getJobResults(context, credential,workSpaceStatusBarItem, jobId);

@@ -11,18 +11,35 @@ type target = {
 
 type jobMetaData = {provider:string, target:string, jobName:string, programArguments:string};
 
+const submissionStepEnum = {
+  PROVIDER:1,
+  TARGET:2,
+  NAME:3,
+  PROGRAM_ARGUMENT:4
+};
+
+
+const totalStepsEnum = {
+WORKSPACE_AND_JOB:7,
+ONLY_JOB:4
+};
+
+const WORKSPACE_NUM_STEPS = 3;
+
+
 let updateWorkspace = false;
 let quickPickIsHidden = false;
 
-export async function getJobInfoFromUser(context:vscode.ExtensionContext, quantumJobClient:QuantumJobClient, workspaceInfo:workspaceInfo, update=false){
 
-    updateWorkspace = update;
+function checkStep(updateWorkspace:boolean, currentStep:number|undefined, step:number){
+  return (!updateWorkspace && currentStep===step)||(updateWorkspace && currentStep===step+WORKSPACE_NUM_STEPS);
+}
+
+export async function getJobInfoFromUser(context:vscode.ExtensionContext, quantumJobClient:QuantumJobClient, workspaceInfo:workspaceInfo, updateWorkspace=false){
     let provider:string;
     let target:string;
     let jobName:string;
     let programArguments:string;
-
-
     let providersAndTargets:any;
 
     return new Promise<jobMetaData>( async (resolve, reject)=>{
@@ -31,63 +48,66 @@ export async function getJobInfoFromUser(context:vscode.ExtensionContext, quantu
         const inputBox = vscode.window.createInputBox();
         inputBox.buttons = [vscode.QuickInputButtons.Back];
         // if user has to select workspace, total steps will be 7, otherwise 4
-        inputBox.totalSteps = updateWorkspace?7:4;
-        quickPick.totalSteps = updateWorkspace?7:4;
+        inputBox.totalSteps = updateWorkspace?totalStepsEnum.WORKSPACE_AND_JOB:totalStepsEnum.ONLY_JOB;
+        quickPick.totalSteps = updateWorkspace?totalStepsEnum.WORKSPACE_AND_JOB:totalStepsEnum.ONLY_JOB;
         inputBox.ignoreFocusOut = true;
         quickPick.ignoreFocusOut = true;
 
-
+        try{
         providersAndTargets = await setupProviderQuickPick(quickPick, context, quantumJobClient, workspaceInfo, inputBox);
-        if(providersAndTargets===undefined){
-            inputBox.dispose();
-            quickPick.dispose();
-            reject();
+        }
+        catch{
+          inputBox.dispose();
+          quickPick.dispose();
+          reject();
         }
 
 
          inputBox.onDidAccept(async () => {
           // final step finished, therefore submit job
-            if((!updateWorkspace && inputBox.step===4)||(updateWorkspace && inputBox.step===7)){
+            if(checkStep(updateWorkspace, inputBox.step, submissionStepEnum.PROGRAM_ARGUMENT)){
                 programArguments = inputBox.value;
                 inputBox.dispose();
                 quickPick.dispose();
                 resolve({jobName:jobName,provider:provider, target:target,programArguments:programArguments});
             }
           // user input job name so prompt program arguments input
-            if ((!updateWorkspace && inputBox.step===3)||(updateWorkspace && inputBox.step===6)){
+            if (checkStep(updateWorkspace, inputBox.step, submissionStepEnum.NAME)){
             jobName = inputBox.value;
             setupProgramArguments(inputBox);
         }
         });
 
          quickPick.onDidAccept(async()=>{
+          try{
             const selection = quickPick.selectedItems[0];
-            if (!selection || !selection["label"]) {
-                inputBox.dispose();
-                quickPick.dispose();
-                reject();
-              }
               // user input target so prompt job name input
-              if ((!updateWorkspace && quickPick.step===2)||(updateWorkspace && quickPick.step===5)){
+              if (checkStep(updateWorkspace, quickPick.step, submissionStepEnum.TARGET)){
                 target = selection["label"];
                 quickPick.hide();
                 setupNameInputBox(inputBox);
             }
               // user input provider so prompt target input
-            if ((!updateWorkspace && quickPick.step===1)||(updateWorkspace && quickPick.step===4)){
+            if (checkStep(updateWorkspace, quickPick.step, submissionStepEnum.PROVIDER)){
                 provider = selection["label"];
                 setupTargetsQuickPick(quickPick,providersAndTargets,provider);
             }
-
+          }
+          catch{
+            inputBox.dispose();
+            quickPick.dispose();
+            reject();
+          }
          });
+
          inputBox.onDidTriggerButton(async (button) => {
             // user pressed name back button so prompt target input
-            if ((!updateWorkspace && inputBox.step===3)||(updateWorkspace && inputBox.step===6)) {
+            if (checkStep(updateWorkspace, inputBox.step, submissionStepEnum.NAME)) {
                 inputBox.hide();
                 setupTargetsQuickPick(quickPick,providersAndTargets,provider);
             }
             // user pressed program arguments back button so prompt job name input
-            if ((!updateWorkspace && inputBox.step===4)||(updateWorkspace && inputBox.step===7)) {
+            if (checkStep(updateWorkspace, inputBox.step, submissionStepEnum.PROGRAM_ARGUMENT)) {
                 setupNameInputBox(inputBox);
             }
           });
@@ -95,12 +115,14 @@ export async function getJobInfoFromUser(context:vscode.ExtensionContext, quantu
 
         quickPick.onDidTriggerButton(async (button) => {
             // user pressed target back button so prompt provider input
-            if ((!updateWorkspace && quickPick.step===2)||(updateWorkspace && quickPick.step===5)) {
+            if (checkStep(updateWorkspace, quickPick.step, submissionStepEnum.TARGET)) {
+              try{
                 providersAndTargets = await setupProviderQuickPick(quickPick, context, quantumJobClient, workspaceInfo, inputBox);
-                if(providersAndTargets===undefined){
-                    inputBox.dispose();
-                    quickPick.dispose();
-                    reject();
+                }
+                catch{
+                  inputBox.dispose();
+                  quickPick.dispose();
+                  reject();
                 }
             }
           });
@@ -109,16 +131,13 @@ export async function getJobInfoFromUser(context:vscode.ExtensionContext, quantu
 
         });
 
-
-
      });
-
 
 }
 
 function setupNameInputBox(inputBox:vscode.InputBox){
 
-    inputBox.step = updateWorkspace?6:3;
+    inputBox.step = updateWorkspace?submissionStepEnum.NAME+WORKSPACE_NUM_STEPS:submissionStepEnum.NAME;
     inputBox.value = "";
     inputBox.placeholder = "";
     inputBox.title = "Enter a Job Name";
@@ -129,7 +148,7 @@ function setupNameInputBox(inputBox:vscode.InputBox){
 
 function setupProgramArguments(inputBox:vscode.InputBox){
 
-    inputBox.step = updateWorkspace?7:4;
+    inputBox.step = updateWorkspace?submissionStepEnum.PROGRAM_ARGUMENT+WORKSPACE_NUM_STEPS:submissionStepEnum.PROGRAM_ARGUMENT;
     inputBox.value = "";
     inputBox.placeholder = 'Enter any parameters in the format "--param1=value1 --param2=value2"';
     inputBox.title = "Program Arguments";
@@ -141,7 +160,7 @@ async function setupProviderQuickPick(quickPick:vscode.QuickPick<vscode.QuickPic
 
     quickPick.items = [];
     quickPick.buttons = [];
-    quickPick.step = updateWorkspace?4:1;
+    quickPick.step = updateWorkspace?submissionStepEnum.PROVIDER+WORKSPACE_NUM_STEPS:submissionStepEnum.PROVIDER;
     quickPick.title = "Select a Provider";
     quickPick.value = "";
     quickPick.enabled = false;
@@ -152,7 +171,7 @@ async function setupProviderQuickPick(quickPick:vscode.QuickPick<vscode.QuickPic
 
     const providersAndTargets = await getProvidersAndTargets(context, quantumJobClient, workspaceInfo);
     if(providersAndTargets===undefined){
-        return;
+        throw Error;
     }
 
     const providerList = Object.keys(providersAndTargets).sort((a, b) => {
@@ -185,15 +204,12 @@ function setupTargetsQuickPick(quickPick:vscode.QuickPick<vscode.QuickPickItem>,
           };
         }
       );
-    quickPick.step = updateWorkspace?5:2;
+    quickPick.step = updateWorkspace?submissionStepEnum.TARGET+WORKSPACE_NUM_STEPS:submissionStepEnum.TARGET;
     quickPick.title = "Select a Target";
     quickPick.value = "";
     quickPick.buttons = [vscode.QuickInputButtons.Back];
     quickPick.show();
     quickPickIsHidden = false;
-
-
-
 }
 
 async function getProvidersAndTargets(context:vscode.ExtensionContext, quantumJobClient:QuantumJobClient, workspaceInfo:workspaceInfo){
@@ -231,13 +247,17 @@ catch(err:any){
     return;
 }
   let targetSubmissionDates: any = context.workspaceState.get(
-    "targetSubmissionDates" || {}
+    "targetSubmissionDates"
   );
+  if (!targetSubmissionDates){
+    targetSubmissionDates = {};
+  }
   for (let provider of Object.keys(availableTargets)) {
     availableTargets[provider].map((t: any) => {
       t["lastSubmissionDate"] = targetSubmissionDates[t["id"]]
         ? new Date(targetSubmissionDates[t["id"]])
-        : new Date(2000);
+        // set to oldest possible date for comparison purposes
+        : new Date(1970);
     });
     availableTargets[provider].sort((a: any, b: any) => {
       return b["lastSubmissionDate"] > a["lastSubmissionDate"] ? 1 : -1;
