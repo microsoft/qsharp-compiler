@@ -171,7 +171,7 @@ async function setupProviderQuickPick(quickPick:vscode.QuickPick<vscode.QuickPic
 
     const providersAndTargets = await getProvidersAndTargets(context, quantumJobClient, workspaceInfo);
     if(providersAndTargets===undefined){
-        throw Error;
+        throw new Error();
     }
 
     const providerList = Object.keys(providersAndTargets).sort((a, b) => {

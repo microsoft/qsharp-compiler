@@ -175,7 +175,7 @@ async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:Int
         try{
         workspaceInfo = JSON.parse(String.fromCharCode(...workspaceInfoChunk));
         if (!workspaceInfo["subscriptionId"]||!workspaceInfo["resourceGroup"]||!workspaceInfo["workspace"]||!workspaceInfo["location"]){
-            throw Error;
+            throw new Error();
         }
     }
         catch{
@@ -192,7 +192,7 @@ async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:Int
         // if this function is called from job submission command, submitJobCommand flag makes
         // total steps 7 instead of 3 for the workspace entries required.
         await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem, submitJobCommand).catch(()=>{
-          throw Error;
+          throw new Error();
         });
         workspaceInfo = context.workspaceState.get("workspaceInfo");
         }
@@ -276,7 +276,7 @@ export async function submitJob(
       ])
         .then(async (edit) => {
           if (!edit || !workspaceInfo) {
-            throw Error;
+            throw new Error();
           }
 
           let args = ["dotnet", "run", "--no-build"];
@@ -325,7 +325,7 @@ export async function submitJob(
           await promisify(cp.execFile)(`${dotNetSdk.path}`, args)
             .then((job) => {
               if (!job || !workspaceInfo) {
-                throw Error;
+                throw new Error();
               }
               // job.stdout returns job id with an unnecessary space and new line char
               const jobId = job.stdout.slice(0, -2);
