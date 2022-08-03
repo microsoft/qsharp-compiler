@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.Quantum.Sdk/0.24.217480-beta">
+<Project Sdk="Microsoft.Quantum.Sdk/0.25.222597">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -9,8 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="13.0.0-CI-20220129-005156" PrivateAssets="All" GeneratePathProperty="true"/>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.24.217480-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.24.217480-beta" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.25.222597-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.25.222597" GeneratePathProperty="true" />
   </ItemGroup>
 
   <PropertyGroup>

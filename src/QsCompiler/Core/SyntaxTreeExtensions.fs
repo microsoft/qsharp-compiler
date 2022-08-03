@@ -17,7 +17,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open System.Linq
 
 
-let private OnTupleItems onSingle tupleName (items: ImmutableArray<'a>) =
+let private onTupleItems onSingle tupleName (items: ImmutableArray<'a>) =
     if items.Length = 0 then failwith (sprintf "empty tuple in %s instance" tupleName)
     elif items.Length = 1 then items.[0] |> onSingle
     else Some(items |> Seq.toList)
@@ -28,7 +28,7 @@ type QsInitializer with
     // utils for tuple matching
 
     static member private OnTupleItems =
-        OnTupleItems (fun (single: QsInitializer) -> single.TupleItems) "QsInitializer"
+        onTupleItems (fun (single: QsInitializer) -> single.TupleItems) "QsInitializer"
 
     member internal this.TupleItems =
         match this.Initializer with
@@ -42,7 +42,7 @@ type ResolvedInitializer with
     // utils for tuple matching
 
     static member private OnTupleItems =
-        OnTupleItems (fun (single: ResolvedInitializer) -> single.TupleItems) "ResolvedInitializer"
+        onTupleItems (fun (single: ResolvedInitializer) -> single.TupleItems) "ResolvedInitializer"
 
     member internal this.TupleItems =
         match this.Resolution with
@@ -55,7 +55,7 @@ type QsSymbol with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: QsSymbol) -> single.TupleItems) "QsSymbol"
+    static member private OnTupleItems = onTupleItems (fun (single: QsSymbol) -> single.TupleItems) "QsSymbol"
 
     member internal this.TupleItems =
         match this.Symbol with
@@ -69,7 +69,7 @@ type SymbolTuple with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: SymbolTuple) -> single.TupleItems) "SymbolTuple"
+    static member private OnTupleItems = onTupleItems (fun (single: SymbolTuple) -> single.TupleItems) "SymbolTuple"
 
     member internal this.TupleItems =
         match this with
@@ -98,7 +98,7 @@ type ResolvedType with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: ResolvedType) -> single.TupleItems) "ResolvedType"
+    static member private OnTupleItems = onTupleItems (fun (single: ResolvedType) -> single.TupleItems) "ResolvedType"
 
     member internal this.TupleItems =
         match this.Resolution with
@@ -155,7 +155,7 @@ type QsType with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: QsType) -> single.TupleItems) "QsType"
+    static member private OnTupleItems = onTupleItems (fun (single: QsType) -> single.TupleItems) "QsType"
 
     member internal this.TupleItems =
         match this.Type with
@@ -179,7 +179,7 @@ type TypedExpression with
     // utils for tuple matching
 
     static member private OnTupleItems =
-        OnTupleItems (fun (single: TypedExpression) -> single.TupleItems) "TypedExpression"
+        onTupleItems (fun (single: TypedExpression) -> single.TupleItems) "TypedExpression"
 
     member internal this.TupleItems =
         match this.Expression with
@@ -303,7 +303,7 @@ type QsExpression with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: QsExpression) -> single.TupleItems) "QsExpression"
+    static member private OnTupleItems = onTupleItems (fun (single: QsExpression) -> single.TupleItems) "QsExpression"
 
     member internal this.TupleItems =
         match this.Expression with
@@ -391,7 +391,7 @@ type QsTuple<'I> with
 
 // not the nicest solution, but unfortunatly type extensions cannot be used to satisfy member constraints...
 // the box >> unbox below is used to cast the value to the inferred type of 'T
-let private TupleItems<'T when 'T :> ITuple> (arg: 'T) : 'T list option =
+let private tupleItems<'T when 'T :> ITuple> (arg: 'T) : 'T list option =
     let cast a =
         box >> unbox |> List.map |> Option.map <| a
 
@@ -410,17 +410,17 @@ let private TupleItems<'T when 'T :> ITuple> (arg: 'T) : 'T list option =
         |> raise
 
 let (|Item|_|) arg =
-    match TupleItems arg with
+    match tupleItems arg with
     | Some [ item ] -> Some item
     | _ -> None
 
 let (|Tuple|_|) arg =
-    match TupleItems arg with
+    match tupleItems arg with
     | Some items when items.Length > 1 -> Some items
     | _ -> None
 
 let (|Missing|_|) arg =
-    match TupleItems arg with
+    match tupleItems arg with
     | Some [] -> Some Missing
     | _ -> None
 
