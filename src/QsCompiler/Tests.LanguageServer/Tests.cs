@@ -684,7 +684,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
             Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uri));
 
-            var highlightParams = TestUtils.GetDocumentHighlightParams(uri, line: 5, col: 7);
+            var highlightParams = TestUtils.GetDocumentHighlightParams(uri, line: 1, col: 7);
             var ranges = (await this.rpc.InvokeWithParameterObjectAsync<DocumentHighlight[]>(Methods.TextDocumentDocumentHighlight.Name, highlightParams))?
                 .Select(highlight => highlight.Range)
                 .OrderBy(range => range.Start.Line)
@@ -692,8 +692,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             Assert.IsNotNull(ranges);
             Assert.AreEqual(2, ranges!.Count);
-            Assert.AreEqual(TestUtils.GetRange(startLine: 5, startCol: 4, endLine: 5, endCol: 13), ranges[0]);
-            Assert.AreEqual(TestUtils.GetRange(startLine: 14, startCol: 10, endLine: 14, endCol: 19), ranges[1]);
+            Assert.AreEqual(TestUtils.GetRange(startLine: 1, startCol: 4, endLine: 1, endCol: 13), ranges[0]);
+            Assert.AreEqual(TestUtils.GetRange(startLine: 4, startCol: 10, endLine: 4, endCol: 19), ranges[1]);
         }
 
         private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)
