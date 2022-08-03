@@ -186,7 +186,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
             updateContainedReferences rootIndex (location, QsQualifiedName.New(udt.Namespace, udt.Name))
         | _ -> []
 
-    let walk_udts () = // builds up containedTypes and containedIn
+    let walkUdts () = // builds up containedTypes and containedIn
         definitions
         |> Seq.iteri (fun typeIndex header ->
             let queue = Queue()
@@ -214,7 +214,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
 
             search ())
 
-    walk_udts ()
+    walkUdts ()
 
     // search the graph defined by contained_types for loops (complexity N^2 with BFS/DFS; -> better option (O(N)): sort topologically)
     // (i.e. reconstruct the ordering in which types would have to be defined if everything needs to be resolved before being used)
@@ -223,10 +223,10 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
 
     let rec order () =
         if queue.Count <> 0 then
-            let current_node = queue.Dequeue()
+            let currentNode = queue.Dequeue()
 
-            for child in containedTypes.[current_node] do
-                containedIn.[child].Remove current_node |> ignore
+            for child in containedTypes.[currentNode] do
+                containedIn.[child].Remove currentNode |> ignore
                 if containedIn.[child].Count = 0 then queue.Enqueue child
 
             order ()

@@ -17,10 +17,10 @@ open Xunit
 
 type TypeParameterTests() =
 
-    let TypeParameterNS = "Microsoft.Quantum.Testing.TypeParameter"
+    let typeParameterNS = "Microsoft.Quantum.Testing.TypeParameter"
 
     let qualifiedName name =
-        (TypeParameterNS, name) |> QsQualifiedName.New
+        (typeParameterNS, name) |> QsQualifiedName.New
 
     let typeParameter (id: string) =
         let pieces = id.Split(".")
@@ -29,49 +29,49 @@ type TypeParameterTests() =
         let name = pieces.[1]
         QsTypeParameter.New(parent, name)
 
-    let FooA = typeParameter "Foo.A"
-    let FooB = typeParameter "Foo.B"
-    let FooC = typeParameter "Foo.C"
-    let BarA = typeParameter "Bar.A"
-    let BarB = typeParameter "Bar.B"
-    let BazA = typeParameter "Baz.A"
+    let fooA = typeParameter "Foo.A"
+    let fooB = typeParameter "Foo.B"
+    let fooC = typeParameter "Foo.C"
+    let barA = typeParameter "Bar.A"
+    let barB = typeParameter "Bar.B"
+    let bazA = typeParameter "Baz.A"
 
-    let MakeTupleType types =
+    let makeTupleType types =
         types |> Seq.map ResolvedType.New |> ImmutableArray.CreateRange |> TupleType
 
-    let MakeArrayType ``type`` = ResolvedType.New ``type`` |> ArrayType
+    let makeArrayType ``type`` = ResolvedType.New ``type`` |> ArrayType
 
-    let ResolutionFromParam (res: (QsTypeParameter * QsTypeKind<_, _, _, _>) list) =
+    let resolutionFromParam (res: (QsTypeParameter * QsTypeKind<_, _, _, _>) list) =
         res.ToImmutableDictionary((fun (tp, _) -> tp.Origin, tp.TypeName), snd >> ResolvedType.New)
 
-    let CheckResolutionMatch (res1: ImmutableDictionary<_, _>) (res2: ImmutableDictionary<_, _>) =
+    let checkResolutionMatch (res1: ImmutableDictionary<_, _>) (res2: ImmutableDictionary<_, _>) =
         let keysMismatch = ImmutableHashSet.CreateRange(res1.Keys).SymmetricExcept res2.Keys
         keysMismatch.Count = 0 && res1 |> Seq.exists (fun kv -> res2.[kv.Key] <> kv.Value) |> not
 
-    let AssertExpectedResolution expected given =
-        Assert.True(CheckResolutionMatch expected given, "Given resolutions did not match the expected resolutions.")
+    let assertExpectedResolution expected given =
+        Assert.True(checkResolutionMatch expected given, "Given resolutions did not match the expected resolutions.")
 
-    let CheckCombinedResolution
+    let checkCombinedResolution
         expected
         (resolutions: ImmutableDictionary<(QsQualifiedName * string), ResolvedType> [])
         =
         let combination = TypeResolutionCombination(resolutions)
-        AssertExpectedResolution expected combination.CombinedResolutionDictionary
+        assertExpectedResolution expected combination.CombinedResolutionDictionary
         combination.IsValid
 
-    let AssertCombinedResolution expected resolutions =
-        let success = CheckCombinedResolution expected resolutions
+    let assertCombinedResolution expected resolutions =
+        let success = checkCombinedResolution expected resolutions
         Assert.True(success, "Combining type resolutions was not successful.")
 
-    let AssertCombinedResolutionFailure expected resolutions =
-        let success = CheckCombinedResolution expected resolutions
+    let assertCombinedResolutionFailure expected resolutions =
+        let success = checkCombinedResolution expected resolutions
         Assert.False(success, "Combining type resolutions should have failed.")
 
     let compilationManager =
         new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
 
     let getTempFile () =
-        new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+        Uri(Path.GetFullPath(Path.GetRandomFileName()))
 
     let getManager uri content =
         CompilationUnitManager.InitializeFileManager(
@@ -81,11 +81,11 @@ type TypeParameterTests() =
             compilationManager.LogException
         )
 
-    let ReadAndChunkSourceFile fileName =
+    let readAndChunkSourceFile fileName =
         let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText
         sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
-    let BuildContent content =
+    let buildContent content =
 
         let fileId = getTempFile ()
         let file = getManager fileId content
@@ -99,23 +99,23 @@ type TypeParameterTests() =
 
         compilationDataStructures
 
-    let CompileTypeParameterTest testNumber =
-        let srcChunks = ReadAndChunkSourceFile "TypeParameter.qs"
+    let compileTypeParameterTest testNumber =
+        let srcChunks = readAndChunkSourceFile "TypeParameter.qs"
         srcChunks.Length >= testNumber |> Assert.True
-        let compilationDataStructures = BuildContent <| srcChunks.[testNumber - 1]
+        let compilationDataStructures = buildContent <| srcChunks.[testNumber - 1]
         let processedCompilation = compilationDataStructures.BuiltCompilation
         Assert.NotNull processedCompilation
         processedCompilation
 
-    let GetCallableWithName compilation ns name =
+    let getCallableWithName compilation ns name =
         compilation.Namespaces
         |> Seq.filter (fun x -> x.Name = ns)
         |> GlobalCallableResolutions
         |> Seq.find (fun x -> x.Key.Name = name)
         |> (fun x -> x.Value)
 
-    let GetMainExpression (compilation: QsCompilation) =
-        let mainCallable = GetCallableWithName compilation TypeParameterNS "Main"
+    let getMainExpression (compilation: QsCompilation) =
+        let mainCallable = getCallableWithName compilation typeParameterNS "Main"
 
         let body =
             mainCallable.Specializations
@@ -138,17 +138,17 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter)
-                                      (FooB, Int) ]
-                ResolutionFromParam [ (BarA, Int) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter)
+                                      (fooB, Int) ]
+                resolutionFromParam [ (barA, Int) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, Int)
-                                  (FooB, Int)
-                                  (BarA, Int) ]
+            resolutionFromParam [ (fooA, Int)
+                                  (fooB, Int)
+                                  (barA, Int) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -156,15 +156,15 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, BazA |> TypeParameter) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, bazA |> TypeParameter) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, BazA |> TypeParameter)
-                                  (BarA, BazA |> TypeParameter) ]
+            resolutionFromParam [ (fooA, bazA |> TypeParameter)
+                                  (barA, bazA |> TypeParameter) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -172,13 +172,13 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, FooA |> TypeParameter) ]
-                ResolutionFromParam [ (FooA, Int) ]
+                resolutionFromParam [ (fooA, fooA |> TypeParameter) ]
+                resolutionFromParam [ (fooA, Int) ]
             |]
 
-        let expected = ResolutionFromParam [ (FooA, Int) ]
+        let expected = resolutionFromParam [ (fooA, Int) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -186,17 +186,17 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, Int)
-                                      (FooB, Int) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, Int)
+                                      (fooB, Int) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, Int)
-                                  (FooB, Int)
-                                  (BarA, Int) ]
+            resolutionFromParam [ (fooA, Int)
+                                  (fooB, Int)
+                                  (barA, Int) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -204,17 +204,17 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter)
-                                      (FooB, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, Int) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter)
+                                      (fooB, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, Int) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, Int)
-                                  (FooB, Int)
-                                  (BarA, Int) ]
+            resolutionFromParam [ (fooA, Int)
+                                  (fooB, Int)
+                                  (barA, Int) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -222,19 +222,19 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter)
-                                      (FooB, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, BazA |> TypeParameter) ]
-                ResolutionFromParam [ (BazA, Double) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter)
+                                      (fooB, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, bazA |> TypeParameter) ]
+                resolutionFromParam [ (bazA, Double) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, Double)
-                                  (FooB, Double)
-                                  (BarA, Double)
-                                  (BazA, Double) ]
+            resolutionFromParam [ (fooA, Double)
+                                  (fooB, Double)
+                                  (barA, Double)
+                                  (bazA, Double) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -242,17 +242,17 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (FooB, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, Int) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (fooB, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, Int) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, Int)
-                                  (FooB, Int)
-                                  (BarA, Int) ]
+            resolutionFromParam [ (fooA, Int)
+                                  (fooB, Int)
+                                  (barA, Int) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -260,19 +260,19 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, BazA |> TypeParameter)
-                                      (FooB, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BazA, Int) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, bazA |> TypeParameter)
+                                      (fooB, barA |> TypeParameter) ]
+                resolutionFromParam [ (bazA, Int) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, Int)
-                                  (FooB, Int)
-                                  (BarA, Int)
-                                  (BazA, Int) ]
+            resolutionFromParam [ (fooA, Int)
+                                  (fooB, Int)
+                                  (barA, Int)
+                                  (bazA, Int) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -280,16 +280,16 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, Int)
-                                      (FooA, Int) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, Int)
+                                      (fooA, Int) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, Int)
-                                  (BarA, Int) ]
+            resolutionFromParam [ (fooA, Int)
+                                  (barA, Int) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -297,16 +297,16 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, BazA |> TypeParameter) ]
-                ResolutionFromParam [ (FooA, BazA |> TypeParameter) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, bazA |> TypeParameter) ]
+                resolutionFromParam [ (fooA, bazA |> TypeParameter) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, BazA |> TypeParameter)
-                                  (BarA, BazA |> TypeParameter) ]
+            resolutionFromParam [ (fooA, bazA |> TypeParameter)
+                                  (barA, bazA |> TypeParameter) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -314,16 +314,16 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, Int)
-                                      (FooA, Double) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, Int)
+                                      (fooA, Double) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, Double)
-                                  (BarA, Int) ]
+            resolutionFromParam [ (fooA, Double)
+                                  (barA, Int) ]
 
-        AssertCombinedResolutionFailure expected given
+        assertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -331,24 +331,24 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, BazA |> TypeParameter)
-                                      (FooA, BarB |> TypeParameter) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, bazA |> TypeParameter)
+                                      (fooA, barB |> TypeParameter) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, BarB |> TypeParameter)
-                                  (BarA, BazA |> TypeParameter) ]
+            resolutionFromParam [ (fooA, barB |> TypeParameter)
+                                  (barA, bazA |> TypeParameter) ]
 
-        AssertCombinedResolutionFailure expected given
+        assertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Direct Resolution to Native``() =
 
-        let given = [| ResolutionFromParam [ (FooA, FooA |> TypeParameter) ] |]
-        let expected = ResolutionFromParam [ (FooA, FooA |> TypeParameter) ]
-        AssertCombinedResolution expected given
+        let given = [| resolutionFromParam [ (fooA, fooA |> TypeParameter) ] |]
+        let expected = resolutionFromParam [ (fooA, fooA |> TypeParameter) ]
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -356,25 +356,25 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, BazA |> TypeParameter) ]
-                ResolutionFromParam [ (BazA, FooA |> TypeParameter) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, bazA |> TypeParameter) ]
+                resolutionFromParam [ (bazA, fooA |> TypeParameter) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, FooA |> TypeParameter)
-                                  (BarA, FooA |> TypeParameter)
-                                  (BazA, FooA |> TypeParameter) ]
+            resolutionFromParam [ (fooA, fooA |> TypeParameter)
+                                  (barA, fooA |> TypeParameter)
+                                  (bazA, fooA |> TypeParameter) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Direct Resolution Constrains Native``() =
 
-        let given = [| ResolutionFromParam [ (FooA, FooB |> TypeParameter) ] |]
-        let expected = ResolutionFromParam [ (FooA, FooB |> TypeParameter) ]
-        AssertCombinedResolutionFailure expected given
+        let given = [| resolutionFromParam [ (fooA, fooB |> TypeParameter) ] |]
+        let expected = resolutionFromParam [ (fooA, fooB |> TypeParameter) ]
+        assertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -382,17 +382,17 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, BazA |> TypeParameter) ]
-                ResolutionFromParam [ (BazA, FooB |> TypeParameter) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, bazA |> TypeParameter) ]
+                resolutionFromParam [ (bazA, fooB |> TypeParameter) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, FooB |> TypeParameter)
-                                  (BarA, FooB |> TypeParameter)
-                                  (BazA, FooB |> TypeParameter) ]
+            resolutionFromParam [ (fooA, fooB |> TypeParameter)
+                                  (barA, fooB |> TypeParameter)
+                                  (bazA, fooB |> TypeParameter) ]
 
-        AssertCombinedResolutionFailure expected given
+        assertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
@@ -400,189 +400,189 @@ type TypeParameterTests() =
 
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, BazA |> TypeParameter) ]
-                ResolutionFromParam [ (BazA, BarB |> TypeParameter) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, bazA |> TypeParameter) ]
+                resolutionFromParam [ (bazA, barB |> TypeParameter) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, BarB |> TypeParameter)
-                                  (BarA, BarB |> TypeParameter)
-                                  (BazA, BarB |> TypeParameter) ]
+            resolutionFromParam [ (fooA, barB |> TypeParameter)
+                                  (barA, barB |> TypeParameter)
+                                  (bazA, barB |> TypeParameter) ]
 
-        AssertCombinedResolutionFailure expected given
+        assertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Nested Type Paramter Resolution``() =
         let given =
             [|
-                ResolutionFromParam [ (FooA, [ BarA |> TypeParameter; Int ] |> MakeTupleType) ]
-                ResolutionFromParam [ (BarA, [ String; Double ] |> MakeTupleType) ]
+                resolutionFromParam [ (fooA, [ barA |> TypeParameter; Int ] |> makeTupleType) ]
+                resolutionFromParam [ (barA, [ String; Double ] |> makeTupleType) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, [ [ String; Double ] |> MakeTupleType; Int ] |> MakeTupleType)
-                                  (BarA, [ String; Double ] |> MakeTupleType) ]
+            resolutionFromParam [ (fooA, [ [ String; Double ] |> makeTupleType; Int ] |> makeTupleType)
+                                  (barA, [ String; Double ] |> makeTupleType) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Nested Constricted Resolution``() =
         let given =
             [|
-                ResolutionFromParam [ (FooA, [ FooB |> TypeParameter; Int ] |> MakeTupleType) ]
+                resolutionFromParam [ (fooA, [ fooB |> TypeParameter; Int ] |> makeTupleType) ]
             |]
 
-        let expected = ResolutionFromParam [ (FooA, [ FooB |> TypeParameter; Int ] |> MakeTupleType) ]
+        let expected = resolutionFromParam [ (fooA, [ fooB |> TypeParameter; Int ] |> makeTupleType) ]
 
-        AssertCombinedResolutionFailure expected given
+        assertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Constricting Nested Self Resolution``() =
         let given =
             [|
-                ResolutionFromParam [ (FooA, [ FooA |> TypeParameter; Int ] |> MakeTupleType) ]
+                resolutionFromParam [ (fooA, [ fooA |> TypeParameter; Int ] |> makeTupleType) ]
             |]
 
-        let expected = ResolutionFromParam [ (FooA, [ FooA |> TypeParameter; Int ] |> MakeTupleType) ]
+        let expected = resolutionFromParam [ (fooA, [ fooA |> TypeParameter; Int ] |> makeTupleType) ]
 
-        AssertCombinedResolutionFailure expected given
+        assertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Constricting Array Nested Self Resolution``() =
-        let given = [| ResolutionFromParam [ (FooA, FooA |> TypeParameter |> MakeArrayType) ] |]
-        let expected = ResolutionFromParam [ (FooA, FooA |> TypeParameter |> MakeArrayType) ]
-        AssertCombinedResolutionFailure expected given
+        let given = [| resolutionFromParam [ (fooA, fooA |> TypeParameter |> makeArrayType) ] |]
+        let expected = resolutionFromParam [ (fooA, fooA |> TypeParameter |> makeArrayType) ]
+        assertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Constricting Indirect Nested Self Resolution``() =
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, [ Int; FooA |> TypeParameter ] |> MakeTupleType) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, [ Int; fooA |> TypeParameter ] |> makeTupleType) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (BarA, [ Int; [ Int; FooA |> TypeParameter ] |> MakeTupleType ] |> MakeTupleType)
-                                  (FooA, [ Int; FooA |> TypeParameter ] |> MakeTupleType) ]
+            resolutionFromParam [ (barA, [ Int; [ Int; fooA |> TypeParameter ] |> makeTupleType ] |> makeTupleType)
+                                  (fooA, [ Int; fooA |> TypeParameter ] |> makeTupleType) ]
 
-        AssertCombinedResolutionFailure expected given
+        assertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Constricting Array Indirect Nested Self Resolution``() =
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter) ]
-                ResolutionFromParam [ (BarA, FooA |> TypeParameter |> MakeArrayType) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter) ]
+                resolutionFromParam [ (barA, fooA |> TypeParameter |> makeArrayType) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (BarA, FooA |> TypeParameter |> MakeArrayType |> MakeArrayType)
-                                  (FooA, FooA |> TypeParameter |> MakeArrayType) ]
+            resolutionFromParam [ (barA, fooA |> TypeParameter |> makeArrayType |> makeArrayType)
+                                  (fooA, fooA |> TypeParameter |> makeArrayType) ]
 
-        AssertCombinedResolutionFailure expected given
+        assertCombinedResolutionFailure expected given
 
     [<Fact>]
     [<Trait("Category", "Type Resolution")>]
     member this.``Single Dictonary Resolution``() =
         let given =
             [|
-                ResolutionFromParam [ (FooA, BarA |> TypeParameter)
-                                      (BarA, Int) ]
+                resolutionFromParam [ (fooA, barA |> TypeParameter)
+                                      (barA, Int) ]
             |]
 
         let expected =
-            ResolutionFromParam [ (FooA, Int)
-                                  (BarA, Int) ]
+            resolutionFromParam [ (fooA, Int)
+                                  (barA, Int) ]
 
-        AssertCombinedResolution expected given
+        assertCombinedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Identifier Resolution``() =
-        let expression = CompileTypeParameterTest 1 |> GetMainExpression
+        let expression = compileTypeParameterTest 1 |> getMainExpression
 
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
         let expected =
-            ResolutionFromParam [ (FooA, Double)
-                                  (FooB, Int)
-                                  (FooC, String) ]
+            resolutionFromParam [ (fooA, Double)
+                                  (fooB, Int)
+                                  (fooC, String) ]
 
-        AssertExpectedResolution expected given
+        assertExpectedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Adjoint Application Resolution``() =
-        let expression = CompileTypeParameterTest 2 |> GetMainExpression
+        let expression = compileTypeParameterTest 2 |> getMainExpression
 
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
         let expected =
-            ResolutionFromParam [ (FooA, Double)
-                                  (FooB, Int)
-                                  (FooC, String) ]
+            resolutionFromParam [ (fooA, Double)
+                                  (fooB, Int)
+                                  (fooC, String) ]
 
-        AssertExpectedResolution expected given
+        assertExpectedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Controlled Application Resolution``() =
-        let expression = CompileTypeParameterTest 3 |> GetMainExpression
+        let expression = compileTypeParameterTest 3 |> getMainExpression
 
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
         let expected =
-            ResolutionFromParam [ (FooA, Double)
-                                  (FooB, Int)
-                                  (FooC, String) ]
+            resolutionFromParam [ (fooA, Double)
+                                  (fooB, Int)
+                                  (fooC, String) ]
 
-        AssertExpectedResolution expected given
+        assertExpectedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Partial Application Resolution``() =
-        let expression = CompileTypeParameterTest 4 |> GetMainExpression
+        let expression = compileTypeParameterTest 4 |> getMainExpression
 
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
         let expected =
-            ResolutionFromParam [ (FooA, Double)
-                                  (FooB, Int)
-                                  (FooC, String) ]
+            resolutionFromParam [ (fooA, Double)
+                                  (fooB, Int)
+                                  (fooC, String) ]
 
-        AssertExpectedResolution expected given
+        assertExpectedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Sub-call Resolution``() =
-        let expression = CompileTypeParameterTest 5 |> GetMainExpression
+        let expression = compileTypeParameterTest 5 |> getMainExpression
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
-        let expected = [ FooA, Int; FooB, Int; FooC, Int ] |> ResolutionFromParam
-        AssertExpectedResolution expected given
+        let expected = [ fooA, Int; fooB, Int; fooC, Int ] |> resolutionFromParam
+        assertExpectedResolution expected given
 
     [<Fact>]
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Argument Sub-call Resolution``() =
-        let expression = CompileTypeParameterTest 6 |> GetMainExpression
+        let expression = compileTypeParameterTest 6 |> getMainExpression
 
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
 
         let expected =
-            ResolutionFromParam [ (FooA, Double)
-                                  (FooB, Int)
-                                  (FooC, String) ]
+            resolutionFromParam [ (fooA, Double)
+                                  (fooB, Int)
+                                  (fooC, String) ]
 
-        AssertExpectedResolution expected given
+        assertExpectedResolution expected given

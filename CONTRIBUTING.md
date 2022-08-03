@@ -60,24 +60,28 @@ and check if you can help someone who has already started working on it.
 
 Whether you want to help fixing bugs or add new features, please take a look at our general guide for [Contributing Code](https://docs.microsoft.com/azure/quantum/contributing-code).
 
-## Formatting Code
+## Code Style
 
-Contributions should follow the code formatting guidelines for this repository.
+Contributions should follow our the code style guidelines.
+These are checked automatically when you create a pull request.
 
 ### C#
 
 [StyleCop](https://github.com/DotNetAnalyzers/StyleCopAnalyzers) is configured for every C# project in this repository.
-Your IDE should warn you if you write code that does not follow the style guide.
+You'll see style warnings when you build a project, and you may also see warnings as you type depending on your editor.
 
 ### F#
 
-F# code is automatically formatted using [Fantomas](https://github.com/fsprojects/fantomas).
-To install the correct version of Fantomas for this repository, run `dotnet tool restore`.
-To format a specific file, run `dotnet tool run fantomas MyFile.fs`.
-To format every file in a folder, run `dotnet tool run fantomas -r MyFolder`.
+F# code is automatically formatted using [Fantomas](https://github.com/fsprojects/fantomas) and linted using [FSharpLint](https://github.com/fsprojects/FSharpLint).
+You can install both by running `dotnet tool restore`.
 
-You can also configure your editor to run Fantomas on the current file.
-For example, in Visual Studio, open Tools - External Tools.
+To format a specific file, run `dotnet fantomas MyFile`.
+To format every file in a folder, run `dotnet fantomas -r MyFolder`.
+
+To lint a specific file, project, or the whole solution, run `dotnet fsharplint lint MyFile`.
+
+You can also configure your editor to run tools on the current file.
+For example, to run Fantomas in Visual Studio, open Tools - External Tools.
 Click Add, and fill in the fields with:
 
 <dl>
