@@ -16,7 +16,7 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.ParsingPrimitive
 let characteristicsAnnotation =
     let rec characteristicsExpression =
         parse {
-            let infixOp = operator qsSetUnion.op "" <|> operator qsSetIntersection.op ""
+            let infixOp = operator qsSetUnion.Op "" <|> operator qsSetIntersection.Op ""
 
             let expTerm =
                 pcollect [ brackets (lTuple, rTuple) characteristicsExpression

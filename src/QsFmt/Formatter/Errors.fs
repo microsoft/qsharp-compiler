@@ -8,17 +8,17 @@ open Antlr4.Runtime
 type SyntaxError =
     {
         /// The line number.
-        line: int
+        Line: int
 
         /// The character number.
-        character: int
+        Character: int
 
         /// The error message.
-        message: string
+        Message: string
     }
 
     override error.ToString() =
-        sprintf "Line %d, Character %d: %s" error.line error.character error.message
+        sprintf "Line %d, Character %d: %s" error.Line error.Character error.Message
 
 [<Sealed>]
 type ListErrorListener() =
@@ -30,9 +30,9 @@ type ListErrorListener() =
         member _.SyntaxError(_, _, _, line, character, message, _) =
             let error =
                 {
-                    line = line
-                    character = character
-                    message = message
+                    Line = line
+                    Character = character
+                    Message = message
                 }
 
             errors <- error :: errors

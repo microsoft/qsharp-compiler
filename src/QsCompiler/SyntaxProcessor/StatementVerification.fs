@@ -58,9 +58,9 @@ let NewExpressionStatement comments location context expr =
     let expr, diagnostics = resolveExpr context expr
 
     if context.Inference.Constrain(ResolvedType.New UnitType .> expr.ResolvedType) |> List.isEmpty |> not then
-        let type_ = context.Inference.Resolve expr.ResolvedType |> SyntaxTreeToQsharp.Default.ToCode
+        let ty = context.Inference.Resolve expr.ResolvedType |> SyntaxTreeToQsharp.Default.ToCode
         let range = QsNullable.defaultValue Range.Zero expr.Range
-        QsCompilerDiagnostic.Error (ErrorCode.ValueImplicitlyIgnored, [ type_ ]) range |> diagnostics.Add
+        QsCompilerDiagnostic.Error (ErrorCode.ValueImplicitlyIgnored, [ ty ]) range |> diagnostics.Add
 
     QsExpressionStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
@@ -131,7 +131,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
 /// Generates an InvalidUseOfTypeParameterizedObject error if the given variable type contains external type parameters
 /// (i.e. type parameters that do no belong to the parent callable associated with the given symbol tracker).
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise.
-let private TryAddDeclaration isMutable (symbols: SymbolTracker) (name: string, location, localQdep) rhsType =
+let private tryAddDeclaration isMutable (symbols: SymbolTracker) (name: string, location, localQdep) rhsType =
     let t, tpErr = rhsType, [||]
     let decl = LocalVariableDeclaration.New isMutable (location, name, t, localQdep)
     let added, errs = symbols.TryAddVariableDeclartion decl
@@ -143,12 +143,12 @@ let private TryAddDeclaration isMutable (symbols: SymbolTracker) (name: string, 
 /// generating the corresponding error(s) if a symbol with the same name is already visible on that scope and/or the symbol is not a valid variable name.
 /// Builds the corresponding Q# let- or mutable-statement (depending on the given kind) at the given location,
 /// and returns it along with an array of all generated diagnostics.
-let private NewBinding kind comments (location: QsLocation) context (symbol, expr) =
+let private newBinding kind comments (location: QsLocation) context (symbol, expr) =
     let expr, diagnostics = resolveExpr context expr
 
     let symbolTuple, varDeclarations, bindingDiagnostics =
         let addDeclaration (name, range) =
-            TryAddDeclaration
+            tryAddDeclaration
                 (kind = MutableBinding)
                 context.Symbols
                 (name, (Value location.Offset, range), expr.InferredInformation.HasLocalQuantumDependency)
@@ -167,13 +167,13 @@ let private NewBinding kind comments (location: QsLocation) context (symbol, exp
 /// Adds the corresponding local variable declarations to the given symbol tracker.
 /// Returns the built statement along with an array containing all diagnostics generated in the process.
 let NewImmutableBinding comments location symbols (symbol, expr) =
-    NewBinding QsBindingKind.ImmutableBinding comments location symbols (symbol, expr)
+    newBinding QsBindingKind.ImmutableBinding comments location symbols (symbol, expr)
 
 /// Resolves, verifies and builds the Q# mutable-statement at the given location binding the given expression to the given symbol.
 /// Adds the corresponding local variable declarations to the given symbol tracker.
 /// Returns the built statement along with an array containing all diagnostics generated in the process.
 let NewMutableBinding comments location symbols (symbol, expr) =
-    NewBinding QsBindingKind.MutableBinding comments location symbols (symbol, expr)
+    newBinding QsBindingKind.MutableBinding comments location symbols (symbol, expr)
 
 type BlockStatement<'T> = delegate of QsScope -> 'T
 
@@ -192,7 +192,7 @@ let NewForStatement comments (location: QsLocation) context (symbol, expr) =
 
     let symbolTuple, _, bindingDiagnostics =
         let addDeclaration (name, range) =
-            TryAddDeclaration
+            tryAddDeclaration
                 false
                 context.Symbols
                 (name, (Value location.Offset, range), expr.InferredInformation.HasLocalQuantumDependency)
@@ -311,7 +311,7 @@ let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
 /// Returns an array with all generated diagnostics,
 /// as well as a delegate that given a Q# scope returns the built using- or borrowing-statement with the given scope as the body.
 /// NOTE: the declared variables are *not* visible after the statements ends, hence they are *not* attaches as local declarations to the statement!
-let private NewBindingScope kind comments (location: QsLocation) context (symbol: QsSymbol, init: QsInitializer) =
+let private newBindingScope kind comments (location: QsLocation) context (symbol: QsSymbol, init: QsInitializer) =
     let rec verifyInitializer init =
         match init.Initializer with
         | SingleQubitAllocation ->
@@ -337,7 +337,7 @@ let private NewBindingScope kind comments (location: QsLocation) context (symbol
 
     let symbolTuple, _, bindingDiagnostics =
         let addDeclaration (name, range) =
-            TryAddDeclaration false context.Symbols (name, (Value location.Offset, range), false)
+            tryAddDeclaration false context.Symbols (name, (Value location.Offset, range), false)
 
         verifyBinding context.Inference addDeclaration (symbol, init.Type) true
 
@@ -351,10 +351,10 @@ let private NewBindingScope kind comments (location: QsLocation) context (symbol
 /// Adds the corresponding local variable declarations to the given symbol tracker.
 /// Returns the built statement along with an array containing all diagnostics generated in the process.
 let NewAllocateScope comments location symbols (symbol, init) =
-    NewBindingScope QsQubitScopeKind.Allocate comments location symbols (symbol, init)
+    newBindingScope QsQubitScopeKind.Allocate comments location symbols (symbol, init)
 
 /// Resolves, verifies and builds the Q# borrowing-statement at the given location binding the given initializer to the given symbol.
 /// Adds the corresponding local variable declarations to the given symbol tracker.
 /// Returns the built statement along with an array containing all diagnostics generated in the process.
 let NewBorrowScope comments location symbols (symbol, init) =
-    NewBindingScope QsQubitScopeKind.Borrow comments location symbols (symbol, init)
+    newBindingScope QsQubitScopeKind.Borrow comments location symbols (symbol, init)

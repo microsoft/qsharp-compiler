@@ -45,17 +45,22 @@ jobs:
     vmImage: $(imageName)
 
 
-- job: Style
+- job: Check
   steps:
   - task: UseDotNet@2
-    displayName: Use .NET SDK 6.0.105
+    displayName: Use .NET SDK 6.0.300
     inputs:
-      version: 6.0.105
+      useGlobalJson: true
 
   - script: dotnet tool restore
     displayName: Restore .NET tools
 
   - script: dotnet tool run fantomas -- --check --recurse .
-    displayName: Fantomas
+    displayName: F# style
+
+  - script: |
+      dotnet restore QsCompiler.sln
+      dotnet tool run dotnet-fsharplint lint QsCompiler.sln
+    displayName: F# lint
   pool:
-    vmImage: windows-latest
+    vmImage: ubuntu-latest
