@@ -73,11 +73,11 @@ let internal versionToFormatRules (version: Version option) =
 
 let internal formatDocument = versionToFormatRules
 
-let performFormat fileName qsharp_version source =
+let performFormat fileName qsharpVersion source =
     parse source
     |> Result.map (fun ast ->
         checkParsed source ast |> ignore
-        let formatted = formatDocument qsharp_version ast |> printer.Document
+        let formatted = formatDocument qsharpVersion ast |> printer.Document
         let isFormatted = formatted <> source
         if isFormatted then File.WriteAllText(fileName, formatted)
         isFormatted)
@@ -101,11 +101,11 @@ let internal versionToUpdateRules (version: Version option) =
 
     rules |> List.fold (>>) id
 
-let internal updateDocument fileName qsharp_version document =
-    let updatedDocument = versionToUpdateRules qsharp_version document
+let internal updateDocument fileName qsharpVersion document =
+    let updatedDocument = versionToUpdateRules qsharpVersion document
 
     let warningList =
-        match qsharp_version with
+        match qsharpVersion with
         // The following line is provided as an example of different rules for different versions:
         //| Some v when v < new Version("1.5") -> []
         | None
@@ -114,47 +114,47 @@ let internal updateDocument fileName qsharp_version document =
     warningList |> List.iter (eprintfn "%s")
     updatedDocument
 
-let performUpdate fileName qsharp_version source =
+let performUpdate fileName qsharpVersion source =
     parse source
     |> Result.map (fun ast ->
         checkParsed source ast |> ignore
-        let updated = updateDocument fileName qsharp_version ast |> printer.Document
+        let updated = updateDocument fileName qsharpVersion ast |> printer.Document
         let isUpdated = updated <> source
         if isUpdated then File.WriteAllText(fileName, updated)
         isUpdated)
 
-let performUpdateAndFormat fileName qsharp_version source =
+let performUpdateAndFormat fileName qsharpVersion source =
     parse source
     |> Result.map (fun ast ->
         checkParsed source ast |> ignore
-        let updatedAST = updateDocument fileName qsharp_version ast
+        let updatedAST = updateDocument fileName qsharpVersion ast
         let updated = printer.Document updatedAST
         let isUpdated = updated <> source
-        let formatted = formatDocument qsharp_version updatedAST |> printer.Document
+        let formatted = formatDocument qsharpVersion updatedAST |> printer.Document
         let isFormatted = formatted <> updated
         if isUpdated || isFormatted then File.WriteAllText(fileName, formatted)
         (isUpdated, isFormatted))
 
 [<CompiledName "Update">]
-let update fileName qsharp_version source =
+let update fileName qsharpVersion source =
     parse source
     |> Result.map (checkParsed source)
-    |> Result.map (updateDocument fileName qsharp_version)
+    |> Result.map (updateDocument fileName qsharpVersion)
     |> Result.map (printer.Document)
 
 [<CompiledName "Format">]
-let format qsharp_version source =
+let format qsharpVersion source =
     parse source
     |> Result.map (checkParsed source)
-    |> Result.map (formatDocument qsharp_version)
+    |> Result.map (formatDocument qsharpVersion)
     |> Result.map (printer.Document)
 
 [<CompiledName "UpdateAndFormat">]
-let updateAndFormat fileName qsharp_version source =
+let updateAndFormat fileName qsharpVersion source =
     parse source
     |> Result.map (checkParsed source)
-    |> Result.map (updateDocument fileName qsharp_version)
-    |> Result.map (formatDocument qsharp_version)
+    |> Result.map (updateDocument fileName qsharpVersion)
+    |> Result.map (formatDocument qsharpVersion)
     |> Result.map (printer.Document)
 
 [<CompiledName "Identity">]

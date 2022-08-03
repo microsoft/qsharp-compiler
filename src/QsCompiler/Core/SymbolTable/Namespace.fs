@@ -28,17 +28,17 @@ type Namespace
     (
         name,
         parts: IEnumerable<KeyValuePair<string, PartialNamespace>>,
-        CallablesInReferences: ILookup<string, CallableDeclarationHeader>,
-        SpecializationsInReferences: ILookup<string, SpecializationDeclarationHeader * SpecializationImplementation>,
-        TypesInReferences: ILookup<string, TypeDeclarationHeader>
+        callablesInReferences: ILookup<string, CallableDeclarationHeader>,
+        specializationsInReferences: ILookup<string, SpecializationDeclarationHeader * SpecializationImplementation>,
+        typesInReferences: ILookup<string, TypeDeclarationHeader>
     ) =
 
     /// dictionary containing a PartialNamespaces for each source file which implements a part of this namespace -
     /// the key is the source file where each part of the namespace is defined
-    let Parts = parts.ToDictionary((fun item -> item.Key), (fun item -> item.Value))
+    let parts = parts.ToDictionary((fun item -> item.Key), (fun item -> item.Value))
 
-    let mutable TypesDefinedInAllSourcesCache = null
-    let mutable CallablesDefinedInAllSourcesCache = null
+    let mutable typesDefinedInAllSourcesCache = null
+    let mutable callablesDefinedInAllSourcesCache = null
 
     /// Returns true if the name is available for use in a new declaration.
     let isNameAvailable name =
@@ -47,9 +47,9 @@ type Namespace
             |> Seq.exists (fun name -> getAccess name |> Access.isAccessibleFrom proximity)
             |> not
 
-        isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Access) OtherAssembly
-        && isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Access) OtherAssembly
-        && Parts.Values.All (fun partial ->
+        isAvailableWith (fun name -> callablesInReferences.[name]) (fun c -> c.Access) OtherAssembly
+        && isAvailableWith (fun name -> typesInReferences.[name]) (fun t -> t.Access) OtherAssembly
+        && parts.Values.All (fun partial ->
             isAvailableWith
                 (partial.TryGetCallable >> tryOption >> Option.toList)
                 (fun c -> (snd c).Access)
@@ -62,14 +62,14 @@ type Namespace
     /// Immutable array with the names of all source files that contain (a part of) the namespace.
     /// Note that files contained in referenced assemblies that implement part of the namespace
     /// are *not* considered to be source files within the context of this Namespace instance!
-    member internal this.Sources = Parts.Keys.ToImmutableHashSet()
+    member internal this.Sources = parts.Keys.ToImmutableHashSet()
 
     /// contains all types declared within one of the referenced assemblies as part of this namespace
-    member this.TypesInReferencedAssemblies = TypesInReferences // access should be fine, since this is immutable
+    member this.TypesInReferencedAssemblies = typesInReferences // access should be fine, since this is immutable
     /// contains all callables declared within one of the referenced assemblies as part of this namespace
-    member this.CallablesInReferencedAssemblies = CallablesInReferences // access should be fine, since this is immutable
+    member this.CallablesInReferencedAssemblies = callablesInReferences // access should be fine, since this is immutable
     /// contains all specializations declared within one of the referenced assemblies as part of this namespace
-    member this.SpecializationsInReferencedAssemblies = SpecializationsInReferences // access should be fine, since this is immutable
+    member this.SpecializationsInReferencedAssemblies = specializationsInReferences // access should be fine, since this is immutable
 
     /// constructor taking the name of the namespace as well the name of the files in which (part of) it is declared in as arguments,
     /// as well as the information about all types and callables declared in referenced assemblies that belong to this namespace
@@ -81,7 +81,7 @@ type Namespace
         let initialSources =
             sources
             |> Seq.distinct
-            |> Seq.map (fun source -> new KeyValuePair<_, _>(source, new PartialNamespace(name, source)))
+            |> Seq.map (fun source -> new KeyValuePair<_, _>(source, PartialNamespace(name, source)))
 
         let typesInRefs =
             typesInRefs.Where(fun (header: TypeDeclarationHeader) -> header.QualifiedName.Namespace = name)
@@ -106,8 +106,7 @@ type Namespace
         let createLookup getName getAccess headers =
             headers
             |> Seq.groupBy getName
-            |> Seq.map (discardConflicts getAccess)
-            |> Seq.concat
+            |> Seq.collect (discardConflicts getAccess)
             |> fun headers -> headers.ToLookup(Func<_, _> getName)
 
         let types = typesInRefs |> createLookup (fun t -> t.QualifiedName.Name) (fun t -> t.Access)
@@ -132,13 +131,13 @@ type Namespace
     /// returns a new Namespace that is an exact (deep) copy of this one
     /// -> any modification of the returned Namespace is not reflected in this one
     member this.Copy() =
-        let partials = Parts |> Seq.map (fun part -> new KeyValuePair<_, _>(part.Key, part.Value.Copy()))
-        new Namespace(name, partials, CallablesInReferences, SpecializationsInReferences, TypesInReferences)
+        let partials = parts |> Seq.map (fun part -> new KeyValuePair<_, _>(part.Key, part.Value.Copy()))
+        Namespace(name, partials, callablesInReferences, specializationsInReferences, typesInReferences)
 
     /// Returns a lookup that given the name of a source file,
     /// returns all documentation associated with this namespace defined in that file.
     member internal this.Documentation =
-        Parts
+        parts
             .Values
             .SelectMany(fun partial -> partial.Documentation |> Seq.map (fun doc -> partial.Source, doc))
             .ToLookup(fst, snd)
@@ -150,7 +149,7 @@ type Namespace
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member internal this.ImportedNamespaces source =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial -> partial.ImportedNamespaces
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
@@ -159,7 +158,7 @@ type Namespace
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member internal this.NamespaceShortNames source =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial -> partial.NamespaceShortNames
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
@@ -189,7 +188,7 @@ type Namespace
                 true
             | _ -> false
 
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial ->
             match partial.TryGetType attName with
             | true, resolution when Seq.exists compareAttributeName resolution.DefinedAttributes ->
@@ -197,7 +196,7 @@ type Namespace
             | _ -> None
         | false, _ ->
             let referenceType =
-                TypesInReferences.[attName]
+                typesInReferences.[attName]
                 |> Seq.filter (fun qsType -> qsType.Source.AssemblyFile |> QsNullable.contains source)
                 |> Seq.tryExactlyOne
 
@@ -213,7 +212,7 @@ type Namespace
     /// The source file does not contain this namespace, or a type with the given name was not found in the source file.
     /// </exception>
     member internal this.TypeInSource source tName =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial ->
             partial.TryGetType tName
             |> tryOption
@@ -227,20 +226,20 @@ type Namespace
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member internal this.TypesDefinedInSource source =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial -> partial.DefinedTypes.ToImmutableArray()
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// Returns all types defined in a source file associated with this namespace.
     /// This excludes types that are defined in files contained in referenced assemblies.
     member internal this.TypesDefinedInAllSources() =
-        if TypesDefinedInAllSourcesCache = null then
+        if isNull typesDefinedInAllSourcesCache then
             let getInfos (partial: PartialNamespace) =
                 partial.DefinedTypes |> Seq.map (fun (tName, decl) -> tName, (partial.Source, decl))
 
-            TypesDefinedInAllSourcesCache <- (Parts.Values.SelectMany getInfos).ToImmutableDictionary(fst, snd)
+            typesDefinedInAllSourcesCache <- (parts.Values.SelectMany getInfos).ToImmutableDictionary(fst, snd)
 
-        TypesDefinedInAllSourcesCache
+        typesDefinedInAllSourcesCache
 
     /// <summary>
     /// Returns the callable with the given name defined in the given source file within this namespace.
@@ -251,7 +250,7 @@ type Namespace
     /// file.
     /// </exception>
     member internal this.CallableInSource source cName =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial ->
             partial.TryGetCallable cName
             |> tryOption
@@ -266,7 +265,7 @@ type Namespace
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member internal this.CallablesDefinedInSource source =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial -> partial.DefinedCallables.ToImmutableArray()
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
@@ -274,13 +273,13 @@ type Namespace
     /// This excludes callables that are defined in files contained in referenced assemblies.
     /// Callables include operations, functions, and auto-generated type constructors for declared types.
     member internal this.CallablesDefinedInAllSources() =
-        if CallablesDefinedInAllSourcesCache = null then
+        if isNull callablesDefinedInAllSourcesCache then
             let getInfos (partial: PartialNamespace) =
                 partial.DefinedCallables |> Seq.map (fun (cName, decl) -> cName, (partial.Source, decl))
 
-            CallablesDefinedInAllSourcesCache <- (Parts.Values.SelectMany getInfos).ToImmutableDictionary(fst, snd)
+            callablesDefinedInAllSourcesCache <- (parts.Values.SelectMany getInfos).ToImmutableDictionary(fst, snd)
 
-        CallablesDefinedInAllSourcesCache
+        callablesDefinedInAllSourcesCache
 
     /// <summary>
     /// Returns all specializations for the callable with the given name defined in a source file associated with this namespace,
@@ -293,8 +292,8 @@ type Namespace
         let getSpecializationInPartial (partial: PartialNamespace) =
             partial.GetSpecializations cName |> Seq.map (fun (kind, decl) -> kind, (partial.Source, decl))
 
-        if this.TryFindCallable cName |> ResolutionResult.Exists then
-            (Parts.Values.SelectMany getSpecializationInPartial).ToImmutableArray()
+        if this.TryFindCallable cName |> ResolutionResult.exists then
+            (parts.Values.SelectMany getSpecializationInPartial).ToImmutableArray()
         else
             SymbolNotFoundException "A callable with the given name was not found in a source file." |> raise
 
@@ -324,7 +323,7 @@ type Namespace
                 if qsType.Access |> Access.isAccessibleFrom SameAssembly then
                     Found(
                         { CodeFile = partial.Source; AssemblyFile = Null },
-                        SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
+                        SymbolResolution.tryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
                         qsType.Access
                     )
                 else
@@ -332,10 +331,10 @@ type Namespace
             | false, _ -> NotFound
 
         seq {
-            yield Seq.map resolveReferenceType TypesInReferences.[tName] |> ResolutionResult.AtMostOne
-            yield Seq.map findInPartial Parts.Values |> ResolutionResult.AtMostOne
+            yield Seq.map resolveReferenceType typesInReferences.[tName] |> ResolutionResult.atMostOne
+            yield Seq.map findInPartial parts.Values |> ResolutionResult.atMostOne
         }
-        |> ResolutionResult.TryFirstBest
+        |> ResolutionResult.tryFirstBest
 
     /// Returns a resolution result for the callable with the given name containing the name of the source file or
     /// referenced assembly in which it is declared, and a string indicating the redirection if it has been deprecated.
@@ -366,17 +365,17 @@ type Namespace
                 if callable.Access |> Access.isAccessibleFrom SameAssembly then
                     Found(
                         { CodeFile = partial.Source; AssemblyFile = Null },
-                        SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes
+                        SymbolResolution.tryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes
                     )
                 else
                     Inaccessible
             | false, _ -> NotFound
 
         seq {
-            yield Seq.map resolveReferenceCallable CallablesInReferences.[cName] |> ResolutionResult.AtMostOne
-            yield Seq.map findInPartial Parts.Values |> ResolutionResult.AtMostOne
+            yield Seq.map resolveReferenceCallable callablesInReferences.[cName] |> ResolutionResult.atMostOne
+            yield Seq.map findInPartial parts.Values |> ResolutionResult.atMostOne
         }
-        |> ResolutionResult.TryFirstBest
+        |> ResolutionResult.tryFirstBest
 
     /// <summary>
     /// Sets the resolution for the type with the given name in the given source file to the given type,
@@ -386,10 +385,10 @@ type Namespace
     /// The source file does not contain this namespace, or a type with the given name was not found.
     /// </exception>
     member internal this.SetTypeResolution source (tName, resolution, resAttributes) =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, part ->
-            TypesDefinedInAllSourcesCache <- null
-            CallablesDefinedInAllSourcesCache <- null
+            typesDefinedInAllSourcesCache <- null
+            callablesDefinedInAllSourcesCache <- null
             part.SetTypeResolution(tName, resolution, resAttributes)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
@@ -401,9 +400,9 @@ type Namespace
     /// The source file does not contain this namespace, or a callable with the given name was not found.
     /// </exception>
     member internal this.SetCallableResolution source (cName, resolution, resAttributes) =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, part ->
-            CallablesDefinedInAllSourcesCache <- null
+            callablesDefinedInAllSourcesCache <- null
             part.SetCallableResolution(cName, resolution, resAttributes)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
@@ -412,22 +411,22 @@ type Namespace
     /// and sets its resolution and resolved attributes to the computed values.
     /// Returns a list with the name of the source file and each generated diagnostic.
     member internal this.SetSpecializationResolutions(cName, computeResolution, getResAttributes) =
-        CallablesDefinedInAllSourcesCache <- null
+        callablesDefinedInAllSourcesCache <- null
 
         let setResolutions (partial: PartialNamespace) =
             partial.SetSpecializationResolutions(cName, computeResolution, getResAttributes)
             |> Array.map (fun err -> partial.Source, err)
 
-        Parts.Values |> Seq.map setResolutions |> Seq.toList
+        parts.Values |> Seq.map setResolutions |> Seq.toList
 
     /// If the given source is not currently listed as source file for (part of) the namespace,
     /// adds the given file name to the list of sources and returns true.
     /// Returns false otherwise.
     member internal this.TryAddSource source =
-        if not (Parts.ContainsKey source) then
-            TypesDefinedInAllSourcesCache <- null
-            CallablesDefinedInAllSourcesCache <- null
-            Parts.Add(source, new PartialNamespace(this.Name, source))
+        if not (parts.ContainsKey source) then
+            typesDefinedInAllSourcesCache <- null
+            callablesDefinedInAllSourcesCache <- null
+            parts.Add(source, PartialNamespace(this.Name, source))
             true
         else
             false
@@ -436,9 +435,9 @@ type Namespace
     /// removes it from that list (and all declarations along with it) and returns true.
     /// Returns false otherwise.
     member internal this.TryRemoveSource source =
-        if Parts.Remove source then
-            TypesDefinedInAllSourcesCache <- null
-            CallablesDefinedInAllSourcesCache <- null
+        if parts.Remove source then
+            typesDefinedInAllSourcesCache <- null
+            callablesDefinedInAllSourcesCache <- null
             true
         else
             false
@@ -449,7 +448,7 @@ type Namespace
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member this.AddDocumentation source doc =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial -> partial.AddDocumentation doc
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
@@ -463,14 +462,14 @@ type Namespace
         let alias = if String.IsNullOrWhiteSpace alias then null else alias.Trim()
 
         let aliasIsSameAs str =
-            (str = null && alias = null) || (str <> null && alias <> null && str = alias)
+            (isNull str && isNull alias) || (not (isNull str) && not (isNull alias) && str = alias)
 
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial ->
             let imported = partial.ImportedNamespaces
 
             match imported.TryGetValue openedNS with
-            | true, existing when aliasIsSameAs existing && existing = null ->
+            | true, existing when aliasIsSameAs existing && isNull existing ->
                 [|
                     nsRange |> QsCompilerDiagnostic.Warning(WarningCode.NamespaceAleadyOpen, [])
                 |]
@@ -478,7 +477,7 @@ type Namespace
                 [|
                     nsRange |> QsCompilerDiagnostic.Warning(WarningCode.NamespaceAliasIsAlreadyDefined, [])
                 |]
-            | true, existing when existing <> null ->
+            | true, existing when not (isNull existing) ->
                 [|
                     nsRange |> QsCompilerDiagnostic.Error(ErrorCode.AliasForNamespaceAlreadyExists, [ existing ])
                 |]
@@ -486,13 +485,13 @@ type Namespace
                 [|
                     nsRange |> QsCompilerDiagnostic.Error(ErrorCode.AliasForOpenedNamespace, [])
                 |]
-            | false, _ when alias <> null && imported.ContainsValue alias ->
+            | false, _ when not (isNull alias) && imported.ContainsValue alias ->
                 [|
                     aliasRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidNamespaceAliasName, [ alias ])
                 |]
             | false, _ ->
-                TypesDefinedInAllSourcesCache <- null
-                CallablesDefinedInAllSourcesCache <- null
+                typesDefinedInAllSourcesCache <- null
+                callablesDefinedInAllSourcesCache <- null
                 partial.AddOpenDirective(openedNS, alias)
                 [||]
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
@@ -508,10 +507,10 @@ type Namespace
         (source, location)
         ((tName, tRange), typeTuple, attributes, access, documentation)
         : QsCompilerDiagnostic [] =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial when isNameAvailable tName ->
-            TypesDefinedInAllSourcesCache <- null
-            CallablesDefinedInAllSourcesCache <- null
+            typesDefinedInAllSourcesCache <- null
+            callablesDefinedInAllSourcesCache <- null
             partial.AddType location (tName, typeTuple, attributes, access, documentation)
             [||]
         | true, _ ->
@@ -539,9 +538,9 @@ type Namespace
         (source, location)
         ((cName, cRange), (kind, signature), attributes, access, documentation)
         =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial when isNameAvailable cName ->
-            CallablesDefinedInAllSourcesCache <- null
+            callablesDefinedInAllSourcesCache <- null
             partial.AddCallableDeclaration location (cName, (kind, signature), attributes, access, documentation)
             [||]
         | true, _ ->
@@ -588,25 +587,25 @@ type Namespace
 
             if QsNullable.isValue declSource.AssemblyFile then
                 let cDecl =
-                    CallablesInReferences.[cName]
+                    callablesInReferences.[cName]
                     |> Seq.filter (fun c -> c.Source.AssemblyFile |> QsNullable.contains source)
                     |> Seq.exactlyOne
 
                 let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t: ResolvedType) -> t.Resolution)
                 unitReturn, cDecl.Signature.TypeParameters.Length, cDecl.Access
             else
-                let _, cDecl = Parts.[declSource.CodeFile].GetCallable cName
+                let _, cDecl = parts.[declSource.CodeFile].GetCallable cName
                 let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t: QsType) -> t.Type)
                 unitReturn, cDecl.Defined.TypeParameters.Length, cDecl.Access
 
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial ->
             match this.TryFindCallable cName with
             | Found (declSource, _) ->
                 let qFunctorSupport, nrTypeParams, access = getRelevantDeclInfo declSource
 
-                let AddAndClearCache () =
-                    CallablesDefinedInAllSourcesCache <- null
+                let addAndClearCache () =
+                    callablesDefinedInAllSourcesCache <- null
 
                     partial.AddCallableSpecialization
                         location
@@ -628,7 +627,7 @@ type Namespace
                     // verify if a unit return value is required for the given specialization kind
                     match kind with
                     | QsBody ->
-                        AddAndClearCache()
+                        addAndClearCache ()
                         [||]
                     | QsAdjoint ->
                         [|
@@ -644,7 +643,7 @@ type Namespace
                             |> QsCompilerDiagnostic.Error(ErrorCode.RequiredUnitReturnForControlledAdjoint, [])
                         |]
                 else
-                    AddAndClearCache()
+                    addAndClearCache ()
                     [||]
             | _ ->
                 [|
@@ -690,6 +689,6 @@ type Namespace
     /// The source file does not contain this namespace, or a callable with the given name was not found.
     /// </exception>
     member internal this.RemoveSpecialization (source, location) cName =
-        match Parts.TryGetValue source with
+        match parts.TryGetValue source with
         | true, partial -> partial.RemoveCallableSpecialization location cName
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise

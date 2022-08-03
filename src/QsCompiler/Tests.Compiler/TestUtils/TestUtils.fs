@@ -53,21 +53,21 @@ let simpleParseString parser string =
     | Success (_) -> true
     | Failure (_) -> false
 
-let parse_string parser str =
+let parseString parser str =
     let diags: QsCompilerDiagnostic list = []
 
     match CharParsers.runParserOnString parser diags "" str with
     | Success (_) -> true
     | Failure (_) -> false
 
-let parse_string_diags parser str =
+let parseStringDiags parser str =
     let diags: QsCompilerDiagnostic list = []
 
     match CharParsers.runParserOnString parser diags "" str with
     | Success (_, ustate, _) -> true, ustate
     | Failure (_) -> false, []
 
-let parse_string_diags_res parser str =
+let parseStringDiagsRes parser str =
     let diags: QsCompilerDiagnostic list = []
 
     match CharParsers.runParserOnString parser diags "" str with
@@ -185,10 +185,8 @@ let rec matchExpression e1 e2 =
     let matchTypeArray (t1: QsNullable<ImmutableArray<QsType>>) (t2: QsNullable<ImmutableArray<QsType>>) =
         if t1 <> Null && t2 <> Null then
             Seq.forall2 matchType (t1.ValueOr ImmutableArray.Empty) (t2.ValueOr ImmutableArray.Empty)
-        elif t1 = Null && t2 = Null then
-            true
         else
-            false
+            t1 = Null && t2 = Null
 
     match e1.Expression, e2.Expression with
     | DoubleLiteral d1, DoubleLiteral d2 -> d1 = d2 || (Double.IsNaN d1 && Double.IsNaN d2)
@@ -245,7 +243,7 @@ let rec matchExpression e1 e2 =
     | expr1, expr2 -> expr1 = expr2
 
 let testOne parser (str, succExp, resExp, diagsExp) =
-    let succ, diags, res = parse_string_diags_res parser str
+    let succ, diags, res = parseStringDiagsRes parser str
     let succOk = succ = succExp
     let resOk = (not succ) || (res |> Option.contains resExp)
     let errsOk = (not succ) || (matchDiagnostics diagsExp diags)
@@ -261,7 +259,7 @@ let testOne parser (str, succExp, resExp, diagsExp) =
     )
 
 let internal testType (str, result, diagnostics) =
-    let success, diagnostics', result' = parse_string_diags_res TypeParsing.qsType str
+    let success, diagnostics', result' = parseStringDiagsRes TypeParsing.qsType str
     Assert.True(success, sprintf "Failed to parse: %s" str)
 
     Assert.True(
@@ -275,7 +273,7 @@ let internal testType (str, result, diagnostics) =
     )
 
 let testExpr (str, succExp, resExp, diagsExp) =
-    let succ, diags, res = parse_string_diags_res ExpressionParsing.expr str
+    let succ, diags, res = parseStringDiagsRes ExpressionParsing.expr str
     let succOk = succ = succExp
     let resOk = (not succ) || (res |> Option.exists (matchExpression resExp))
     let errsOk = (not succ) || (matchDiagnostics diagsExp diags)
@@ -309,7 +307,7 @@ let buildContent content =
     let compilationManager =
         new CompilationUnitManager(ProjectProperties.Empty, (fun ex -> failwith ex.Message))
 
-    let fileId = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+    let fileId = Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let file = getManager fileId content compilationManager
     compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
     let compilationDataStructures = compilationManager.Build()
@@ -324,14 +322,14 @@ let buildContentWithFiles content files =
     let compilationManager =
         let props = ImmutableDictionary.CreateBuilder()
         props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
-        new CompilationUnitManager(new ProjectProperties(props), (fun ex -> failwith ex.Message))
+        new CompilationUnitManager(ProjectProperties(props), (fun ex -> failwith ex.Message))
 
     for filePath in files do
-        getManager (new Uri(filePath)) (File.ReadAllText filePath) compilationManager
+        getManager (Uri(filePath)) (File.ReadAllText filePath) compilationManager
         |> compilationManager.AddOrUpdateSourceFileAsync
         |> ignore
 
-    let fileId = new Uri(Path.GetFullPath(Path.GetRandomFileName()))
+    let fileId = Uri(Path.GetFullPath(Path.GetRandomFileName()))
     let file = getManager fileId content compilationManager
 
     compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
@@ -358,7 +356,7 @@ let getCtlAdjFromCallable call =
     call.Specializations |> Seq.find (fun x -> x.Kind = QsSpecializationKind.QsControlledAdjoint)
 
 let getLinesFromSpecialization specialization =
-    let writer = new SyntaxTreeToQsharp()
+    let writer = SyntaxTreeToQsharp()
 
     specialization
     |> fun x ->
