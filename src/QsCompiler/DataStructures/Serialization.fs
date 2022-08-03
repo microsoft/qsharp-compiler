@@ -438,9 +438,9 @@ module Json =
     /// Creates a serializer using the given converters.
     /// Be aware that this is expensive and repeated creation of a serializer should be avoided.
     let CreateSerializer converters =
-        let settings = new JsonSerializerSettings()
+        let settings = JsonSerializerSettings()
         settings.Converters <- converters
-        settings.ContractResolver <- new DictionaryAsArrayResolver()
+        settings.ContractResolver <- DictionaryAsArrayResolver()
         settings.NullValueHandling <- NullValueHandling.Include
         settings.MissingMemberHandling <- MissingMemberHandling.Ignore
         settings.CheckAdditionalContent <- false

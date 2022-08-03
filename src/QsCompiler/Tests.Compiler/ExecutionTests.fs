@@ -16,15 +16,15 @@ open Xunit.Abstractions
 
 type ExecutionTests(output: ITestOutputHelper) =
 
-    let WS = new Regex(@"\s+")
-    let stripWS str = WS.Replace(str, "")
+    let ws = Regex(@"\s+")
+    let stripWS str = ws.Replace(str, "")
 
-    let AssertEqual expected got =
+    let assertEqual expected got =
         Assert.True(stripWS expected = stripWS got, sprintf "expected: \n%s\ngot: \n%s" expected got)
 
-    let ExecuteOnReferenceTarget engineIdx args =
+    let executeOnReferenceTarget engineIdx args =
         let exitCode, ex = ref -101, ref null
-        let out, err = ref (new StringBuilder()), ref (new StringBuilder())
+        let out, err = ref (StringBuilder()), ref (StringBuilder())
         let exe = File.ReadAllLines("ReferenceTargets.txt").[engineIdx]
         let args = sprintf "\"%s\" %s" exe args
         let ranToEnd = ProcessRunner.Run("dotnet", args, out, err, exitCode, ex, timeout = 10000)
@@ -33,14 +33,14 @@ type ExecutionTests(output: ITestOutputHelper) =
         Assert.Null(!ex)
         !exitCode, (!out).ToString(), (!err).ToString()
 
-    let ExecuteAndCompareOutput cName expectedOutput =
+    let executeAndCompareOutput cName expectedOutput =
         let args = sprintf "simulate Microsoft.Quantum.Testing.ExecutionTests.%s" cName
-        let exitCode, out, err = args |> ExecuteOnReferenceTarget 0
-        AssertEqual String.Empty err
+        let exitCode, out, err = args |> executeOnReferenceTarget 0
+        assertEqual String.Empty err
         Assert.Equal(0, exitCode)
-        AssertEqual expectedOutput out
+        assertEqual expectedOutput out
 
-    let WriteBitcode runtimeCapability targetPackageDll pathToBitcode files =
+    let writeBitcode runtimeCapability targetPackageDll pathToBitcode files =
         let pathToBitcode = Path.GetFullPath(pathToBitcode)
         let outputDir = Path.GetDirectoryName(pathToBitcode)
         let projName = Path.GetFileNameWithoutExtension(pathToBitcode)
@@ -94,10 +94,10 @@ type ExecutionTests(output: ITestOutputHelper) =
             ]
 
         let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath
-        WriteBitcode "" "" bitcodePath inputPaths
+        writeBitcode "" "" bitcodePath inputPaths
         bitcodePath
 
-    let CompileQirTargetedExecutionTest targetPackageDll =
+    let compileQirTargetedExecutionTest targetPackageDll =
         let inputPaths =
             [
                 if String.IsNullOrWhiteSpace targetPackageDll then
@@ -108,20 +108,20 @@ type ExecutionTests(output: ITestOutputHelper) =
             ]
 
         let bitcodePath = ("outputFolder", "TargetedExecutionTests.bc") |> Path.Combine |> Path.GetFullPath
-        WriteBitcode "AdaptiveExecution" targetPackageDll bitcodePath inputPaths
+        writeBitcode "AdaptiveExecution" targetPackageDll bitcodePath inputPaths
         bitcodePath
 
-    let QirExecutionTest targetPackageDll functionName =
+    let qirExecutionTest targetPackageDll functionName =
         output.WriteLine(sprintf "Testing execution of %s:\n" functionName)
 
         let bitcodeFile =
-            if targetPackageDll <> null then // an empty string permits targeting without pulling in a specific target package
-                CompileQirTargetedExecutionTest targetPackageDll
+            if not (isNull targetPackageDll) then // an empty string permits targeting without pulling in a specific target package
+                compileQirTargetedExecutionTest targetPackageDll
             else
                 compiledQirExecutionTest
 
         let args = sprintf "%s %s" bitcodeFile functionName
-        let exitCode, out, err = args |> ExecuteOnReferenceTarget 1
+        let exitCode, out, err = args |> executeOnReferenceTarget 1
         output.WriteLine(out)
         exitCode, out, err
 
@@ -130,30 +130,30 @@ type ExecutionTests(output: ITestOutputHelper) =
     member this.``QIR entry point return value``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__NoReturn"
-        let exitCode, out, err = QirExecutionTest null functionName
-        AssertEqual String.Empty err
+        let exitCode, out, err = qirExecutionTest null functionName
+        assertEqual String.Empty err
         Assert.Equal(0, exitCode)
-        AssertEqual "()" out
+        assertEqual "()" out
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__ReturnsUnit"
-        let exitCode, out, err = QirExecutionTest null functionName
-        AssertEqual String.Empty err
+        let exitCode, out, err = qirExecutionTest null functionName
+        assertEqual String.Empty err
         Assert.Equal(0, exitCode)
-        AssertEqual "()" out
+        assertEqual "()" out
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__ReturnsString"
-        let exitCode, out, err = QirExecutionTest null functionName
-        AssertEqual String.Empty err
+        let exitCode, out, err = qirExecutionTest null functionName
+        assertEqual String.Empty err
         Assert.Equal(0, exitCode)
-        AssertEqual "\"Success!\"" out // the quotes are correct and needed here
+        assertEqual "\"Success!\"" out // the quotes are correct and needed here
 
 
     [<Fact>]
     member this.``QIR string interpolation``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestInterpolatedStrings"
-        let exitCode, out, err = QirExecutionTest null functionName
-        AssertEqual String.Empty err
+        let exitCode, out, err = qirExecutionTest null functionName
+        assertEqual String.Empty err
         Assert.Equal(0, exitCode)
 
         let expected =
@@ -174,15 +174,15 @@ type ExecutionTests(output: ITestOutputHelper) =
             "All good!"
             """
 
-        AssertEqual expected out
+        assertEqual expected out
 
 
     [<Fact>]
     member this.``QIR default values``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestDefaultValues"
-        let exitCode, out, err = QirExecutionTest null functionName
-        AssertEqual String.Empty err
+        let exitCode, out, err = qirExecutionTest null functionName
+        assertEqual String.Empty err
         Assert.Equal(0, exitCode)
 
         let expected =
@@ -204,15 +204,15 @@ type ExecutionTests(output: ITestOutputHelper) =
             ()
             """
 
-        AssertEqual expected out
+        assertEqual expected out
 
 
     [<Fact>]
     member this.``QIR array slicing``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestArraySlicing"
-        let exitCode, out, err = QirExecutionTest null functionName
-        AssertEqual String.Empty err
+        let exitCode, out, err = qirExecutionTest null functionName
+        assertEqual String.Empty err
         Assert.Equal(0, exitCode)
 
         let expected =
@@ -233,7 +233,7 @@ type ExecutionTests(output: ITestOutputHelper) =
             1..3..5
             """
 
-        AssertEqual expected out
+        assertEqual expected out
 
 
     [<Fact>]
@@ -241,14 +241,14 @@ type ExecutionTests(output: ITestOutputHelper) =
 
         // Sanity test to check if we properly detect when a runtime exception is thrown:
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__CheckFail"
-        let exitCode, out, err = QirExecutionTest null functionName
+        let exitCode, out, err = qirExecutionTest null functionName
         Assert.NotEqual(0, exitCode)
-        AssertEqual "expected failure in CheckFail" out
+        assertEqual "expected failure in CheckFail" out
 
         // ... and now the actual tests
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__RunExample"
-        let exitCode, _, err = QirExecutionTest null functionName
-        AssertEqual String.Empty err
+        let exitCode, _, err = qirExecutionTest null functionName
+        assertEqual String.Empty err
         Assert.Equal(0, exitCode)
 
 
@@ -256,8 +256,8 @@ type ExecutionTests(output: ITestOutputHelper) =
     member this.``QIR native llvm type handling``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling"
-        let exitCode, out, err = QirExecutionTest "" functionName
-        AssertEqual String.Empty err
+        let exitCode, out, err = qirExecutionTest "" functionName
+        assertEqual String.Empty err
         Assert.Equal(0, exitCode)
 
         let expected =
@@ -291,27 +291,27 @@ type ExecutionTests(output: ITestOutputHelper) =
             [[[2], [1, 0]], [], [], []]
             """
 
-        AssertEqual expected out
+        assertEqual expected out
 
 
     [<Fact(Skip = "This first requires additional support in the QIR runtime, specifically implementing support for all target instructions.")>]
     member this.``QIR target package handling``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestTargetPackageHandling"
-        let exitCode, out, err = QirExecutionTest "Microsoft.Quantum.Type3.Core.dll" functionName
-        AssertEqual String.Empty err
+        let exitCode, out, err = qirExecutionTest "Microsoft.Quantum.Type3.Core.dll" functionName
+        assertEqual String.Empty err
         Assert.Equal(0, exitCode)
-        AssertEqual "" out
+        assertEqual "" out
 
 
     [<Fact>]
     member this.``Loading via test names``() =
-        ExecuteAndCompareOutput "LogViaTestName" "not implemented"
+        executeAndCompareOutput "LogViaTestName" "not implemented"
 
 
     [<Fact>]
     member this.``Specialization Generation for Conjugations``() =
-        ExecuteAndCompareOutput
+        executeAndCompareOutput
             "ConjugationsInBody"
             "
                 U1
@@ -336,7 +336,7 @@ type ExecutionTests(output: ITestOutputHelper) =
                 Adjoint U1
             "
 
-        ExecuteAndCompareOutput
+        executeAndCompareOutput
             "ConjugationsInAdjoint"
             "
                 U1
@@ -361,7 +361,7 @@ type ExecutionTests(output: ITestOutputHelper) =
                 Adjoint U1
             "
 
-        ExecuteAndCompareOutput
+        executeAndCompareOutput
             "ConjugationsInControlled"
             "
                 U1
@@ -386,7 +386,7 @@ type ExecutionTests(output: ITestOutputHelper) =
                 Adjoint U1
             "
 
-        ExecuteAndCompareOutput
+        executeAndCompareOutput
             "ConjugationsInControlledAdjoint"
             "
                 U1
@@ -414,14 +414,14 @@ type ExecutionTests(output: ITestOutputHelper) =
 
     [<Fact>]
     member this.``Referencing Projects and Packages``() =
-        ExecuteAndCompareOutput
+        executeAndCompareOutput
             "PackageAndProjectReference"
             "
                 Welcome to Q#!
                 Info: Go check out https://docs.microsoft.com/azure/quantum.
             "
 
-        ExecuteAndCompareOutput
+        executeAndCompareOutput
             "TypeInReferencedProject"
             "
                 [Complex((1, 0))]
@@ -429,7 +429,7 @@ type ExecutionTests(output: ITestOutputHelper) =
 
     [<Fact>]
     member this.``Adjoint generation from expressions should be reversed``() =
-        ExecuteAndCompareOutput
+        executeAndCompareOutput
             "AdjointExpressions"
             "
                 1

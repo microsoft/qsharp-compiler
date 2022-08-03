@@ -100,7 +100,7 @@ let ``String parser tests`` () =
 
     // testing whether tabs etc in strings are processed correctly
     let testChar offset char string =
-        match parse_string_diags_res rawString string with
+        match parseStringDiagsRes rawString string with
         | true, _, Some parsed ->
             Assert.Equal(offset + 1, parsed.Length)
             Assert.Equal(char, parsed.[offset])

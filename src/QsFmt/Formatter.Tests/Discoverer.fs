@@ -88,7 +88,7 @@ type ExampleAttribute(exampleKind: ExampleKind) =
 /// A wrapper around <see cref="Result"/> with a <see cref="Object.ToString"/> implementation that uses structured
 /// formatting.
 /// </summary>
-type private ShowResult<'value, 'error> = private ShowResult of Result<'value, 'error>
+type private ShowResult<'Value, 'Error> = private ShowResult of Result<'Value, 'Error>
 
 /// <summary>
 /// Test cases that are auto-discovered based on <see cref="ExampleAttribute"/> and <see cref="FixedPointAttribute"/>.
