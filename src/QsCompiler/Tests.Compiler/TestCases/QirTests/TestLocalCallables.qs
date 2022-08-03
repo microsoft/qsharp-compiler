@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.Testing.QIR {
 
         let arr = [DoNothing];
         Adjoint arr[0]();
-        Controlled arr[0](new Qubit[0], ());
+        Controlled arr[0]([], ());
         arr[0]();
 
         let fct = ReturnTuple;

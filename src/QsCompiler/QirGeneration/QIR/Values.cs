@@ -379,10 +379,21 @@ namespace Microsoft.Quantum.QIR.Emission
         /// The necessary functions to invoke the callable are defined by the callable table;
         /// i.e. the globally defined array of function pointers accessible via the given global variable.
         /// </summary>
+        /// <param name="globalName">The Q# name of the callable, if the callable is globally defined.</param>
+        /// <param name="callableType">The Q# type of the callable value.</param>
+        /// <param name="table">The global variable that contains the array of function pointers defining the callable.</param>
+        internal CallableValue CreateCallable(QsQualifiedName globalName, ResolvedType callableType, GlobalVariable table) =>
+            new(globalName, callableType, table, this.sharedState);
+
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// </summary>
         /// <param name="callableType">The Q# type of the callable value.</param>
         /// <param name="table">The global variable that contains the array of function pointers defining the callable.</param>
         /// <param name="captured">All captured values.</param>
         internal CallableValue CreateCallable(ResolvedType callableType, GlobalVariable table, ImmutableArray<TypedExpression>? captured = null) =>
-            new(callableType, table, this.sharedState, captured);
+            new(callableType, table, this.sharedState, captured ?? ImmutableArray<TypedExpression>.Empty);
     }
 }

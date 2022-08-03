@@ -2,6 +2,8 @@ define internal i64 @Microsoft__Quantum__Testing__QIR__TestControlled__body() {
 entry:
   %error_code = alloca i64, align 8
   %0 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Qop__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %0, i32 1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %0, i32 1)
   %1 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i64 }* getelementptr ({ %Callable*, i64 }, { %Callable*, i64 }* null, i32 1) to i64))
   %2 = bitcast %Tuple* %1 to { %Callable*, i64 }*
   %3 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %2, i32 0, i32 0
@@ -292,6 +294,8 @@ continue__1:                                      ; preds = %continue__2, %then0
   call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_ctl_qop, i32 -1)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %ctl_ctl_qop, i32 -1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_ctl_qop, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %0, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %0, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %qop, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %qop, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %adj_qop, i32 -1)

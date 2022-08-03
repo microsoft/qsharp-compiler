@@ -1004,7 +1004,105 @@ namespace Microsoft.Quantum.QIR.Emission
     /// </summary>
     internal class CallableValue : IValue
     {
-        public Value Value { get; }
+        // FIXME: -> add test case: let h = H; let op = M(q) == Zero ? X | Adjoint h; op(q);
+        // FIXME: DOUBLE CHECK IF WE INDEED DO NOT INCREASE THE REF COUNT FOR THE COPY CONSTRUCTOR - RT CREATES COPY INCREASES REF COUNT
+
+        private class CreationItems
+        {
+            internal GlobalVariable FunctionTable { get; }
+
+            internal Constant MemoryManagementTable { get; }
+
+            internal Value Capture { get; }
+
+            internal bool RequireClosure { get; }
+
+            internal CreationItems(GlobalVariable functionTable, GenerationContext context, TupleValue? capture = null)
+            {
+                this.FunctionTable = functionTable;
+                this.MemoryManagementTable = context.GetOrCreateCallableMemoryManagementTable(capture);
+                this.Capture = capture?.OpaquePointer ?? context.Values.Unit.Value;
+                this.RequireClosure = capture is not null;
+            }
+        }
+
+        internal class CallableState
+        {
+            public QsQualifiedName GlobalName { get; }
+
+            public QsSpecializationKind RelevantSpecialization { get; }
+
+            private CallableState(QsQualifiedName name, QsSpecializationKind? relevantSpec = null)
+            {
+                this.GlobalName = name;
+                this.RelevantSpecialization = relevantSpec ?? QsSpecializationKind.QsBody;
+            }
+
+            internal static CallableState Create(QsQualifiedName name) => new(name);
+
+            private CallableState WithRelevantSpec(QsSpecializationKind relevantSpec) => new(this.GlobalName, relevantSpec);
+
+            private static QsSpecializationKind ApplyAdjoint(QsSpecializationKind spec) =>
+                spec.IsQsBody ? QsSpecializationKind.QsAdjoint :
+                spec.IsQsAdjoint ? QsSpecializationKind.QsBody :
+                spec.IsQsControlled ? QsSpecializationKind.QsControlledAdjoint :
+                spec.IsQsControlledAdjoint ? QsSpecializationKind.QsControlled :
+                throw new NotImplementedException("Unknown specialization");
+
+            private static QsSpecializationKind ApplyControlled(QsSpecializationKind spec) =>
+                spec.IsQsBody || spec.IsQsControlled ? QsSpecializationKind.QsControlled :
+                spec.IsQsAdjoint || spec.IsQsControlledAdjoint ? QsSpecializationKind.QsControlledAdjoint :
+                throw new NotImplementedException("Unknown specialization");
+
+            internal CallableState ApplyFunctor(QsFunctor functor) =>
+                this.WithRelevantSpec(
+                    functor.IsAdjoint ? ApplyAdjoint(this.RelevantSpecialization) :
+                    functor.IsControlled ? ApplyControlled(this.RelevantSpecialization) :
+                    throw new NotImplementedException("unkown functor"));
+        }
+
+        private readonly GenerationContext sharedState;
+
+        // We use a cache to enable lazy creation of callable values when the capture is null.
+        private readonly IValue.Cached<Value> createdCallable;
+        private readonly CreationItems? creationItems;
+
+        // If the callable is globally defined then we can apply the functors during QIR generation, i.e. we
+        // track applied functors by updating the CurrentState property, and apply the appropriate functors
+        // only when needed; when accessing the Value property, functors are automatically applied by invoking
+        // the corresponding runtime function(s). This permits to omit calls to runtime functions entirely,
+        // if the callable value is fully trackable during QIR generation; before emiting a call instruction,
+        // we check if the name of the callable is known, and if it is we merely select the correct specialization
+        // and never even access the Value property.
+        internal CallableState? CurrentState { get; private set; } // FIXME: GET RID OF SETTER HERE
+
+        public Value Value
+        {
+            get
+            {
+                var callable = this.createdCallable.Load();
+                var specKind = this.CurrentState?.RelevantSpecialization ?? QsSpecializationKind.QsBody;
+
+                if (specKind.IsQsAdjoint || specKind.IsQsControlledAdjoint)
+                {
+                    // does *not* create a new value but instead modifies the given callable in place.
+                    var applyAdjoint = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeAdjoint);
+                    this.sharedState.CurrentBuilder.Call(applyAdjoint, callable);
+                }
+
+                if (specKind.IsQsControlled || specKind.IsQsControlledAdjoint)
+                {
+                    // does *not* create a new value but instead modifies the given callable in place.
+                    var applyControlled = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeControlled);
+                    this.sharedState.CurrentBuilder.Call(applyControlled, callable);
+                }
+
+                // If we updated (i.e. did an in-place modification of) the value of the orginally created callable,
+                // the stored callable name and relevant specialization no longer apply.
+                this.CurrentState = specKind.IsQsBody ? this.CurrentState : null;
+                return callable;
+            }
+        }
 
         /// <inheritdoc cref="IValue.LlvmType" />
         public ITypeRef LlvmType { get; }
@@ -1012,38 +1110,155 @@ namespace Microsoft.Quantum.QIR.Emission
         public ResolvedType QSharpType { get; }
 
         /// <summary>
+        /// Instantiates a new callable value of the given type.
+        /// </summary>
+        /// <param name="value">The pointer to a QIR callable value, if the value has already been created.</param>
+        /// <param name="callableType">Q# type of the callable.</param>
+        /// <param name="creationItems">The items required for creating the callable value; if the callable captures values, the capture needs to be in scope.</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed.</param>
+        private CallableValue(Value? value, ResolvedType callableType, CreationItems? creationItems, GenerationContext context)
+        {
+            this.sharedState = context;
+            this.QSharpType = callableType;
+            this.LlvmType = context.Types.Callable;
+            this.creationItems = creationItems;
+            this.createdCallable = this.CreateCallableCache(value);
+        }
+
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// </summary>
+        /// <param name="globalName">The Q# name of the callable, if the callable is globally defined.</param>
+        /// <param name="callableType">The Q# type of the callable value.</param>
+        /// <param name="functionTable">The global variable that contains the array of function pointers defining the callable.</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed.</param>
+        /// <param name="captured">All captured values.</param>
+        private CallableValue(QsQualifiedName? globalName, ResolvedType callableType, GlobalVariable functionTable, GenerationContext context, ImmutableArray<TypedExpression>? captured)
+        : this(
+            null,
+            callableType,
+            new CreationItems(functionTable, context, captured is not null && captured.Value.Length > 0
+                ? context.Values.CreateTuple(captured.Value, allocOnStack: false, registerWithScopeManager: false)
+                : null),
+            context)
+        {
+            this.CurrentState = globalName is null ? null : CallableState.Create(globalName);
+        }
+
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// </summary>
+        /// <param name="globalName">The Q# name of the callable, if the callable is globally defined.</param>
+        /// <param name="callableType">The Q# type of the callable value.</param>
+        /// <param name="functionTable">The global variable that contains the array of function pointers defining the callable.</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed.</param>
+        internal CallableValue(QsQualifiedName globalName, ResolvedType callableType, GlobalVariable functionTable, GenerationContext context)
+        : this(globalName, callableType, functionTable, context, null)
+        {
+        }
+
+        /// <summary>
         /// Creates a callable value of the given type and registers it with the scope manager.
         /// The necessary functions to invoke the callable are defined by the callable table;
         /// i.e. the globally defined array of function pointers accessible via the given global variable.
         /// </summary>
         /// <param name="callableType">The Q# type of the callable value.</param>
-        /// <param name="table">The global variable that contains the array of function pointers defining the callable.</param>
+        /// <param name="functionTable">The global variable that contains the array of function pointers defining the callable.</param>
         /// <param name="context">Generation context where constants are defined and generated if needed.</param>
         /// <param name="captured">All captured values.</param>
-        internal CallableValue(ResolvedType callableType, GlobalVariable table, GenerationContext context, ImmutableArray<TypedExpression>? captured = null)
+        internal CallableValue(ResolvedType callableType, GlobalVariable functionTable, GenerationContext context, ImmutableArray<TypedExpression> captured)
+        : this(null, callableType, functionTable, context, captured)
         {
-            this.QSharpType = callableType;
-            this.LlvmType = context.Types.Callable;
-
-            // The runtime function CallableCreate creates a new value with reference count 1.
-            var createCallable = context.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var capture = captured == null || captured.Value.Length == 0 ? null : context.Values.CreateTuple(captured.Value, allocOnStack: false, registerWithScopeManager: false);
-            var memoryManagementTable = context.GetOrCreateCallableMemoryManagementTable(capture);
-            this.Value = context.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? context.Values.Unit.Value);
-            context.ScopeMgr.RegisterValue(this);
         }
 
         /// <summary>
         /// Creates a new callable value of the given type.
         /// </summary>
         /// <param name="value">The pointer to a QIR callable value.</param>
-        /// <param name="type">Q# type of the callable.</param>
+        /// <param name="callableType">Q# type of the callable.</param>
         /// <param name="context">Generation context where constants are defined and generated if needed.</param>
-        internal CallableValue(Value value, ResolvedType type, GenerationContext context)
+        internal CallableValue(Value value, ResolvedType callableType, GenerationContext context)
+        : this(value, callableType, null, context)
         {
-            this.QSharpType = type;
-            this.LlvmType = context.Types.Callable;
-            this.Value = value;
+        }
+
+        /* private helpers */
+
+        private IValue.Cached<Value> CreateCallableCache(Value? value = null)
+        {
+            Value CreateCallable(CreationItems items)
+            {
+                // The runtime function CallableCreate creates a new value with reference count 1.
+                var createCallable = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
+                var callable = this.sharedState.CurrentBuilder.Call(createCallable, items.FunctionTable, items.MemoryManagementTable, items.Capture);
+                this.sharedState.ScopeMgr.RegisterValue(this);
+                return callable;
+            }
+
+            // If the callable requires creating a closure, and we invoke the runtime method CallableCreate to build that closure.
+            // If there are no values to capture (i.e. there is no need to build a closure), we can create the callable lazily instead.
+            value ??= this.creationItems is not null && this.creationItems.RequireClosure ? CreateCallable(this.creationItems) : null;
+            return value is not null || this.creationItems is not null
+                ? new IValue.Cached<Value>(value, this.sharedState, () => value is not null ? value : CreateCallable(this.creationItems!))
+                : throw new InvalidOperationException("a cache value needs to be defined when no creation items have been defined");
+        }
+
+        // public helpers
+
+        /// <summary>
+        /// Invokes the runtime function with the given name to apply a functor to a callable value.
+        /// Unless modifyInPlace is set to true, a copy of the callable is made prior to applying the functor.
+        /// Reference counts for the callable and the capture are updated as needed, and if a new value is created,
+        /// it is registered with the scope manager.
+        /// </summary>
+        /// <param name="functor">The functor to apply.</param>
+        /// <param name="modifyInPlace">If set to true, modifies and returns the given callable</param>
+        /// <returns>The callable value to which the functor has been applied</returns>
+        public CallableValue ApplyFunctor(QsFunctor functor, bool modifyInPlace)
+        {
+            // This method is used when applying functors when building a functor application expression
+            // as well as when creating the specializations for a partial application.
+            var callable = this;
+            if (!modifyInPlace)
+            {
+                // Even though functors are applied lazily when possible, accessing the callable value will trigger
+                // functor application by applying the corresponding runtime function. Since the runtime function
+                // will modify the callable in place, we need to make a copy unless an in-place modification has
+                // been requested. Since we track alias counts for callables there is no need to force the copy.
+                var makeCopy = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
+                var forceCopy = this.sharedState.Context.CreateConstant(false);
+                var value = this.sharedState.CurrentBuilder.Call(makeCopy, this.Value, forceCopy);
+                callable = new CallableValue(value, this.QSharpType, this.creationItems, this.sharedState);
+
+                // While making a copy ensures that either a new callable is created with reference count 1,
+                // or the reference count of the existing callable is increased by 1,
+                // we also need to increase the reference counts for all contained items, i.e. for the capture tuple,
+                // and register the new value with the scope manager.
+                this.sharedState.ScopeMgr.ReferenceCaptureTuple(callable);
+                this.sharedState.ScopeMgr.RegisterValue(callable);
+            }
+
+            // We apply functors lazily; they only need to be applied when we are actually accessing the callable value.
+            // Rather than invoking the runtime functions when a functor is applied, we hence merely keep track of
+            // what functors applications are "pending". Accessing the Value triggers applications of the functors.
+            callable.CurrentState = this.CurrentState?.ApplyFunctor(functor);
+            if (callable.CurrentState is null)
+            {
+                // Given that we are not tracking the state of the callable, e.g. because the callable
+                // requires a closure, we invoke the corresponding runtime function to apply the functor.
+                var runtimeFunctionName =
+                    functor.IsAdjoint ? RuntimeLibrary.CallableMakeAdjoint :
+                    functor.IsControlled ? RuntimeLibrary.CallableMakeControlled :
+                    throw new ArgumentException("unknown functor");
+                var applyFunctor = this.sharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
+                this.sharedState.CurrentBuilder.Call(applyFunctor, callable.Value);
+            }
+
+            return callable;
         }
     }
 }

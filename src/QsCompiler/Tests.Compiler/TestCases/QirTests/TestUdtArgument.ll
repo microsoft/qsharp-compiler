@@ -5,6 +5,8 @@ entry:
   %1 = bitcast { i64 }* %udt1 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %1, i32 1)
   %2 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TestType2__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %2, i32 1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %2, i32 1)
   %3 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i2 }* getelementptr ({ %Callable*, i2 }, { %Callable*, i2 }* null, i32 1) to i64))
   %4 = bitcast %Tuple* %3 to { %Callable*, i2 }*
   %5 = getelementptr inbounds { %Callable*, i2 }, { %Callable*, i2 }* %4, i32 0, i32 0
@@ -16,6 +18,8 @@ entry:
   %8 = bitcast { i2, i64 }* %udt2 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %8, i32 1)
   %9 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TestType3__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %9, i32 1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %9, i32 1)
   %10 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i2, double }* getelementptr ({ %Callable*, i2, double }, { %Callable*, i2, double }* null, i32 1) to i64))
   %11 = bitcast %Tuple* %10 to { %Callable*, i2, double }*
   %12 = getelementptr inbounds { %Callable*, i2, double }, { %Callable*, i2, double }* %11, i32 0, i32 0
@@ -48,9 +52,13 @@ entry:
   call void @__quantum__rt__capture_update_reference_count(%Callable* %0, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %0, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %1, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %2, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %2, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %7, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %7, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %9, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %9, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %15, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %15, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %18, i32 -1)
