@@ -9,6 +9,16 @@ import {workspaceInfo} from "./commands";
 // import fetch from 'node-fetch';
 import * as https from "https";
 
+const selectionStepEnum = {
+  SUBSCRIPTION:1,
+  RESOURCE_GROUP:2,
+  WORKSPACE:3
+};
+
+const totalStepsEnum = {
+WORKSPACE_AND_JOB:7,
+JUST_WORKSPACE:3
+};
 
 export async function getWorkspaceFromUser(
     context: vscode.ExtensionContext,
@@ -47,13 +57,13 @@ export async function getWorkspaceFromUser(
 
     const quickPick = vscode.window.createQuickPick();
     // if user is submitting job, total steps will be 7, otherwise 3
-    quickPick.totalSteps = submitJobCommand?7:3;
+    quickPick.totalSteps = submitJobCommand?totalStepsEnum.WORKSPACE_AND_JOB:totalStepsEnum.JUST_WORKSPACE;
 
     await setupSubscriptionIdQuickPick(quickPick, currentworkspaceInfo, options);
     quickPick.onDidAccept(async () => {
       const selection = quickPick.selectedItems[0];
       // user selects subscription, now set up resource group selection
-      if (quickPick.step === 1) {
+      if (quickPick.step === selectionStepEnum.SUBSCRIPTION) {
         if (!selection || !selection["description"]) {
           reject();
           return;
@@ -66,7 +76,7 @@ export async function getWorkspaceFromUser(
           options
         );
         // user selects resource group, now set up workspace selection
-      } else if (quickPick.step === 2) {
+      } else if (quickPick.step === selectionStepEnum.RESOURCE_GROUP) {
         if (!selection || !selection["label"]) {
           reject();
           return;
@@ -75,8 +85,8 @@ export async function getWorkspaceFromUser(
         await setupWorkspaceQuickPick(quickPick, subscriptionId, resourceGroup, options);
       }
       // final step
-      else if (quickPick.step === 3) {
-          if (!selection || !selection["label"]) {
+      else if (quickPick.step === selectionStepEnum.WORKSPACE) {
+        if (!selection || !selection["label"]) {
               reject();
               return;
             }
@@ -102,11 +112,11 @@ export async function getWorkspaceFromUser(
 
     quickPick.onDidTriggerButton(async (button) => {
       // resource group back button pressed, go back to subscription id
-      if (quickPick.step === 2) {
+      if (quickPick.step === selectionStepEnum.RESOURCE_GROUP) {
         await setupSubscriptionIdQuickPick(quickPick, currentworkspaceInfo, options);
       }
       // workspaces back button pressed, go back to resource group
-      if (quickPick.step === 3) {
+      if (quickPick.step === selectionStepEnum.WORKSPACE) {
         await setupResourceGroupQuickPick(
           quickPick,
           currentworkspaceInfo,
@@ -135,7 +145,7 @@ export async function getWorkspaceFromUser(
     options:any
   ) {
     quickPick.items = [];
-    quickPick.step = 2;
+    quickPick.step = selectionStepEnum.RESOURCE_GROUP;
     quickPick.title = "Select Resource Group";
     quickPick.value = "";
     quickPick.buttons = [vscode.QuickInputButtons.Back];
@@ -164,11 +174,11 @@ export async function getWorkspaceFromUser(
     });
 
     quickPick.value = "";
-    if (quickPick.step===2){
+    if (quickPick.step===selectionStepEnum.RESOURCE_GROUP){
       quickPick.items = rgJSON.value.map((rg: any) => {
           if (
           currentworkspaceInfo &&
-          (currentworkspaceInfo as any)["resourceGroup"] === rg.name && quickPick.step ===2
+          (currentworkspaceInfo as any)["resourceGroup"] === rg.name && quickPick.step ===selectionStepEnum.RESOURCE_GROUP
           ) {
               quickPick.value = rg.name;
           }
@@ -186,7 +196,7 @@ export async function getWorkspaceFromUser(
     options: any
   ) {
     quickPick.items = [];
-    quickPick.step = 1;
+    quickPick.step = selectionStepEnum.SUBSCRIPTION;
     quickPick.title = "Select Subscription";
     quickPick.enabled = false;
     quickPick.ignoreFocusOut = true;
@@ -214,14 +224,14 @@ export async function getWorkspaceFromUser(
     });
     });
 
-    if (quickPick.step===1){
+    if (quickPick.step===selectionStepEnum.SUBSCRIPTION){
       quickPick.items = subscriptionsJSON.value.map((subscription: any) => {
           if (
           currentworkspaceInfo &&
           (currentworkspaceInfo as any)["subscriptionId"] ===
               subscription.subscriptionId && quickPick.step ===1
           ) {
-              quickPick.value = subscription.displayName;
+            subscription.subscriptionId && quickPick.step ===selectionStepEnum.SUBSCRIPTION
           }
           return {
           label: subscription.displayName,
@@ -237,7 +247,7 @@ export async function getWorkspaceFromUser(
 
   async function setupWorkspaceQuickPick(quickPick: vscode.QuickPick<vscode.QuickPickItem>, subscriptionId:string, resourceGroup:string, options:any){
     quickPick.items = [];
-    quickPick.step = 3;
+    quickPick.step = selectionStepEnum.WORKSPACE;
     quickPick.title = "Select Workspace";
     quickPick.value = "";
     quickPick.buttons = [vscode.QuickInputButtons.Back];
@@ -270,7 +280,7 @@ export async function getWorkspaceFromUser(
       }
       return false;
     });
-    if (quickPick.step===3){
+    if (quickPick.step===selectionStepEnum.WORKSPACE){
       quickPick.items = quantumWorkspaces.map((workspace: any) => {
         return {
           label: workspace.name,
