@@ -1004,9 +1004,6 @@ namespace Microsoft.Quantum.QIR.Emission
     /// </summary>
     internal class CallableValue : IValue
     {
-        // FIXME: -> add test case: let h = H; let op = M(q) == Zero ? X | Adjoint h; op(q);
-        // FIXME: DOUBLE CHECK IF WE INDEED DO NOT INCREASE THE REF COUNT FOR THE COPY CONSTRUCTOR - RT CREATES COPY INCREASES REF COUNT
-
         private class CreationItems
         {
             internal GlobalVariable FunctionTable { get; }
