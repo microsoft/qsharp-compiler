@@ -375,8 +375,11 @@ export async function submitJob(
               // update targetsSubmissionDates with new time stamp for target
               // this enables users to see most recent targets first when submitting jobs
               let targetSubmissionDates: any = context.workspaceState.get(
-                "targetSubmissionDates" || {}
+                "targetSubmissionDates"
               );
+              if (!targetSubmissionDates){
+                targetSubmissionDates={}
+              }
               targetSubmissionDates[target] = timeStamp;
               context.workspaceState.update(
                 "targetSubmissionDates",

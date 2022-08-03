@@ -46,8 +46,9 @@ async function getCredential(context: vscode.ExtensionContext, changeAccount=fal
         location: vscode.ProgressLocation.Notification,
         title: "Authenticating...",
         }, async (progress, token2) => {
-    let tempCredential:any  = new AzureCliCredential();
+    let tempCredential:any;
     try{
+        tempCredential  = new AzureCliCredential();
         // if a user is changing their account always trigger InteractiveBrowserCredential
         if(changeAccount){
             // tslint:disable-next-line:no-unused-expression

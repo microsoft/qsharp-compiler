@@ -231,8 +231,11 @@ catch(err:any){
     return;
 }
   let targetSubmissionDates: any = context.workspaceState.get(
-    "targetSubmissionDates" || {}
-  );
+                "targetSubmissionDates"
+              );
+              if (!targetSubmissionDates){
+                targetSubmissionDates={};
+              }
   for (let provider of Object.keys(availableTargets)) {
     availableTargets[provider].map((t: any) => {
       t["lastSubmissionDate"] = targetSubmissionDates[t["id"]]
