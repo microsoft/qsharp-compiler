@@ -10,6 +10,7 @@ import {
   InteractiveBrowserCredential,
 } from "@azure/identity";
 import { QuantumJobClient } from "@azure/quantum-jobs";
+import { getPackageInfo } from './packageInfo';
 
 import { DotnetInfo, findIQSharpVersion } from "./dotnet";
 import { IPackageInfo } from "./packageInfo";
@@ -325,8 +326,11 @@ export async function submitJob(
           args.push("--location");
           args.push(workspaceInfo["location"]);
 
+          const packageInfo = getPackageInfo(context);
+          const vscode_version = packageInfo?.version;
+
           args.push("--user-agent");
-          args.push("VSCODE");
+          args.push(`quantum-devkit-vscode/${vscode_version}`);
 
           if (programArguments) {
             args = args.concat(programArguments.split(" "));
@@ -378,7 +382,7 @@ export async function submitJob(
                 "targetSubmissionDates"
               );
               if (!targetSubmissionDates){
-                targetSubmissionDates={}
+                targetSubmissionDates={};
               }
               targetSubmissionDates[target] = timeStamp;
               context.workspaceState.update(
@@ -388,11 +392,15 @@ export async function submitJob(
             })
             .then(undefined, (err) => {
               console.error("I am a runtime error ");
+              console.error(err);
+              console.log(err.stdout);
               vscode.window.showErrorMessage(err.stderr);
             });
         })
         .then(undefined, (err) => {
           console.error("I am a compilation error");
+          console.error(err);
+          console.error(err.stdout);
           vscode.window.showErrorMessage(err.message);
         });
     }
