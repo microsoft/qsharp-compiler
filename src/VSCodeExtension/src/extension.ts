@@ -299,4 +299,3 @@ export function deactivate() {
     if (reporter) { reporter.dispose(); }
 }
 
-
