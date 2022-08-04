@@ -232,7 +232,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             //       project, it would be better to have e.g. an abstract Project base class with
             //       subclasses NotebookProject and MSBuildProject. There is some work on this in
             //       the aadams/notebook-project-refactor-wip branch
-            internal bool IsNotebookProject() =>
+            internal bool IsNotebookProject =>
                 this.ProjectFile == NotebookProjectUri;
 
             public void Dispose() =>
@@ -626,7 +626,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <param name="cellUri">The uri of the file (cell) to add</param>
             public Task AddNotebookCellAsync(Uri cellUri)
             {
-                QsCompilerError.Verify(this.IsNotebookProject(), "must add notebook cells only to the notebook project");
+                QsCompilerError.Verify(this.IsNotebookProject, "must add notebook cells only to the notebook project");
 
                 return this.processing.QueueForExecutionAsync(() =>
                 {
@@ -746,7 +746,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             }
                         }
 
-                        if (!this.loadedSourceFiles.Contains(file) && !this.IsNotebookProject())
+                        if (!this.loadedSourceFiles.Contains(file) && !this.IsNotebookProject)
                         {
                             return false;
                         }
@@ -1082,7 +1082,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.load.QueueForExecutionAsync(() =>
             {
                 var notebookProject =
-                    this.projects.Values.Where(project => project.IsNotebookProject()).SingleOrDefault()
+                    this.projects.Values.Where(project => project.IsNotebookProject).SingleOrDefault()
                     ?? this.CreateNotebookProject(notebookProjectLoader);
 
                 notebookProject.AddNotebookCellAsync(file);

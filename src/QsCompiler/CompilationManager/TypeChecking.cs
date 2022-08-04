@@ -283,7 +283,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     ? compilation.GlobalSymbols.CopyForExtension(ReservedKeywords.InternalUse.NotebookNamespace, file.FileName)
                     : null;
 
-                Namespace ContainingNamespace(Position pos, IReadOnlyCollection<(Position, Namespace)> items)
+                Namespace ContainingNamespace(Position pos)
                 {
                     return ContainingParent(pos, namespaces) ?? notebookNamespace ?? throw new ArgumentException("No containing namespace exists");
                 }
@@ -298,7 +298,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var typesToCompile = AddItems(
                     file.GetTypeDeclarationHeaderItems(),
                     (pos, name, decl, att, doc) =>
-                        ContainingNamespace(pos, namespaces).TryAddType(
+                        ContainingNamespace(pos).TryAddType(
                             file.FileName,
                             new QsLocation(pos, name.Item2),
                             name,
@@ -312,7 +312,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var tokensToCompile = new List<(QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>?))>();
                 foreach (var headerItem in typesToCompile)
                 {
-                    var ns = ContainingNamespace(headerItem.Item2.Position, namespaces);
+                    var ns = ContainingNamespace(headerItem.Item2.Position);
                     tokensToCompile.Add((new QsQualifiedName(ns.Name, headerItem.Item2.SymbolName), (headerItem.Item2.Comments, null)));
                 }
 
@@ -320,7 +320,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var callablesToCompile = AddItems(
                     file.GetCallableDeclarationHeaderItems(),
                     (pos, name, decl, att, doc) =>
-                        ContainingNamespace(pos, namespaces).TryAddCallableDeclaration(
+                        ContainingNamespace(pos).TryAddCallableDeclaration(
                             file.FileName,
                             new QsLocation(pos, name.Item2),
                             name,
@@ -334,7 +334,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // add all callable specilizations -> TOOD: needs to be adapted for specializations outside the declaration body (not yet supported)
                 foreach (var headerItem in callablesToCompile)
                 {
-                    var ns = ContainingNamespace(headerItem.Item2.Position, namespaces);
+                    var ns = ContainingNamespace(headerItem.Item2.Position);
                     var tIndicesToCompile = AddSpecializationsToNamespace(file, ns, headerItem, diagnostics);
                     var (nsName, cName) = (ns.Name, headerItem.Item2.SymbolName);
                     var callableDeclComments = headerItem.Item2.Comments;
@@ -506,7 +506,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var namespaces = file.GetNamespaceHeaderItems().Select(tuple => (tuple.Item2.Position, tuple.Item2.SymbolName)).ToList();
 
-                string ContainingNamespaceName(Position pos, IReadOnlyCollection<(Position, string)> items)
+                string ContainingNamespaceName(Position pos)
                 {
                     var notebookNamespaceName = file.DocumentKind == DocumentKind.NotebookCell ? ReservedKeywords.InternalUse.NotebookNamespace : null;
                     return ContainingParent(pos, namespaces) ?? notebookNamespaceName ?? throw new ArgumentException("No containing namespace exists");
@@ -514,7 +514,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 AddItems(
                     file.GetOpenDirectivesHeaderItems(),
-                    (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingNamespaceName(pos, namespaces), file.FileName),
+                    (pos, name, alias, _, __) => compilation.GlobalSymbols.AddOpenDirective(name.Item1, name.Item2, alias.Item1, alias.Item2, ContainingNamespaceName(pos), file.FileName),
                     file.FileName,
                     diagnostics);
             }
