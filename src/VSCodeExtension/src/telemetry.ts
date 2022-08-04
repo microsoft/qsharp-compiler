@@ -35,6 +35,7 @@ export namespace EventNames {
     export const getJobResults = "get-job-results";
     export const getJobDetails = "get-job-details";
     export const changeAzureAccount = "change-azure-account";
+    export const connectToAzureAccount = "connect-to--azure-account";
 }
 
 // @ts-ignore

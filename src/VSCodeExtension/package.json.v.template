@@ -31,7 +31,6 @@
         "onCommand:quantum.openDocumentation",
         "onCommand:quantum.installIQSharp",
         "onCommand:quantum.connectToAzureAccount",
-        "onCommand:quantum.disconnectFromAzureAccount",
         "onCommand:quantum.changeWorkspace",
         "onCommand:quantum.submitJob",
         "onCommand:quantum.getJob",
@@ -60,10 +59,6 @@
             {
                 "command": "quantum.connectToAzureAccount",
                 "title": "Q#: Connect to Azure Account"
-            },
-            {
-                "command": "quantum.disconnectFromAzureAccount",
-                "title": "Q#: Disconnect from Azure Account"
             },
             {
                 "command": "quantum.changeWorkspace",
@@ -161,6 +156,16 @@
             ]
         },
         "menus": {
+            "commandPalette": [
+                {
+                  "command": "quantum.changeAzureAccount",
+                  "when": "showChangeAzureAccount == true"
+                },
+                {
+                    "command": "quantum.connectToAzureAccount",
+                    "when": "showChangeAzureAccount == false"
+                }
+              ],
             "view/title": [
                 {
                     "command": "quantum-jobs.clearJobs",

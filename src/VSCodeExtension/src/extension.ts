@@ -67,6 +67,7 @@ async function getCredential(context: vscode.ExtensionContext, changeAccount=fal
     accountAuthStatusBarItem.tooltip = `Authenticated from ${authSource}`;
     accountAuthStatusBarItem.show();
     credential = tempCredential;
+    vscode.commands.executeCommand('setContext', 'showChangeAzureAccount', true);
     });
     return;
 }
@@ -113,6 +114,8 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.createTreeView("quantum-jobs",  {
         treeDataProvider: localSubmissionsProvider,
     });
+    // shows "Connect to Azure Account" in command pallete, hides "Change Azure Account" from pallete
+    vscode.commands.executeCommand('setContext', 'showChangeAzureAccount', false);
 
     // need to call registerUIExtensionVariables to use openReadOnlyJson from
     // @microsoft/vscode-azext-utils package
@@ -200,13 +203,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    // registerCommand(
-    //     context,
-    //     "quantum.disconnectFromAzureAccount",
-    //     () => {
-    //         deleteAzureWorkspaceInfo(context);
-    //     }
-    // );
 
     registerCommand(
         context,
@@ -260,6 +256,11 @@ export async function activate(context: vscode.ExtensionContext) {
         getJobResults(context, credential,workSpaceStatusBarItem, jobId);
     }
     );
+    vscode.commands.registerCommand('quantum.connectToAzureAccount', async () =>{
+        sendTelemetryEvent(EventNames.connectToAzureAccount, {},{});
+        await getCredential(context);
+    });
+
     vscode.commands.registerCommand('quantum.changeAzureAccount', async () =>{
         sendTelemetryEvent(EventNames.changeAzureAccount, {},{});
         await getCredential(context, true);

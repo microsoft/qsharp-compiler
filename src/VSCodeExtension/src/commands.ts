@@ -211,17 +211,6 @@ async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:Int
 
 
 
-
-
-
-
-
-export async function deleteAzureWorkspaceInfo(context: vscode.ExtensionContext) {
-  context.workspaceState.update("workspaceInfo", undefined);
-  vscode.window.showInformationMessage("Successfully Disconnected");
-}
-
-
 function getQuantumJobClient(workspaceInfo: workspaceInfo, credential: any) {
   const endpoint = "https://" + workspaceInfo["location"] + ".quantum.azure.com";
   return new QuantumJobClient(
