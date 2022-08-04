@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
@@ -199,6 +200,38 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
+        internal bool NotebookProjectLoader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? info)
+        {
+            var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
+            buildProperties.Add(MSBuildProperties.TargetPath, null);
+
+            // TODO: Should be propagated from notebook for more helpful text in error message
+            buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, null);
+            buildProperties.Add(MSBuildProperties.QuantumSdkPath, null);
+            buildProperties.Add(MSBuildProperties.QuantumSdkVersion, Assembly.GetEntryAssembly()?.GetName().Version?.ToString());
+            buildProperties.Add(MSBuildProperties.QsharpLangVersion, null);
+
+            // TODO: Want to propagate the runtime capability from the notebook
+            buildProperties.Add(MSBuildProperties.ResolvedTargetCapability, null);
+            buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, "QSharpLibrary");
+            buildProperties.Add(MSBuildProperties.ExposeReferencesViaTestNames, null);
+
+            // TODO: In the future if we add formatting support, this will need to be updated
+            buildProperties.Add(MSBuildProperties.QsFmtExe, null);
+
+            // TODO: To allow access to the standard library, need to include references to:
+            // * Microsoft.Quantum.Standard.dll
+            // * Microsoft.Quantum.QSharp.Foundation.dll
+            // * Microsoft.Quantum.QSharp.Core.dll
+            // (This is normally handled by the Quantum SDK MSBuild scripts, which we have bypassed)
+            info = new ProjectInformation(
+                sourceFiles: ImmutableArray<string>.Empty,
+                projectReferences: ImmutableArray<string>.Empty,
+                references: ImmutableArray<string>.Empty,
+                buildProperties: buildProperties);
+            return true;
+        }
+
         /// <summary>
         /// For each given uri, loads the corresponding project if the uri contains the project file for a Q# project,
         /// and publishes suitable diagnostics for it.
@@ -255,14 +288,19 @@ namespace Microsoft.Quantum.QsLanguageServer
                 throw new ArgumentException("invalid text document identifier");
             }
 
+            DocumentKind documentKind = textDocument.LanguageId == "qsharp-notebook" ? DocumentKind.NotebookCell : DocumentKind.File;
+
+            if (documentKind == DocumentKind.NotebookCell)
+            {
+                _ = this.projects.RegisterNotebookCellAsync(textDocument.Uri, this.NotebookProjectLoader);
+            }
+
             _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
                 {
                     return;
                 }
-
-                DocumentKind documentKind = textDocument.LanguageId == "qsharp-notebook" ? DocumentKind.NotebookCell : DocumentKind.File;
 
                 var onException = (Exception ex) =>
                 {

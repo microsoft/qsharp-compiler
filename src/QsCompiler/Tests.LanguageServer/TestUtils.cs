@@ -92,8 +92,17 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             { TextDocument = GetTextDocumentIdentifier(filename), Position = pos };
         }
 
+        internal static DocumentHighlightParams GetDocumentHighlightParams(Uri uri, int line, int col)
+        {
+            return new DocumentHighlightParams
+            { TextDocument = new TextDocumentIdentifier { Uri = uri }, Position = new Position(line, col) };
+        }
+
         internal static ExecuteCommandParams ServerCommand(string command, params object[] args) =>
             new ExecuteCommandParams { Command = command, Arguments = args };
+
+        internal static Range GetRange(int startLine, int startCol, int endLine, int endCol) =>
+            new Range { Start = new Position(startLine, startCol), End = new Position(endLine, endCol) };
 
         // does not modify range
         internal static int GetRangeLength(Range range, IReadOnlyList<string> content)

@@ -617,6 +617,85 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.AreEqual(DiagnosticSeverity.Error, diagnostics2[0].Severity);
         }
 
+        [TestMethod]
+        public async Task NotebookTypeCheckingAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test18");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var okFile = Path.Combine(projDir, "Bell.qs");
+            var badFile = Path.Combine(projDir, "Semantic.qs");
+
+            // Same value sent by Azure Notebooks
+            var languageId = "qsharp-notebook";
+
+            var notebookGuid = Guid.NewGuid();
+            var uriOk = TestUtils.GenerateNotebookCellUri(notebookGuid);
+            var uriBad = TestUtils.GenerateNotebookCellUri(notebookGuid);
+
+            // Azure Notebooks leaves RootUri=null, so do the same here
+            var initParams = TestUtils.GetInitializeParams();
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParamsBad = TestUtils.GetOpenFileParams(badFile, uriBad, languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParamsBad);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uriBad));
+
+            var openParamsOk = TestUtils.GetOpenFileParams(okFile, uriOk, languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParamsOk);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uriOk));
+            var diagnosticsOk = await this.GetFileDiagnosticsAsync(uri: uriOk);
+
+            // Doing this second because want to make sure "ok" file is included in type checking
+            // for "bad" file, since "bad" file depends on types defined in "ok" file
+            var diagnosticsBad = (await this.GetFileDiagnosticsAsync(uri: uriBad))?
+                .OrderBy(diag => diag.Range.Start.Line)
+                .Select(diag => (diag.Code?.Second, diag.Severity, diag.Range.Start.Line))
+                .ToList();
+
+            Assert.IsNotNull(diagnosticsOk);
+            Assert.AreEqual(0, diagnosticsOk!.Length);
+
+            Assert.IsNotNull(diagnosticsBad);
+            Assert.AreEqual(4, diagnosticsBad!.Count);
+            Assert.AreEqual(("QS0001", DiagnosticSeverity.Error, 1), diagnosticsBad[0]);
+            Assert.AreEqual(("QS6001", DiagnosticSeverity.Error, 4), diagnosticsBad[1]);
+            Assert.AreEqual(("QS0001", DiagnosticSeverity.Error, 9), diagnosticsBad[2]);
+            Assert.AreEqual(("QS0001", DiagnosticSeverity.Error, 12), diagnosticsBad[3]);
+        }
+
+        [TestMethod]
+        public async Task NotebookDocumentHighlightAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test18");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var file = Path.Combine(projDir, "Bell.qs");
+
+            // Same value sent by Azure Notebooks
+            var languageId = "qsharp-notebook";
+
+            var notebookGuid = Guid.NewGuid();
+            var uri = TestUtils.GenerateNotebookCellUri(notebookGuid);
+
+            // Azure Notebooks leaves RootUri=null, so do the same here
+            var initParams = TestUtils.GetInitializeParams();
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParams = TestUtils.GetOpenFileParams(file, uri, languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uri));
+
+            var highlightParams = TestUtils.GetDocumentHighlightParams(uri, line: 5, col: 7);
+            var ranges = (await this.rpc.InvokeWithParameterObjectAsync<DocumentHighlight[]>(Methods.TextDocumentDocumentHighlight.Name, highlightParams))?
+                .Select(highlight => highlight.Range)
+                .OrderBy(range => range.Start.Line)
+                .ToList();
+
+            Assert.IsNotNull(ranges);
+            Assert.AreEqual(2, ranges!.Count);
+            Assert.AreEqual(TestUtils.GetRange(startLine: 5, startCol: 4, endLine: 5, endCol: 13), ranges[0]);
+            Assert.AreEqual(TestUtils.GetRange(startLine: 14, startCol: 10, endLine: 14, endCol: 19), ranges[1]);
+        }
+
         private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)
         {
             var projectManager = new ProjectManager(e => throw e);

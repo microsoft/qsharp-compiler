@@ -159,6 +159,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         private class Project : IDisposable
         {
+            public static readonly Uri NotebookProjectUri = new Uri("notebook:///NotebookProject");
+
             public Uri ProjectFile { get; }
 
             public Uri? OutputPath { get; private set; }
@@ -225,6 +227,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// </remarks>
             internal bool ContainsAnySourceFiles(Func<Uri, bool>? filter = null) =>
                 this.specifiedSourceFiles?.Any(filter ?? (_ => true)) ?? false; // keep this as specified, *not* loaded!
+
+            // TODO: Going forward, instead of having the notebook project masquerade as a msbuild
+            //       project, it would be better to have e.g. an abstract Project base class with
+            //       subclasses NotebookProject and MSBuildProject. There is some work on this in
+            //       the aadams/notebook-project-refactor-wip branch
+            internal bool IsNotebookProject =>
+                this.ProjectFile == NotebookProjectUri;
 
             public void Dispose() =>
                 this.processing.QueueForExecutionAsync(() => this.Manager.Dispose());
@@ -612,6 +621,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // -> i.e. asynchronous tasks that are queued into the Processing queue
 
             /// <summary>
+            /// Adds a file to the project dedicated to notebook cells
+            /// </summary>
+            /// <param name="cellUri">The uri of the file (cell) to add</param>
+            public Task AddNotebookCellAsync(Uri cellUri)
+            {
+                QsCompilerError.Verify(this.IsNotebookProject, "must add notebook cells only to the notebook project");
+
+                return this.processing.QueueForExecutionAsync(() =>
+                {
+                    this.specifiedSourceFiles = this.specifiedSourceFiles.Add(cellUri);
+                });
+            }
+
+            /// <summary>
             /// Reloads all project references with output path <paramref name="dllPath"/> and/or any reference to that dll.
             /// </summary>
             /// <param name="projectOutputPaths">A dictionary mapping each project file to the corresponding output path of the built project dll.</param>
@@ -669,7 +692,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 return this.processing.QueueForExecutionAsync(() =>
                 {
-                    if (!this.specifiedSourceFiles.Contains(sourceFile) || !this.isLoaded || openInEditor(sourceFile) != null)
+                    if (!this.ContainsSourceFile(sourceFile) || !this.isLoaded || openInEditor(sourceFile) != null)
                     {
                         return;
                     }
@@ -706,7 +729,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 this.processing.QueueForExecution(
                     () =>
                     {
-                        if (!this.specifiedSourceFiles.Contains(file))
+                        if (!this.ContainsSourceFile(file))
                         {
                             return false;
                         }
@@ -723,7 +746,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             }
                         }
 
-                        if (!this.loadedSourceFiles.Contains(file))
+                        if (!this.loadedSourceFiles.Contains(file) && !this.IsNotebookProject)
                         {
                             return false;
                         }
@@ -1041,6 +1064,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? includedIn.Single().Manager
                 : this.defaultManager;
         }
+
+        private Project CreateNotebookProject(ProjectInformation.Loader notebookProjectLoader)
+        {
+            QsCompilerError.Verify(notebookProjectLoader(Project.NotebookProjectUri, out var info), "projectInfoLoader() to CreateNotebookProject() should not fail");
+            var project = new Project(Project.NotebookProjectUri, info, this.logException, this.publishDiagnostics, this.log);
+            this.projects.AddOrUpdate(Project.NotebookProjectUri, project, (k, v) => project);
+            return project;
+        }
+
+        /// <summary>
+        /// Add the file <paramref name="file"/> to the stand-in notebook project. The notebook
+        /// project will be created with <paramref name="notebookProjectLoader"/> if it does not
+        /// already exist.
+        /// </summary>
+        public Task RegisterNotebookCellAsync(Uri file, ProjectInformation.Loader notebookProjectLoader) =>
+            this.load.QueueForExecutionAsync(() =>
+            {
+                var notebookProject =
+                    this.projects.Values.Where(project => project.IsNotebookProject).SingleOrDefault()
+                    ?? this.CreateNotebookProject(notebookProjectLoader);
+
+                notebookProject.AddNotebookCellAsync(file);
+            });
 
         /// <summary>
         /// If <paramref name="file"/> can be uniquely associated with a compilation unit,
