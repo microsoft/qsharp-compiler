@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private bool IgnoreFile(Uri? file) => file == null || this.ignoreEditorUpdatesForFiles.ContainsKey(file) || file.LocalPath.ToLowerInvariant().Contains("vctmp");
 
-        private static string DefaultNotebookReferencesDir() => Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location), "notebookReferences");
+        private static string DefaultNotebookReferencesDir => Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location), "notebookReferences");
 
         /// <summary>
         /// Calls the given publishDiagnostics Action with the changed diagnostics whenever they have changed,
@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry);
             this.log = log ?? ((msg, severity) => Console.Error.WriteLine($"{severity}: {msg}"));
-            this.notebookReferencesDir = notebookReferencesDir ?? DefaultNotebookReferencesDir();
+            this.notebookReferencesDir = notebookReferencesDir ?? DefaultNotebookReferencesDir;
         }
 
         /// <summary>
@@ -212,11 +212,16 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         /// <summary>
-        /// Create a stand-in notebook project. If a directory named "notebookReferences" exists
-        /// alongside the binary for the executable, all dlls in it will be added as references to
-        /// the notebook project. For a usable experience, the key references to include are
-        /// Microsoft.Quantum.Standard.dll, Microsoft.Quantum.QSharp.Foundation.dll, and
+        /// Create a stand-in notebook project.
+        /// <para/>
+        /// If the notebookReferencesDir parameter to the EditorState constructor points to a valid
+        /// directory path (or by default if a directory named "notebookReferences" exists alongside
+        /// the binary for the language server executable), all dlls in it will be added as
+        /// references to the notebook project. For a usable experience, the key references to
+        /// include are Microsoft.Quantum.Standard.dll, Microsoft.Quantum.QSharp.Foundation.dll, and
         /// Microsoft.Quantum.QSharp.Core.dll; the language server docker image should ship these.
+        /// (Normally, these references are handled by the Quantum SDK MSBuild scripts, but we have
+        /// forfeited that help by bypassing MSBuild and creating this project ourselves.)
         /// </summary>
         internal bool NotebookProjectLoader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? info)
         {
@@ -237,9 +242,6 @@ namespace Microsoft.Quantum.QsLanguageServer
             // TODO: In the future if we add formatting support, this will need to be updated
             buildProperties.Add(MSBuildProperties.QsFmtExe, null);
 
-            // Adding references normally handled by the Quantum SDK MSBuild scripts, which we have
-            // bypassed by not invoking MSBuild.
-            // The qsharp-dev.ps1 script in the aadams/qsharp-tweaks branch of the AzureNotebooks repository will download the dlls from NuGet for you
             IEnumerable<string> references = Enumerable.Empty<string>();
             if (!string.IsNullOrEmpty(this.notebookReferencesDir))
             {
