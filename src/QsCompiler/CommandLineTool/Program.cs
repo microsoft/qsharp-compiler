@@ -104,6 +104,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var logger = options.GetLogger();
             try
             {
+                System.Diagnostics.Debugger.Launch();
+
                 var result = compile(options, logger);
                 logger.ReportSummary(result);
                 return result;
