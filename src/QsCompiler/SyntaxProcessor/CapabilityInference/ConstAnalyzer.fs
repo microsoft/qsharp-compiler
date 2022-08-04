@@ -27,7 +27,7 @@ let createPattern range =
             // instead of here, but this is easier after https://github.com/microsoft/qsharp-compiler/issues/1025.
             let description = "conditional expression or mutable variable in a constant context"
             let args = [ target.Name; description ]
-            QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
+            QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
 
     {
         Capability = capability
