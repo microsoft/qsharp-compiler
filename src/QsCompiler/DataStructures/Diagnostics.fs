@@ -719,7 +719,6 @@ type DiagnosticItem =
                         "Note: Relevant unsolved constraints: {1}"
                 ]
                 |> String.concat Environment.NewLine
-            | ErrorCode.ConstrainsTypeParameter -> "The given expression constrains the type parameter(s) {0}."
             | ErrorCode.GlobalTypeAlreadyExists -> "A type with the name \"{0}\" already exists."
             | ErrorCode.GlobalCallableAlreadyExists -> "A callable with the name \"{0}\" already exists."
             | ErrorCode.LocalVariableAlreadyExists -> "A variable with the name \"{0}\" already exists."
