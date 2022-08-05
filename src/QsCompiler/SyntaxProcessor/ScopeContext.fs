@@ -27,8 +27,8 @@ type ScopeContext =
         /// The return type of the parent callable for the current scope.
         ReturnType: ResolvedType
 
-        /// The runtime capability of the compilation unit.
-        Capability: RuntimeCapability
+        /// The target capability of the compilation unit.
+        Capability: TargetCapability
 
         /// The name of the processor architecture for the compilation unit.
         ProcessorArchitecture: string

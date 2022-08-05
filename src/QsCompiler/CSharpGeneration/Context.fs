@@ -139,18 +139,34 @@ type CodegenContext =
 
     member public this.ExposeReferencesViaTestNames =
         match this.assemblyConstants.TryGetValue AssemblyConstants.ExposeReferencesViaTestNames with
-        | true, propVal -> propVal = "true"
+        | true, propVal -> not <| System.String.IsNullOrWhiteSpace propVal && propVal.Trim().ToLower() = "true"
         | false, _ -> false
 
-    member internal this.GenerateCodeForSource(fileName: string) =
-        let targetsQuantumProcessor =
-            match this.assemblyConstants.TryGetValue AssemblyConstants.ProcessorArchitecture with
-            | true, target ->
-                target = AssemblyConstants.HoneywellProcessor
-                || target = AssemblyConstants.IonQProcessor
-                || target = AssemblyConstants.QCIProcessor
-                || target = AssemblyConstants.QuantinuumProcessor
-                || target = "MicrosoftSimulator" // ToDo: We need to have an assembly constant for this.
-            | _ -> false
+    member public this.IsTargetPackageAssembly(assemblyName: string) =
+        let targetPackageAssemblies =
+            match this.assemblyConstants.TryGetValue(AssemblyConstants.TargetPackageAssemblies) with
+            | true, value -> value.Split(";") |> Seq.map (fun s -> s.Trim().ToLower())
+            | false, _ -> Seq.empty
 
-        not (fileName.EndsWith ".dll") || targetsQuantumProcessor
+        not <| System.String.IsNullOrWhiteSpace assemblyName
+        && assemblyName.Trim().ToLower() |> targetPackageAssemblies.Contains
+
+    member public this.IsFromTargetPackage(decl: QsCallable) =
+        match decl.Source.AssemblyFile with
+        | Value assemblyName -> this.IsTargetPackageAssembly assemblyName
+        | _ ->
+            this.assemblyConstants.TryGetValue(AssemblyConstants.IsTargetPackage)
+            |> function
+                | true, value -> not <| System.String.IsNullOrWhiteSpace value && value.Trim().ToLower() = "true"
+                | _ -> false
+
+    member internal this.GenerateCodeForSource(source: Source) =
+        if source.IsReference then
+            let target = this.ProcessorArchitecture
+            target = AssemblyConstants.IonQProcessor
+            || target = AssemblyConstants.QCIProcessor
+            || target = AssemblyConstants.QuantinuumProcessor
+            || target = AssemblyConstants.RigettiProcessor
+            || target = AssemblyConstants.MicrosoftSimulator
+        else
+            true

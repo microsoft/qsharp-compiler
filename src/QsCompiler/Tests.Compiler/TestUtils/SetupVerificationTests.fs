@@ -68,7 +68,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         ]
             .ToImmutableDictionary(fst, snd)
 
-    let VerifyDiagnosticsOfSeverity severity name (expected: IEnumerable<_>) =
+    let verifyDiagnosticsOfSeverity severity name (expected: IEnumerable<_>) =
         let exists, diag = diagnostics.TryGetValue name
         Assert.True(exists, sprintf "no entry found for %s.%s" name.Namespace name.Name)
 
@@ -98,16 +98,16 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
 
     member this.Verify(name, expected: IEnumerable<ErrorCode>) =
-        let expected = expected.Select(fun code -> int code)
-        VerifyDiagnosticsOfSeverity(Nullable DiagnosticSeverity.Error) name expected
+        let expected = expected.Select int
+        verifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Error) name expected
 
     member this.Verify(name, expected: IEnumerable<WarningCode>) =
-        let expected = expected.Select(fun code -> int code)
-        VerifyDiagnosticsOfSeverity(Nullable DiagnosticSeverity.Warning) name expected
+        let expected = expected.Select int
+        verifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Warning) name expected
 
     member this.Verify(name, expected: IEnumerable<InformationCode>) =
-        let expected = expected.Select(fun code -> int code)
-        VerifyDiagnosticsOfSeverity(Nullable DiagnosticSeverity.Information) name expected
+        let expected = expected.Select int
+        verifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Information) name expected
 
     member this.VerifyDiagnostics(name, expected: IEnumerable<DiagnosticItem>) =
         let errs =
@@ -141,31 +141,29 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
-
-    static member Compile(srcFolder, fileNames, ?references, ?capability) =
+    static member Compile(srcFolder, fileNames, ?references, ?capability, ?isExecutable) =
         let references = defaultArg references []
-        let capability = defaultArg capability FullComputation
-        let paths = fileNames |> Seq.map (fun file -> Path.Combine(srcFolder, file) |> Path.GetFullPath)
-        let props = ImmutableDictionary.CreateBuilder()
-        props.Add(MSBuildProperties.ResolvedRuntimeCapabilities, capability.Name)
-        let mutable exceptions = []
+        let isExecutable = defaultArg isExecutable false
+        let capabilityName = Option.bind TargetCapability.name capability
 
-        use manager =
-            new CompilationUnitManager(new ProjectProperties(props), (fun e -> exceptions <- e :: exceptions))
+        let files =
+            fileNames
+            |> Seq.map (fun name ->
+                let path = Path.Combine(srcFolder, name) |> Path.GetFullPath
+                Uri path, File.ReadAllText path)
+            |> dict
 
-        paths.ToImmutableDictionary(Uri, File.ReadAllText)
-        |> CompilationUnitManager.InitializeFileManagers
-        |> manager.AddOrUpdateSourceFilesAsync
-        |> ignore
+        let props =
+            dict [ MSBuildProperties.ResolvedTargetCapability, Option.toObj capabilityName
+                   if isExecutable then MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe ]
+            |> ProjectProperties
 
-        references
-        |> ProjectManager.LoadReferencedAssemblies
-        |> References
-        |> manager.UpdateReferencesAsync
+        let exceptions = ResizeArray()
+        use manager = new CompilationUnitManager(props, Action<_> exceptions.Add)
+        manager.AddOrUpdateSourceFilesAsync(CompilationUnitManager.InitializeFileManagers files) |> ignore
+
+        manager.UpdateReferencesAsync(ProjectManager.LoadReferencedAssemblies references |> References)
         |> ignore
 
         let compilation = manager.Build()
-
-        if not <| List.isEmpty exceptions then exceptions |> List.rev |> AggregateException |> raise
-
-        compilation
+        if exceptions.Count > 0 then AggregateException exceptions |> raise else compilation

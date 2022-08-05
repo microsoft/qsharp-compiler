@@ -35,76 +35,76 @@ type TestRewriteStep(priority: int) =
 
 type ExternalRewriteStepsManagerTests() =
 
-    let GetSteps config =
+    let getSteps config =
         ExternalRewriteStepsManager.Load(config, null, null)
 
-    let AssertLength (expectedLength, loadedSteps: ImmutableArray<LoadedStep>) =
+    let assertLength (expectedLength, loadedSteps: ImmutableArray<LoadedStep>) =
         Assert.NotEmpty loadedSteps
         Assert.Equal(expectedLength, loadedSteps.Length)
 
-    let VerifyStep (loadedSteps: ImmutableArray<LoadedStep>) =
-        AssertLength(1, loadedSteps)
+    let verifyStep (loadedSteps: ImmutableArray<LoadedStep>) =
+        assertLength (1, loadedSteps)
 
         let loadedStep = loadedSteps.[0]
         Assert.Equal("Test Rewrite Step", loadedStep.Name)
 
     [<Fact>]
     member this.``No steps``() =
-        let config = new CompilationLoader.Configuration()
-        let loadedSteps = GetSteps config
+        let config = CompilationLoader.Configuration()
+        let loadedSteps = getSteps config
         Assert.Empty loadedSteps
 
     [<Fact>]
     member this.``Loading Assembly based steps``() =
         let config =
-            new CompilationLoader.Configuration(RewriteStepAssemblies = [ (this.GetType().Assembly.Location, "") ])
+            CompilationLoader.Configuration(RewriteStepAssemblies = [ (this.GetType().Assembly.Location, "") ])
 
-        let loadedSteps = GetSteps config
-        VerifyStep loadedSteps
+        let loadedSteps = getSteps config
+        verifyStep loadedSteps
 
     [<Fact>]
     member this.``Loading Type based steps``() =
         let config = CompilationLoader.Configuration(RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ])
-        let loadedSteps = GetSteps config
-        VerifyStep loadedSteps
+        let loadedSteps = getSteps config
+        verifyStep loadedSteps
 
     [<Fact>]
     member this.``Loading instance based steps``() =
         let stepInstance = TestRewriteStep()
         let config = CompilationLoader.Configuration(RewriteStepInstances = [ (upcast stepInstance, "") ])
-        let loadedSteps = GetSteps config
-        VerifyStep loadedSteps
+        let loadedSteps = getSteps config
+        verifyStep loadedSteps
 
     [<Fact>]
     member this.``Loading assembly, type and instance based steps simultaneously``() =
-        let stepInstance = new TestRewriteStep()
+        let stepInstance = TestRewriteStep()
 
         let config =
-            new CompilationLoader.Configuration(
+            CompilationLoader.Configuration(
                 RewriteStepAssemblies = [ (this.GetType().Assembly.Location, "") ],
                 RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ],
                 RewriteStepInstances = [ (stepInstance :> IRewriteStep, "") ]
             )
 
-        let loadedSteps = GetSteps config
+        let loadedSteps = getSteps config
 
-        AssertLength(3, loadedSteps)
+        assertLength (3, loadedSteps)
         Assert.All(loadedSteps, (fun step -> step.Name = "Test Rewrite Step" |> ignore))
 
     [<Fact>]
     member this.``Steps are ordered``() =
-        let stepInstance1 = new TestRewriteStep -10
-        let stepInstance2 = new TestRewriteStep 20
+        let stepInstance1 = TestRewriteStep -10
+        let stepInstance2 = TestRewriteStep 20
 
         let config =
-            new CompilationLoader.Configuration(
+            CompilationLoader.Configuration(
                 RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ],
                 RewriteStepInstances = [ (stepInstance1 :> IRewriteStep, ""); (stepInstance2 :> IRewriteStep, "") ]
             )
 
-        let loadedSteps = GetSteps config
+        let loadedSteps = getSteps config
 
-        AssertLength(3, loadedSteps)
+        assertLength (3, loadedSteps)
         Assert.Equal(20, loadedSteps.[0].Priority)
         Assert.Equal(0, loadedSteps.[1].Priority)
         Assert.Equal(-10, loadedSteps.[2].Priority)

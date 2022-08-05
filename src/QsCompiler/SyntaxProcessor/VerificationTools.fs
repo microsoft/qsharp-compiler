@@ -53,31 +53,31 @@ type QsExpression with
 
         this.Range.ValueOrApply onNull
 
-    member this.isInvalid =
+    member this.IsInvalid =
         match this with
         | Tuple _
         | Item _
         | Missing -> false
         | _ -> true
 
-    member this.isMissing =
+    member this.IsMissing =
         match this with
         | Missing -> true
         | _ -> false
 
 type ResolvedType with
 
-    member this.isInvalid =
+    member this.IsInvalid =
         match this.Resolution with
         | InvalidType -> true
         | _ -> false
 
-    member this.isMissing =
+    member this.IsMissing =
         match this.Resolution with
         | MissingType -> true
         | _ -> false
 
-    member this.isTypeParameter =
+    member this.IsTypeParameter =
         match this.Resolution with
         | TypeParameter _ -> true
         | _ -> false
@@ -85,7 +85,7 @@ type ResolvedType with
     /// Returns true if the given type contains external type parameters,
     /// i.e. type parameters that do not belong to the given symbol parent.
     /// Returns false otherwise.
-    member this.isTypeParametrized parent =
+    member this.IsTypeParametrized parent =
         let condition =
             function
             | QsTypeKind.TypeParameter tp -> tp.Origin <> parent
@@ -96,7 +96,7 @@ type ResolvedType with
     /// If the given type supports equality comparison,
     /// returns the type of an equality comparison expression as Some (which is always Bool).
     /// Returns None otherwise.
-    member this.supportsEqualityComparison =
+    member this.SupportsEqualityComparison =
         match this.Resolution with
         | Int
         | BigInt
@@ -111,7 +111,7 @@ type ResolvedType with
     /// If the given type supports arithmetic operations,
     /// returns the type of an arithmetic expression as Some.
     /// Returns None otherwise.
-    member this.supportsArithmetic =
+    member this.SupportsArithmetic =
         match this.Resolution with
         | Int
         | BigInt
@@ -121,7 +121,7 @@ type ResolvedType with
     /// If the given type supports concatenations,
     /// returns the type of the concatenation expression as Some (which is the same as the given type).
     /// Returns None otherwise.
-    member this.supportsConcatenation =
+    member this.SupportsConcatenation =
         match this.Resolution with
         | String
         | ArrayType _ -> Some this
@@ -131,7 +131,7 @@ type ResolvedType with
     /// returns the type of the iteration item as Some -
     /// i.e. for an expression of type array its base type, and for a Range expression Int.
     /// Returns None otherwise.
-    member this.supportsIteration =
+    member this.SupportsIteration =
         match this.Resolution with
         | Range -> Some(Int |> ResolvedType.New)
         | ArrayType bt -> Some bt

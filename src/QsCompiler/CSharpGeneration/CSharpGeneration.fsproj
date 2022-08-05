@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+    
   <PropertyGroup>
     <AssemblyName>Microsoft.Quantum.CSharpGeneration</AssemblyName>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -24,4 +25,11 @@
   <ItemGroup>
     <ProjectReference Include="..\RoslynWrapper\RoslynWrapper.fsproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Tests.Microsoft.Quantum.CSharpGeneration$(PublicKeySuffix)</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+    
 </Project>

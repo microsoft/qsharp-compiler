@@ -935,9 +935,9 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         let op = q => GenericFunction(Adjointable(q), Controllable(q));
     }
 
-    function Lambda23() : Unit {
+    function Lambda23() : Int {
         let numbers = [14, 15, 3, -4, 18];
-        let _ = Fold((x, y) -> x + y, 0, numbers);
+        return Fold((x, y) -> x + y, 0, numbers);
     }
 
     function Lambda24(xs : Int[]) : Int[] {
@@ -958,9 +958,24 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return f(1);
     }
 
-    function Lambda28() : Unit {
+    function Lambda28() : Int[] {
         let f = (n, i) -> [0, size = n] w/ i <- 1;
-        let _ = f(2, 0);
+        return f(2, 0);
+    }
+
+    function Lambda29() : NamedItems1 {
+        let f = x -> x w/ Im <- 1;
+        return f(NamedItems1(1, 0));
+    }
+
+    function Lambda30() : Int[] {
+        let i = 0;
+        let f = xs -> xs w/ i <- 1;
+        return f([1, 0]);
+    }
+
+    function Lambda31(xs : NamedItems1[]) : Int[] {
+        return Mapped(x -> x::Re, xs);
     }
 
     function LambdaInvalid1() : Qubit => Unit is Adj {
@@ -994,5 +1009,14 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     function LambdaInvalid7() : Int -> Int {
         mutable x = 0;
         return x -> x;
+    }
+
+    function LambdaInvalid8() : Unit {
+        let f = x -> x w/ Invalid <- 1;
+        let _ = f(NamedItems1(1, 0));
+    }
+
+    function LambdaInvalid9(xs : NamedItems1[]) : Int[] {
+        return Mapped(x -> x::Invalid, xs);
     }
 }

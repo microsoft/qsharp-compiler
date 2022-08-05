@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (type.Resolution is ResolvedTypeKind.ArrayType arrItemType)
                 {
                     var (length, dataArr) = LoadSizedArray(givenValue);
-                    ArrayValue array = this.sharedState.Values.CreateArray(length, arrItemType.Item, registerWithScopeManager: false);
+                    ArrayValue array = this.sharedState.Values.CreateArray(arrItemType.Item, length, registerWithScopeManager: false);
                     if (registerWithScopeManager)
                     {
                         this.sharedState.ScopeMgr.RegisterValue(array);
@@ -214,7 +214,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution is ResolvedTypeKind.TupleType items)
                 {
                     var tupleItems = GetStructItems(givenValue, items.Item, registerWithScopeManager);
-                    return this.sharedState.Values.CreateTuple(registerWithScopeManager, tupleItems);
+                    return this.sharedState.Values.CreateTuple(tupleItems, registerWithScopeManager);
                 }
                 else if (type.Resolution.IsBigInt)
                 {
@@ -285,7 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (item is ArgumentTuple.QsTuple innerTuple)
                 {
                     var tupleItems = innerTuple.Item.Select(arg => ProcessArgumentTupleItem(arg, nextArgument)).ToArray();
-                    return this.sharedState.Values.CreateTuple(tupleItems);
+                    return this.sharedState.Values.CreateTuple(tupleItems, allocOnStack: false);
                 }
                 else
                 {
