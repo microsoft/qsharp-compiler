@@ -12,6 +12,8 @@ namespace Microsoft.Quantum.Testing.QIR
             set x = x + j;
             set y = y + k;
         }
+
+        let sizedArr = [3, size = Zero == One ? 1 | 3]; // test for size depending on runtime info
         return (x, y);
     }
 

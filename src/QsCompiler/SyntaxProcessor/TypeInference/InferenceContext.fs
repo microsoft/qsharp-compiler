@@ -6,7 +6,6 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
-open Microsoft.Collections.Extensions
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -185,7 +184,7 @@ module Inference =
 
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
-    let classConstraints = MultiValueDictionary()
+    let classConstraints = Dictionary()
 
     let mutable rootNodePos = Null
     let mutable relativePos = Null
@@ -193,9 +192,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     let bind param substitution =
         if Inference.occursCheck param substitution then
-            let variable = variables.[param]
+            let variable = variables[param]
             if Option.isSome variable.Substitution then failwith "Type parameter is already bound."
-            variables.[param] <- { variable with Substitution = Some substitution }
+            variables[param] <- { variable with Substitution = Some substitution }
             Ok()
         else
             Result.Error()
@@ -204,7 +203,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         if types |> Seq.contains (ResolvedType.New InvalidType) || List.isEmpty diagnostics |> not then
             for param in types |> Seq.fold (fun params' -> Inference.typeParameters >> Set.union params') Set.empty do
                 match variables.TryGetValue param |> tryOption with
-                | Some variable -> variables.[param] <- { variable with HasError = true }
+                | Some variable -> variables[param] <- { variable with HasError = true }
                 | None -> ()
 
         diagnostics
@@ -286,36 +285,36 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | [] -> context.ApplyClassConstraint(cls, Here)
             | tyParams ->
                 for param in tyParams do
-                    classConstraints.Add(param, cls)
+                    let classes = classConstraints.TryGetValue param |> tryOption |> Option.defaultValue []
+                    classConstraints[param] <- cls :: classes
 
                 []
         | Relation (expected, ordering, actual) -> context.Relate(expected, ordering, actual)
 
-    member internal context.Resolve type_ =
-        let resolveWithRange type_ =
-            let type_' = context.Resolve type_
+    member internal context.Resolve ty =
+        let resolveWithRange ty =
+            let ty' = context.Resolve ty
 
             // Prefer the original type range since it may be closer to the source of an error, but otherwise fall back
             // to the newly resolved type range.
-            type_' |> ResolvedType.withRange (type_.Range |> TypeRange.orElse type_'.Range)
+            ty' |> ResolvedType.withRange (ty.Range |> TypeRange.orElse ty'.Range)
 
-        match type_.Resolution with
+        match ty.Resolution with
         | TypeParameter param ->
             tryOption (variables.TryGetValue param)
             |> Option.bind (fun variable -> variable.Substitution)
             |> Option.map resolveWithRange
-            |> Option.defaultValue type_
-        | ArrayType array -> type_ |> ResolvedType.withKind (context.Resolve array |> ArrayType)
+            |> Option.defaultValue ty
+        | ArrayType array -> ty |> ResolvedType.withKind (context.Resolve array |> ArrayType)
         | TupleType tuple ->
-            type_
+            ty
             |> ResolvedType.withKind (tuple |> Seq.map context.Resolve |> ImmutableArray.CreateRange |> TupleType)
         | QsTypeKind.Operation ((inType, outType), info) ->
-            type_
+            ty
             |> ResolvedType.withKind (QsTypeKind.Operation((context.Resolve inType, context.Resolve outType), info))
         | QsTypeKind.Function (inType, outType) ->
-            type_
-            |> ResolvedType.withKind (QsTypeKind.Function(context.Resolve inType, context.Resolve outType))
-        | _ -> type_
+            ty |> ResolvedType.withKind (QsTypeKind.Function(context.Resolve inType, context.Resolve outType))
+        | _ -> ty
 
     member private context.Relate(expected, ordering, actual) =
         let expected = context.Resolve expected
@@ -371,7 +370,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.ApplyClassConstraint(cls, source) =
         let error code args range =
             let range = TypeRange.tryRange range |> QsNullable.defaultValue Range.Zero
-            QsCompilerDiagnostic.Error(code, args) range |> CompilerDiagnostic
+            QsCompilerDiagnostic.Error (code, args) range |> CompilerDiagnostic
 
         let isInvalidType ty =
             context.Resolve(ty).Resolution = InvalidType
@@ -433,7 +432,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             let ty = context.Resolve ty
 
             [
-                if Option.isNone ty.supportsEqualityComparison then
+                if Option.isNone ty.SupportsEqualityComparison then
                     error ErrorCode.InvalidTypeInEqualityComparison [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
         | HasField (record, field, item) ->
@@ -511,7 +510,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | Iterable (container, item) ->
             let container = context.Resolve container
 
-            match container.supportsIteration with
+            match container.SupportsIteration with
             | Some actualItem -> context.ConstrainImpl(item .> actualItem)
             | None ->
                 [
@@ -524,14 +523,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             let ty = context.Resolve ty
 
             [
-                if Option.isNone ty.supportsArithmetic then
+                if Option.isNone ty.SupportsArithmetic then
                     error ErrorCode.InvalidTypeInArithmeticExpr [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
         | Semigroup ty ->
             let ty = context.Resolve ty
 
             [
-                if Option.isNone ty.supportsConcatenation && Option.isNone ty.supportsArithmetic then
+                if Option.isNone ty.SupportsConcatenation && Option.isNone ty.SupportsArithmetic then
                     error ErrorCode.InvalidTypeForConcatenation [ SyntaxTreeToQsharp.Default.ToCode ty ] ty.Range
             ]
         | Unwrap (container, item) ->
@@ -539,7 +538,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
             match container.Resolution with
             | UserDefinedType udt ->
-                let actualItem = symbolTracker.GetUnderlyingType(fun _ -> ()) udt
+                let actualItem = symbolTracker.GetUnderlyingType ignore udt
                 context.ConstrainImpl(item .> actualItem)
             | _ ->
                 [

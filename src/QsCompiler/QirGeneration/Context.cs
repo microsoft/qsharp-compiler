@@ -38,6 +38,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             LibContext = Library.InitializeLLVM();
         }
 
+        internal bool IsLibrary { get; }
+
+        private TargetCapability TargetCapability { get; }
+
+        internal bool TargetQirProfile =>
+            this.TargetCapability.ClassicalCompute.Equals(ClassicalComputeModule.Empty) ||
+            this.TargetCapability.ClassicalCompute.Equals(ClassicalComputeModule.Integral);
+
         #region Member variables
 
         /// <summary>
@@ -57,11 +65,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The used QIR types.
         /// </summary>
         public Types Types { get; }
-
-        /// <summary>
-        /// The used QIR constants.
-        /// </summary>
-        public Constants Constants { get; }
 
         /// <summary>
         /// Tools to construct and handle values throughout QIR emission.
@@ -94,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal ScopeManager ScopeMgr { get; }
         internal Stack<IValue> ValueStack { get; }
-        internal Stack<ResolvedType> ExpressionTypeStack { get; }
+        internal Stack<QirExpressionTransformation.Metadata> ExpressionMetadataStack { get; }
 
         /// <summary>
         /// We support nested inlining and hence keep a stack with the information for each inline level.
@@ -164,8 +167,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal bool IsInlined => this.inlineLevels.Any();
 
-        internal bool IsLibrary { get; private set; }
-
         #endregion
 
         /// <summary>
@@ -177,9 +178,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
+        /// <param name="capability">The set of features that are supported by the targeted backend. This is relevant for certain kinds of optimizations.</param>
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, TargetCapability capability)
         {
             this.IsLibrary = isLibrary;
+            this.TargetCapability = capability;
+
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
             this.globalTypes = syntaxTree.GlobalTypeResolutions();
 
@@ -187,14 +191,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Module = this.Context.CreateBitcodeModule();
 
             this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
-            this.Constants = new Constants(this.Context, this.Module, this.Types);
-            this.Values = new QirValues(this, this.Constants);
+            this.Values = new QirValues(this);
             this.Functions = new Functions(this);
             this.transformation = null; // needs to be set by the instantiating transformation
 
             this.CurrentBuilder = new InstructionBuilder(this.Context);
             this.ValueStack = new Stack<IValue>();
-            this.ExpressionTypeStack = new Stack<ResolvedType>();
+            this.ExpressionMetadataStack = new Stack<QirExpressionTransformation.Metadata>();
             this.inlineLevels = new Stack<IValue>();
             this.ScopeMgr = new ScopeManager(this);
 
@@ -384,7 +387,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the givne name
+        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the given name
         /// and the corresponding QIR function for the given specialization kind.
         /// Attaches the attributes with the given names to the returned IrFunction.
         /// </summary>
@@ -410,6 +413,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new ArgumentException("no function with that name exists");
             }
         }
+
+        /// <summary>
+        /// Attaches teh attributes wiht the given names to the IrFunction that represents
+        /// the given specialization of Q# callable with the given name.
+        /// </summary>
+        /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
+        internal void AttachAttributes(QsQualifiedName qualifiedName, QsSpecializationKind specKind, params string[] attributeNames) =>
+            this.CreateBridgeFunction(qualifiedName, specKind, (_, func) => func, attributeNames);
 
         /// <summary>
         /// <inheritdoc cref="Interop.GenerateWrapper(GenerationContext, string, ArgumentTuple, ResolvedType, IrFunction)"/>
@@ -511,6 +522,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
             this.globalTypes.TryGetValue(fullName, out udt);
 
+        /// <returns>The types of the items in the user defined Q# type with the given name.</returns>
+        /// <exception cref="ArgumentException">Thrown if not type with the given name exists in the compilation.</exception>
+        internal ImmutableArray<ResolvedType> GetItemTypes(QsQualifiedName udtName) =>
+            this.TryGetCustomType(udtName, out var udtDecl)
+                ? udtDecl.Type.Resolution is ResolvedTypeKind.TupleType its ? its.Item : ImmutableArray.Create(udtDecl.Type)
+                : throw new ArgumentException("type declaration not found");
+
         #endregion
 
         #region Function management
@@ -534,7 +552,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Ends a QIR function by finishing the current basic block, closing the current scope in teh scope manager
+        /// Ends a QIR function by finishing the current basic block, closing the current scope in the scope manager
         /// and closing a naming scope.
         /// </summary>
         /// <returns>true if the function has been properly ended</returns>
@@ -594,7 +612,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else if (!returnsVoid)
             {
                 var current = this.inlineLevels.Pop();
-                if (current.Value != this.Constants.UnitValue)
+                if (current != this.Values.Unit)
                 {
                     throw new InvalidOperationException("return value for current inline level already defined");
                 }
@@ -680,15 +698,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // rather than the argument tuple for determining the signature of a function is much cleaner.
             if (outerArgItems.Length == 1 && this.CurrentFunction.Parameters.Count > 1)
             {
-                if (!(outerArgItems[0].Item2.Resolution is ResolvedTypeKind.TupleType ts)
+                if (outerArgItems[0].Item2.Resolution is not ResolvedTypeKind.TupleType ts
                     || ts.Item.Length != this.CurrentFunction.Parameters.Count)
                 {
                     throw new InvalidOperationException("number of function parameters does not match argument");
                 }
 
-                var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
-                var innerTuple = this.Values.CreateTuple(tupleItems);
                 var name = outerArgItems[0].Item1;
+                var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
+                var innerTuple = this.Values.CreateTuple(tupleItems, allocOnStack: name is null); // if the name is null we know the tuple won't escape its scope
                 if (name != null)
                 {
                     this.ScopeMgr.RegisterVariable(name, innerTuple, fromLocalId: null);
@@ -755,7 +773,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                var udtTuple = this.Values.CreateTuple(this.Values.Unit);
+                var udtTuple = this.Values.CreateTuple(ImmutableArray.Create(this.Values.Unit), allocOnStack: false); // the tuple is returned such that we can't stack allocate it
                 this.AddReturn(udtTuple, returnsVoid: false);
             }
             else if (this.CurrentFunction != null)
@@ -769,7 +787,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, itemTypes[i])).ToArray();
-                var udtTuple = this.Values.CreateTuple(tupleItems);
+                var udtTuple = this.Values.CreateTuple(tupleItems, allocOnStack: false); // the tuple is returned such that we can't stack allocate it
                 this.AddReturn(udtTuple, returnsVoid: false);
             }
         }
@@ -935,7 +953,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (argType.Resolution is ResolvedTypeKind.UserDefinedType udt)
             {
-                return this.Values.FromCustomType(argTuple, udt.Item);
+                return this.Values.FromCustomType(argTuple, udt.Item.GetFullName());
             }
             else
             {
@@ -1174,70 +1192,87 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("a default value is required if either onCondTrue or onCondFalse is null");
             }
 
-            var defaultRequiresRefCount = increaseReferenceCount && defaultValue != null && ScopeManager.RequiresReferenceCount(defaultValue.LlvmType);
-            var requiresTrueBlock = onCondTrue != null || defaultRequiresRefCount;
-            var requiresFalseBlock = onCondFalse != null || defaultRequiresRefCount;
-
-            var contBlock = this.AddBlockAfterCurrent("condContinue");
-            var falseBlock = requiresFalseBlock
-                ? this.AddBlockAfterCurrent("condFalse")
-                : contBlock;
-            var trueBlock = requiresTrueBlock
-                ? this.AddBlockAfterCurrent("condTrue")
-                : contBlock;
-
-            // In order to ensure the correct reference counts, it is important that we create a new scope
-            // for each branch of the conditional. When we close the scope, we list the computed value as
-            // to be returned from that scope, meaning it either won't be dereferenced or its reference
-            // count will increase by 1. The result of the expression is a phi node that we then properly
-            // register with the scope manager, such that it will be unreferenced when going out of scope.
-            this.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
-            var entryBlock = this.CurrentBlock!;
-
-            Value ProcessConditionalBlock(BasicBlock block, Func<IValue>? evaluate)
+            IValue EvaluateInline(Func<IValue>? evaluate)
             {
-                this.SetCurrentBlock(block);
-                this.StartBranch();
-
-                IValue evaluated;
                 if (increaseReferenceCount)
                 {
                     this.ScopeMgr.OpenScope();
-                    evaluated = evaluate?.Invoke() ?? defaultValue!;
-                    this.ScopeMgr.CloseScope(evaluated); // forces that the ref count is increased within the branch
+                    var evaluated = evaluate?.Invoke() ?? defaultValue!;
+                    this.ScopeMgr.CloseScope(evaluated); // forces that the ref count is increased
+                    return evaluated;
                 }
                 else
                 {
-                    evaluated = evaluate?.Invoke() ?? defaultValue!;
+                    return evaluate?.Invoke() ?? defaultValue!;
+                }
+            }
+
+            var evaluatedCond = QirValues.AsConstantUInt32(condition);
+            if (evaluatedCond is not null)
+            {
+                // The value of the condition is known at compile time.
+                // Evaluate the corresponding branch inline (i.e. without creating an additional block) if it is defined,
+                // and return the default value otherwise. Increase the ref count if needed.
+                return evaluatedCond == 0u
+                    ? EvaluateInline(onCondFalse).Value
+                    : EvaluateInline(onCondTrue).Value;
+            }
+            else
+            {
+                var defaultRequiresRefCount = increaseReferenceCount && defaultValue != null && ScopeManager.RequiresReferenceCount(defaultValue.LlvmType);
+                var requiresTrueBlock = onCondTrue != null || defaultRequiresRefCount;
+                var requiresFalseBlock = onCondFalse != null || defaultRequiresRefCount;
+
+                var contBlock = this.AddBlockAfterCurrent("condContinue");
+                var falseBlock = requiresFalseBlock
+                    ? this.AddBlockAfterCurrent("condFalse")
+                    : contBlock;
+                var trueBlock = requiresTrueBlock
+                    ? this.AddBlockAfterCurrent("condTrue")
+                    : contBlock;
+
+                // In order to ensure the correct reference counts, it is important that we create a new scope
+                // for each branch of the conditional. When we close the scope, we list the computed value as
+                // to be returned from that scope, meaning it either won't be dereferenced or its reference
+                // count will increase by 1. The result of the expression is a phi node that we then properly
+                // register with the scope manager, such that it will be unreferenced when going out of scope.
+                this.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
+                var entryBlock = this.CurrentBlock!;
+
+                Value ProcessConditionalBlock(BasicBlock block, Func<IValue>? evaluate)
+                {
+                    this.SetCurrentBlock(block);
+                    this.StartBranch();
+                    IValue evaluated = EvaluateInline(evaluate);
+
+                    // We need to make sure to access the value *before* we end the branch -
+                    // otherwise the caching may complain that the value is no longer accessible.
+                    var res = evaluated.Value;
+                    this.EndBranch();
+                    this.CurrentBuilder.Branch(contBlock);
+                    return res;
                 }
 
-                // We need to make sure to access the value *before* we end the branch -
-                // otherwise the caching may complain that the value is no longer accessible.
-                var res = evaluated.Value;
-                this.EndBranch();
-                this.CurrentBuilder.Branch(contBlock);
-                return res;
-            }
+                var (evaluatedOnTrue, afterTrue) = (defaultValue?.Value, entryBlock);
+                if (requiresTrueBlock)
+                {
+                    var onTrue = ProcessConditionalBlock(trueBlock, onCondTrue);
+                    (evaluatedOnTrue, afterTrue) = (onTrue, this.CurrentBlock!);
+                }
 
-            var (evaluatedOnTrue, afterTrue) = (defaultValue?.Value, entryBlock);
-            if (requiresTrueBlock)
-            {
-                var onTrue = ProcessConditionalBlock(trueBlock, onCondTrue);
-                (evaluatedOnTrue, afterTrue) = (onTrue, this.CurrentBlock!);
-            }
+                var (evaluatedOnFalse, afterFalse) = (defaultValue?.Value, entryBlock);
+                if (requiresFalseBlock)
+                {
+                    var onFalse = ProcessConditionalBlock(falseBlock, onCondFalse);
+                    (evaluatedOnFalse, afterFalse) = (onFalse, this.CurrentBlock!);
+                }
 
-            var (evaluatedOnFalse, afterFalse) = (defaultValue?.Value, entryBlock);
-            if (requiresFalseBlock)
-            {
-                var onFalse = ProcessConditionalBlock(falseBlock, onCondFalse);
-                (evaluatedOnFalse, afterFalse) = (onFalse, this.CurrentBlock!);
+                this.SetCurrentBlock(contBlock);
+                var phi = this.CurrentBuilder.PhiNode(defaultValue?.LlvmType ?? evaluatedOnTrue!.NativeType);
+                phi.AddIncoming(evaluatedOnTrue!, afterTrue);
+                phi.AddIncoming(evaluatedOnFalse!, afterFalse);
+                return phi;
             }
-
-            this.SetCurrentBlock(contBlock);
-            var phi = this.CurrentBuilder.PhiNode(defaultValue?.LlvmType ?? evaluatedOnTrue!.NativeType);
-            phi.AddIncoming(evaluatedOnTrue!, afterTrue);
-            phi.AddIncoming(evaluatedOnFalse!, afterFalse);
-            return phi;
         }
 
         /// <summary>
@@ -1261,14 +1296,36 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.ConditionalEvaluation(condition, onCondTrue: onCondTrue, onCondFalse: null, defaultValueForCondFalse, increaseReferenceCount);
 
         /// <returns>A range with the given start, step and end.</returns>
-        internal IValue CreateRange(Value start, Value step, Value end)
+        internal IValue CreateRange(Value start, Value? step, Value end)
         {
-            Value constant = this.CurrentBuilder.Load(this.Types.Range, this.Constants.EmptyRange);
+            Value constant = this.Types.Range.GetNullValue();
             constant = this.CurrentBuilder.InsertValue(constant, start, 0u);
-            constant = this.CurrentBuilder.InsertValue(constant, step, 1u);
+            constant = this.CurrentBuilder.InsertValue(constant, step ?? this.Context.CreateConstant(1L), 1u);
             constant = this.CurrentBuilder.InsertValue(constant, end, 2u);
             return this.Values.From(constant, ResolvedType.New(ResolvedTypeKind.Range));
         }
+
+        /// <returns>
+        /// An enumerable that yields the integer values to which a range with the given start, step, and end evaluates to.
+        /// </returns>
+        private static IEnumerable<int> EvaluateRange(int start, int step, int end)
+        {
+            for (var val = start; step > 0 ? val <= end : step < 0 && val >= end; val += step)
+            {
+                yield return val;
+            }
+        }
+
+        /// <returns>
+        /// An enumerable that yields the integer values to which a range with the given start, step, and end evaluates to,
+        /// if the range can be evaluated at compiler time, and null otherwise.
+        /// </returns>
+        internal IEnumerable<int>? TryEvaluateRange(Value startValue, Value? stepValue, Value endValue) =>
+                QirValues.AsConstantInt32(startValue) is int start &&
+                QirValues.AsConstantInt32(endValue) is int end &&
+                QirValues.AsConstantInt32(stepValue ?? this.Context.CreateConstant(1L)) is int step
+                ? EvaluateRange(start, step, end)
+                : null;
 
         /// <summary>
         /// <inheritdoc cref="CreateForLoop(Value, Func{Value, Value}, Value, Action{Value})"/>
@@ -1402,7 +1459,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Iterates through the range defined by start, step, and end, and executes the given action on each iteration value.
-        /// Note that <paramref name="executeBody"/> is expected takes care of all necessary scope/memory management itself.
+        /// Note that <paramref name="executeBody"/> is expected to take care of all necessary scope/memory management itself.
         /// </summary>
         /// <param name="start">The start of the range and first iteration value.</param>
         /// <param name="step">The optional step of the range that will be added to the iteration value in each iteration, where the default value is 1L.</param>
@@ -1452,9 +1509,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return this.CurrentBuilder.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd);
             }
 
-            Value? loopVarIncreases = step == null ? null : CreatePreheader(step);
-            step ??= this.Context.CreateConstant(1L);
-            this.CreateForLoop(start, loopVar => EvaluateCondition(loopVarIncreases, loopVar), step, executeBody);
+            // Unless we target a QIR profile, we leave the heuristic for unrolling up to LLVM.
+            var evaluatedRange = this.TryEvaluateRange(start, step, end);
+            if (evaluatedRange != null && this.TargetQirProfile)
+            {
+                foreach (var item in evaluatedRange)
+                {
+                    executeBody(this.Context.CreateConstant((long)item));
+                }
+            }
+            else
+            {
+                Value? loopVarIncreases = step == null ? null : CreatePreheader(step);
+                step ??= this.Context.CreateConstant(1L);
+                this.CreateForLoop(start, loopVar => EvaluateCondition(loopVarIncreases, loopVar), step, executeBody);
+            }
         }
 
         /// <summary>
@@ -1469,22 +1538,36 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
         internal Value? IterateThroughArray(ArrayValue array, Value? initialOutputValue, Func<IValue, Value?, Value?> executeBody)
         {
-            var startValue = this.Context.CreateConstant(0L);
-            if (array.Length == startValue)
+            if (array.Count == 0)
             {
                 return initialOutputValue;
             }
 
-            var increment = this.Context.CreateConstant(1L);
-            var endValue = this.CurrentBuilder.Sub(array.Length, increment);
+            // Unless we target a QIR profile, we leave the heuristic for unrolling up to LLVM.
+            if (array.Count != null && this.TargetQirProfile)
+            {
+                var currentOutputValue = initialOutputValue;
+                for (var idx = 0; idx < array.Count; ++idx)
+                {
+                    var element = array.GetArrayElements(new[] { idx })[0];
+                    currentOutputValue = executeBody(element, currentOutputValue);
+                }
 
-            Value EvaluateCondition(Value loopVariable) =>
-                this.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
+                return currentOutputValue;
+            }
+            else
+            {
+                var increment = this.Context.CreateConstant(1L);
+                var endValue = this.CurrentBuilder.Sub(array.Length, increment);
 
-            Value? ExecuteBody(Value iterationIndex, Value? currentOutputValue) =>
-                executeBody(array.GetArrayElement(iterationIndex), currentOutputValue);
+                Value EvaluateCondition(Value loopVariable) =>
+                    this.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
 
-            return this.CreateForLoop(startValue, EvaluateCondition, increment, initialOutputValue, ExecuteBody);
+                Value? ExecuteBody(Value iterationIndex, Value? currentOutputValue) =>
+                    executeBody(array.GetArrayElement(iterationIndex), currentOutputValue);
+
+                return this.CreateForLoop(this.Context.CreateConstant(0L), EvaluateCondition, increment, initialOutputValue, ExecuteBody);
+            }
         }
 
         /// <summary>
@@ -1517,13 +1600,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             ? value
             : this.CurrentBuilder.BitCast(value, expectedType);
 
-        /// <returns>The kind of the Q# type on top of the expression type stack</returns>
-        internal ResolvedType CurrentExpressionType() =>
-            this.ExpressionTypeStack.Peek();
+        /// <returns>Whether the expression on top of the expression metadata stack may escape its scope.</returns>
+        internal bool CurrentExpressionMayEscapeItsScope() =>
+            this.ExpressionMetadataStack.Peek().MayEscapeItsScope;
 
-        /// <returns>The QIR equivalent for the Q# type that is on top of the expression type stack</returns>
-        internal ITypeRef CurrentLlvmExpressionType() =>
-            this.LlvmTypeFromQsharpType(this.ExpressionTypeStack.Peek());
+        /// <returns>The type of the expression on top of the expression metadata stack.</returns>
+        internal ResolvedType CurrentExpressionType() =>
+            this.ExpressionMetadataStack.Peek().Type;
 
         /// <inheritdoc cref="QirTypeTransformation.LlvmTypeFromQsharpType(ResolvedType)"/>
         internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
@@ -1600,6 +1683,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         #endregion
 
         #region Block, scope, and value management
+
+        /// <summary>
+        /// Adds an instruction to the entry block of the current function to
+        /// allocate memory on the stack for storing a value of the given type.
+        /// </summary>
+        /// <returns>The handle to the allocated memory.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// The current function or the entry block of the current function is set to null.
+        /// </exception>
+        internal Alloca Allocate(ITypeRef type)
+        {
+            if (this.CurrentFunction?.EntryBlock == null)
+            {
+                throw new InvalidOperationException("no current function specified or entry block defined");
+            }
+
+            var entryBuilder = new InstructionBuilder(this.CurrentFunction.EntryBlock);
+            if (this.CurrentFunction.EntryBlock.FirstInstruction == null)
+            {
+                entryBuilder.PositionAtEnd(this.CurrentFunction.EntryBlock);
+            }
+            else
+            {
+                entryBuilder.PositionBefore(this.CurrentFunction.EntryBlock.FirstInstruction);
+            }
+
+            return entryBuilder.Alloca(type);
+        }
 
         /// <summary>
         /// Makes the given basic block current, creates a new builder for it, and makes that builder current.

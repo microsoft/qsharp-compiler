@@ -1,7 +1,7 @@
 define internal %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate2__body(%Array* %array, %String* %even) {
 entry:
-  call void @__quantum__rt__array_update_alias_count(%Array* %array, i32 1)
   %arr = alloca %Array*, align 8
+  call void @__quantum__rt__array_update_alias_count(%Array* %array, i32 1)
   store %Array* %array, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %array, i32 1)
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %array)

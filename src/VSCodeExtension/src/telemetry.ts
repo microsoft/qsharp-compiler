@@ -3,7 +3,7 @@
 
 import * as vscode from 'vscode';
 import { getPackageInfo } from './packageInfo';
-import TelemetryReporter from 'vscode-extension-telemetry';
+import TelemetryReporter from '@vscode/extension-telemetry';
 
 export type TelemetryData<T> = { [key: string]: T } | undefined;
 

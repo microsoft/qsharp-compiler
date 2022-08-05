@@ -27,7 +27,7 @@ let createPattern range =
             // instead of here, but this is easier after https://github.com/microsoft/qsharp-compiler/issues/1025.
             let description = "conditional expression or mutable variable in a constant context"
             let args = [ target.Name; description ]
-            QsCompilerDiagnostic.Error(ErrorCode.UnsupportedClassicalCapability, args) range |> Some
+            QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
     {
         Capability = capability
@@ -140,7 +140,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     transformation.Expressions <-
         { new ExpressionTransformation(transformation, TransformationOptions.NoRebuild) with
             override _.OnTypedExpression expression =
-                let range = QsNullable.Map2(+) transformation.Offset expression.Range
+                let range = QsNullable.Map2 (+) transformation.Offset expression.Range
 
                 match expression.Expression with
                 | CONDITIONAL _ -> if context.Value.ConstOnly then createPattern range |> patterns.Add
