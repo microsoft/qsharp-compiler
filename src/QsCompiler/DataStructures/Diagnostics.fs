@@ -714,7 +714,7 @@ type DiagnosticItem =
             | ErrorCode.AmbiguousTypeParameterResolution ->
                 [
                     "The type parameter {0} is ambiguous."
-                    "For more information, see: https://github.com/microsoft/qsharp-language/blob/main/Specifications/Language/4_TypeSystem/TypeInference.md#ambiguous-types"
+                    "For more information, see: https://docs.microsoft.com/en-us/azure/quantum/user-guide/language/typesystem/typeinference#ambiguous-types"
                     if Seq.item 1 args |> String.IsNullOrWhiteSpace |> not then
                         "Note: Relevant unsolved constraints: {1}"
                 ]
