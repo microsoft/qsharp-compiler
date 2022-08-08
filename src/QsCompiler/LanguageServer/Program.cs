@@ -85,6 +85,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             return (int)code;
         }
 
+        private static string? NotebookReferencesDir => Environment.GetEnvironmentVariable("NOTEBOOK_REFERENCES_DIR");
+
         public static string? Version { get; set; } =
             typeof(Server).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? typeof(Server).Assembly.GetName().Version?.ToString();
@@ -99,13 +101,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             var parser = new Parser(parser => parser.HelpWriter = null); // we want our own custom format for the version info
             var options = parser.ParseArguments<Options>(args);
             return options.MapResult(
-                (Options opts) => Run(opts),
+                (Options opts) => Run(opts, NotebookReferencesDir),
                 errs => errs.IsVersion()
                     ? LogAndExit(ReturnCode.SUCCESS, message: Version, stdout: true)
                     : LogAndExit(ReturnCode.INVALID_ARGUMENTS, message: HelpText.AutoBuild(options)));
         }
 
-        private static int Run(Options options)
+        private static int Run(Options options, string? notebookReferencesDir = null)
         {
             if (options == null)
             {
@@ -131,10 +133,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             try
             {
                 server = options.UseStdInOut
-                         ? ConnectViaStdInOut(options.LogFile)
+                         ? ConnectViaStdInOut(options.LogFile, notebookReferencesDir)
                          : options.ReaderPipeName != null && options.WriterPipeName != null
-                         ? ConnectViaNamedPipe(options.WriterPipeName, options.ReaderPipeName, options.LogFile)
-                         : ConnectViaSocket(port: options.Port, logFile: options.LogFile);
+                         ? ConnectViaNamedPipe(options.WriterPipeName, options.ReaderPipeName, options.LogFile, notebookReferencesDir)
+                         : ConnectViaSocket(port: options.Port, logFile: options.LogFile, notebookReferencesDir: notebookReferencesDir);
             }
             catch (Exception ex)
             {
@@ -175,10 +177,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
         }
 
-        internal static QsLanguageServer ConnectViaStdInOut(string? logFile = null)
+        internal static QsLanguageServer ConnectViaStdInOut(string? logFile = null, string? notebookReferencesDir = null)
         {
             Log($"Connecting via stdin and stdout.", logFile);
-            return new QsLanguageServer(Console.OpenStandardOutput(), Console.OpenStandardInput());
+            return new QsLanguageServer(Console.OpenStandardOutput(), Console.OpenStandardInput(), notebookReferencesDir);
         }
 
         internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string? logFile = null, string? notebookReferencesDir = null)
@@ -202,7 +204,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             return new QsLanguageServer(writerPipe, readerPipe, notebookReferencesDir);
         }
 
-        internal static QsLanguageServer ConnectViaSocket(string hostname = "localhost", int port = 8008, string? logFile = null)
+        internal static QsLanguageServer ConnectViaSocket(string hostname = "localhost", int port = 8008, string? logFile = null, string? notebookReferencesDir = null)
         {
             Log($"Connecting via socket. {Environment.NewLine}Port number: {port}", logFile);
             Stream? stream = null;
@@ -216,7 +218,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 Log(ex.ToString(), logFile);
             }
 
-            return new QsLanguageServer(stream, stream);
+            return new QsLanguageServer(stream, stream, notebookReferencesDir);
         }
     }
 }
