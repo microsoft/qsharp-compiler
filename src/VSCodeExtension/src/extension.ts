@@ -15,6 +15,9 @@ import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVaria
 import { AzureCliCredential, InteractiveBrowserCredential, AccessToken } from '@azure/identity';
 import {getWorkspaceFromUser} from "./quickPickWorkspace";
 import {workspaceInfo} from "./commands";
+import { AzureAccountExtensionApi } from './azure-account.api'; // Other extensions need to copy this .d.ts to their repository.
+import type { AzureExtensionApiProvider } from '@microsoft/vscode-azext-utils/api';
+import { QuantumJobClient } from "@azure/quantum-jobs";
 
 let credential:AzureCliCredential|InteractiveBrowserCredential;
 let authSource: string;
@@ -148,6 +151,10 @@ export async function activate(context: vscode.ExtensionContext) {
         workSpaceStatusBarItem.show();
     }
 
+    const azureAccount: AzureAccountExtensionApi = (<AzureExtensionApiProvider>vscode.extensions.getExtension('ms-vscode.azure-account')!.exports).getApi('1.0.0');
+
+
+
     // Register commands that use the .NET Core SDK.
     // We do so as early as possible so that we can handle if someone calls
     // a command before we found the .NET Core SDK.
@@ -192,11 +199,46 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.submitJob",
         async() => {
-            sendTelemetryEvent(EventNames.jobSubmissionStarted, {},{});
-            await getCredential(context);
-            requireDotNetSdk(dotNetSdkVersion).then(
-                dotNetSdk => submitJob(context, dotNetSdk, localSubmissionsProvider, credential,workSpaceStatusBarItem )
+
+            const subscriptionId = "916dfd6d-030c-4bd9-b579-7bb6d1926e97";
+            const resourceGroupName = "jackmonas-vscode-extension";
+            const workspaceName = "js-sdk-validate";
+            const location = "eastus";
+
+            const tempCredential = new InteractiveBrowserCredential();
+            const token = await tempCredential.getToken("https://quantum.microsoft.com/.default");
+
+            // const credential_AZACCOUNT = azureAccount.sessions[0].credentials;
+
+            const credential_AZACCOUNT2 = azureAccount.sessions[0].credentials2;
+
+            // const isToken = coreHttp.isTokenCredential(credential_AZACCOUNT);
+            // const isToken2 = coreHttp.isTokenCredential(credential_AZACCOUNT2);
+
+            // const tokenb = await credential_AZACCOUNT.getToken('https://quantum.microsoft.com/.default');
+            // const tokena = await credential_AZACCOUNT2.getToken(['https://quantum.microsoft.com/.default']);
+            const endpoint = "https://" + location + ".quantum.azure.com";
+            const quantumJobClient = new QuantumJobClient(
+                credential_AZACCOUNT2,
+                subscriptionId,
+                resourceGroupName,
+                workspaceName,
+                {
+                endpoint: endpoint,
+                credentialScopes: "https://quantum.microsoft.com/.default"
+                }
             );
+            const providerStatuses = await quantumJobClient.providers.listStatus();
+            try{await providerStatuses.next();}
+            catch(e){
+                console.log(e);
+            }
+
+            // sendTelemetryEvent(EventNames.jobSubmissionStarted, {},{});
+            // await getCredential(context);
+            // requireDotNetSdk(dotNetSdkVersion).then(
+            //     dotNetSdk => submitJob(context, dotNetSdk, localSubmissionsProvider, credential,workSpaceStatusBarItem )
+            // );
         }
     );
 
