@@ -31,7 +31,6 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private readonly Action<PublishDiagnosticParams> publish;
         private readonly SendTelemetryHandler? sendTelemetry;
-        private readonly string notebookReferencesDir;
 
         /// <summary>
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
@@ -58,8 +57,6 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         private bool IgnoreFile(Uri? file) => file == null || this.ignoreEditorUpdatesForFiles.ContainsKey(file) || file.LocalPath.ToLowerInvariant().Contains("vctmp");
 
-        private static string DefaultNotebookReferencesDir => Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location), "notebookReferences");
-
         /// <summary>
         /// Calls the given publishDiagnostics Action with the changed diagnostics whenever they have changed,
         /// calls the given onException Action whenever the compiler encounters an internal error, and
@@ -70,8 +67,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             Action<PublishDiagnosticParams>? publishDiagnostics,
             SendTelemetryHandler? sendTelemetry,
             Action<string, MessageType>? log,
-            Action<Exception>? onException,
-            string? notebookReferencesDir = null)
+            Action<Exception>? onException)
         {
             this.ignoreEditorUpdatesForFiles = new ConcurrentDictionary<Uri, byte>();
             this.sendTelemetry = sendTelemetry;
@@ -97,7 +93,6 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry);
             this.log = log ?? ((msg, severity) => Console.Error.WriteLine($"{severity}: {msg}"));
-            this.notebookReferencesDir = notebookReferencesDir ?? DefaultNotebookReferencesDir;
         }
 
         /// <summary>
@@ -214,11 +209,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// Create a stand-in notebook project.
         /// <para/>
-        /// If the notebookReferencesDir parameter to the EditorState constructor points to a valid
-        /// directory path (or by default if a directory named "notebookReferences" exists alongside
-        /// the binary for the language server executable), all dlls in it will be added as
-        /// references to the notebook project. For a usable experience, the key references to
-        /// include are Microsoft.Quantum.Standard.dll, Microsoft.Quantum.QSharp.Foundation.dll, and
+        /// If the $QSHARP_NOTEBOOK_REFERENCES_DIR environment variable holds a valid directory path
+        /// (or by default if a directory named "notebookReferences" exists alongside the binary for
+        /// the language server executable), all dlls in it will be added as references to the
+        /// notebook project. For a usable experience, the key references to include are:
+        /// Microsoft.Quantum.Standard.dll, Microsoft.Quantum.QSharp.Foundation.dll, and
         /// Microsoft.Quantum.QSharp.Core.dll; the language server docker image should ship these.
         /// (Normally, these references are handled by the Quantum SDK MSBuild scripts, but we have
         /// forfeited that help by bypassing MSBuild and creating this project ourselves.)
@@ -242,12 +237,16 @@ namespace Microsoft.Quantum.QsLanguageServer
             // TODO: In the future if we add formatting support, this will need to be updated
             buildProperties.Add(MSBuildProperties.QsFmtExe, null);
 
+            string notebookReferencesDir =
+                Environment.GetEnvironmentVariable("QSHARP_NOTEBOOK_REFERENCES_DIR")
+                ?? Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location), "notebookReferences");
+
             IEnumerable<string> references = Enumerable.Empty<string>();
-            if (!string.IsNullOrEmpty(this.notebookReferencesDir))
+            if (!string.IsNullOrEmpty(notebookReferencesDir))
             {
                 try
                 {
-                    var dir = new DirectoryInfo(this.notebookReferencesDir);
+                    var dir = new DirectoryInfo(notebookReferencesDir);
                     references = dir.GetFiles()
                         .Select(file => file.FullName)
                         .Where(path => path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase));
