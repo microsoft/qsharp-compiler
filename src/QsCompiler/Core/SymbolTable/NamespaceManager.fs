@@ -76,7 +76,7 @@ type NamespaceManager
     /// </exception>
     let openNamespaces (nsName, source) =
         let isKnown (kv: KeyValuePair<string, ImmutableHashSet<string>>) =
-            if not (kv.Value.Contains(null)) then
+            if not (kv.Value.Contains("")) then
                 None
             else
                 match namespaces.TryGetValue kv.Key with
@@ -140,13 +140,13 @@ type NamespaceManager
             match (ns.ImportedNamespaces source).TryGetValue builtIn.FullName.Namespace with
             | true, aliases when
                 aliases.Count = 1
-                && aliases.Contains(null) // Opened but no alias
+                && aliases.Contains("") // Opened but no alias
                 && (not (ns.TryFindType builtIn.FullName.Name |> ResolutionResult.isAccessible)
                     || nsName = builtIn.FullName.Namespace)
                 ->
                 [ ""; builtIn.FullName.Namespace ]
-            | true, aliases when aliases.Count > 1 || (aliases.Count = 1 && not (aliases.Contains(null))) -> // Some alias
-                let alias = aliases |> Seq.filter (fun alias -> not (isNull alias)) |> Seq.sort |> Seq.head
+            | true, aliases when aliases.Count > 1 || (aliases.Count = 1 && not (aliases.Contains(""))) -> // Some alias
+                let alias = aliases |> Seq.filter (fun alias -> alias <> "") |> Seq.sort |> Seq.head
                 [ alias; builtIn.FullName.Namespace ]
             | true, _ -> [ builtIn.FullName.Namespace ] // the built-in type or callable is shadowed
             | false, _ -> [ builtIn.FullName.Namespace ]
@@ -908,7 +908,7 @@ type NamespaceManager
             for opened in nsToAutoOpen do
                 for ns in namespaces.Values do
                     for source in ns.Sources do
-                        this.AddOpenDirective (opened, Range.Zero) (null, Value Range.Zero) (ns.Name, source) |> ignore
+                        this.AddOpenDirective (opened, Range.Zero) ("", Value Range.Zero) (ns.Name, source) |> ignore
             // We need to resolve types before we resolve callables,
             // since the attribute resolution for callables relies on the corresponding types having been resolved.
             let typeDiagnostics = this.CacheTypeResolution nsNames
