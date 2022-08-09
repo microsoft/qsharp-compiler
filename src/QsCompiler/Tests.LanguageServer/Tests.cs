@@ -806,6 +806,92 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.AreEqual(0, diagnosticsRevivedMagic!.Length);
         }
 
+        [TestMethod]
+        public async Task NotebookOpenDirectivesAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test20");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var refQsFile1 = Path.Combine(projDir, "exampleReference", "Complex.qs");
+            var refQsFile2 = Path.Combine(projDir, "exampleReference", "ImageTools.qs");
+            var refDllPath = Path.Combine(this.tempNotebookReferencesDir, "Test20.ExampleReference.dll");
+            TestUtils.BuildDll(ImmutableArray.Create<string>(refQsFile1, refQsFile2), refDllPath);
+
+            // Same value sent by Azure Notebooks
+            var languageId = "qsharp-notebook";
+            var qsFile1 = Path.Combine(projDir, "NotebookCell1.qs");
+            var qsFile2a = Path.Combine(projDir, "NotebookCell2a.qs");
+            var qsFile2b = Path.Combine(projDir, "NotebookCell2b.qs");
+
+            var notebookGuid = Guid.NewGuid();
+            var uri1 = TestUtils.GenerateNotebookCellUri(notebookGuid);
+            var uri2 = TestUtils.GenerateNotebookCellUri(notebookGuid);
+
+            // Azure Notebooks leaves RootUri=null, so do the same here
+            var initParams = TestUtils.GetInitializeParams();
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParams1 = TestUtils.GetOpenFileParams(qsFile1, uri1, languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams1);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uri1));
+
+            // No open directive yet, so we should get errors about undefined types/qualifiers
+            var diagnostics1 = (await this.GetFileDiagnosticsAsync(uri: uri1))?
+                .OrderBy(diag => (diag.Range.Start.Line, diag.Range.Start.Character))
+                .Select(diag => (diag.Code?.Second, diag.Severity, diag.Range.Start.Line))
+                .ToList();
+            Assert.IsNotNull(diagnostics1);
+            Assert.AreEqual(6, diagnostics1!.Count);
+            Assert.AreEqual(("QS6005", DiagnosticSeverity.Error, 0), diagnostics1[0]);
+            Assert.AreEqual(("QS5022", DiagnosticSeverity.Error, 1), diagnostics1[1]);
+            Assert.AreEqual(("QS5022", DiagnosticSeverity.Error, 1), diagnostics1[2]);
+            Assert.AreEqual(("QS6104", DiagnosticSeverity.Error, 5), diagnostics1[3]);
+            Assert.AreEqual(("QS5022", DiagnosticSeverity.Error, 6), diagnostics1[4]);
+            Assert.AreEqual(("QS5022", DiagnosticSeverity.Error, 6), diagnostics1[5]);
+
+            // Create a cell with initially just a comment...
+            var openParams2 = TestUtils.GetOpenFileParams(qsFile2a, uri2, languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uri2));
+
+            // Make sure a comment isn't causing diagnostics...
+            var diagnostics2a = await this.GetFileDiagnosticsAsync(uri: uri2);
+            Assert.IsNotNull(diagnostics2a);
+            Assert.AreEqual(0, diagnostics2a!.Length);
+
+            // Now edit that cell to contain the open directives for the toy library
+            // Why do this? Well, global type checking is triggered when you add a new file. But we
+            // want to also test that it is re-triggered when modifing open directives in a file
+            // when notebook mode is enabled.
+            var changeEvent2 = TestUtils.GetChangeEvent(TestUtils.GetRange(1, 0, 1, 0), TestUtils.ReadFile(qsFile2b));
+            var changedParams2 = TestUtils.GetChangedParams(uri2, new[] { changeEvent2 });
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, changedParams2);
+
+            // Make sure everyone is happy right now
+            var diagnostics2b = await this.GetFileDiagnosticsAsync(uri: uri2);
+            Assert.IsNotNull(diagnostics2b);
+            Assert.AreEqual(0, diagnostics2b!.Length);
+            var diagnostics1b = await this.GetFileDiagnosticsAsync(uri: uri1);
+            Assert.IsNotNull(diagnostics1b);
+            Assert.AreEqual(0, diagnostics1b!.Length);
+
+            // TODO: Everything past this point can be removed (along with TestCases/NotebookCell3.qs)
+            //       once overlapping aliases are allowed
+            // Now, test that if we add an overlapping alias, we get an error
+            var qsFile3 = Path.Combine(projDir, "NotebookCell3.qs");
+            var uri3 = TestUtils.GenerateNotebookCellUri(notebookGuid);
+            var openParams3 = TestUtils.GetOpenFileParams(qsFile3, uri3, languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams3);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uri3));
+
+            var diagnostics3 = (await this.GetFileDiagnosticsAsync(uri: uri3))?
+                .OrderBy(diag => (diag.Range.Start.Line, diag.Range.Start.Character))
+                .Select(diag => (diag.Code?.Second, diag.Severity, diag.Range.Start.Line))
+                .ToList();
+            Assert.IsNotNull(diagnostics3);
+            Assert.AreEqual(1, diagnostics3!.Count);
+            Assert.AreEqual(("QS6020", DiagnosticSeverity.Error, 0), diagnostics3[0]);
+        }
+
         private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)
         {
             var projectManager = new ProjectManager(e => throw e);

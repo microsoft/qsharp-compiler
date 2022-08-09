@@ -105,15 +105,6 @@ type private PartialNamespace
     /// -> NOTE: the returned enumerable is *not* immutable and may change over time!
     member internal this.DefinedCallables = callableDeclarations.Select(fun item -> item.Key, item.Value)
 
-    /// returns a dictionary with all currently known namespace short names and which namespace they represent
-    member internal this.NamespaceShortNames =
-        let shortNames =
-            this.ImportedNamespaces
-            |> Seq.collect (fun kv -> kv.Value |> Seq.map (fun alias -> (alias, kv.Key)))
-            |> Seq.filter (fun kv -> (fst kv) <> "")
-
-        shortNames.ToImmutableDictionary(fst, snd)
-
     /// <summary>Gets the type with the given name from the dictionary of declared types.</summary>
     /// <exception cref="SymbolNotFoundException">A type with the given name was not found.</exception>
     member internal this.GetType tName =

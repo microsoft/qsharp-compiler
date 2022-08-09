@@ -274,13 +274,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // add all namespace declarations
                 var namespaceHeaders = file.GetNamespaceHeaderItems().ToImmutableArray();
                 var distinctNamespaces = namespaceHeaders.Select(tuple => tuple.Item2).GroupBy(header => header.SymbolName)
-                    .Select(headers => compilation.GlobalSymbols.CopyForExtension(headers.First().SymbolName, file.FileName))
+                    .Select(headers => compilation.GlobalSymbols.CopyForExtension(headers.First().SymbolName, file.FileName, false))
                     .ToImmutableDictionary(ns => ns.Name); // making sure the namespaces are extended even if they occur multiple times in the same file
                 var namespaces = namespaceHeaders.Select(tuple => (tuple.Item2.Position, distinctNamespaces[tuple.Item2.SymbolName])).ToList();
 
                 Namespace? notebookNamespace =
                     file.DocumentKind == DocumentKind.NotebookCell
-                    ? compilation.GlobalSymbols.CopyForExtension(ReservedKeywords.InternalUse.NotebookNamespace, file.FileName)
+                    ? compilation.GlobalSymbols.CopyForExtension(ReservedKeywords.InternalUse.NotebookNamespace, file.FileName, true)
                     : null;
 
                 Namespace ContainingNamespace(Position pos)
@@ -2014,7 +2014,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var (sameHeader, sameImports) = (oldHeader == newHeader, oldImports == newImports);
                 file.ReplaceHeaderDiagnostics(diagnostics);
 
-                if (!sameHeader)
+                // For notebooks, changing open directives can affect other files (cells)
+                if (!sameHeader || (file.DocumentKind == DocumentKind.NotebookCell && !sameImports))
                 {
                     file.TriggerGlobalTypeChecking();
                     return;

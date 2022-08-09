@@ -62,7 +62,10 @@ type NamespaceManager
             (getKeys callables).Concat(getKeys specializations).Concat(getKeys types) |> Seq.distinct
 
         for nsName in namespacesInRefs do
-            namespaces.Add(nsName, Namespace(nsName, [], callables.[nsName], specializations.[nsName], types.[nsName]))
+            namespaces.Add(
+                nsName,
+                Namespace(nsName, [], callables.[nsName], specializations.[nsName], types.[nsName], false)
+            )
 
         namespaces
 
@@ -1199,7 +1202,7 @@ type NamespaceManager
     /// NOTE: This routine does *not* modify this symbol table,
     /// and any modification to the returned namespace won't be reflected here -
     /// use AddOrReplaceNamespace to push back the modifications into the symbol table.
-    member this.CopyForExtension(nsName, source) =
+    member this.CopyForExtension(nsName, source, unifyOpenDirectivesAcrossParts) =
         syncRoot.EnterReadLock()
 
         try
@@ -1212,7 +1215,14 @@ type NamespaceManager
                 else
                     ArgumentException "partial namespace already exists" |> raise
             | false, _ ->
-                Namespace(nsName, [ source ], ImmutableArray.Empty, ImmutableArray.Empty, ImmutableArray.Empty)
+                Namespace(
+                    nsName,
+                    [ source ],
+                    ImmutableArray.Empty,
+                    ImmutableArray.Empty,
+                    ImmutableArray.Empty,
+                    unifyOpenDirectivesAcrossParts
+                )
         finally
             syncRoot.ExitReadLock()
 

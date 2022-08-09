@@ -30,7 +30,8 @@ type Namespace
         parts: IEnumerable<KeyValuePair<string, PartialNamespace>>,
         callablesInReferences: ILookup<string, CallableDeclarationHeader>,
         specializationsInReferences: ILookup<string, SpecializationDeclarationHeader * SpecializationImplementation>,
-        typesInReferences: ILookup<string, TypeDeclarationHeader>
+        typesInReferences: ILookup<string, TypeDeclarationHeader>,
+        unifyOpenDirectivesAcrossParts: bool
     ) =
 
     /// dictionary containing a PartialNamespaces for each source file which implements a part of this namespace -
@@ -77,7 +78,8 @@ type Namespace
                  sources,
                  callablesInRefs: IEnumerable<_>,
                  specializationsInRefs: IEnumerable<_>,
-                 typesInRefs: IEnumerable<_>) =
+                 typesInRefs: IEnumerable<_>,
+                 unifyOpenDirectivesAcrossParts: bool) =
         let initialSources =
             sources
             |> Seq.distinct
@@ -117,7 +119,7 @@ type Namespace
                 .Where(fun (s, _) -> callables.[s.Parent.Name].Any())
                 .ToLookup(fun (s, _) -> s.Parent.Name)
 
-        Namespace(name, initialSources, callables, specializations, types)
+        Namespace(name, initialSources, callables, specializations, types, unifyOpenDirectivesAcrossParts)
 
     /// returns true if the namespace currently contains no source files or referenced content
     member this.IsEmpty =
@@ -132,7 +134,15 @@ type Namespace
     /// -> any modification of the returned Namespace is not reflected in this one
     member this.Copy() =
         let partials = parts |> Seq.map (fun part -> new KeyValuePair<_, _>(part.Key, part.Value.Copy()))
-        Namespace(name, partials, callablesInReferences, specializationsInReferences, typesInReferences)
+
+        Namespace(
+            name,
+            partials,
+            callablesInReferences,
+            specializationsInReferences,
+            typesInReferences,
+            unifyOpenDirectivesAcrossParts
+        )
 
     /// Returns a lookup that given the name of a source file,
     /// returns all documentation associated with this namespace defined in that file.
@@ -150,7 +160,22 @@ type Namespace
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member internal this.ImportedNamespaces source =
         match parts.TryGetValue source with
-        | true, partial -> partial.ImportedNamespaces
+        | true, partial ->
+            if unifyOpenDirectivesAcrossParts then
+                let nsAliasPairs =
+                    parts.Values
+                    |> Seq.collect (fun part -> part.ImportedNamespaces)
+                    |> Seq.collect (fun kv -> kv.Value |> Seq.map (fun alias -> (kv.Key, alias)))
+                    |> Seq.distinct
+
+                let byNs =
+                    nsAliasPairs
+                    |> Seq.groupBy fst
+                    |> Seq.map (fun (ns, pairs) -> (ns, (pairs |> Seq.map snd |> ImmutableHashSet.ToImmutableHashSet)))
+
+                byNs.ToImmutableDictionary(fst, snd)
+            else
+                partial.ImportedNamespaces
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -159,7 +184,13 @@ type Namespace
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member internal this.NamespaceShortNames source =
         match parts.TryGetValue source with
-        | true, partial -> partial.NamespaceShortNames
+        | true, partial ->
+            let shortNames =
+                this.ImportedNamespaces source
+                |> Seq.collect (fun kv -> kv.Value |> Seq.map (fun alias -> (alias, kv.Key)))
+                |> Seq.filter (fun kv -> (fst kv) <> "")
+
+            shortNames.ToImmutableDictionary(fst, snd)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -463,7 +494,11 @@ type Namespace
 
         match parts.TryGetValue source with
         | true, partial ->
-            let imported = partial.ImportedNamespaces
+            let imported =
+                if unifyOpenDirectivesAcrossParts then
+                    this.ImportedNamespaces source
+                else
+                    partial.ImportedNamespaces
 
             // TODO: Ideally, we would allow opening multiple namespaces with the same alias. There
             // is some preliminary work for this in the aadams/overlapping-alias-wip branch, but
