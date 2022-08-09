@@ -1268,6 +1268,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 this.SetCurrentBlock(contBlock);
+
+                // Handle special cases with constant values where the phi node is not necessary.
+                if (QirValues.AsConstantUInt32(evaluatedOnTrue) == 0 && evaluatedOnFalse == condition)
+                {
+                    // This case is the equivalent of: `val = cond ? false : cond;`
+                    // which is the same as: `val = false;` so we can just return the `false` value
+                    // from the evaluated true block.
+                    return evaluatedOnTrue!;
+                }
+                else if (QirValues.AsConstantUInt32(evaluatedOnFalse) == 1 && evaluatedOnTrue == condition)
+                {
+                    // This case is the equivalent of: `val = cond ? cond : true;`
+                    // which is the same as: `val = true;` so we can just return the `true` value
+                    // from the evaluated false block.
+                    return evaluatedOnFalse!;
+                }
+                else if ((QirValues.AsConstantUInt32(evaluatedOnTrue) == 1 && evaluatedOnFalse == condition) ||
+                    (QirValues.AsConstantUInt32(evaluatedOnFalse) == 0 && evaluatedOnTrue == condition))
+                {
+                    // This case is the equivalent of: `val = cond ? cond : false;` or `val = cond ? true : cond;`
+                    // which is the same as: `val = cond;` so we can just return the condition value itself.
+                    return condition;
+                }
+
                 var phi = this.CurrentBuilder.PhiNode(defaultValue?.LlvmType ?? evaluatedOnTrue!.NativeType);
                 phi.AddIncoming(evaluatedOnTrue!, afterTrue);
                 phi.AddIncoming(evaluatedOnFalse!, afterFalse);
