@@ -470,6 +470,7 @@ export async function getJobResults(
 
   // inputBox for a user calling from Command Palette
   if (!jobId) {
+    vscode.commands.executeCommand("quantum-jobs.focus");
     jobId = await vscode.window.showInputBox({
       prompt: "Enter Job Id",
       ignoreFocusOut: true,
