@@ -459,7 +459,7 @@ type Namespace
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member internal this.TryAddOpenDirective source (openedNS, nsRange) (alias, aliasRange) =
-        let alias = if String.IsNullOrWhiteSpace alias then null else alias.Trim()
+        let alias = if String.IsNullOrWhiteSpace alias then "" else alias.Trim()
 
         match parts.TryGetValue source with
         | true, partial ->
@@ -470,10 +470,7 @@ type Namespace
             // it would take a nontrivial refactor since it means some qualified names of
             // types/callables would no longer fully qualified. It requires merging the logic for
             // unqualified and qualified symbol lookups, basically.
-            if
-                not (isNull alias)
-                && imported |> Seq.exists (fun kv -> kv.Key <> openedNS && kv.Value.Contains(alias))
-            then
+            if alias <> "" && imported |> Seq.exists (fun kv -> kv.Key <> openedNS && kv.Value.Contains(alias)) then
                 [|
                     aliasRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidNamespaceAliasName, [ alias ])
                 |]

@@ -70,7 +70,7 @@ type private PartialNamespace
 
     /// constructor taking the name of the namespace as well as the name of the file it is declared in as arguments
     internal new(name, source) =
-        PartialNamespace(name, source, [], [ new KeyValuePair<_, _>(name, new HashSet<_>(seq { null })) ], [], [], [])
+        PartialNamespace(name, source, [], [ new KeyValuePair<_, _>(name, new HashSet<_>(seq { "" })) ], [], [], [])
 
     /// returns a new PartialNamespace that is an exact copy of this one
     /// -> any modification of the returned PartialNamespace is not reflected in this one
@@ -110,7 +110,7 @@ type private PartialNamespace
         let shortNames =
             this.ImportedNamespaces
             |> Seq.collect (fun kv -> kv.Value |> Seq.map (fun alias -> (alias, kv.Key)))
-            |> Seq.filter (fun kv -> not (isNull (fst kv)))
+            |> Seq.filter (fun kv -> (fst kv) <> "")
 
         shortNames.ToImmutableDictionary(fst, snd)
 
