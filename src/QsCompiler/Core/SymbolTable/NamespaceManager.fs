@@ -76,8 +76,8 @@ type NamespaceManager
     /// A namespace with the given name was not found, or the source file does not contain the namespace.
     /// </exception>
     let openNamespaces (nsName, source) =
-        let isKnownAndNotAliased (kv: KeyValuePair<_, _>) =
-            if not (isNull kv.Value) then
+        let isKnownAndNotAliased (kv: KeyValuePair<string, ImmutableHashSet<string>>) =
+            if not (kv.Value.Contains(null)) then
                 None
             else
                 match namespaces.TryGetValue kv.Key with
@@ -139,13 +139,20 @@ type NamespaceManager
         match namespaces.TryGetValue nsName with
         | true, ns when ns.Sources.Contains source ->
             match (ns.ImportedNamespaces source).TryGetValue builtIn.FullName.Namespace with
-            | true, null when
-                not (ns.TryFindType builtIn.FullName.Name |> ResolutionResult.isAccessible)
-                || nsName = builtIn.FullName.Namespace
+            | true, aliases when
+                aliases.Count = 1 && aliases.Contains(null) // Opened but no alias
+                && (not (ns.TryFindType builtIn.FullName.Name |> ResolutionResult.isAccessible)
+                || nsName = builtIn.FullName.Namespace)
                 ->
                 [ ""; builtIn.FullName.Namespace ]
-            | true, null -> [ builtIn.FullName.Namespace ] // the built-in type or callable is shadowed
-            | true, alias -> [ alias; builtIn.FullName.Namespace ]
+            | true, aliases when aliases.Count > 1 || (aliases.Count = 1 && not (aliases.Contains(null))) -> // Some alias
+                let alias =
+                    aliases
+                    |> Seq.filter (fun alias -> not (isNull alias))
+                    |> Seq.sort
+                    |> Seq.head
+                [ alias; builtIn.FullName.Namespace ]
+            | true, _ -> [ builtIn.FullName.Namespace ] // the built-in type or callable is shadowed
             | false, _ -> [ builtIn.FullName.Namespace ]
         | true, _ -> [ builtIn.FullName.Namespace ]
         | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
@@ -947,9 +954,11 @@ type NamespaceManager
                     ns.Sources
                     |> Seq.collect (fun source ->
                         ns.ImportedNamespaces source
-                        |> Seq.choose (fun imported ->
-                            if imported.Key <> ns.Name then
-                                Some(source, new ValueTuple<_, _>(imported.Key, imported.Value))
+                        |> Seq.collect (fun kv ->
+                            kv.Value |> Seq.map (fun alias -> (kv.Key, alias)))
+                        |> Seq.choose (fun (nsImported, alias) ->
+                            if nsImported <> ns.Name then
+                                Some(source, new ValueTuple<_, _>(nsImported, alias))
                             else
                                 None))
 
@@ -1666,8 +1675,9 @@ type NamespaceManager
                 relevantNamespaces
                 |> Seq.collect (fun ns ->
                     ns.ImportedNamespaces source
-                    |> Seq.sortBy (fun x -> x.Value)
-                    |> Seq.map (fun opened -> ns.Name, opened.Value))
+                    |> Seq.collect (fun kv -> kv.Value)
+                    |> Seq.sort
+                    |> Seq.map (fun opened -> ns.Name, opened))
 
             let callablesHash =
                 callables |> Seq.map (fun (ns, name, c) -> (ns, name, callableHash c)) |> Seq.toList |> hash
