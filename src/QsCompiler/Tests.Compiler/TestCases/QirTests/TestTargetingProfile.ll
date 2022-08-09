@@ -402,102 +402,95 @@ condContinue__1:                                  ; preds = %condTrue__1, %conti
 continue__6:                                      ; preds = %condContinue__1
   %248 = call %Result* @__quantum__rt__result_get_zero()
   %249 = call i1 @__quantum__rt__result_equal(%Result* %m2, %Result* %248)
-  %250 = xor i1 %249, true
-  br i1 %250, label %condTrue__2, label %condContinue__2
+  br i1 %249, label %condContinue__2, label %condFalse__1
 
-condTrue__2:                                      ; preds = %continue__6
+condFalse__1:                                     ; preds = %continue__6
   br label %condContinue__2
 
-condContinue__2:                                  ; preds = %condTrue__2, %continue__6
-  %251 = phi i1 [ false, %condTrue__2 ], [ %249, %continue__6 ]
-  br i1 %251, label %then0__3, label %continue__7
+condContinue__2:                                  ; preds = %condFalse__1, %continue__6
+  br i1 %249, label %then0__3, label %continue__7
 
 then0__3:                                         ; preds = %condContinue__2
   %q__8 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %252 = call %Result* @__quantum__qis__m__body(%Qubit* %q__8)
-  %253 = insertvalue { i64, %Result* } { i64 17, %Result* null }, %Result* %252, 1
-  store { i64, %Result* } %253, { i64, %Result* }* %12, align 8
-  %254 = bitcast { i64, %Result* }* %12 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %254)
+  %250 = call %Result* @__quantum__qis__m__body(%Qubit* %q__8)
+  %251 = insertvalue { i64, %Result* } { i64 17, %Result* null }, %Result* %250, 1
+  store { i64, %Result* } %251, { i64, %Result* }* %12, align 8
+  %252 = bitcast { i64, %Result* }* %12 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %252)
   call void @__quantum__rt__qubit_release(%Qubit* %q__8)
   br label %continue__7
 
 continue__7:                                      ; preds = %then0__3, %condContinue__2
-  %255 = call %Result* @__quantum__rt__result_get_zero()
-  %256 = call i1 @__quantum__rt__result_equal(%Result* %m2, %Result* %255)
-  br i1 %256, label %then0__4, label %test1__2
+  %253 = call %Result* @__quantum__rt__result_get_zero()
+  %254 = call i1 @__quantum__rt__result_equal(%Result* %m2, %Result* %253)
+  br i1 %254, label %then0__4, label %test1__2
 
 then0__4:                                         ; preds = %continue__7
   %q__9 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %257 = call %Result* @__quantum__qis__m__body(%Qubit* %q__9)
-  %258 = insertvalue { i64, %Result* } { i64 14, %Result* null }, %Result* %257, 1
-  store { i64, %Result* } %258, { i64, %Result* }* %11, align 8
-  %259 = bitcast { i64, %Result* }* %11 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %259)
+  %255 = call %Result* @__quantum__qis__m__body(%Qubit* %q__9)
+  %256 = insertvalue { i64, %Result* } { i64 14, %Result* null }, %Result* %255, 1
+  store { i64, %Result* } %256, { i64, %Result* }* %11, align 8
+  %257 = bitcast { i64, %Result* }* %11 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %257)
   call void @__quantum__rt__qubit_release(%Qubit* %q__9)
   br label %continue__8
 
 test1__2:                                         ; preds = %continue__7
   %q__10 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %260 = call %Result* @__quantum__qis__m__body(%Qubit* %q__10)
-  %261 = insertvalue { i64, %Result* } { i64 15, %Result* null }, %Result* %260, 1
-  store { i64, %Result* } %261, { i64, %Result* }* %10, align 8
-  %262 = bitcast { i64, %Result* }* %10 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %262)
+  %258 = call %Result* @__quantum__qis__m__body(%Qubit* %q__10)
+  %259 = insertvalue { i64, %Result* } { i64 15, %Result* null }, %Result* %258, 1
+  store { i64, %Result* } %259, { i64, %Result* }* %10, align 8
+  %260 = bitcast { i64, %Result* }* %10 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %260)
   call void @__quantum__rt__qubit_release(%Qubit* %q__10)
   br label %continue__8
 
 continue__8:                                      ; preds = %test1__2, %then0__4
-  %263 = call %Result* @__quantum__rt__result_get_zero()
-  %264 = call i1 @__quantum__rt__result_equal(%Result* %m2, %Result* %263)
-  br i1 %264, label %condTrue__3, label %condContinue__3
+  %261 = call %Result* @__quantum__rt__result_get_zero()
+  %262 = call i1 @__quantum__rt__result_equal(%Result* %m2, %Result* %261)
+  br i1 %262, label %condTrue__2, label %condContinue__3
 
-condTrue__3:                                      ; preds = %continue__8
+condTrue__2:                                      ; preds = %continue__8
   br label %condContinue__3
 
-condContinue__3:                                  ; preds = %condTrue__3, %continue__8
-  br i1 %264, label %then0__5, label %continue__9
+condContinue__3:                                  ; preds = %condTrue__2, %continue__8
+  br i1 %262, label %then0__5, label %continue__9
 
 then0__5:                                         ; preds = %condContinue__3
   %q__11 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %265 = call %Result* @__quantum__qis__m__body(%Qubit* %q__11)
-  %266 = insertvalue { i64, %Result* } { i64 16, %Result* null }, %Result* %265, 1
-  store { i64, %Result* } %266, { i64, %Result* }* %9, align 8
-  %267 = bitcast { i64, %Result* }* %9 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %267)
+  %263 = call %Result* @__quantum__qis__m__body(%Qubit* %q__11)
+  %264 = insertvalue { i64, %Result* } { i64 16, %Result* null }, %Result* %263, 1
+  store { i64, %Result* } %264, { i64, %Result* }* %9, align 8
+  %265 = bitcast { i64, %Result* }* %9 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %265)
   call void @__quantum__rt__qubit_release(%Qubit* %q__11)
   br label %continue__9
 
 continue__9:                                      ; preds = %then0__5, %condContinue__3
-  %268 = call %Result* @__quantum__rt__result_get_zero()
-  %269 = call i1 @__quantum__rt__result_equal(%Result* %m2, %Result* %268)
-  %270 = xor i1 %269, true
-  br i1 %270, label %condTrue__4, label %condContinue__4
+  %266 = call %Result* @__quantum__rt__result_get_zero()
+  %267 = call i1 @__quantum__rt__result_equal(%Result* %m2, %Result* %266)
+  br i1 %267, label %condContinue__4, label %condFalse__2
 
-condTrue__4:                                      ; preds = %continue__9
+condFalse__2:                                     ; preds = %continue__9
   br label %condContinue__4
 
-condContinue__4:                                  ; preds = %condTrue__4, %continue__9
-  %271 = phi i1 [ true, %condTrue__4 ], [ %269, %continue__9 ]
-  br i1 %271, label %then0__6, label %continue__10
-
-then0__6:                                         ; preds = %condContinue__4
+condContinue__4:                                  ; preds = %condFalse__2, %continue__9
   %q__12 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %272 = call %Result* @__quantum__qis__m__body(%Qubit* %q__12)
-  %273 = insertvalue { i64, %Result* } { i64 17, %Result* null }, %Result* %272, 1
-  store { i64, %Result* } %273, { i64, %Result* }* %8, align 8
-  %274 = bitcast { i64, %Result* }* %8 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %274)
+  %268 = call %Result* @__quantum__qis__m__body(%Qubit* %q__12)
+  %269 = insertvalue { i64, %Result* } { i64 17, %Result* null }, %Result* %268, 1
+  store { i64, %Result* } %269, { i64, %Result* }* %8, align 8
+  %270 = bitcast { i64, %Result* }* %8 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %270)
   call void @__quantum__rt__qubit_release(%Qubit* %q__12)
   br label %continue__10
 
-continue__10:                                     ; preds = %then0__6, %condContinue__4
+continue__10:                                     ; preds = %condContinue__4
   %q__13 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %275 = call %Result* @__quantum__qis__m__body(%Qubit* %q__13)
-  %276 = insertvalue { i64, %Result* } { i64 18, %Result* null }, %Result* %275, 1
-  store { i64, %Result* } %276, { i64, %Result* }* %7, align 8
-  %277 = bitcast { i64, %Result* }* %7 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %277)
+  %271 = call %Result* @__quantum__qis__m__body(%Qubit* %q__13)
+  %272 = insertvalue { i64, %Result* } { i64 18, %Result* null }, %Result* %271, 1
+  store { i64, %Result* } %272, { i64, %Result* }* %7, align 8
+  %273 = bitcast { i64, %Result* }* %7 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %273)
   call void @__quantum__rt__qubit_release(%Qubit* %q__13)
   br label %continue__11
 
@@ -506,41 +499,41 @@ continue__11:                                     ; preds = %continue__10
 
 continue__12:                                     ; preds = %continue__11
   %q__14 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %278 = call %Result* @__quantum__qis__m__body(%Qubit* %q__14)
-  %279 = insertvalue { i64, %Result* } { i64 21, %Result* null }, %Result* %278, 1
-  store { i64, %Result* } %279, { i64, %Result* }* %6, align 8
-  %280 = bitcast { i64, %Result* }* %6 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %280)
+  %274 = call %Result* @__quantum__qis__m__body(%Qubit* %q__14)
+  %275 = insertvalue { i64, %Result* } { i64 21, %Result* null }, %Result* %274, 1
+  store { i64, %Result* } %275, { i64, %Result* }* %6, align 8
+  %276 = bitcast { i64, %Result* }* %6 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %276)
   call void @__quantum__rt__qubit_release(%Qubit* %q__14)
   br label %continue__13
 
 continue__13:                                     ; preds = %continue__12
   %q__15 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %281 = call %Result* @__quantum__qis__m__body(%Qubit* %q__15)
-  %282 = insertvalue { i64, %Result* } { i64 18, %Result* null }, %Result* %281, 1
-  store { i64, %Result* } %282, { i64, %Result* }* %5, align 8
-  %283 = bitcast { i64, %Result* }* %5 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %283)
+  %277 = call %Result* @__quantum__qis__m__body(%Qubit* %q__15)
+  %278 = insertvalue { i64, %Result* } { i64 18, %Result* null }, %Result* %277, 1
+  store { i64, %Result* } %278, { i64, %Result* }* %5, align 8
+  %279 = bitcast { i64, %Result* }* %5 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %279)
   call void @__quantum__rt__qubit_release(%Qubit* %q__15)
   br label %continue__14
 
 continue__14:                                     ; preds = %continue__13
   %q__16 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %284 = call %Result* @__quantum__qis__m__body(%Qubit* %q__16)
-  %285 = insertvalue { i64, %Result* } { i64 20, %Result* null }, %Result* %284, 1
-  store { i64, %Result* } %285, { i64, %Result* }* %4, align 8
-  %286 = bitcast { i64, %Result* }* %4 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %286)
+  %280 = call %Result* @__quantum__qis__m__body(%Qubit* %q__16)
+  %281 = insertvalue { i64, %Result* } { i64 20, %Result* null }, %Result* %280, 1
+  store { i64, %Result* } %281, { i64, %Result* }* %4, align 8
+  %282 = bitcast { i64, %Result* }* %4 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %282)
   call void @__quantum__rt__qubit_release(%Qubit* %q__16)
   br label %continue__15
 
 continue__15:                                     ; preds = %continue__14
   %q__17 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %287 = call %Result* @__quantum__qis__m__body(%Qubit* %q__17)
-  %288 = insertvalue { i64, %Result* } { i64 21, %Result* null }, %Result* %287, 1
-  store { i64, %Result* } %288, { i64, %Result* }* %3, align 8
-  %289 = bitcast { i64, %Result* }* %3 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %289)
+  %283 = call %Result* @__quantum__qis__m__body(%Qubit* %q__17)
+  %284 = insertvalue { i64, %Result* } { i64 21, %Result* null }, %Result* %283, 1
+  store { i64, %Result* } %284, { i64, %Result* }* %3, align 8
+  %285 = bitcast { i64, %Result* }* %3 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %285)
   call void @__quantum__rt__qubit_release(%Qubit* %q__17)
   br label %continue__16
 
@@ -555,11 +548,11 @@ continue__18:                                     ; preds = %continue__17
 
 continue__19:                                     ; preds = %continue__18
   %q__18 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %290 = call %Result* @__quantum__qis__m__body(%Qubit* %q__18)
-  %291 = insertvalue { i64, %Result* } { i64 19, %Result* null }, %Result* %290, 1
-  store { i64, %Result* } %291, { i64, %Result* }* %2, align 8
-  %292 = bitcast { i64, %Result* }* %2 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %292)
+  %286 = call %Result* @__quantum__qis__m__body(%Qubit* %q__18)
+  %287 = insertvalue { i64, %Result* } { i64 19, %Result* null }, %Result* %286, 1
+  store { i64, %Result* } %287, { i64, %Result* }* %2, align 8
+  %288 = bitcast { i64, %Result* }* %2 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %288)
   call void @__quantum__rt__qubit_release(%Qubit* %q__18)
   br label %continue__20
 
@@ -568,193 +561,193 @@ continue__20:                                     ; preds = %continue__19
 
 continue__21:                                     ; preds = %continue__20
   %q__19 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %293 = call %Result* @__quantum__qis__m__body(%Qubit* %q__19)
-  %294 = insertvalue { i64, %Result* } { i64 21, %Result* null }, %Result* %293, 1
-  store { i64, %Result* } %294, { i64, %Result* }* %1, align 8
-  %295 = bitcast { i64, %Result* }* %1 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %295)
+  %289 = call %Result* @__quantum__qis__m__body(%Qubit* %q__19)
+  %290 = insertvalue { i64, %Result* } { i64 21, %Result* null }, %Result* %289, 1
+  store { i64, %Result* } %290, { i64, %Result* }* %1, align 8
+  %291 = bitcast { i64, %Result* }* %1 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %291)
   call void @__quantum__rt__qubit_release(%Qubit* %q__19)
   br label %continue__22
 
 continue__22:                                     ; preds = %continue__21
   store i64 0, i64* %rand, align 4
   store i64 0, i64* %rand, align 4
-  %296 = insertvalue [1 x %Qubit*] zeroinitializer, %Qubit* %qubit, 0
-  %297 = insertvalue { [1 x %Qubit*], i64 } zeroinitializer, [1 x %Qubit*] %296, 0
-  %qubits = insertvalue { [1 x %Qubit*], i64 } %297, i64 1, 1
+  %292 = insertvalue [1 x %Qubit*] zeroinitializer, %Qubit* %qubit, 0
+  %293 = insertvalue { [1 x %Qubit*], i64 } zeroinitializer, [1 x %Qubit*] %292, 0
+  %qubits = insertvalue { [1 x %Qubit*], i64 } %293, i64 1, 1
   br label %continue__24
 
 continue__24:                                     ; preds = %continue__22
-  %298 = call %Result* @__quantum__rt__result_get_one()
-  call void @__quantum__rt__result_update_reference_count(%Result* %298, i32 1)
-  %299 = call %Result* @__quantum__rt__result_get_one()
-  %300 = call i1 @__quantum__rt__result_equal(%Result* %298, %Result* %299)
-  call void @__quantum__rt__result_update_reference_count(%Result* %298, i32 -1)
-  br i1 %300, label %then0__7, label %continue__23
+  %294 = call %Result* @__quantum__rt__result_get_one()
+  call void @__quantum__rt__result_update_reference_count(%Result* %294, i32 1)
+  %295 = call %Result* @__quantum__rt__result_get_one()
+  %296 = call i1 @__quantum__rt__result_equal(%Result* %294, %Result* %295)
+  call void @__quantum__rt__result_update_reference_count(%Result* %294, i32 -1)
+  br i1 %296, label %then0__6, label %continue__23
 
-then0__7:                                         ; preds = %continue__24
+then0__6:                                         ; preds = %continue__24
   store i64 1, i64* %rand, align 4
   br label %continue__23
 
-continue__23:                                     ; preds = %then0__7, %continue__24
-  %301 = load i64, i64* %rand, align 4
-  %302 = shl i64 %301, 1
-  store i64 %302, i64* %rand, align 4
-  %303 = insertvalue [1 x %Qubit*] zeroinitializer, %Qubit* %target, 0
-  %304 = insertvalue { [1 x %Qubit*], i64 } zeroinitializer, [1 x %Qubit*] %303, 0
-  %qubits__1 = insertvalue { [1 x %Qubit*], i64 } %304, i64 1, 1
+continue__23:                                     ; preds = %then0__6, %continue__24
+  %297 = load i64, i64* %rand, align 4
+  %298 = shl i64 %297, 1
+  store i64 %298, i64* %rand, align 4
+  %299 = insertvalue [1 x %Qubit*] zeroinitializer, %Qubit* %target, 0
+  %300 = insertvalue { [1 x %Qubit*], i64 } zeroinitializer, [1 x %Qubit*] %299, 0
+  %qubits__1 = insertvalue { [1 x %Qubit*], i64 } %300, i64 1, 1
   br label %continue__26
 
 continue__26:                                     ; preds = %continue__23
-  %305 = call %Result* @__quantum__rt__result_get_one()
-  call void @__quantum__rt__result_update_reference_count(%Result* %305, i32 1)
-  %306 = call %Result* @__quantum__rt__result_get_one()
-  %307 = call i1 @__quantum__rt__result_equal(%Result* %305, %Result* %306)
-  call void @__quantum__rt__result_update_reference_count(%Result* %305, i32 -1)
-  br i1 %307, label %then0__8, label %continue__25
+  %301 = call %Result* @__quantum__rt__result_get_one()
+  call void @__quantum__rt__result_update_reference_count(%Result* %301, i32 1)
+  %302 = call %Result* @__quantum__rt__result_get_one()
+  %303 = call i1 @__quantum__rt__result_equal(%Result* %301, %Result* %302)
+  call void @__quantum__rt__result_update_reference_count(%Result* %301, i32 -1)
+  br i1 %303, label %then0__7, label %continue__25
 
-then0__8:                                         ; preds = %continue__26
-  %308 = add i64 %302, 1
-  store i64 %308, i64* %rand, align 4
+then0__7:                                         ; preds = %continue__26
+  %304 = add i64 %298, 1
+  store i64 %304, i64* %rand, align 4
   br label %continue__25
 
-continue__25:                                     ; preds = %then0__8, %continue__26
-  %309 = call %Result* @__quantum__rt__result_get_zero()
-  %a = call i1 @__quantum__rt__result_equal(%Result* %m1, %Result* %309)
+continue__25:                                     ; preds = %then0__7, %continue__26
+  %305 = call %Result* @__quantum__rt__result_get_zero()
+  %a = call i1 @__quantum__rt__result_equal(%Result* %m1, %Result* %305)
   %a__1 = call %Result* @__quantum__rt__result_get_zero()
-  %310 = call %Result* @__quantum__rt__result_get_one()
-  %311 = call i1 @__quantum__rt__result_equal(%Result* %a__1, %Result* %310)
-  %c = or i1 %311, %a
-  %312 = insertvalue { i1, i1 } zeroinitializer, i1 %a, 0
-  %313 = insertvalue { i1, i1 } %312, i1 %c, 1
-  store { i1, i1 } %313, { i1, i1 }* %0, align 1
-  %314 = bitcast { i1, i1 }* %0 to i8*
-  call void @__quantum__qis__dumpmachine__body(i8* %314)
-  %315 = call i1 @__quantum__rt__result_equal(%Result* %m1, %Result* %m2)
-  %316 = select i1 %315, i64 6, i64 0
-  store i64 %316, i64* %foo, align 4
-  %317 = call %Result* @__quantum__rt__result_get_zero()
-  %318 = call i1 @__quantum__rt__result_equal(%Result* %m1, %Result* %317)
-  br i1 %318, label %then0__9, label %else__2
+  %306 = call %Result* @__quantum__rt__result_get_one()
+  %307 = call i1 @__quantum__rt__result_equal(%Result* %a__1, %Result* %306)
+  %c = or i1 %307, %a
+  %308 = insertvalue { i1, i1 } zeroinitializer, i1 %a, 0
+  %309 = insertvalue { i1, i1 } %308, i1 %c, 1
+  store { i1, i1 } %309, { i1, i1 }* %0, align 1
+  %310 = bitcast { i1, i1 }* %0 to i8*
+  call void @__quantum__qis__dumpmachine__body(i8* %310)
+  %311 = call i1 @__quantum__rt__result_equal(%Result* %m1, %Result* %m2)
+  %312 = select i1 %311, i64 6, i64 0
+  store i64 %312, i64* %foo, align 4
+  %313 = call %Result* @__quantum__rt__result_get_zero()
+  %314 = call i1 @__quantum__rt__result_equal(%Result* %m1, %Result* %313)
+  br i1 %314, label %then0__8, label %else__2
 
-then0__9:                                         ; preds = %continue__25
+then0__8:                                         ; preds = %continue__25
   store i64 0, i64* %bar, align 4
-  %319 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit)
-  %320 = call %Result* @__quantum__rt__result_get_one()
-  %321 = call i1 @__quantum__rt__result_equal(%Result* %319, %Result* %320)
-  %322 = select i1 %321, i64 1, i64 0
-  %323 = add i64 0, %322
-  store i64 %323, i64* %bar, align 4
-  call void @__quantum__rt__result_update_reference_count(%Result* %319, i32 -1)
-  %324 = call %Result* @__quantum__qis__m__body(%Qubit* %target)
-  %325 = call %Result* @__quantum__rt__result_get_one()
-  %326 = call i1 @__quantum__rt__result_equal(%Result* %324, %Result* %325)
-  %327 = select i1 %326, i64 1, i64 0
-  %328 = add i64 %323, %327
-  store i64 %328, i64* %bar, align 4
-  call void @__quantum__rt__result_update_reference_count(%Result* %324, i32 -1)
-  store i64 %328, i64* %foo, align 4
+  %315 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit)
+  %316 = call %Result* @__quantum__rt__result_get_one()
+  %317 = call i1 @__quantum__rt__result_equal(%Result* %315, %Result* %316)
+  %318 = select i1 %317, i64 1, i64 0
+  %319 = add i64 0, %318
+  store i64 %319, i64* %bar, align 4
+  call void @__quantum__rt__result_update_reference_count(%Result* %315, i32 -1)
+  %320 = call %Result* @__quantum__qis__m__body(%Qubit* %target)
+  %321 = call %Result* @__quantum__rt__result_get_one()
+  %322 = call i1 @__quantum__rt__result_equal(%Result* %320, %Result* %321)
+  %323 = select i1 %322, i64 1, i64 0
+  %324 = add i64 %319, %323
+  store i64 %324, i64* %bar, align 4
+  call void @__quantum__rt__result_update_reference_count(%Result* %320, i32 -1)
+  store i64 %324, i64* %foo, align 4
   br label %continue__27
 
 else__2:                                          ; preds = %continue__25
   store i64 0, i64* %bar__1, align 4
-  %329 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit)
-  %330 = call %Result* @__quantum__rt__result_get_zero()
-  %331 = call i1 @__quantum__rt__result_equal(%Result* %329, %Result* %330)
-  %332 = select i1 %331, i64 1, i64 0
-  %333 = add i64 0, %332
-  store i64 %333, i64* %bar__1, align 4
-  call void @__quantum__rt__result_update_reference_count(%Result* %329, i32 -1)
-  %334 = call %Result* @__quantum__qis__m__body(%Qubit* %target)
-  %335 = call %Result* @__quantum__rt__result_get_zero()
-  %336 = call i1 @__quantum__rt__result_equal(%Result* %334, %Result* %335)
-  %337 = select i1 %336, i64 1, i64 0
-  %338 = add i64 %333, %337
-  store i64 %338, i64* %bar__1, align 4
-  call void @__quantum__rt__result_update_reference_count(%Result* %334, i32 -1)
-  store i64 %338, i64* %foo, align 4
+  %325 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit)
+  %326 = call %Result* @__quantum__rt__result_get_zero()
+  %327 = call i1 @__quantum__rt__result_equal(%Result* %325, %Result* %326)
+  %328 = select i1 %327, i64 1, i64 0
+  %329 = add i64 0, %328
+  store i64 %329, i64* %bar__1, align 4
+  call void @__quantum__rt__result_update_reference_count(%Result* %325, i32 -1)
+  %330 = call %Result* @__quantum__qis__m__body(%Qubit* %target)
+  %331 = call %Result* @__quantum__rt__result_get_zero()
+  %332 = call i1 @__quantum__rt__result_equal(%Result* %330, %Result* %331)
+  %333 = select i1 %332, i64 1, i64 0
+  %334 = add i64 %329, %333
+  store i64 %334, i64* %bar__1, align 4
+  call void @__quantum__rt__result_update_reference_count(%Result* %330, i32 -1)
+  store i64 %334, i64* %foo, align 4
   br label %continue__27
 
-continue__27:                                     ; preds = %else__2, %then0__9
+continue__27:                                     ; preds = %else__2, %then0__8
   %qubit__31 = call %Qubit* @__quantum__rt__qubit_allocate()
   %qubit__26 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %339 = call %Qubit* @__quantum__rt__qubit_allocate()
+  %335 = call %Qubit* @__quantum__rt__qubit_allocate()
   %qubit__30 = call %Qubit* @__quantum__rt__qubit_allocate()
   %qubit__27 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %340 = insertvalue [5 x %Qubit*] zeroinitializer, %Qubit* %qubit__31, 0
-  %341 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %340, 0
-  %342 = insertvalue { [5 x %Qubit*], i64 } %341, i64 5, 1
-  %343 = extractvalue { [5 x %Qubit*], i64 } %342, 0
-  %344 = extractvalue { [5 x %Qubit*], i64 } %342, 1
-  %345 = insertvalue [5 x %Qubit*] %343, %Qubit* %qubit__26, 1
-  %346 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %345, 0
-  %347 = insertvalue { [5 x %Qubit*], i64 } %346, i64 5, 1
-  %348 = extractvalue { [5 x %Qubit*], i64 } %347, 0
-  %349 = extractvalue { [5 x %Qubit*], i64 } %347, 1
-  %350 = insertvalue [5 x %Qubit*] %348, %Qubit* %339, 2
-  %351 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %350, 0
-  %352 = insertvalue { [5 x %Qubit*], i64 } %351, i64 5, 1
-  %353 = extractvalue { [5 x %Qubit*], i64 } %352, 0
-  %354 = extractvalue { [5 x %Qubit*], i64 } %352, 1
-  %355 = insertvalue [5 x %Qubit*] %353, %Qubit* %qubit__30, 3
-  %356 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %355, 0
-  %357 = insertvalue { [5 x %Qubit*], i64 } %356, i64 5, 1
-  %358 = extractvalue { [5 x %Qubit*], i64 } %357, 0
-  %359 = extractvalue { [5 x %Qubit*], i64 } %357, 1
-  %360 = insertvalue [5 x %Qubit*] %358, %Qubit* %qubit__27, 4
-  %361 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %360, 0
-  %q__20 = insertvalue { [5 x %Qubit*], i64 } %361, i64 5, 1
+  %336 = insertvalue [5 x %Qubit*] zeroinitializer, %Qubit* %qubit__31, 0
+  %337 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %336, 0
+  %338 = insertvalue { [5 x %Qubit*], i64 } %337, i64 5, 1
+  %339 = extractvalue { [5 x %Qubit*], i64 } %338, 0
+  %340 = extractvalue { [5 x %Qubit*], i64 } %338, 1
+  %341 = insertvalue [5 x %Qubit*] %339, %Qubit* %qubit__26, 1
+  %342 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %341, 0
+  %343 = insertvalue { [5 x %Qubit*], i64 } %342, i64 5, 1
+  %344 = extractvalue { [5 x %Qubit*], i64 } %343, 0
+  %345 = extractvalue { [5 x %Qubit*], i64 } %343, 1
+  %346 = insertvalue [5 x %Qubit*] %344, %Qubit* %335, 2
+  %347 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %346, 0
+  %348 = insertvalue { [5 x %Qubit*], i64 } %347, i64 5, 1
+  %349 = extractvalue { [5 x %Qubit*], i64 } %348, 0
+  %350 = extractvalue { [5 x %Qubit*], i64 } %348, 1
+  %351 = insertvalue [5 x %Qubit*] %349, %Qubit* %qubit__30, 3
+  %352 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %351, 0
+  %353 = insertvalue { [5 x %Qubit*], i64 } %352, i64 5, 1
+  %354 = extractvalue { [5 x %Qubit*], i64 } %353, 0
+  %355 = extractvalue { [5 x %Qubit*], i64 } %353, 1
+  %356 = insertvalue [5 x %Qubit*] %354, %Qubit* %qubit__27, 4
+  %357 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %356, 0
+  %q__20 = insertvalue { [5 x %Qubit*], i64 } %357, i64 5, 1
   %r1 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit__26)
   %r2 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit__27)
   %r3 = call %Result* @__quantum__qis__m__body(%Qubit* poison)
   %r4 = call %Result* @__quantum__qis__m__body(%Qubit* poison)
-  %362 = insertvalue [5 x %Qubit*] zeroinitializer, %Qubit* %qubit__27, 0
-  %363 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %362, 0
-  %364 = insertvalue { [5 x %Qubit*], i64 } %363, i64 5, 1
-  %365 = extractvalue { [5 x %Qubit*], i64 } %364, 0
-  %366 = extractvalue { [5 x %Qubit*], i64 } %364, 1
-  %367 = insertvalue [5 x %Qubit*] %365, %Qubit* %qubit__30, 1
-  %368 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %367, 0
-  %369 = insertvalue { [5 x %Qubit*], i64 } %368, i64 5, 1
-  %370 = extractvalue { [5 x %Qubit*], i64 } %369, 0
-  %371 = extractvalue { [5 x %Qubit*], i64 } %369, 1
-  %372 = insertvalue [5 x %Qubit*] %370, %Qubit* %339, 2
-  %373 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %372, 0
-  %374 = insertvalue { [5 x %Qubit*], i64 } %373, i64 5, 1
-  %375 = extractvalue { [5 x %Qubit*], i64 } %374, 0
-  %376 = extractvalue { [5 x %Qubit*], i64 } %374, 1
-  %377 = insertvalue [5 x %Qubit*] %375, %Qubit* %qubit__26, 3
-  %378 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %377, 0
-  %379 = insertvalue { [5 x %Qubit*], i64 } %378, i64 5, 1
-  %380 = extractvalue { [5 x %Qubit*], i64 } %379, 0
-  %381 = extractvalue { [5 x %Qubit*], i64 } %379, 1
-  %382 = insertvalue [5 x %Qubit*] %380, %Qubit* %qubit__31, 4
-  %383 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %382, 0
-  %384 = insertvalue { [5 x %Qubit*], i64 } %383, i64 5, 1
+  %358 = insertvalue [5 x %Qubit*] zeroinitializer, %Qubit* %qubit__27, 0
+  %359 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %358, 0
+  %360 = insertvalue { [5 x %Qubit*], i64 } %359, i64 5, 1
+  %361 = extractvalue { [5 x %Qubit*], i64 } %360, 0
+  %362 = extractvalue { [5 x %Qubit*], i64 } %360, 1
+  %363 = insertvalue [5 x %Qubit*] %361, %Qubit* %qubit__30, 1
+  %364 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %363, 0
+  %365 = insertvalue { [5 x %Qubit*], i64 } %364, i64 5, 1
+  %366 = extractvalue { [5 x %Qubit*], i64 } %365, 0
+  %367 = extractvalue { [5 x %Qubit*], i64 } %365, 1
+  %368 = insertvalue [5 x %Qubit*] %366, %Qubit* %335, 2
+  %369 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %368, 0
+  %370 = insertvalue { [5 x %Qubit*], i64 } %369, i64 5, 1
+  %371 = extractvalue { [5 x %Qubit*], i64 } %370, 0
+  %372 = extractvalue { [5 x %Qubit*], i64 } %370, 1
+  %373 = insertvalue [5 x %Qubit*] %371, %Qubit* %qubit__26, 3
+  %374 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %373, 0
+  %375 = insertvalue { [5 x %Qubit*], i64 } %374, i64 5, 1
+  %376 = extractvalue { [5 x %Qubit*], i64 } %375, 0
+  %377 = extractvalue { [5 x %Qubit*], i64 } %375, 1
+  %378 = insertvalue [5 x %Qubit*] %376, %Qubit* %qubit__31, 4
+  %379 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %378, 0
+  %380 = insertvalue { [5 x %Qubit*], i64 } %379, i64 5, 1
   %r5 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit__30)
-  %385 = insertvalue [5 x %Qubit*] zeroinitializer, %Qubit* %qubit__27, 0
-  %386 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %385, 0
-  %387 = insertvalue { [5 x %Qubit*], i64 } %386, i64 5, 1
-  %388 = extractvalue { [5 x %Qubit*], i64 } %387, 0
-  %389 = extractvalue { [5 x %Qubit*], i64 } %387, 1
-  %390 = insertvalue [5 x %Qubit*] %388, %Qubit* %qubit__30, 1
-  %391 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %390, 0
-  %392 = insertvalue { [5 x %Qubit*], i64 } %391, i64 5, 1
-  %393 = extractvalue { [5 x %Qubit*], i64 } %392, 0
-  %394 = extractvalue { [5 x %Qubit*], i64 } %392, 1
-  %395 = insertvalue [5 x %Qubit*] %393, %Qubit* %339, 2
-  %396 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %395, 0
-  %397 = insertvalue { [5 x %Qubit*], i64 } %396, i64 5, 1
-  %398 = extractvalue { [5 x %Qubit*], i64 } %397, 0
-  %399 = extractvalue { [5 x %Qubit*], i64 } %397, 1
-  %400 = insertvalue [5 x %Qubit*] %398, %Qubit* %qubit__26, 3
-  %401 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %400, 0
-  %402 = insertvalue { [5 x %Qubit*], i64 } %401, i64 5, 1
-  %403 = extractvalue { [5 x %Qubit*], i64 } %402, 0
-  %404 = extractvalue { [5 x %Qubit*], i64 } %402, 1
-  %405 = insertvalue [5 x %Qubit*] %403, %Qubit* %qubit__31, 4
-  %406 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %405, 0
-  %z2 = insertvalue { [5 x %Qubit*], i64 } %406, i64 5, 1
+  %381 = insertvalue [5 x %Qubit*] zeroinitializer, %Qubit* %qubit__27, 0
+  %382 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %381, 0
+  %383 = insertvalue { [5 x %Qubit*], i64 } %382, i64 5, 1
+  %384 = extractvalue { [5 x %Qubit*], i64 } %383, 0
+  %385 = extractvalue { [5 x %Qubit*], i64 } %383, 1
+  %386 = insertvalue [5 x %Qubit*] %384, %Qubit* %qubit__30, 1
+  %387 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %386, 0
+  %388 = insertvalue { [5 x %Qubit*], i64 } %387, i64 5, 1
+  %389 = extractvalue { [5 x %Qubit*], i64 } %388, 0
+  %390 = extractvalue { [5 x %Qubit*], i64 } %388, 1
+  %391 = insertvalue [5 x %Qubit*] %389, %Qubit* %335, 2
+  %392 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %391, 0
+  %393 = insertvalue { [5 x %Qubit*], i64 } %392, i64 5, 1
+  %394 = extractvalue { [5 x %Qubit*], i64 } %393, 0
+  %395 = extractvalue { [5 x %Qubit*], i64 } %393, 1
+  %396 = insertvalue [5 x %Qubit*] %394, %Qubit* %qubit__26, 3
+  %397 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %396, 0
+  %398 = insertvalue { [5 x %Qubit*], i64 } %397, i64 5, 1
+  %399 = extractvalue { [5 x %Qubit*], i64 } %398, 0
+  %400 = extractvalue { [5 x %Qubit*], i64 } %398, 1
+  %401 = insertvalue [5 x %Qubit*] %399, %Qubit* %qubit__31, 4
+  %402 = insertvalue { [5 x %Qubit*], i64 } zeroinitializer, [5 x %Qubit*] %401, 0
+  %z2 = insertvalue { [5 x %Qubit*], i64 } %402, i64 5, 1
   %r6 = call %Result* @__quantum__qis__m__body(%Qubit* %qubit__31)
   call void @__quantum__rt__result_update_reference_count(%Result* %r1, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %r2, i32 -1)
@@ -764,11 +757,11 @@ continue__27:                                     ; preds = %else__2, %then0__9
   call void @__quantum__rt__result_update_reference_count(%Result* %r6, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit__31)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit__26)
-  call void @__quantum__rt__qubit_release(%Qubit* %339)
+  call void @__quantum__rt__qubit_release(%Qubit* %335)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit__30)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit__27)
   %__rtrnVal1__ = load i64, i64* %rand, align 4
-  %407 = insertvalue { i64, i64 } { i64 6, i64 0 }, i64 %__rtrnVal1__, 1
+  %403 = insertvalue { i64, i64 } { i64 6, i64 0 }, i64 %__rtrnVal1__, 1
   call void @__quantum__rt__qubit_release(%Qubit* %79)
   call void @__quantum__rt__qubit_release(%Qubit* %80)
   call void @__quantum__rt__qubit_release(%Qubit* %88)

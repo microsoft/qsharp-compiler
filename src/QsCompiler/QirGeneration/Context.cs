@@ -1316,8 +1316,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Increases the reference count of the evaluated value by 1,
         /// unless <paramref name="increaseReferenceCount"/> is set to false.
         /// </returns>
-        internal Value ConditionalEvaluation(Value condition, Func<IValue> onCondTrue, IValue defaultValueForCondFalse, bool increaseReferenceCount = true) =>
+        internal Value ConditionalEvaluationTrue(Value condition, Func<IValue> onCondTrue, IValue defaultValueForCondFalse, bool increaseReferenceCount = true) =>
             this.ConditionalEvaluation(condition, onCondTrue: onCondTrue, onCondFalse: null, defaultValueForCondFalse, increaseReferenceCount);
+
+        /// <returns>
+        /// Returns a value that when executed either evaluates to the value defined by <paramref name="onCondFalse"/>,
+        /// if the condition is false, or to the given <paramref name="defaultValueForCondTrue"/> if it is not.
+        /// Increases the reference count of the evaluated value by 1,
+        /// unless <paramref name="increaseReferenceCount"/> is set to false.
+        /// </returns>
+        internal Value ConditionalEvaluationFalse(Value condition, Func<IValue> onCondFalse, IValue defaultValueForCondTrue, bool increaseReferenceCount = true) =>
+            this.ConditionalEvaluation(condition, onCondTrue: null, onCondFalse: onCondFalse, defaultValueForCondTrue, increaseReferenceCount);
 
         /// <returns>A range with the given start, step and end.</returns>
         internal IValue CreateRange(Value start, Value? step, Value end)
