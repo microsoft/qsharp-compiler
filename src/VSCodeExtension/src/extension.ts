@@ -14,7 +14,7 @@ import {LocalSubmissionsProvider} from './localSubmissionsProvider';
 import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVariables } from '@microsoft/vscode-azext-utils';
 import { AzureCliCredential, InteractiveBrowserCredential, AccessToken } from '@azure/identity';
 import {getWorkspaceFromUser} from "./quickPickWorkspace";
-import {workspaceInfo} from "./commands";
+import {workspaceInfo, getAzureQuantumConfig, configIssueEnum} from "./commands";
 
 let credential:AzureCliCredential|InteractiveBrowserCredential;
 let authSource: string;
@@ -187,15 +187,53 @@ export async function activate(context: vscode.ExtensionContext) {
             );
         }
     );
+//  Verify there are not nested csproj files
+    function checkForNesting(files:any[]){
+        // all csproj files must have same depth
+        const depth = files[0].path.split("/").length;
+        let file:any;
+        let fileNum:any;
+        for(fileNum in files){
+            file = files[fileNum];
+            if (file.path.split("/").length !== depth){
+                return true;
+            }
+            return false;
+        }
+
+
+    }
 
     registerCommand(
         context,
         "quantum.submitJob",
         async() => {
-            sendTelemetryEvent(EventNames.jobSubmissionStarted, {},{});
             await getCredential(context);
+            sendTelemetryEvent(EventNames.jobSubmissionStarted, {},{});
+            // base amount of steps (provider, target, jobName, programArguments)
+            let totalSteps = 4;
+            // add steps if necessary for a user to connect to azure workspace
+            let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
+            if(configIssue===configIssueEnum.MULTIPLE_CONFIGS){
+              return;
+            }
+            totalSteps = configIssue?totalSteps+3:totalSteps;
+            // find project file
+            const projectFiles = await vscode.workspace.findFiles("**/*.csproj");
+            if(!projectFiles || projectFiles.length === 0){
+                vscode.window.showErrorMessage(`Could not find .csproj`);
+                return;
+            }
+            const multipleProjFilesFlag = projectFiles.length>1?true:false;
+            if(multipleProjFilesFlag && checkForNesting(projectFiles)){
+                vscode.window.showErrorMessage("Nested .csproj files is not currently supported.");
+                return;
+            }
+            // add step if there are multiple .csproj and user needs to select one
+            totalSteps = multipleProjFilesFlag?totalSteps+1:totalSteps;
+
             requireDotNetSdk(dotNetSdkVersion).then(
-                dotNetSdk => submitJob(context, dotNetSdk, localSubmissionsProvider, credential,workSpaceStatusBarItem )
+                dotNetSdk => submitJob(context, dotNetSdk, localSubmissionsProvider, credential, workSpaceStatusBarItem, workspaceInfo, projectFiles, totalSteps)
             );
         }
     );
@@ -214,7 +252,8 @@ export async function activate(context: vscode.ExtensionContext) {
         async() => {
             sendTelemetryEvent(EventNames.changeWorkspace, {},{});
             await getCredential(context);
-            await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem);
+            // three total steps
+            await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem, 3);
         }
     );
 
