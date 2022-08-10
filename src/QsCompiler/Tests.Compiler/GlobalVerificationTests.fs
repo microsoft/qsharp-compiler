@@ -56,6 +56,7 @@ type GlobalVerificationTests() =
         this.Expect "LocalNamespaceShortNames22" (Warning WarningCode.DeprecatedNewArray |> List.replicate 2)
         this.Expect "LocalNamespaceShortNames23" []
         this.Expect "LocalNamespaceShortNames24" []
+        this.Expect "LocalNamespaceShortNames25" []
 
 
     [<Fact>]
