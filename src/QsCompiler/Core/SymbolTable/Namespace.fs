@@ -463,17 +463,10 @@ type Namespace
 
         match parts.TryGetValue source with
         | true, partial ->
-            let imported = partial.ImportedNamespaces
-
-            if alias <> "" && imported |> Seq.exists (fun kv -> kv.Key <> openedNS && kv.Value.Contains(alias)) then
-                [|
-                    aliasRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidNamespaceAliasName, [ alias ])
-                |]
-            else
-                typesDefinedInAllSourcesCache <- null
-                callablesDefinedInAllSourcesCache <- null
-                partial.AddOpenDirective(openedNS, alias)
-                [||]
+            typesDefinedInAllSourcesCache <- null
+            callablesDefinedInAllSourcesCache <- null
+            partial.AddOpenDirective(openedNS, alias)
+            [||]
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>

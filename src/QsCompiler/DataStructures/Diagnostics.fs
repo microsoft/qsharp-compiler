@@ -190,7 +190,7 @@ type ErrorCode =
     | RequiredUnitReturnForAdjoint = 6015
     | RequiredUnitReturnForControlled = 6016
     | RequiredUnitReturnForControlledAdjoint = 6017
-    /// I.e., the chosen alias already exists.
+    /// I.e., the chosen alias already exists as a namespace
     | InvalidNamespaceAliasName = 6020
     | ConflictInReferences = 6021
     | InaccessibleType = 6022

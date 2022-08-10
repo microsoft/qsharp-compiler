@@ -110,7 +110,9 @@ type private PartialNamespace
         let shortNames =
             this.ImportedNamespaces
             |> Seq.collect (fun kv -> kv.Value |> Seq.map (fun alias -> (alias, kv.Key)))
-            |> Seq.filter (fun kv -> (fst kv) <> "")
+            //|> Seq.filter (fun pair -> (fst pair) <> "")
+            |> Seq.groupBy fst
+            |> Seq.map (fun pair -> ((fst pair), (pair |> snd |> Seq.map snd).ToImmutableHashSet()))
 
         shortNames.ToImmutableDictionary(fst, snd)
 

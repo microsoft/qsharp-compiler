@@ -75,35 +75,56 @@ type NamespaceManager
     /// <exception cref="SymbolNotFoundException">
     /// A namespace with the given name was not found, or the source file does not contain the namespace.
     /// </exception>
-    let openNamespaces (nsName, source) =
-        let isKnownAndNotAliased (kv: KeyValuePair<string, ImmutableHashSet<string>>) =
-            if not (kv.Value.Contains("")) then
-                None
-            else
-                match namespaces.TryGetValue kv.Key with
-                | true, ns -> Some ns
-                | false, _ -> None
+    //let openNamespaces (nsName, source) =
+    //    let isKnownAndNotAliased (kv: KeyValuePair<string, ImmutableHashSet<string>>) =
+    //        if not (kv.Value.Contains("")) then
+    //            None
+    //        else
+    //            match namespaces.TryGetValue kv.Key with
+    //            | true, ns -> Some ns
+    //            | false, _ -> None
 
-        match namespaces.TryGetValue nsName with
-        | true, ns -> ns, ns.ImportedNamespaces source |> Seq.choose isKnownAndNotAliased |> Seq.toList
-        | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
+    //    match namespaces.TryGetValue nsName with
+    //    | true, ns -> ns, ns.ImportedNamespaces source |> Seq.choose isKnownAndNotAliased |> Seq.toList
+    //    | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
+
+    ///// Calls the resolver function on each namespace opened within the given namespace name and source file, and
+    ///// attempts to find an unambiguous resolution.
+    //let resolveInOpenNamespaces resolver (nsName, source) =
+    //    let resolveWithNsName (ns: Namespace) =
+    //        resolver ns |> ResolutionResult.map (fun value -> (ns.Name, value))
+
+    //    let currentNs, importedNs = openNamespaces (nsName, source)
+
+    //    seq {
+    //        yield resolveWithNsName currentNs
+    //        yield Seq.map resolveWithNsName importedNs |> ResolutionResult.tryAtMostOne fst
+    //    }
+    //    |> ResolutionResult.tryFirstBest
 
     /// Calls the resolver function on each namespace opened within the given namespace name and source file, and
     /// attempts to find an unambiguous resolution.
-    let resolveInOpenNamespaces resolver (nsName, source) =
+    let resolveInCandidateNamespaces candidateNamespaces currentNsName resolver =
         let resolveWithNsName (ns: Namespace) =
             resolver ns |> ResolutionResult.map (fun value -> (ns.Name, value))
 
-        let currentNs, importedNs = openNamespaces (nsName, source)
+        let currentNs = Seq.tryFind (fun ns -> ns.Name = nsName)
+        let importedNs =
+            match currentNs with
+            | None -> candidateNamespaces
+            | Some ns -> candidateNamespaces |> Seq.filter (fun ns' -> ns' <> ns)
 
         seq {
-            yield resolveWithNsName currentNs
+            yield match currentNs with
+            | None -> Seq.empty
+            | Some ns -> resolveWithNsName currentNs
+
             yield Seq.map resolveWithNsName importedNs |> ResolutionResult.tryAtMostOne fst
         }
         |> ResolutionResult.tryFirstBest
 
     /// <summary>
-    /// Given a qualifier for a symbol name, returns the corresponding namespace as Some
+    /// Given a qualifier for a symbol name, returns the corresponding namespaces as Some
     /// if such a namespace or such a namespace short name within the given parent namespace and source file exists.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">
@@ -119,14 +140,15 @@ type NamespaceManager
         let nsAlias =
             namespaces.TryGetValue
             >> tryOption
-            >> Option.orElseWith (fun () ->
-                QsCompilerError.Raise "The corresponding namespace for a namespace short name could not be found."
-                None)
+            >> Option.defaultWith (fun () ->
+                SymbolNotFoundException "The corresponding namespace for a namespace short name could not be found." |> raise)
 
         namespaces.TryGetValue qualifier
         |> tryOption
+        |> Option.bind (fun ns -> Some (seq { ns }))
         |> Option.orElseWith (fun () ->
-            (parentNs().NamespaceShortNames source).TryGetValue qualifier |> tryOption |> Option.bind nsAlias)
+            (parentNs().NamespaceShortNames source).TryGetValue qualifier |> tryOption |> Option.map (fun x -> x |> Seq.map nsAlias))
+        |> Option.defaultValue Seq.empty
 
     /// <summary>
     /// Returns the possible qualifications for the built-in type or callable used in the given namespace and source.
@@ -190,11 +212,11 @@ type NamespaceManager
         let error code args =
             None, [| QsCompilerDiagnostic.Error (code, args) (symRange.ValueOr Range.Zero) |]
 
-        let findUnqualified () =
+        let findIn candidateNamespaces =
             match
-                resolveInOpenNamespaces
+                resolveInCandidateNamespaces
+                    candidateNamespaces, parentNS,
                     (fun ns -> ns.TryFindType(symName, checkQualificationForDeprecation))
-                    (parentNS, source)
                 with
             | Found (nsName, (declSource, deprecation, access)) -> success nsName declSource deprecation access [||]
             | Ambiguous namespaces ->
@@ -203,21 +225,21 @@ type NamespaceManager
             | Inaccessible -> error ErrorCode.InaccessibleType [ symName ]
             | NotFound -> error ErrorCode.UnknownType [ symName ]
 
-        let findQualified (ns: Namespace) qualifier =
-            match ns.TryFindType(symName, checkQualificationForDeprecation) with
-            | Found (declSource, deprecation, access) -> success ns.Name declSource deprecation access [||]
-            | Ambiguous _ ->
-                QsCompilerError.Raise "Qualified name should not be ambiguous"
-                Exception() |> raise
-            | Inaccessible -> error ErrorCode.InaccessibleTypeInNamespace [ symName; qualifier ]
-            | NotFound -> error ErrorCode.UnknownTypeInNamespace [ symName; qualifier ]
+        //let findQualified (ns: Namespace) qualifier =
+        //    match ns.TryFindType(symName, checkQualificationForDeprecation) with
+        //    | Found (declSource, deprecation, access) -> success ns.Name declSource deprecation access [||]
+        //    | Ambiguous _ ->
+        //        QsCompilerError.Raise "Qualified name should not be ambiguous"
+        //        Exception() |> raise
+        //    | Inaccessible -> error ErrorCode.InaccessibleTypeInNamespace [ symName; qualifier ]
+        //    | NotFound -> error ErrorCode.UnknownTypeInNamespace [ symName; qualifier ]
 
-        match nsName with
-        | None -> findUnqualified ()
-        | Some qualifier ->
-            match tryResolveQualifier qualifier (parentNS, source) with
-            | None -> error ErrorCode.UnknownNamespace [ qualifier ]
-            | Some ns -> findQualified ns qualifier
+        let alias = nsName |> Option.defaultValue ""
+        let candidateNamespaces = tryResolveQualifier alias (parentNS, source)
+        match candidateNamespaces |> Seq.length with
+        // When alias == "", it's impossible for this to be empty, since namespaces are auto-populated with opening themselves
+        | 0 -> error ErrorCode.UnknownNamespace [ alias ]
+        | _ -> findIn candidateNamespaces
 
     /// <summary>
     /// Fully (i.e. recursively) resolves the given Q# type used within the given parent in the given source file. The
@@ -1328,14 +1350,18 @@ type NamespaceManager
         syncRoot.EnterReadLock()
 
         try
-            match (nsName, source) |> tryResolveQualifier callableName.Namespace with
-            | None -> NotFound
-            | Some ns ->
+            let candidateNamespaces = tryResolveQualifier callableName.Namespace (nsName, source)
+            match candidateNamespaces |> Seq.length with
+            | 0 -> NotFound
+            | 1 ->
+                let ns = candidateNamespaces |> Seq.head
                 seq {
                     yield findInReferences ns
                     yield declSource |> Option.map (fun s -> s.CodeFile) |> findInSources ns
                 }
                 |> ResolutionResult.tryFirstBest
+            | _ -> 
+                SymbolNotFoundException "TryGetCallableHeader() requires a fully qualified name" |> raise
         finally
             syncRoot.ExitReadLock()
 
