@@ -46,6 +46,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         private readonly ConcurrentDictionary<Uri, byte> ignoreEditorUpdatesForFiles;
 
+        /// <summary>
+        /// General purpose logging routine used for major loading events.
+        /// </summary>
+        private readonly Action<string, MessageType> log;
+
         internal void IgnoreEditorUpdatesFor(Uri uri) => this.ignoreEditorUpdatesForFiles.TryAdd(uri, default);
 
         private static bool ValidFileUri(Uri? file) => file != null && file.IsFile && file.IsAbsoluteUri;
@@ -87,6 +92,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             this.projectLoader = projectLoader;
             this.projects = new ProjectManager(onException, log, this.publish, this.sendTelemetry);
+            this.log = log ?? ((msg, severity) => Console.Error.WriteLine($"{severity}: {msg}"));
         }
 
         /// <summary>
@@ -200,6 +206,18 @@ namespace Microsoft.Quantum.QsLanguageServer
             return true;
         }
 
+        /// <summary>
+        /// Create a stand-in notebook project.
+        /// <para/>
+        /// If the $QSHARP_NOTEBOOK_REFERENCES_DIR environment variable holds a valid directory path
+        /// (or by default if a directory named "notebookReferences" exists alongside the binary for
+        /// the language server executable), all dlls in it will be added as references to the
+        /// notebook project. For a usable experience, the key references to include are:
+        /// Microsoft.Quantum.Standard.dll, Microsoft.Quantum.QSharp.Foundation.dll, and
+        /// Microsoft.Quantum.QSharp.Core.dll; the language server docker image should ship these.
+        /// (Normally, these references are handled by the Quantum SDK MSBuild scripts, but we have
+        /// forfeited that help by bypassing MSBuild and creating this project ourselves.)
+        /// </summary>
         internal bool NotebookProjectLoader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? info)
         {
             var buildProperties = ImmutableDictionary.CreateBuilder<string, string?>();
@@ -219,15 +237,30 @@ namespace Microsoft.Quantum.QsLanguageServer
             // TODO: In the future if we add formatting support, this will need to be updated
             buildProperties.Add(MSBuildProperties.QsFmtExe, null);
 
-            // TODO: To allow access to the standard library, need to include references to:
-            // * Microsoft.Quantum.Standard.dll
-            // * Microsoft.Quantum.QSharp.Foundation.dll
-            // * Microsoft.Quantum.QSharp.Core.dll
-            // (This is normally handled by the Quantum SDK MSBuild scripts, which we have bypassed)
+            string notebookReferencesDir =
+                Environment.GetEnvironmentVariable("QSHARP_NOTEBOOK_REFERENCES_DIR")
+                ?? Path.Join(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location), "notebookReferences");
+
+            IEnumerable<string> references = Enumerable.Empty<string>();
+            if (!string.IsNullOrEmpty(notebookReferencesDir))
+            {
+                try
+                {
+                    var dir = new DirectoryInfo(notebookReferencesDir);
+                    references = dir.GetFiles()
+                        .Select(file => file.FullName)
+                        .Where(path => path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase));
+                }
+                catch (IOException err)
+                {
+                    this.log($"Cannot access references directory for notebook: {err}", MessageType.Warning);
+                }
+            }
+
             info = new ProjectInformation(
-                sourceFiles: ImmutableArray<string>.Empty,
-                projectReferences: ImmutableArray<string>.Empty,
-                references: ImmutableArray<string>.Empty,
+                sourceFiles: Enumerable.Empty<string>(),
+                projectReferences: Enumerable.Empty<string>(),
+                references: references,
                 buildProperties: buildProperties);
             return true;
         }

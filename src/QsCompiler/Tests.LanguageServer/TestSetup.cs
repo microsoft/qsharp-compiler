@@ -23,6 +23,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
         private Connection? connection;
         private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
+        private string tempNotebookReferencesDir = null!; // Initialized in SetupServerConnectionAsync.
         private readonly RandomInput inputGenerator = new RandomInput();
         private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
         private readonly ManualResetEvent projectLoaded = new ManualResetEvent(false);
@@ -71,6 +72,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 file.Delete(); // deletes the files from previous test runs but not subfolders
             }
 
+            this.tempNotebookReferencesDir = TestUtils.MakeTempDirectory();
+            Environment.SetEnvironmentVariable("QSHARP_NOTEBOOK_REFERENCES_DIR", this.tempNotebookReferencesDir);
+
             var id = this.inputGenerator.GetRandom();
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -101,6 +105,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestCleanup]
         public async Task TerminateServerConnectionAsync()
         {
+            Directory.Delete(this.tempNotebookReferencesDir, true);
             await this.GetFileDiagnosticsAsync(); // forces a flush in the default compilation manager
             this.receivedDiagnostics.Clear();
             this.Dispose();

@@ -684,7 +684,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
             Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uri));
 
-            var highlightParams = TestUtils.GetDocumentHighlightParams(uri, line: 5, col: 7);
+            var highlightParams = TestUtils.GetDocumentHighlightParams(uri, line: 1, col: 7);
             var ranges = (await this.rpc.InvokeWithParameterObjectAsync<DocumentHighlight[]>(Methods.TextDocumentDocumentHighlight.Name, highlightParams))?
                 .Select(highlight => highlight.Range)
                 .OrderBy(range => range.Start.Line)
@@ -692,8 +692,38 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             Assert.IsNotNull(ranges);
             Assert.AreEqual(2, ranges!.Count);
-            Assert.AreEqual(TestUtils.GetRange(startLine: 5, startCol: 4, endLine: 5, endCol: 13), ranges[0]);
-            Assert.AreEqual(TestUtils.GetRange(startLine: 14, startCol: 10, endLine: 14, endCol: 19), ranges[1]);
+            Assert.AreEqual(TestUtils.GetRange(startLine: 1, startCol: 4, endLine: 1, endCol: 13), ranges[0]);
+            Assert.AreEqual(TestUtils.GetRange(startLine: 4, startCol: 10, endLine: 4, endCol: 19), ranges[1]);
+        }
+
+        [TestMethod]
+        public async Task NotebookReferencesAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test19");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var refQsFile = Path.Combine(projDir, "exampleReference", "Complex.qs");
+            var refDllPath = Path.Combine(this.tempNotebookReferencesDir, "Test19.Imaginary.dll");
+            TestUtils.BuildDll(ImmutableArray.Create<string>(refQsFile), refDllPath);
+
+            // Same value sent by Azure Notebooks
+            var languageId = "qsharp-notebook";
+            var qsFile = Path.Combine(projDir, "NotebookCell.qs");
+
+            var notebookGuid = Guid.NewGuid();
+            var uri = TestUtils.GenerateNotebookCellUri(notebookGuid);
+
+            // Azure Notebooks leaves RootUri=null, so do the same here
+            var initParams = TestUtils.GetInitializeParams();
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParams = TestUtils.GetOpenFileParams(qsFile, uri, languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uri));
+
+            // NotebookCell.qs uses types, functions, and operations referenced in the dll created above
+            var diagnostics = await this.GetFileDiagnosticsAsync(uri: uri);
+            Assert.IsNotNull(diagnostics);
+            Assert.AreEqual(0, diagnostics!.Length);
         }
 
         private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)
