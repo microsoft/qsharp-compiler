@@ -15,10 +15,6 @@ const selectionStepEnum = {
   WORKSPACE:3
 };
 
-const totalStepsEnum = {
-WORKSPACE_AND_JOB:7,
-JUST_WORKSPACE:3
-};
 
 export async function getWorkspaceFromUser(
     context: vscode.ExtensionContext,
