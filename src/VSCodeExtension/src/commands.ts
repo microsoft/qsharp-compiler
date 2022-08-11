@@ -436,7 +436,7 @@ async function getJob(context: vscode.ExtensionContext,
                 }
               catch(e:any){
                 if(e.statusCode === 404){
-                    vscode.window.showErrorMessage("Change your workspace to where your job was submitted from.");
+                    vscode.window.showErrorMessage("There is no job with this Id in your current workspace.");
                 }
                 else if(e.statusCode === 403){
                     vscode.window.showErrorMessage("Change your account to where your job was submitted from.");
