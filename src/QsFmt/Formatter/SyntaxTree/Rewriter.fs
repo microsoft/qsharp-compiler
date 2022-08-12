@@ -5,10 +5,10 @@ namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 open Microsoft.Quantum.QsFmt.Formatter.Utils
 
-type 'context Rewriter() as rewriter =
+type 'Context Rewriter() as rewriter =
 
     /// The default behavior to rewrite a SimpleStatement.
-    let defaultSimpleStatement (context: 'context) (statement: SimpleStatement) =
+    let defaultSimpleStatement (context: 'Context) (statement: SimpleStatement) =
         {
             Keyword = rewriter.Terminal(context, statement.Keyword)
             Expression = rewriter.Expression(context, statement.Expression)
@@ -16,7 +16,7 @@ type 'context Rewriter() as rewriter =
         }
 
     /// The default behavior to rewrite a BindingStatement.
-    let defaultBindingStatement (context: 'context) (statement: BindingStatement) =
+    let defaultBindingStatement (context: 'Context) (statement: BindingStatement) =
         {
             Keyword = rewriter.Terminal(context, statement.Keyword)
             Binding = rewriter.SymbolBinding(context, statement.Binding)
@@ -26,7 +26,7 @@ type 'context Rewriter() as rewriter =
         }
 
     /// The default behavior to rewrite a ConditionalBlockStatement.
-    let defaultConditionalBlockStatement (context: 'context) (statement: ConditionalBlockStatement) =
+    let defaultConditionalBlockStatement (context: 'Context) (statement: ConditionalBlockStatement) =
         {
             Keyword = rewriter.Terminal(context, statement.Keyword)
             Condition = rewriter.Expression(context, statement.Condition)
@@ -34,13 +34,13 @@ type 'context Rewriter() as rewriter =
         }
 
     /// The default behavior to rewrite a BlockStatement.
-    let defaultBlockStatement (context: 'context) (statement: BlockStatement) =
+    let defaultBlockStatement (context: 'Context) (statement: BlockStatement) =
         {
             Keyword = rewriter.Terminal(context, statement.Keyword)
             Block = rewriter.Block(context, rewriter.Statement, statement.Block)
         }
 
-    abstract Document: context: 'context * document: Document -> Document
+    abstract Document: context: 'Context * document: Document -> Document
 
     default _.Document(context, document) =
         {
@@ -48,7 +48,7 @@ type 'context Rewriter() as rewriter =
             Eof = rewriter.Terminal(context, document.Eof)
         }
 
-    abstract Namespace: context: 'context * ns: Namespace -> Namespace
+    abstract Namespace: context: 'Context * ns: Namespace -> Namespace
 
     default _.Namespace(context, ns) =
         {
@@ -57,7 +57,7 @@ type 'context Rewriter() as rewriter =
             Block = rewriter.Block(context, rewriter.NamespaceItem, ns.Block)
         }
 
-    abstract NamespaceItem: context: 'context * item: NamespaceItem -> NamespaceItem
+    abstract NamespaceItem: context: 'Context * item: NamespaceItem -> NamespaceItem
 
     default _.NamespaceItem(context, item) =
         match item with
@@ -66,7 +66,7 @@ type 'context Rewriter() as rewriter =
         | CallableDeclaration callable -> rewriter.CallableDeclaration(context, callable) |> CallableDeclaration
         | Unknown terminal -> rewriter.Terminal(context, terminal) |> Unknown
 
-    abstract OpenDirective: context: 'context * directive: OpenDirective -> OpenDirective
+    abstract OpenDirective: context: 'Context * directive: OpenDirective -> OpenDirective
 
     default rewriter.OpenDirective(context, directive) =
         {
@@ -77,7 +77,7 @@ type 'context Rewriter() as rewriter =
             Semicolon = rewriter.Terminal(context, directive.Semicolon)
         }
 
-    abstract TypeDeclaration: context: 'context * declaration: TypeDeclaration -> TypeDeclaration
+    abstract TypeDeclaration: context: 'Context * declaration: TypeDeclaration -> TypeDeclaration
 
     default rewriter.TypeDeclaration(context, declaration) =
         {
@@ -90,7 +90,7 @@ type 'context Rewriter() as rewriter =
             Semicolon = rewriter.Terminal(context, declaration.Semicolon)
         }
 
-    abstract Attribute: context: 'context * attribute: Attribute -> Attribute
+    abstract Attribute: context: 'Context * attribute: Attribute -> Attribute
 
     default _.Attribute(context, attribute) =
         {
@@ -98,21 +98,21 @@ type 'context Rewriter() as rewriter =
             Expression = rewriter.Expression(context, attribute.Expression)
         }
 
-    abstract UnderlyingType: context: 'context * underlying: UnderlyingType -> UnderlyingType
+    abstract UnderlyingType: context: 'Context * underlying: UnderlyingType -> UnderlyingType
 
     default rewriter.UnderlyingType(context, underlying) =
         match underlying with
         | TypeDeclarationTuple tuple -> rewriter.Tuple(context, rewriter.TypeTupleItem, tuple) |> TypeDeclarationTuple
         | Type _type -> rewriter.Type(context, _type) |> Type
 
-    abstract TypeTupleItem: context: 'context * item: TypeTupleItem -> TypeTupleItem
+    abstract TypeTupleItem: context: 'Context * item: TypeTupleItem -> TypeTupleItem
 
     default rewriter.TypeTupleItem(context, item) =
         match item with
         | TypeBinding binding -> rewriter.ParameterDeclaration(context, binding) |> TypeBinding
         | UnderlyingType underlying -> rewriter.UnderlyingType(context, underlying) |> UnderlyingType
 
-    abstract CallableDeclaration: context: 'context * callable: CallableDeclaration -> CallableDeclaration
+    abstract CallableDeclaration: context: 'Context * callable: CallableDeclaration -> CallableDeclaration
 
     default _.CallableDeclaration(context, callable) =
         {
@@ -128,7 +128,7 @@ type 'context Rewriter() as rewriter =
             Body = rewriter.CallableBody(context, callable.Body)
         }
 
-    abstract TypeParameterBinding: context: 'context * binding: TypeParameterBinding -> TypeParameterBinding
+    abstract TypeParameterBinding: context: 'Context * binding: TypeParameterBinding -> TypeParameterBinding
 
     default _.TypeParameterBinding(context, binding) =
         {
@@ -137,7 +137,7 @@ type 'context Rewriter() as rewriter =
             CloseBracket = rewriter.Terminal(context, binding.CloseBracket)
         }
 
-    abstract Type: context: 'context * typ: Type -> Type
+    abstract Type: context: 'Context * typ: Type -> Type
 
     default _.Type(context, typ) =
         match typ with
@@ -150,12 +150,12 @@ type 'context Rewriter() as rewriter =
         | Type.Callable callable -> rewriter.CallableType(context, callable) |> Type.Callable
         | Type.Unknown terminal -> rewriter.Terminal(context, terminal) |> Type.Unknown
 
-    abstract TypeAnnotation: context: 'context * annotation: TypeAnnotation -> TypeAnnotation
+    abstract TypeAnnotation: context: 'Context * annotation: TypeAnnotation -> TypeAnnotation
 
     default _.TypeAnnotation(context, annotation) =
         { Colon = rewriter.Terminal(context, annotation.Colon); Type = rewriter.Type(context, annotation.Type) }
 
-    abstract ArrayType: context: 'context * array: ArrayType -> ArrayType
+    abstract ArrayType: context: 'Context * array: ArrayType -> ArrayType
 
     default _.ArrayType(context, array) =
         {
@@ -164,7 +164,7 @@ type 'context Rewriter() as rewriter =
             CloseBracket = rewriter.Terminal(context, array.CloseBracket)
         }
 
-    abstract CallableType: context: 'context * callable: CallableType -> CallableType
+    abstract CallableType: context: 'Context * callable: CallableType -> CallableType
 
     default _.CallableType(context, callable) =
         {
@@ -174,7 +174,7 @@ type 'context Rewriter() as rewriter =
             Characteristics = callable.Characteristics |> Option.map (curry rewriter.CharacteristicSection context)
         }
 
-    abstract CharacteristicSection: context: 'context * section: CharacteristicSection -> CharacteristicSection
+    abstract CharacteristicSection: context: 'Context * section: CharacteristicSection -> CharacteristicSection
 
     default _.CharacteristicSection(context, section) =
         {
@@ -182,7 +182,7 @@ type 'context Rewriter() as rewriter =
             Characteristic = rewriter.Characteristic(context, section.Characteristic)
         }
 
-    abstract CharacteristicGroup: context: 'context * group: CharacteristicGroup -> CharacteristicGroup
+    abstract CharacteristicGroup: context: 'Context * group: CharacteristicGroup -> CharacteristicGroup
 
     default _.CharacteristicGroup(context, group) =
         {
@@ -191,7 +191,7 @@ type 'context Rewriter() as rewriter =
             CloseParen = rewriter.Terminal(context, group.CloseParen)
         }
 
-    abstract Characteristic: context: 'context * characteristic: Characteristic -> Characteristic
+    abstract Characteristic: context: 'Context * characteristic: Characteristic -> Characteristic
 
     default _.Characteristic(context, characteristic) =
         match characteristic with
@@ -201,7 +201,7 @@ type 'context Rewriter() as rewriter =
         | Characteristic.InfixOperator operator ->
             rewriter.InfixOperator(context, rewriter.Characteristic, operator) |> Characteristic.InfixOperator
 
-    abstract CallableBody: context: 'context * body: CallableBody -> CallableBody
+    abstract CallableBody: context: 'Context * body: CallableBody -> CallableBody
 
     default _.CallableBody(context, body) =
         match body with
@@ -209,7 +209,7 @@ type 'context Rewriter() as rewriter =
         | Specializations specializations ->
             rewriter.Block(context, rewriter.Specialization, specializations) |> Specializations
 
-    abstract Specialization: context: 'context * specialization: Specialization -> Specialization
+    abstract Specialization: context: 'Context * specialization: Specialization -> Specialization
 
     default _.Specialization(context, specialization) =
         {
@@ -217,7 +217,7 @@ type 'context Rewriter() as rewriter =
             Generator = rewriter.SpecializationGenerator(context, specialization.Generator)
         }
 
-    abstract SpecializationGenerator: context: 'context * generator: SpecializationGenerator -> SpecializationGenerator
+    abstract SpecializationGenerator: context: 'Context * generator: SpecializationGenerator -> SpecializationGenerator
 
     default _.SpecializationGenerator(context, generator) =
         match generator with
@@ -229,7 +229,7 @@ type 'context Rewriter() as rewriter =
                 statements = rewriter.Block(context, rewriter.Statement, statements)
             )
 
-    abstract Statement: context: 'context * statement: Statement -> Statement
+    abstract Statement: context: 'Context * statement: Statement -> Statement
 
     default _.Statement(context, statement) =
         match statement with
@@ -254,7 +254,7 @@ type 'context Rewriter() as rewriter =
             rewriter.QubitDeclarationStatement(context, decl) |> QubitDeclarationStatement
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
 
-    abstract ExpressionStatement: context: 'context * expr: ExpressionStatement -> ExpressionStatement
+    abstract ExpressionStatement: context: 'Context * expr: ExpressionStatement -> ExpressionStatement
 
     default _.ExpressionStatement(context, expr) =
         {
@@ -262,28 +262,28 @@ type 'context Rewriter() as rewriter =
             Semicolon = rewriter.Terminal(context, expr.Semicolon)
         }
 
-    abstract ReturnStatement: context: 'context * returns: SimpleStatement -> SimpleStatement
+    abstract ReturnStatement: context: 'Context * returns: SimpleStatement -> SimpleStatement
 
     default _.ReturnStatement(context, returns) = defaultSimpleStatement context returns
 
-    abstract FailStatement: context: 'context * fails: SimpleStatement -> SimpleStatement
+    abstract FailStatement: context: 'Context * fails: SimpleStatement -> SimpleStatement
 
     default _.FailStatement(context, fails) = defaultSimpleStatement context fails
 
-    abstract LetStatement: context: 'context * lets: BindingStatement -> BindingStatement
+    abstract LetStatement: context: 'Context * lets: BindingStatement -> BindingStatement
 
     default _.LetStatement(context, lets) = defaultBindingStatement context lets
 
-    abstract MutableStatement: context: 'context * mutables: BindingStatement -> BindingStatement
+    abstract MutableStatement: context: 'Context * mutables: BindingStatement -> BindingStatement
 
     default _.MutableStatement(context, mutables) =
         defaultBindingStatement context mutables
 
-    abstract SetStatement: context: 'context * sets: BindingStatement -> BindingStatement
+    abstract SetStatement: context: 'Context * sets: BindingStatement -> BindingStatement
 
     default _.SetStatement(context, sets) = defaultBindingStatement context sets
 
-    abstract UpdateStatement: context: 'context * updates: UpdateStatement -> UpdateStatement
+    abstract UpdateStatement: context: 'Context * updates: UpdateStatement -> UpdateStatement
 
     default _.UpdateStatement(context, updates) =
         {
@@ -294,7 +294,7 @@ type 'context Rewriter() as rewriter =
             Semicolon = rewriter.Terminal(context, updates.Semicolon)
         }
 
-    abstract UpdateWithStatement: context: 'context * withs: UpdateWithStatement -> UpdateWithStatement
+    abstract UpdateWithStatement: context: 'Context * withs: UpdateWithStatement -> UpdateWithStatement
 
     default _.UpdateWithStatement(context, withs) =
         {
@@ -307,21 +307,21 @@ type 'context Rewriter() as rewriter =
             Semicolon = rewriter.Terminal(context, withs.Semicolon)
         }
 
-    abstract IfStatement: context: 'context * ifs: ConditionalBlockStatement -> ConditionalBlockStatement
+    abstract IfStatement: context: 'Context * ifs: ConditionalBlockStatement -> ConditionalBlockStatement
 
     default _.IfStatement(context, ifs) =
         defaultConditionalBlockStatement context ifs
 
-    abstract ElifStatement: context: 'context * elifs: ConditionalBlockStatement -> ConditionalBlockStatement
+    abstract ElifStatement: context: 'Context * elifs: ConditionalBlockStatement -> ConditionalBlockStatement
 
     default _.ElifStatement(context, elifs) =
         defaultConditionalBlockStatement context elifs
 
-    abstract ElseStatement: context: 'context * elses: BlockStatement -> BlockStatement
+    abstract ElseStatement: context: 'Context * elses: BlockStatement -> BlockStatement
 
     default _.ElseStatement(context, elses) = defaultBlockStatement context elses
 
-    abstract ForStatement: context: 'context * loop: ForStatement -> ForStatement
+    abstract ForStatement: context: 'Context * loop: ForStatement -> ForStatement
 
     default _.ForStatement(context, loop) =
         {
@@ -332,16 +332,16 @@ type 'context Rewriter() as rewriter =
             Block = rewriter.Block(context, rewriter.Statement, loop.Block)
         }
 
-    abstract WhileStatement: context: 'context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
+    abstract WhileStatement: context: 'Context * whiles: ConditionalBlockStatement -> ConditionalBlockStatement
 
     default _.WhileStatement(context, whiles) =
         defaultConditionalBlockStatement context whiles
 
-    abstract RepeatStatement: context: 'context * repeats: BlockStatement -> BlockStatement
+    abstract RepeatStatement: context: 'Context * repeats: BlockStatement -> BlockStatement
 
     default _.RepeatStatement(context, repeats) = defaultBlockStatement context repeats
 
-    abstract UntilStatement: context: 'context * untils: UntilStatement -> UntilStatement
+    abstract UntilStatement: context: 'Context * untils: UntilStatement -> UntilStatement
 
     default _.UntilStatement(context, untils) =
         {
@@ -354,19 +354,19 @@ type 'context Rewriter() as rewriter =
                 | Fixup fixup -> rewriter.Fixup(context, fixup) |> Fixup
         }
 
-    abstract Fixup: context: 'context * fixup: BlockStatement -> BlockStatement
+    abstract Fixup: context: 'Context * fixup: BlockStatement -> BlockStatement
 
     default _.Fixup(context, fixup) = defaultBlockStatement context fixup
 
-    abstract WithinStatement: context: 'context * withins: BlockStatement -> BlockStatement
+    abstract WithinStatement: context: 'Context * withins: BlockStatement -> BlockStatement
 
     default _.WithinStatement(context, withins) = defaultBlockStatement context withins
 
-    abstract ApplyStatement: context: 'context * apply: BlockStatement -> BlockStatement
+    abstract ApplyStatement: context: 'Context * apply: BlockStatement -> BlockStatement
 
     default _.ApplyStatement(context, apply) = defaultBlockStatement context apply
 
-    abstract QubitDeclarationStatement: context: 'context * decl: QubitDeclarationStatement -> QubitDeclarationStatement
+    abstract QubitDeclarationStatement: context: 'Context * decl: QubitDeclarationStatement -> QubitDeclarationStatement
 
     default _.QubitDeclarationStatement(context, decl) =
         {
@@ -381,7 +381,7 @@ type 'context Rewriter() as rewriter =
                 | Block block -> rewriter.Block(context, rewriter.Statement, block) |> Block
         }
 
-    abstract ParameterBinding: context: 'context * binding: ParameterBinding -> ParameterBinding
+    abstract ParameterBinding: context: 'Context * binding: ParameterBinding -> ParameterBinding
 
     default _.ParameterBinding(context, binding) =
         match binding with
@@ -389,7 +389,7 @@ type 'context Rewriter() as rewriter =
             rewriter.ParameterDeclaration(context, declaration) |> ParameterDeclaration
         | ParameterTuple tuple -> rewriter.Tuple(context, rewriter.ParameterBinding, tuple) |> ParameterTuple
 
-    abstract ParameterDeclaration: context: 'context * declaration: ParameterDeclaration -> ParameterDeclaration
+    abstract ParameterDeclaration: context: 'Context * declaration: ParameterDeclaration -> ParameterDeclaration
 
     default _.ParameterDeclaration(context, declaration) =
         {
@@ -397,14 +397,14 @@ type 'context Rewriter() as rewriter =
             Type = rewriter.TypeAnnotation(context, declaration.Type)
         }
 
-    abstract SymbolBinding: context: 'context * symbol: SymbolBinding -> SymbolBinding
+    abstract SymbolBinding: context: 'Context * symbol: SymbolBinding -> SymbolBinding
 
     default _.SymbolBinding(context, symbol) =
         match symbol with
         | SymbolDeclaration declaration -> rewriter.Terminal(context, declaration) |> SymbolDeclaration
         | SymbolTuple tuple -> rewriter.Tuple(context, rewriter.SymbolBinding, tuple) |> SymbolTuple
 
-    abstract QubitBinding: context: 'context * binding: QubitBinding -> QubitBinding
+    abstract QubitBinding: context: 'Context * binding: QubitBinding -> QubitBinding
 
     default _.QubitBinding(context, binding) =
         {
@@ -413,7 +413,7 @@ type 'context Rewriter() as rewriter =
             Initializer = rewriter.QubitInitializer(context, binding.Initializer)
         }
 
-    abstract ForBinding: context: 'context * binding: ForBinding -> ForBinding
+    abstract ForBinding: context: 'Context * binding: ForBinding -> ForBinding
 
     default _.ForBinding(context, binding) =
         {
@@ -422,7 +422,7 @@ type 'context Rewriter() as rewriter =
             Value = rewriter.Expression(context, binding.Value)
         }
 
-    abstract QubitInitializer: context: 'context * initializer: QubitInitializer -> QubitInitializer
+    abstract QubitInitializer: context: 'Context * initializer: QubitInitializer -> QubitInitializer
 
     default _.QubitInitializer(context, initializer) =
         match initializer with
@@ -430,7 +430,7 @@ type 'context Rewriter() as rewriter =
         | QubitArray qubitArray -> rewriter.QubitArray(context, qubitArray) |> QubitArray
         | QubitTuple tuple -> rewriter.Tuple(context, rewriter.QubitInitializer, tuple) |> QubitTuple
 
-    abstract SingleQubit: context: 'context * newQubit: SingleQubit -> SingleQubit
+    abstract SingleQubit: context: 'Context * newQubit: SingleQubit -> SingleQubit
 
     default _.SingleQubit(context, newQubit) =
         {
@@ -439,7 +439,7 @@ type 'context Rewriter() as rewriter =
             CloseParen = rewriter.Terminal(context, newQubit.CloseParen)
         }
 
-    abstract QubitArray: context: 'context * newQubits: QubitArray -> QubitArray
+    abstract QubitArray: context: 'Context * newQubits: QubitArray -> QubitArray
 
     default _.QubitArray(context, newQubits) =
         {
@@ -449,7 +449,7 @@ type 'context Rewriter() as rewriter =
             CloseBracket = rewriter.Terminal(context, newQubits.CloseBracket)
         }
 
-    abstract InterpStringContent: context: 'context * interpStringContent: InterpStringContent -> InterpStringContent
+    abstract InterpStringContent: context: 'Context * interpStringContent: InterpStringContent -> InterpStringContent
 
     default _.InterpStringContent(context, interpStringContent) =
         match interpStringContent with
@@ -458,7 +458,7 @@ type 'context Rewriter() as rewriter =
             rewriter.InterpStringExpression(context, interpStringExpression) |> Expression
 
     abstract InterpStringExpression:
-        context: 'context * interpStringExpression: InterpStringExpression -> InterpStringExpression
+        context: 'Context * interpStringExpression: InterpStringExpression -> InterpStringExpression
 
     default _.InterpStringExpression(context, interpStringExpression) =
         {
@@ -467,7 +467,7 @@ type 'context Rewriter() as rewriter =
             CloseBrace = rewriter.Terminal(context, interpStringExpression.CloseBrace)
         }
 
-    abstract Expression: context: 'context * expression: Expression -> Expression
+    abstract Expression: context: 'Context * expression: Expression -> Expression
 
     default _.Expression(context, expression) =
         match expression with
@@ -491,7 +491,7 @@ type 'context Rewriter() as rewriter =
         | Lambda lambda -> rewriter.Lambda(context, lambda) |> Lambda
         | Expression.Unknown terminal -> rewriter.Terminal(context, terminal) |> Expression.Unknown
 
-    abstract Identifier: context: 'context * identifier: Identifier -> Identifier
+    abstract Identifier: context: 'Context * identifier: Identifier -> Identifier
 
     default _.Identifier(context, identifier) =
         {
@@ -499,7 +499,7 @@ type 'context Rewriter() as rewriter =
             TypeArgs = identifier.TypeArgs |> Option.map (curry3 rewriter.Tuple context rewriter.Type)
         }
 
-    abstract InterpString: context: 'context * interpString: InterpString -> InterpString
+    abstract InterpString: context: 'Context * interpString: InterpString -> InterpString
 
     default _.InterpString(context, interpString) =
         {
@@ -508,7 +508,7 @@ type 'context Rewriter() as rewriter =
             CloseQuote = rewriter.Terminal(context, interpString.CloseQuote)
         }
 
-    abstract NewArray: context: 'context * newArray: NewArray -> NewArray
+    abstract NewArray: context: 'Context * newArray: NewArray -> NewArray
 
     default _.NewArray(context, newArray) =
         {
@@ -519,7 +519,7 @@ type 'context Rewriter() as rewriter =
             CloseBracket = rewriter.Terminal(context, newArray.CloseBracket)
         }
 
-    abstract NewSizedArray: context: 'context * newSizedArray: NewSizedArray -> NewSizedArray
+    abstract NewSizedArray: context: 'Context * newSizedArray: NewSizedArray -> NewSizedArray
 
     default _.NewSizedArray(context, newSizedArray) =
         {
@@ -532,7 +532,7 @@ type 'context Rewriter() as rewriter =
             CloseBracket = rewriter.Terminal(context, newSizedArray.CloseBracket)
         }
 
-    abstract NamedItemAccess: context: 'context * namedItemAccess: NamedItemAccess -> NamedItemAccess
+    abstract NamedItemAccess: context: 'Context * namedItemAccess: NamedItemAccess -> NamedItemAccess
 
     default _.NamedItemAccess(context, namedItemAccess) =
         {
@@ -541,7 +541,7 @@ type 'context Rewriter() as rewriter =
             Name = rewriter.Terminal(context, namedItemAccess.Name)
         }
 
-    abstract ArrayAccess: context: 'context * arrayAccess: ArrayAccess -> ArrayAccess
+    abstract ArrayAccess: context: 'Context * arrayAccess: ArrayAccess -> ArrayAccess
 
     default _.ArrayAccess(context, arrayAccess) =
         {
@@ -551,7 +551,7 @@ type 'context Rewriter() as rewriter =
             CloseBracket = rewriter.Terminal(context, arrayAccess.CloseBracket)
         }
 
-    abstract Call: context: 'context * call: Call -> Call
+    abstract Call: context: 'Context * call: Call -> Call
 
     default _.Call(context, call) =
         {
@@ -559,7 +559,7 @@ type 'context Rewriter() as rewriter =
             Arguments = rewriter.Tuple(context, rewriter.Expression, call.Arguments)
         }
 
-    abstract Conditional: context: 'context * conditional: Conditional -> Conditional
+    abstract Conditional: context: 'Context * conditional: Conditional -> Conditional
 
     default _.Conditional(context, conditional) =
         {
@@ -570,7 +570,7 @@ type 'context Rewriter() as rewriter =
             IfFalse = rewriter.Expression(context, conditional.IfFalse)
         }
 
-    abstract Update: context: 'context * update: Update -> Update
+    abstract Update: context: 'Context * update: Update -> Update
 
     default _.Update(context, update) =
         {
@@ -581,7 +581,7 @@ type 'context Rewriter() as rewriter =
             Value = rewriter.Expression(context, update.Value)
         }
 
-    abstract Lambda: context: 'context * lambda: Lambda -> Lambda
+    abstract Lambda: context: 'Context * lambda: Lambda -> Lambda
 
     default _.Lambda(context, lambda) =
         {
@@ -590,7 +590,7 @@ type 'context Rewriter() as rewriter =
             Body = rewriter.Expression(context, lambda.Body)
         }
 
-    abstract Block: context: 'context * mapper: ('context * 'a -> 'a) * block: 'a Block -> 'a Block
+    abstract Block: context: 'Context * mapper: ('Context * 'a -> 'a) * block: 'a Block -> 'a Block
 
     default _.Block(context, mapper, block) =
         {
@@ -599,7 +599,7 @@ type 'context Rewriter() as rewriter =
             CloseBrace = rewriter.Terminal(context, block.CloseBrace)
         }
 
-    abstract Tuple: context: 'context * mapper: ('context * 'a -> 'a) * tuple: 'a Tuple -> 'a Tuple
+    abstract Tuple: context: 'Context * mapper: ('Context * 'a -> 'a) * tuple: 'a Tuple -> 'a Tuple
 
     default _.Tuple(context, mapper, tuple) =
         {
@@ -608,7 +608,7 @@ type 'context Rewriter() as rewriter =
             CloseParen = rewriter.Terminal(context, tuple.CloseParen)
         }
 
-    abstract SequenceItem: context: 'context * mapper: ('context * 'a -> 'a) * item: 'a SequenceItem -> 'a SequenceItem
+    abstract SequenceItem: context: 'Context * mapper: ('Context * 'a -> 'a) * item: 'a SequenceItem -> 'a SequenceItem
 
     default _.SequenceItem(context, mapper, item) =
         {
@@ -617,7 +617,7 @@ type 'context Rewriter() as rewriter =
         }
 
     abstract PrefixOperator:
-        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a PrefixOperator -> 'a PrefixOperator
+        context: 'Context * mapper: ('Context * 'a -> 'a) * operator: 'a PrefixOperator -> 'a PrefixOperator
 
     default _.PrefixOperator(context, mapper, operator) =
         {
@@ -626,7 +626,7 @@ type 'context Rewriter() as rewriter =
         }
 
     abstract PostfixOperator:
-        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a PostfixOperator -> 'a PostfixOperator
+        context: 'Context * mapper: ('Context * 'a -> 'a) * operator: 'a PostfixOperator -> 'a PostfixOperator
 
     default _.PostfixOperator(context, mapper, operator) =
         {
@@ -635,7 +635,7 @@ type 'context Rewriter() as rewriter =
         }
 
     abstract InfixOperator:
-        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a InfixOperator -> 'a InfixOperator
+        context: 'Context * mapper: ('Context * 'a -> 'a) * operator: 'a InfixOperator -> 'a InfixOperator
 
     default _.InfixOperator(context, mapper, operator) =
         {
@@ -644,5 +644,5 @@ type 'context Rewriter() as rewriter =
             Right = mapper (context, operator.Right)
         }
 
-    abstract Terminal: context: 'context * terminal: Terminal -> Terminal
+    abstract Terminal: context: 'Context * terminal: Terminal -> Terminal
     default _.Terminal(_, terminal) = terminal

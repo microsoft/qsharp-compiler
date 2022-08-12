@@ -80,10 +80,10 @@ type StatementKindTransformationBase(statementTransformation: _ -> StatementTran
         let expr = intro |> QsNullable<_>.Map this.Expressions.OnTypedExpression
         let body = this.Statements.OnScope block.Body
 
-        let PositionedBlock (expr, body, location, comments) =
+        let positionedBlock (expr, body, location, comments) =
             expr, QsPositionedBlock.New comments location body
 
-        PositionedBlock |> node.BuildOr (intro, block) (expr, body, location, comments)
+        positionedBlock |> node.BuildOr (intro, block) (expr, body, location, comments)
 
     // statements containing subconstructs or expressions
 
