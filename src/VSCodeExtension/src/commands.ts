@@ -216,12 +216,12 @@ export async function getAzureQuantumConfig():Promise<configFileInfo> {
 }
 
 
-export async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:InteractiveBrowserCredential | AzureCliCredential, workSpaceStatusBarItem: vscode.StatusBarItem, totalSteps:number){
+export async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:InteractiveBrowserCredential | AzureCliCredential, workspaceStatusBarItem: vscode.StatusBarItem, totalSteps:number){
     let workspaceInfo:workspaceInfo|undefined;
     // remove any previous account info
     context.workspaceState.update("workspaceInfo", undefined);
     try{
-        await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem, totalSteps);
+        await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, totalSteps);
         workspaceInfo = context.workspaceState.get("workspaceInfo");
         }
         catch{
@@ -256,13 +256,13 @@ export async function submitJob(
   dotNetSdk: DotnetInfo,
   jobsSubmittedProvider: LocalSubmissionsProvider,
   credential: InteractiveBrowserCredential | AzureCliCredential,
-  workSpaceStatusBarItem: vscode.StatusBarItem,
+  workspaceStatusBarItem: vscode.StatusBarItem,
   workspaceInfo:workspaceInfo|undefined,
   projectFiles: any[],
   totalSteps: number
 ) {
     if (!workspaceInfo){
-      workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem, totalSteps);
+      workspaceInfo = await getWorkspaceInfo(context, credential,workspaceStatusBarItem, totalSteps);
     }
     if (!workspaceInfo){
         return;
@@ -455,7 +455,7 @@ async function getJob(context: vscode.ExtensionContext,
 export async function getJobResults(
   context: vscode.ExtensionContext,
   credential: InteractiveBrowserCredential | AzureCliCredential,
-  workSpaceStatusBarItem: vscode.StatusBarItem,
+  workspaceStatusBarItem: vscode.StatusBarItem,
   jobId?: string
 
 ) {
@@ -467,7 +467,7 @@ export async function getJobResults(
   // if user needs to select a workspace, show steps in title
   const inputTitle = workspaceInfo?"Enter a Job Id": "Enter Job Id (4/4)";
   if(configIssue){
-    workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem, 4);
+    workspaceInfo = await getWorkspaceInfo(context, credential,workspaceStatusBarItem, 4);
   }
   if(!workspaceInfo){
       return;
@@ -552,7 +552,7 @@ export async function getJobResults(
 export async function getJobDetails(
     context: vscode.ExtensionContext,
     credential: InteractiveBrowserCredential | AzureCliCredential,
-    workSpaceStatusBarItem: vscode.StatusBarItem,
+    workspaceStatusBarItem: vscode.StatusBarItem,
     jobId: string
   ) {
     let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
@@ -560,7 +560,7 @@ export async function getJobDetails(
       return;
     }
     if(configIssue){
-      workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem, 5);
+      workspaceInfo = await getWorkspaceInfo(context, credential,workspaceStatusBarItem, 5);
     }
     if(!workspaceInfo){
         return;

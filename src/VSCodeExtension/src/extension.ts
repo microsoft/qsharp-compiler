@@ -217,12 +217,6 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
             return reject();
         }
 
-    const workspaceInfo: workspaceInfo | undefined = context.workspaceState.get("workspaceInfo");
-    if (workspaceInfo && workspaceInfo["workspace"]){
-        workspaceStatusBarItem.text = `Azure Workspace: ${workspaceInfo["workspace"]}`;
-        workspaceStatusBarItem.show();
-    }
-
     credential = tempCredentialTwo? tempCredentialTwo: tempCredentialOne;
     vscode.commands.executeCommand('setContext', 'showChangeAzureAccount', true);
     currentlyAuthenticating=false;
@@ -298,7 +292,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
         workspaceStatusBarItem.text = "Connect to Azure Workspace";
         workspaceStatusBarItem.command = "quantum.getWorkspace";
-
         workspaceStatusBarItem.show();
     }
     context.subscriptions.push(workspaceStatusBarItem);
@@ -356,8 +349,6 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             return false;
         }
-
-
     }
 
     registerCommand(
@@ -422,7 +413,22 @@ export async function activate(context: vscode.ExtensionContext) {
         "quantum.getWorkspace",
         async() => {
         await getCredential(context).then(async()=>{
-            await getWorkspaceInfo(context, credential, workspaceStatusBarItem, 3);
+            let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
+            if(configIssue===configIssueEnum.MULTIPLE_CONFIGS){
+              return;
+            }
+            else if(configIssue){
+              workspaceInfo = await getWorkspaceInfo(context, credential,workspaceStatusBarItem, 3);
+            }
+            if(!workspaceInfo){
+                return;
+            }
+            if (workspaceInfo["workspace"]){
+                workspaceStatusBarItem.text = `Azure Workspace: ${workspaceInfo["workspace"]}`;
+                workspaceStatusBarItem.show();
+                workspaceStatusBarItem.command ="quantum.changeWorkspace";
+            }
+
         }).catch((err)=>{
             if (err){
                 console.log(err);
@@ -431,7 +437,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
         }
     );
-
 
 
     registerCommand(
