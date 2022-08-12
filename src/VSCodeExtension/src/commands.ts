@@ -32,6 +32,17 @@ export type workspaceInfo = {
   location: string;
 };
 
+export const configIssueEnum = {
+  NO_CONFIG:1,
+  INVALID_CONFIG:2,
+  MULTIPLE_CONFIGS:3
+};
+
+export type configFileInfo ={
+  workspaceInfo:workspaceInfo | undefined,
+  configIssue:number| undefined
+};
+
 export function registerCommand(
   context: vscode.ExtensionContext,
   name: string,
@@ -160,59 +171,69 @@ export function installOrUpdateIQSharp(
     });
 }
 
-// try to pull workspace from config file. If nonexistent or incorrect format prompt user for workspace info.
-async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:InteractiveBrowserCredential | AzureCliCredential, workSpaceStatusBarItem: vscode.StatusBarItem, submitJobCommand=false){
-    let workspaceInfo:any;
-    let userInputNeeded=false;
-    const configFile = await vscode.workspace.findFiles(
-        "**/azurequantumconfig.json"
-      );
+// return azurequantumconfig.json if present
+export async function getAzureQuantumConfig():Promise<configFileInfo> {
 
-      if (configFile && configFile[0]) {
-        const workspaceInfoChunk: any = await vscode.workspace.fs.readFile(
-          configFile[0]
-        );
-        try{
-        workspaceInfo = JSON.parse(String.fromCharCode(...workspaceInfoChunk));
-        if (!workspaceInfo["subscriptionId"]||!workspaceInfo["resourceGroup"]||!workspaceInfo["workspace"]||!workspaceInfo["location"]){
-            throw Error;
-        }
+  const configFileInfo:configFileInfo = {
+    workspaceInfo:undefined,
+    configIssue:undefined
+  };
+
+  let workspaceInfo:workspaceInfo;
+  const configFile = await vscode.workspace.findFiles(
+    "**/azurequantumconfig.json"
+  );
+
+  if(configFile.length ===0){
+    configFileInfo["configIssue"] = configIssueEnum.NO_CONFIG;
+    return configFileInfo;
+  }
+
+  if(configFile.length>1){
+    configFileInfo["configIssue"] = configIssueEnum.MULTIPLE_CONFIGS;
+    vscode.window.showWarningMessage("Only one azurequantumconfig.json file is allowed in a workspace.");
+    return configFileInfo;
+  }
+
+
+    const workspaceInfoChunk: any = await vscode.workspace.fs.readFile(
+      configFile[0]
+    );
+    try{
+    workspaceInfo = JSON.parse(String.fromCharCode(...workspaceInfoChunk));
+    // Verify azurequantumconfig.json file has necessary fields
+    if (!workspaceInfo["subscriptionId"]||!workspaceInfo["resourceGroup"]||!workspaceInfo["workspace"]||!workspaceInfo["location"]){
+        throw Error;
     }
-        catch{
-            workspaceInfo = undefined;
-            vscode.window.showWarningMessage("Invalid azurequantumconfig.json format");
-        }
-      }
-
-      if (workspaceInfo === undefined) {
-        // remove any previous account info
-        context.workspaceState.update("workspaceInfo", undefined);
-        try{
-        userInputNeeded = true;
-        // if this function is called from job submission command, submitJobCommand flag makes
-        // total steps 7 instead of 3 for the workspace entries required.
-        await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem, submitJobCommand);
-        workspaceInfo = context.workspaceState.get("workspaceInfo");
-        }
-        catch{
-            vscode.window.showWarningMessage(`Could not connect to Azure Account`);
-            return;
-        }
-      }
-
-      if (workspaceInfo === undefined) {
-        vscode.window.showWarningMessage(`Could not connect to Azure Account`);
-        return;
-      }
-      // if this function is called from job submission command, userInputNeeded flag makes
-      // total steps 7 instead of 4 for the job entries required.
-      return [workspaceInfo,userInputNeeded];
+}
+    catch{
+        configFileInfo["configIssue"] = configIssueEnum.INVALID_CONFIG;
+        vscode.window.showWarningMessage("Invalid azurequantumconfig.json format");
+        return configFileInfo;
+    }
+    configFileInfo["workspaceInfo"]=workspaceInfo;
+    return configFileInfo;
 }
 
 
+async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:InteractiveBrowserCredential | AzureCliCredential, workSpaceStatusBarItem: vscode.StatusBarItem, totalSteps:number){
+    let workspaceInfo:workspaceInfo|undefined;
+    // remove any previous account info
+    context.workspaceState.update("workspaceInfo", undefined);
+    try{
+        await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem, totalSteps);
+        workspaceInfo = context.workspaceState.get("workspaceInfo");
+        }
+        catch{
+            vscode.window.showWarningMessage(`Could not connect to Azure Workspace`);
+            return;
+        }
 
-
-
+      if (workspaceInfo === undefined) {
+        return;
+      }
+      return workspaceInfo;
+}
 
 
 
@@ -242,35 +263,31 @@ export async function submitJob(
   dotNetSdk: DotnetInfo,
   jobsSubmittedProvider: LocalSubmissionsProvider,
   credential: InteractiveBrowserCredential | AzureCliCredential,
-  workSpaceStatusBarItem: vscode.StatusBarItem
+  workSpaceStatusBarItem: vscode.StatusBarItem,
+  workspaceInfo:workspaceInfo|undefined,
+  projectFiles: any[],
+  totalSteps: number
 ) {
-
-    const workspaceFlow = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem, true);
-    if (!workspaceFlow){
+    if (!workspaceInfo){
+      workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem, totalSteps);
+    }
+    if (!workspaceInfo){
         return;
-      }
-
-  let workspaceInfo = workspaceFlow[0];
+    }
 
   const quantumJobClient = getQuantumJobClient(workspaceInfo, credential);
 
-  // find project file
-  const projectFile = await vscode.workspace.findFiles("**/*.csproj");
 
-  // get project file path
-  let projectFilePath =
-    projectFile && projectFile[0] && projectFile[0]["path"]
-      ? projectFile[0]["path"]
-      : undefined;
-  if (!projectFilePath) {
-    vscode.window.showWarningMessage(`Could not find .csproj`);
-    return;
-  }
-  projectFilePath = projectFilePath.replace(/[/]/g, "\\").substring(1);
+  const {csproj, jobName, provider, target, programArguments } = await getJobInfoFromUser(context,quantumJobClient, workspaceInfo, totalSteps, projectFiles);
 
-
-  const {jobName, provider, target, programArguments } = await getJobInfoFromUser(context,quantumJobClient, workspaceInfo, workspaceFlow[1]);
-
+  let projectFilePath:string;
+  // Change csproj file foward slashes to backslashes for dotnet operations
+  if(csproj){
+  projectFilePath = csproj.replace(/[/]/g, "\\").substring(1);
+}
+else{
+  return;
+}
   vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Window,
@@ -378,7 +395,7 @@ export async function submitJob(
                 "targetSubmissionDates"
               );
               if (!targetSubmissionDates){
-                targetSubmissionDates={}
+                targetSubmissionDates={};
               }
               targetSubmissionDates[target] = timeStamp;
               context.workspaceState.update(
@@ -403,7 +420,7 @@ export async function submitJob(
 async function getJob(context: vscode.ExtensionContext,
     credential: InteractiveBrowserCredential | AzureCliCredential,
     jobId:string,
-    workSpaceStatusBarItem: vscode.StatusBarItem
+    workspaceInfo:workspaceInfo
     )
     {
         let jobResponse:any;
@@ -419,17 +436,13 @@ async function getJob(context: vscode.ExtensionContext,
               cancellable: false,
             },
             async (progress, token2) => {
-        let workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem);
-        if(!workspaceInfo){
-            return;
-        }
 
         if (!cachedJobs) {
             cachedJobs = {};
           }
 
 
-              const quantumJobClient = getQuantumJobClient(workspaceInfo[0], credential);
+              const quantumJobClient = getQuantumJobClient(workspaceInfo, credential);
 
               try{
               jobResponse = await quantumJobClient.jobs.get(jobId);
@@ -468,18 +481,30 @@ export async function getJobResults(
 
 ) {
 
-  // inputBox for a user calling from Command Palette
+  let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
+  if(configIssue===configIssueEnum.MULTIPLE_CONFIGS){
+    return;
+  }
+  // if user needs to select a workspace, show steps in title
+  const inputTitle = workspaceInfo?"Enter a Job Id": "Enter Job Id (4/4)";
+  if(configIssue){
+    workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem, 4);
+  }
+  if(!workspaceInfo){
+      return;
+  }
+  // inputBox for a user calling Get Job from Command Palette
   if (!jobId) {
     vscode.commands.executeCommand("quantum-jobs.focus");
     jobId = await vscode.window.showInputBox({
-      prompt: "Enter Job Id",
       ignoreFocusOut: true,
+      title: inputTitle
     });
   }
   if (!jobId) {
     return;
   }
-  const job = await getJob(context,credential,jobId,workSpaceStatusBarItem);
+  const job = await getJob(context,credential,jobId,workspaceInfo);
 
   if (job === undefined) {
     return;
@@ -496,19 +521,14 @@ export async function getJobResults(
   }
 // other unsuccessful jobs will result in a notification with the option to cancel
   else if(job.status !=="Succeeded"){
-    const userInput = await vscode.window.showInformationMessage(`Job status: ${job.status}`,{}, ...["Cancel Job","Done"]);
+    const userInput = await vscode.window.showInformationMessage(`Job status: ${job.status}`,{}, ...["Cancel Job"]);
 
     if (userInput === "Cancel Job"){
 
         const userInputConfirmation = await vscode.window.showInformationMessage(`Are you sure you want to cancel your job?`,{}, ...["Yes","No"]);
 
         if(userInputConfirmation==="Yes"){
-        let workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem);
-        if (!workspaceInfo){
-          return;
-        }
-
-        const quantumJobClient = getQuantumJobClient(workspaceInfo[0], credential);
+        const quantumJobClient = getQuantumJobClient(workspaceInfo, credential);
         await quantumJobClient.jobs.cancel(jobId);
   }
 
@@ -546,7 +566,17 @@ export async function getJobDetails(
     jobId: string,
     workSpaceStatusBarItem: vscode.StatusBarItem
   ) {
-    const job = await getJob(context,credential,jobId,workSpaceStatusBarItem);
+    let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
+    if(configIssue===configIssueEnum.MULTIPLE_CONFIGS){
+      return;
+    }
+    if(configIssue){
+      workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem, 5);
+    }
+    if(!workspaceInfo){
+        return;
+    }
+    const job = await getJob(context,credential,jobId,workspaceInfo);
 
     if (job === undefined) {
       return;

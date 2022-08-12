@@ -15,16 +15,12 @@ const selectionStepEnum = {
   WORKSPACE:3
 };
 
-const totalStepsEnum = {
-WORKSPACE_AND_JOB:7,
-JUST_WORKSPACE:3
-};
 
 export async function getWorkspaceFromUser(
     context: vscode.ExtensionContext,
     credential: InteractiveBrowserCredential | AzureCliCredential,
     workSpaceStatusBarItem: vscode.StatusBarItem,
-    submitJobCommand=false
+    totalSteps: number
   ) {
     // get access token
     let token: AccessToken;
@@ -57,7 +53,7 @@ export async function getWorkspaceFromUser(
 
     const quickPick = vscode.window.createQuickPick();
     // if user is submitting job, total steps will be 7, otherwise 3
-    quickPick.totalSteps = submitJobCommand?totalStepsEnum.WORKSPACE_AND_JOB:totalStepsEnum.JUST_WORKSPACE;
+    quickPick.totalSteps = totalSteps;
 
     await setupSubscriptionIdQuickPick(quickPick, currentworkspaceInfo, options);
     quickPick.onDidAccept(async () => {
