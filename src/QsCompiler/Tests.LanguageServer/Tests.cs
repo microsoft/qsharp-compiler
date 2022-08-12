@@ -569,8 +569,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             var openParams3 = TestUtils.GetOpenFileParams(programFileWithMagic);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams3);
-            Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(programFileWithNamespace));
-            var diagnostics3 = await this.GetFileDiagnosticsAsync(programFileWithNamespace);
+            Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(programFileWithMagic));
+            var diagnostics3 = await this.GetFileDiagnosticsAsync(programFileWithMagic);
 
             Assert.IsNotNull(diagnostics1);
             Assert.AreEqual(3, diagnostics1!.Length);
@@ -619,7 +619,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uriWithNamespace));
             var diagnostics2 = await this.GetFileDiagnosticsAsync(uri: uriWithNamespace);
 
-            var openParams3 = TestUtils.GetOpenFileParams(programFileWithMagic, uriWithMagic);
+            var openParams3 = TestUtils.GetOpenFileParams(programFileWithMagic, uriWithMagic, languageId);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams3);
             Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uriWithMagic));
             var diagnostics3 = await this.GetFileDiagnosticsAsync(uri: uriWithMagic);
@@ -634,7 +634,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         [TestMethod]
-<<<<<<< HEAD
         public async Task NotebookTypeCheckingAsync()
         {
             var projectFile = ProjectLoaderTests.ProjectUri("test18");
@@ -754,7 +753,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             // Same value sent by Azure Notebooks
             var languageId = "qsharp-notebook";
-            var openParams = TestUtils.GetOpenParams(cellUri, content: "", languageId);
+            var openParams = TestUtils.GetOpenFileParams(cellUri, content: "", languageId);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
             Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: cellUri));
 
