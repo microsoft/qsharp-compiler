@@ -105,6 +105,9 @@ function Build-VS() {
                     } else {
                         $extra_args = @();
                     }
+
+                    "##[info]Building with extra_args: $extra_args" | Write-Host
+
                     msbuild VisualStudioExtension.sln `
                         /property:Configuration=$Env:BUILD_CONFIGURATION `
                         @extra_args `
