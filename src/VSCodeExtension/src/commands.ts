@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-
+ 
 "use strict";
 import * as vscode from "vscode";
 import * as cp from "child_process";
@@ -470,6 +470,7 @@ export async function getJobResults(
 
   // inputBox for a user calling from Command Palette
   if (!jobId) {
+    vscode.commands.executeCommand("quantum-jobs.focus");
     jobId = await vscode.window.showInputBox({
       prompt: "Enter Job Id",
       ignoreFocusOut: true,
