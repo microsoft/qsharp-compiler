@@ -20,15 +20,15 @@ function Test-One {
     Write-Host "##[info]Testing $project..."
 
     if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
-        $extra_args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+        $extraArgs = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
     } else {
-        $extra_args = @();
+        $extraArgs = @();
     }
     dotnet test (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
         --logger trx `
-        @$extra_args `
+        @extraArgs `
         /property:Version=$Env:ASSEMBLY_VERSION `
         /property:InformationalVersion=$Env:SEMVER_VERSION
 
