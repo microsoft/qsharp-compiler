@@ -82,20 +82,11 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         /// The server only processes any notifications *after* it has been initialized properly.
         /// Hence we need to wait until after initialization to send all solution events that have already been raised,
         /// and start listening to new ones.
-        public async Task OnServerInitializedAsync()
-        {
-            await PrintMessageAsync("OnServerInitializedAsync\n");
-#if TELEMETRY
-            await PrintMessageAsync("OnServerInitializedAsync: TELEMETRY ON\n");
-#endif
-#if SIGNED
-            await PrintMessageAsync("OnServerInitializedAsync: SIGNED ON\n");
-#endif
-            await Task.Run(() => Telemetry.SendEvent(Telemetry.ExtensionEvent.LspReady));
-        }
+        public Task OnServerInitializedAsync() =>
+            Task.Run(() => Telemetry.SendEvent(Telemetry.ExtensionEvent.LspReady));
 
-        /// Prints a message to VS output window.
-        public async Task PrintMessageAsync(string msg)
+        /// We create a new pane to show the encountered exception.
+        public async Task OnServerInitializeFailedAsync(Exception ex)
         {
             await VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             var outWindow = GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
@@ -104,13 +95,6 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             outWindow.CreatePane(ref OutputPaneGuid, windowTitle, 1, 1);
             outWindow.GetPane(ref OutputPaneGuid, out var customPane);
 
-            customPane.OutputStringThreadSafe(msg);
-            customPane.Activate(); // brings the pane into view
-        }
-
-        /// We create a new pane to show the encountered exception.
-        public async Task OnServerInitializeFailedAsync(Exception ex)
-        {
             var messages = new[]
             {
                 $"Server initialization failed.",
@@ -118,8 +102,8 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
                 $"Path to the log file: \"{this.LogFile}\"",
                 ex.ToString()
             };
-
-            await this.PrintMessageAsync(String.Join(Environment.NewLine, messages));
+            customPane.OutputStringThreadSafe(String.Join(Environment.NewLine, messages));
+            customPane.Activate(); // brings the pane into view
         }
 
         public Task<InitializationFailureContext> OnServerInitializeFailedAsync(ILanguageClientInitializationInfo initializationState)
@@ -141,20 +125,13 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         public async Task<Connection> ActivateAsync(CancellationToken token)
         {
             await Task.Yield();
-            await PrintMessageAsync("ActivateAsync\n");
-#if TELEMETRY
-            await PrintMessageAsync("ActivateAsync: TELEMETRY ON\n");
-#endif
-#if SIGNED
-            await PrintMessageAsync("ActivateAsync: SIGNED ON\n");
-#endif
             Telemetry.SendEvent(Telemetry.ExtensionEvent.Activate);
             try
             {
-#if MANUAL
+                #if MANUAL
                 string ServerReaderPipe = $"QsLanguageServerReaderPipe";
                 string ServerWriterPipe = $"QsLanguageServerWriterPipe";
-#else
+                #else
 
                 string ServerReaderPipe = $"QsLanguageServerReaderPipe{this.LaunchTime}";
                 string ServerWriterPipe = $"QsLanguageServerWriterPipe{this.LaunchTime}";
@@ -168,7 +145,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
 
                 Process process = new Process { StartInfo = info };
                 if (!process.Start()) return null;
-#endif
+                #endif
 
                 var bufferSize = 256;
                 var pipeSecurity = new PipeSecurity();
@@ -183,8 +160,6 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             }
             catch (Exception e)
             {
-                await PrintMessageAsync($"ActivateAsync Exception: {e.Message}");
-
                 Telemetry.SendEvent(Telemetry.ExtensionEvent.Error, ("id", e.GetType().Name), ("reason", e.Message));
                 throw;
             }
@@ -200,7 +175,6 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
                 {
                     var name = (string)args["event"];
                     var props = args["properties"]?.ToObject<Dictionary<string, object>>();
-                    //PrintMessageAsync($"OnTelemetry: {name}").Wait();
                     Telemetry.SendEvent(name, props);
                 }
                 catch (Exception ex)
