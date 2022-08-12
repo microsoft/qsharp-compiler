@@ -14,7 +14,7 @@ import {LocalSubmissionsProvider} from './localSubmissionsProvider';
 import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVariables } from '@microsoft/vscode-azext-utils';
 import { AzureCliCredential, InteractiveBrowserCredential, ChainedTokenCredential } from '@azure/identity';
 import {getWorkspaceFromUser} from "./quickPickWorkspace";
-import {workspaceInfo, getWorkspaceInfo} from "./commands";
+import {workspaceInfo, getAzureQuantumConfig, configIssueEnum, getWorkspaceInfo} from "./commands";
 import { AbortController} from "@azure/abort-controller";
 import * as https from "https";
 
@@ -343,17 +343,54 @@ export async function activate(context: vscode.ExtensionContext) {
             );
         }
     );
+//  Verify there are not nested csproj files
+    function checkForNesting(files:any[]){
+        // all csproj files must have same depth
+        const depth = files[0].path.split("/").length;
+        let file:any;
+        let fileNum:any;
+        for(fileNum in files){
+            file = files[fileNum];
+            if (file.path.split("/").length !== depth){
+                return true;
+            }
+            return false;
+        }
+
+
+    }
 
     registerCommand(
         context,
         "quantum.submitJob",
         async() => {
-            await getCredential(context).then(()=>{
+            await getCredential(context).then( async()=>{
+
+            sendTelemetryEvent(EventNames.jobSubmissionStarted, {},{});
+            // base amount of steps (provider, target, jobName, programArguments)
+            let totalSteps = 4;
+            // add steps if necessary for a user to connect to azure workspace
+            let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
+            if(configIssue===configIssueEnum.MULTIPLE_CONFIGS){
+              return;
+            }
+            totalSteps = configIssue?totalSteps+3:totalSteps;
+            // find project file
+            const projectFiles = await vscode.workspace.findFiles("**/*.csproj");
+            if(!projectFiles || projectFiles.length === 0){
+                vscode.window.showErrorMessage(`Could not find .csproj`);
+                return;
+            }
+            const multipleProjFilesFlag = projectFiles.length>1?true:false;
+            if(multipleProjFilesFlag && checkForNesting(projectFiles)){
+                vscode.window.showErrorMessage("Nested .csproj files is not currently supported.");
+                return;
+            }
+            // add step if there are multiple .csproj and user needs to select one
+            totalSteps = multipleProjFilesFlag?totalSteps+1:totalSteps;
+
             requireDotNetSdk(dotNetSdkVersion).then(
-                (dotNetSdk) => {
-                sendTelemetryEvent(EventNames.jobSubmissionStarted, {},{});
-                submitJob(context, dotNetSdk, localSubmissionsProvider, credential,workspaceStatusBarItem );
-                }
+                dotNetSdk => submitJob(context, dotNetSdk, localSubmissionsProvider, credential, workspaceStatusBarItem, workspaceInfo, projectFiles, totalSteps)
             );
         }).catch((err)=>{
             if (err){
@@ -369,7 +406,8 @@ export async function activate(context: vscode.ExtensionContext) {
         "quantum.changeWorkspace",
         async() => {
         await getCredential(context).then(async()=>{
-            await getWorkspaceFromUser(context, credential, workspaceStatusBarItem);
+            // three total steps
+            await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, 3);
             sendTelemetryEvent(EventNames.changeWorkspace, {},{});
         }).catch((err)=>{
             if (err){
@@ -384,12 +422,13 @@ export async function activate(context: vscode.ExtensionContext) {
         "quantum.getWorkspace",
         async() => {
         await getCredential(context).then(async()=>{
-            await getWorkspaceInfo(context, credential, workspaceStatusBarItem);
+            await getWorkspaceInfo(context, credential, workspaceStatusBarItem, 3);
         }).catch((err)=>{
             if (err){
                 console.log(err);
                 }
         });
+
         }
     );
 
