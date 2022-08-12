@@ -23,7 +23,7 @@ JUST_WORKSPACE:3
 export async function getWorkspaceFromUser(
     context: vscode.ExtensionContext,
     credential: InteractiveBrowserCredential | AzureCliCredential,
-    workSpaceStatusBarItem: vscode.StatusBarItem,
+    workspaceStatusBarItem: vscode.StatusBarItem,
     submitJobCommand=false
   ) {
     // get access token
@@ -104,8 +104,9 @@ export async function getWorkspaceFromUser(
         quickPick.dispose();
         // write the config file cotaining workspace details
         await writeConfigFile(context);
-        workSpaceStatusBarItem.text = `Azure Workspace: ${workspace}`;
-        workSpaceStatusBarItem.show();
+        workspaceStatusBarItem.command = "quantum.changeWorkspace";
+        workspaceStatusBarItem.text = `Azure Workspace: ${workspace}`;
+        workspaceStatusBarItem.show();
         resolve();
       }
     });
@@ -144,6 +145,7 @@ export async function getWorkspaceFromUser(
     subscriptionId: string,
     options:any
   ) {
+    quickPick.placeholder = "";
     quickPick.items = [];
     quickPick.step = selectionStepEnum.RESOURCE_GROUP;
     quickPick.title = "Select Resource Group";
@@ -175,6 +177,10 @@ export async function getWorkspaceFromUser(
 
     quickPick.value = "";
     if (quickPick.step===selectionStepEnum.RESOURCE_GROUP){
+      if(rgJSON.value.length === 0){
+        quickPick.placeholder = "No resource groups found.";
+      }
+      else{
       quickPick.items = rgJSON.value.map((rg: any) => {
           if (
           currentworkspaceInfo &&
@@ -184,6 +190,7 @@ export async function getWorkspaceFromUser(
           }
           return { label: rg.name };
       });
+    }
       quickPick.enabled = true;
       quickPick.busy = false;
       quickPick.show();
@@ -195,6 +202,7 @@ export async function getWorkspaceFromUser(
     currentworkspaceInfo: workspaceInfo | unknown,
     options: any
   ) {
+    quickPick.placeholder = "";
     quickPick.items = [];
     quickPick.step = selectionStepEnum.SUBSCRIPTION;
     quickPick.title = "Select Subscription";
@@ -225,6 +233,10 @@ export async function getWorkspaceFromUser(
     });
 
     if (quickPick.step===selectionStepEnum.SUBSCRIPTION){
+      if(subscriptionsJSON.value.length ===0){
+        quickPick.placeholder = "No subscriptions found.";
+      }
+      else{
       quickPick.items = subscriptionsJSON.value.map((subscription: any) => {
         if (
           currentworkspaceInfo &&
@@ -238,6 +250,7 @@ export async function getWorkspaceFromUser(
           description: subscription.subscriptionId,
           };
       });
+    }
   }
     quickPick.enabled = true;
     quickPick.busy = false;
@@ -253,6 +266,7 @@ export async function getWorkspaceFromUser(
     quickPick.buttons = [vscode.QuickInputButtons.Back];
     quickPick.enabled = false;
     quickPick.busy = true;
+    quickPick.placeholder = "";
     quickPick.show();
 
     const workspacesJSON:any = await new Promise((resolve, reject)=>{
@@ -281,6 +295,9 @@ export async function getWorkspaceFromUser(
       return false;
     });
     if (quickPick.step===selectionStepEnum.WORKSPACE){
+      if(quantumWorkspaces.length===0){
+        quickPick.placeholder = "No Quantum Workspaces found.";
+      }
       quickPick.items = quantumWorkspaces.map((workspace: any) => {
         return {
           label: workspace.name,

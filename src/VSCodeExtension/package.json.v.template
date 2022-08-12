@@ -158,14 +158,14 @@
         "menus": {
             "commandPalette": [
                 {
-                  "command": "quantum.changeAzureAccount",
-                  "when": "showChangeAzureAccount == true"
+                    "command": "quantum.changeAzureAccount",
+                    "when": "showChangeAzureAccount == true"
                 },
                 {
                     "command": "quantum.connectToAzureAccount",
                     "when": "showChangeAzureAccount == false"
                 }
-              ],
+            ],
             "view/title": [
                 {
                     "command": "quantum-jobs.clearJobs",
@@ -176,12 +176,12 @@
             "view/item/context": [
                 {
                     "command": "quantum-jobs.jobDetails",
-                    "when": "isWindows || editorIsOpen || view == quantum-jobs || viewItem == LocalSubmissionItem",
+                    "when": "viewItem == LocalSubmissionItem",
                     "group": "inline"
                 },
                 {
                     "command": "quantum-jobs.jobResults",
-                    "when": "isWindows || editorIsOpen || view == quantum-jobs || viewItem == LocalSubmissionItem",
+                    "when": "viewItem == LocalSubmissionItem",
                     "group": "inline"
                 }
             ]
@@ -203,6 +203,7 @@
         "decompress-zip": "^0.2.2",
         "dotnet": "^1.1.4",
         "edge-js": "^18.4.0",
+        "find-open-port": "^2.0.3",
         "fs-extra": "^8.1.0",
         "g": "^2.0.1",
         "install": "^0.13.0",

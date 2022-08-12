@@ -12,16 +12,23 @@ import { installTemplates, createNewProject, registerCommand, openDocumentationH
 import { LanguageServer } from './languageServer';
 import {LocalSubmissionsProvider} from './localSubmissionsProvider';
 import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVariables } from '@microsoft/vscode-azext-utils';
-import { AzureCliCredential, InteractiveBrowserCredential, AccessToken } from '@azure/identity';
+import { AzureCliCredential, InteractiveBrowserCredential, ChainedTokenCredential } from '@azure/identity';
 import {getWorkspaceFromUser} from "./quickPickWorkspace";
-import {workspaceInfo} from "./commands";
+import {workspaceInfo, getWorkspaceInfo} from "./commands";
+import { AbortController} from "@azure/abort-controller";
+import * as https from "https";
 
+const findPort = require('find-open-port');
 let credential:AzureCliCredential|InteractiveBrowserCredential;
-let authSource: string;
-let accountAuthStatusBarItem: vscode.StatusBarItem;
-let workSpaceStatusBarItem: vscode.StatusBarItem;
+let workspaceStatusBarItem: vscode.StatusBarItem;
 let submitJobStatusBarItem: vscode.StatusBarItem;
 
+// Flag to prevent user from launching multiple login flows
+let currentlyAuthenticating = false;
+// MSAL treats the Microsoft account system (Live, MSA) as another tenant
+// within the Microsoft identity platform. The tenant id of the Microsoft
+// account tenant is 9188040d-6c67-4c5b-b112-36a304b66dad
+const MSA_ACCOUNT_TENANT = "9188040d-6c67-4c5b-b112-36a304b66dad";
 /**
  * Returns the root folder for the current workspace.
  */
@@ -35,41 +42,194 @@ function findRootFolder() : string {
     }
 }
 
-// required before any interaction with Azure
-// try to authenticate though AzureCliCredential first. If fails, authenticate through InteractiveBrowserCredential
-async function getCredential(context: vscode.ExtensionContext, changeAccount=false ){
-    let token:AccessToken;
-    if (credential && !changeAccount){
-        return credential;
+// handles cancellation of ports
+async function abort(port:number, controller:AbortController){
+    if (await findPort.isAvailable(port)){
+      setTimeout(abort,100, port, controller);
+    } else {
+        controller.abort();
     }
+  }
+
+
+
+async function getCredential(context: vscode.ExtensionContext, changeAccountFlag=false ){
+    return new Promise<void>(async(resolve, reject)=>{
+
+    // For the general case where a user has already generated a credential
+    // and is not changing accounts
+    if (credential && !changeAccountFlag){
+        return resolve();
+    }
+
+    // prevents user from having multiple authorization requests at the same time
+    if(currentlyAuthenticating){
+        return reject();
+    }
+
+
+        currentlyAuthenticating=true;
+        const portOne = await findPort.findPort();
+        let tempCredentialOne = new ChainedTokenCredential(new AzureCliCredential(), new InteractiveBrowserCredential({"redirectUri":`http://localhost:${portOne}`}));
+        // Flag for triggering MSA authentication flow
+        let authenticationMSAUser= false;
+        // Below variables only needed for MSA user login
+        let tempCredentialTwo: InteractiveBrowserCredential | undefined;
+        let tenantJSON:any;
+        let tenantId:string;
+
+
         await vscode.window.withProgress({
         location: vscode.ProgressLocation.Notification,
         title: "Authenticating...",
-        }, async (progress, token2) => {
-    let tempCredential:any;
+        "cancellable":true
+        }, async (progress, cancel) => {
     try{
-        tempCredential  = new AzureCliCredential();
-        // if a user is changing their account always trigger InteractiveBrowserCredential
-        if(changeAccount){
-            // tslint:disable-next-line:no-unused-expression
-            (token as any)["THROWERROR"];
+        const controllerOne = new AbortController();
+        const abortSignalOne = controllerOne.signal;
+        cancel.onCancellationRequested(async (e:any)=>{
+            // abort the request, closing the tls port connection
+            // otherwise the port could stay connected until the program
+            // is terminated
+            await abort(portOne, controllerOne);
+            currentlyAuthenticating = false;
+            return reject();
+
+        });
+        const token = await tempCredentialOne.getToken("https://management.azure.com/.default", {"abortSignal":abortSignalOne});
+
+        //@ts-ignore
+        authenticationMSAUser = !!(tempCredentialOne?._sources[1]?.msalFlow?.account?.homeAccountId.includes(MSA_ACCOUNT_TENANT));
+
+        // Pull tenants ONLY for MSA users
+        if(authenticationMSAUser && currentlyAuthenticating){
+            const options:any = {
+                headers: {
+                  Authorization: `Bearer ${token.token}`,
+
+                },
+                resolveWithFullResponse:true
+              };
+            tenantJSON = await new Promise((resolve, reject)=>{
+
+                //@ts-ignore
+                const req = https.get("https://management.azure.com/tenants?api-version=2020-01-01", options, (res:any) => {
+                    let responseBody = '';
+
+                    res.on('data', (chunk:any) => {
+                        responseBody += chunk;
+                    });
+
+                    res.on('end', () => {
+                        resolve(JSON.parse(responseBody));
+                    });
+                });
+
+                req.on('error', (err) => {
+                    reject(err);
+                });
+                });
+
+            }
         }
-    // need to call getToken to validate if user is logged in through Az CLI
-    token = await tempCredential.getToken(["https://management.azure.com/.default","https://quantum.microsoft.com/.default"]);
-    authSource = "Az CLI";
+            catch(err:any){
+                if(err && err.message === "Aborted"){
+                    vscode.window.showErrorMessage("Unable to authenticate.");
+                    }
+                    currentlyAuthenticating=false;
+                    return reject();
+                }
+
+            });
+            // handles tenant selection for MSA users
+            if(authenticationMSAUser && currentlyAuthenticating){
+                if(tenantJSON.value.length === 0){
+                    currentlyAuthenticating=false;
+                    vscode.window.showErrorMessage("No tenants available.");
+                    return reject();
+                }
+                else if (tenantJSON.value.length === 1){
+                    tenantId = tenantJSON.value[0]["tenantId"];
+
+                }
+                else{
+                    const tenantObj:any = await vscode.window.showQuickPick(tenantJSON.value.map((tenant:any)=>{
+                        return {
+                            label: tenant["displayName"],
+                            description: tenant["tenantId"]
+                            };
+                        }),
+                        {"ignoreFocusOut":true, "matchOnDescription":true, "title":"Select a Tenant."});
+
+                    if(!tenantObj){
+                        currentlyAuthenticating=false;
+                        return reject();
+                    }
+                    tenantId = tenantObj["description"];
+
+                }
+                if (!tenantId){
+                   currentlyAuthenticating=false;
+                   return reject();
+                }
+
+            }
+
+        // handles second authentication ONLY for MSA users
+        if(authenticationMSAUser && currentlyAuthenticating){
+        await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Authenticating (there is a second browser login)...",
+        "cancellable":true
+        }, async (progress, cancel) => {
+            const controllerTwo = new AbortController();
+            const abortSignalTwo = controllerTwo.signal;
+            try{
+            const portTwo= await findPort.findPort();
+            cancel.onCancellationRequested(async(e:any)=>{
+            // abort the request, which opens the tls port for another authentication request
+            await abort(portTwo, controllerTwo);
+            currentlyAuthenticating = false;
+            return reject();
+            });
+
+            tempCredentialTwo = new InteractiveBrowserCredential({"tenantId":tenantId, "redirectUri":`http://localhost:${portTwo}`});
+            await tempCredentialTwo.getToken("https://management.azure.com/.default",  {"abortSignal":abortSignalTwo});
+
+            // Verifies MSA user selected the same account in both authentication login pop-ups
+            //@ts-ignore
+            if(!!(tempCredentialOne?._sources[1]?.msalFlow?.account?.username !== tempCredentialTwo?.msalFlow?.account?.username)){
+                throw Error("Aborted");
+            }
+            }
+            catch(err:any){
+                if(err && err.message === "Aborted"){
+                    vscode.window.showErrorMessage("Unable to authenticate.");
+                    }
+                    currentlyAuthenticating=false;
+                    return reject();
+                }
+
+            });
+        }
+
+        if (!currentlyAuthenticating){
+            return reject();
+        }
+
+    const workspaceInfo: workspaceInfo | undefined = context.workspaceState.get("workspaceInfo");
+    if (workspaceInfo && workspaceInfo["workspace"]){
+        workspaceStatusBarItem.text = `Azure Workspace: ${workspaceInfo["workspace"]}`;
+        workspaceStatusBarItem.show();
     }
-    catch{
-        // login through browser if user is not logged in through Az CLI
-        tempCredential = new InteractiveBrowserCredential();
-        token = await tempCredential.getToken("https://management.azure.com/.default");
-        authSource = "browser";
-    }
-    accountAuthStatusBarItem.tooltip = `Authenticated from ${authSource}`;
-    accountAuthStatusBarItem.show();
-    credential = tempCredential;
+
+    credential = tempCredentialTwo? tempCredentialTwo: tempCredentialOne;
     vscode.commands.executeCommand('setContext', 'showChangeAzureAccount', true);
+    currentlyAuthenticating=false;
+    return resolve();
+
     });
-    return;
+
 }
 
 // this method is called when your extension is activated
@@ -123,16 +283,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const args: UIExtensionVariables = {context: context, outputChannel:AzExtOutputChannel};
     registerUIExtensionVariables(args);
 
-
-    accountAuthStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 202);
-    accountAuthStatusBarItem.command = "quantum.changeAzureAccount";
-    context.subscriptions.push(accountAuthStatusBarItem);
-    accountAuthStatusBarItem.text = `$(verified)`;
-
-    if(authSource){
-        accountAuthStatusBarItem.tooltip = `Azure Quantum Auth: ${authSource}`;
-        accountAuthStatusBarItem.show();
-    }
+    context.workspaceState.update("workspaceInfo", undefined);
 
     submitJobStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 201);
     submitJobStatusBarItem.command = "quantum.submitJob";
@@ -142,14 +293,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
 
 
-    workSpaceStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 200);
-    const workspaceInfo: workspaceInfo | undefined = context.workspaceState.get("workspaceInfo");
-    workSpaceStatusBarItem.command = "quantum.changeWorkspace";
-    context.subscriptions.push(workSpaceStatusBarItem);
-    if (workspaceInfo && workspaceInfo["workspace"]){
-        workSpaceStatusBarItem.text = `Azure Workspace: ${workspaceInfo["workspace"]}`;
-        workSpaceStatusBarItem.show();
+    workspaceStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 200);
+    if(!credential){
+
+        workspaceStatusBarItem.text = "Connect to Azure Workspace";
+        workspaceStatusBarItem.command = "quantum.getWorkspace";
+
+        workspaceStatusBarItem.show();
     }
+    context.subscriptions.push(workspaceStatusBarItem);
+
 
     // Register commands that use the .NET Core SDK.
     // We do so as early as possible so that we can handle if someone calls
@@ -195,11 +348,18 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.submitJob",
         async() => {
-            sendTelemetryEvent(EventNames.jobSubmissionStarted, {},{});
-            await getCredential(context);
+            await getCredential(context).then(()=>{
             requireDotNetSdk(dotNetSdkVersion).then(
-                dotNetSdk => submitJob(context, dotNetSdk, localSubmissionsProvider, credential,workSpaceStatusBarItem )
+                (dotNetSdk) => {
+                sendTelemetryEvent(EventNames.jobSubmissionStarted, {},{});
+                submitJob(context, dotNetSdk, localSubmissionsProvider, credential,workspaceStatusBarItem );
+                }
             );
+        }).catch((err)=>{
+            if (err){
+                console.log(err);
+                }
+        });
         }
     );
 
@@ -208,9 +368,28 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.changeWorkspace",
         async() => {
+        await getCredential(context).then(async()=>{
+            await getWorkspaceFromUser(context, credential, workspaceStatusBarItem);
             sendTelemetryEvent(EventNames.changeWorkspace, {},{});
-            await getCredential(context);
-            await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem);
+        }).catch((err)=>{
+            if (err){
+                console.log(err);
+                }
+        });
+        }
+    );
+
+    registerCommand(
+        context,
+        "quantum.getWorkspace",
+        async() => {
+        await getCredential(context).then(async()=>{
+            await getWorkspaceInfo(context, credential, workspaceStatusBarItem);
+        }).catch((err)=>{
+            if (err){
+                console.log(err);
+                }
+        });
         }
     );
 
@@ -220,9 +399,14 @@ export async function activate(context: vscode.ExtensionContext) {
         context,
         "quantum.getJob",
         async() => {
-            sendTelemetryEvent(EventNames.getJobResults, {"method": "command line"},{});
-            await getCredential(context);
-            getJobResults(context, credential,workSpaceStatusBarItem);
+            await getCredential(context).then(async()=>{
+                await getJobResults(context, credential,workspaceStatusBarItem);
+                sendTelemetryEvent(EventNames.getJobResults, {"method": "command line"},{});
+            }).catch((err)=>{
+                if (err){
+                    console.log(err);
+                    }
+            });
         }
     );
 
@@ -237,23 +421,33 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     vscode.commands.registerCommand('quantum-jobs.jobDetails', async (job) =>{
-        sendTelemetryEvent(EventNames.getJobDetails, {},{});
-        await getCredential(context);
-        const jobId = job['jobDetails']['jobId'];
-        getJobDetails(context, credential, jobId, workSpaceStatusBarItem);
+        await getCredential(context).then(async()=>{
+            const jobId = job['jobDetails']['jobId'];
+            await getJobDetails(context, credential,workspaceStatusBarItem, jobId);
+            sendTelemetryEvent(EventNames.getJobDetails, {},{});
+        }).catch((err)=>{
+            if (err){
+                console.log(err);
+                }
+        });
     });
 
 
     vscode.commands.registerCommand('quantum-jobs.jobResults', async (job) =>{
-        await getCredential(context);
-        const jobId = job['jobDetails']['jobId'];
-        sendTelemetryEvent(
-            EventNames.results,
-            {
-                'method': "Results button"
-            },
-        );
-        getJobResults(context, credential,workSpaceStatusBarItem, jobId);
+        await getCredential(context).then(async()=>{
+            sendTelemetryEvent(
+                EventNames.results,
+                {
+                    'method': "Results button"
+                },
+            );
+            const jobId = job['jobDetails']['jobId'];
+            await getJobResults(context, credential,workspaceStatusBarItem, jobId);
+        }).catch((err)=>{
+            if (err){
+                console.log(err);
+                }
+        });
     }
     );
     vscode.commands.registerCommand('quantum.connectToAzureAccount', async () =>{
@@ -262,8 +456,14 @@ export async function activate(context: vscode.ExtensionContext) {
     });
 
     vscode.commands.registerCommand('quantum.changeAzureAccount', async () =>{
-        sendTelemetryEvent(EventNames.changeAzureAccount, {},{});
-        await getCredential(context, true);
+        await getCredential(context, true).then(async()=>{
+            sendTelemetryEvent(EventNames.changeAzureAccount, {},{});
+            context.workspaceState.update("workspaceInfo", undefined);
+        }).catch((err)=>{
+            if (err){
+                console.log(err);
+                }
+        });
     });
 
 
@@ -297,6 +497,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 // this method is called when your extension is deactivated
 export function deactivate() {
+    currentlyAuthenticating = false;
     if (reporter) { reporter.dispose(); }
 }
 

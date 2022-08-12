@@ -161,7 +161,7 @@ export function installOrUpdateIQSharp(
 }
 
 // try to pull workspace from config file. If nonexistent or incorrect format prompt user for workspace info.
-async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:InteractiveBrowserCredential | AzureCliCredential, workSpaceStatusBarItem: vscode.StatusBarItem, submitJobCommand=false){
+export async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:InteractiveBrowserCredential | AzureCliCredential, workspaceStatusBarItem: vscode.StatusBarItem, submitJobCommand=false){
     let workspaceInfo:any;
     let userInputNeeded=false;
     const configFile = await vscode.workspace.findFiles(
@@ -191,7 +191,7 @@ async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:Int
         userInputNeeded = true;
         // if this function is called from job submission command, submitJobCommand flag makes
         // total steps 7 instead of 3 for the workspace entries required.
-        await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem, submitJobCommand);
+        await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, submitJobCommand);
         workspaceInfo = context.workspaceState.get("workspaceInfo");
         }
         catch{
@@ -204,9 +204,12 @@ async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:Int
         vscode.window.showWarningMessage(`Could not connect to Azure Account`);
         return;
       }
+      workspaceStatusBarItem.command = "quantum.changeWorkspace";
+      workspaceStatusBarItem.text = `Azure Workspace: ${workspaceInfo["workspace"]}`;
+      workspaceStatusBarItem.show();
       // if this function is called from job submission command, userInputNeeded flag makes
       // total steps 7 instead of 4 for the job entries required.
-      return [workspaceInfo,userInputNeeded];
+      return [workspaceInfo, userInputNeeded];
 }
 
 
@@ -367,7 +370,7 @@ export async function submitJob(
                 "targetSubmissionDates"
               );
               if (!targetSubmissionDates){
-                targetSubmissionDates={}
+                targetSubmissionDates={};
               }
               targetSubmissionDates[target] = timeStamp;
               context.workspaceState.update(
@@ -397,10 +400,6 @@ async function getJob(context: vscode.ExtensionContext,
     {
         let jobResponse:any;
 
-        let cachedJobs = context.workspaceState.get("cachedJobs") as any;
-        if (cachedJobs && cachedJobs[jobId]) {
-            return cachedJobs[jobId];
-          }
           await vscode.window.withProgress(
             {
               location: vscode.ProgressLocation.Notification,
@@ -412,10 +411,6 @@ async function getJob(context: vscode.ExtensionContext,
         if(!workspaceInfo){
             return;
         }
-
-        if (!cachedJobs) {
-            cachedJobs = {};
-          }
 
 
               const quantumJobClient = getQuantumJobClient(workspaceInfo[0], credential);
@@ -434,12 +429,6 @@ async function getJob(context: vscode.ExtensionContext,
                     vscode.window.showErrorMessage(e.message);
                 }
                 return;
-              }
-
-              // if job suceeded store output
-              if(jobResponse.status ==="Succeeded"){
-                cachedJobs[jobId]= jobResponse;
-                context.workspaceState.update("cachedJobs", cachedJobs);
               }
             }
           );
@@ -521,6 +510,16 @@ export async function getJobResults(
         openReadOnlyJson({ label: `results-${job.name}`, fullId: jobId as string}, refinedJson);
 
         }
+        else if(outputString.includes("Error"))
+        {
+          try{
+          const message = outputString.split("<Message>")[1].split("</Message>")[0];
+          vscode.window.showErrorMessage(message);
+          }
+          catch{
+            vscode.window.showErrorMessage("Error retrieving job.");
+          }
+        }
         }).on("error", function (err) {
           vscode.window.showErrorMessage(err.message);
           });
@@ -531,8 +530,8 @@ export async function getJobResults(
 export async function getJobDetails(
     context: vscode.ExtensionContext,
     credential: InteractiveBrowserCredential | AzureCliCredential,
-    jobId: string,
-    workSpaceStatusBarItem: vscode.StatusBarItem
+    workSpaceStatusBarItem: vscode.StatusBarItem,
+    jobId: string
   ) {
     const job = await getJob(context,credential,jobId,workSpaceStatusBarItem);
 
