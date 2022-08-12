@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-"use strict"; 
+"use strict";
 import * as vscode from "vscode";
 import * as cp from "child_process";
 import * as https from "https";
