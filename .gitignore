@@ -370,6 +370,7 @@ src/QsCompiler/QirGeneration/QirGeneration.nuspec
 /examples/QIR/Development/build
 src/Telemetry/Tests/coverage.json
 src/Telemetry/.vscode/settings.json
+build/267DevDivSNKey2048.snk
 
 # MSBuild logs
 MSBuild_Logs/
