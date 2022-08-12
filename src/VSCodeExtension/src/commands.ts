@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
- 
+
 "use strict";
 import * as vscode from "vscode";
 import * as cp from "child_process";
@@ -216,12 +216,12 @@ export async function getAzureQuantumConfig():Promise<configFileInfo> {
 }
 
 
-async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:InteractiveBrowserCredential | AzureCliCredential, workSpaceStatusBarItem: vscode.StatusBarItem, totalSteps:number){
+export async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:InteractiveBrowserCredential | AzureCliCredential, workspaceStatusBarItem: vscode.StatusBarItem, totalSteps:number){
     let workspaceInfo:workspaceInfo|undefined;
     // remove any previous account info
     context.workspaceState.update("workspaceInfo", undefined);
     try{
-        await getWorkspaceFromUser(context, credential, workSpaceStatusBarItem, totalSteps);
+        await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, totalSteps);
         workspaceInfo = context.workspaceState.get("workspaceInfo");
         }
         catch{
@@ -233,13 +233,6 @@ async function getWorkspaceInfo(context: vscode.ExtensionContext, credential:Int
         return;
       }
       return workspaceInfo;
-}
-
-
-
-export async function deleteAzureWorkspaceInfo(context: vscode.ExtensionContext) {
-  context.workspaceState.update("workspaceInfo", undefined);
-  vscode.window.showInformationMessage("Successfully Disconnected");
 }
 
 
@@ -263,13 +256,13 @@ export async function submitJob(
   dotNetSdk: DotnetInfo,
   jobsSubmittedProvider: LocalSubmissionsProvider,
   credential: InteractiveBrowserCredential | AzureCliCredential,
-  workSpaceStatusBarItem: vscode.StatusBarItem,
+  workspaceStatusBarItem: vscode.StatusBarItem,
   workspaceInfo:workspaceInfo|undefined,
   projectFiles: any[],
   totalSteps: number
 ) {
     if (!workspaceInfo){
-      workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem, totalSteps);
+      workspaceInfo = await getWorkspaceInfo(context, credential,workspaceStatusBarItem, totalSteps);
     }
     if (!workspaceInfo){
         return;
@@ -425,10 +418,6 @@ async function getJob(context: vscode.ExtensionContext,
     {
         let jobResponse:any;
 
-        let cachedJobs = context.workspaceState.get("cachedJobs") as any;
-        if (cachedJobs && cachedJobs[jobId]) {
-            return cachedJobs[jobId];
-          }
           await vscode.window.withProgress(
             {
               location: vscode.ProgressLocation.Notification,
@@ -436,10 +425,6 @@ async function getJob(context: vscode.ExtensionContext,
               cancellable: false,
             },
             async (progress, token2) => {
-
-        if (!cachedJobs) {
-            cachedJobs = {};
-          }
 
 
               const quantumJobClient = getQuantumJobClient(workspaceInfo, credential);
@@ -459,12 +444,6 @@ async function getJob(context: vscode.ExtensionContext,
                 }
                 return;
               }
-
-              // if job suceeded store output
-              if(jobResponse.status ==="Succeeded"){
-                cachedJobs[jobId]= jobResponse;
-                context.workspaceState.update("cachedJobs", cachedJobs);
-              }
             }
           );
           return jobResponse;
@@ -476,7 +455,7 @@ async function getJob(context: vscode.ExtensionContext,
 export async function getJobResults(
   context: vscode.ExtensionContext,
   credential: InteractiveBrowserCredential | AzureCliCredential,
-  workSpaceStatusBarItem: vscode.StatusBarItem,
+  workspaceStatusBarItem: vscode.StatusBarItem,
   jobId?: string
 
 ) {
@@ -488,7 +467,7 @@ export async function getJobResults(
   // if user needs to select a workspace, show steps in title
   const inputTitle = workspaceInfo?"Enter a Job Id": "Enter Job Id (4/4)";
   if(configIssue){
-    workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem, 4);
+    workspaceInfo = await getWorkspaceInfo(context, credential,workspaceStatusBarItem, 4);
   }
   if(!workspaceInfo){
       return;
@@ -553,6 +532,16 @@ export async function getJobResults(
         openReadOnlyJson({ label: `results-${job.name}`, fullId: jobId as string}, refinedJson);
 
         }
+        else if(outputString.includes("Error"))
+        {
+          try{
+          const message = outputString.split("<Message>")[1].split("</Message>")[0];
+          vscode.window.showErrorMessage(message);
+          }
+          catch{
+            vscode.window.showErrorMessage("Error retrieving job.");
+          }
+        }
         }).on("error", function (err) {
           vscode.window.showErrorMessage(err.message);
           });
@@ -563,15 +552,15 @@ export async function getJobResults(
 export async function getJobDetails(
     context: vscode.ExtensionContext,
     credential: InteractiveBrowserCredential | AzureCliCredential,
-    jobId: string,
-    workSpaceStatusBarItem: vscode.StatusBarItem
+    workspaceStatusBarItem: vscode.StatusBarItem,
+    jobId: string
   ) {
     let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
     if(configIssue===configIssueEnum.MULTIPLE_CONFIGS){
       return;
     }
     if(configIssue){
-      workspaceInfo = await getWorkspaceInfo(context, credential,workSpaceStatusBarItem, 5);
+      workspaceInfo = await getWorkspaceInfo(context, credential,workspaceStatusBarItem, 5);
     }
     if(!workspaceInfo){
         return;

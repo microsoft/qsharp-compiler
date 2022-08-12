@@ -31,6 +31,13 @@ let csprojQuickPickFlag=false;
 
 export async function getJobInfoFromUser(context:vscode.ExtensionContext, quantumJobClient:QuantumJobClient, workspaceInfo:workspaceInfo, totalSteps:number, projectFiles:any[]){
 
+  provider="";
+  _target="";
+  jobName="";
+  csproj="";
+  programArguments="";
+  providersAndTargets="";
+
     submissionStepEnum = {
       CSPROJ: totalSteps - 4,
       PROVIDER:totalSteps - 3,
@@ -154,6 +161,7 @@ export async function getJobInfoFromUser(context:vscode.ExtensionContext, quantu
 function setupCsProjQuickPick(quickPick:vscode.QuickPick<vscode.QuickPickItem>, projectFiles:any[]){
 
   quickPick.buttons = [];
+  provider="";
   quickPick.step = submissionStepEnum.CSPROJ;
   quickPick.matchOnDetail = true;
   quickPick.value = csproj?csproj:"";
@@ -206,7 +214,7 @@ async function setupProviderQuickPick(quickPick:vscode.QuickPick<vscode.QuickPic
     quickPick.busy = true;
     quickPick.show();
     quickPickIsHidden = false;
-
+    _target="";
 
     const providersAndTargets = await getProvidersAndTargets(context, quantumJobClient, workspaceInfo);
     if(providersAndTargets===undefined){
