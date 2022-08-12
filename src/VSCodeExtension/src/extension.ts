@@ -14,7 +14,7 @@ import {LocalSubmissionsProvider} from './localSubmissionsProvider';
 import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVariables } from '@microsoft/vscode-azext-utils';
 import { AzureCliCredential, InteractiveBrowserCredential, ChainedTokenCredential } from '@azure/identity';
 import {getWorkspaceFromUser} from "./quickPickWorkspace";
-import {workspaceInfo, getAzureQuantumConfig, configIssueEnum, getWorkspaceInfo} from "./commands";
+import {getAzureQuantumConfig, configIssueEnum, getWorkspaceInfo} from "./commands";
 import { AbortController} from "@azure/abort-controller";
 import * as https from "https";
 
