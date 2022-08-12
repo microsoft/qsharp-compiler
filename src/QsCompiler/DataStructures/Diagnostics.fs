@@ -333,6 +333,8 @@ type WarningCode =
     | SetInResultConditionedBlock = 5026
     | UnsupportedCallableCapability = 5027
 
+    | [<Obsolete>] NamespaceAleadyOpen = 6003
+    | [<Obsolete>] NamespaceAliasIsAlreadyDefined = 6004
     | MissingBodyDeclaration = 6005
     | UnusedTypeParam = 6006
     | DuplicateAttribute = 6201
@@ -911,6 +913,8 @@ type DiagnosticItem =
                 + DiagnosticItem.Message(ErrorCode.UnsupportedCallableCapability, args |> Seq.skip 4)
                 + " [{1}: ln {2}, cn {3}]"
 
+            | WarningCode.NamespaceAleadyOpen -> "The namespace is already open."
+            | WarningCode.NamespaceAliasIsAlreadyDefined -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration ->
                 "A body specification for this callable is missing. The callable is assumed to be intrinsic."
             | WarningCode.UnusedTypeParam ->
