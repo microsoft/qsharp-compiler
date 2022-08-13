@@ -137,11 +137,7 @@ module SymbolOccurrence =
         match fragment with
         | NamespaceDeclaration s -> [ Declaration s ]
         | OpenDirective (ns, a) ->
-            let alias =
-                match a.Symbol with
-                | Symbol _ -> [ Declaration a ]
-                | _ -> []
-
+            let alias = QsNullable<_>.Map (Declaration >> List.singleton) a |> QsNullable.defaultValue []
             UsedVariable ns :: alias
         | DeclarationAttribute (s, e) -> UsedVariable s :: inExpression e
         | OperationDeclaration c

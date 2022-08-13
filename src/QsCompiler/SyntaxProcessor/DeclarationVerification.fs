@@ -20,14 +20,12 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 // some convenient utils to call from C# on fragments
 
 /// If the given symbol is a simple symbol, returns its name.
-/// If the given symbol is a missing symbol, returns "".
 /// If the given symbol is invalid, returns the given fallback onInvalid.
 /// Returns null otherwise.
 [<Extension>]
 let public AsDeclarationName sym onInvalid =
     match sym with
     | Symbol name -> name
-    | MissingSymbol -> ""
     | InvalidSymbol -> onInvalid
     | _ -> null
 
@@ -55,7 +53,7 @@ let public DeclaredNamespaceName this onInvalid =
 /// returns a tuple with the symbol of the opened namespace and the defined short name (if any) as Value.
 /// Returns Null otherwise.
 [<Extension>]
-let public OpenedNamespace this : QsNullable<QsSymbol * QsSymbol> =
+let public OpenedNamespace this : QsNullable<QsSymbol * QsNullable<QsSymbol>> =
     match this with
     | OpenDirective (nsName, alias) -> (nsName, alias) |> Value
     | _ -> Null

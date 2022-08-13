@@ -190,6 +190,10 @@ type ErrorCode =
     | RequiredUnitReturnForAdjoint = 6015
     | RequiredUnitReturnForControlled = 6016
     | RequiredUnitReturnForControlledAdjoint = 6017
+    // TODO: Remove AliasForNamespaceAlreadyExists since we no longer emit it
+    | [<Obsolete "This diagnostic is no longer in use.">] AliasForNamespaceAlreadyExists = 6018
+    // TODO: Remove AliasForOpenedNamespace since we no longer emit it
+    | [<Obsolete "This diagnostic is no longer in use.">] AliasForOpenedNamespace = 6019
     /// I.e., the chosen alias already exists.
     | InvalidNamespaceAliasName = 6020
     | ConflictInReferences = 6021
@@ -333,6 +337,10 @@ type WarningCode =
     | SetInResultConditionedBlock = 5026
     | UnsupportedCallableCapability = 5027
 
+    // TODO: Remove NamespaceAleadyOpen since we no longer emit it
+    | [<Obsolete "This diagnostic is no longer in use.">] NamespaceAleadyOpen = 6003
+    // TODO: Remove NamespaceAliasIsAlreadyDefined since we no longer emit it
+    | [<Obsolete "This diagnostic is no longer in use.">] NamespaceAliasIsAlreadyDefined = 6004
     | MissingBodyDeclaration = 6005
     | UnusedTypeParam = 6006
     | DuplicateAttribute = 6201
@@ -686,6 +694,9 @@ type DiagnosticItem =
                 "Controlled specializations can only be defined for operations returning Unit."
             | ErrorCode.RequiredUnitReturnForControlledAdjoint ->
                 "Controlled-adjoint specializations can only be defined for operations returning Unit."
+            | ErrorCode.AliasForNamespaceAlreadyExists -> "The namespace had already been opened as \"{0}\"."
+            | ErrorCode.AliasForOpenedNamespace ->
+                "Namespace is already open. Cannot open namespace under a different name."
             | ErrorCode.InvalidNamespaceAliasName -> "A namespace or a namespace short name \"{0}\" already exists."
             | ErrorCode.ConflictInReferences -> "Could not resolve conflict between {0} declared in {1}."
 
@@ -911,6 +922,8 @@ type DiagnosticItem =
                 + DiagnosticItem.Message(ErrorCode.UnsupportedCallableCapability, args |> Seq.skip 4)
                 + " [{1}: ln {2}, cn {3}]"
 
+            | WarningCode.NamespaceAleadyOpen -> "The namespace is already open."
+            | WarningCode.NamespaceAliasIsAlreadyDefined -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration ->
                 "A body specification for this callable is missing. The callable is assumed to be intrinsic."
             | WarningCode.UnusedTypeParam ->

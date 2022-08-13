@@ -458,8 +458,8 @@ type Namespace
     /// or if the given alias is already in use for a different namespace.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
-    member internal this.TryAddOpenDirective source (openedNS, nsRange) (alias, aliasRange) =
-        let alias = if String.IsNullOrWhiteSpace alias then "" else alias.Trim()
+    member internal this.TryAddOpenDirective source (openedNS, nsRange) (alias: string, aliasRange) =
+        let alias = alias.Trim()
 
         match parts.TryGetValue source with
         | true, partial ->

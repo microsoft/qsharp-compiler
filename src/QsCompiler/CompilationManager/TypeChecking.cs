@@ -133,11 +133,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         QsNullable<Tuple<QsSymbol, (string, QsNullable<Range>)>>.NewValue(new Tuple<QsSymbol, (string, QsNullable<Range>)>(dir.Item.Item1, (a, r)));
 
                     var alias = dir.Item.Item2;
-                    var aliasName = alias.Symbol.AsDeclarationName("");
-                    QsCompilerError.Verify(
-                        !string.IsNullOrEmpty(aliasName) || (aliasName != null && (alias.Symbol.IsInvalidSymbol || alias.Symbol.IsMissingSymbol)),
-                        "could not extract namespace short name");
-                    return OpenedAs(aliasName, alias.Range);
+                    if (alias.IsNull)
+                    {
+                        return OpenedAs("", QsNullable<Range>.Null);
+                    }
+
+                    var aliasName = alias.Item.Symbol.AsDeclarationName("");
+                    QsCompilerError.Verify(aliasName != "" || alias.Item.Symbol.IsInvalidSymbol, "could not extract namespace short name");
+                    return OpenedAs(aliasName, alias.Item.Range);
                 },
                 null);
 

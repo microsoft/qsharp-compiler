@@ -280,11 +280,10 @@ let private functorGenDirective = // parsing all possible directives for all fun
 
 /// Uses buildFragment to parse a Q# OpenDirective as QsFragment.
 let private openDirective =
-    let noAlias = (MissingSymbol, Null) |> QsSymbol.New
-    let invalid = OpenDirective(invalidSymbol, noAlias)
+    let invalid = OpenDirective(invalidSymbol, Null)
 
     let nsNameAndAlias =
-        let aliasOption = (importedAs.Parse >>. expectedNamespaceName eof) <|>% noAlias
+        let aliasOption = (importedAs.Parse >>. expectedNamespaceName eof |>> Value) <|>% Null
         expectedNamespaceName importedAs.Parse .>>. aliasOption
 
     buildFragment importDirectiveHeader.Parse nsNameAndAlias invalid (fun _ -> OpenDirective) eof

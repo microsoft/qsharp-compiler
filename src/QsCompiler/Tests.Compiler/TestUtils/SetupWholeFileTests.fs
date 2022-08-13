@@ -15,7 +15,7 @@ open System.IO
 open System.Linq
 open Xunit
 
-type WholeFileTests() =
+module WholeFileTests =
 
     let compile file =
         let compilation = CompilerTests.Compile(Path.Join("TestCases", "WholeFileTests"), [ file ])
@@ -45,19 +45,19 @@ type WholeFileTests() =
                 (String.Join("\n\t", diag.Where(fun d -> d.Severity = severity).Select(fun d -> d.Message)))
         )
 
-    member this.Verify(diag, filename, expected: IEnumerable<ErrorCode>) =
+    let VerifyErrors (diag, filename, expected: IEnumerable<ErrorCode>) =
         let expected = expected.Select int
         verifyDiagnosticsOfSeverity diag (Nullable DiagnosticSeverity.Error) filename expected
 
-    member this.Verify(diag, filename, expected: IEnumerable<WarningCode>) =
+    let VerifyWarnings (diag, filename, expected: IEnumerable<WarningCode>) =
         let expected = expected.Select int
         verifyDiagnosticsOfSeverity diag (Nullable DiagnosticSeverity.Warning) filename expected
 
-    member this.Verify(diag, filename, expected: IEnumerable<InformationCode>) =
+    let VerifyInfo (diag, filename, expected: IEnumerable<InformationCode>) =
         let expected = expected.Select int
         verifyDiagnosticsOfSeverity diag (Nullable DiagnosticSeverity.Information) filename expected
 
-    member this.VerifyDiagnostics(diag, filename, expected: IEnumerable<DiagnosticItem>) =
+    let VerifyDiagnostics (diag, filename, expected: IEnumerable<DiagnosticItem>) =
         let errs =
             expected
             |> Seq.choose (function
@@ -76,9 +76,9 @@ type WholeFileTests() =
                 | Information inf -> Some inf
                 | _ -> None)
 
-        this.Verify(diag, filename, errs)
-        this.Verify(diag, filename, wrns)
-        this.Verify(diag, filename, infs)
+        VerifyErrors(diag, filename, errs)
+        VerifyWarnings(diag, filename, wrns)
+        VerifyInfo(diag, filename, infs)
 
         let other =
             expected
@@ -89,6 +89,6 @@ type WholeFileTests() =
 
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
-    member this.Expect filename (diag: IEnumerable<DiagnosticItem>) =
+    let Expect filename (diag: IEnumerable<DiagnosticItem>) =
         let actualDiag = compile filename
-        this.VerifyDiagnostics(actualDiag, filename, diag)
+        VerifyDiagnostics(actualDiag, filename, diag)

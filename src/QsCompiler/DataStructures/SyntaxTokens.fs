@@ -47,7 +47,6 @@ type QsSymbolKind<'Symbol> =
     /// Used for the arguments of the original method omitted upon functor gen declaration.
     | OmittedSymbols
     /// Used to allow destructs of the form let (_,a) = ...
-    /// Also used for when an alias is omitted in open directives.
     | MissingSymbol
     | InvalidSymbol
 
@@ -448,7 +447,7 @@ type QsFragmentKind =
     | FunctionDeclaration of CallableDeclaration
     | TypeDefinition of TypeDefinition
     | DeclarationAttribute of QsSymbol * QsExpression
-    | OpenDirective of QsSymbol * QsSymbol // second symbol will be MissingSymbol if no alias provided
+    | OpenDirective of QsSymbol * QsNullable<QsSymbol>
     | NamespaceDeclaration of QsSymbol
     | InvalidFragment
 

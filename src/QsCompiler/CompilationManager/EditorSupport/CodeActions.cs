@@ -193,7 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .TakeWhile(opened => opened.IsValue)
                 .Select(opened => (
                     opened.Item.Item1.Symbol.AsDeclarationName(null),
-                    opened.Item.Item2.Symbol.AsDeclarationName("")))
+                    opened.Item.Item2.IsValue ? opened.Item.Item2.Item.Symbol.AsDeclarationName("") : ""))
                 .Where(opened => opened.Item1 != null)
                 .GroupBy(opened => opened.Item1, opened => opened.Item2) // in case there are duplicate open directives...
                 .ToImmutableDictionary(opened => opened.Key, opened => opened.First());
