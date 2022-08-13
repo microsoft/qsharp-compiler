@@ -28,6 +28,7 @@
     <StartAction>Program</StartAction>
     <StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</StartProgram>
     <StartArguments>/rootsuffix Exp</StartArguments>
+    <BuildLanguageServer Condition=" '$(BuildLanguageServer)' == '' ">true</BuildLanguageServer>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -176,7 +177,7 @@
       </VSIXSourceItem>
     </ItemGroup>
   </Target>
-  <Target Name="BuildLanguageServer" BeforeTargets="CoreCompile">
+  <Target Name="BuildLanguageServer" BeforeTargets="CoreCompile" Condition="'$(BuildLanguageServer)' == 'true'">
     <ItemGroup>
       <RemoveFiles Include="$(LanguageServerPath)**" />
     </ItemGroup>
