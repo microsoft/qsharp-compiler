@@ -105,7 +105,7 @@ export async function getJobInfoFromUser(context:vscode.ExtensionContext, quantu
             }
               // user input provider so prompt target input
               if (quickPick.step === submissionStepEnum.PROVIDER){
-                if(provider&& provider !== selection["label"]){
+                if(provider !== selection["label"]){
                   _target="";
                 }
                 provider = selection["label"];
