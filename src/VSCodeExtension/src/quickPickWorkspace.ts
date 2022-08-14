@@ -5,7 +5,7 @@ import {
   AccessToken
 } from "@azure/identity";
 import { TextEncoder } from "util";
-import {workspaceInfo} from "./commands";
+import {workspaceInfo, checkIfWorkspaceInAccount} from "./commands";
 // import fetch from 'node-fetch';
 import * as https from "https";
 
@@ -89,20 +89,20 @@ export async function getWorkspaceFromUser(
             workspace = selection.label;
         location = selection.description;
 
-        // update the locally saved workspace state
-        context.workspaceState.update("workspaceInfo", {
+        const workspaceInfoUpload = {
           subscriptionId: subscriptionId,
           resourceGroup: resourceGroup,
           workspace: workspace,
           location: location,
-        });
+        };
+
+        // update the locally saved workspace state
+        context.workspaceState.update("workspaceInfo", workspaceInfoUpload);
         finished = true;
         quickPick.dispose();
         // write the config file cotaining workspace details
         await writeConfigFile(context);
-        workspaceStatusBarItem.command = "quantum.changeWorkspace";
-        workspaceStatusBarItem.text = `Azure Workspace: ${workspace}`;
-        workspaceStatusBarItem.show();
+        await checkIfWorkspaceInAccount(credential, workspaceInfoUpload, workspaceStatusBarItem);
         resolve();
       }
     });

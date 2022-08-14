@@ -14,12 +14,12 @@ import {LocalSubmissionsProvider} from './localSubmissionsProvider';
 import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVariables } from '@microsoft/vscode-azext-utils';
 import { AzureCliCredential, InteractiveBrowserCredential, ChainedTokenCredential } from '@azure/identity';
 import {getWorkspaceFromUser} from "./quickPickWorkspace";
-import {getAzureQuantumConfig, configIssueEnum, getWorkspaceInfo} from "./commands";
+import {getAzureQuantumConfig, configIssueEnum, getWorkspaceInfo, checkIfWorkspaceInAccount} from "./commands";
 import { AbortController} from "@azure/abort-controller";
 import * as https from "https";
 
 const findPort = require('find-open-port');
-let credential:AzureCliCredential|InteractiveBrowserCredential;
+let credential:AzureCliCredential|InteractiveBrowserCredential|ChainedTokenCredential;
 let workspaceStatusBarItem: vscode.StatusBarItem;
 let submitJobStatusBarItem: vscode.StatusBarItem;
 
@@ -361,7 +361,7 @@ export async function activate(context: vscode.ExtensionContext) {
             // base amount of steps (provider, target, jobName, programArguments)
             let totalSteps = 4;
             // add steps if necessary for a user to connect to azure workspace
-            let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
+            let {workspaceInfo, configIssue} = await getAzureQuantumConfig(credential, workspaceStatusBarItem);
             if(configIssue===configIssueEnum.MULTIPLE_CONFIGS){
               return;
             }
@@ -413,7 +413,7 @@ export async function activate(context: vscode.ExtensionContext) {
         "quantum.getWorkspace",
         async() => {
         await getCredential(context).then(async()=>{
-            let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
+            let {workspaceInfo, configIssue} = await getAzureQuantumConfig(credential, workspaceStatusBarItem);
             if(configIssue===configIssueEnum.MULTIPLE_CONFIGS){
               return;
             }
@@ -423,11 +423,9 @@ export async function activate(context: vscode.ExtensionContext) {
             if(!workspaceInfo){
                 return;
             }
-            if (workspaceInfo["workspace"]){
-                workspaceStatusBarItem.text = `Azure Workspace: ${workspaceInfo["workspace"]}`;
-                workspaceStatusBarItem.show();
-                workspaceStatusBarItem.command ="quantum.changeWorkspace";
-            }
+            await checkIfWorkspaceInAccount(credential, workspaceInfo, workspaceStatusBarItem);
+
+
 
         }).catch((err)=>{
             if (err){
@@ -503,6 +501,9 @@ export async function activate(context: vscode.ExtensionContext) {
         await getCredential(context, true).then(async()=>{
             sendTelemetryEvent(EventNames.changeAzureAccount, {},{});
             context.workspaceState.update("workspaceInfo", undefined);
+            // use to check if current workspace is compatible up with new azure account
+            await getAzureQuantumConfig(credential, workspaceStatusBarItem);
+
         }).catch((err)=>{
             if (err){
                 console.log(err);

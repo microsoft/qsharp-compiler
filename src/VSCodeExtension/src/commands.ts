@@ -171,8 +171,42 @@ export function installOrUpdateIQSharp(
     });
 }
 
+export async function checkIfWorkspaceInAccount(credential:any, workspaceInfo:workspaceInfo, workspaceStatusBarItem:vscode.StatusBarItem){
+  await vscode.window.withProgress({
+    location: vscode.ProgressLocation.Notification,
+    title: "Loading...",
+    }, async (progress, cancel) => {
+  const token = await credential.getToken("https://management.azure.com/.default");
+  const options:any = {
+      headers: {
+        Authorization: `Bearer ${token.token}`,
+
+      },
+      resolveWithFullResponse:true
+    };
+
+const workspaceAPICall:any = await new Promise((resolve, reject)=>{
+      //@ts-ignore
+const req = https.get(`https://management.azure.com/subscriptions/${workspaceInfo["subscriptionId"]}/resourceGroups/${workspaceInfo["resourceGroup"]}/resources?api-version=2020-01-01&$filter=resourceType eq 'Microsoft.Quantum/Workspaces' and name eq '${workspaceInfo["workspace"]}'`, options, (res:any) => {
+  let responseBody = '';
+
+  res.on('data', (chunk:any) => {
+      responseBody += chunk;
+  });
+
+  res.on('end', () => {
+      resolve(JSON.parse(responseBody));
+  });
+});
+});
+      workspaceStatusBarItem.text = workspaceAPICall?.value.length>0?`$(pass) Azure Workspace: ${workspaceInfo["workspace"]}`:`$(error) Azure Workspace: ${workspaceInfo["workspace"]}`;
+      workspaceStatusBarItem.show();
+      workspaceStatusBarItem.command ="quantum.changeWorkspace";
+});
+}
+
 // return azurequantumconfig.json if present
-export async function getAzureQuantumConfig():Promise<configFileInfo> {
+export async function getAzureQuantumConfig(credential:any, workspaceStatusBarItem:vscode.StatusBarItem):Promise<configFileInfo> {
 
   const configFileInfo:configFileInfo = {
     workspaceInfo:undefined,
@@ -212,6 +246,8 @@ export async function getAzureQuantumConfig():Promise<configFileInfo> {
         return configFileInfo;
     }
     configFileInfo["workspaceInfo"]=workspaceInfo;
+
+    await checkIfWorkspaceInAccount(credential, workspaceInfo, workspaceStatusBarItem);
     return configFileInfo;
 }
 
@@ -432,20 +468,20 @@ async function getJob(context: vscode.ExtensionContext,
               try{
               jobResponse = await quantumJobClient.jobs.get(jobId);
                 }
-              catch(e:any){
-                if(e.statusCode === 404){
-                    vscode.window.showErrorMessage("Change your workspace to where your job was submitted from.");
+                catch(e:any){
+                  if(e.statusCode === 404){
+                      vscode.window.showErrorMessage("Change your workspace to where your job was submitted from.");
+                  }
+                  else if(e.statusCode === 403){
+                      vscode.window.showErrorMessage("Change your account to where your job was submitted from.");
+                  }
+                  else{
+                      vscode.window.showErrorMessage(e.message);
+                  }
+                  return;
                 }
-                else if(e.statusCode === 403){
-                    vscode.window.showErrorMessage("Change your account to where your job was submitted from.");
-                }
-                else{
-                    vscode.window.showErrorMessage(e.message);
-                }
-                return;
               }
-            }
-          );
+            );
           return jobResponse;
 
 }
@@ -460,7 +496,7 @@ export async function getJobResults(
 
 ) {
 
-  let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
+  let {workspaceInfo, configIssue} = await getAzureQuantumConfig(credential, workspaceStatusBarItem);
   if(configIssue===configIssueEnum.MULTIPLE_CONFIGS){
     return;
   }
@@ -555,7 +591,7 @@ export async function getJobDetails(
     workspaceStatusBarItem: vscode.StatusBarItem,
     jobId: string
   ) {
-    let {workspaceInfo, configIssue} = await getAzureQuantumConfig();
+    let {workspaceInfo, configIssue} = await getAzureQuantumConfig(credential, workspaceStatusBarItem);
     if(configIssue===configIssueEnum.MULTIPLE_CONFIGS){
       return;
     }
