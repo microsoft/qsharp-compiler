@@ -401,15 +401,18 @@ export async function activate(context: vscode.ExtensionContext) {
         async() => {
         await getCredential(context).then(async()=>{
             // three total steps
+            let {workspaceInfo:workspaceInfo2} = await getAzureQuantumConfig();
             await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, 3);
             sendTelemetryEvent(EventNames.changeWorkspace, {},{});
             // Clear local submitted jobs cache as the user is in a new workspace.
             // and will not be able to access the cached jobs due to the functionality
             // of the Quantum Javascript Library
-            context.workspaceState.update(
-                "locallySubmittedJobs",
-                undefined
-              );
+            let {workspaceInfo:workspaceInfo} = await getAzureQuantumConfig();
+            //only clear local jobs is user changes workspaces
+            if(workspaceInfo?.workspace!==workspaceInfo2?.workspace){
+            context.workspaceState.update("locallySubmittedJobs", undefined);
+            localSubmissionsProvider.refresh(context);
+            }
         }).catch((err)=>{
             if (err){
                 console.log(err);
@@ -512,19 +515,14 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('quantum.changeAzureAccount', async () =>{
         await getCredential(context, true).then(async()=>{
             sendTelemetryEvent(EventNames.changeAzureAccount, {},{});
-            context.workspaceState.update("workspaceInfo", undefined);
-            context.workspaceState.update(
-                "locallySubmittedJobs",
-                undefined
-              );
+            context.workspaceState.update("locallySubmittedJobs", undefined);
+            localSubmissionsProvider.refresh(context);
         }).catch((err)=>{
             if (err){
                 console.log(err);
                 }
         });
     });
-
-
 
     let rootFolder = findRootFolder();
 
