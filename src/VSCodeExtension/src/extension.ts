@@ -14,7 +14,7 @@ import {LocalSubmissionsProvider} from './localSubmissionsProvider';
 import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVariables } from '@microsoft/vscode-azext-utils';
 import { AzureCliCredential, InteractiveBrowserCredential, ChainedTokenCredential } from '@azure/identity';
 import {getWorkspaceFromUser} from "./quickPickWorkspace";
-import {getAzureQuantumConfig, configIssueEnum, getWorkspaceInfo, checkIfWorkspaceInAccount} from "./commands";
+import {getAzureQuantumConfig, configIssueEnum, getWorkspaceInfo, updateWorkspaceStatusItem} from "./commands";
 import { AbortController} from "@azure/abort-controller";
 import * as https from "https";
 
@@ -423,7 +423,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if(!workspaceInfo){
                 return;
             }
-            await checkIfWorkspaceInAccount(credential, workspaceInfo, workspaceStatusBarItem);
+            await updateWorkspaceStatusItem(credential, workspaceInfo, workspaceStatusBarItem);
 
 
 

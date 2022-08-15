@@ -171,38 +171,10 @@ export function installOrUpdateIQSharp(
     });
 }
 
-export async function checkIfWorkspaceInAccount(credential:any, workspaceInfo:workspaceInfo, workspaceStatusBarItem:vscode.StatusBarItem){
-  await vscode.window.withProgress({
-    location: vscode.ProgressLocation.Notification,
-    title: "Loading...",
-    }, async (progress, cancel) => {
-  const token = await credential.getToken("https://management.azure.com/.default");
-  const options:any = {
-      headers: {
-        Authorization: `Bearer ${token.token}`,
-
-      },
-      resolveWithFullResponse:true
-    };
-
-const workspaceAPICall:any = await new Promise((resolve, reject)=>{
-      //@ts-ignore
-const req = https.get(`https://management.azure.com/subscriptions/${workspaceInfo["subscriptionId"]}/resourceGroups/${workspaceInfo["resourceGroup"]}/resources?api-version=2020-01-01&$filter=resourceType eq 'Microsoft.Quantum/Workspaces' and name eq '${workspaceInfo["workspace"]}'`, options, (res:any) => {
-  let responseBody = '';
-
-  res.on('data', (chunk:any) => {
-      responseBody += chunk;
-  });
-
-  res.on('end', () => {
-      resolve(JSON.parse(responseBody));
-  });
-});
-});
-      workspaceStatusBarItem.text = workspaceAPICall?.value.length>0?`$(pass) Azure Workspace: ${workspaceInfo["workspace"]}`:`$(error) Azure Workspace: ${workspaceInfo["workspace"]}`;
+export  function updateWorkspaceStatusItem(credential:any, workspaceInfo:workspaceInfo, workspaceStatusBarItem:vscode.StatusBarItem){
+      workspaceStatusBarItem.text =`Azure Workspace: ${workspaceInfo["workspace"]}`;
       workspaceStatusBarItem.show();
       workspaceStatusBarItem.command ="quantum.changeWorkspace";
-});
 }
 
 // return azurequantumconfig.json if present
@@ -247,7 +219,7 @@ export async function getAzureQuantumConfig(credential:any, workspaceStatusBarIt
     }
     configFileInfo["workspaceInfo"]=workspaceInfo;
 
-    await checkIfWorkspaceInAccount(credential, workspaceInfo, workspaceStatusBarItem);
+    await updateWorkspaceStatusItem(credential, workspaceInfo, workspaceStatusBarItem);
     return configFileInfo;
 }
 

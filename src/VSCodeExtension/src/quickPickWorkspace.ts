@@ -5,7 +5,7 @@ import {
   AccessToken
 } from "@azure/identity";
 import { TextEncoder } from "util";
-import {workspaceInfo, checkIfWorkspaceInAccount} from "./commands";
+import {workspaceInfo, updateWorkspaceStatusItem} from "./commands";
 // import fetch from 'node-fetch';
 import * as https from "https";
 
@@ -102,7 +102,7 @@ export async function getWorkspaceFromUser(
         quickPick.dispose();
         // write the config file cotaining workspace details
         await writeConfigFile(context);
-        await checkIfWorkspaceInAccount(credential, workspaceInfoUpload, workspaceStatusBarItem);
+        await updateWorkspaceStatusItem(credential, workspaceInfoUpload, workspaceStatusBarItem);
         resolve();
       }
     });
