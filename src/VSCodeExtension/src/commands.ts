@@ -235,6 +235,14 @@ export async function getWorkspaceInfo(context: vscode.ExtensionContext, credent
       return workspaceInfo;
 }
 
+async function cancelJob(workspaceInfo:workspaceInfo, credential:any, jobId:string){
+      const userInputConfirmation = await vscode.window.showInformationMessage(`Are you sure you want to cancel your job?`,{}, ...["Yes","No"]);
+
+      if(userInputConfirmation==="Yes"){
+      const quantumJobClient = getQuantumJobClient(workspaceInfo, credential);
+      await quantumJobClient.jobs.cancel(jobId);
+  }
+}
 
 function getQuantumJobClient(workspaceInfo: workspaceInfo, credential: any) {
   const endpoint = "https://" + workspaceInfo["location"] + ".quantum.azure.com";
@@ -281,10 +289,11 @@ export async function submitJob(
 else{
   return;
 }
-  vscode.window.withProgress(
+let jobId:string|undefined;
+  await vscode.window.withProgress(
     {
-      location: vscode.ProgressLocation.Window,
-      title: "Submitting Job",
+      location: vscode.ProgressLocation.Notification,
+      title: `Submitting to ${target}...`,
     },
     async (progress) => {
 
@@ -343,14 +352,12 @@ else{
           }
 
           await promisify(cp.execFile)(`${dotNetSdk.path}`, args)
-            .then((job) => {
+            .then(async (job) => {
               if (!job || !workspaceInfo) {
                 throw Error;
               }
               // job.stdout returns job id with an unnecessary space and new line char
-              const jobId = job.stdout.slice(0, -2);
-              vscode.window.showInformationMessage(`Job Id: ${jobId}`);
-
+              jobId = job.stdout.slice(0, -2);
               const timeStamp = new Date().toISOString();
 
               const jobDetails = {
@@ -396,17 +403,38 @@ else{
                 targetSubmissionDates
               );
             })
-            .then(undefined, (err) => {
+            .then(undefined, async(err) => {
               console.error("I am a runtime error ");
-              vscode.window.showErrorMessage(err.stderr);
+              let outputChannel:vscode.OutputChannel|undefined = context.workspaceState.get("outputChannel");
+              if(!outputChannel || !outputChannel["append"]){
+                outputChannel = await vscode.window.createOutputChannel("Azure Quantum", "typescript");
+                context.workspaceState.update("outputChannel", outputChannel);
+              }
+              vscode.window.showErrorMessage("Submission failed: Runtime Error");
+              outputChannel.appendLine(err.stderr);
+              outputChannel.show();
             });
         })
-        .then(undefined, (err) => {
+        .then(undefined, async (err) => {
           console.error("I am a compilation error");
-          vscode.window.showErrorMessage(err.message);
+          let outputChannel:vscode.OutputChannel|undefined = context.workspaceState.get("outputChannel");
+          if(!outputChannel || !outputChannel["append"]){
+            outputChannel = await vscode.window.createOutputChannel("Azure Quantum","typescript");
+            context.workspaceState.update("outputChannel", outputChannel);
+          }
+          vscode.window.showErrorMessage("Submission failed: Build Error");
+          outputChannel.appendLine(err.stdout);
+          outputChannel.show();
         });
     }
   );
+  if(jobId){
+    const message = jobName? `Job Submitted: ${jobName} (${jobId})`:`Job submitted: ${jobId}`;
+    const userInput = await vscode.window.showInformationMessage(message, {}, ...["Cancel Job"]);
+    if (userInput === "Cancel Job"){
+      await cancelJob(workspaceInfo, credential, jobId);
+    }
+  }
 }
 
 
@@ -434,10 +462,7 @@ async function getJob(context: vscode.ExtensionContext,
                 }
               catch(e:any){
                 if(e.statusCode === 404){
-                    vscode.window.showErrorMessage("Change your workspace to where your job was submitted from.");
-                }
-                else if(e.statusCode === 403){
-                    vscode.window.showErrorMessage("Change your account to where your job was submitted from.");
+                    vscode.window.showErrorMessage(`${e.message} Check you are in the same workspace you submitted your job from.`);
                 }
                 else{
                     vscode.window.showErrorMessage(e.message);
@@ -498,19 +523,12 @@ export async function getJobResults(
     vscode.window.showInformationMessage(`Job status: Cancellation Requested`);
     return;
   }
-// other unsuccessful jobs will result in a notification with the option to cancel
+// other jobs which have not succeeded will result in a notification with the option to cancel
   else if(job.status !=="Succeeded"){
     const userInput = await vscode.window.showInformationMessage(`Job status: ${job.status}`,{}, ...["Cancel Job"]);
 
     if (userInput === "Cancel Job"){
-
-        const userInputConfirmation = await vscode.window.showInformationMessage(`Are you sure you want to cancel your job?`,{}, ...["Yes","No"]);
-
-        if(userInputConfirmation==="Yes"){
-        const quantumJobClient = getQuantumJobClient(workspaceInfo, credential);
-        await quantumJobClient.jobs.cancel(jobId);
-  }
-
+      await cancelJob(workspaceInfo, credential, jobId);
     }
     return;
   }
