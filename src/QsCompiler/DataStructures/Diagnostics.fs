@@ -179,8 +179,7 @@ type ErrorCode =
     | TypeRedefinition = 6003
     | TypeConstructorOverlapWithCallable = 6004
     | UnknownType = 6005
-    | 
-    ousType = 6006
+    | AmbiguousType = 6006
     | AmbiguousCallable = 6008
     | TypeSpecializationMismatch = 6009
     | SpecializationForUnknownCallable = 6010
