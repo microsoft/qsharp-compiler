@@ -179,7 +179,8 @@ type ErrorCode =
     | TypeRedefinition = 6003
     | TypeConstructorOverlapWithCallable = 6004
     | UnknownType = 6005
-    | AmbiguousType = 6006
+    | 
+    ousType = 6006
     | AmbiguousCallable = 6008
     | TypeSpecializationMismatch = 6009
     | SpecializationForUnknownCallable = 6010
@@ -714,7 +715,7 @@ type DiagnosticItem =
             | ErrorCode.AmbiguousTypeParameterResolution ->
                 [
                     "The type parameter {0} is ambiguous."
-                    "For more information, see: https://docs.microsoft.com/azure/quantum/user-guide/language/typesystem/typeinference#ambiguous-types"
+                    "For more information, see: https://docs.microsoft.com/azure/quantum/user-guide/language/typesystem/typeinference"
                     if Seq.item 1 args |> String.IsNullOrWhiteSpace |> not then
                         "Note: Relevant unsolved constraints: {1}"
                 ]
