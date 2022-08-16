@@ -5,7 +5,7 @@ import {
   AccessToken
 } from "@azure/identity";
 import { TextEncoder } from "util";
-import {workspaceInfo} from "./commands";
+import {workspaceInfo, getAzureQuantumConfig} from "./commands";
 // import fetch from 'node-fetch';
 import * as https from "https";
 
@@ -37,7 +37,8 @@ export async function getWorkspaceFromUser(
 
       return new Promise<void>( async (resolve, reject)=>{
 
-    const currentworkspaceInfo: workspaceInfo | unknown = context.workspaceState.get("workspaceInfo");
+    const {workspaceInfo} = await getAzureQuantumConfig();
+
     const options:any = {
       headers: {
         Authorization: `Bearer ${token.token}`,
@@ -45,35 +46,37 @@ export async function getWorkspaceFromUser(
       resolveWithFullResponse:true
     };
 
-    let subscriptionId: any;
-    let resourceGroup: any;
-    let workspace: any;
-    let location: any;
+
+
+    let subscriptionId: string;
+    let resourceGroup: string;
+    let workspace: string;
+    let location: string;
     let finished = false;
 
     const quickPick = vscode.window.createQuickPick();
     // if user is submitting job, total steps will be 7, otherwise 3
     quickPick.totalSteps = totalSteps;
 
-    await setupSubscriptionIdQuickPick(quickPick, currentworkspaceInfo, options);
+    await setupSubscriptionIdQuickPick(quickPick, workspaceInfo, options);
     quickPick.onDidAccept(async () => {
       const selection = quickPick.selectedItems[0];
       // user selects subscription, now set up resource group selection
       if (quickPick.step === selectionStepEnum.SUBSCRIPTION) {
-        if (!selection || !selection["description"]) {
+        if (!selection?.description) {
           reject();
           return;
         }
         subscriptionId = selection["description"];
         await setupResourceGroupQuickPick(
           quickPick,
-          currentworkspaceInfo,
+          workspaceInfo,
           subscriptionId,
           options
         );
         // user selects resource group, now set up workspace selection
       } else if (quickPick.step === selectionStepEnum.RESOURCE_GROUP) {
-        if (!selection || !selection["label"]) {
+        if (!selection?.label) {
           reject();
           return;
         }
@@ -82,12 +85,12 @@ export async function getWorkspaceFromUser(
       }
       // final step
       else if (quickPick.step === selectionStepEnum.WORKSPACE) {
-        if (!selection || !selection["label"]) {
+        if (!selection?.label || !selection?.description) {
               reject();
               return;
             }
             workspace = selection.label;
-        location = selection.description;
+            location = selection.description;
 
         // update the locally saved workspace state
         context.workspaceState.update("workspaceInfo", {
@@ -110,13 +113,13 @@ export async function getWorkspaceFromUser(
     quickPick.onDidTriggerButton(async (button) => {
       // resource group back button pressed, go back to subscription id
       if (quickPick.step === selectionStepEnum.RESOURCE_GROUP) {
-        await setupSubscriptionIdQuickPick(quickPick, currentworkspaceInfo, options);
+        await setupSubscriptionIdQuickPick(quickPick, workspaceInfo, options);
       }
       // workspaces back button pressed, go back to resource group
       if (quickPick.step === selectionStepEnum.WORKSPACE) {
         await setupResourceGroupQuickPick(
           quickPick,
-          currentworkspaceInfo,
+          workspaceInfo,
           subscriptionId,
           options
         );
@@ -137,7 +140,7 @@ export async function getWorkspaceFromUser(
 
   async function setupResourceGroupQuickPick(
     quickPick: vscode.QuickPick<vscode.QuickPickItem>,
-    currentworkspaceInfo: workspaceInfo | unknown,
+    currentworkspaceInfo: workspaceInfo | undefined,
     subscriptionId: string,
     options:any
   ) {
@@ -177,11 +180,13 @@ export async function getWorkspaceFromUser(
         quickPick.placeholder = "No resource groups found.";
       }
       else{
+        // sort alphabetically
+      rgJSON.value.sort(function(rg1:any, rg2:any) {
+        return rg1.name.localeCompare(rg2.name);
+      });
+      // Prefill if there is already a resource group
       quickPick.items = rgJSON.value.map((rg: any) => {
-          if (
-          currentworkspaceInfo &&
-          (currentworkspaceInfo as any)["resourceGroup"] === rg.name && quickPick.step ===selectionStepEnum.RESOURCE_GROUP
-          ) {
+          if (currentworkspaceInfo?.resourceGroup === rg.name && quickPick.step ===selectionStepEnum.RESOURCE_GROUP) {
               quickPick.value = rg.name;
           }
           return { label: rg.name };
@@ -195,7 +200,7 @@ export async function getWorkspaceFromUser(
 
   async function setupSubscriptionIdQuickPick(
     quickPick: vscode.QuickPick<vscode.QuickPickItem>,
-    currentworkspaceInfo: workspaceInfo | unknown,
+    currentworkspaceInfo: workspaceInfo | undefined,
     options: any
   ) {
     quickPick.placeholder = "";
@@ -233,12 +238,11 @@ export async function getWorkspaceFromUser(
         quickPick.placeholder = "No subscriptions found.";
       }
       else{
+      subscriptionsJSON.value.sort(function(rg1:any, rg2:any) {
+        return rg1.displayName.localeCompare(rg2.displayName);
+      });
       quickPick.items = subscriptionsJSON.value.map((subscription: any) => {
-        if (
-          currentworkspaceInfo &&
-          (currentworkspaceInfo as any)["subscriptionId"] ===
-              subscription.subscriptionId && quickPick.step ===selectionStepEnum.SUBSCRIPTION
-          ) {
+        if (currentworkspaceInfo?.subscriptionId === subscription.subscriptionId && quickPick.step ===selectionStepEnum.SUBSCRIPTION) {
               quickPick.value = subscription.displayName;
           }
           return {
@@ -294,12 +298,17 @@ export async function getWorkspaceFromUser(
       if(quantumWorkspaces.length===0){
         quickPick.placeholder = "No Quantum Workspaces found.";
       }
+      else{
+        quantumWorkspaces.sort(function(workspace1:any, workspace2:any) {
+          return workspace1.name.localeCompare(workspace2.name);
+        });
       quickPick.items = quantumWorkspaces.map((workspace: any) => {
         return {
           label: workspace.name,
           description: workspace.location,
         };
       });
+    }
     }
       quickPick.enabled = true;
       quickPick.busy = false;

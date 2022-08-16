@@ -105,7 +105,7 @@ export async function getJobInfoFromUser(context:vscode.ExtensionContext, quantu
             }
               // user input provider so prompt target input
               if (quickPick.step === submissionStepEnum.PROVIDER){
-                if(provider&& provider !== selection["label"]){
+                if(provider !== selection["label"]){
                   _target="";
                 }
                 provider = selection["label"];
@@ -166,7 +166,7 @@ function setupCsProjQuickPick(quickPick:vscode.QuickPick<vscode.QuickPickItem>, 
   quickPick.matchOnDetail = true;
   quickPick.value = csproj?csproj:"";
   quickPick.placeholder = "";
-  quickPick.title = "Select a .csproj file.";
+  quickPick.title = "Select a .csproj file";
   quickPick.items = projectFiles.map((file)=>{
     const csProjName = file["path"].split("/").pop();
     return {
@@ -186,7 +186,7 @@ function setupNameInputBox(inputBox:vscode.InputBox){
     inputBox.step = submissionStepEnum.NAME;
     inputBox.value = jobName?jobName:"";
     inputBox.placeholder = "";
-    inputBox.title = "Enter a Job Name";
+    inputBox.title = "(Optional) Enter a Job Name";
     inputBox.show();
 
 }
@@ -197,7 +197,7 @@ function setupProgramArguments(inputBox:vscode.InputBox){
     inputBox.step = submissionStepEnum.PROGRAM_ARGUMENT;
     inputBox.value = "";
     inputBox.placeholder = 'Enter any parameters in the format "--param1=value1 --param2=value2"';
-    inputBox.title = "Program Arguments";
+    inputBox.title = "(Optional) Enter Program Arguments";
     inputBox.show();
 
 }
