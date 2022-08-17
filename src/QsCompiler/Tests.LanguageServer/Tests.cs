@@ -550,6 +550,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
             var programFileWithoutNamespace = Path.Combine(projDir, "Bell.qs");
             var programFileWithNamespace = Path.Combine(projDir, "Parity.qs");
+            var programFileWithMagic = Path.Combine(projDir, "Magic.qs");
 
             var initParams = TestUtils.GetInitializeParams();
             initParams.RootUri = new Uri(projDir);
@@ -561,11 +562,15 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(programFileWithoutNamespace));
             var diagnostics1 = await this.GetFileDiagnosticsAsync(programFileWithoutNamespace);
 
-            // By default, LanguageId will not contain "notebook"
             var openParams2 = TestUtils.GetOpenFileParams(programFileWithNamespace);
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
             Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(programFileWithNamespace));
             var diagnostics2 = await this.GetFileDiagnosticsAsync(programFileWithNamespace);
+
+            var openParams3 = TestUtils.GetOpenFileParams(programFileWithMagic);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams3);
+            Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(programFileWithMagic));
+            var diagnostics3 = await this.GetFileDiagnosticsAsync(programFileWithMagic);
 
             Assert.IsNotNull(diagnostics1);
             Assert.AreEqual(3, diagnostics1!.Length);
@@ -577,6 +582,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             Assert.IsNotNull(diagnostics2);
             Assert.AreEqual(0, diagnostics2!.Length);
+
+            Assert.AreEqual(1, diagnostics3!.Length);
+            Assert.AreEqual("QS3001", diagnostics3[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics3[0].Severity);
         }
 
         [TestMethod]
@@ -586,6 +595,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
             var programFileWithoutNamespace = Path.Combine(projDir, "Bell.qs");
             var programFileWithNamespace = Path.Combine(projDir, "Parity.qs");
+            var programFileWithMagic = Path.Combine(projDir, "Magic.qs");
 
             // Same value sent by Azure Notebooks
             var languageId = "qsharp-notebook";
@@ -593,6 +603,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var notebookGuid = Guid.NewGuid();
             var uriWithoutNamespace = TestUtils.GenerateNotebookCellUri(notebookGuid);
             var uriWithNamespace = TestUtils.GenerateNotebookCellUri(notebookGuid);
+            var uriWithMagic = TestUtils.GenerateNotebookCellUri(notebookGuid);
 
             // Azure Notebooks leaves RootUri=null, so do the same here
             var initParams = TestUtils.GetInitializeParams();
@@ -607,6 +618,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams2);
             Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uriWithNamespace));
             var diagnostics2 = await this.GetFileDiagnosticsAsync(uri: uriWithNamespace);
+
+            var openParams3 = TestUtils.GetOpenFileParams(programFileWithMagic, uriWithMagic, languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams3);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: uriWithMagic));
+            var diagnostics3 = await this.GetFileDiagnosticsAsync(uri: uriWithMagic);
 
             Assert.IsNotNull(diagnostics1);
             Assert.AreEqual(0, diagnostics1!.Length);
@@ -724,6 +740,70 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var diagnostics = await this.GetFileDiagnosticsAsync(uri: uri);
             Assert.IsNotNull(diagnostics);
             Assert.AreEqual(0, diagnostics!.Length);
+        }
+
+        [TestMethod]
+        public async Task MagicCommandTrackingAsync()
+        {
+            var initParams = TestUtils.GetInitializeParams();
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var notebookGuid = Guid.NewGuid();
+            var cellUri = TestUtils.GenerateNotebookCellUri(notebookGuid);
+
+            // Same value sent by Azure Notebooks
+            var languageId = "qsharp-notebook";
+            var openParams = TestUtils.GetOpenFileParams(cellUri, content: "", languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: cellUri));
+
+            var diagnosticsBlank = await this.GetFileDiagnosticsAsync(uri: cellUri);
+            Assert.IsNotNull(diagnosticsBlank);
+            Assert.AreEqual(0, diagnosticsBlank!.Length);
+
+            var goodMagicText = "%simulate myOperation\n";
+            var edits = new TextDocumentContentChangeEvent[]
+            {
+                new TextDocumentContentChangeEvent
+                {
+                    Range = new Range { Start = new Position(0, 0), End = new Position(0, 0) },
+                    Text = goodMagicText,
+                },
+            };
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedParams(cellUri, edits));
+            var diagnosticsGoodMagic = await this.GetFileDiagnosticsAsync(uri: cellUri);
+            Assert.IsNotNull(diagnosticsGoodMagic);
+            Assert.AreEqual(0, diagnosticsGoodMagic!.Length);
+
+            var operationText = "operation hi() : Unit {}";
+            var operationTextWithNewlines = operationText + "\n\n";
+            edits = new TextDocumentContentChangeEvent[]
+            {
+                new TextDocumentContentChangeEvent
+                {
+                    Range = new Range { Start = new Position(0, 0), End = new Position(0, 0) },
+                    Text = operationTextWithNewlines,
+                },
+            };
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedParams(cellUri, edits));
+            var diagnosticsBadMagic = await this.GetFileDiagnosticsAsync(uri: cellUri);
+            Assert.IsNotNull(diagnosticsBadMagic);
+            Assert.AreEqual(1, diagnosticsBadMagic!.Length);
+            Assert.AreEqual("QS3001", diagnosticsBadMagic[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnosticsBadMagic[0].Severity);
+
+            edits = new TextDocumentContentChangeEvent[]
+            {
+                new TextDocumentContentChangeEvent
+                {
+                    Range = new Range { Start = new Position(0, 0), End = new Position(0, operationText.Length) },
+                    Text = "",
+                },
+            };
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedParams(cellUri, edits));
+            var diagnosticsRevivedMagic = await this.GetFileDiagnosticsAsync(uri: cellUri);
+            Assert.IsNotNull(diagnosticsRevivedMagic);
+            Assert.AreEqual(0, diagnosticsRevivedMagic!.Length);
         }
 
         private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)

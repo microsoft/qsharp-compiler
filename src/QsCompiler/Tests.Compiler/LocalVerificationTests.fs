@@ -542,6 +542,8 @@ type LocalVerificationTests() =
         this.Expect "StringParsingTest5" []
         this.Expect "StringParsingTest6" []
         this.Expect "StringParsingTest7" []
+        this.Expect "NotebookStringParsingTest1" [ Error ErrorCode.UnknownCodeFragment ]
+        this.Expect "NotebookStringParsingTest2" [ Error ErrorCode.UnknownCodeFragment ]
 
         this.Expect "MultiLineStringTest1" []
         this.Expect "MultiLineStringTest2" []
