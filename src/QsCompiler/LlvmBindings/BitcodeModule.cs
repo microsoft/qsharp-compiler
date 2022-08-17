@@ -238,6 +238,39 @@ namespace LlvmBindings
 
         public ref LLVMModuleRef ModuleHandle => ref this.moduleHandle;
 
+        /// <summary>Load a bit-code module from a given file.</summary>
+        /// <param name="path">path of the file to load.</param>
+        /// <param name="context">Context to use for creating the module.</param>
+        /// <returns>Loaded <see cref="BitcodeModule"/>.</returns>
+        public static BitcodeModule LoadFrom(string path, Context context)
+        {
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException();
+            }
+
+            var buffer = new MemoryBuffer(path);
+            return LoadFrom(buffer, context);
+        }
+
+        /// <summary>Load bit code from a memory buffer.</summary>
+        /// <param name="buffer">Buffer to load from.</param>
+        /// <param name="context">Context to load the module into.</param>
+        /// <returns>Loaded <see cref="BitcodeModule"/>.</returns>
+        /// <remarks>
+        /// This along with <see cref="WriteToBuffer"/> are useful for "cloning"
+        /// a module from one context to another. This allows creation of multiple
+        /// modules on different threads and contexts and later moving them to a
+        /// single context in order to link them into a single final module for
+        /// optimization.
+        /// </remarks>
+        public static BitcodeModule LoadFrom(MemoryBuffer buffer, Context context)
+        {
+            return context.ContextHandle.TryParseBitcode(buffer.BufferHandle, out LLVMModuleRef modRef, out string message)
+                ? context.GetModuleFor(modRef)
+                : throw new InternalCodeGeneratorException(message);
+        }
+
         /// <summary>Disposes the <see cref="BitcodeModule"/>, releasing resources associated with the module in native code.</summary>
         public void Dispose()
         {
