@@ -140,6 +140,5 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 }
             }
         }
-
     }
 }
