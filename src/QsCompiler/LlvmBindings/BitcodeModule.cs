@@ -253,6 +253,16 @@ namespace LlvmBindings
             return LoadFrom(buffer, context);
         }
 
+        /// <summary>Load a bit-code module from raw bit-code.</summary>
+        /// <param name="bitcode">Raw bit-code from which the module is loaded.</param>
+        /// <param name="context">Context to use for creating the module.</param>
+        /// <returns>Loaded <see cref="BitcodeModule"/>.</returns>
+        public static BitcodeModule LoadFrom(byte[] bitcode, Context context)
+        {
+            var buffer = new MemoryBuffer(bitcode);
+            return LoadFrom(buffer, context);
+        }
+
         /// <summary>Load bit code from a memory buffer.</summary>
         /// <param name="buffer">Buffer to load from.</param>
         /// <param name="context">Context to load the module into.</param>
@@ -624,34 +634,6 @@ namespace LlvmBindings
         {
             this.ThrowIfDisposed();
             return FromHandle(this.moduleHandle.Clone())!;
-        }
-
-        /// <summary>Load a bit-code module from raw bit-code.</summary>
-        /// <param name="bitcode">Raw bit-code from which the module is loaded.</param>
-        /// <param name="context">Context to use for creating the module.</param>
-        /// <returns>Loaded <see cref="BitcodeModule"/>.</returns>
-        public static BitcodeModule LoadFrom(byte[] bitcode, Context context)
-        {
-            var buffer = new MemoryBuffer(bitcode);
-            return LoadFrom(buffer, context);
-        }
-
-        /// <summary>Load bit code from a memory buffer.</summary>
-        /// <param name="buffer">Buffer to load from.</param>
-        /// <param name="context">Context to load the module into.</param>
-        /// <returns>Loaded <see cref="BitcodeModule"/>.</returns>
-        /// <remarks>
-        /// This along with <see cref="WriteToBuffer"/> are useful for "cloning"
-        /// a module from one context to another. This allows creation of multiple
-        /// modules on different threads and contexts and later moving them to a
-        /// single context in order to link them into a single final module for
-        /// optimization.
-        /// </remarks>
-        public static BitcodeModule LoadFrom(MemoryBuffer buffer, Context context)
-        {
-            return TryParseBitcode(context, buffer.BufferHandle, out LLVMModuleRef modRef, out string message)
-                ? context.GetModuleFor(modRef)
-                : throw new InternalCodeGeneratorException(message);
         }
 
         private static unsafe bool TryParseBitcode(Context context, LLVMMemoryBufferRef handle, out LLVMModuleRef outModule, out string outMessage)
