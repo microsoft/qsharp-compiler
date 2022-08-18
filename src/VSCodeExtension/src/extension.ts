@@ -338,7 +338,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 )
             );
         }
-    );
+    ); 
 //  Verify there are not nested csproj files
     function checkForNesting(files:any[]){
         // all csproj files must have same depth
