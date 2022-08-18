@@ -59,6 +59,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             internal static readonly OutputRecorderDefinition Message =
                 new OutputRecorderDefinition(BuiltIn.Message.FullName.Name, RuntimeLibrary.Message, ResolvedTypeKind.String);
 
+            internal static readonly OutputRecorderDefinition RecordMessage =
+                new OutputRecorderDefinition("RecordMessage", "__quantum__rt__message_record_output", ResolvedTypeKind.String);
+
             internal static readonly OutputRecorderDefinition Boolean =
                 new OutputRecorderDefinition("BooleanRecordOutput", "__quantum__rt__bool_record_output", ResolvedTypeKind.Bool);
 
@@ -121,6 +124,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         {
             var recording = new AddOutputRecording(useRuntimeAPI, mainSuffix);
             var transformation = new WrapEntryPoints(recording.RecordOutput, recording.MainSuffix, alwaysCreateWrapper);
+
+            if (useRuntimeAPI)
+            {
+                compilation = ReplaceMessageCalls.Apply(compilation);
+            }
 
             return compilation.EntryPoints.Length > 0
             ? transformation.OnCompilation(new QsCompilation(
@@ -253,16 +261,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
         private static QsCallable CreateOutputRecorder(OutputRecorderDefinition recorder, Source source)
         {
-            var parameterTuple = recorder.QSharpSignature.ArgumentType.Resolution.IsUnitType
-                ? ParameterTuple.NewQsTuple(ImmutableArray.Create(
+            var parameterTuple = !recorder.QSharpSignature.ArgumentType.Resolution.IsUnitType
+                ? ParameterTuple.NewQsTuple(ImmutableArray<ParameterTuple>.Empty)
+                : ParameterTuple.NewQsTuple(ImmutableArray.Create(
                     ParameterTuple.NewQsTupleItem(
                         new LocalVariableDeclaration<QsLocalSymbol, ResolvedType>(
                             QsLocalSymbol.NewValidName("input"),
                             recorder.QSharpSignature.ArgumentType,
                             InferredExpressionInformation.ParameterDeclaration,
                             QsNullable<Position>.Null,
-                            DataTypes.Range.Zero))))
-                : ParameterTuple.NewQsTuple(ImmutableArray<ParameterTuple>.Empty);
+                            DataTypes.Range.Zero))));
             return new QsCallable(
                 recorder.CallableKind,
                 recorder.QSharpName,
@@ -321,7 +329,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     && SymbolResolution.TryGetTargetInstructionName(recorderDeclaration.Attributes) is var instr
                     && instr.IsValue && instr.Item == recorder.TargetInstructionName))
                 {
-                    throw new InvalidOperationException("callable with the expected recorder name is already defined bu t doesn't have the expected signature");
+                    throw new InvalidOperationException("callable with the expected recorder name is already defined but doesn't have the expected signature");
                 }
             }
 
