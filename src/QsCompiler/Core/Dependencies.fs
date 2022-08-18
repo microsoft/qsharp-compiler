@@ -36,7 +36,11 @@ type BuiltIn =
     static member internal MathNamespace = "Microsoft.Quantum.Math"
 
     /// Returns the set of namespaces that is automatically opened for each compilation.
-    static member NamespacesToAutoOpen = ImmutableHashSet.Create(BuiltIn.CoreNamespace)
+    static member NamespacesToAutoOpen documentKind =
+        match documentKind with
+        | File -> [ BuiltIn.CoreNamespace ]
+        // To match iQSharp behavior
+        | NotebookCell -> [ BuiltIn.CoreNamespace; BuiltIn.IntrinsicNamespace; BuiltIn.CanonNamespace ]
 
     /// Returns the set of callables that rewrite steps take dependencies on.
     /// These should be non-Generic callables only.

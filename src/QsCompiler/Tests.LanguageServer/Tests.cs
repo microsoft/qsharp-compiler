@@ -806,6 +806,59 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.AreEqual(0, diagnosticsRevivedMagic!.Length);
         }
 
+        [TestMethod]
+        public async Task NotebookAutoOpenAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test21");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+
+            // Build fake standard library dlls
+            var canonQsFile = Path.Combine(projDir, "fakeStandardLibrary", "Canon.qs");
+            var canonDllPath = Path.Combine(this.tempNotebookReferencesDir, "Microsoft.Quantum.Canon.dll");
+            TestUtils.BuildDll(ImmutableArray.Create<string>(canonQsFile), canonDllPath);
+            var intrinsicQsFile = Path.Combine(projDir, "fakeStandardLibrary", "Intrinsic.qs");
+            var intrinsicDllPath = Path.Combine(this.tempNotebookReferencesDir, "Microsoft.Quantum.Intrinsic.dll");
+            TestUtils.BuildDll(ImmutableArray.Create<string>(intrinsicQsFile), intrinsicDllPath);
+
+            // Send initialize message with the ordinary project dir set as the RootURI so that the
+            // second half of the test will work. This shouldn't break notebooks
+            var ordinaryProjDir = Path.Combine(projDir, "ordinaryProject");
+            var initParams = TestUtils.GetInitializeParams();
+            initParams.RootUri = new Uri(ordinaryProjDir);
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            // First, make sure that notebook cells automatically open Canon and Intrinsic
+            var languageId = "qsharp-notebook";
+            var notebookGuid = Guid.NewGuid();
+            var cellUri = TestUtils.GenerateNotebookCellUri(notebookGuid);
+            var notebookCellFile = Path.Combine(projDir, "NotebookCell.qs");
+
+            var openParamsNotebookCell = TestUtils.GetOpenFileParams(notebookCellFile, cellUri, languageId);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParamsNotebookCell);
+            Assert.AreEqual(DocumentKind.NotebookCell, await this.GetFileDocumentKindAsync(uri: cellUri));
+
+            var diagnosticsNotebookCell = await this.GetFileDiagnosticsAsync(uri: cellUri);
+            Assert.IsNotNull(diagnosticsNotebookCell);
+            Assert.AreEqual(0, diagnosticsNotebookCell!.Length);
+
+            // Second, test that an ordinary Q# file is not getting these automatic open directives
+            // for Canon and Intrinsic
+            var ordinaryFile = Path.Combine(ordinaryProjDir, "OrdinaryFile.qs");
+            var openParamsOrdinary = TestUtils.GetOpenFileParams(ordinaryFile);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParamsOrdinary);
+            Assert.AreEqual(DocumentKind.File, await this.GetFileDocumentKindAsync(ordinaryFile));
+            var diagnosticsOrdinary = (await this.GetFileDiagnosticsAsync(ordinaryFile))?
+                .OrderBy(diag => (diag.Range.Start.Line, diag.Range.Start.Character))
+                .Select(diag => (diag.Code?.Second, diag.Severity, diag.Range.Start.Line))
+                .ToList();
+            Assert.IsNotNull(diagnosticsOrdinary);
+            Assert.AreEqual(4, diagnosticsOrdinary!.Count);
+            Assert.AreEqual(("QS5022", DiagnosticSeverity.Error, 3), diagnosticsOrdinary[0]);
+            Assert.AreEqual(("QS5022", DiagnosticSeverity.Error, 4), diagnosticsOrdinary[1]);
+            Assert.AreEqual(("QS5022", DiagnosticSeverity.Error, 5), diagnosticsOrdinary[2]);
+            Assert.AreEqual(("QS5022", DiagnosticSeverity.Error, 5), diagnosticsOrdinary[3]);
+        }
+
         private static async Task<ProjectManager> LoadProjectFileAsync(Uri uri)
         {
             var projectManager = new ProjectManager(e => throw e);

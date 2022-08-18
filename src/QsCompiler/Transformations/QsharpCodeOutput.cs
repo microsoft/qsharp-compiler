@@ -1726,7 +1726,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this.AddBlock(() =>
                 {
                     var context = this.SharedState.Context;
-                    var explicitImports = context.OpenedNamespaces.Where(opened => !BuiltIn.NamespacesToAutoOpen.Contains(opened));
+                    var explicitImports = context.OpenedNamespaces.Where(opened => !BuiltIn.NamespacesToAutoOpen(DocumentKind.File).Contains(opened));
                     if (explicitImports.Any() || context.NamespaceShortNames.Any())
                     {
                         this.AddToOutput("");

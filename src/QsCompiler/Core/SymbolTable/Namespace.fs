@@ -13,6 +13,7 @@ open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Utils
@@ -58,6 +59,9 @@ type Namespace
 
     /// name of the namespace
     member this.Name = name
+
+    /// The type of "file" where this namespace is defined: notebook cells or ordinary files?
+    member this.DocumentKind = if this.Name = InternalUse.NotebookNamespace then NotebookCell else File
 
     /// Immutable array with the names of all source files that contain (a part of) the namespace.
     /// Note that files contained in referenced assemblies that implement part of the namespace

@@ -458,7 +458,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         internal static void ResolveGlobalSymbols(NamespaceManager symbols, List<Diagnostic> diagnostics, string? fileName = null)
         {
-            var declDiagnostics = symbols.ResolveAll(BuiltIn.NamespacesToAutoOpen);
+            var declDiagnostics = symbols.ResolveAll();
             var cycleDiagnostics = SyntaxProcessing.SyntaxTree.CheckDefinedTypesForCycles(symbols.DefinedTypes());
 
             void AddDiagnostics(string source, IEnumerable<QsCompilerDiagnostic> msgs) =>

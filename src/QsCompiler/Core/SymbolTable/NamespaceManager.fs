@@ -895,20 +895,21 @@ type NamespaceManager
     /// all types and callables as well as their attributes defined throughout all namespaces and caches the resolution.
     /// Checks whether there are fully qualified names conflict with a namespace name.
     /// Returns the generated diagnostics together with the Position of the declaration for which the diagnostics were generated.
-    member this.ResolveAll(autoOpen: ImmutableHashSet<_>) =
+    member this.ResolveAll() =
         // TODO: this needs to be adapted if we support external specializations
         syncRoot.EnterWriteLock()
         versionNumber <- versionNumber + 1
 
         try
             let nsNames = namespaces.Keys |> ImmutableHashSet.CreateRange
-            let autoOpen = if not (isNull autoOpen) then autoOpen else ImmutableHashSet.Empty
-            let nsToAutoOpen = autoOpen.Intersect nsNames
 
-            for opened in nsToAutoOpen do
-                for ns in namespaces.Values do
+            for ns in namespaces.Values do
+                let nsToAutoOpen = (BuiltIn.NamespacesToAutoOpen ns.DocumentKind).Intersect nsNames
+
+                for opened in nsToAutoOpen do
                     for source in ns.Sources do
                         this.AddOpenDirective (opened, Range.Zero) ("", Value Range.Zero) (ns.Name, source) |> ignore
+
             // We need to resolve types before we resolve callables,
             // since the attribute resolution for callables relies on the corresponding types having been resolved.
             let typeDiagnostics = this.CacheTypeResolution nsNames

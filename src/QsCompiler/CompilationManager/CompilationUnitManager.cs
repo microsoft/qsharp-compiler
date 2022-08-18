@@ -605,7 +605,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 this.compilationUnit.GlobalSymbols.Clear();
                 compilation.GlobalSymbols.CopyTo(this.compilationUnit.GlobalSymbols);
-                this.compilationUnit.GlobalSymbols.ResolveAll(BuiltIn.NamespacesToAutoOpen);
+                this.compilationUnit.GlobalSymbols.ResolveAll();
             }
             finally
             {
