@@ -178,5 +178,26 @@ namespace LlvmBindings.Interop
         }
 
         public override string ToString() => $"{nameof(LLVMContextRef)}: {this.Handle:X}";
+
+        public bool TryParseBitcode(LLVMMemoryBufferRef memBuf, out LLVMModuleRef outModule, out string outMessage)
+        {
+            fixed (LLVMModuleRef* pOutModule = &outModule)
+            {
+                sbyte* pMessage = null;
+                var result = LLVM.ParseBitcodeInContext(this, memBuf, (LLVMOpaqueModule**)pOutModule, &pMessage);
+
+                if (pMessage == null)
+                {
+                    outMessage = string.Empty;
+                }
+                else
+                {
+                    var span = new ReadOnlySpan<byte>(pMessage, int.MaxValue);
+                    outMessage = span[..span.IndexOf((byte)'\0')].AsString();
+                }
+
+                return result == 0;
+            }
+        }
     }
 }
