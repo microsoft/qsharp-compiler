@@ -28,6 +28,7 @@
     <StartAction>Program</StartAction>
     <StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</StartProgram>
     <StartArguments>/rootsuffix Exp</StartArguments>
+    <BuildLanguageServer Condition=" '$(BuildLanguageServer)' == '' ">true</BuildLanguageServer>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -128,7 +129,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.SDK">
-      <Version>17.1.32210.191</Version>
+      <Version>17.2.32505.173</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.CSharp">
       <Version>4.7.0</Version>
@@ -148,7 +149,7 @@
     <PackageReference Include="Microsoft.VisualStudio.Telemetry">
       <Version>16.4.78</Version>
     </PackageReference>
-    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.1.4054">
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.3.2093">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -176,7 +177,7 @@
       </VSIXSourceItem>
     </ItemGroup>
   </Target>
-  <Target Name="BuildLanguageServer" BeforeTargets="CoreCompile">
+  <Target Name="BuildLanguageServer" BeforeTargets="CoreCompile" Condition="'$(BuildLanguageServer)' == 'true'">
     <ItemGroup>
       <RemoveFiles Include="$(LanguageServerPath)**" />
     </ItemGroup>
