@@ -226,6 +226,9 @@ namespace LlvmBindings.Values
         /// <summary>Gets the basic blocks for the function.</summary>
         public ICollection<BasicBlock> BasicBlocks { get; }
 
+        /// <summary>Gets any blocks that have a return terminator.</summary>
+        public IEnumerable<BasicBlock> ReturnBlocks => this.BasicBlocks.Where(block => block.Terminator?.Opcode == Instructions.OpCode.Return);
+
         /// <summary>Gets the parameters for the function including any method definition specific attributes (i.e. ByVal).</summary>
         public IReadOnlyList<Argument> Parameters => new FunctionParameterList(this);
 

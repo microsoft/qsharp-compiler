@@ -23,7 +23,7 @@ type private PartialNamespace
         name: string,
         source: string,
         documentation: IEnumerable<ImmutableArray<string>>,
-        openNS: IEnumerable<KeyValuePair<string, string>>,
+        openNS: IEnumerable<KeyValuePair<string, HashSet<string>>>,
         typeDecl: IEnumerable<KeyValuePair<string, Resolution<QsTuple<QsSymbol * QsType>, ResolvedType * QsTuple<QsTypeItem>>>>,
         callableDecl: IEnumerable<KeyValuePair<string, QsCallableKind * Resolution<CallableSignature, ResolvedSignature * QsTuple<LocalVariableDeclaration<QsLocalSymbol>>>>>,
         specializations: IEnumerable<KeyValuePair<string, List<QsSpecializationKind * Resolution<QsSpecializationGenerator, ResolvedGenerator>>>>
@@ -69,7 +69,8 @@ type private PartialNamespace
         specs.ToDictionary(fst, snd)
 
     /// constructor taking the name of the namespace as well as the name of the file it is declared in as arguments
-    internal new(name, source) = PartialNamespace(name, source, [], [ new KeyValuePair<_, _>(name, null) ], [], [], [])
+    internal new(name, source) =
+        PartialNamespace(name, source, [], [ new KeyValuePair<_, _>(name, new HashSet<_>(seq { "" })) ], [], [], [])
 
     /// returns a new PartialNamespace that is an exact copy of this one
     /// -> any modification of the returned PartialNamespace is not reflected in this one
@@ -88,8 +89,13 @@ type private PartialNamespace
     member this.Source = source
     /// contains all documentation associated with this namespace within this source file
     member this.Documentation = associatedDocumentation.ToImmutableArray()
+
     /// namespaces open or aliased within this part of the namespace - this includes the namespace itself
-    member this.ImportedNamespaces = openNamespaces.ToImmutableDictionary()
+    member this.ImportedNamespaces =
+        openNamespaces.ToImmutableDictionary(
+            keySelector,
+            fun (pair: KeyValuePair<string, HashSet<string>>) -> pair.Value.ToImmutableHashSet()
+        )
 
     /// types defined within this (part of) the namespace
     /// -> NOTE: the returned enumerable is *not* immutable and may change over time!
@@ -101,8 +107,12 @@ type private PartialNamespace
 
     /// returns a dictionary with all currently known namespace short names and which namespace they represent
     member internal this.NamespaceShortNames =
-        let shortNames = this.ImportedNamespaces |> Seq.filter (fun kv -> not (isNull kv.Value))
-        shortNames.ToImmutableDictionary((fun kv -> kv.Value), (fun kv -> kv.Key))
+        let shortNames =
+            this.ImportedNamespaces
+            |> Seq.collect (fun kv -> kv.Value |> Seq.map (fun alias -> (alias, kv.Key)))
+            |> Seq.filter (fun kv -> (fst kv) <> "")
+
+        shortNames.ToImmutableDictionary(fst, snd)
 
     /// <summary>Gets the type with the given name from the dictionary of declared types.</summary>
     /// <exception cref="SymbolNotFoundException">A type with the given name was not found.</exception>
@@ -143,7 +153,11 @@ type private PartialNamespace
     /// If the given namespace name is not already listened as imported, adds the given namespace name to the list of open namespaces.
     /// -> Note that this routine will fail with the standard dictionary.Add error if an open directive for the given namespace name already exists.
     /// -> The verification of whether a namespace with the given name exists in the first place needs to be done by the calling routine.
-    member this.AddOpenDirective(openedNS, alias) = openNamespaces.Add(openedNS, alias)
+    member this.AddOpenDirective(openedNS, alias) =
+        if not (openNamespaces.ContainsKey(openedNS)) then
+            openNamespaces.Add(openedNS, new HashSet<string>())
+
+        openNamespaces[ openedNS ].Add(alias) |> ignore
 
     /// Adds the given type declaration for the given type name to the dictionary of declared types.
     /// Adds the corresponding type constructor to the dictionary of declared callables.
