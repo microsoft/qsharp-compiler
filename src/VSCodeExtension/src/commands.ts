@@ -26,6 +26,7 @@ import {getJobInfoFromUser} from "./quickPickJob";
 import {workspaceInfo} from "./utils/types";
 import {cancelJob} from "./cancelJob";
 import {getQuantumJobClient} from "./quantumJobClient";
+import { getPackageInfo } from './packageInfo';
 
 
 
@@ -243,8 +244,9 @@ let jobId:string|undefined;
           args.push("--location");
           args.push(workspaceInfo["location"]);
 
+          const packageInfo = getPackageInfo(context);
           args.push("--user-agent");
-          args.push("VSCODE");
+          args.push(`quantum-devkit-vscode/${packageInfo?.version}`);
 
           if (programArguments) {
             args = args.concat(programArguments.split(" "));
