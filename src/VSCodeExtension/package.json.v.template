@@ -1,6 +1,6 @@
 {
     "name": "quantum-devkit-vscode",
-    "version": "#VSCODEVSIX_VERSION#",
+    "version": "#VSCODEVSIX_VERSION#", 
     "displayName": "Microsoft Quantum Development Kit for Visual Studio Code",
     "description": "Microsoft Quantum Development Kit for Visual Studio Code provides support for developing quantum algorithms in the Q# programming language.",
     "publisher": "quantum",
@@ -29,7 +29,13 @@
         "onCommand:quantum.installTemplates",
         "onCommand:quantum.newProject",
         "onCommand:quantum.openDocumentation",
-        "onCommand:quantum.installIQSharp"
+        "onCommand:quantum.installIQSharp",
+        "onCommand:quantum.connectToAzureAccount",
+        "onCommand:quantum.changeWorkspace",
+        "onCommand:quantum.submitJob",
+        "onCommand:quantum.getJob",
+        "onCommand:quantum.changeAzureAccount",
+        "onView:quantum-jobs"
     ],
     "main": "./out/extension",
     "contributes": {
@@ -49,6 +55,43 @@
             {
                 "command": "quantum.installIQSharp",
                 "title": "Q#: Install IQ#"
+            },
+            {
+                "command": "quantum.connectToAzureAccount",
+                "title": "Q#: Connect to Azure Account"
+            },
+            {
+                "command": "quantum.changeWorkspace",
+                "title": "Q#: Change Workspace"
+            },
+            {
+                "command": "quantum.submitJob",
+                "title": "Q#: Submit Job"
+            },
+            {
+                "command": "quantum.getJob",
+                "title": "Q#: Get Job"
+            },
+            {
+                "command": "quantum-jobs.jobDetails",
+                "title": " Details "
+            },
+            {
+                "command": "quantum-jobs.jobResults",
+                "title": " Results "
+            },
+            {
+                "command": "quantum.changeAzureAccount",
+                "title": "Q#: Change Azure Account"
+            },
+
+            {
+                "command": "quantum-jobs.clearJobs",
+                "title": "Clear",
+                "icon": {
+                    "light": "resources/light/trash.svg",
+                    "dark": "resources/dark/trash.svg"
+                }
             }
         ],
         "languages": [
@@ -94,7 +137,55 @@
                 "language": "csharp",
                 "path": "./snippets/csharp.json"
             }
-        ]
+        ],
+        "viewsContainers": {
+            "panel": [
+                {
+                    "id": "quantum-jobs",
+                    "title": "Quantum Submissions",
+                    "icon": "resources/image2vector.svg"
+                }
+            ]
+        },
+        "views": {
+            "quantum-jobs": [
+                {
+                    "id": "quantum-jobs",
+                    "name": "Local"
+                }
+            ]
+        },
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "quantum.changeAzureAccount",
+                    "when": "showChangeAzureAccount == true"
+                },
+                {
+                    "command": "quantum.connectToAzureAccount",
+                    "when": "showChangeAzureAccount == false"
+                }
+            ],
+            "view/title": [
+                {
+                    "command": "quantum-jobs.clearJobs",
+                    "when": "view == quantum-jobs",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "quantum-jobs.jobDetails",
+                    "when": "viewItem == LocalSubmissionItem",
+                    "group": "inline"
+                },
+                {
+                    "command": "quantum-jobs.jobResults",
+                    "when": "viewItem == LocalSubmissionItem",
+                    "group": "inline"
+                }
+            ]
+        }
     },
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile",
@@ -102,15 +193,27 @@
         "watch": "tsc -watch -p ./"
     },
     "dependencies": {
+        "@azure/identity": "^2.1.0",
+        "@azure/quantum-jobs": "^1.0.0-beta.1",
+        "@microsoft/vscode-azext-utils": "^0.3.7",
+        "@azure/ms-rest-azure-env": "^2.0.0",
+        "@azure/ms-rest-nodeauth": "^3.1.1",
         "@types/fs-extra": "^8.0.0",
+        "@vscode/extension-telemetry": "0.6.2",
         "decompress-zip": "^0.2.2",
+        "dotnet": "^1.1.4",
+        "edge-js": "^18.4.0",
+        "find-open-port": "^2.0.3",
         "fs-extra": "^8.1.0",
+        "g": "^2.0.1",
+        "install": "^0.13.0",
+        "json-fn": "^1.1.1",
+        "jsonwebtoken": "^8.5.1",
         "lodash": "^4.17.21",
+        "ms-rest": "^2.5.6",
         "request": "^2.88.0",
         "semver": "^6.0.0",
         "tmp": "0.0.33",
-        "ts-optchain": "^0.1.7",
-        "@vscode/extension-telemetry": "0.6.2",
         "vscode-languageclient": "7.0.0",
         "which": "1.3.1",
         "yeoman-environment": "^3.4.1",
@@ -118,8 +221,7 @@
         "yosay": "^2.0.1"
     },
     "devDependencies": {
-        "@types/mocha": "^5.2.0",
-        "@types/node": "9.6.57",
+        "@types/node": "^9.6.57",
         "@types/request": "^2.48.3",
         "@types/semver": "^6.0.0",
         "@types/tmp": "0.0.33",
@@ -130,10 +232,10 @@
         "@types/yosay": "0.0.29",
         "mocha": "^8.2.1",
         "tslint": "^5.8.0",
-        "typescript": "^4.1.3",
-        "vsce": "^1.81.1",
-        "yeoman-assert": "^3.1.0",
-        "yeoman-test": "^6.1.0"
+        "typescript": "^4.1.3"
+    },
+    "overrides": {
+        "node-fetch": "^2.6.7"
     },
     "blobs": {
         "win32": {
