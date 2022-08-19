@@ -193,7 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .TakeWhile(opened => opened.IsValue)
                 .Select(opened => (
                     opened.Item.Item1.Symbol.AsDeclarationName(null),
-                    opened.Item.Item2.IsValue ? opened.Item.Item2.Item.Symbol.AsDeclarationName("") : null))
+                    opened.Item.Item2.IsValue ? opened.Item.Item2.Item.Symbol.AsDeclarationName("") : ""))
                 .Where(opened => opened.Item1 != null)
                 .GroupBy(opened => opened.Item1, opened => opened.Item2) // in case there are duplicate open directives...
                 .ToImmutableDictionary(opened => opened.Key, opened => opened.First());
@@ -204,7 +204,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var whitespaceAfterOpenDir = $"{Environment.NewLine}{additionalLinesAfterOpenDir}{(string.IsNullOrWhiteSpace(indentationAfterOpenDir) ? indentationAfterOpenDir : "    ")}";
 
             // construct a suitable edit
-            return namespaces.Distinct().Where(ns => !openDirs.Contains(ns, null)).Select(suggestedNS => // filter all namespaces that are already open
+            return namespaces.Distinct().Where(ns => !openDirs.Contains(ns, "")).Select(suggestedNS => // filter all namespaces that are already open
             {
                 var directive = $"{Keywords.importDirectiveHeader.Id} {suggestedNS}";
                 return new TextEdit

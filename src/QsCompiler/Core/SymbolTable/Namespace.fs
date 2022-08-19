@@ -458,38 +458,23 @@ type Namespace
     /// or if the given alias is already in use for a different namespace.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
-    member internal this.TryAddOpenDirective source (openedNS, nsRange) (alias, aliasRange) =
-        let alias = if String.IsNullOrWhiteSpace alias then null else alias.Trim()
-
-        let aliasIsSameAs str =
-            (isNull str && isNull alias) || (not (isNull str) && not (isNull alias) && str = alias)
+    member internal this.TryAddOpenDirective source (openedNS, nsRange) (alias: string, aliasRange) =
+        let alias = alias.Trim()
 
         match parts.TryGetValue source with
         | true, partial ->
             let imported = partial.ImportedNamespaces
 
-            match imported.TryGetValue openedNS with
-            | true, existing when aliasIsSameAs existing && isNull existing ->
-                [|
-                    nsRange |> QsCompilerDiagnostic.Warning(WarningCode.NamespaceAleadyOpen, [])
-                |]
-            | true, existing when aliasIsSameAs existing ->
-                [|
-                    nsRange |> QsCompilerDiagnostic.Warning(WarningCode.NamespaceAliasIsAlreadyDefined, [])
-                |]
-            | true, existing when not (isNull existing) ->
-                [|
-                    nsRange |> QsCompilerDiagnostic.Error(ErrorCode.AliasForNamespaceAlreadyExists, [ existing ])
-                |]
-            | true, _ ->
-                [|
-                    nsRange |> QsCompilerDiagnostic.Error(ErrorCode.AliasForOpenedNamespace, [])
-                |]
-            | false, _ when not (isNull alias) && imported.ContainsValue alias ->
+            // TODO: Ideally, we would allow opening multiple namespaces with the same alias. There
+            // is some preliminary work for this in the aadams/overlapping-alias-wip branch, but
+            // it would take a nontrivial refactor since it means some qualified names of
+            // types/callables would no longer fully qualified. It requires merging the logic for
+            // unqualified and qualified symbol lookups, basically.
+            if alias <> "" && imported |> Seq.exists (fun kv -> kv.Key <> openedNS && kv.Value.Contains(alias)) then
                 [|
                     aliasRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidNamespaceAliasName, [ alias ])
                 |]
-            | false, _ ->
+            else
                 typesDefinedInAllSourcesCache <- null
                 callablesDefinedInAllSourcesCache <- null
                 partial.AddOpenDirective(openedNS, alias)
