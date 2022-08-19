@@ -5,12 +5,11 @@ import {
   AccessToken
 } from "@azure/identity";
 import { TextEncoder } from "util";
-import {getConfig} from "./commands";
+import {getConfig} from "./configFileHelpers";
 import {workspaceInfo} from "./utils/types";
 // import fetch from 'node-fetch';
 import * as https from "https";
 import {workspaceStatusEnum} from "./utils/constants";
-import { copyFileSync } from "fs";
 
 const selectionStepEnum = {
   SUBSCRIPTION:1,
@@ -104,19 +103,11 @@ export async function getWorkspaceFromUser(
           resourceGroup: resourceGroup,
           workspace: workspace,
           location: location,
-        }
-
-        // update the locally saved workspace state
-        context.workspaceState.update("workspaceInfo", {
-          subscriptionId: subscriptionId,
-          resourceGroup: resourceGroup,
-          workspace: workspace,
-          location: location,
-        });
+        };
         finished = true;
         quickPick.dispose();
         // write the config file cotaining workspace details
-        await writeConfigFile(context);
+        await writeConfigFile(context, newWorkspaceInfo);
         context.workspaceState.update("workspaceStatus", workspaceStatusEnum.AUTHORIZED);
         workspaceStatusBarItem.text = `$(pass) Azure Workspace: ${workspace}`;
         workspaceStatusBarItem.command = "quantum.changeWorkspace";
@@ -333,14 +324,14 @@ export async function getWorkspaceFromUser(
   }
 
 
-  async function writeConfigFile(context:vscode.ExtensionContext){
+  async function writeConfigFile(context:vscode.ExtensionContext, workspaceInfo:workspaceInfo){
     const wsPath = vscode.workspace.workspaceFolders
         ? vscode.workspace.workspaceFolders[0].uri.fsPath
         : undefined;
       // gets the path of the first workspace folder
       const filePath = vscode.Uri.file(wsPath + "/azurequantumconfig.json");
       const jsonWorkspaceInfo = JSON.stringify(
-        context.workspaceState.get("workspaceInfo"),
+        workspaceInfo,
         undefined,
         " ".repeat(4)
       );

@@ -9,7 +9,6 @@ import {
   AzureCliCredential,
   InteractiveBrowserCredential,
 } from "@azure/identity";
-import { QuantumJobClient } from "@azure/quantum-jobs";
 
 import { DotnetInfo, findIQSharpVersion } from "./dotnet";
 import { IPackageInfo } from "./packageInfo";
@@ -24,11 +23,9 @@ import * as yeoman from "yeoman-environment";
 import { openReadOnlyJson } from "@microsoft/vscode-azext-utils";
 import {getWorkspaceFromUser} from "./quickPickWorkspace";
 import {getJobInfoFromUser} from "./quickPickJob";
-import {workspaceInfo, configFileInfo} from "./utils/types";
-import {MSA_ACCOUNT_TENANT, workspaceStatusEnum} from "./utils/constants";
-import {setupAuthorizedWorkspaceStatusButton} from "./extension";
-
-
+import {workspaceInfo} from "./utils/types";
+import {cancelJob} from "./cancelJob";
+import {getQuantumJobClient} from "./quantumJobClient";
 
 
 
@@ -160,189 +157,6 @@ export function installOrUpdateIQSharp(
     });
 }
 
-export async function setWorkspace(context:vscode.ExtensionContext, credential:any,workspaceStatusBarItem:vscode.StatusBarItem, extraSteps:number){
-  let {workspaceInfo, exitRequest} = await getConfig(context, credential, workspaceStatusBarItem);
-  if(exitRequest){
-    return;
-  }
-  if(!workspaceInfo){
-    // task steps + three workspace steps
-    const totalSteps =  extraSteps+3;
-    workspaceInfo = await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, totalSteps);
-  }
-  return workspaceInfo;
-}
-
-
-export async function handleUnauthorizedConfig(context:vscode.ExtensionContext, credential:any, workspaceStatusBarItem:vscode.StatusBarItem){
-  const userInput = await vscode.window.showErrorMessage("You do not have access to this workspace, or it doesn't exist.", {}, ...["Change Workspace"]);
-  if (userInput === "Change Workspace"){
-    const workspaceInfo = await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, 3, true);
-    if(workspaceInfo){
-      return true;
-    }
-    return false;
-  }
-  return false;
-}
-
-
-
-export async function verifyConfig(context: vscode.ExtensionContext, credential:any, workspaceInfo:workspaceInfo, workspaceStatusBarItem: vscode.StatusBarItem){
-  const {subscriptionId, resourceGroup, workspace, location} = workspaceInfo;
-  let workspaceExistsFlag;
-
-  await vscode.window.withProgress({
-    location: vscode.ProgressLocation.Notification,
-    title: "Setting up workspace...",
-    "cancellable":true
-    }, async (progress, cancel) => {
-  const token = await credential.getToken(
-    "https://management.azure.com/.default",
-    );
-  const options:any = {
-    headers: {
-      Authorization: `Bearer ${token.token}`,
-
-    },
-    resolveWithFullResponse:true
-  };
-
-    try{
-      const workspaceResponse:any = await new Promise((resolve, reject)=>{
-            //@ts-ignore
-      const req = https.get(`https://management.azure.com/subscriptions/${subscriptionId}/resourcegroups/${resourceGroup}/resources?api-version=2020-01-01&$filter=resourceType eq 'Microsoft.Quantum/Workspaces' and name eq '${workspace}'`, options, (res:any) => {
-        let responseBody = '';
-
-        res.on('data', (chunk:any) => {
-            responseBody += chunk;
-        });
-
-        res.on('end', () => {
-            resolve(JSON.parse(responseBody));
-        });
-    });
-
-    req.on('error', (err) => {
-        reject(err);
-    });
-    });
-     workspaceExistsFlag = workspaceResponse?.value?.length > 0;
-     if (workspaceResponse?.value[0].location !== location){
-      workspaceExistsFlag = false;
-     }
-  }
-  catch(err:any){
-    workspaceExistsFlag = false;
-  }
-});
-
-
-    if (!workspaceExistsFlag){
-      context.workspaceState.update("workspaceStatus", workspaceStatusEnum.UNAUTHORIZED);
-      workspaceStatusBarItem.text = `$(error) Azure Workspace: ${workspace}`;
-      workspaceStatusBarItem.command = "quantum.changeWorkspace";
-      workspaceStatusBarItem.tooltip = "Unauthorized Workspace";
-      workspaceStatusBarItem.show(); 
-      await handleUnauthorizedConfig(context, credential, workspaceStatusBarItem);
-      return false;
-}
-setupAuthorizedWorkspaceStatusButton(context,workspaceInfo);
-return true; 
-
-}
-
-
-
-
-
-// return azurequantumconfig.json if present
-export async function getConfig(context:vscode.ExtensionContext, credential:any, workspaceStatusBarItem:vscode.StatusBarItem, validateFlag=true):Promise<configFileInfo> {
-
-  const configFileInfo:configFileInfo = {
-    workspaceInfo:undefined,
-    exitRequest:false
-  };
-
-  const workspaceStatus = context.workspaceState.get("workspaceStatus");
-
-  if(workspaceStatus === workspaceStatusEnum.UNAUTHORIZED && validateFlag){
-    await handleUnauthorizedConfig(context, credential, workspaceStatusBarItem);
-    configFileInfo["exitRequest"]=true;
-    return configFileInfo;
-  }
-
-  let workspaceInfo:workspaceInfo;
-  const configFile = await vscode.workspace.findFiles(
-    "**/azurequantumconfig.json"
-  );
-
-  if(configFile.length ===0){
-    // configIssueEnum.NO_CONFIG;
-    return configFileInfo;
-  }
-
-  if(configFile.length>1){
-    configFileInfo.exitRequest = true;
-    // configIssueEnum.MULTIPLE_CONFIGS;
-    vscode.window.showWarningMessage("Only one azurequantumconfig.json file is allowed in a workspace.");
-    return configFileInfo;
-  }
-    const workspaceInfoChunk: any = await vscode.workspace.fs.readFile(
-      configFile[0]
-    );
-    
-    try{
-    workspaceInfo = JSON.parse(String.fromCharCode(...workspaceInfoChunk));
-    // Verify azurequantumconfig.json file has necessary fields
-    if (!workspaceInfo["subscriptionId"]||!workspaceInfo["resourceGroup"]||!workspaceInfo["workspace"]||!workspaceInfo["location"]){
-        throw Error;
-    }
-}
-    catch{
-        // configIssueEnum.INVALID_CONFIG;
-        if(validateFlag){
-        vscode.window.showWarningMessage("Invalid azurequantumconfig.json format");
-        }
-        return configFileInfo;
-    }
-
-    if(workspaceStatus === workspaceStatusEnum.UNKNOWN && validateFlag){
-      const verificationResult = await verifyConfig(context, credential, workspaceInfo, workspaceStatusBarItem);
-      if(!verificationResult){
-        configFileInfo["exitRequest"]=true;
-        return configFileInfo;
-    }
-    }
-    configFileInfo["workspaceInfo"]=workspaceInfo;
-    return configFileInfo;
-}
-
-
-
-async function cancelJob(workspaceInfo:workspaceInfo, credential:any, jobId:string){
-      const userInputConfirmation = await vscode.window.showInformationMessage(`Are you sure you want to cancel your job?`,{}, ...["Yes","No"]);
-
-      if(userInputConfirmation==="Yes"){
-      const quantumJobClient = getQuantumJobClient(workspaceInfo, credential);
-      await quantumJobClient.jobs.cancel(jobId);
-  }
-}
-
-function getQuantumJobClient(workspaceInfo: workspaceInfo, credential: any) {
-  const endpoint = "https://" + workspaceInfo["location"] + ".quantum.azure.com";
-  return new QuantumJobClient(
-    credential,
-    workspaceInfo["subscriptionId"],
-    workspaceInfo["resourceGroup"],
-    workspaceInfo["workspace"],
-    {
-      endpoint: endpoint,
-      credentialScopes: "https://quantum.microsoft.com/.default",
-    }
-  );
-}
-
 // submitting program to azure quantum
 export async function submitJob(
   context: vscode.ExtensionContext,
@@ -354,6 +168,7 @@ export async function submitJob(
   projectFiles: any[],
   totalSteps: number
 ) {
+
     if (!workspaceInfo){
       workspaceInfo = await getWorkspaceFromUser(context, credential,workspaceStatusBarItem, totalSteps);
     }
@@ -362,7 +177,6 @@ export async function submitJob(
     }
 
   const quantumJobClient = getQuantumJobClient(workspaceInfo, credential);
-
 
   const {csproj, jobName, provider, target, programArguments } = await getJobInfoFromUser(context,quantumJobClient, workspaceInfo, totalSteps, projectFiles);
 
@@ -488,6 +302,7 @@ let jobId:string|undefined;
                 targetSubmissionDates
               );
             })
+            //Send runtime and build errors to Azure Quantum Output Channel
             .then(undefined, async(err) => {
               console.error("I am a runtime error ");
               let outputChannel:vscode.OutputChannel|undefined = context.workspaceState.get("outputChannel");
@@ -569,8 +384,6 @@ export async function getJobResults(
   jobId?: string
 
 ) {
-
-
   // inputBox for a user calling Get Job from Command Palette
   if (!jobId) {
     const inputTitle = totalSteps?"Enter Job Id (4/4)":"Enter Job Id";
@@ -612,6 +425,7 @@ export async function getJobResults(
   .get(job.outputDataUri || "", function (response) {
     response.on("data", (chunk: number[]) => {
       const outputString = String.fromCharCode(...chunk) + "\n";
+      // successful jobs will have a histogram field
       if (outputString.includes("Histogram")) {
         const rawJsonOutput = JSON.parse(outputString);
         const histArrayLength = rawJsonOutput["Histogram"].length;
@@ -623,8 +437,9 @@ export async function getJobResults(
           refinedJson["Histogram"][key] = value;
         }
         openReadOnlyJson({ label: `results-${job.name}`, fullId: jobId as string}, refinedJson);
-
         }
+        // If there is an error, need to parse the response to show the
+        // message to the user.
         else if(outputString.includes("Error"))
         {
           try{

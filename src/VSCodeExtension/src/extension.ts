@@ -14,15 +14,15 @@ import {LocalSubmissionsProvider} from './localSubmissionsProvider';
 import {registerUIExtensionVariables, createAzExtOutputChannel, UIExtensionVariables } from '@microsoft/vscode-azext-utils';
 import { AzureCliCredential, InteractiveBrowserCredential, ChainedTokenCredential } from '@azure/identity';
 import {getWorkspaceFromUser} from "./quickPickWorkspace";
-import {getConfig, verifyConfig, setWorkspace} from "./commands";
+import {getConfig, setWorkspace} from "./configFileHelpers";
 import { AbortController} from "@azure/abort-controller";
 import * as https from "https";
 import {MSA_ACCOUNT_TENANT, workspaceStatusEnum} from "./utils/constants"
-import { getJobInfoFromUser } from './quickPickJob';
-import { workspaceInfo } from './utils/types';
-
-
+import {checkForNesting} from "./checkForNesting"
+import {setupDefaultWorkspaceStatusButton, setupUnknownWorkspaceStatusButton} from "./workspaceStatusButtonHelpers";
 const findPort = require('find-open-port');
+
+// credential used throughout application
 let credential:AzureCliCredential|InteractiveBrowserCredential;
 let workspaceStatusBarItem: vscode.StatusBarItem;
 let submitJobStatusBarItem: vscode.StatusBarItem;
@@ -30,18 +30,6 @@ let submitJobStatusBarItem: vscode.StatusBarItem;
 // Flag to prevent user from launching multiple login flows
 let currentlyAuthenticating = false;
 
-/**
- * Returns the root folder for the current workspace.
- */
-function findRootFolder() : string {
-    // FIXME: handle multiple workspace folders here.
-    let workspaceFolders = vscode.workspace.workspaceFolders;
-    if (workspaceFolders) {
-        return workspaceFolders[0].uri.fsPath;
-    } else {
-        return '';
-    }
-}
 
 // handles cancellation of ports
 async function abort(port:number, controller:AbortController){
@@ -52,40 +40,13 @@ async function abort(port:number, controller:AbortController){
     }
   }
 
-async function setupUnknownWorkspaceStatusButton(context:vscode.ExtensionContext) {
-    context.workspaceState.update("workspaceStatus", workspaceStatusEnum.UNKNOWN);
-    const {workspaceInfo} = await getConfig(context, credential, workspaceStatusBarItem, false);
-    if (workspaceInfo?.workspace){
-        workspaceStatusBarItem.text = `Azure Workspace: ${workspaceInfo["workspace"]}*`;
-        workspaceStatusBarItem.command = "quantum.getWorkspace";
-        workspaceStatusBarItem.tooltip = "Workspace has not been verified";
-        workspaceStatusBarItem.show(); 
-    }
-    else{
-        workspaceStatusBarItem.text = "Connect to Azure Workspace";
-        workspaceStatusBarItem.command = "quantum.getWorkspace";
-        workspaceStatusBarItem.tooltip = "";
-        workspaceStatusBarItem.show();
-    }
-}
-
-function setupDefaultWorkspaceStatusButton(context: vscode.ExtensionContext) {
-    context.workspaceState.update("workspaceStatus", workspaceStatusEnum.UNKNOWN);
-    workspaceStatusBarItem.text = "Connect to Azure Workspace";
-    workspaceStatusBarItem.command = "quantum.getWorkspace";
-    workspaceStatusBarItem.tooltip = ""
-    workspaceStatusBarItem.show();
-}
-
-export function setupAuthorizedWorkspaceStatusButton(context: vscode.ExtensionContext, workspaceInfo:workspaceInfo){
-    context.workspaceState.update("workspaceStatus", workspaceStatusEnum.AUTHORIZED);
-    workspaceStatusBarItem.text = `$(pass) Azure Workspace: ${workspaceInfo.workspace}`;
-    workspaceStatusBarItem.command = "quantum.changeWorkspace";
-    workspaceStatusBarItem.tooltip = "Workspace is verified";
-    workspaceStatusBarItem.show(); 
-}
-
-
+// Authentication has three flows depending on 1) is user logged in
+// through Az Cli. If not, is user an 2) aad user or 3) a MSA user?
+// Flow #1, user does not have to sign into any pop-up browsers. They 
+// are already autenticated
+// Flow #2, user has to sign into one pop-up browser and is logged in
+// Flow #3, user has to sign into two pop-up browsers and select tenant
+// if they are under multiple tenants
 async function getCredential(context: vscode.ExtensionContext, changeAccountFlag=false ){
     return new Promise<void>(async(resolve, reject)=>{
 
@@ -102,6 +63,7 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
 
 
         currentlyAuthenticating=true;
+        // find an open port
         const portOne = await findPort.findPort();
         // Flag for triggering MSA authentication flow
         let authenticationMSAUser= false;
@@ -117,7 +79,11 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
         title: "Authenticating...",
         "cancellable":true
         }, async (progress, cancel) => {
-    try{
+        try{
+
+        // abort controllers needed as unless the browser login is
+        // successful InteractiveBrowserCredential doesn't close
+        // the port connection
         const controllerOne = new AbortController();
         const abortSignalOne = controllerOne.signal;
         cancel.onCancellationRequested(async (e:any)=>{
@@ -131,6 +97,7 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
         });
         const token = await tempCredentialOne.getToken("https://management.azure.com/.default", {"abortSignal":abortSignalOne});
 
+        // all MSA users have the MSA_ACCOUNT_TENANT Id in their home account id. AAD users do not.
         //@ts-ignore
         authenticationMSAUser = !!(tempCredentialOne?._sources[1]?.msalFlow?.account?.homeAccountId.includes(MSA_ACCOUNT_TENANT));
 
@@ -181,10 +148,12 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
                     vscode.window.showErrorMessage("No tenants available.");
                     return reject();
                 }
+                // if one tenant, auto select
                 else if (tenantJSON.value.length === 1){
                     tenantId = tenantJSON.value[0]["tenantId"];
 
                 }
+                // if multiple tenants, show quickpick to select one
                 else{
                     tenantJSON.value.sort(function(tenant1:any, tenant2:any) {
                         return tenant1.displayName.localeCompare(tenant2.displayName);
@@ -221,6 +190,8 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
             const controllerTwo = new AbortController();
             const abortSignalTwo = controllerTwo.signal;
             try{
+            // can't use first port as it could still be closing
+            // the connection from the previous authentication
             const portTwo= await findPort.findPort();
             cancel.onCancellationRequested(async(e:any)=>{
             // abort the request, which opens the tls port for another authentication request
@@ -245,21 +216,32 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
                     currentlyAuthenticating=false;
                     return reject();
                 }
-
             });
         }
-
         if (!currentlyAuthenticating){
             return reject();
         }
 
     credential = tempCredentialTwo? tempCredentialTwo: tempCredentialOne;
+    // Shows "Q#: Change Azure Account" and "Q#: Set Azure Workspace" in
+    // palette and removes "Q#: Connect to Azure Account"
     vscode.commands.executeCommand('setContext', 'showChangeAzureAccount', true);
     currentlyAuthenticating=false;
     return resolve();
-
     });
+}
 
+/**
+ * Returns the root folder for the current workspace.
+ */
+ function findRootFolder() : string {
+    // FIXME: handle multiple workspace folders here.
+    let workspaceFolders = vscode.workspace.workspaceFolders;
+    if (workspaceFolders) {
+        return workspaceFolders[0].uri.fsPath;
+    } else {
+        return '';
+    }
 }
 
 // this method is called when your extension is activated
@@ -272,8 +254,6 @@ export async function activate(context: vscode.ExtensionContext) {
     process.env['VSCODE_LOG_LEVEL'] = 'trace';
 
     startTelemetry(context);
-
-
     let packageInfo = getPackageInfo(context);
     let dotNetSdkVersion = packageInfo === undefined ? undefined : packageInfo.requiredDotNetCoreSDK;
 
@@ -298,51 +278,55 @@ export async function activate(context: vscode.ExtensionContext) {
         {}
     );
 
+    // Shows "Connect to Azure Account" in command pallete, hides 
+    // "Change Azure Account" from pallete
+    vscode.commands.executeCommand('setContext', 'showChangeAzureAccount', false);
 
-    // creates treeview of locally submitted jobs in custom panel
+    // Creates treeview of locally submitted jobs in custom extension panel
     const localSubmissionsProvider = new LocalSubmissionsProvider(context);
     vscode.window.createTreeView("quantum-jobs",  {
         treeDataProvider: localSubmissionsProvider,
     });
-    // shows "Connect to Azure Account" in command pallete, hides "Change Azure Account" from pallete
-    vscode.commands.executeCommand('setContext', 'showChangeAzureAccount', false);
-
-    // need to call registerUIExtensionVariables to use openReadOnlyJson from
+    // Need to call registerUIExtensionVariables to use openReadOnlyJson from
     // @microsoft/vscode-azext-utils package
     const AzExtOutputChannel = await createAzExtOutputChannel("trial", "quantum-devkit-vscode");
     const args: UIExtensionVariables = {context: context, outputChannel:AzExtOutputChannel};
     registerUIExtensionVariables(args);
 
-    context.workspaceState.update("workspaceInfo", undefined);
-
+    // Create Submit Job status bar button
     submitJobStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 201);
     submitJobStatusBarItem.command = "quantum.submitJob";
     context.subscriptions.push(submitJobStatusBarItem);
     submitJobStatusBarItem.text = `$(run-above) Submit Job to Azure Quantum`;
     submitJobStatusBarItem.show();
 
-
-
-    context.workspaceState.update("workspaceStatus", workspaceStatusEnum.UNKNOWN);
-
+    // Create Workspace status bar button
+    // Starts in first state "Connect to Azure Account"
     workspaceStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 200);
+    // There is no workspace set on intialization, so set workspace wide variable as unknown.
     if(!credential){
-        setupDefaultWorkspaceStatusButton(context);
+        setupDefaultWorkspaceStatusButton(context, workspaceStatusBarItem);
     }
     context.subscriptions.push(workspaceStatusBarItem);
 
+
+    // When a user has made a change to the azurequantumconfig.json, 
+    // set workspace status button to unknown state. To verify, the
+    //  user must run any command or click the status bar button.
     vscode.workspace.onDidSaveTextDocument(async(doc:any)=>{
         if(doc?.fileName?.split("/")?.pop() === "azurequantumconfig.json"){
-            await setupUnknownWorkspaceStatusButton(context);
+            await setupUnknownWorkspaceStatusButton(context, credential, workspaceStatusBarItem);
         }
 
     });
 
+    // When a user has deleted the azurequantumconfig.json, set workspace 
+    // status button to default state ("Connect to Azure Quantum")
     vscode.workspace.onDidDeleteFiles((files:any)=>{
         const numOfFiles = files?.files?.length || 0;
         for (let i =0; i<numOfFiles;i++){
             if(files?.files[i]?.path?.split("/")?.pop() === "azurequantumconfig.json"){
-                setupDefaultWorkspaceStatusButton(context);
+                setupDefaultWorkspaceStatusButton(context, workspaceStatusBarItem);
             }
         }
     });
@@ -387,20 +371,86 @@ export async function activate(context: vscode.ExtensionContext) {
             );
         }
     );
-//  Verify there are not nested csproj files
-    function checkForNesting(files:any[]){
-        // all csproj files must have same depth
-        const depth = files[0].path.split("/").length;
-        let file:any;
-        let fileNum:any;
-        for(fileNum in files){
-            file = files[fileNum];
-            if (file.path.split("/").length !== depth){
-                return true;
+
+
+    vscode.commands.registerCommand('quantum.connectToAzureAccount', async () =>{
+        sendTelemetryEvent(EventNames.connectToAzureAccount, {},{});
+        await getCredential(context).then(async()=>{
+            sendTelemetryEvent(EventNames.connectToAzureAccount, {},{});
+            vscode.window.showInformationMessage("Successfully connected to account.");
+
+        }).catch((err)=>{
+            if (err){
+                console.log(err);
             }
-            return false;
+        });
+    });
+
+    vscode.commands.registerCommand('quantum.changeAzureAccount', async () =>{
+        await getCredential(context, true).then(async()=>{
+            sendTelemetryEvent(EventNames.changeAzureAccount, {},{});
+            // clear local jobs panel to avoid authorization issues for user
+            context.workspaceState.update("locallySubmittedJobs", undefined);
+            localSubmissionsProvider.refresh(context);
+            vscode.window.showInformationMessage("Successfully connected to account.");
+            await setupUnknownWorkspaceStatusButton(context, credential, workspaceStatusBarItem);
+        }).catch((err)=>{
+            if (err){
+                console.log(err);
+            }
+        });
+    });
+
+
+    registerCommand(
+        context,
+        "quantum.changeWorkspace",
+        async() => {
+        await getCredential(context).then(async()=>{
+            // Get workspace status prior to change, as local submitted
+            // jobs panel is only cleared when a user is in an Authorized
+            // workspace. We do not clear the local jobs panel if the
+            // user's workspace status is unknown or unauthorized
+            const oldStatus = context.workspaceState.get("workspaceStatus");
+            // Get current workspace if available to avoid clearing
+            // local jobs submission panel if a user selects same workspace
+            // they are currently in
+            let {workspaceInfo:oldWorkspace} = await getConfig(context, credential, workspaceStatusBarItem, false);
+            const newWorkspaceInfo = await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, 3, true);
+            sendTelemetryEvent(EventNames.changeWorkspace, {},{});
+            // Only clear local jobs is user changes workspaces and has
+            // a currently authorized workspace status
+            if((newWorkspaceInfo?.workspace!==oldWorkspace?.workspace)&& oldStatus === workspaceStatusEnum.AUTHORIZED){
+            context.workspaceState.update("locallySubmittedJobs", undefined);
+            localSubmissionsProvider.refresh(context);
+            }
+        }).catch((err)=>{
+            if (err){
+                console.log(err);
+                }
+        });
         }
-    }
+    );
+
+
+    // If config not present, queries user for workspace information
+    // If config present, verifies config. If verification fails, 
+    // does NOT automatically query user for workspace information
+    registerCommand(
+        context,
+        "quantum.getWorkspace",
+        async() => {
+        await getCredential(context).then(async()=>{
+        await setWorkspace(context, credential, workspaceStatusBarItem, 0);
+        }).catch((err)=>{
+            if (err){
+                console.log(err);
+                }
+        });
+
+        }
+    );
+ 
 
     registerCommand(
         context,
@@ -442,54 +492,19 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
 
-    registerCommand(
-        context,
-        "quantum.changeWorkspace",
-        async() => {
-        await getCredential(context).then(async()=>{
-            const oldStatus = context.workspaceState.get("workspaceStatus");
-            // three total steps
-            let {workspaceInfo:oldWorkspace} = await getConfig(context, credential, workspaceStatusBarItem, false);
-            const newWorkspaceInfo = await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, 3, true);
-            sendTelemetryEvent(EventNames.changeWorkspace, {},{});
-            // Clear local submitted jobs cache as the user is in a new workspace.
-            // and will not be able to access the cached jobs due to the functionality
-            // of the Quantum Javascript Library
-            //only clear local jobs is user changes workspaces
-            if((newWorkspaceInfo?.workspace!==oldWorkspace?.workspace)&& oldStatus === workspaceStatusEnum.AUTHORIZED){
-            context.workspaceState.update("locallySubmittedJobs", undefined);
-            localSubmissionsProvider.refresh(context);
-            }
-        }).catch((err)=>{
-            if (err){
-                console.log(err);
-                }
-        });
-        }
-    );
 
-    registerCommand(
-        context,
-        "quantum.getWorkspace",
-        async() => {
-        await getCredential(context).then(async()=>{
-        await setWorkspace(context, credential, workspaceStatusBarItem, 0);
-        }).catch((err)=>{
-            if (err){
-                console.log(err);
-                }
-        });
-
-        }
-    );
 
 
     registerCommand(
         context,
-        "quantum.getJob",
+        "quantum.jobResultsPalette",
         async() => {
             await getCredential(context).then(async()=>{
+                // if a user does not have to enter workspace info
+                // total steps will not be specified as the only step 
+                // is for a user to enter in a job id
                 let totalSteps:number|undefined = undefined;
+                // add steps if necessary for a user to connect to azure workspace
                 let {workspaceInfo, exitRequest} = await getConfig(context, credential, workspaceStatusBarItem);
                 if(exitRequest){
                   return;
@@ -511,9 +526,11 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     );
 
-    vscode.commands.registerCommand('quantum-jobs.jobResults', async (job) =>{
+    vscode.commands.registerCommand('quantum-jobs.jobResultsButton', async (job) =>{
         await getCredential(context).then(async()=>{
             const jobId:string = job['jobDetails']['jobId'];
+            // There are no additional steps as specifieid by the 0 in 
+            // the call below. The job id populates from the treeview. 
             const workspaceInfo = await setWorkspace(context, credential, workspaceStatusBarItem, 0);
             if(!workspaceInfo){
                 return;
@@ -545,6 +562,8 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('quantum-jobs.jobDetails', async (job) =>{
         await getCredential(context).then(async()=>{
             const jobId:string = job['jobDetails']['jobId'];
+            // There are no additional steps as specifieid by the 0 in 
+            // the call below. The job id populates from the treeview. 
             const workspaceInfo = await setWorkspace(context, credential, workspaceStatusBarItem, 0);
             if(!workspaceInfo){
                 return;
@@ -557,36 +576,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
         });
     });
-
-
-
-    vscode.commands.registerCommand('quantum.connectToAzureAccount', async () =>{
-        sendTelemetryEvent(EventNames.connectToAzureAccount, {},{});
-        await getCredential(context).then(async()=>{
-            sendTelemetryEvent(EventNames.connectToAzureAccount, {},{});
-            vscode.window.showInformationMessage("Successfully connected to account.");
-
-        }).catch((err)=>{
-            if (err){
-                console.log(err);
-            }
-        });
-    });
-
-    vscode.commands.registerCommand('quantum.changeAzureAccount', async () =>{
-        await getCredential(context, true).then(async()=>{
-            sendTelemetryEvent(EventNames.changeAzureAccount, {},{});
-            context.workspaceState.update("locallySubmittedJobs", undefined);
-            localSubmissionsProvider.refresh(context);
-            vscode.window.showInformationMessage("Successfully connected to account.");
-            await setupUnknownWorkspaceStatusButton(context);
-        }).catch((err)=>{
-            if (err){
-                console.log(err);
-            }
-        });
-    });
- 
 
     let rootFolder = findRootFolder();
 
