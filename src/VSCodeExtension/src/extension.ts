@@ -67,7 +67,7 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
         const portOne = await findPort.findPort();
         // Flag for triggering MSA authentication flow
         let authenticationMSAUser= false;
-        let tempCredentialOne = new ChainedTokenCredential(new AzureCliCredential(), new InteractiveBrowserCredential({"redirectUri":`http://localhost:${portOne}`}));
+        let tempCredentialOne: any;
         // Below variables only needed for MSA user login
         let tempCredentialTwo: InteractiveBrowserCredential | undefined;
         let tenantJSON:any;
@@ -80,6 +80,7 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
         "cancellable":true
         }, async (progress, cancel) => {
         try{
+        tempCredentialOne = new ChainedTokenCredential(new AzureCliCredential(), new InteractiveBrowserCredential({"redirectUri":`http://localhost:${portOne}`}));
 
         // abort controllers needed as unless the browser login is
         // successful InteractiveBrowserCredential doesn't close
