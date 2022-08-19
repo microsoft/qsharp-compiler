@@ -5,9 +5,12 @@ import {
   AccessToken
 } from "@azure/identity";
 import { TextEncoder } from "util";
-import {workspaceInfo, getAzureQuantumConfig} from "./commands";
+import {getConfig} from "./commands";
+import {workspaceInfo} from "./utils/types";
 // import fetch from 'node-fetch';
 import * as https from "https";
+import {workspaceStatusEnum} from "./utils/constants";
+import { copyFileSync } from "fs";
 
 const selectionStepEnum = {
   SUBSCRIPTION:1,
@@ -20,7 +23,8 @@ export async function getWorkspaceFromUser(
     context: vscode.ExtensionContext,
     credential: InteractiveBrowserCredential | AzureCliCredential,
     workspaceStatusBarItem: vscode.StatusBarItem,
-    totalSteps: number
+    totalSteps: number, 
+    unauthorizedUser = false
   ) {
     // get access token
     let token: AccessToken;
@@ -35,10 +39,13 @@ export async function getWorkspaceFromUser(
         );
       });
 
-      return new Promise<void>( async (resolve, reject)=>{
+      return new Promise<workspaceInfo|undefined>( async (resolve, reject)=>{
+    let workspaceInfo: workspaceInfo|undefined;
 
-    const {workspaceInfo} = await getAzureQuantumConfig();
-
+    if(!unauthorizedUser){
+      const configFileInfo = await getConfig(context, credential, workspaceStatusBarItem);
+      workspaceInfo = configFileInfo["workspaceInfo"];
+}
     const options:any = {
       headers: {
         Authorization: `Bearer ${token.token}`,
@@ -91,6 +98,13 @@ export async function getWorkspaceFromUser(
             }
             workspace = selection.label;
             location = selection.description;
+          
+        const newWorkspaceInfo =  {
+          subscriptionId: subscriptionId,
+          resourceGroup: resourceGroup,
+          workspace: workspace,
+          location: location,
+        }
 
         // update the locally saved workspace state
         context.workspaceState.update("workspaceInfo", {
@@ -103,10 +117,12 @@ export async function getWorkspaceFromUser(
         quickPick.dispose();
         // write the config file cotaining workspace details
         await writeConfigFile(context);
+        context.workspaceState.update("workspaceStatus", workspaceStatusEnum.AUTHORIZED);
+        workspaceStatusBarItem.text = `$(pass) Azure Workspace: ${workspace}`;
         workspaceStatusBarItem.command = "quantum.changeWorkspace";
-        workspaceStatusBarItem.text = `Azure Workspace: ${workspace}`;
-        workspaceStatusBarItem.show();
-        resolve();
+        workspaceStatusBarItem.tooltip = "Workspace is verified";
+        workspaceStatusBarItem.show(); 
+        resolve(newWorkspaceInfo);
       }
     });
 
