@@ -68,6 +68,7 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
         // Flag for triggering MSA authentication flow
         let authenticationMSAUser= false;
         let tempCredentialOne: any;
+        let msalFlowInfo:any;
         // Below variables only needed for MSA user login
         let tempCredentialTwo: InteractiveBrowserCredential | undefined;
         let tenantJSON:any;
@@ -80,8 +81,13 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
         "cancellable":true
         }, async (progress, cancel) => {
         try{
-        tempCredentialOne = new ChainedTokenCredential(new AzureCliCredential(), new InteractiveBrowserCredential({"redirectUri":`http://localhost:${portOne}`}));
-
+        // if user is changing account do not take auto log in from Az Cli
+        if(changeAccountFlag){
+            tempCredentialOne = new  InteractiveBrowserCredential({"redirectUri":`http://localhost:${portOne}`});
+        }
+        else{
+            tempCredentialOne = new ChainedTokenCredential(new AzureCliCredential(), new InteractiveBrowserCredential({"redirectUri":`http://localhost:${portOne}`}));
+        }
         // abort controllers needed as unless the browser login is
         // successful InteractiveBrowserCredential doesn't close
         // the port connection
@@ -100,8 +106,15 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
 
         // all MSA users have the MSA_ACCOUNT_TENANT Id in their home account id. AAD users do not.
         //@ts-ignore
-        authenticationMSAUser = !!(tempCredentialOne?._sources[1]?.msalFlow?.account?.homeAccountId.includes(MSA_ACCOUNT_TENANT));
-
+        if(changeAccountFlag){
+            authenticationMSAUser = !!(tempCredentialOne?.msalFlow?.account?.homeAccountId?.includes(MSA_ACCOUNT_TENANT));
+            msalFlowInfo = tempCredentialOne?.msalFlow;
+        }
+        else{
+            // For chainedCredential_sources[0] is Az Cli credential, _sources[1] is interactive browser credential
+            authenticationMSAUser = !!(tempCredentialOne?._sources[1]?.msalFlow?.account?.homeAccountId?.includes(MSA_ACCOUNT_TENANT));
+            msalFlowInfo = tempCredentialOne?._sources[1]?.msalFlow;
+        }
         // Pull tenants ONLY for MSA users
         if(authenticationMSAUser && currentlyAuthenticating){
             const options:any = {
@@ -206,7 +219,7 @@ async function getCredential(context: vscode.ExtensionContext, changeAccountFlag
 
             // Verifies MSA user selected the same account in both authentication login pop-ups
             //@ts-ignore
-            if(!!(tempCredentialOne?._sources[1]?.msalFlow?.account?.username !== tempCredentialTwo?.msalFlow?.account?.username)){
+            if(!!(msalFlowInfo?.account?.username !== tempCredentialTwo?.msalFlow?.account?.username)){
                 throw Error("Aborted");
             }
             }
