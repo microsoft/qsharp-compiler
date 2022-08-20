@@ -6,9 +6,9 @@ import {setupAuthorizedWorkspaceStatusButton} from "./workspaceStatusButtonHelpe
 import * as https from "https";
 
 
-    // If config not present, queries user for workspace information
-    // If config present, verifies config. If verification fails, 
-    // does NOT automatically query user for workspace information
+// If config not present, queries user for workspace information
+// If config present, verifies config. If verification fails, 
+// does NOT automatically query user for workspace information
 export async function setWorkspace(context:vscode.ExtensionContext, credential:any,workspaceStatusBarItem:vscode.StatusBarItem, extraSteps:number){
     let {workspaceInfo, exitRequest} = await getConfig(context, credential, workspaceStatusBarItem);
     if(exitRequest){
@@ -21,7 +21,7 @@ export async function setWorkspace(context:vscode.ExtensionContext, credential:a
     }
     return workspaceInfo;
   }
-  
+
 
 // Prompts user to change their workspace if they are in an unauthoritzed
 // workspace
@@ -36,11 +36,9 @@ export async function handleUnauthorizedConfig(context:vscode.ExtensionContext, 
     }
     return false;
   }
-  
-  
-  
 
-// Verify the provided workspace details exist in a user's account
+
+  // Verify the provided workspace details exist in a user's account
 // If they do not, prompt user to change workspace
 export async function verifyConfig(context: vscode.ExtensionContext, credential:any, workspaceInfo:workspaceInfo, workspaceStatusBarItem: vscode.StatusBarItem){
     const {subscriptionId, resourceGroup, workspace, location} = workspaceInfo;
@@ -109,7 +107,6 @@ export async function verifyConfig(context: vscode.ExtensionContext, credential:
   return true; 
   
   }
-  
 
 
 // returns an object with the workspaceInfo, if succ
@@ -182,6 +179,3 @@ export async function getConfig(context:vscode.ExtensionContext, credential:any,
       configFileInfo["workspaceInfo"]=workspaceInfo;
       return configFileInfo;
   }
-  
-
-
