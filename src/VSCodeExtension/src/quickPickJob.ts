@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import * as excludedTargets from "./utils/excludedTargets.json";
-import {workspaceInfo} from "./commands";
+import {workspaceInfo} from "./utils/types";
 import { QuantumJobClient } from "@azure/quantum-jobs";
 type target = {
     id: string;

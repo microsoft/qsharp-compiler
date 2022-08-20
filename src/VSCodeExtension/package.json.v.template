@@ -33,7 +33,7 @@
         "onCommand:quantum.connectToAzureAccount",
         "onCommand:quantum.changeWorkspace",
         "onCommand:quantum.submitJob",
-        "onCommand:quantum.getJob",
+        "onCommand:quantum.jobResultsPalette",
         "onCommand:quantum.changeAzureAccount",
         "onView:quantum-jobs"
     ],
@@ -61,28 +61,28 @@
                 "title": "Q#: Connect to Azure Account"
             },
             {
+                "command": "quantum.changeAzureAccount",
+                "title": "Q#: Change Azure Account"
+            },
+            {
                 "command": "quantum.changeWorkspace",
-                "title": "Q#: Change Workspace"
+                "title": "Q#: Set Azure Workspace"
             },
             {
                 "command": "quantum.submitJob",
-                "title": "Q#: Submit Job"
+                "title": "Q#: Submit Job to Azure Quantum"
             },
             {
-                "command": "quantum.getJob",
-                "title": "Q#: Get Job"
+                "command": "quantum.jobResultsPalette",
+                "title": "Q#: Get Job Results by Id"
             },
             {
                 "command": "quantum-jobs.jobDetails",
                 "title": " Details "
             },
             {
-                "command": "quantum-jobs.jobResults",
+                "command": "quantum-jobs.jobResultsButton",
                 "title": " Results "
-            },
-            {
-                "command": "quantum.changeAzureAccount",
-                "title": "Q#: Change Azure Account"
             },
 
             {
@@ -180,7 +180,7 @@
                     "group": "inline"
                 },
                 {
-                    "command": "quantum-jobs.jobResults",
+                    "command": "quantum-jobs.jobResultsButton",
                     "when": "viewItem == LocalSubmissionItem",
                     "group": "inline"
                 }
