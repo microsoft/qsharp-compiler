@@ -395,6 +395,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
         }).catch((err)=>{
             if (err){
+                sendTelemetryEvent(EventNames.error, {
+                    error: err
+                });
                 console.log(err);
             }
         });
@@ -410,6 +413,9 @@ export async function activate(context: vscode.ExtensionContext) {
             await setupUnknownWorkspaceStatusButton(context, credential, workspaceStatusBarItem);
         }).catch((err)=>{
             if (err){
+                sendTelemetryEvent(EventNames.error, {
+                    error: err
+                });
                 console.log(err);
             }
         });
@@ -440,6 +446,9 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }).catch((err)=>{
             if (err){
+                sendTelemetryEvent(EventNames.error, {
+                    error: err
+                });
                 console.log(err);
                 }
         });
@@ -458,6 +467,9 @@ export async function activate(context: vscode.ExtensionContext) {
         await setWorkspace(context, credential, workspaceStatusBarItem, 0);
         }).catch((err)=>{
             if (err){
+                sendTelemetryEvent(EventNames.error, {
+                    error: err
+                });
                 console.log(err);
                 }
         });
@@ -499,15 +511,14 @@ export async function activate(context: vscode.ExtensionContext) {
             );
         }).catch((err)=>{
             if (err){
+                sendTelemetryEvent(EventNames.error, {
+                    error: err
+                });
                 console.log(err);
                 }
         });
         }
     );
-
-
-
-
 
     registerCommand(
         context,
@@ -534,6 +545,9 @@ export async function activate(context: vscode.ExtensionContext) {
                 sendTelemetryEvent(EventNames.getJobResults, {"method": "command line"},{});
             }).catch((err)=>{
                 if (err){
+                    sendTelemetryEvent(EventNames.error, {
+                        error: err
+                    });
                     console.log(err);
                     }
             });
@@ -558,6 +572,9 @@ export async function activate(context: vscode.ExtensionContext) {
             );
         }).catch((err)=>{
             if (err){
+                sendTelemetryEvent(EventNames.error, {
+                    error: err
+                });
                 console.log(err);
                 }
         });
@@ -586,6 +603,9 @@ export async function activate(context: vscode.ExtensionContext) {
             sendTelemetryEvent(EventNames.getJobDetails, {},{});
         }).catch((err)=>{
             if (err){
+                sendTelemetryEvent(EventNames.error, {
+                    error: err
+                });
                 console.log(err);
                 }
         });
