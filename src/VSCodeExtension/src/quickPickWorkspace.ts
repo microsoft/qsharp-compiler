@@ -5,7 +5,6 @@ import {
   AccessToken
 } from "@azure/identity";
 import { TextEncoder } from "util";
-import {getConfig} from "./configFileHelpers";
 import {workspaceInfo} from "./utils/types";
 // import fetch from 'node-fetch';
 import * as https from "https";
@@ -23,7 +22,7 @@ export async function getWorkspaceFromUser(
     credential: InteractiveBrowserCredential | AzureCliCredential,
     workspaceStatusBarItem: vscode.StatusBarItem,
     totalSteps: number, 
-    unauthorizedUser = false
+    existingWorkspace:workspaceInfo|undefined = undefined
   ) {
     // get access token
     let token: AccessToken;
@@ -39,12 +38,6 @@ export async function getWorkspaceFromUser(
       });
 
       return new Promise<workspaceInfo|undefined>( async (resolve, reject)=>{
-    let workspaceInfo: workspaceInfo|undefined;
-
-    if(!unauthorizedUser){
-      const configFileInfo = await getConfig(context, credential, workspaceStatusBarItem);
-      workspaceInfo = configFileInfo["workspaceInfo"];
-}
     const options:any = {
       headers: {
         Authorization: `Bearer ${token.token}`,
@@ -64,7 +57,7 @@ export async function getWorkspaceFromUser(
     // if user is submitting job, total steps will be 7, otherwise 3
     quickPick.totalSteps = totalSteps;
 
-    await setupSubscriptionIdQuickPick(quickPick, workspaceInfo, options);
+    await setupSubscriptionIdQuickPick(quickPick, existingWorkspace, options);
     quickPick.onDidAccept(async () => {
       const selection = quickPick.selectedItems[0];
       // user selects subscription, now set up resource group selection
@@ -76,7 +69,7 @@ export async function getWorkspaceFromUser(
         subscriptionId = selection["description"];
         await setupResourceGroupQuickPick(
           quickPick,
-          workspaceInfo,
+          existingWorkspace,
           subscriptionId,
           options
         );
@@ -120,13 +113,13 @@ export async function getWorkspaceFromUser(
     quickPick.onDidTriggerButton(async (button) => {
       // resource group back button pressed, go back to subscription id
       if (quickPick.step === selectionStepEnum.RESOURCE_GROUP) {
-        await setupSubscriptionIdQuickPick(quickPick, workspaceInfo, options);
+        await setupSubscriptionIdQuickPick(quickPick, existingWorkspace, options);
       }
       // workspaces back button pressed, go back to resource group
       if (quickPick.step === selectionStepEnum.WORKSPACE) {
         await setupResourceGroupQuickPick(
           quickPick,
-          workspaceInfo,
+          existingWorkspace,
           subscriptionId,
           options
         );
@@ -147,7 +140,7 @@ export async function getWorkspaceFromUser(
 
   async function setupResourceGroupQuickPick(
     quickPick: vscode.QuickPick<vscode.QuickPickItem>,
-    currentworkspaceInfo: workspaceInfo | undefined,
+    existingWorkspaceInfo: workspaceInfo | undefined,
     subscriptionId: string,
     options:any
   ) {
@@ -193,7 +186,7 @@ export async function getWorkspaceFromUser(
       });
       // Prefill if there is already a resource group
       quickPick.items = rgJSON.value.map((rg: any) => {
-          if (currentworkspaceInfo?.resourceGroup === rg.name && quickPick.step ===selectionStepEnum.RESOURCE_GROUP) {
+          if (existingWorkspaceInfo?.resourceGroup === rg.name && quickPick.step ===selectionStepEnum.RESOURCE_GROUP) {
               quickPick.value = rg.name;
           }
           return { label: rg.name };
@@ -207,7 +200,7 @@ export async function getWorkspaceFromUser(
 
   async function setupSubscriptionIdQuickPick(
     quickPick: vscode.QuickPick<vscode.QuickPickItem>,
-    currentworkspaceInfo: workspaceInfo | undefined,
+    existingWorkspaceInfo: workspaceInfo | undefined,
     options: any
   ) {
     quickPick.placeholder = "";
@@ -249,7 +242,7 @@ export async function getWorkspaceFromUser(
         return rg1.displayName.localeCompare(rg2.displayName);
       });
       quickPick.items = subscriptionsJSON.value.map((subscription: any) => {
-        if (currentworkspaceInfo?.subscriptionId === subscription.subscriptionId && quickPick.step ===selectionStepEnum.SUBSCRIPTION) {
+        if (existingWorkspaceInfo?.subscriptionId === subscription.subscriptionId && quickPick.step ===selectionStepEnum.SUBSCRIPTION) {
               quickPick.value = subscription.displayName;
           }
           return {

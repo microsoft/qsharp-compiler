@@ -4,7 +4,7 @@ import {getWorkspaceFromUser} from "./quickPickWorkspace";
 import {workspaceInfo, configFileInfo} from "./utils/types";
 import {setupAuthorizedWorkspaceStatusButton} from "./workspaceStatusButtonHelpers";
 import * as https from "https";
-
+import * as glob from 'glob';
 
 // If config not present, queries user for workspace information
 // If config present, verifies config. If verification fails, 
@@ -28,7 +28,7 @@ export async function setWorkspace(context:vscode.ExtensionContext, credential:a
 export async function handleUnauthorizedConfig(context:vscode.ExtensionContext, credential:any, workspaceStatusBarItem:vscode.StatusBarItem){
     const userInput = await vscode.window.showErrorMessage("You do not have access to this workspace, or it doesn't exist.", {}, ...["Change Workspace"]);
     if (userInput === "Change Workspace"){
-      const workspaceInfo = await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, 3, true);
+      const workspaceInfo = await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, 3);
       if(workspaceInfo){
         return true;
       }
@@ -111,7 +111,6 @@ export async function verifyConfig(context: vscode.ExtensionContext, credential:
 
 // returns an object with the workspaceInfo, if succ
 export async function getConfig(context:vscode.ExtensionContext, credential:any, workspaceStatusBarItem:vscode.StatusBarItem, validateFlag=true):Promise<configFileInfo> {
-
     const configFileInfo:configFileInfo = {
       workspaceInfo:undefined,
       exitRequest:false
@@ -127,26 +126,41 @@ export async function getConfig(context:vscode.ExtensionContext, credential:any,
       return configFileInfo;
     }
   
+    // using glob to search for config file. This is necessary to be test 
+    // compatiable with mocha 
     let workspaceInfo:workspaceInfo;
-    const configFile = await vscode.workspace.findFiles(
-      "**/azurequantumconfig.json"
-    );
+    let rootFolder= "";
+    let pullConfigFiles:any[] =[];
+    if(vscode?.workspace?.workspaceFolders){
+      rootFolder = vscode?.workspace?.workspaceFolders[0]?.uri.fsPath;
+    }
+    await new Promise<void>(async (resolve)=>{
+        await glob('**/azurequantumconfig.json', { cwd: rootFolder }, (err, files) => {
+          if (err) {
+            console.log(err);
+            resolve();
+          }
+          pullConfigFiles = files;
+          resolve();
+        });
+    });
+
   
     // no config file present, but this is not function stopping as 
     // the user will be queried for a workspace
-    if(configFile.length ===0){
+    if(pullConfigFiles.length ===0){
       return configFileInfo;
     }
   
     // If multiple config files are present, stop the function as more 
     // than one config in a user's workspace is not permitted at this time.
-    if(configFile.length>1){
+    if(pullConfigFiles.length>1){
       configFileInfo.exitRequest = true;
       vscode.window.showWarningMessage("Only one azurequantumconfig.json file is allowed in a workspace.");
       return configFileInfo;
     }
       const workspaceInfoChunk: any = await vscode.workspace.fs.readFile(
-        configFile[0]
+        vscode.Uri.file(rootFolder+"/"+pullConfigFiles[0])
       );
       
       // try to pull subscription, resource groupm, workspace, and location
