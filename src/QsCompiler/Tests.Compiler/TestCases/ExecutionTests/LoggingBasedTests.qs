@@ -55,18 +55,22 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
         }
     }
 
+    @EntryPoint()
     operation ConjugationsInBody () : Unit {
         SpecGenForConjugations();
     }
 
+    @EntryPoint()
     operation ConjugationsInAdjoint () : Unit {
         Adjoint SpecGenForConjugations();
     }
 
+    @EntryPoint()
     operation ConjugationsInControlled () : Unit {
         Controlled SpecGenForConjugations([], ());
     }
 
+    @EntryPoint()
     operation ConjugationsInControlledAdjoint () : Unit {
         Controlled Adjoint SpecGenForConjugations([], ());
     }
@@ -74,6 +78,7 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
 
     // tests for loading via test names
 
+    @EntryPoint()
     operation LogViaTestName () : Unit {
         Library2.Log(0, "nothing");
     }
@@ -85,6 +90,7 @@ namespace Microsoft.Quantum.Testing.ExecutionTests {
     operation evaluator2 (a : Unit[], b : (Unit, Unit)) : Unit is Adj {}
     function skipLift (a : Unit) : String { return "skip lift"; }
 
+    @EntryPoint()
     operation AdjointExpressions () : Unit {
         within {
             evaluator(ULog("1"), ULog("2"));

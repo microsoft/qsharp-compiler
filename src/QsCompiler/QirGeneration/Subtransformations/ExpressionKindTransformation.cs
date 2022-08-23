@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             public override IValue BuildItem(TupleValue capture, IValue parArgs)
             {
                 var items = this.Items.Select(item => item.BuildItem(capture, parArgs)).ToArray();
-                var tuple = this.SharedState.Values.CreateTuple(items);
+                var tuple = this.SharedState.Values.CreateTuple(items, allocOnStack: false); // the current implementation does not permit to stack allocate the tuple
                 return tuple;
             }
         }
@@ -190,9 +190,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="typeItems">The tuple defining the items of a custom type</param>
         /// <param name="itemLocation">The location of the item with the given name within the item tuple</param>
         /// <returns>Returns true if the item was found and false otherwise</returns>
-        private static bool FindNamedItem(string name, QsTuple<QsTypeItem> typeItems, out List<int> itemLocation)
+        private static bool FindNamedItem(string name, QsTuple<QsTypeItem> typeItems, out Stack<int> itemLocation)
         {
-            bool FindNamedItem(QsTuple<QsTypeItem> items, List<int> location)
+            bool FindNamedItem(QsTuple<QsTypeItem> items, Stack<int> location)
             {
                 switch (items)
                 {
@@ -208,7 +208,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         {
                             if (FindNamedItem(list.Item[i], location))
                             {
-                                location.Add(i);
+                                location.Push(i);
                                 return true;
                             }
                         }
@@ -219,10 +219,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return false;
             }
 
-            itemLocation = new List<int>();
-            var found = FindNamedItem(typeItems, itemLocation);
-            itemLocation.Reverse();
-            return found;
+            itemLocation = new Stack<int>();
+            return FindNamedItem(typeItems, itemLocation);
         }
 
         /// <summary>
@@ -267,16 +265,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateArray(ArrayValue originalArray)
             {
-                ArrayValue GetArrayCopy(bool needsToBeCopied)
-                {
-                    // Since we keep track of alias counts for arrays we always ask the runtime to create a shallow copy
-                    // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
-                    // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
-                    var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
-                    var forceCopy = sharedState.Context.CreateConstant(needsToBeCopied);
-                    var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
-                    return sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
-                }
+                // Since we keep track of alias counts for arrays we always ask the runtime to create a shallow copy
+                // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
+                // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
+                ArrayValue GetArrayCopy(bool needsToBeCopied) =>
+                    sharedState.Values.FromArray(originalArray, needsToBeCopied);
 
                 void UpdateElement(Func<IValue> getNewItemForIndex, PointerValue itemToUpdate)
                 {
@@ -315,8 +308,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     // do not increase the ref count here - we will increase the ref count of all new items at the end
                     var newItemValues = (ArrayValue)sharedState.EvaluateSubexpression(updated);
-                    var (getStart, getStep, getEnd) = sharedState.Functions.RangeItems(accEx);
-                    sharedState.IterateThroughArray(newItemValues, getStart(), (newItem, targetIdx) =>
+                    var (start, step, end) = sharedState.Functions.RangeItems(accEx);
+                    sharedState.IterateThroughArray(newItemValues, start, (newItem, targetIdx) =>
                     {
                         sharedState.ScopeMgr.OpenScope();
                         var elementPtr = array.GetArrayElementPointer(targetIdx!);
@@ -329,17 +322,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         }
 
                         UpdateElement(() => newItem, elementPtr);
-                        var step = getStep() ?? sharedState.Context.CreateConstant(1L);
+                        step ??= sharedState.Context.CreateConstant(1L);
                         var nextIdx = sharedState.CurrentBuilder.Add(targetIdx!, step);
                         var isTerminated = sharedState.CurrentBlock?.Terminator != null;
                         sharedState.ScopeMgr.CloseScope(isTerminated);
                         return nextIdx;
                     });
 
-                    if (updateFromSelf)
+                    if (updateFromSelf && ScopeManager.RequiresReferenceCount(originalArray.LlvmElementType))
                     {
                         // separate loop after we have performed all updates to unreferenced the old values
-                        sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), targetIdx =>
+                        sharedState.IterateThroughRange(start, step, end, targetIdx =>
                         {
                             sharedState.ScopeMgr.OpenScope();
                             sharedState.ScopeMgr.DecreaseReferenceCount(originalArray.GetArrayElement(targetIdx));
@@ -380,15 +373,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 TupleValue GetTupleCopy(TupleValue original)
                 {
-                    // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
-                    // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
-                    // alias count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
-                    var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
-                    var forceCopy = sharedState.Context.CreateConstant(false);
-                    var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
-                    return original.TypeName == null
-                        ? sharedState.Values.FromTuple(copy, original.ElementTypes)
-                        : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
+                    if (sharedState.TargetQirProfile)
+                    {
+                        return original.TypeName == null
+                            ? sharedState.Values.FromTuple(original.Value, original.ElementTypes)
+                            : sharedState.Values.FromCustomType(original.Value, original.TypeName);
+                    }
+                    else
+                    {
+                        // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
+                        // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
+                        // alias count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
+                        var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
+                        var forceCopy = sharedState.Context.CreateConstant(false);
+                        var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
+                        return original.TypeName == null
+                            ? sharedState.Values.FromTuple(copy, original.ElementTypes)
+                            : sharedState.Values.FromCustomType(copy, original.TypeName);
+                    }
                 }
 
                 var udtName = originalTuple.TypeName;
@@ -407,10 +409,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var value = GetTupleCopy(originalTuple);
                     copies.Push(value);
 
-                    for (int depth = 0; depth < location.Count; depth++)
+                    // We need to be careful here;
+                    // We may choose to use some truly immutable data structures even for things that are
+                    // pointers when allocated by the runtime. To allow to do that, the IValue implementations
+                    // for data type contains an abstraction API in terms of loads an stores.
+                    // However, when we are using immutable structures, the memory is not actually modified in place,
+                    // such that we cannot "retroactively" set values -
+                    // i.e. we need to build all values "inside out" rather than "outside in".
+                    void ProcessTuple(int loc)
                     {
-                        var itemPointer = copies.Peek().GetTupleElementPointer(location[depth]);
-                        if (depth == location.Count - 1)
+                        var itemPointer = copies.Peek().GetTupleElementPointer(loc);
+                        if (location.TryPop(out var nextLoc))
+                        {
+                            // We load the original item at that location (which is an inner tuple),
+                            // and replace it with a copy of it (if a copy is needed),
+                            // such that we can then proceed to modify that copy (the next inner tuple).
+                            var originalItem = (TupleValue)itemPointer.LoadValue();
+                            originalTuples.Push(originalItem);
+                            var copy = GetTupleCopy(originalItem);
+                            copies.Push(copy);
+                            ProcessTuple(nextLoc);
+                            StoreElement(itemPointer, copy, null, shallow: true);
+                        }
+                        else
                         {
                             // needs to be before the ref count decrease in case it accesses the old value
                             var newItemValue = sharedState.EvaluateSubexpression(updated);
@@ -423,19 +444,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                             StoreElement(itemPointer, newItemValue, fromLocalId);
                         }
-                        else
-                        {
-                            // We load the original item at that location (which is an inner tuple),
-                            // and replace it with a copy of it (if a copy is needed),
-                            // such that we can then proceed to modify that copy (the next inner tuple).
-                            var originalItem = (TupleValue)itemPointer.LoadValue();
-                            originalTuples.Push(originalItem);
-                            var copy = GetTupleCopy(originalItem);
-                            copies.Push(copy);
-                            StoreElement(itemPointer, copy, null, shallow: true);
-                        }
                     }
 
+                    ProcessTuple(location.Pop());
                     if (!unreferenceOriginal)
                     {
                         // In order to accurately reflect which items are still in use and thus need to remain allocated,
@@ -635,6 +646,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var comma = CreateConstantString(", ");
                     var openParens = CreateConstantString("[");
                     UpdateStringRefCount(openParens, 1); // added to avoid dangling pointer in comparison inside loop
+
                     var outputStr = sharedState.IterateThroughArray(array, openParens, (item, str) =>
                     {
                         var cond = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, str!, openParens);
@@ -681,16 +693,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (ty.IsPauli)
                 {
-                    Value LoadPauli(QsPauli pauli)
-                    {
-                        sharedState.ExpressionTypeStack.Push(ResolvedType.New(ResolvedTypeKind.Pauli));
-                        sharedState.Transformation.ExpressionKinds.OnPauliLiteral(pauli);
-                        sharedState.ExpressionTypeStack.Pop();
-                        return sharedState.ValueStack.Pop().Value;
-                    }
-
                     Value CompareValueEquals(QsPauli pauli) =>
-                        sharedState.CurrentBuilder.Compare(IntPredicate.Equal, LoadPauli(pauli), evaluated.Value);
+                        sharedState.CurrentBuilder.Compare(
+                            IntPredicate.Equal,
+                            sharedState.Values.CreatePauli(pauli).Value,
+                            evaluated.Value);
 
                     IValue EvaluateEqualityComparison(QsPauli pauli, string pauliStr, Func<IValue> continuation) =>
                         CreateStringValue(
@@ -799,9 +806,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">
         /// Thrown when no callable with the given name exists, or the corresponding specialization cannot be found.
         /// </exception>
-        private IValue InvokeGlobalCallable(QsQualifiedName callableName, QsSpecializationKind kind, TypedExpression arg)
+        private IValue InvokeGlobalCallable(QsQualifiedName callableName, QsSpecializationKind kind, TypedExpression arg, bool canBeStackAllocated)
         {
-            IValue CallGlobal(IrFunction func, TypedExpression arg, ResolvedType returnType)
+            IValue CallGlobal(IrFunction func, ResolvedType returnType)
             {
                 IEnumerable<IValue> args;
                 if (arg.ResolvedType.Resolution.IsUnitType)
@@ -834,23 +841,36 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return value;
             }
 
-            IValue InlineSpecialization(QsSpecialization spec, TypedExpression arg)
+            IValue InlineSpecialization(QsCallable callable)
             {
-                this.SharedState.StartInlining();
-                if (spec.Implementation is SpecializationImplementation.Provided impl)
-                {
-                    if (!spec.Signature.ArgumentType.Resolution.IsUnitType)
-                    {
-                        var symbolTuple = SyntaxGenerator.ArgumentTupleAsSymbolTuple(impl.Item1);
-                        var binding = new QsBinding<TypedExpression>(QsBindingKind.ImmutableBinding, symbolTuple, arg);
-                        this.Transformation.StatementKinds.OnVariableDeclaration(binding);
-                    }
+                var spec = callable.Specializations.Where(s => s.Kind == kind).Single();
+                var (argTuple, impl) =
+                    callable.Kind.IsTypeConstructor ? (callable.ArgumentTuple, null) :
+                    spec.Implementation is SpecializationImplementation.Provided decl ? (decl.Item1, decl.Item2) :
+                    throw new InvalidOperationException($"missing {kind} specialization implementation for inlining {callable.FullName}");
 
-                    this.Transformation.Statements.OnScope(impl.Item2);
+                this.SharedState.StartInlining();
+
+                if (!spec.Signature.ArgumentType.Resolution.IsUnitType)
+                {
+                    var symbolTuple = SyntaxGenerator.ArgumentTupleAsSymbolTuple(argTuple);
+                    var binding = new QsBinding<TypedExpression>(QsBindingKind.ImmutableBinding, symbolTuple, arg);
+                    this.Transformation.StatementKinds.OnVariableDeclaration(binding);
+                }
+
+                if (impl != null)
+                {
+                    this.Transformation.Statements.OnScope(impl);
                 }
                 else
                 {
-                    throw new InvalidOperationException("missing specialization implementation for inlining");
+                    var argExpr = SyntaxGenerator.ArgumentTupleAsExpression(argTuple);
+                    var argItems =
+                        argExpr.ResolvedType.Resolution.IsUnitType ? ImmutableArray<TypedExpression>.Empty :
+                        argExpr.Expression is ResolvedExpressionKind.ValueTuple tuple ? tuple.Item :
+                        ImmutableArray.Create(argExpr);
+                    var udt = this.SharedState.Values.CreateCustomType(callableName, argItems, allocOnStack: canBeStackAllocated);
+                    this.SharedState.AddReturn(udt, returnsVoid: false);
                 }
 
                 return this.SharedState.StopInlining();
@@ -870,19 +890,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // deal with functions that are part of the target specific instruction set
                 var targetInstruction = this.SharedState.GetOrCreateTargetInstruction(instructionName);
-                return CallGlobal(targetInstruction, arg, callable.Signature.ReturnType);
+                return CallGlobal(targetInstruction, callable.Signature.ReturnType);
             }
-            else if (callable.Attributes.Any(BuiltIn.MarksInlining))
+
+            // Unless we target a QIR profile, or an attribute specifically requests inlining,
+            // we leave the heuristic for inlining up to LLVM.
+            else if (callable.Attributes.Any(BuiltIn.MarksInlining) || this.SharedState.TargetQirProfile)
             {
                 // deal with global callables that need to be inlined
-                var inlinedSpec = callable.Specializations.Where(spec => spec.Kind == kind).Single();
-                return InlineSpecialization(inlinedSpec, arg);
+                return InlineSpecialization(callable);
             }
             else
             {
                 // deal with all other global callables
                 var func = this.SharedState.GetFunctionByName(callableName, kind);
-                return CallGlobal(func, arg, callable.Signature.ReturnType);
+                return CallGlobal(func, callable.Signature.ReturnType);
             }
         }
 
@@ -901,7 +923,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // If the argument is not already of a type that results in the creation of a tuple,
                 // then we need to create a tuple to store the (single) argument to be able to pass
                 // it to the callable value.
-                argValue = this.SharedState.Values.CreateTuple(argValue);
+                // Even though we know that the tuple does not escape its scope, the current
+                // implementation of the wrapper function needs to be reexamined to consume a
+                // stack allocated tuple.
+                argValue = this.SharedState.Values.CreateTuple(ImmutableArray.Create(argValue), allocOnStack: false);
             }
 
             var callableArg = argValue.QSharpType.Resolution.IsUnitType
@@ -911,7 +936,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (returnType.Resolution.IsUnitType)
             {
-                Value resultTuple = this.SharedState.Constants.UnitValue;
+                Value resultTuple = this.SharedState.Values.Unit.Value;
                 this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple);
                 return this.SharedState.Values.Unit;
             }
@@ -996,32 +1021,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Registers the contructed array with the scope manager.
         /// </summary>
         /// <exception cref="InvalidOperationException">The type of the current expression is not an array type.</exception>
-        private ResolvedExpressionKind CreateAndPopulateArray(TypedExpression sizeEx, IValue itemValue)
+        private ResolvedExpressionKind CreateAndPopulateArray(TypedExpression sizeEx, IValue itemValue, bool canBeStackAllocated)
         {
-            var elementType = this.SharedState.CurrentExpressionType().Resolution is ResolvedTypeKind.ArrayType et
-                ? et.Item
-                : throw new InvalidOperationException("current expression is expected to be an array");
-
             var size = this.SharedState.EvaluateSubexpression(sizeEx);
-            var array = this.SharedState.Values.CreateArray(size.Value, elementType);
+            var array = QirValues.AsConstantUInt32(size.Value) is uint count
+                ? this.SharedState.Values.CreateArray(
+                    itemValue.QSharpType,
+                    Enumerable.Repeat(itemValue, (int)count).ToArray(),
+                    allocOnStack: canBeStackAllocated)
+                : this.SharedState.Values.CreateArray(
+                    itemValue.QSharpType, size.Value, _ => itemValue);
+
             this.SharedState.ValueStack.Push(array);
-            if (array.Length == this.SharedState.Context.CreateConstant(0L))
-            {
-                return ResolvedExpressionKind.InvalidExpr;
-            }
-
-            // We need to populate the array
-            var start = this.SharedState.Context.CreateConstant(0L);
-            var end = this.SharedState.CurrentBuilder.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
-            void PopulateItem(Value index)
-            {
-                // We need to make sure that the reference count for the built item is increased by 1.
-                this.SharedState.ScopeMgr.OpenScope();
-                array.GetArrayElementPointer(index).StoreValue(itemValue);
-                this.SharedState.ScopeMgr.CloseScope(itemValue);
-            }
-
-            this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
             return ResolvedExpressionKind.InvalidExpr;
         }
 
@@ -1062,17 +1073,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (exType.Resolution is ResolvedTypeKind.ArrayType elementType)
             {
-                // The runtime function ArrayConcatenate creates a new value with reference count 1 and alias count 0.
-                var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
-                var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
-                value = this.SharedState.Values.FromArray(res, elementType.Item);
+                // Invoking the runtime really only makes sense when it is needed.
+                var (arr1, arr2) = ((ArrayValue)lhs, (ArrayValue)rhs);
+                if (arr1.Count != null && arr2.Count != null)
+                {
+                    var elements = arr1.GetArrayElements().Concat(arr2.GetArrayElements()).ToArray();
+                    value = this.SharedState.Values.CreateArray(elementType.Item, elements, allocOnStack: !this.SharedState.CurrentExpressionMayEscapeItsScope());
+                }
+                else
+                {
+                    // The runtime function ArrayConcatenate creates a new value with reference count 1 and alias count 0.
+                    var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
+                    var res = this.SharedState.CurrentBuilder.Call(adder, arr1.Value, arr2.Value);
+                    value = this.SharedState.Values.FromArray(res, elementType.Item, arr1.Count + arr2.Count);
 
-                // The explicit ref count increase for all items is necessary for the sake of
-                // consistency such that the reference count adjustment for copy-and-update is correct.
-                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
-                this.SharedState.ScopeMgr.ApplyPendingReferences();
-                this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
-                this.SharedState.ScopeMgr.RegisterValue(value);
+                    // The explicit ref count increase for all items is necessary for the sake of
+                    // consistency such that the reference count adjustment for copy-and-update is correct.
+                    this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
+                    this.SharedState.ScopeMgr.ApplyPendingReferences();
+                    this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
+                    this.SharedState.ScopeMgr.RegisterValue(value);
+                }
             }
             else
             {
@@ -1090,7 +1111,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // TODO: handle multi-dimensional arrays
             var array = (ArrayValue)this.SharedState.EvaluateSubexpression(arr);
-            var index = this.SharedState.EvaluateSubexpression(idx);
             var elementType = arr.ResolvedType.Resolution is ResolvedTypeKind.ArrayType arrElementType
                 ? arrElementType.Item
                 : throw new InvalidOperationException("expecting an array in array item access");
@@ -1098,29 +1118,42 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (idx.ResolvedType.Resolution.IsInt)
             {
+                var index = this.SharedState.EvaluateSubexpression(idx);
                 value = array.GetArrayElement(index.Value);
             }
             else if (idx.ResolvedType.Resolution.IsRange)
             {
-                // Unless we force that memory is copied when a new slice is created,
-                // array sliceing creates a new array only if the current alias count is larger than zero.
-                // The created array is instantiated with reference count 1 and alias count 0.
-                // otherwise, if the current alias count is zero, then the array may be modified in place.
-                // In this case, its reference count is increased by 1.
-                // Even though we keep track of alias counts for arrays, we force a copy here to simplify
-                // the logic we do to avoid alias count increases when possible, while also ensuring that
-                // the additional reference count compensation for copy-and-update as explained in the
-                // the comment there is exactly one.
-                var forceCopy = this.SharedState.Context.CreateConstant(true);
-                var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
-                var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
-                value = this.SharedState.Values.FromArray(slice, elementType);
+                // Invoking the runtime really only makes sense when it is needed,
+                // given that we always force a copy anyway.
+                var (start, step, end) = this.SharedState.Functions.RangeItems(idx);
+                if (this.SharedState.TryEvaluateRange(start, step, end) is IEnumerable<int> evaluatedRange)
+                {
+                    var elements = array.GetArrayElements(evaluatedRange.ToArray());
+                    value = this.SharedState.Values.CreateArray(array.QSharpElementType, elements, allocOnStack: !this.SharedState.CurrentExpressionMayEscapeItsScope());
+                }
+                else
+                {
+                    // Unless we force that memory is copied when a new slice is created,
+                    // array slicing creates a new array only if the current alias count is larger than zero.
+                    // The created array is instantiated with reference count 1 and alias count 0.
+                    // otherwise, if the current alias count is zero, then the array may be modified in place.
+                    // In this case, its reference count is increased by 1.
+                    // Even though we keep track of alias counts for arrays, we force a copy here to simplify
+                    // the logic we do to avoid alias count increases when possible, while also ensuring that
+                    // the additional reference count compensation for copy-and-update as explained in the
+                    // the comment there is exactly one.
+                    var forceCopy = this.SharedState.Context.CreateConstant(true);
+                    var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
+                    var range = this.SharedState.CreateRange(start, step, end).Value;
+                    var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.OpaquePointer, range, forceCopy);
+                    value = this.SharedState.Values.FromArray(slice, elementType, null);
 
-                // The explicit ref count increase for all items is necessary for the sake of
-                // consistency such that the reference count adjustment for copy-and-update is correct.
-                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
-                this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
-                this.SharedState.ScopeMgr.RegisterValue(value);
+                    // The explicit ref count increase for all items is necessary for the sake of
+                    // consistency such that the reference count adjustment for copy-and-update is correct.
+                    this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
+                    this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
+                    this.SharedState.ScopeMgr.RegisterValue(value);
+                }
             }
             else
             {
@@ -1489,7 +1522,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else
             {
                 // deal with global callables
-                value = this.InvokeGlobalCallable(callableName, QsSpecializationKind.QsBody, arg);
+                value = this.InvokeGlobalCallable(callableName, QsSpecializationKind.QsBody, arg, canBeStackAllocated: !this.SharedState.CurrentExpressionMayEscapeItsScope());
             }
 
             this.SharedState.ValueStack.Push(value);
@@ -1873,7 +1906,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpressionKind OnNamedItemAccess(TypedExpression ex, Identifier acc)
         {
             IValue value;
-            if (!(ex.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt))
+            if (ex.ResolvedType.Resolution is not ResolvedTypeKind.UserDefinedType udt)
             {
                 throw new NotSupportedException("invalid type for named item access");
             }
@@ -1884,9 +1917,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else if (acc is Identifier.LocalVariable itemName && FindNamedItem(itemName.Item, udtDecl.TypeItems, out var location))
             {
                 value = this.SharedState.EvaluateSubexpression(ex);
-                for (int i = 0; i < location.Count; i++)
+                while (location.TryPop(out var loc))
                 {
-                    value = ((TupleValue)value).GetTupleElement(location[i]);
+                    value = ((TupleValue)value).GetTupleElement(loc);
                 }
             }
             else
@@ -1931,122 +1964,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpressionKind OnSizedArray(TypedExpression ex, TypedExpression size)
-        {
-            var itemValue = this.SharedState.EvaluateSubexpression(ex);
-            return this.CreateAndPopulateArray(size, itemValue);
-        }
+        public override ResolvedExpressionKind OnSizedArray(TypedExpression ex, TypedExpression size) =>
+            this.CreateAndPopulateArray(
+                size,
+                this.SharedState.EvaluateSubexpression(ex),
+                canBeStackAllocated: !this.SharedState.CurrentExpressionMayEscapeItsScope());
 
-        public override ResolvedExpressionKind OnNewArray(ResolvedType elementType, TypedExpression size)
-        {
-            IValue DefaultValue(ResolvedType type)
-            {
-                if (type.Resolution.IsInt)
-                {
-                    var value = this.SharedState.Context.CreateConstant(0L);
-                    return this.SharedState.Values.FromSimpleValue(value, type);
-                }
-                else if (type.Resolution.IsDouble)
-                {
-                    var value = this.SharedState.Context.CreateConstant(0.0);
-                    return this.SharedState.Values.FromSimpleValue(value, type);
-                }
-                else if (type.Resolution.IsBool)
-                {
-                    var value = this.SharedState.Context.CreateConstant(false);
-                    return this.SharedState.Values.FromSimpleValue(value, type);
-                }
-                else if (type.Resolution.IsPauli)
-                {
-                    var pointer = this.SharedState.Constants.PauliI;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pointer);
-                    return this.SharedState.Values.From(constant, type);
-                }
-                else if (type.Resolution.IsResult)
-                {
-                    var getZero = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
-                    var constant = this.SharedState.CurrentBuilder.Call(getZero);
-                    return this.SharedState.Values.From(constant, type);
-                }
-                else if (type.Resolution.IsQubit)
-                {
-                    var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Qubit);
-                    return this.SharedState.Values.From(value, type);
-                }
-                else if (type.Resolution.IsRange)
-                {
-                    var pointer = this.SharedState.Constants.EmptyRange;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Range, pointer);
-                    return this.SharedState.Values.From(constant, type);
-                }
-                else if (type.Resolution is ResolvedTypeKind.TupleType ts)
-                {
-                    var values = ts.Item.Select(DefaultValue).ToArray();
-                    return this.SharedState.Values.CreateTuple(values);
-                }
-                else if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
-                {
-                    if (!this.SharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl))
-                    {
-                        throw new ArgumentException("type declaration not found");
-                    }
-
-                    var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType items ? items.Item : ImmutableArray.Create(udtDecl.Type);
-                    var values = elementTypes.Select(DefaultValue).ToArray();
-                    return this.SharedState.Values.CreateCustomType(udt.Item, values);
-                }
-
-                if (type.Resolution is ResolvedTypeKind.ArrayType itemType)
-                {
-                    return this.SharedState.Values.CreateArray(itemType.Item);
-                }
-                else if (type.Resolution.IsFunction || type.Resolution.IsOperation)
-                {
-                    // We can't simply set this to null, unless the reference and alias counting functions
-                    // in the runtime accept null values as arguments.
-                    var nullTableName = $"DefaultCallable__NullFunctionTable";
-                    var nullTable = this.SharedState.Module.GetNamedGlobal(nullTableName);
-                    if (nullTable == null)
-                    {
-                        var fctType = this.SharedState.Types.FunctionSignature.CreatePointerType();
-                        var funcs = Enumerable.Repeat(Constant.ConstPointerToNullFor(fctType), 4);
-                        var array = ConstantArray.From(fctType, funcs.ToArray());
-                        nullTable = this.SharedState.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, nullTableName);
-                    }
-
-                    var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-                    var memoryManagementTable = this.SharedState.GetOrCreateCallableMemoryManagementTable(null);
-                    var value = this.SharedState.CurrentBuilder.Call(createCallable, nullTable, memoryManagementTable, this.SharedState.Constants.UnitValue);
-                    var built = this.SharedState.Values.FromCallable(value, type);
-                    this.SharedState.ScopeMgr.RegisterValue(built);
-                    return built;
-                }
-                else if (type.Resolution.IsString)
-                {
-                    return CreateStringLiteral(this.SharedState, "");
-                }
-                else if (type.Resolution.IsBigInt)
-                {
-                    var value = this.SharedState.CurrentBuilder.Call(
-                        this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64),
-                        this.SharedState.Context.CreateConstant(0L));
-                    var built = this.SharedState.Values.From(value, type);
-                    this.SharedState.ScopeMgr.RegisterValue(built);
-                    return built;
-                }
-                else if (type.Resolution.IsUnitType)
-                {
-                    return this.SharedState.Values.Unit;
-                }
-                else
-                {
-                    throw new NotSupportedException("no known default value for the given type");
-                }
-            }
-
-            var defaultValue = DefaultValue(elementType);
-            return this.CreateAndPopulateArray(size, defaultValue);
-        }
+        public override ResolvedExpressionKind OnNewArray(ResolvedType elementType, TypedExpression size) =>
+            this.CreateAndPopulateArray(
+                size,
+                this.SharedState.Values.DefaultValue(elementType),
+                canBeStackAllocated: !this.SharedState.CurrentExpressionMayEscapeItsScope());
 
         public override ResolvedExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)
         {
@@ -2106,7 +2034,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // deal with global callables
                 var innerArg = BuildInnerArg(arg, controlledCount);
                 var kind = GetSpecializationKind(isAdjoint, controlledCount > 0);
-                value = this.InvokeGlobalCallable(callableName, kind, innerArg);
+                value = this.InvokeGlobalCallable(callableName, kind, innerArg, canBeStackAllocated: !this.SharedState.CurrentExpressionMayEscapeItsScope());
             }
 
             this.SharedState.ValueStack.Push(value);
@@ -2179,7 +2107,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         // We then create and populate the complete argument tuple for the controlled specialization of the inner callable.
                         // The tuple consists of the control qubits and the combined tuple of captured values and the arguments given to the partial application.
                         var innerArgs = partialArgs.BuildItem(captureTuple, ctlPaArgItems[1]);
-                        return this.SharedState.Values.CreateTuple(ctlPaArgItems[0], innerArgs);
+
+                        // TODO: If not for the current way for how callable values are created and invoked,
+                        // we could always stack allocate this tuple.
+                        return this.SharedState.Values.CreateTuple(ImmutableArray.Create(ctlPaArgItems[0], innerArgs), allocOnStack: false);
                     }
 
                     TupleValue innerArg;
@@ -2197,7 +2128,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var typedInnerArg = partialArgs.BuildItem(captureTuple, parArgsTuple);
                         innerArg = typedInnerArg is TupleValue innerArgTuple
                             ? innerArgTuple
-                            : this.SharedState.Values.CreateTuple(typedInnerArg);
+
+                            // TODO: If not for the current way for how callable values are created and invoked,
+                            // we could always stack allocate this tuple (or not create it in the first place).
+                            : this.SharedState.Values.CreateTuple(ImmutableArray.Create(typedInnerArg), allocOnStack: false);
                     }
 
                     var invokeCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
@@ -2271,29 +2205,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnPauliLiteral(QsPauli p)
         {
-            IValue LoadPauli(Value pauli)
-            {
-                var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pauli);
-                var exType = this.SharedState.CurrentExpressionType();
-                return this.SharedState.Values.From(constant, exType);
-            }
-
             IValue value;
             if (p.IsPauliI)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliI);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliI);
             }
             else if (p.IsPauliX)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliX);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliX);
             }
             else if (p.IsPauliY)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliY);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliY);
             }
             else if (p.IsPauliZ)
             {
-                value = LoadPauli(this.SharedState.Constants.PauliZ);
+                value = this.SharedState.Values.CreatePauli(QsPauli.PauliZ);
             }
             else
             {
@@ -2416,24 +2343,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpressionKind OnValueArray(ImmutableArray<TypedExpression> vs)
+        public override ResolvedExpressionKind OnValueArray(ImmutableArray<TypedExpression> arrayItems)
         {
             // TODO: handle multi-dimensional arrays
             var elementType = this.SharedState.CurrentExpressionType().Resolution is ResolvedTypeKind.ArrayType arrItemType
                 ? arrItemType.Item
                 : throw new InvalidOperationException("current expression is not of type array");
 
-            var value = this.SharedState.Values.CreateArray(elementType, vs);
+            var value = this.SharedState.Values.CreateArray(
+                elementType, arrayItems, allocOnStack: !this.SharedState.CurrentExpressionMayEscapeItsScope());
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpressionKind OnValueTuple(ImmutableArray<TypedExpression> vs)
+        public override ResolvedExpressionKind OnValueTuple(ImmutableArray<TypedExpression> tupleItems)
         {
             IValue value =
-                vs.Length == 0 ? this.SharedState.Values.Unit :
-                vs.Length == 1 ? this.SharedState.EvaluateSubexpression(vs.Single()) :
-                this.SharedState.Values.CreateTuple(vs);
+                tupleItems.Length == 0 ? this.SharedState.Values.Unit :
+                tupleItems.Length == 1 ? this.SharedState.EvaluateSubexpression(tupleItems[0]) :
+                this.SharedState.Values.CreateTuple(
+                    tupleItems, allocOnStack: !this.SharedState.CurrentExpressionMayEscapeItsScope());
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
@@ -2444,7 +2373,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // except pushing the value on the value stack unless the tuples contains a single item,
             // in which case we need to remove the tuple wrapping.
             var value = this.SharedState.EvaluateSubexpression(ex);
-            if (!(ex.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt))
+            if (ex.ResolvedType.Resolution is not ResolvedTypeKind.UserDefinedType udt)
             {
                 throw new NotSupportedException("invalid type for unwrap operator");
             }

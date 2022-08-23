@@ -367,7 +367,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.Externals.Declarations.Values.SelectMany(h =>
                 h.Specializations.Select(t => Tuple.Create(t.Item1, t.Item2))),
             this.Externals.Declarations.Values.SelectMany(h => h.Types),
-            this.BuildProperties.RuntimeCapability,
+            this.BuildProperties.TargetCapability,
             this.BuildProperties.IsExecutable);
 
         /// <summary>

@@ -167,7 +167,7 @@ type NamespaceTransformationBase(statementTransformation: _ -> StatementTransfor
     abstract OnSpecializationImplementation: SpecializationImplementation -> SpecializationImplementation
 
     default this.OnSpecializationImplementation(implementation: SpecializationImplementation) =
-        let Build kind transformed =
+        let build kind transformed =
             kind |> node.BuildOr implementation transformed
 
         match implementation with
@@ -177,8 +177,8 @@ type NamespaceTransformationBase(statementTransformation: _ -> StatementTransfor
         | Intrinsic ->
             this.OnIntrinsicImplementation()
             Intrinsic
-        | Generated dir -> this.OnGeneratedImplementation dir |> Build Generated
-        | Provided (argTuple, body) -> this.OnProvidedImplementation(argTuple, body) |> Build Provided
+        | Generated dir -> this.OnGeneratedImplementation dir |> build Generated
+        | Provided (argTuple, body) -> this.OnProvidedImplementation(argTuple, body) |> build Provided
 
     /// This method is defined for the sole purpose of eliminating code duplication for each of the specialization kinds.
     /// It is hence not intended and should never be needed for public use.

@@ -245,7 +245,9 @@ module MSBuildProperties =
     let QuantumSdkVersion = "QuantumSdkVersion"
     let TargetPath = "TargetPath"
     let ResolvedProcessorArchitecture = "ResolvedProcessorArchitecture"
+    [<Obsolete("Replaced by ResolvedTargetCapability for Microsoft.Quantum.Sdk version 0.25 and newer.")>]
     let ResolvedRuntimeCapabilities = "ResolvedRuntimeCapabilities"
+    let ResolvedTargetCapability = "ResolvedTargetCapability"
     let ResolvedQsharpOutputType = "ResolvedQSharpOutputType"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
     let QsFmtExe = "QsFmtExe"
@@ -259,10 +261,13 @@ module AssemblyConstants =
     let QsharpExe = "QSharpExe"
     let QsharpLibrary = "QSharpLibrary"
     let ProcessorArchitecture = "ProcessorArchitecture"
+    [<Obsolete("Replaced by QuantinuumProcessor for Microsoft.Quantum.Sdk version 0.25 and newer.")>]
     let HoneywellProcessor = "HoneywellProcessor"
     let IonQProcessor = "IonQProcessor"
     let QCIProcessor = "QCIProcessor"
     let QuantinuumProcessor = "QuantinuumProcessor"
+    let RigettiProcessor = "RigettiProcessor"
+    let MicrosoftSimulator = "MicrosoftSimulator"
     let ExecutionTarget = "ExecutionTarget"
     let TargetCapability = "TargetCapability"
     let DefaultSimulator = "DefaultSimulator"
@@ -275,23 +280,8 @@ module AssemblyConstants =
     let PerfDataOutputPath = "PerfDataOutputPath"
     let DocsOutputPath = "DocsOutputPath"
     let DocsPackageId = "DocsPackageId"
-    let GenerateConcreteIntrinsic = "GenerateConcreteIntrinsic"
-
-    /// The runtime capabilities supported by an execution target. The names of the capabilities here match the ones
-    /// defined by the SDK.
-    // TODO: RELEASE 2021-04: Remove RuntimeCapabilities.
-    [<Obsolete "Replaced by Microsoft.Quantum.QsCompiler.RuntimeCapability.">]
-    type RuntimeCapabilities =
-        /// No known runtime restrictions. Any Q# program can be executed.
-        | Unknown = 0
-
-        /// Measurement results cannot be compared for equality.
-        | QPRGen0 = 1
-
-        /// Measurement results can be compared for equality only in if-statement conditional expressions in operations.
-        /// The block of an if-statement that depends on a result cannot contain set statements for mutable variables
-        /// declared outside the block, or return statements.
-        | QPRGen1 = 2
+    let IsTargetPackage = "IsTargetPackage"
+    let TargetPackageAssemblies = "TargetPackageAssemblies"
 
 /// contains reserved names for command line arguments of Q# projects
 module CommandLineArguments =

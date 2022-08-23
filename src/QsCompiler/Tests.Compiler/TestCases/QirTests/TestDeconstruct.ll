@@ -1,5 +1,7 @@
 define internal i64 @Microsoft__Quantum__Testing__QIR__TestDeconstruct__body(i64 %0, { i64, i64 }* %1) {
 entry:
+  %c = alloca i64, align 8
+  %b = alloca i64, align 8
   %2 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, { i64, i64 }* }* getelementptr ({ i64, { i64, i64 }* }, { i64, { i64, i64 }* }* null, i32 1) to i64))
   %a = bitcast %Tuple* %2 to { i64, { i64, i64 }* }*
   %3 = getelementptr inbounds { i64, { i64, i64 }* }, { i64, { i64, i64 }* }* %a, i32 0, i32 0
@@ -10,9 +12,7 @@ entry:
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i32 1)
-  %b = alloca i64, align 8
   store i64 3, i64* %b, align 4
-  %c = alloca i64, align 8
   store i64 5, i64* %c, align 4
   %6 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %1, i32 0, i32 0
   %7 = load i64, i64* %6, align 4

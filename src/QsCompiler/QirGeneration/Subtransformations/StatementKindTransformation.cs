@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using LlvmBindings.Values;
@@ -146,30 +147,54 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
             {
                 ResolvedType qubitType = ResolvedType.New(ResolvedTypeKind.Qubit);
-                IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
-                IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
+                IrFunction allocateQubit = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
+                IrFunction allocateQubitArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
+
+                IValue AllocateQubit(Action<IValue> afterAlloc)
+                {
+                    var qubit = this.SharedState.Values.From(
+                        this.SharedState.CurrentBuilder.Call(allocateQubit),
+                        qubitType);
+                    afterAlloc(qubit);
+                    return qubit;
+                }
 
                 IValue Allocate(ResolvedInitializer init)
                 {
                     if (init.Resolution.IsSingleQubitAllocation)
                     {
-                        Value allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
-                        var value = this.SharedState.Values.From(allocation, init.Type);
-                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(value);
-                        return value;
+                        return AllocateQubit(this.SharedState.ScopeMgr.RegisterAllocatedQubits);
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                     {
-                        Value countValue = this.SharedState.EvaluateSubexpression(reg.Item).Value;
-                        Value allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
-                        var value = this.SharedState.Values.From(allocation, init.Type);
-                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(value);
-                        return value;
+                        // There may be benefits to allocating a register as a whole,
+                        // so we only allocate them one by one when this is preferable (the case for certain QIR profiles).
+                        Value size = this.SharedState.EvaluateSubexpression(reg.Item).Value;
+                        if (this.SharedState.TargetQirProfile && QirValues.AsConstantUInt32(size) is uint count)
+                        {
+                            var qubits = Enumerable.Repeat(
+                                this.SharedState.ScopeMgr.RegisterAllocatedQubits,
+                                (int)count).Select(AllocateQubit).ToArray();
+                            return this.SharedState.Values.CreateArray(qubitType, qubits, allocOnStack: true);
+                        }
+                        else
+                        {
+                            Value allocation = this.SharedState.CurrentBuilder.Call(allocateQubitArray, size);
+                            var array = this.SharedState.Values.From(allocation, init.Type);
+                            this.SharedState.ScopeMgr.RegisterAllocatedQubits(array);
+                            return array;
+                        }
                     }
                     else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
                     {
                         var items = inits.Item.Select(Allocate).ToArray();
-                        return this.SharedState.Values.CreateTuple(items);
+
+                        // Todo: In principle it would be reasonable to always stack allocate the tuple
+                        // (given that it is immutable and the qubits it contains must not escape the scope).
+                        // However, this will currently cause issues when this tuple is then passed as an
+                        // argument to a callable. We hence chose to stack allocate based on target for now,
+                        // but this would be good to revise.
+                        return this.SharedState.Values.CreateTuple(items, allocOnStack: this.SharedState.TargetQirProfile);
                     }
                     else
                     {
@@ -224,7 +249,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             var clauses = stm.ConditionalBlocks;
             var contBlock = this.SharedState.AddBlockAfterCurrent("continue");
-            var contBlockUsed = false;
+            var (contBlockUsed, skipRest) = (false, false);
 
             // if/then/elif...else
             // The first test goes in the current block. If it succeeds, we go to the "then0" block.
@@ -232,22 +257,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // If the second test succeeds, we go to the "then1" block, otherwise to the "test2" block, etc.
             // If all tests fail, we go to the "else" block if there's a default block, or to the
             // continuation block if not.
-            for (int n = 0; n < clauses.Length; n++)
+            for (int n = 0; n < clauses.Length && !skipRest; n++)
             {
-                // If this is an intermediate clause, then the next block if the test fails
-                // is the next clause's test block.
-                // If this is the last clause, then the next block is the default clause's block
-                // if there is one, or the continue block if not.
-                var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
-                            this.SharedState.BlockName($"then{n}"), contBlock);
-                var nextConditional = n < clauses.Length - 1
-                    ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
-                    : (stm.Default.IsNull
-                        ? contBlock
-                        : this.SharedState.CurrentFunction.InsertBasicBlock(
-                                this.SharedState.BlockName($"else"), contBlock));
-                contBlockUsed = contBlockUsed || nextConditional == contBlock;
-
                 // Evaluate the test, which should be a Boolean at this point, and create the branch.
                 // Note that we need to start the branching and create a scope for the condition
                 // to ensure that anything created as part of the condition is released as part of the condition,
@@ -256,27 +267,55 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ScopeMgr.OpenScope();
                 var testValue = this.SharedState.EvaluateSubexpression(clauses[n].Item1).Value;
                 this.SharedState.ScopeMgr.CloseScope(false);
-                this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
-                contBlockUsed = this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock) || contBlockUsed;
+
+                if (!(QirValues.AsConstantUInt32(testValue) == 0))
+                {
+                    // If this is an intermediate clause, then the next block if the test fails
+                    // is the next clause's test block.
+                    // If this is the last clause, then the next block is the default clause's block
+                    // if there is one, or the continue block if not.
+                    var conditionalBlock =
+                        this.SharedState.CurrentFunction.InsertBasicBlock(
+                            this.SharedState.BlockName($"then{n}"), contBlock);
+                    skipRest = (QirValues.AsConstantUInt32(testValue) & 1) == 1;
+                    var nextConditional = n < clauses.Length - 1 && !skipRest
+                        ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
+                        : (stm.Default.IsNull || skipRest
+                            ? contBlock
+                            : this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"else"), contBlock));
+                    contBlockUsed = contBlockUsed || nextConditional == contBlock;
+
+                    this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
+                    contBlockUsed = this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock) || contBlockUsed;
+                    this.SharedState.SetCurrentBlock(nextConditional);
+                }
+
                 this.SharedState.EndBranch();
-                this.SharedState.SetCurrentBlock(nextConditional);
             }
 
             // Deal with the default, if there is any
-            if (stm.Default.IsValue)
+            if (stm.Default.IsValue && !skipRest)
             {
                 this.SharedState.StartBranch();
                 contBlockUsed = this.ProcessBlock(this.SharedState.CurrentBlock, stm.Default.Item.Body, contBlock) || contBlockUsed;
                 this.SharedState.EndBranch();
             }
+            else if (this.SharedState.CurrentBlock.Terminator is null && this.SharedState.CurrentBlock != contBlock)
+            {
+                // If the evaluation of the first condition is inconclusive,
+                // all subsequent conditions are known to be false, and there is no else defined,
+                // then we can end up with a test block that is unpopulated.
+                this.SharedState.CurrentBuilder.Branch(contBlock);
+                this.SharedState.SetCurrentBlock(contBlock);
+                contBlockUsed = true;
+            }
 
-            // Finally, set the continuation block as current and prune it if it is unused.
+            var currentBlock = this.SharedState.CurrentBlock;
             this.SharedState.SetCurrentBlock(contBlock);
             if (!contBlockUsed)
             {
-                // This is the savest option to deal with this case from a code rubustness perspective.
-                // The additional code blocks that don't have any predecessors are better trimmed in a separate pass over the generated ir.
-                this.OnFailStatement(SyntaxGenerator.StringLiteral("reached unreachable code...", ImmutableArray<TypedExpression>.Empty));
+                this.SharedState.CurrentBuilder.Unreachable();
+                this.SharedState.SetCurrentBlock(currentBlock);
             }
 
             return QsStatementKind.EmptyStatement;
@@ -292,12 +331,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             var message = this.SharedState.EvaluateSubexpression(ex);
 
-            // Release any resources (qubits or memory) before we fail.
-            this.SharedState.ScopeMgr.ExitFunction(message);
-            var fail = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail);
-            this.SharedState.CurrentBuilder.Call(fail, message.Value);
-            this.SharedState.CurrentBuilder.Unreachable();
+            // FIXME: this is a not so clean solution;
+            // update the scope manager to allow exiting an inlined function,
+            // and update the data structures to allow managed items in stack allocated ones.
+            if (!this.SharedState.TargetQirProfile)
+            {
+                // Release any resources (qubits or memory) before we fail.
+                this.SharedState.ScopeMgr.ExitFunction(message);
+                var fail = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail);
+                this.SharedState.CurrentBuilder.Call(fail, message.Value);
+            }
 
+            this.SharedState.CurrentBuilder.Unreachable();
             return QsStatementKind.EmptyStatement;
         }
 
@@ -328,7 +373,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // at the beginning of the body and instead directly register the iteration value under that name.
                     // We don't need to register a name if e.g. the loop variable is discarded.
                     string? loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name ? name.Item : null;
-                    var variableValue = this.SharedState.Values.From(loopVariable, ResolvedType.New(ResolvedTypeKind.Int));
+                    var variableValue = this.SharedState.Values.FromSimpleValue(loopVariable, ResolvedType.New(ResolvedTypeKind.Int));
                     if (loopVarName != null)
                     {
                         this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue, fromLocalId: accessedViaLocal);
@@ -337,8 +382,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
-                var (getStart, getStep, getEnd) = this.SharedState.Functions.RangeItems(stm.IterationValues);
-                this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), LoopBody<Value>(ExecuteBody));
+                var (start, step, end) = this.SharedState.Functions.RangeItems(stm.IterationValues);
+                this.SharedState.IterateThroughRange(start, step, end, LoopBody<Value>(ExecuteBody));
             }
             else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
             {

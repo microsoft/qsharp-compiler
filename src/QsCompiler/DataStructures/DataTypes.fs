@@ -289,15 +289,15 @@ type QsCompilerDiagnostic =
 
     /// builds a new diagnostics error with the give code and range
     static member Error (code, args) range =
-        QsCompilerDiagnostic.New(Error code, args) range
+        QsCompilerDiagnostic.New (Error code, args) range
 
     /// builds a new diagnostics warning with the give code and range
     static member Warning (code, args) range =
-        QsCompilerDiagnostic.New(Warning code, args) range
+        QsCompilerDiagnostic.New (Warning code, args) range
 
     /// builds a new diagnostics information with the give code and range
     static member Info (code, args) range =
-        QsCompilerDiagnostic.New(Information code, args) range
+        QsCompilerDiagnostic.New (Information code, args) range
 
     member this.Code =
         match this.Diagnostic with

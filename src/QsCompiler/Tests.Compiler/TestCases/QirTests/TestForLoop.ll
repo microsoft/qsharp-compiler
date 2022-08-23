@@ -1,9 +1,10 @@
 define internal { double, %String* }* @Microsoft__Quantum__Testing__QIR__TestNestedLoops__body() {
 entry:
+  %energy = alloca double, align 8
+  %res = alloca { double, %String* }*, align 8
   %name = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0))
   %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @1, i32 0, i32 0))
   %1 = call { double, %String* }* @Microsoft__Quantum__Testing__QIR__Energy__body(double 0.000000e+00, %String* %0)
-  %res = alloca { double, %String* }*, align 8
   store { double, %String* }* %1, { double, %String* }** %res, align 8
   %2 = bitcast { double, %String* }* %1 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i32 1)
@@ -17,7 +18,6 @@ entry:
   store %String* %name, %String** %5, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %3, i32 1)
   store { double, %String* }* %4, { double, %String* }** %res, align 8
-  %energy = alloca double, align 8
   store double 0.000000e+00, double* %energy, align 8
   br label %header__1
 

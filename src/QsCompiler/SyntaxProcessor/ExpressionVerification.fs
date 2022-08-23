@@ -101,7 +101,7 @@ let private verifyConditionalExecution (expr: TypedExpression) =
 
     [
         if expr.Exists isOperationCall then
-            QsCompilerDiagnostic.Warning(WarningCode.ConditionalEvaluationOfOperationCall, []) (rangeOrDefault expr)
+            QsCompilerDiagnostic.Warning (WarningCode.ConditionalEvaluationOfOperationCall, []) (rangeOrDefault expr)
     ]
 
 /// <summary>
@@ -254,7 +254,7 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
     | LocalVariable _, Null -> (identifier, resId.Type) |> exprWithoutTypeArgs symbol.Range info, Seq.toList diagnostics
     | LocalVariable _, Value _ ->
         invalidWithoutTargs false,
-        QsCompilerDiagnostic.Error(ErrorCode.IdentifierCannotHaveTypeArguments, []) symbol.RangeOrDefault
+        QsCompilerDiagnostic.Error (ErrorCode.IdentifierCannotHaveTypeArguments, []) symbol.RangeOrDefault
         :: Seq.toList diagnostics
     | GlobalCallable _, Value res when res.Length <> typeParams.Length ->
         invalidWithoutTargs false,
@@ -307,13 +307,13 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
     | InvalidSymbol -> InvalidItem, [||], [||]
     | MissingSymbol when warnOnDiscard ->
         let warning =
-            QsCompilerDiagnostic.Warning(WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
+            QsCompilerDiagnostic.Warning (WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
 
         DiscardedItem, [||], [| warning |]
     | MissingSymbol -> DiscardedItem, [||], [||]
     | OmittedSymbols
     | QualifiedSymbol _ ->
-        let error = QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
+        let error = QsCompilerDiagnostic.Error (ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
         InvalidItem, [||], [| error |]
     | Symbol name ->
         match tryBuildDeclaration (name, symbol.RangeOrDefault) rhsType with
@@ -423,8 +423,7 @@ type QsExpression with
 
             let validSlicing step =
                 match array.ResolvedType.Resolution with
-                | ArrayType _ ->
-                    step |> Option.forall (fun expr -> Int = (inference.Resolve expr.ResolvedType).Resolution)
+                | ArrayType _ -> step |> Option.forall (fun expr -> Int = expr.ResolvedType.Resolution)
                 | _ -> false
 
             let conditionalIntExpr (cond: TypedExpression) ifTrue ifFalse =
@@ -443,19 +442,18 @@ type QsExpression with
                     conditionalIntExpr (IsNegative step) (SyntaxGenerator.IntLiteral 0L) (LengthMinusOne array)
                 | ex -> if validSlicing ex then LengthMinusOne array else invalidRangeDelimiter
 
-            let resolveSlicingRange start step end_ =
-                let integerExpr ex =
+            let resolveSlicingRange start step finish =
+                let toResolvedExpr ex =
                     let ex = resolve context ex
-                    inference.Constrain(ResolvedType.New Int .> ex.ResolvedType) |> List.iter diagnose
-                    ex
+                    { ex with ResolvedType = inference.Resolve ex.ResolvedType }
 
-                let resolvedStep = step |> Option.map integerExpr
+                let resolvedStep = step |> Option.map toResolvedExpr
 
                 let resolveWith build (ex: QsExpression) =
-                    if ex.isMissing then build resolvedStep else integerExpr ex
+                    if ex.IsMissing then build resolvedStep else toResolvedExpr ex
 
                 let resolvedStart, resolvedEnd =
-                    start |> resolveWith openStartInSlicing, end_ |> resolveWith openEndInSlicing
+                    start |> resolveWith openStartInSlicing, finish |> resolveWith openEndInSlicing
 
                 match resolvedStep with
                 | Some resolvedStep ->
@@ -463,14 +461,14 @@ type QsExpression with
                 | None -> SyntaxGenerator.RangeLiteral(resolvedStart, resolvedEnd)
 
             match index.Expression with
-            | RangeLiteral (lhs, end_) ->
+            | RangeLiteral (lhs, finish) ->
                 match lhs.Expression with
                 | RangeLiteral (start, step) ->
-                    // Cases: xs[...step..end], xs[start..step...], xs[start..step..end], xs[...step...].
-                    resolveSlicingRange start (Some step) end_
+                    // Cases: xs[...step..finish], xs[start..step...], xs[start..step..finish], xs[...step...].
+                    resolveSlicingRange start (Some step) finish
                 | _ ->
-                    // Cases: xs[...end], xs[start...], xs[start..end], xs[...].
-                    resolveSlicingRange lhs None end_
+                    // Cases: xs[...finish], xs[start...], xs[start..finish], xs[...].
+                    resolveSlicingRange lhs None finish
             | _ ->
                 // Case: xs[i].
                 resolve context index
@@ -549,7 +547,7 @@ type QsExpression with
             | InvalidSymbol -> InvalidIdentifier
             | Symbol name -> LocalVariable name
             | _ ->
-                QsCompilerDiagnostic.Error(ErrorCode.ExpectingItemName, []) sym.RangeOrDefault |> diagnose
+                QsCompilerDiagnostic.Error (ErrorCode.ExpectingItemName, []) sym.RangeOrDefault |> diagnose
                 InvalidIdentifier
 
         /// Resolves and verifies the given expression and item name of a named item access expression,
@@ -759,7 +757,7 @@ type QsExpression with
                     inference.Constrain(callable.ResolvedType <. ResolvedType.New(QsTypeKind.Function(argType, output)))
 
                 if inference.Resolve callable.ResolvedType |> isOperation then
-                    QsCompilerDiagnostic.Error(ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
+                    QsCompilerDiagnostic.Error (ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
                     |> diagnose
                 else
                     List.iter diagnose diagnostics

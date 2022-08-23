@@ -16,6 +16,7 @@ using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SymbolManagement;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
+using Microsoft.Quantum.QsCompiler.SyntaxProcessing.CapabilityInference;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -117,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the header items corresponding to all open directives with a valid name in <paramref name="file"/>,
         /// or null if <paramref name="file"/> is null.
         /// </summary>
-        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<(string?, QsNullable<Range>)>)> GetOpenDirectivesHeaderItems(
+        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<(string, QsNullable<Range>)>)> GetOpenDirectivesHeaderItems(
             this FileContentManager file) => file.GetHeaderItems(
                 file.OpenDirectiveTokens(),
                 frag =>
@@ -125,20 +126,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var dir = frag.Kind.OpenedNamespace();
                     if (dir.IsNull)
                     {
-                        return QsNullable<Tuple<QsSymbol, (string?, QsNullable<Range>)>>.Null;
+                        return QsNullable<Tuple<QsSymbol, (string, QsNullable<Range>)>>.Null;
                     }
 
-                    QsNullable<Tuple<QsSymbol, (string?, QsNullable<Range>)>> OpenedAs(string? a, QsNullable<Range> r) =>
-                        QsNullable<Tuple<QsSymbol, (string?, QsNullable<Range>)>>.NewValue(new Tuple<QsSymbol, (string?, QsNullable<Range>)>(dir.Item.Item1, (a, r)));
+                    QsNullable<Tuple<QsSymbol, (string, QsNullable<Range>)>> OpenedAs(string a, QsNullable<Range> r) =>
+                        QsNullable<Tuple<QsSymbol, (string, QsNullable<Range>)>>.NewValue(new Tuple<QsSymbol, (string, QsNullable<Range>)>(dir.Item.Item1, (a, r)));
 
                     var alias = dir.Item.Item2;
                     if (alias.IsNull)
                     {
-                        return OpenedAs(null, QsNullable<Range>.Null);
+                        return OpenedAs("", QsNullable<Range>.Null);
                     }
 
-                    var aliasName = alias.Item.Symbol.AsDeclarationName(null);
-                    QsCompilerError.Verify(aliasName != null || alias.Item.Symbol.IsInvalidSymbol, "could not extract namespace short name");
+                    var aliasName = alias.Item.Symbol.AsDeclarationName("");
+                    QsCompilerError.Verify(aliasName != "" || alias.Item.Symbol.IsInvalidSymbol, "could not extract namespace short name");
                     return OpenedAs(aliasName, alias.Item.Range);
                 },
                 null);
@@ -1505,14 +1506,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var resolver = InferenceContextModule.Resolver(context.Inference);
             implementation = resolver.Statements.OnScope(implementation);
 
-            // Verify that all paths return a value if needed (or fail), and that the specialization's required runtime
-            // capabilities are supported by the execution target.
             var (allPathsReturn, returnDiagnostics) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
-            var capabilityDiagnostics = CapabilityInference.ScopeDiagnostics(context, implementation);
             var rootPosition = root.Fragment.Range.Start;
-            diagnostics.AddRange(returnDiagnostics
-                .Concat(capabilityDiagnostics)
-                .Select(diagnostic => Diagnostics.Generate(sourceFile, diagnostic, rootPosition)));
+            diagnostics.AddRange(returnDiagnostics.Select(d => Diagnostics.Generate(sourceFile, d, rootPosition)));
+
             if (!context.ReturnType.Resolution.IsUnitType && !context.ReturnType.Resolution.IsInvalidType && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind?.IsControlledAdjointDeclaration ?? false ? 2 : 1).Invoke(root.Fragment.Text);
@@ -1665,7 +1662,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
                     var context = ScopeContext.Create(
                         compilation.GlobalSymbols,
-                        compilation.BuildProperties.RuntimeCapability,
+                        compilation.BuildProperties.TargetCapability,
                         compilation.BuildProperties.ProcessorArchitecture,
                         spec);
                     implementation = BuildUserDefinedImplementation(
@@ -1900,7 +1897,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
-                UpdateDiagnosticsWithCycleVerification(compilation, diagnostics, callableDeclarations);
+
+                var graph = new CallGraph(compilation.GetCallables().Values);
+                diagnostics.AddRange(CapabilityDiagnostics(compilation, graph, callables.Select(c => c!.FullName)));
+                diagnostics.AddRange(CycleDiagnostics(compilation.GetCallables(), graph, callableDeclarations));
                 return diagnostics;
             }
             finally
@@ -1909,21 +1909,37 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
-        private static void UpdateDiagnosticsWithCycleVerification(CompilationUnit compilation, List<Diagnostic> diagnostics, ImmutableDictionary<QsQualifiedName, CallableDeclarationHeader> callableDeclarations)
+        private static IEnumerable<Diagnostic> CapabilityDiagnostics(
+            CompilationUnit compilation, CallGraph graph, IEnumerable<QsQualifiedName> delta)
         {
-            // Need to consider the whole compilation to detect cycles
-            var callables = compilation.GetCallables();
-            var callGraph = new CallGraph(callables.Values);
+            var properties = compilation.BuildProperties;
+            var target = TargetModule.Create(properties.ProcessorArchitecture, properties.TargetCapability);
+
+            foreach (var name in delta)
+            {
+                var callable = compilation.GetCallables()[name];
+                foreach (var diagnostic in Capabilities.Diagnose(target, compilation.GlobalSymbols, graph, callable))
+                {
+                    yield return Diagnostics.Generate(callable.Source.AssemblyOrCodeFile, diagnostic);
+                }
+            }
+        }
+
+        private static IEnumerable<Diagnostic> CycleDiagnostics(
+            IReadOnlyDictionary<QsQualifiedName, QsCallable> callables,
+            CallGraph graph,
+            ImmutableDictionary<QsQualifiedName, CallableDeclarationHeader> headers)
+        {
             bool CycleSelector(ImmutableArray<CallGraphNode> cycle) => // only cycles where all callables are type parameterized need to be checked
                 !cycle.Any(node => callables.TryGetValue(node.CallableName, out var decl) && decl.Signature.TypeParameters.IsEmpty);
 
-            foreach (var (diag, parent) in callGraph.VerifyAllCycles(CycleSelector))
+            foreach (var (diagnostic, parent) in graph.VerifyAllCycles(CycleSelector))
             {
-                // Only keep diagnostics for callables that are currently available in the editor
-                if (callableDeclarations.TryGetValue(parent, out var info))
+                // Only keep diagnostics for callables that are currently available in the editor.
+                if (headers.TryGetValue(parent, out var header))
                 {
-                    var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
-                    diagnostics.Add(Diagnostics.Generate(info.Source.AssemblyOrCodeFile, diag, offset));
+                    var offset = header.Position is DeclarationHeader.Offset.Defined { Item: var p } ? p : null;
+                    yield return Diagnostics.Generate(header.Source.AssemblyOrCodeFile, diagnostic, offset);
                 }
             }
         }

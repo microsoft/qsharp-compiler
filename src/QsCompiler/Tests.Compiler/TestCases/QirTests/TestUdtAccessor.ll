@@ -4,23 +4,22 @@ entry:
   %1 = bitcast %Tuple* %0 to { i2, i64 }*
   %2 = getelementptr inbounds { i2, i64 }, { i2, i64 }* %1, i32 0, i32 0
   %3 = getelementptr inbounds { i2, i64 }, { i2, i64 }* %1, i32 0, i32 1
-  %4 = load i2, i2* @PauliX, align 1
-  store i2 %4, i2* %2, align 1
+  store i2 1, i2* %2, align 1
   store i64 1, i64* %3, align 4
   %x = call { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestType__body({ i2, i64 }* %1, double 2.000000e+00)
-  %5 = getelementptr inbounds { { i2, i64 }*, double }, { { i2, i64 }*, double }* %x, i32 0, i32 0
-  %6 = load { i2, i64 }*, { i2, i64 }** %5, align 8
-  %7 = bitcast { i2, i64 }* %6 to %Tuple*
+  %4 = getelementptr inbounds { { i2, i64 }*, double }, { { i2, i64 }*, double }* %x, i32 0, i32 0
+  %5 = load { i2, i64 }*, { i2, i64 }** %4, align 8
+  %6 = bitcast { i2, i64 }* %5 to %Tuple*
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %6, i32 1)
+  %7 = bitcast { { i2, i64 }*, double }* %x to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %7, i32 1)
-  %8 = bitcast { { i2, i64 }*, double }* %x to %Tuple*
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %8, i32 1)
-  %9 = getelementptr inbounds { i2, i64 }, { i2, i64 }* %6, i32 0, i32 1
-  %y = load i64, i64* %9, align 4
+  %8 = getelementptr inbounds { i2, i64 }, { i2, i64 }* %5, i32 0, i32 1
+  %y = load i64, i64* %8, align 4
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %6, i32 -1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %7, i32 -1)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %8, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %6, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %7, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i32 -1)
   ret i64 %y
 }
 
