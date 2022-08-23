@@ -17,8 +17,8 @@ import {getWorkspaceFromUser} from "./quickPickWorkspace";
 import {getConfig, setWorkspace} from "./configFileHelpers";
 import { AbortController} from "@azure/abort-controller";
 import * as https from "https";
-import {MSA_ACCOUNT_TENANT, workspaceStatusEnum} from "./utils/constants"
-import {checkForNesting} from "./checkForNesting"
+import {MSA_ACCOUNT_TENANT, workspaceStatusEnum} from "./utils/constants";
+import {checkForNesting} from "./checkForNesting";
 import {setupDefaultWorkspaceStatusButton, setupUnknownWorkspaceStatusButton} from "./workspaceStatusButtonHelpers";
 const findPort = require('find-open-port');
 
@@ -434,13 +434,16 @@ export async function activate(context: vscode.ExtensionContext) {
             const oldStatus = context.workspaceState.get("workspaceStatus");
             // Get current workspace if available to avoid clearing
             // local jobs submission panel if a user selects same workspace
-            // they are currently in
-            let {workspaceInfo:oldWorkspace} = await getConfig(context, credential, workspaceStatusBarItem, false);
-            const newWorkspaceInfo = await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, 3, true);
+            // they are currently in. Pass false for validation flag as 
+            // the user is in process of changing workspace and therefore
+            // does not need to be shown the error message that they are 
+            // in an unauthorized workspace.
+            let {workspaceInfo:oldWorkspaceInfo} = await getConfig(context, credential, workspaceStatusBarItem, false);
+            const newWorkspaceInfo = await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, 3, oldWorkspaceInfo);
             sendTelemetryEvent(EventNames.changeWorkspace, {},{});
             // Only clear local jobs is user changes workspaces and has
             // a currently authorized workspace status
-            if((newWorkspaceInfo?.workspace!==oldWorkspace?.workspace)&& oldStatus === workspaceStatusEnum.AUTHORIZED){
+            if((newWorkspaceInfo?.workspace!==oldWorkspaceInfo?.workspace)&& oldStatus === workspaceStatusEnum.AUTHORIZED){
             context.workspaceState.update("locallySubmittedJobs", undefined);
             localSubmissionsProvider.refresh(context);
             }
@@ -536,7 +539,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
                 if(!workspaceInfo){
                     totalSteps = 4;
-                    workspaceInfo = await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, totalSteps)
+                    workspaceInfo = await getWorkspaceFromUser(context, credential, workspaceStatusBarItem, totalSteps);
                 }
                 if(!workspaceInfo){
                     return; 
@@ -635,7 +638,6 @@ export async function activate(context: vscode.ExtensionContext) {
         );
 
         return context;
-
 }
 
 // this method is called when your extension is deactivated
