@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 e => ((QsNamespaceElement.QsCallable)e).Item);
 
             var apiSource = new Source(Path.GetTempFileName(), QsNullable<string>.Null);
-            var recorderDeclaration = definedCallables.TryGetValue(recorder.QSharpName.Name, out var decl) ? decl : CreateMessageRecorderDecl();
+            var recorderDeclaration = definedCallables.TryGetValue(recorder.QSharpName.Name, out var decl) ? decl : CreateMessageRecorderDecl(apiSource);
             if (SymbolResolution.TryGetTargetInstructionName(recorderDeclaration.Attributes).IsNull)
             {
                 recorderDeclaration = recorderDeclaration.AddAttribute(
@@ -67,9 +67,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             return namespaces.Where(x => x.Name != apiNamespace.Name).Append(apiNamespace).ToImmutableArray();
         }
 
-        private static QsCallable CreateMessageRecorderDecl()
+        private static QsCallable CreateMessageRecorderDecl(Source source)
         {
-            var source = new Source(Path.GetTempFileName(), QsNullable<string>.Null);
             var recorder = OutputRecorderDefinition.RecordMessage;
             var parameterTuple = ParameterTuple.NewQsTuple(ImmutableArray.Create(
                 ParameterTuple.NewQsTupleItem(
@@ -113,8 +112,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation(this);
                 this.StatementKinds = new StatementKindTransformation(this);
-                this.Expressions = new ExpressionTransformation(this, TransformationOptions.Disabled);
-                this.ExpressionKinds = new ExpressionKindTransformation(this, TransformationOptions.Disabled);
+                this.Expressions = new ExpressionTransformation(this);
+                this.ExpressionKinds = new ReplaceExpressionTransformation(this);
                 this.Types = new TypeTransformation(this, TransformationOptions.Disabled);
             }
 
