@@ -129,7 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     if (sym is Identifier.GlobalCallable global)
                     {
                         var name = global.Item;
-                        if (name == BuiltIn.Message.FullName)
+                        if (name.Equals(BuiltIn.Message.FullName))
                         {
                             sym = Identifier.NewGlobalCallable(OutputRecorderDefinition.RecordMessage.QSharpName);
                         }
