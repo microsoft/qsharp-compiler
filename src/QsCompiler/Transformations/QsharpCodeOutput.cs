@@ -197,7 +197,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
         public static bool Apply(
             out List<ImmutableDictionary<string, string>> generatedCode,
             IEnumerable<QsNamespace> namespaces,
-            params (string, ImmutableDictionary<string, ImmutableArray<(string, string?)>>)[] openDirectives)
+            params (string, ImmutableDictionary<string, ImmutableArray<(string, string)>>)[] openDirectives)
         {
             generatedCode = new List<ImmutableDictionary<string, string>>();
             var symbolsInNS = namespaces.ToImmutableDictionary(ns => ns.Name, ns => ns.Elements
@@ -217,16 +217,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     }
 
                     // determine all symbols that occur in multiple open namespaces
-                    var ambiguousSymbols = symbolsInNS.Where(entry => imports[ns.Name].Contains((entry.Key, null)))
+                    var ambiguousSymbols = symbolsInNS.Where(entry => imports[ns.Name].Contains((entry.Key, string.Empty)))
                         .SelectMany(entry => entry.Value)
                         .GroupBy(name => name)
                         .Where(group => group.Count() > 1)
                         .Select(group => group.Key).ToImmutableHashSet();
 
-                    var openedNS = imports[ns.Name].Where(o => o.Item2 == null).Select(o => o.Item1).ToImmutableHashSet();
+                    var openedNS = imports[ns.Name].Where(o => string.IsNullOrEmpty(o.Item2)).Select(o => o.Item1).ToImmutableHashSet();
                     var nsShortNames = imports[ns.Name]
-                        .SelectNotNull(o => o.Item2?.Apply(item2 => (o.Item1, item2)))
-                        .ToImmutableDictionary(o => o.Item1, o => o.item2);
+                        .Where(o => !string.IsNullOrEmpty(o.Item2))
+                        .ToImmutableDictionary(o => o.Item1, o => o.Item2);
                     var context = new TransformationContext
                     {
                         CurrentNamespace = ns.Name,

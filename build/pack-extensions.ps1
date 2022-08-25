@@ -59,16 +59,16 @@ function Pack-SelfContained() {
 
     Write-Host "##[info]Building $project ($action)..."
     if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
-        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+        $extraArgs = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
     }  else {
-        $args = @();
+        $extraArgs = @();
     }
 
     # Make sure the LanguageServer is built on its own:
     dotnet build (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
-        @args `
+        @extraArgs `
         /property:Version=$Env:ASSEMBLY_VERSION `
         /property:InformationalVersion=$Env:SEMVER_VERSION
 
@@ -83,9 +83,9 @@ function Pack-SelfContained() {
 
         try {
             if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
-                $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
+                $extraArgs = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
             }  else {
-                $args = @();
+                $extraArgs = @();
             }
             $ArchivePath = Join-Path $ArchiveDir "$BaseName-$DotNetRuntimeID-$Env:SEMVER_VERSION.zip";
             dotnet publish (Join-Path $PSScriptRoot $Project) `
@@ -94,7 +94,7 @@ function Pack-SelfContained() {
                 --self-contained `
                 --runtime $DotNetRuntimeID `
                 --output $TargetDir `
-                @args `
+                @extraArgs `
                 /property:Version=$Env:ASSEMBLY_VERSION `
                 /property:InformationalVersion=$Env:SEMVER_VERSION
             Write-Host "##[info]Writing self-contained deployment to $ArchivePath..."
