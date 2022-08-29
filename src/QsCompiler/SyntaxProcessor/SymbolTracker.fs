@@ -76,7 +76,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
 
     /// Returns the manager for all globally declared callables an types.
     /// Throws an invalid operation exception if the content of the manager have been modified since the initialization of this symbol tracker.
-    let GlobalSymbols () =
+    let globalSymbols () =
         if globals.VersionNumber <> expectedVersionGlobals then
             InvalidOperationException
                 "the content of the namespace manager associated with this symbol tracker has changed"
@@ -88,7 +88,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     ///
     /// IMPORTANT: This needs to be adapted if we want to support type specializations and/or external specializations!
     let typeParameters =
-        match GlobalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with
+        match globalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with
         | Found decl ->
             decl.Signature.TypeParameters
             |> Seq.choose (function
@@ -117,8 +117,8 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// source file, namespace, and callable associated with this symbol tracker instance.
     let globalTypeWithName (ns, name) =
         match ns with
-        | None -> GlobalSymbols().TryResolveAndGetType name (parent.Namespace, sourceFile)
-        | Some nsName -> GlobalSymbols().TryGetType (QsQualifiedName.New(nsName, name)) (parent.Namespace, sourceFile)
+        | None -> globalSymbols().TryResolveAndGetType name (parent.Namespace, sourceFile)
+        | Some nsName -> globalSymbols().TryGetType (QsQualifiedName.New(nsName, name)) (parent.Namespace, sourceFile)
 
     /// If a callable declaration (including type constructors!) for a callable with the given name exists in GlobalSymbols,
     /// returns a its header information as Value. Returns Null otherwise.
@@ -126,9 +126,9 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// source file, namespace, and callable associated with this symbol tracker instance.
     let globalCallableWithName (ns, name) =
         match ns with
-        | None -> GlobalSymbols().TryResolveAndGetCallable name (parent.Namespace, sourceFile)
+        | None -> globalSymbols().TryResolveAndGetCallable name (parent.Namespace, sourceFile)
         | Some nsName ->
-            GlobalSymbols().TryGetCallable (QsQualifiedName.New(nsName, name)) (parent.Namespace, sourceFile)
+            globalSymbols().TryGetCallable (QsQualifiedName.New(nsName, name)) (parent.Namespace, sourceFile)
 
     /// the namespace and callable declaration within which the symbols tracked by this SymbolTracker instance are used
     member this.Parent = parent
@@ -276,7 +276,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
         let buildCallable kind fullName (decl: ResolvedSignature) attributes =
             // if parent is deprecated, no longer generate warning
             let parentAttrs =
-                match GlobalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with
+                match globalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with
                 | Found decl -> decl.Attributes
                 | _ ->
                     ArgumentException
@@ -341,7 +341,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// For each diagnostic generated during the resolution, calls the given addDiagnostics function on it.
     /// Returns the resolved type, *including* its range information if applicable.
     member internal this.ResolveType addDiagnostic (qsType: QsType) =
-        let resolved, errs = GlobalSymbols().ResolveType (parent, typeParameters, sourceFile) qsType
+        let resolved, errs = globalSymbols().ResolveType (parent, typeParameters, sourceFile) qsType
 
         for err in errs do
             addDiagnostic err

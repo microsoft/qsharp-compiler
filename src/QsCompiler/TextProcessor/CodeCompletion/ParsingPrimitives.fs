@@ -96,8 +96,8 @@ let expectedId kind p =
 /// Parses an expected keyword. If the keyword parser fails, this parser can still succeed if the next token is symbol-
 /// like and occurs immediately before EOT (i.e., a possibly incomplete keyword).
 let expectedKeyword keyword =
-    expectedId (Keyword keyword.id) keyword.parse
-    <|> attempt (symbol >>. eot >>% [ Keyword keyword.id ])
+    expectedId (Keyword keyword.Id) keyword.Parse
+    <|> attempt (symbol >>. eot >>% [ Keyword keyword.Id ])
 
 /// Parses an expected qualified symbol. The identifier is optional if EOT occurs first. Returns `[kind]` if EOT occurs
 /// first or there is no whitespace after the qualified symbol; otherwise, returns `[]`.
@@ -176,7 +176,7 @@ let tuple1 p =
     brackets (lTuple, rTuple) (sepBy1 p comma |>> List.last)
 
 /// The omitted symbols keyword.
-let omittedSymbols = { parse = keyword "..."; id = "..." }
+let omittedSymbols = { Parse = keyword "..."; Id = "..." }
 
 /// Parses the unit value. The right bracket is optional if EOT occurs first.
 let unitValue: Parser<CompletionKind list, _> =

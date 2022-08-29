@@ -423,12 +423,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 if (f.IsAdjoint)
                 {
-                    signatureLabel = $"{Keywords.qsAdjointFunctor.id} {signatureLabel}";
+                    signatureLabel = $"{Keywords.qsAdjointFunctor.Id} {signatureLabel}";
                 }
 
                 if (f.IsControlled)
                 {
-                    signatureLabel = $"{Keywords.qsControlledFunctor.id} {signatureLabel}";
+                    signatureLabel = $"{Keywords.qsControlledFunctor.Id} {signatureLabel}";
                 }
             }
 

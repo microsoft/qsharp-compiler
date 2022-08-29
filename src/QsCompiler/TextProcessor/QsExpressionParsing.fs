@@ -62,11 +62,11 @@ let private deprecatedOp warning (parsedOp: string) =
 
 qsExpression.AddOperator(
     TernaryOperator(
-        qsCopyAndUpdateOp.op,
+        qsCopyAndUpdateOp.Op,
         emptySpace,
-        qsCopyAndUpdateOp.cont,
+        qsCopyAndUpdateOp.Cont,
         emptySpace,
-        qsCopyAndUpdateOp.prec,
+        qsCopyAndUpdateOp.Prec,
         qsCopyAndUpdateOp.Associativity,
         applyTerinary CopyAndUpdate
     )
@@ -74,94 +74,94 @@ qsExpression.AddOperator(
 
 qsExpression.AddOperator(
     TernaryOperator(
-        qsConditionalOp.op,
+        qsConditionalOp.Op,
         emptySpace,
-        qsConditionalOp.cont,
+        qsConditionalOp.Cont,
         emptySpace,
-        qsConditionalOp.prec,
+        qsConditionalOp.Prec,
         qsConditionalOp.Associativity,
         applyTerinary CONDITIONAL
     )
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsRangeOp.op, emptySpace, qsRangeOp.prec, qsRangeOp.Associativity, (), applyBinary RangeLiteral)
+    InfixOperator(qsRangeOp.Op, emptySpace, qsRangeOp.Prec, qsRangeOp.Associativity, (), applyBinary RangeLiteral)
 )
 
-qsExpression.AddOperator(InfixOperator(qsORop.op, emptySpace, qsORop.prec, qsORop.Associativity, (), applyBinary OR))
+qsExpression.AddOperator(InfixOperator(qsORop.Op, emptySpace, qsORop.Prec, qsORop.Associativity, (), applyBinary OR))
 
 qsExpression.AddOperator(
-    InfixOperator(qsANDop.op, emptySpace, qsANDop.prec, qsANDop.Associativity, (), applyBinary AND)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsBORop.op, emptySpace, qsBORop.prec, qsBORop.Associativity, (), applyBinary BOR)
+    InfixOperator(qsANDop.Op, emptySpace, qsANDop.Prec, qsANDop.Associativity, (), applyBinary AND)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsBXORop.op, emptySpace, qsBXORop.prec, qsBXORop.Associativity, (), applyBinary BXOR)
+    InfixOperator(qsBORop.Op, emptySpace, qsBORop.Prec, qsBORop.Associativity, (), applyBinary BOR)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsBANDop.op, emptySpace, qsBANDop.prec, qsBANDop.Associativity, (), applyBinary BAND)
-)
-
-qsExpression.AddOperator(InfixOperator(qsEQop.op, emptySpace, qsEQop.prec, qsEQop.Associativity, (), applyBinary EQ))
-
-qsExpression.AddOperator(
-    InfixOperator(qsNEQop.op, emptySpace, qsNEQop.prec, qsNEQop.Associativity, (), applyBinary NEQ)
+    InfixOperator(qsBXORop.Op, emptySpace, qsBXORop.Prec, qsBXORop.Associativity, (), applyBinary BXOR)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsLTEop.op, emptySpace, qsLTEop.prec, qsLTEop.Associativity, (), applyBinary LTE)
+    InfixOperator(qsBANDop.Op, emptySpace, qsBANDop.Prec, qsBANDop.Associativity, (), applyBinary BAND)
+)
+
+qsExpression.AddOperator(InfixOperator(qsEQop.Op, emptySpace, qsEQop.Prec, qsEQop.Associativity, (), applyBinary EQ))
+
+qsExpression.AddOperator(
+    InfixOperator(qsNEQop.Op, emptySpace, qsNEQop.Prec, qsNEQop.Associativity, (), applyBinary NEQ)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsGTEop.op, emptySpace, qsGTEop.prec, qsGTEop.Associativity, (), applyBinary GTE)
+    InfixOperator(qsLTEop.Op, emptySpace, qsLTEop.Prec, qsLTEop.Associativity, (), applyBinary LTE)
+)
+
+qsExpression.AddOperator(
+    InfixOperator(qsGTEop.Op, emptySpace, qsGTEop.Prec, qsGTEop.Associativity, (), applyBinary GTE)
 )
 
 qsExpression.AddOperator(
     InfixOperator(
-        qsLTop.op,
+        qsLTop.Op,
         notFollowedBy (pchar '-') >>. emptySpace,
-        qsLTop.prec,
+        qsLTop.Prec,
         qsLTop.Associativity,
         (),
         applyBinary LT
     )
 )
 
-qsExpression.AddOperator(InfixOperator(qsGTop.op, emptySpace, qsGTop.prec, qsGTop.Associativity, (), applyBinary GT))
+qsExpression.AddOperator(InfixOperator(qsGTop.Op, emptySpace, qsGTop.Prec, qsGTop.Associativity, (), applyBinary GT))
 
 qsExpression.AddOperator(
-    InfixOperator(qsRSHIFTop.op, emptySpace, qsRSHIFTop.prec, qsRSHIFTop.Associativity, (), applyBinary RSHIFT)
+    InfixOperator(qsRSHIFTop.Op, emptySpace, qsRSHIFTop.Prec, qsRSHIFTop.Associativity, (), applyBinary RSHIFT)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsLSHIFTop.op, emptySpace, qsLSHIFTop.prec, qsLSHIFTop.Associativity, (), applyBinary LSHIFT)
+    InfixOperator(qsLSHIFTop.Op, emptySpace, qsLSHIFTop.Prec, qsLSHIFTop.Associativity, (), applyBinary LSHIFT)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsADDop.op, emptySpace, qsADDop.prec, qsADDop.Associativity, (), applyBinary ADD)
+    InfixOperator(qsADDop.Op, emptySpace, qsADDop.Prec, qsADDop.Associativity, (), applyBinary ADD)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsSUBop.op, emptySpace, qsSUBop.prec, qsSUBop.Associativity, (), applyBinary SUB)
+    InfixOperator(qsSUBop.Op, emptySpace, qsSUBop.Prec, qsSUBop.Associativity, (), applyBinary SUB)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsMULop.op, emptySpace, qsMULop.prec, qsMULop.Associativity, (), applyBinary MUL)
+    InfixOperator(qsMULop.Op, emptySpace, qsMULop.Prec, qsMULop.Associativity, (), applyBinary MUL)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsMODop.op, emptySpace, qsMODop.prec, qsMODop.Associativity, (), applyBinary MOD)
+    InfixOperator(qsMODop.Op, emptySpace, qsMODop.Prec, qsMODop.Associativity, (), applyBinary MOD)
 )
 
 qsExpression.AddOperator(
     InfixOperator(
-        qsDIVop.op,
+        qsDIVop.Op,
         notFollowedBy (pchar '/') >>. emptySpace,
-        qsDIVop.prec,
+        qsDIVop.Prec,
         qsDIVop.Associativity,
         (),
         applyBinary DIV
@@ -169,29 +169,29 @@ qsExpression.AddOperator(
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsPOWop.op, emptySpace, qsPOWop.prec, qsPOWop.Associativity, (), applyBinary POW)
+    InfixOperator(qsPOWop.Op, emptySpace, qsPOWop.Prec, qsPOWop.Associativity, (), applyBinary POW)
 )
 
-qsExpression.AddOperator(PrefixOperator(qsBNOTop.op, emptySpace, qsBNOTop.prec, true, (), applyUnary BNOT))
+qsExpression.AddOperator(PrefixOperator(qsBNOTop.Op, emptySpace, qsBNOTop.Prec, true, (), applyUnary BNOT))
 
 qsExpression.AddOperator(
     PrefixOperator(
-        qsNOTop.op,
+        qsNOTop.Op,
         notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
-        qsNOTop.prec,
+        qsNOTop.Prec,
         true,
         (),
         applyUnary NOT
     )
 )
 
-qsExpression.AddOperator(PrefixOperator(qsNEGop.op, emptySpace, qsNEGop.prec, true, (), applyUnary NEG))
+qsExpression.AddOperator(PrefixOperator(qsNEGop.Op, emptySpace, qsNEGop.Prec, true, (), applyUnary NEG))
 
 qsExpression.AddOperator(
     PrefixOperator(
         "!",
         "!" |> deprecatedOp WarningCode.DeprecatedNOToperator >>. emptySpace,
-        qsNOTop.prec,
+        qsNOTop.Prec,
         true,
         (),
         applyUnary NOT
@@ -202,7 +202,7 @@ qsExpression.AddOperator(
     InfixOperator(
         "||",
         "||" |> deprecatedOp WarningCode.DeprecatedORoperator >>. emptySpace,
-        qsORop.prec,
+        qsORop.Prec,
         qsORop.Associativity,
         (),
         applyBinary OR
@@ -213,7 +213,7 @@ qsExpression.AddOperator(
     InfixOperator(
         "&&",
         "&&" |> deprecatedOp WarningCode.DeprecatedANDoperator >>. emptySpace,
-        qsANDop.prec,
+        qsANDop.Prec,
         qsANDop.Associativity,
         (),
         applyBinary AND
@@ -229,7 +229,7 @@ for op in qsExpression.Operators do
 
 /// Parses a postfix modifer (unwrap operator) as term and returns its range,
 /// i.e. fails without consuming input if there is no postfix modifier to parse.
-let private postFixModifier = term (pstring qsUnwrapModifier.op .>> notFollowedBy (pchar '=')) |>> snd
+let private postFixModifier = term (pstring qsUnwrapModifier.Op .>> notFollowedBy (pchar '=')) |>> snd
 
 /// Given an expression which (potentially) supports the application of modifiers,
 /// processes the expression and all its leading and trailing modifiers, applies all modifiers, and builds the corresponding Q# expression.
@@ -248,8 +248,8 @@ let private withModifiers modifiableExpr =
         | (range, kind) :: tail -> buildCombinedExpr (kind core) (Value range, core.Range) |> applyFunctors tail
 
     let functorApplication =
-        let adjointApplication = qsAdjointFunctor.parse .>>. preturn AdjointApplication
-        let controlledApplication = qsControlledFunctor.parse .>>. preturn ControlledApplication
+        let adjointApplication = qsAdjointFunctor.Parse .>>. preturn AdjointApplication
+        let controlledApplication = qsControlledFunctor.Parse .>>. preturn ControlledApplication
         adjointApplication <|> controlledApplication
 
     attempt (many functorApplication .>>. modifiableExpr) .>>. many postFixModifier // NOTE: do *not* replace by an expected expression even if there are preceding functors!
@@ -289,20 +289,20 @@ let private buildExpression ex (range: Range) = (ex, range) |> QsExpression.New
 
 /// Parses a Q# pauli literal as QsExpression.
 let private pauliLiteral =
-    choice [ qsPauliX.parse |>> buildExpression (PauliX |> PauliLiteral)
-             qsPauliY.parse |>> buildExpression (PauliY |> PauliLiteral)
-             qsPauliZ.parse |>> buildExpression (PauliZ |> PauliLiteral)
-             qsPauliI.parse |>> buildExpression (PauliI |> PauliLiteral) ]
+    choice [ qsPauliX.Parse |>> buildExpression (PauliX |> PauliLiteral)
+             qsPauliY.Parse |>> buildExpression (PauliY |> PauliLiteral)
+             qsPauliZ.Parse |>> buildExpression (PauliZ |> PauliLiteral)
+             qsPauliI.Parse |>> buildExpression (PauliI |> PauliLiteral) ]
 
 /// Parses a Q# result literal as QsExpression.
 let private resultLiteral =
-    choice [ qsZero.parse |>> buildExpression (Zero |> ResultLiteral)
-             qsOne.parse |>> buildExpression (One |> ResultLiteral) ]
+    choice [ qsZero.Parse |>> buildExpression (Zero |> ResultLiteral)
+             qsOne.Parse |>> buildExpression (One |> ResultLiteral) ]
 
 /// Parses a Q# boolean literal as QsExpression.
 let private boolLiteral =
-    choice [ qsTrue.parse |>> buildExpression (true |> BoolLiteral)
-             qsFalse.parse |>> buildExpression (false |> BoolLiteral) ]
+    choice [ qsTrue.Parse |>> buildExpression (true |> BoolLiteral)
+             qsFalse.Parse |>> buildExpression (false |> BoolLiteral) ]
 
 /// Parses a Q# int or double literal as QsExpression.
 let internal numericLiteral =
@@ -511,7 +511,7 @@ let private valueTuple item = // allows something like (a,(),b)
 /// Parses a Q# value array as QsExpression.
 /// Uses commaSep1 to generate suitable errors for invalid or missing expressions within the array.
 let private valueArray =
-    let sized = expr .>>. (comma >>. size.parse >>. equal >>. expectedExpr rArray) |>> SizedArray
+    let sized = expr .>>. (comma >>. size.Parse >>. equal >>. expectedExpr rArray) |>> SizedArray
 
     let items =
         commaSep expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof |>> ValueArray
@@ -541,7 +541,7 @@ let private newArray =
         let range = expr.Range |> QsNullable.defaultValue Range.Zero
         QsCompilerDiagnostic.Warning (WarningCode.DeprecatedNewArray, []) range |> pushDiagnostic >>% expr
 
-    arrayDecl.parse
+    arrayDecl.Parse
     >>= fun headRange -> term body |>> toExpr headRange <|> (term invalid |>> fst)
     >>= withWarning
 
@@ -581,7 +581,7 @@ let private itemAccessExpr =
         let missingEx pos =
             (MissingExpr, Range.Create pos pos) |> QsExpression.New
 
-        let openRange = pstring qsOpenRangeOp.op |> term
+        let openRange = pstring qsOpenRangeOp.Op |> term
 
         let fullyOpenRange =
             openRange |>> snd .>>? followedBy eof
@@ -622,7 +622,7 @@ let private itemAccessExpr =
         let arrayItemAccess = arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
 
         let namedItemAccess =
-            term (pstring qsNamedItemCombinator.op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol
+            term (pstring qsNamedItemCombinator.Op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol
             |>> NamedItemAccessor
 
         (arrayItemAccess <|> namedItemAccess) .>>. many postFixModifier
