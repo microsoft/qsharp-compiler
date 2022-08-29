@@ -98,10 +98,10 @@ let private setStatement =
 
     let copyAndUpdate =
         expectedId MutableVariable (term symbol)
-        ?>> expected (operator qsCopyAndUpdateOp.op "")
+        ?>> expected (operator qsCopyAndUpdateOp.Op "")
         ?>> expected equal
         ?>> (expression <|>@ expectedId NamedItem (term symbol))
-        ?>> expected (operator qsCopyAndUpdateOp.cont "")
+        ?>> expected (operator qsCopyAndUpdateOp.Cont "")
         ?>> expression
 
     expectedKeyword qsValueUpdate ?>> (attempt assignment <|> copyAndUpdate)
@@ -169,7 +169,7 @@ let private borrowingHeader =
 
 /// Parses an operation specialization declaration.
 let private specializationDeclaration =
-    let argumentTuple = tuple (expectedId Declaration (term symbol) <|> operator omittedSymbols.id "")
+    let argumentTuple = tuple (expectedId Declaration (term symbol) <|> operator omittedSymbols.Id "")
 
     let generator =
         pcollect [ expectedKeyword autoFunctorGenDirective

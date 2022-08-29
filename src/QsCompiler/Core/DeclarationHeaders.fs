@@ -40,7 +40,7 @@ module DeclarationHeader =
         | Value loc -> Range.Defined loc.Range
         | Null -> Range.Undefined
 
-    let internal CreateLocation =
+    let internal createLocation =
         function
         | Offset.Defined offset, Range.Defined range -> QsLocation.New(offset, range) |> Value
         | _ -> Null
@@ -93,29 +93,29 @@ module DeclarationHeader =
 
     let private qsNullableConverters =
         [|
-            new NullableOffsetConverter() :> JsonConverter
-            new NullableRangeConverter() :> JsonConverter
+            NullableOffsetConverter() :> JsonConverter
+            NullableRangeConverter() :> JsonConverter
         |]
 
-    let private Serializer =
+    let private serializer =
         [ qsNullableConverters; Json.Converters false ] |> Array.concat |> Json.CreateSerializer
 
-    let private PermissiveSerializer =
+    let private permissiveSerializer =
         [ qsNullableConverters; Json.Converters true ] |> Array.concat |> Json.CreateSerializer
 
-    let internal FromJson<'T> json =
+    let internal fromJson<'T> json =
         let deserialize (serializer: JsonSerializer) =
             let reader = new JsonTextReader(new StringReader(json))
             serializer.Deserialize<'T>(reader)
 
         try
-            true, Serializer |> deserialize
+            true, serializer |> deserialize
         with
-        | _ -> false, PermissiveSerializer |> deserialize
+        | _ -> false, permissiveSerializer |> deserialize
 
-    let internal ToJson obj =
-        let builder = new StringBuilder()
-        Serializer.Serialize(new StringWriter(builder), obj)
+    let internal toJson obj =
+        let builder = StringBuilder()
+        serializer.Serialize(new StringWriter(builder), obj)
         builder.ToString()
 
 /// <summary>
@@ -160,7 +160,7 @@ type TypeDeclarationHeader =
     }
 
     [<JsonIgnore>]
-    member this.Location = DeclarationHeader.CreateLocation(this.Position, this.SymbolRange)
+    member this.Location = DeclarationHeader.createLocation (this.Position, this.SymbolRange)
 
     member this.FromSource source = { this with Source = source }
 
@@ -197,7 +197,7 @@ type TypeDeclarationHeader =
         }
 
     static member FromJson json =
-        let success, schema = DeclarationHeader.FromJson<TypeDeclarationHeaderSchema> json
+        let success, schema = DeclarationHeader.fromJson<TypeDeclarationHeaderSchema> json
         let header = TypeDeclarationHeader.OfSchema schema
 
         let attributesAreNullOrDefault =
@@ -227,7 +227,7 @@ type TypeDeclarationHeader =
             Documentation = this.Documentation
         }
 
-    member this.ToJson() = DeclarationHeader.ToJson this.Schema
+    member this.ToJson() = DeclarationHeader.toJson this.Schema
 
 /// <summary>
 /// The schema for <see cref="CallableDeclarationHeader"/> that is used with JSON serialization.
@@ -274,7 +274,7 @@ type CallableDeclarationHeader =
     }
 
     [<JsonIgnore>]
-    member this.Location = DeclarationHeader.CreateLocation(this.Position, this.SymbolRange)
+    member this.Location = DeclarationHeader.createLocation (this.Position, this.SymbolRange)
 
     member this.FromSource source = { this with Source = source }
 
@@ -321,7 +321,7 @@ type CallableDeclarationHeader =
             | QsTupleItem (decl: LocalVariableDeclaration<_>) -> QsTupleItem { decl with InferredInformation = info }
         // we need to make sure that all fields that could possibly be null after deserializing
         // due to changes of fields over time are initialized to a proper value
-        let success, schema = DeclarationHeader.FromJson<CallableDeclarationHeaderSchema> json
+        let success, schema = DeclarationHeader.fromJson<CallableDeclarationHeaderSchema> json
         let header = CallableDeclarationHeader.OfSchema schema
 
         let attributesAreNullOrDefault =
@@ -357,7 +357,7 @@ type CallableDeclarationHeader =
             Documentation = this.Documentation
         }
 
-    member this.ToJson() = DeclarationHeader.ToJson this.Schema
+    member this.ToJson() = DeclarationHeader.toJson this.Schema
 
 /// <summary>
 /// The schema for <see cref="SpecializationDeclarationHeader"/> that is used with JSON serialization.
@@ -401,7 +401,7 @@ type SpecializationDeclarationHeader =
     }
 
     [<JsonIgnore>]
-    member this.Location = DeclarationHeader.CreateLocation(this.Position, this.HeaderRange)
+    member this.Location = DeclarationHeader.createLocation (this.Position, this.HeaderRange)
 
     member this.FromSource source = { this with Source = source }
 
@@ -438,7 +438,7 @@ type SpecializationDeclarationHeader =
     static member FromJson json =
         // we need to make sure that all fields that could possibly be null after deserializing
         // due to changes of fields over time are initialized to a proper value
-        let success, schema = DeclarationHeader.FromJson<SpecializationDeclarationHeaderSchema> json
+        let success, schema = DeclarationHeader.fromJson<SpecializationDeclarationHeaderSchema> json
         let header = SpecializationDeclarationHeader.OfSchema schema
         let infoIsNull = Object.ReferenceEquals(header.Information, null)
         let typeArgsAreNull = Object.ReferenceEquals(header.TypeArguments, null)
@@ -472,4 +472,4 @@ type SpecializationDeclarationHeader =
             Documentation = this.Documentation
         }
 
-    member this.ToJson() = DeclarationHeader.ToJson this.Schema
+    member this.ToJson() = DeclarationHeader.toJson this.Schema

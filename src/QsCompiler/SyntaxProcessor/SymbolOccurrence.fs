@@ -22,8 +22,8 @@ module SymbolOccurrence =
 
     let symbolDeclarations = flattenSymbol >> List.map Declaration
 
-    let rec inType type_ =
-        match type_.Type with
+    let rec inType ty =
+        match ty.Type with
         | UnitType
         | Int
         | BigInt
@@ -35,7 +35,7 @@ module SymbolOccurrence =
         | Pauli
         | Range
         | UserDefinedType _
-        | TypeParameter _ -> [ UsedType type_ ]
+        | TypeParameter _ -> [ UsedType ty ]
         | ArrayType t -> inType t
         | TupleType ts -> Seq.collect inType ts |> Seq.toList
         | QsTypeKind.Operation ((t1, t2), _)
@@ -65,10 +65,7 @@ module SymbolOccurrence =
                 | SyntaxTree.QsLocalSymbol.InvalidName -> None
 
             let declarations =
-                lambda.ArgumentTuple.Items
-                |> Seq.choose validDeclaration
-                |> Seq.map (fun decl -> Declaration decl)
-                |> Seq.toList
+                lambda.ArgumentTuple.Items |> Seq.choose validDeclaration |> Seq.map Declaration |> Seq.toList
 
             declarations @ inExpression lambda.Body
         // TODO: Handle named item accessor.

@@ -30,7 +30,7 @@ type LinkingTests() =
     let compilationManager =
         let props = ImmutableDictionary.CreateBuilder()
         props.Add(MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe)
-        new CompilationUnitManager(new ProjectProperties(props), (fun ex -> failwith ex.Message))
+        new CompilationUnitManager(ProjectProperties(props), (fun ex -> failwith ex.Message))
 
     // The file name needs to end in ".qs" so that it isn't ignored by the References.Headers class during the internal renaming tests.
     let getTempFile () =
@@ -71,7 +71,7 @@ type LinkingTests() =
 
     do
         let addOrUpdateSourceFile filePath =
-            getManager (new Uri(filePath)) (File.ReadAllText filePath)
+            getManager (Uri(filePath)) (File.ReadAllText filePath)
             |> compilationManager.AddOrUpdateSourceFileAsync
             |> ignore
 
@@ -98,7 +98,7 @@ type LinkingTests() =
 
     member private this.CompileAndVerify (manager: CompilationUnitManager) input (diag: DiagnosticItem seq) =
         let source, built = manager |> this.BuildWithSource input
-        let tests = new CompilerTests(built)
+        let tests = CompilerTests(built)
 
         let inFile (c: QsCallable) =
             Source.assemblyOrCodeFile c.Source = source
@@ -127,7 +127,7 @@ type LinkingTests() =
 
     member private this.CompileMonomorphization input =
         let compilationDataStructures = this.BuildContent(compilationManager, input)
-        let monomorphize = new BuiltInRewriteSteps.Monomorphization()
+        let monomorphize = BuiltInRewriteSteps.Monomorphization()
 
         let success, monomorphicCompilation =
             monomorphize.Transformation compilationDataStructures.BuiltCompilation
@@ -181,7 +181,7 @@ type LinkingTests() =
         let manager = new CompilationUnitManager(ProjectProperties.Empty)
 
         let addOrUpdateSourceFile filePath =
-            getManager (new Uri(filePath)) (File.ReadAllText filePath)
+            getManager (Uri(filePath)) (File.ReadAllText filePath)
             |> manager.AddOrUpdateSourceFileAsync
             |> ignore
 
@@ -194,15 +194,13 @@ type LinkingTests() =
 
         let references = createReferences [ "InternalRenaming.dll", namespaces ]
         let referenceCompilation = this.BuildContent(manager, "", references)
-
-        let countAll namespaces names =
-            names |> Seq.map (countReferences namespaces) |> Seq.sum
+        let countAll namespaces = Seq.sumBy (countReferences namespaces)
 
         let beforeCount =
             countAll sourceCompilation.BuiltCompilation.Namespaces (Seq.concat [ renamed; notRenamed ])
 
         let afterCountOriginal = countAll referenceCompilation.BuiltCompilation.Namespaces renamed
-        let decorator = new NameDecorator("QsRef")
+        let decorator = NameDecorator("QsRef")
         let newNames = renamed |> Seq.map (fun name -> decorator.Decorate(name, 0))
 
         let afterCount =
@@ -265,7 +263,7 @@ type LinkingTests() =
     member this.``Monomorphization Basic Implementation``() =
 
         let filePath = Path.Combine("TestCases", "LinkingTests", "Generics.qs") |> Path.GetFullPath
-        let fileId = (new Uri(filePath))
+        let fileId = Uri(filePath)
 
         getManager fileId (File.ReadAllText filePath)
         |> compilationManager.AddOrUpdateSourceFileAsync
@@ -640,7 +638,7 @@ type LinkingTests() =
         let referenceCompilation = this.BuildContent(manager, "", references)
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
 
-        let decorator = new NameDecorator("QsRef")
+        let decorator = NameDecorator("QsRef")
 
         for idx = 0 to references.Declarations.Count - 1 do
             let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNS "Foo", idx)
@@ -698,12 +696,12 @@ type LinkingTests() =
             let success = References.CombineSyntaxTrees(&combined, 0, new Action<_, _>(onError), trees)
             Assert.True(success, "failed to combine syntax trees")
 
-            let decorator = new NameDecorator("QsRef")
+            let decorator = NameDecorator("QsRef")
 
             let undecorate (assertUndecorated: bool) (fullName: QsQualifiedName, srcIdx) =
                 let name = decorator.Undecorate fullName.Name
 
-                if name <> null then
+                if not (isNull name) then
                     Assert.Equal<string>(decorator.Decorate(name, srcIdx), fullName.Name)
                     { Namespace = fullName.Namespace; Name = name }
                 else
@@ -712,7 +710,7 @@ type LinkingTests() =
 
             /// Verifies that internal names have been decorated appropriately,
             /// and that the correct source is set.
-            let AssertSource (fullName: QsQualifiedName, source, modifier: _ option) =
+            let assertSource (fullName: QsQualifiedName, source, modifier: _ option) =
                 match sources.TryGetValue source with
                 | true, (_, decls: _ Set) ->
                     let idx = sourceIndex.[source]
@@ -726,18 +724,18 @@ type LinkingTests() =
                 | false, _ -> Assert.True(false, "wrong source")
 
             let onTypeDecl (tDecl: QsCustomType) =
-                AssertSource(tDecl.FullName, Source.assemblyOrCodeFile tDecl.Source, Some tDecl.Access)
+                assertSource (tDecl.FullName, Source.assemblyOrCodeFile tDecl.Source, Some tDecl.Access)
                 tDecl
 
             let onCallableDecl (cDecl: QsCallable) =
-                AssertSource(cDecl.FullName, Source.assemblyOrCodeFile cDecl.Source, Some cDecl.Access)
+                assertSource (cDecl.FullName, Source.assemblyOrCodeFile cDecl.Source, Some cDecl.Access)
                 cDecl
 
             let onSpecDecl (sDecl: QsSpecialization) =
-                AssertSource(sDecl.Parent, Source.assemblyOrCodeFile sDecl.Source, None)
+                assertSource (sDecl.Parent, Source.assemblyOrCodeFile sDecl.Source, None)
                 sDecl
 
-            let checker = new CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)
+            let checker = CheckDeclarations(onTypeDecl, onCallableDecl, onSpecDecl)
             checker.OnCompilation(QsCompilation.New(combined, ImmutableArray<QsQualifiedName>.Empty)) |> ignore
 
         let source = sprintf "Reference%i.dll"

@@ -50,10 +50,9 @@ type InferenceContext =
     member internal Constrain: con: Constraint -> QsCompilerDiagnostic list
 
     /// <summary>
-    /// Replaces each placeholder type parameter in the given <paramref name="type_"/> with its substitution if
-    /// one exists.
+    /// Replaces each placeholder type parameter in the type with its substitution if one exists.
     /// </summary>
-    member internal Resolve: type_: ResolvedType -> ResolvedType
+    member internal Resolve: ty: ResolvedType -> ResolvedType
 
 /// <summary>
 /// Utility functions for <see cref="InferenceContext"/>.

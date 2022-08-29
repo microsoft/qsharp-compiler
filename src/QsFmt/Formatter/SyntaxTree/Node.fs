@@ -68,12 +68,12 @@ module Terminal =
     let mapPrefix mapper terminal =
         { terminal with Prefix = mapper terminal.Prefix }
 
-type 'a SequenceItem = { Item: 'a option; Comma: Terminal option }
+type 'T SequenceItem = { Item: 'T option; Comma: Terminal option }
 
-type 'a Tuple =
+type 'T Tuple =
     {
         OpenParen: Terminal
-        Items: 'a SequenceItem list
+        Items: 'T SequenceItem list
         CloseParen: Terminal
     }
 
@@ -81,21 +81,21 @@ module Tuple =
     let mapPrefix mapper tuple =
         { tuple with OpenParen = tuple.OpenParen |> Terminal.mapPrefix mapper }
 
-type 'a PrefixOperator = { PrefixOperator: Terminal; Operand: 'a }
+type 'T PrefixOperator = { PrefixOperator: Terminal; Operand: 'T }
 
-type 'a PostfixOperator = { Operand: 'a; PostfixOperator: Terminal }
+type 'T PostfixOperator = { Operand: 'T; PostfixOperator: Terminal }
 
-type 'a InfixOperator =
+type 'T InfixOperator =
     {
-        Left: 'a
+        Left: 'T
         InfixOperator: Terminal
-        Right: 'a
+        Right: 'T
     }
 
-type 'a Block =
+type 'T Block =
     {
         OpenBrace: Terminal
-        Items: 'a list
+        Items: 'T list
         CloseBrace: Terminal
     }
 
