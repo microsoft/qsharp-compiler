@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the header items corresponding to all open directives with a valid name in <paramref name="file"/>,
         /// or null if <paramref name="file"/> is null.
         /// </summary>
-        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<(string?, QsNullable<Range>)>)> GetOpenDirectivesHeaderItems(
+        private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<(string, QsNullable<Range>)>)> GetOpenDirectivesHeaderItems(
             this FileContentManager file) => file.GetHeaderItems(
                 file.OpenDirectiveTokens(),
                 frag =>
@@ -126,20 +126,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var dir = frag.Kind.OpenedNamespace();
                     if (dir.IsNull)
                     {
-                        return QsNullable<Tuple<QsSymbol, (string?, QsNullable<Range>)>>.Null;
+                        return QsNullable<Tuple<QsSymbol, (string, QsNullable<Range>)>>.Null;
                     }
 
-                    QsNullable<Tuple<QsSymbol, (string?, QsNullable<Range>)>> OpenedAs(string? a, QsNullable<Range> r) =>
-                        QsNullable<Tuple<QsSymbol, (string?, QsNullable<Range>)>>.NewValue(new Tuple<QsSymbol, (string?, QsNullable<Range>)>(dir.Item.Item1, (a, r)));
+                    QsNullable<Tuple<QsSymbol, (string, QsNullable<Range>)>> OpenedAs(string a, QsNullable<Range> r) =>
+                        QsNullable<Tuple<QsSymbol, (string, QsNullable<Range>)>>.NewValue(new Tuple<QsSymbol, (string, QsNullable<Range>)>(dir.Item.Item1, (a, r)));
 
                     var alias = dir.Item.Item2;
                     if (alias.IsNull)
                     {
-                        return OpenedAs(null, QsNullable<Range>.Null);
+                        return OpenedAs("", QsNullable<Range>.Null);
                     }
 
-                    var aliasName = alias.Item.Symbol.AsDeclarationName(null);
-                    QsCompilerError.Verify(aliasName != null || alias.Item.Symbol.IsInvalidSymbol, "could not extract namespace short name");
+                    var aliasName = alias.Item.Symbol.AsDeclarationName("");
+                    QsCompilerError.Verify(aliasName != "" || alias.Item.Symbol.IsInvalidSymbol, "could not extract namespace short name");
                     return OpenedAs(aliasName, alias.Item.Range);
                 },
                 null);

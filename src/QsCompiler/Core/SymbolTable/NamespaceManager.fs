@@ -69,15 +69,14 @@ type NamespaceManager
     /// <summary>
     /// If a namespace with the given name exists, returns that namespace
     /// as well as all imported namespaces for that namespace in the given source file.
-    /// Filters namespaces that have been imported under a different name.
     /// Filters all unknown namespaces, i.e. imported namespaces that are not managed by this namespace manager.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">
     /// A namespace with the given name was not found, or the source file does not contain the namespace.
     /// </exception>
     let openNamespaces (nsName, source) =
-        let isKnownAndNotAliased (kv: KeyValuePair<_, _>) =
-            if not (isNull kv.Value) then
+        let isKnown (kv: KeyValuePair<string, ImmutableHashSet<string>>) =
+            if not (kv.Value.Contains("")) then
                 None
             else
                 match namespaces.TryGetValue kv.Key with
@@ -85,7 +84,7 @@ type NamespaceManager
                 | false, _ -> None
 
         match namespaces.TryGetValue nsName with
-        | true, ns -> ns, ns.ImportedNamespaces source |> Seq.choose isKnownAndNotAliased |> Seq.toList
+        | true, ns -> ns, ns.ImportedNamespaces source |> Seq.choose isKnown |> Seq.toList
         | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
 
     /// Calls the resolver function on each namespace opened within the given namespace name and source file, and
@@ -139,13 +138,17 @@ type NamespaceManager
         match namespaces.TryGetValue nsName with
         | true, ns when ns.Sources.Contains source ->
             match (ns.ImportedNamespaces source).TryGetValue builtIn.FullName.Namespace with
-            | true, null when
-                not (ns.TryFindType builtIn.FullName.Name |> ResolutionResult.isAccessible)
-                || nsName = builtIn.FullName.Namespace
+            | true, aliases when
+                aliases.Count = 1
+                && aliases.Contains("") // Opened but no alias
+                && (not (ns.TryFindType builtIn.FullName.Name |> ResolutionResult.isAccessible)
+                    || nsName = builtIn.FullName.Namespace)
                 ->
                 [ ""; builtIn.FullName.Namespace ]
-            | true, null -> [ builtIn.FullName.Namespace ] // the built-in type or callable is shadowed
-            | true, alias -> [ alias; builtIn.FullName.Namespace ]
+            | true, aliases when aliases.Count > 1 || (aliases.Count = 1 && not (aliases.Contains(""))) -> // Some alias
+                let alias = aliases |> Seq.filter (fun alias -> alias <> "") |> Seq.sort |> Seq.head
+                [ alias; builtIn.FullName.Namespace ]
+            | true, _ -> [ builtIn.FullName.Namespace ] // the built-in type or callable is shadowed
             | false, _ -> [ builtIn.FullName.Namespace ]
         | true, _ -> [ builtIn.FullName.Namespace ]
         | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
@@ -905,7 +908,7 @@ type NamespaceManager
             for opened in nsToAutoOpen do
                 for ns in namespaces.Values do
                     for source in ns.Sources do
-                        this.AddOpenDirective (opened, Range.Zero) (null, Value Range.Zero) (ns.Name, source) |> ignore
+                        this.AddOpenDirective (opened, Range.Zero) ("", Value Range.Zero) (ns.Name, source) |> ignore
             // We need to resolve types before we resolve callables,
             // since the attribute resolution for callables relies on the corresponding types having been resolved.
             let typeDiagnostics = this.CacheTypeResolution nsNames
@@ -947,9 +950,10 @@ type NamespaceManager
                     ns.Sources
                     |> Seq.collect (fun source ->
                         ns.ImportedNamespaces source
-                        |> Seq.choose (fun imported ->
-                            if imported.Key <> ns.Name then
-                                Some(source, new ValueTuple<_, _>(imported.Key, imported.Value))
+                        |> Seq.collect (fun kv -> kv.Value |> Seq.map (fun alias -> (kv.Key, alias)))
+                        |> Seq.choose (fun (nsImported, alias) ->
+                            if nsImported <> ns.Name then
+                                Some(source, new ValueTuple<_, _>(nsImported, alias))
                             else
                                 None))
 
@@ -1666,8 +1670,9 @@ type NamespaceManager
                 relevantNamespaces
                 |> Seq.collect (fun ns ->
                     ns.ImportedNamespaces source
-                    |> Seq.sortBy (fun x -> x.Value)
-                    |> Seq.map (fun opened -> ns.Name, opened.Value))
+                    |> Seq.collect (fun kv -> kv.Value)
+                    |> Seq.sort
+                    |> Seq.map (fun opened -> ns.Name, opened))
 
             let callablesHash =
                 callables |> Seq.map (fun (ns, name, c) -> (ns, name, callableHash c)) |> Seq.toList |> hash
