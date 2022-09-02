@@ -3,23 +3,20 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
+open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.CompilationBuilder
+open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
+open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.VisualStudio.LanguageServer.Protocol
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.IO
 open System.Linq
-open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
-open Microsoft.Quantum.QsCompiler.ReservedKeywords
-
 
 type CompilerTests(compilation: CompilationUnitManager.Compilation) =
-
     let syntaxTree =
         let mutable compilation = compilation.BuiltCompilation
         CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation) |> ignore // the functor generation is expected to fail for certain cases
@@ -29,44 +26,45 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
     let types = syntaxTree |> GlobalTypeResolutions
 
     let diagnostics =
-        let getCallableStart (c: QsCallable) =
+        let callableStart (c: QsCallable) =
             let attributes =
                 match c.Kind with
-                | TypeConstructor -> types.[c.FullName].Attributes
+                | TypeConstructor -> types[c.FullName].Attributes
                 | _ -> c.Attributes
 
-            if attributes.Length = 0 then
-                (c.Location.ValueOrApply(fun _ -> failwith "missing position information")).Offset
+            if attributes.IsEmpty then
+                c.Location.ValueOrApply(fun _ -> failwith "missing position information").Offset
             else
-                attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
+                attributes |> Seq.map (fun a -> a.Offset) |> Seq.sort |> Seq.head
 
         [
             for file in compilation.SourceFiles do
-                let containedCallables =
-                    callables.Where (fun kv ->
-                        Source.assemblyOrCodeFile kv.Value.Source = file && kv.Value.Location <> Null)
+                let fileCallables = callables |> Seq.filter (fun c -> Source.assemblyOrCodeFile c.Value.Source = file)
 
                 let locations =
-                    containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart)
+                    fileCallables
+                    |> Seq.map (fun c -> c.Key, callableStart c.Value)
                     |> Seq.sortBy snd
-                    |> Seq.toArray
+                    |> ImmutableArray.CreateRange
 
-                let mutable containedDiagnostics =
-                    compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp())
+                let mutable diagnostics = compilation.Diagnostics file |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp())
 
                 for i = 1 to locations.Length do
-                    let key = fst locations.[i - 1]
+                    let inCurrent (d: Diagnostic) =
+                        i = locations.Length || d.Range.Start.ToQSharp() < snd locations[i]
 
-                    if i < locations.Length then
-                        let withinCurrentDeclaration (d: Diagnostic) =
-                            d.Range.Start.ToQSharp() < snd locations.[i]
+                    let name, start = locations[i - 1]
+                    let ds = Seq.takeWhile inCurrent diagnostics |> ImmutableArray.CreateRange
+                    diagnostics <- Seq.skipWhile inCurrent diagnostics
 
-                        yield key, containedDiagnostics.TakeWhile(withinCurrentDeclaration).ToImmutableArray()
-                        containedDiagnostics <- containedDiagnostics.SkipWhile(withinCurrentDeclaration)
-                    else
-                        yield key, containedDiagnostics.ToImmutableArray()
+                    for d in ds do
+                        // Convert the range to be relative to the callable start line so it can be used in assertions.
+                        d.Range.Start.Line <- d.Range.Start.Line - start.Line
+                        d.Range.End.Line <- d.Range.End.Line - start.Line
+
+                    yield name, ds
         ]
-            .ToImmutableDictionary(fst, snd)
+        |> readOnlyDict
 
     let verifyDiagnosticsOfSeverity severity name (expected: IEnumerable<_>) =
         let exists, diag = diagnostics.TryGetValue name

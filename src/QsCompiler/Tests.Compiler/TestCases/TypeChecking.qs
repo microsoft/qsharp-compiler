@@ -1019,4 +1019,13 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     function LambdaInvalid9(xs : NamedItems1[]) : Int[] {
         return Mapped(x -> x::Invalid, xs);
     }
+
+    function LambdaInvalid10() : Unit {
+        let f = op -> Adjoint op();
+    }
+
+    operation LambdaInvalid11() : Unit {
+        let f = op => op();
+        f(Unitary);
+    }
 }

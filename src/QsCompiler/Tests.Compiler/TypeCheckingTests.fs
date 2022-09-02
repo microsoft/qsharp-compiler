@@ -130,6 +130,10 @@ module TypeCheckingTests =
         expect "LambdaInvalid8" [ Error ErrorCode.UnknownItemName ]
         expect "LambdaInvalid9" [ Error ErrorCode.UnknownItemName ]
 
+        // TODO: Assert ranges.
+        expect "LambdaInvalid10" [ Error ErrorCode.InvalidAdjointApplication ]
+        expect "LambdaInvalid11" [ Error ErrorCode.TypeMismatch ]
+
     [<Fact>]
     let ``Operation lambda with non-unit return (1)`` () =
         let scope = findSpecScope "Lambda17" QsBody
