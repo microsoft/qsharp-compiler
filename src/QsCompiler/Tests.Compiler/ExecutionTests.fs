@@ -252,7 +252,7 @@ type ExecutionTests(output: ITestOutputHelper) =
         Assert.Equal(0, exitCode)
 
 
-    [<Fact(Skip = "TODO: Unknown failure, but need to get a working build.")>]
+    [<Fact>]
     member this.``QIR native llvm type handling``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling"
