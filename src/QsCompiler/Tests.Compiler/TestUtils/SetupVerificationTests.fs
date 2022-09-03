@@ -3,11 +3,6 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.CompilationBuilder
-open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords
-open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open System
 open System.Collections.Generic
@@ -15,6 +10,14 @@ open System.Collections.Immutable
 open System.IO
 open System.Linq
 open Xunit
+
+open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.CompilationBuilder
+open Microsoft.Quantum.QsCompiler.DataTypes
+open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords
+open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Utils
 
 type CompilerTests(compilation: CompilationUnitManager.Compilation) =
     let syntaxTree =
@@ -106,6 +109,17 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
     member this.Verify(name, expected: IEnumerable<InformationCode>) =
         let expected = expected.Select int
         verifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Information) name expected
+
+    member this.VerifyErrorRanges(name, expected: (ErrorCode * Range) seq) =
+        let actual =
+            diagnostics.TryGetValue name
+            |> tryOption
+            |> Option.get
+            |> Seq.map (fun d -> Diagnostics.TryGetCode d.Code.Value.Second |> snd, d.Range.ToQSharp())
+            |> Seq.sort
+
+        let expected = expected |> Seq.map (fun (c, r) -> int c, r) |> Seq.sort
+        Assert.Equal<_ * _>(expected, actual)
 
     member this.VerifyDiagnostics(name, expected: IEnumerable<DiagnosticItem>) =
         let errs =

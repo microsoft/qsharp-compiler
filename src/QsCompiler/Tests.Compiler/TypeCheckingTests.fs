@@ -3,13 +3,15 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System.Collections.Immutable
-open System.IO
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open System.Collections.Immutable
+open System.IO
 open Xunit
+
+open Microsoft.Quantum.QsCompiler.DataTypes
 
 /// Tests for type checking of Q# programs.
 module TypeCheckingTests =
@@ -130,9 +132,19 @@ module TypeCheckingTests =
         expect "LambdaInvalid8" [ Error ErrorCode.UnknownItemName ]
         expect "LambdaInvalid9" [ Error ErrorCode.UnknownItemName ]
 
-        // TODO: Assert ranges.
-        expect "LambdaInvalid10" [ Error ErrorCode.InvalidAdjointApplication ]
-        expect "LambdaInvalid11" [ Error ErrorCode.TypeMismatch ]
+        tests.VerifyErrorRanges(
+            QsQualifiedName.New(ns, "LambdaInvalid10"),
+            [
+                ErrorCode.InvalidAdjointApplication, Range.Create (Position.Create 1 30) (Position.Create 1 32)
+            ]
+        )
+
+        tests.VerifyErrorRanges(
+            QsQualifiedName.New(ns, "LambdaInvalid11"),
+            [
+                ErrorCode.TypeMismatch, Range.Create (Position.Create 2 10) (Position.Create 2 17)
+            ]
+        )
 
     [<Fact>]
     let ``Operation lambda with non-unit return (1)`` () =
