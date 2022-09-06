@@ -132,20 +132,18 @@ module TypeCheckingTests =
         expect "LambdaInvalid8" [ Error ErrorCode.UnknownItemName ]
         expect "LambdaInvalid9" [ Error ErrorCode.UnknownItemName ]
 
-        tests.AssertDiagnostics(
-            QsQualifiedName.New(ns, "LambdaInvalid10"),
+        Diagnostics.assertMatches
             [
                 Error ErrorCode.InvalidAdjointApplication,
                 Range.Create (Position.Create 1 30) (Position.Create 1 32) |> Some
             ]
-        )
+            (QsQualifiedName.New(ns, "LambdaInvalid10") |> tests.Diagnostics)
 
-        tests.AssertDiagnostics(
-            QsQualifiedName.New(ns, "LambdaInvalid11"),
+        Diagnostics.assertMatches
             [
                 Error ErrorCode.TypeMismatch, Range.Create (Position.Create 2 10) (Position.Create 2 17) |> Some
             ]
-        )
+            (QsQualifiedName.New(ns, "LambdaInvalid11") |> tests.Diagnostics)
 
     [<Fact>]
     let ``Operation lambda with non-unit return (1)`` () =
