@@ -89,11 +89,11 @@ let assertMatches expected (actual: Diagnostic seq) =
 
     for item, range in actual do
         match expectedDict.TryGetValue((item, Some range)) with
-        | true, 1 -> assert expectedDict.Remove((item, Some range))
+        | true, 1 -> let removed = expectedDict.Remove((item, Some range)) in assert removed
         | true, count -> expectedDict[(item, Some range)] <- count - 1
         | false, _ ->
             match expectedDict.TryGetValue((item, None)) with
-            | true, 1 -> assert expectedDict.Remove((item, None))
+            | true, 1 -> let removed = expectedDict.Remove((item, None)) in assert removed
             | true, count -> expectedDict[(item, None)] <- count - 1
             | false, _ -> failwith "Unexpected diagnostic."
 
