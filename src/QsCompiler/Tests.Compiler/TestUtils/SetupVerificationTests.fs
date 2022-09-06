@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.Testing
@@ -7,7 +7,6 @@ open Microsoft.VisualStudio.LanguageServer.Protocol
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
-open System.IO
 open System.Linq
 open Xunit
 
@@ -15,7 +14,6 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Utils
 
@@ -98,15 +96,15 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         )
 
 
-    member this.Verify(name, expected: IEnumerable<ErrorCode>) =
+    member private this.Verify(name, expected: IEnumerable<ErrorCode>) =
         let expected = expected.Select int
         verifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Error) name expected
 
-    member this.Verify(name, expected: IEnumerable<WarningCode>) =
+    member private this.Verify(name, expected: IEnumerable<WarningCode>) =
         let expected = expected.Select int
         verifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Warning) name expected
 
-    member this.Verify(name, expected: IEnumerable<InformationCode>) =
+    member private this.Verify(name, expected: IEnumerable<InformationCode>) =
         let expected = expected.Select int
         verifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Information) name expected
 
@@ -153,29 +151,8 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
+    // TODO: Remove this.
     static member Compile(srcFolder, fileNames, ?references, ?capability, ?isExecutable) =
         let references = defaultArg references []
-        let isExecutable = defaultArg isExecutable false
-        let capabilityName = Option.bind TargetCapability.name capability
-
-        let files =
-            fileNames
-            |> Seq.map (fun name ->
-                let path = Path.Combine(srcFolder, name) |> Path.GetFullPath
-                Uri path, File.ReadAllText path)
-            |> dict
-
-        let props =
-            dict [ MSBuildProperties.ResolvedTargetCapability, Option.toObj capabilityName
-                   if isExecutable then MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe ]
-            |> ProjectProperties
-
-        let exceptions = ResizeArray()
-        use manager = new CompilationUnitManager(props, Action<_> exceptions.Add)
-        manager.AddOrUpdateSourceFilesAsync(CompilationUnitManager.InitializeFileManagers files) |> ignore
-
-        manager.UpdateReferencesAsync(ProjectManager.LoadReferencedAssemblies references |> References)
-        |> ignore
-
-        let compilation = manager.Build()
-        if exceptions.Count > 0 then AggregateException exceptions |> raise else compilation
+        let output = if Option.contains true isExecutable then TestUtils.Exe else TestUtils.Library
+        TestUtils.buildFiles srcFolder fileNames references capability output
