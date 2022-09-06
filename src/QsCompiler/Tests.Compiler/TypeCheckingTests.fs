@@ -132,17 +132,18 @@ module TypeCheckingTests =
         expect "LambdaInvalid8" [ Error ErrorCode.UnknownItemName ]
         expect "LambdaInvalid9" [ Error ErrorCode.UnknownItemName ]
 
-        tests.VerifyErrorRanges(
+        tests.AssertDiagnostics(
             QsQualifiedName.New(ns, "LambdaInvalid10"),
             [
-                ErrorCode.InvalidAdjointApplication, Range.Create (Position.Create 1 30) (Position.Create 1 32)
+                Error ErrorCode.InvalidAdjointApplication,
+                Range.Create (Position.Create 1 30) (Position.Create 1 32) |> Some
             ]
         )
 
-        tests.VerifyErrorRanges(
+        tests.AssertDiagnostics(
             QsQualifiedName.New(ns, "LambdaInvalid11"),
             [
-                ErrorCode.TypeMismatch, Range.Create (Position.Create 2 10) (Position.Create 2 17)
+                Error ErrorCode.TypeMismatch, Range.Create (Position.Create 2 10) (Position.Create 2 17) |> Some
             ]
         )
 

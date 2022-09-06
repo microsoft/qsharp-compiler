@@ -7,7 +7,6 @@ open Microsoft.VisualStudio.LanguageServer.Protocol
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
-open System.Linq
 open Xunit
 
 open Microsoft.Quantum.QsCompiler
@@ -23,8 +22,8 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation) |> ignore // the functor generation is expected to fail for certain cases
         compilation.Namespaces
 
-    let callables = syntaxTree |> GlobalCallableResolutions
-    let types = syntaxTree |> GlobalTypeResolutions
+    let callables = GlobalCallableResolutions syntaxTree
+    let types = GlobalTypeResolutions syntaxTree
 
     let diagnostics =
         let callableStart (c: QsCallable) =
@@ -67,89 +66,45 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
         ]
         |> readOnlyDict
 
-    let verifyDiagnosticsOfSeverity severity name (expected: IEnumerable<_>) =
-        let exists, diag = diagnostics.TryGetValue name
-        Assert.True(exists, sprintf "no entry found for %s.%s" name.Namespace name.Name)
+    member this.AssertDiagnostics(name, expected: (DiagnosticItem * Range option) seq) =
+        let expectedDict = Dictionary()
 
-        let got =
-            diag.Where(fun d -> d.Severity = severity)
-            |> Seq.choose (fun d ->
-                match Diagnostics.TryGetCode d.Code.Value.Second with
-                | true, code -> Some code
-                | false, _ -> None)
+        for e in expected do
+            match expectedDict.TryGetValue e with
+            | true, count -> expectedDict[e] <- count + 1
+            | false, _ -> expectedDict[e] <- 1
 
-        let codeMismatch = expected.ToImmutableHashSet().SymmetricExcept got
-        let gotLookup = got.ToLookup(new Func<_, _>(id))
-        let expectedLookup = expected.ToLookup(new Func<_, _>(id))
-        let nrMismatch = gotLookup.Where(fun g -> g.Count() <> expectedLookup.[g.Key].Count())
-
-        Assert.False(
-            codeMismatch.Any() || nrMismatch.Any(),
-            sprintf
-                "%A code mismatch for %s.%s \nexpected: %s\ngot: %s\nmessages: \n\t%s"
-                severity
-                name.Namespace
-                name.Name
-                (String.Join(", ", expected))
-                (String.Join(", ", got))
-                (String.Join("\n\t", diag.Where(fun d -> d.Severity = severity).Select(fun d -> d.Message)))
-        )
-
-
-    member private this.Verify(name, expected: IEnumerable<ErrorCode>) =
-        let expected = expected.Select int
-        verifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Error) name expected
-
-    member private this.Verify(name, expected: IEnumerable<WarningCode>) =
-        let expected = expected.Select int
-        verifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Warning) name expected
-
-    member private this.Verify(name, expected: IEnumerable<InformationCode>) =
-        let expected = expected.Select int
-        verifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Information) name expected
-
-    member this.VerifyErrorRanges(name, expected: (ErrorCode * Range) seq) =
         let actual =
             diagnostics.TryGetValue name
             |> tryOption
             |> Option.get
-            |> Seq.map (fun d -> Diagnostics.TryGetCode d.Code.Value.Second |> snd, d.Range.ToQSharp())
-            |> Seq.sort
+            |> Seq.map (fun d ->
+                let code = Diagnostics.TryGetCode d.Code.Value.Second |> snd
 
-        let expected = expected |> Seq.map (fun (c, r) -> int c, r) |> Seq.sort
-        Assert.Equal<_ * _>(expected, actual)
+                let item =
+                    match d.Severity.Value with
+                    | DiagnosticSeverity.Error -> enum code |> Error
+                    | DiagnosticSeverity.Warning -> enum code |> Warning
+                    | DiagnosticSeverity.Information -> enum code |> Information
+                    | _ -> failwith "Invalid severity."
 
-    member this.VerifyDiagnostics(name, expected: IEnumerable<DiagnosticItem>) =
-        let errs =
-            expected
-            |> Seq.choose (function
-                | Error err -> Some err
-                | _ -> None)
+                item, d.Range.ToQSharp())
 
-        let wrns =
-            expected
-            |> Seq.choose (function
-                | Warning wrn -> Some wrn
-                | _ -> None)
+        for item, range in actual do
+            match expectedDict.TryGetValue((item, Some range)) with
+            | true, 1 -> assert expectedDict.Remove((item, Some range))
+            | true, count -> expectedDict[(item, Some range)] <- count - 1
+            | false, _ ->
+                match expectedDict.TryGetValue((item, None)) with
+                | true, 1 -> assert expectedDict.Remove((item, None))
+                | true, count -> expectedDict[(item, None)] <- count - 1
+                | false, _ -> failwith "Unexpected diagnostic."
 
-        let infs =
-            expected
-            |> Seq.choose (function
-                | Information inf -> Some inf
-                | _ -> None)
+        Assert.Empty expectedDict
 
-        this.Verify(name, errs)
-        this.Verify(name, wrns)
-        this.Verify(name, infs)
-
-        let other =
-            expected
-            |> Seq.choose (function
-                | Warning _
-                | Error _ -> None
-                | item -> Some item)
-
-        if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
+    // TODO: Remove this.
+    member this.VerifyDiagnostics(name, expected) =
+        this.AssertDiagnostics(name, Seq.map (fun e -> e, None) expected)
 
     // TODO: Remove this.
     static member Compile(srcFolder, fileNames, ?references, ?capability, ?isExecutable) =
