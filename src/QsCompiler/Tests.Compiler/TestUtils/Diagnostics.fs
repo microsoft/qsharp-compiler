@@ -100,21 +100,25 @@ let private showRange (range: Range option) =
 
 let private showDiagnostics diagnostics =
     diagnostics
-    |> Seq.map (fun (diagnostic, range) -> $"- {diagnostic} {showRange range}")
-    |> String.concat Environment.NewLine
+    |> Seq.map (fun (diagnostic, range, message) ->
+        let message' = if String.IsNullOrWhiteSpace message then "" else $"\n  ({message})"
+        $"- {diagnostic} {showRange range}{message'}")
+    |> String.concat "\n"
 
 let assertMatches expected (actual: Diagnostic seq) =
     let actual =
-        Seq.map (fun d -> toDiagnosticItem d, d.Range.ToQSharp()) actual |> ImmutableArray.CreateRange
+        actual
+        |> Seq.map (fun d -> toDiagnosticItem d, d.Range.ToQSharp(), d.Message)
+        |> ImmutableArray.CreateRange
 
     let fail () =
-        let expected' = showDiagnostics expected
-        let actual' = Seq.map (fun (d, r) -> d, Some r) actual |> showDiagnostics
+        let expected' = Seq.map (fun (d, r) -> d, r, "") expected |> showDiagnostics
+        let actual' = Seq.map (fun (d, r, m) -> d, Some r, m) actual |> showDiagnostics
         failwith $"Diagnostics did not match.\n\nExpected:\n{expected'}\nActual:\n{actual'}"
 
     let remaining = MultiHashSet expected
 
-    for item, range in actual do
+    for item, range, _ in actual do
         if not (remaining.Remove((item, Some range)) || remaining.Remove((item, None))) then fail ()
 
     if not remaining.IsEmpty then fail ()
