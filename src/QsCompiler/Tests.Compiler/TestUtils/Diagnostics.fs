@@ -34,26 +34,29 @@ type private MultiHashSet<'T when 'T: equality>(items) =
             dict[item] <- n - 1
             true
 
+let private removeWhile f (xs: ResizeArray<_>) =
+    let removed = Seq.takeWhile f xs |> ImmutableArray.CreateRange
+    xs.RemoveRange(0, removed.Length)
+    removed
+
+let private setRelativeTo (position: Position) (diagnostic: Diagnostic) =
+    diagnostic.Range.Start.Line <- diagnostic.Range.Start.Line - position.Line
+    diagnostic.Range.End.Line <- diagnostic.Range.End.Line - position.Line
+
 let private byDeclarationInFile declarations (diagnostics: Diagnostic seq) =
     let declarations = Seq.sortBy snd declarations |> ImmutableArray.CreateRange
-    let mutable diagnostics = diagnostics |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp())
+    let diagnostics = diagnostics |> Seq.sortBy (fun d -> d.Range.Start.ToQSharp()) |> ResizeArray
+    let groups = ResizeArray()
 
-    seq {
-        for i = 1 to declarations.Length do
-            let inCurrent (d: Diagnostic) =
-                i = declarations.Length || d.Range.Start.ToQSharp() < snd declarations[i]
+    for (name, start), (_, finish) in Seq.pairwise declarations do
+        let ds = diagnostics |> removeWhile (fun d -> d.Range.Start.ToQSharp() < finish)
+        Seq.iter (setRelativeTo start) ds
+        groups.Add(name, ds)
 
-            let name, start = declarations[i - 1]
-            let ds = Seq.takeWhile inCurrent diagnostics |> ImmutableArray.CreateRange
-            diagnostics <- Seq.skipWhile inCurrent diagnostics
-
-            for d in ds do
-                // Convert the range to be relative to the callable start line so it can be used in assertions.
-                d.Range.Start.Line <- d.Range.Start.Line - start.Line
-                d.Range.End.Line <- d.Range.End.Line - start.Line
-
-            yield name, ds
-    }
+    let lastName, lastStart = declarations[declarations.Length - 1]
+    Seq.iter (setRelativeTo lastStart) diagnostics
+    groups.Add(lastName, ImmutableArray.CreateRange diagnostics)
+    groups
 
 let byDeclaration (compilation: Compilation) =
     // Functor generation is expected to fail in certain cases.
