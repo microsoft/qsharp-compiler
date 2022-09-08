@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.Testing
@@ -120,6 +120,32 @@ module TypeCheckingTests =
     [<Fact>]
     let ``Supports lambda expressions`` () =
         allValid "Lambda" 31
+        expect "LambdaRange" []
+        expect "LambdaRangeStep" []
+        expect "LambdaCond" []
+        expect "LambdaOr" []
+        expect "LambdaAnd" []
+        expect "LambdaBOr" []
+        expect "LambdaBXor" []
+        expect "LambdaBAnd" []
+        expect "LambdaEq" []
+        expect "LambdaNe" []
+        expect "LambdaLte" []
+        expect "LambdaLt" []
+        expect "LambdaGte" []
+        expect "LambdaGt" []
+        expect "LambdaShr" []
+        expect "LambdaShl" []
+        expect "LambdaAdd" []
+        expect "LambdaConcat" []
+        expect "LambdaSub" []
+        expect "LambdaMul" []
+        expect "LambdaDiv" []
+        expect "LambdaMod" []
+        expect "LambdaExp" []
+        expect "LambdaBNot" []
+        expect "LambdaNot" []
+        expect "LambdaNeg" []
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatch ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatch ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
