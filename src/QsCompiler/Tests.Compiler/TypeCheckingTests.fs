@@ -25,17 +25,21 @@ module TypeCheckingTests =
 
     let private compilation = TestUtils.buildFiles "TestCases" files [] None TestUtils.Library
     let private diagnostics = Diagnostics.byDeclaration compilation
-    let private ns = "Microsoft.Quantum.Testing.TypeChecking"
+
+    let private qualify name =
+        QsQualifiedName.New("Microsoft.Quantum.Testing.TypeChecking", name)
+
+    let private diagnose name = diagnostics[qualify name]
 
     let internal expect name expected =
-        Diagnostics.assertMatches (Seq.map (fun e -> e, None) expected) diagnostics[QsQualifiedName.New(ns, name)]
+        diagnose name |> Diagnostics.assertMatches (Seq.map (fun e -> e, None) expected)
 
     let private allValid name count =
         for i = 1 to count do
             expect (sprintf "%s%i" name i) []
 
     let private findSpecScope name kind =
-        let callable = compilation.Callables.[QsQualifiedName.New(ns, name)]
+        let callable = compilation.Callables[qualify name]
         let spec = callable.Specializations |> Seq.find (fun s -> s.Kind = kind)
 
         match spec.Implementation with
@@ -124,18 +128,13 @@ module TypeCheckingTests =
         expect "LambdaInvalid8" [ Error ErrorCode.UnknownItemName ]
         expect "LambdaInvalid9" [ Error ErrorCode.UnknownItemName ]
 
-        Diagnostics.assertMatches
-            [
-                Error ErrorCode.InvalidAdjointApplication,
-                Range.Create (Position.Create 1 30) (Position.Create 1 32) |> Some
-            ]
-            diagnostics[QsQualifiedName.New(ns, "LambdaInvalid10")]
+        diagnose "LambdaInvalid10"
+        |> Diagnostics.assertMatches [ Error ErrorCode.InvalidAdjointApplication,
+                                       Range.Create (Position.Create 1 30) (Position.Create 1 32) |> Some ]
 
-        Diagnostics.assertMatches
-            [
-                Error ErrorCode.TypeMismatch, Range.Create (Position.Create 2 10) (Position.Create 2 17) |> Some
-            ]
-            diagnostics[QsQualifiedName.New(ns, "LambdaInvalid11")]
+        diagnose "LambdaInvalid11"
+        |> Diagnostics.assertMatches [ Error ErrorCode.TypeMismatch,
+                                       Range.Create (Position.Create 2 10) (Position.Create 2 17) |> Some ]
 
     [<Fact>]
     let ``Operation lambda with non-unit return (1)`` () =
