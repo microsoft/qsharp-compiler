@@ -1082,6 +1082,22 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return x -> -x;
     }
 
+    function LambdaFnCallFn() : (Unit -> Unit) -> Unit {
+        return f -> f();
+    }
+
+    function LambdaFnCallOp() : (Unit => Unit) -> Unit {
+        return f -> f();
+    }
+
+    function LambdaOpCallFn() : (Unit -> Unit) => Unit {
+        return f => f();
+    }
+
+    function LambdaOpCallOp() : (Unit => Unit) => Unit {
+        return f => f();
+    }
+
     function LambdaInvalid1() : Qubit => Unit is Adj {
         return q => Operation(q);
     }

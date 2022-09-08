@@ -146,6 +146,10 @@ module TypeCheckingTests =
         expect "LambdaBNot" []
         expect "LambdaNot" []
         expect "LambdaNeg" []
+        expect "LambdaFnCallFn" []
+        expect "LambdaFnCallOp" [ Error ErrorCode.TypeMismatch ]
+        expect "LambdaOpCallFn" []
+        expect "LambdaOpCallOp" []
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatch ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatch ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
