@@ -1114,6 +1114,14 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return f => Controlled f;
     }
 
+    function LambdaUnwrap() : NamedItems1 -> (Int, Int) {
+        return x -> x!;
+    }
+
+    function LambdaInvalidUnwrap() : (Int, Int)[] -> (Int, Int) {
+        return x -> x!;
+    }
+
     function LambdaInvalid1() : Qubit => Unit is Adj {
         return q => Operation(q);
     }

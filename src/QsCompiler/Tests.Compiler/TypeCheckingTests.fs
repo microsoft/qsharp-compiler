@@ -154,6 +154,8 @@ module TypeCheckingTests =
         expect "LambdaOpAdjoint" []
         expect "LambdaFnControlled" []
         expect "LambdaOpControlled" []
+        expect "LambdaUnwrap" []
+        expect "LambdaInvalidUnwrap" [ Error ErrorCode.ExpectingUserDefinedType ]
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatch ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatch ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
