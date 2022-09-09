@@ -607,9 +607,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.25.222597" ExcludeAssets="compile" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.QSharp.Core" Version="0.25.222597" ExcludeAssets="compile" />
-    <PackageReference Include="Microsoft.Quantum.Type3.Core" Version="0.25.222597" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.25.226855-beta" ExcludeAssets="compile" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.QSharp.Core" Version="0.25.226855-beta" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Type3.Core" Version="0.25.226855-beta" ExcludeAssets="compile" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
