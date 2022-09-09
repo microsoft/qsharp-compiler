@@ -982,7 +982,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y) -> x..y;
     }
 
+    function LambdaInvalidRange() : (Qubit, Int) -> Range {
+        return (x, y) -> x..y;
+    }
+
     function LambdaRangeStep() : (Int, Int, Int) -> Range {
+        return (x, y, z) -> x..y..z;
+    }
+
+    function LambdaInvalidRangeStep() : (Qubit, Int, Int) -> Range {
         return (x, y, z) -> x..y..z;
     }
 
@@ -990,7 +998,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y, z) -> x ? y | z;
     }
 
+    function LambdaInvalidCond<'T>() : (Qubit, 'T, 'T) -> 'T {
+        return (x, y, z) -> x ? y | z;
+    }
+
     function LambdaOr() : (Bool, Bool) -> Bool {
+        return (x, y) -> x or y;
+    }
+
+    function LambdaInvalidOr() : (Qubit, Qubit) -> Bool {
         return (x, y) -> x or y;
     }
 
@@ -998,7 +1014,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y) -> x and y;
     }
 
+    function LambdaInvalidAnd() : (Qubit, Qubit) -> Bool {
+        return (x, y) -> x and y;
+    }
+
     function LambdaBOr() : (Int, Int) -> Int {
+        return (x, y) -> x ||| y;
+    }
+
+    function LambdaInvalidBOr() : (Qubit, Qubit) -> Qubit {
         return (x, y) -> x ||| y;
     }
 
@@ -1006,7 +1030,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y) -> x ^^^ y;
     }
 
+    function LambdaInvalidBXor() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x ^^^ y;
+    }
+
     function LambdaBAnd() : (Int, Int) -> Int {
+        return (x, y) -> x &&& y;
+    }
+
+    function LambdaInvalidBAnd() : (Qubit, Qubit) -> Qubit {
         return (x, y) -> x &&& y;
     }
 
@@ -1014,7 +1046,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y) -> x == y;
     }
 
+    function LambdaInvalidEq() : (Unit -> Unit, Unit -> Unit) -> Bool {
+        return (x, y) -> x == y;
+    }
+
     function LambdaNe() : (Int, Int) -> Bool {
+        return (x, y) -> x != y;
+    }
+
+    function LambdaInvalidNe() : (Unit -> Unit, Unit -> Unit) -> Bool {
         return (x, y) -> x != y;
     }
 
@@ -1022,7 +1062,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y) -> x <= y;
     }
 
+    function LambdaInvalidLte() : (Qubit, Qubit) -> Bool {
+        return (x, y) -> x <= y;
+    }
+
     function LambdaLt() : (Int, Int) -> Bool {
+        return (x, y) -> x < y;
+    }
+
+    function LambdaInvalidLt() : (Qubit, Qubit) -> Bool {
         return (x, y) -> x < y;
     }
 
@@ -1030,7 +1078,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y) -> x >= y;
     }
 
+    function LambdaInvalidGte() : (Qubit, Qubit) -> Bool {
+        return (x, y) -> x >= y;
+    }
+
     function LambdaGt() : (Int, Int) -> Bool {
+        return (x, y) -> x > y;
+    }
+
+    function LambdaInvalidGt() : (Qubit, Qubit) -> Bool {
         return (x, y) -> x > y;
     }
 
@@ -1038,8 +1094,16 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y) -> x >>> y;
     }
 
+    function LambdaInvalidShr() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x >>> y;
+    }
+
     function LambdaShl() : (Int, Int) -> Int {
         return (x, y) -> x <<< y;
+    }
+
+    function LambdaInvalidShl() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x >>> y;
     }
 
     function LambdaAdd() : (Int, Int) -> Int {
@@ -1050,7 +1114,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y) -> x + y;
     }
 
+    function LambdaInvalidPlus() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x + y;
+    }
+
     function LambdaSub() : (Int, Int) -> Int {
+        return (x, y) -> x - y;
+    }
+
+    function LambdaInvalidSub() : (Qubit, Qubit) -> Qubit {
         return (x, y) -> x - y;
     }
 
@@ -1058,7 +1130,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y) -> x * y;
     }
 
+    function LambdaInvalidMul() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x * y;
+    }
+
     function LambdaDiv() : (Int, Int) -> Int {
+        return (x, y) -> x / y;
+    }
+
+    function LambdaInvalidDiv() : (Qubit, Qubit) -> Qubit {
         return (x, y) -> x / y;
     }
 
@@ -1066,7 +1146,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return (x, y) -> x % y;
     }
 
+    function LambdaInvalidMod() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x % y;
+    }
+
     function LambdaExp() : (Int, Int) -> Int {
+        return (x, y) -> x ^ y;
+    }
+
+    function LambdaInvalidExp() : (Qubit, Qubit) -> Qubit {
         return (x, y) -> x ^ y;
     }
 
@@ -1074,11 +1162,23 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return x -> ~~~x;
     }
 
+    function LambdaInvalidBNot() : Qubit -> Qubit {
+        return x -> ~~~x;
+    }
+
     function LambdaNot() : Bool -> Bool {
         return x -> not x;
     }
 
+    function LambdaInvalidNot() : Qubit -> Bool {
+        return x -> not x;
+    }
+
     function LambdaNeg() : Int -> Int {
+        return x -> -x;
+    }
+
+    function LambdaInvalidNeg() : Qubit -> Qubit {
         return x -> -x;
     }
 
@@ -1090,11 +1190,19 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return f -> f();
     }
 
+    function LambdaFnInvalidCall() : Qubit -> Unit {
+        return f -> f();
+    }
+
     function LambdaOpCallFn() : (Unit -> Unit) => Unit {
         return f => f();
     }
 
     function LambdaOpCallOp() : (Unit => Unit) => Unit {
+        return f => f();
+    }
+
+    function LambdaOpInvalidCall() : Qubit => Unit {
         return f => f();
     }
 
