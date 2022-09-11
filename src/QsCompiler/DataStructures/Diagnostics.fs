@@ -653,15 +653,6 @@ type DiagnosticItem =
             | ErrorCode.SetInResultConditionedBlock ->
                 "The variable \"{0}\" cannot be reassigned here. "
                 + "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
-            // | ErrorCode.UnsupportedCallableCapability ->
-            //     "The callable {0} requires runtime capabilities which are not supported by the target {1}."
-            //     + Environment.NewLine
-            //     + "Result Opacity: {2}"
-            //     + Environment.NewLine
-            //     + "Classical Capability: {3}"
-            // | ErrorCode.UnsupportedClassicalCapability ->
-            //     "This construct requires a classical runtime capability that is not supported by the target {0}: {1}."
-
             | ErrorCode.CallableRedefinition ->
                 "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor ->
@@ -916,10 +907,13 @@ type DiagnosticItem =
                 + DiagnosticItem.Message(ErrorCode.SetInResultConditionedBlock, args |> Seq.skip 4)
                 + " [{1}: ln {2}, cn {3}]"
             | WarningCode.UnsupportedCallableCapability ->
-                "{0}: "
-                // + DiagnosticItem.Message(ErrorCode.UnsupportedCallableCapability, args |> Seq.skip 4)
-                + " [{1}: ln {2}, cn {3}]"
-
+                "The callable {0} requires runtime capabilities which are not supported by the target {1}."
+                + Environment.NewLine
+                + "Result Opacity: {2}"
+                + Environment.NewLine
+                + "Classical Capability: {3}"
+            | WarningCode.UnsupportedClassicalCapability ->
+                "This construct requires a classical runtime capability that is not supported by the target {0}: {1}."
             | WarningCode.NamespaceAleadyOpen -> "The namespace is already open."
             | WarningCode.NamespaceAliasIsAlreadyDefined -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration ->
