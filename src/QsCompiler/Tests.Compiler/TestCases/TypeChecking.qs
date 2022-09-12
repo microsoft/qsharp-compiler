@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 /// This namespace contains test cases for type checking
@@ -976,6 +976,258 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
 
     function Lambda31(xs : NamedItems1[]) : Int[] {
         return Mapped(x -> x::Re, xs);
+    }
+
+    function LambdaRange() : (Int, Int) -> Range {
+        return (x, y) -> x..y;
+    }
+
+    function LambdaInvalidRange() : (Qubit, Int) -> Range {
+        return (x, y) -> x..y;
+    }
+
+    function LambdaRangeStep() : (Int, Int, Int) -> Range {
+        return (x, y, z) -> x..y..z;
+    }
+
+    function LambdaInvalidRangeStep() : (Qubit, Int, Int) -> Range {
+        return (x, y, z) -> x..y..z;
+    }
+
+    function LambdaCond<'T>() : (Bool, 'T, 'T) -> 'T {
+        return (x, y, z) -> x ? y | z;
+    }
+
+    function LambdaInvalidCond<'T>() : (Qubit, 'T, 'T) -> 'T {
+        return (x, y, z) -> x ? y | z;
+    }
+
+    function LambdaOr() : (Bool, Bool) -> Bool {
+        return (x, y) -> x or y;
+    }
+
+    function LambdaInvalidOr() : (Qubit, Qubit) -> Bool {
+        return (x, y) -> x or y;
+    }
+
+    function LambdaAnd() : (Bool, Bool) -> Bool {
+        return (x, y) -> x and y;
+    }
+
+    function LambdaInvalidAnd() : (Qubit, Qubit) -> Bool {
+        return (x, y) -> x and y;
+    }
+
+    function LambdaBOr() : (Int, Int) -> Int {
+        return (x, y) -> x ||| y;
+    }
+
+    function LambdaInvalidBOr() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x ||| y;
+    }
+
+    function LambdaBXor() : (Int, Int) -> Int {
+        return (x, y) -> x ^^^ y;
+    }
+
+    function LambdaInvalidBXor() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x ^^^ y;
+    }
+
+    function LambdaBAnd() : (Int, Int) -> Int {
+        return (x, y) -> x &&& y;
+    }
+
+    function LambdaInvalidBAnd() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x &&& y;
+    }
+
+    function LambdaEq() : (Int, Int) -> Bool {
+        return (x, y) -> x == y;
+    }
+
+    function LambdaInvalidEq() : (Unit -> Unit, Unit -> Unit) -> Bool {
+        return (x, y) -> x == y;
+    }
+
+    function LambdaNe() : (Int, Int) -> Bool {
+        return (x, y) -> x != y;
+    }
+
+    function LambdaInvalidNe() : (Unit -> Unit, Unit -> Unit) -> Bool {
+        return (x, y) -> x != y;
+    }
+
+    function LambdaLte() : (Int, Int) -> Bool {
+        return (x, y) -> x <= y;
+    }
+
+    function LambdaInvalidLte() : (Qubit, Qubit) -> Bool {
+        return (x, y) -> x <= y;
+    }
+
+    function LambdaLt() : (Int, Int) -> Bool {
+        return (x, y) -> x < y;
+    }
+
+    function LambdaInvalidLt() : (Qubit, Qubit) -> Bool {
+        return (x, y) -> x < y;
+    }
+
+    function LambdaGte() : (Int, Int) -> Bool {
+        return (x, y) -> x >= y;
+    }
+
+    function LambdaInvalidGte() : (Qubit, Qubit) -> Bool {
+        return (x, y) -> x >= y;
+    }
+
+    function LambdaGt() : (Int, Int) -> Bool {
+        return (x, y) -> x > y;
+    }
+
+    function LambdaInvalidGt() : (Qubit, Qubit) -> Bool {
+        return (x, y) -> x > y;
+    }
+
+    function LambdaShr() : (Int, Int) -> Int {
+        return (x, y) -> x >>> y;
+    }
+
+    function LambdaInvalidShr() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x >>> y;
+    }
+
+    function LambdaShl() : (Int, Int) -> Int {
+        return (x, y) -> x <<< y;
+    }
+
+    function LambdaInvalidShl() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x >>> y;
+    }
+
+    function LambdaAdd() : (Int, Int) -> Int {
+        return (x, y) -> x + y;
+    }
+
+    function LambdaConcat() : (String, String) -> String {
+        return (x, y) -> x + y;
+    }
+
+    function LambdaInvalidPlus() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x + y;
+    }
+
+    function LambdaSub() : (Int, Int) -> Int {
+        return (x, y) -> x - y;
+    }
+
+    function LambdaInvalidSub() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x - y;
+    }
+
+    function LambdaMul() : (Int, Int) -> Int {
+        return (x, y) -> x * y;
+    }
+
+    function LambdaInvalidMul() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x * y;
+    }
+
+    function LambdaDiv() : (Int, Int) -> Int {
+        return (x, y) -> x / y;
+    }
+
+    function LambdaInvalidDiv() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x / y;
+    }
+
+    function LambdaMod() : (Int, Int) -> Int {
+        return (x, y) -> x % y;
+    }
+
+    function LambdaInvalidMod() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x % y;
+    }
+
+    function LambdaExp() : (Int, Int) -> Int {
+        return (x, y) -> x ^ y;
+    }
+
+    function LambdaInvalidExp() : (Qubit, Qubit) -> Qubit {
+        return (x, y) -> x ^ y;
+    }
+
+    function LambdaBNot() : Int -> Int {
+        return x -> ~~~x;
+    }
+
+    function LambdaInvalidBNot() : Qubit -> Qubit {
+        return x -> ~~~x;
+    }
+
+    function LambdaNot() : Bool -> Bool {
+        return x -> not x;
+    }
+
+    function LambdaInvalidNot() : Qubit -> Bool {
+        return x -> not x;
+    }
+
+    function LambdaNeg() : Int -> Int {
+        return x -> -x;
+    }
+
+    function LambdaInvalidNeg() : Qubit -> Qubit {
+        return x -> -x;
+    }
+
+    function LambdaFnCallFn() : (Unit -> Unit) -> Unit {
+        return f -> f();
+    }
+
+    function LambdaFnCallOp() : (Unit => Unit) -> Unit {
+        return f -> f();
+    }
+
+    function LambdaFnInvalidCall() : Qubit -> Unit {
+        return f -> f();
+    }
+
+    function LambdaOpCallFn() : (Unit -> Unit) => Unit {
+        return f => f();
+    }
+
+    function LambdaOpCallOp() : (Unit => Unit) => Unit {
+        return f => f();
+    }
+
+    function LambdaOpInvalidCall() : Qubit => Unit {
+        return f => f();
+    }
+
+    function LambdaFnAdjoint() : (Unit => Unit is Adj) -> (Unit => Unit is Adj) {
+        return f -> Adjoint f;
+    }
+
+    function LambdaOpAdjoint() : (Unit => Unit is Adj) => (Unit => Unit is Adj) {
+        return f => Adjoint f;
+    }
+
+    function LambdaFnControlled() : (Unit => Unit is Ctl) -> ((Qubit[], Unit) => Unit is Ctl) {
+        return f -> Controlled f;
+    }
+
+    function LambdaOpControlled() : (Unit => Unit is Ctl) => ((Qubit[], Unit) => Unit is Ctl) {
+        return f => Controlled f;
+    }
+
+    function LambdaUnwrap() : NamedItems1 -> (Int, Int) {
+        return x -> x!;
+    }
+
+    function LambdaInvalidUnwrap() : (Int, Int)[] -> (Int, Int) {
+        return x -> x!;
     }
 
     function LambdaInvalid1() : Qubit => Unit is Adj {
