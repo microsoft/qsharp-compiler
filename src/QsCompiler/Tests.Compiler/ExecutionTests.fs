@@ -252,7 +252,7 @@ type ExecutionTests(output: ITestOutputHelper) =
         Assert.Equal(0, exitCode)
 
 
-    [<Fact(Skip = "ToDo: Test fails due to corrupted memory issue.")>]
+    [<Fact>]
     member this.``QIR native llvm type handling``() =
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestNativeTypeHandling"
@@ -262,33 +262,33 @@ type ExecutionTests(output: ITestOutputHelper) =
 
         let expected =
             """
-            [1, 2, 3]
-            [6, 6, 6]
-            item 0 is 1
-            item 1 is 2
-            item 2 is 3
-            [1, 2, 3, 6, 6, 6]
-            [6, 6, 2], [2, 3, 6]
-            [1, 2, 3], [4, 2, 3]
-            Microsoft.Quantum.Testing.ExecutionTests.MyUnit()
-            Microsoft.Quantum.Testing.ExecutionTests.MyTuple(5, 1.0), Microsoft.Quantum.Testing.ExecutionTests.MyTuple(1, 2.0), Microsoft.Quantum.Testing.ExecutionTests.MyTuple(1, 1.0)
-            Microsoft.Quantum.Testing.ExecutionTests.MyNestedTuple((1, 1.0), 0.0)
-            Microsoft.Quantum.Testing.ExecutionTests.MyNestedTuple((1, 3.0), 0.0)
-            1, PauliZ
-            2, [1, 2]
-            [[2, 1], [], [3], [0]]
-            [], [0], 3
-            [[PauliX, PauliZ], [], [PauliY], [PauliI]]
-            [], [PauliI], PauliY
-            [[], [], [3], [0]]
-            [[2, 1], [-1, -2, -3], [3], [0]]
-            [[], [], [PauliY], [PauliI]]
-            [[PauliX, PauliZ], [PauliX, PauliX, PauliX], [PauliY], [PauliI]]
-            [[], [], [2], [3]]
-            [[0, 1], [3, 3, 3], [2], [3]]
-            0, [], 2
-            [[[2], [1, 0]], [], [[], [3]], [[1, 2, 3, 4], []]]
-            [[[2], [1, 0]], [], [], []]
+            INFO    [1, 2, 3]
+            INFO    [6, 6, 6]
+            INFO    item 0 is 1
+            INFO    item 1 is 2
+            INFO    item 2 is 3
+            INFO    [1, 2, 3, 6, 6, 6]
+            INFO    [6, 6, 2], [2, 3, 6]
+            INFO    [1, 2, 3], [4, 2, 3]
+            INFO    Microsoft.Quantum.Testing.ExecutionTests.MyUnit()
+            INFO    Microsoft.Quantum.Testing.ExecutionTests.MyTuple(5, 1.0), Microsoft.Quantum.Testing.ExecutionTests.MyTuple(1, 2.0), Microsoft.Quantum.Testing.ExecutionTests.MyTuple(1, 1.0)
+            INFO    Microsoft.Quantum.Testing.ExecutionTests.MyNestedTuple((1, 1.0), 0.0)
+            INFO    Microsoft.Quantum.Testing.ExecutionTests.MyNestedTuple((1, 3.0), 0.0)
+            INFO    1, PauliZ
+            INFO    2, [1, 2]
+            INFO    [[2, 1], [], [3], [0]]
+            INFO    [], [0], 3
+            INFO    [[PauliX, PauliZ], [], [PauliY], [PauliI]]
+            INFO    [], [PauliI], PauliY
+            INFO    [[], [], [3], [0]]
+            INFO    [[2, 1], [-1, -2, -3], [3], [0]]
+            INFO    [[], [], [PauliY], [PauliI]]
+            INFO    [[PauliX, PauliZ], [PauliX, PauliX, PauliX], [PauliY], [PauliI]]
+            INFO    [[], [], [2], [3]]
+            INFO    [[0, 1], [3, 3, 3], [2], [3]]
+            INFO    0, [], 2
+            INFO    [[[2], [1, 0]], [], [[], [3]], [[1, 2, 3, 4], []]]
+            INFO    [[[2], [1, 0]], [], [], []]
             """
 
         assertEqual expected out
