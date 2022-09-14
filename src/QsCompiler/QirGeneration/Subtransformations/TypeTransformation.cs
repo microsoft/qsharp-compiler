@@ -7,6 +7,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using LlvmBindings.Types;
 using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -20,23 +21,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     {
         private readonly QirGlobalType globalType;
 
-        public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl) =>
-            this.globalType = new QirGlobalType(types, getTypeDecl);
+        public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useLlvmArrays) =>
+            this.globalType = new QirGlobalType(types, getTypeDecl, useLlvmArrays);
 
         internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
             this.globalType.LlvmTypeFromQsharpType(resolvedType);
 
         private class QirGlobalType : TypeTransformation
         {
+            private readonly bool useLlvmArrays;
+
             private protected ITypeRef? BuiltType { get; set; }
 
             private protected Types QirTypes { get; }
 
             private protected Func<QsQualifiedName, QsCustomType?> TypeDeclaration { get; }
 
-            public QirGlobalType(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
+            public QirGlobalType(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useLlvmArrays)
             : base(TransformationOptions.NoRebuild)
             {
+                this.useLlvmArrays = useLlvmArrays;
                 this.QirTypes = types;
                 this.TypeDeclaration = getTypeDecl;
             }
@@ -65,7 +69,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             public override QsResolvedTypeKind OnArrayType(ResolvedType b)
             {
-                this.BuiltType = this.QirTypes.Array;
+                var elementType = this.LlvmTypeFromQsharpType(b);
+                this.BuiltType = this.useLlvmArrays
+                    ? ArrayValue.NativeType(elementType, 0u, this.QirTypes)
+                    : this.QirTypes.Array;
                 return QsResolvedTypeKind.InvalidType;
             }
 

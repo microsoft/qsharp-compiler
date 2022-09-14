@@ -115,10 +115,10 @@ namespace Microsoft.Quantum.QIR
 
         internal QirTypeTransformation Transform { get; }
 
-        internal Types(Context context, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
+        internal Types(Context context, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useLlvmArrays)
         {
             this.context = context;
-            this.Transform = new QirTypeTransformation(this, getTypeDecl);
+            this.Transform = new QirTypeTransformation(this, getTypeDecl, useLlvmArrays);
 
             this.Int = context.Int64Type;
             this.Double = context.DoubleType;

@@ -703,20 +703,17 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /* private helpers */
 
-        private static IStructType NativeType(ITypeRef elementType, uint nrElements, GenerationContext context) =>
-            context.Context.CreateStructType(
-                packed: false,
-                elementType.CreateArrayType(nrElements),
-                context.Types.Int); // to store the actual count
+        internal static IStructType NativeType(ITypeRef elementType, uint nrElements, Types types) =>
+            types.TypedTuple(types.Int, elementType.CreateArrayType(nrElements)); // to store the actual count
 
         private static Value CreateNativeValue(Value constArray, Value length, GenerationContext context)
         {
             var constArrType = (IArrayType)constArray.NativeType;
-            var nativeType = NativeType(constArrType.ElementType, constArrType.Length, context);
+            var nativeType = NativeType(constArrType.ElementType, constArrType.Length, context.Types);
 
             Value nativeValue = nativeType.GetNullValue();
-            nativeValue = context.CurrentBuilder.InsertValue(nativeValue, constArray, 0u);
-            nativeValue = context.CurrentBuilder.InsertValue(nativeValue, length, 1u);
+            nativeValue = context.CurrentBuilder.InsertValue(nativeValue, length, 0u);
+            nativeValue = context.CurrentBuilder.InsertValue(nativeValue, constArray, 1u);
             return nativeValue;
         }
 
@@ -732,21 +729,21 @@ namespace Microsoft.Quantum.QIR.Emission
                     transformConstArr?.Invoke(constArr) ?? constArr,
                     this.Count != null ? this.sharedState.Context.CreateConstant((long)this.Count) : length,
                     this.sharedState)
-                : throw new InvalidOperationException("no native llvm represenation available");
+                : throw new InvalidOperationException("no native llvm representation available");
 
         private bool IsNativeValue(Value? value = null) =>
             (value ?? this.Value).NativeType is IStructType st
                 && st.Members.Count == 2
-                && st.Members[0] is IArrayType
-                && st.Members[1] == this.sharedState.Types.Int;
+                && st.Members[0] == this.sharedState.Types.Int
+                && st.Members[1] is IArrayType;
 
         private bool AsNativeValue([MaybeNullWhen(false)] out Value constArr, [MaybeNullWhen(false)] out Value length, Value? value = null)
         {
             value ??= this.Value;
             if (this.IsNativeValue(value))
             {
-                constArr = this.sharedState.CurrentBuilder.ExtractValue(value, 0u);
-                length = this.sharedState.CurrentBuilder.ExtractValue(value, 1u);
+                length = this.sharedState.CurrentBuilder.ExtractValue(value, 0u);
+                constArr = this.sharedState.CurrentBuilder.ExtractValue(value, 1u);
                 return true;
             }
 
