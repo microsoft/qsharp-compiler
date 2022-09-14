@@ -243,7 +243,7 @@ type ExecutionTests(output: ITestOutputHelper) =
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__CheckFail"
         let exitCode, out, err = qirExecutionTest null functionName
         Assert.NotEqual(0, exitCode)
-        // assertEqual "expected failure in CheckFail" out
+        assertEqual "expected failure in CheckFail" out
 
         // ... and now the actual tests
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__RunExample"
