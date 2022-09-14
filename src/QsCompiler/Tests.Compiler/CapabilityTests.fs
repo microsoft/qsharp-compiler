@@ -3,6 +3,7 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.CapabilityTests
 
+open System.Collections.Immutable
 open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -638,23 +639,25 @@ type private TestData() as data =
     inherit TheoryData<Case>()
     do List.iter data.Add cases
 
-let private compile capability isExecutable =
+let private compile capability output =
     let files = [ "Capabilities.qs"; "General.qs"; "LinkingTests/Core.qs" ]
     let references = [ File.ReadAllLines("ReferenceTargets.txt")[2] ]
-    CompilerTests.Compile("TestCases", files, references, capability, isExecutable)
+    TestUtils.buildFiles "TestCases" files references (Some capability) output
 
 let private inferences =
-    let compilation = compile TargetCapability.top false
+    let compilation = compile TargetCapability.top TestUtils.Library
     GlobalCallableResolutions (Capabilities.infer compilation.BuiltCompilation).Namespaces
 
-let levels =
-    [
-        BasicExecution, compile TargetCapability.basicExecution true |> CompilerTests
-        AdaptiveExecution, compile TargetCapability.adaptiveExecution true |> CompilerTests
-        BasicQuantumFunctionality, compile TargetCapability.basicQuantumFunctionality true |> CompilerTests
-        BasicMeasurementFeedback, compile TargetCapability.basicMeasurementFeedback true |> CompilerTests
-        FullComputation, compile TargetCapability.fullComputation true |> CompilerTests
-    ]
+let private levels =
+    seq {
+        BasicExecution, TargetCapability.basicExecution
+        AdaptiveExecution, TargetCapability.adaptiveExecution
+        BasicQuantumFunctionality, TargetCapability.basicQuantumFunctionality
+        BasicMeasurementFeedback, TargetCapability.basicMeasurementFeedback
+        FullComputation, TargetCapability.fullComputation
+    }
+    |> Seq.map (fun (level, capability) -> level, compile capability TestUtils.Exe |> Diagnostics.byDeclaration)
+    |> ImmutableArray.CreateRange
 
 [<Theory>]
 [<ClassData(typeof<TestData>)>]
@@ -667,5 +670,5 @@ let test case =
         $"Unexpected capability for {case.Name}.\nExpected: %A{case.Capability}\nActual: %A{inferredCapability}"
     )
 
-    for level, tester in levels do
-        tester.VerifyDiagnostics(fullName, case.Diagnostics level)
+    for level, diagnostics in levels do
+        Diagnostics.assertMatches (case.Diagnostics level |> Seq.map (fun e -> e, None)) diagnostics[fullName]
