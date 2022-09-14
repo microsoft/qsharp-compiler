@@ -889,7 +889,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// imported within a certain source file for <paramref name="nsName"/>.
         /// </summary>
         /// <exception cref="ArgumentException">No namespace exists with name <paramref name="nsName"/>.</exception>
-        public ILookup<string, (string, string?)> GetOpenDirectives(string nsName)
+        public ILookup<string, (string, string)> GetOpenDirectives(string nsName)
         {
             this.syncRoot.EnterReadLock();
             try
