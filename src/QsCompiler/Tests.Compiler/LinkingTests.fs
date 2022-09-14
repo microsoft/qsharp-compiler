@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.Testing
@@ -12,7 +12,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
-open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 open Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
@@ -25,7 +24,11 @@ open System.IO
 open Xunit
 
 type LinkingTests() =
-    inherit CompilerTests(LinkingTests.Compile())
+    let files = [ "Core.qs"; "InvalidEntryPoints.qs" ]
+
+    let diagnostics =
+        TestUtils.buildFiles (Path.Combine("TestCases", "LinkingTests")) files [] None TestUtils.Library
+        |> Diagnostics.byDeclaration
 
     let compilationManager =
         let props = ImmutableDictionary.CreateBuilder()
@@ -77,16 +80,13 @@ type LinkingTests() =
 
         Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
 
-    static member private Compile() =
-        CompilerTests.Compile(Path.Combine("TestCases", "LinkingTests"), [ "Core.qs"; "InvalidEntryPoints.qs" ])
-
     static member private ReadAndChunkSourceFile fileName =
         let sourceInput = Path.Combine("TestCases", "LinkingTests", fileName) |> File.ReadAllText
         sourceInput.Split([| "===" |], StringSplitOptions.RemoveEmptyEntries)
 
-    member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
-        let ns = "Microsoft.Quantum.Testing.EntryPoints"
-        this.VerifyDiagnostics(QsQualifiedName.New(ns, name), diag)
+    member private this.Expect name expected =
+        let actual = diagnostics[QsQualifiedName.New("Microsoft.Quantum.Testing.EntryPoints", name)]
+        Diagnostics.assertMatches (Seq.map (fun e -> e, None) expected) actual
 
     member private this.BuildWithSource input (manager: CompilationUnitManager) =
         let fileId = getTempFile ()
@@ -96,15 +96,15 @@ type LinkingTests() =
         manager.TryRemoveSourceFileAsync(fileId, false) |> ignore
         file.FileName, built
 
-    member private this.CompileAndVerify (manager: CompilationUnitManager) input (diag: DiagnosticItem seq) =
-        let source, built = manager |> this.BuildWithSource input
-        let tests = CompilerTests(built)
+    member private this.CompileAndVerify (manager: CompilationUnitManager) input expected =
+        let source, compilation = this.BuildWithSource input manager
+        let diagnostics = Diagnostics.byDeclaration compilation
 
         let inFile (c: QsCallable) =
             Source.assemblyOrCodeFile c.Source = source
 
-        for callable in built.Callables.Values |> Seq.filter inFile do
-            tests.VerifyDiagnostics(callable.FullName, diag)
+        for callable in Seq.filter inFile compilation.Callables.Values do
+            Diagnostics.assertMatches (Seq.map (fun e -> e, None) expected) diagnostics[callable.FullName]
 
     member private this.BuildContent(manager: CompilationUnitManager, source, ?references) =
         match references with
