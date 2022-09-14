@@ -236,7 +236,7 @@ type ExecutionTests(output: ITestOutputHelper) =
         assertEqual expected out
 
 
-    [<Fact(Skip = "Temporary failure.")>]
+    [<Fact>]
     member this.``QIR memory management``() =
 
         // Sanity test to check if we properly detect when a runtime exception is thrown:
