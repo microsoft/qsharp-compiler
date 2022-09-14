@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.Testing
@@ -6,28 +6,24 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open System.Collections.Generic
 open System.IO
 open Xunit
 
 type GlobalVerificationTests() =
-    inherit CompilerTests(GlobalVerificationTests.Compile())
+    let files =
+        [
+            "General.qs"
+            "GlobalVerification.qs"
+            "Types.qs"
+            Path.Join("LinkingTests", "Core.qs")
+        ]
 
-    static member private Compile() =
-        CompilerTests.Compile(
-            "TestCases",
-            [
-                "General.qs"
-                "GlobalVerification.qs"
-                "Types.qs"
-                Path.Join("LinkingTests", "Core.qs")
-            ]
-        )
+    let diagnostics =
+        TestUtils.buildFiles "TestCases" files [] None TestUtils.Library |> Diagnostics.byDeclaration
 
-    member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
-        let ns = "Microsoft.Quantum.Testing.GlobalVerification"
-        this.VerifyDiagnostics(QsQualifiedName.New(ns, name), diag)
-
+    member private this.Expect name expected =
+        let actual = diagnostics[QsQualifiedName.New("Microsoft.Quantum.Testing.GlobalVerification", name)]
+        Diagnostics.assertMatches (Seq.map (fun e -> e, None) expected) actual
 
     [<Fact>]
     member this.``Local namespace short names``() =

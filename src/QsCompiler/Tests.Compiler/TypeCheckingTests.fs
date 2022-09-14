@@ -3,45 +3,43 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System.Collections.Immutable
-open System.IO
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open System.Collections.Immutable
+open System.IO
 open Xunit
+
+open Microsoft.Quantum.QsCompiler.DataTypes
 
 /// Tests for type checking of Q# programs.
 module TypeCheckingTests =
-    let private compilation =
-        CompilerTests.Compile(
-            "TestCases",
-            [
-                Path.Combine("LinkingTests", "Core.qs")
-                "General.qs"
-                "TypeChecking.qs"
-                "Types.qs"
-            ]
-        )
+    let private files =
+        [
+            Path.Combine("LinkingTests", "Core.qs")
+            "General.qs"
+            "TypeChecking.qs"
+            "Types.qs"
+        ]
 
-    /// The compiled type-checking tests.
-    let private tests = CompilerTests compilation
+    let private compilation = TestUtils.buildFiles "TestCases" files [] None TestUtils.Library
+    let private diagnostics = Diagnostics.byDeclaration compilation
 
-    let private ns = "Microsoft.Quantum.Testing.TypeChecking"
+    let private qualify name =
+        QsQualifiedName.New("Microsoft.Quantum.Testing.TypeChecking", name)
 
-    /// <summary>
-    /// Asserts that the declaration with the given <paramref name="name"/> has the given
-    /// <paramref name="diagnostics"/>.
-    /// </summary>
-    let internal expect name diagnostics =
-        tests.VerifyDiagnostics(QsQualifiedName.New(ns, name), diagnostics)
+    let private diagnose name = diagnostics[qualify name]
+
+    let internal expect name expected =
+        diagnose name |> Diagnostics.assertMatches (Seq.map (fun e -> e, None) expected)
 
     let private allValid name count =
         for i = 1 to count do
             expect (sprintf "%s%i" name i) []
 
     let private findSpecScope name kind =
-        let callable = compilation.Callables.[QsQualifiedName.New(ns, name)]
+        let callable = compilation.Callables[qualify name]
         let spec = callable.Specializations |> Seq.find (fun s -> s.Kind = kind)
 
         match spec.Implementation with
@@ -192,6 +190,14 @@ module TypeCheckingTests =
         expect "LambdaInvalid7" [ Error ErrorCode.LocalVariableAlreadyExists ]
         expect "LambdaInvalid8" [ Error ErrorCode.UnknownItemName ]
         expect "LambdaInvalid9" [ Error ErrorCode.UnknownItemName ]
+
+        diagnose "LambdaInvalid10"
+        |> Diagnostics.assertMatches [ Error ErrorCode.InvalidAdjointApplication,
+                                       Range.Create (Position.Create 1 30) (Position.Create 1 32) |> Some ]
+
+        diagnose "LambdaInvalid11"
+        |> Diagnostics.assertMatches [ Error ErrorCode.TypeMismatch,
+                                       Range.Create (Position.Create 2 10) (Position.Create 2 17) |> Some ]
 
     [<Fact>]
     let ``Operation lambda with non-unit return (1)`` () =
