@@ -30,6 +30,10 @@ type Variable =
         Source: Range
     }
 
+type ConstraintMode =
+    | Immediate
+    | Deferred
+
 module Utils =
     let mapFst f (x, y) = (f x, y)
 
@@ -278,7 +282,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         match con with
         | Class cls ->
             match Inference.classDependencies cls |> List.choose unsolvedVariable with
-            | [] -> context.ApplyClassConstraint cls
+            | [] -> context.ApplyClassConstraint(cls, Immediate)
             | tyParams ->
                 for param in tyParams do
                     let classes = classConstraints.TryGetValue param |> tryOption |> Option.defaultValue []
@@ -316,6 +320,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let expected = context.Resolve expected
         let actual = context.Resolve actual
         let typeContext = TypeContext.createOrphan expected actual
+        let updateParents = Diagnostic.withParents expected actual
 
         let tryBind param substitution =
             match bind param substitution with
@@ -327,37 +332,42 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | TypeParameter param, _ when variables.ContainsKey param -> tryBind param actual
         | _, TypeParameter param when variables.ContainsKey param ->
             ResolvedType.withAllRanges actual.Range expected |> tryBind param
-        | ArrayType item1, ArrayType item2 -> context.ConstrainImpl(item1 .= item2)
+        | ArrayType item1, ArrayType item2 -> context.ConstrainImpl(item1 .= item2) |> List.map updateParents
         | TupleType items1, TupleType items2 ->
             [
                 if items1.Length <> items2.Length then TypeMismatch typeContext
                 for item1, item2 in Seq.zip items1 items2 do
-                    yield! context.Relate(item1, ordering, item2)
+                    yield! context.Relate(item1, ordering, item2) |> List.map updateParents
             ]
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
-            let charsErrors =
+            let charsOk =
                 match ordering with
-                | Subtype when Inference.charsSubset info2 info1 |> not -> [ TypeMismatch typeContext ]
-                | Equal when Inference.charsEqual info1 info2 |> not -> [ TypeMismatch typeContext ]
-                | Supertype when Inference.charsSubset info1 info2 |> not -> [ TypeMismatch typeContext ]
-                | _ -> []
+                | Subtype -> Inference.charsSubset info2 info1
+                | Equal -> Inference.charsEqual info1 info2
+                | Supertype -> Inference.charsSubset info1 info2
 
-            context.Relate(in1, Ordering.reverse ordering, in2)
-            @ context.Relate(out1, ordering, out2) @ charsErrors
+            [
+                if not charsOk then TypeMismatch typeContext
+                yield! context.Relate(in1, Ordering.reverse ordering, in2) |> List.map updateParents
+                yield! context.Relate(out1, ordering, out2) |> List.map updateParents
+            ]
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
             context.Relate(in1, Ordering.reverse ordering, in2) @ context.Relate(out1, ordering, out2)
+            |> List.map updateParents
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
-            TypeMismatch typeContext :: context.Relate(in1, Ordering.reverse ordering, in2)
-            @ context.Relate(out1, ordering, out2)
+            [
+                TypeMismatch typeContext
+                yield! context.Relate(in1, Ordering.reverse ordering, in2) |> List.map updateParents
+                yield! context.Relate(out1, ordering, out2) |> List.map updateParents
+            ]
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
         | _ -> [ TypeMismatch typeContext ]
-        |> List.map (Diagnostic.withParents expected actual)
 
-    member private context.ApplyClassConstraint cls =
+    member private context.ApplyClassConstraint(cls, mode) =
         let error code args range =
             let range = TypeRange.tryRange range |> QsNullable.defaultValue Range.Zero
             QsCompilerDiagnostic.Error (code, args) range |> CompilerDiagnostic
@@ -376,13 +386,25 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | Callable (callable, input, output) ->
             let callable = context.Resolve callable
 
-            match callable.Resolution with
-            | QsTypeKind.Operation _ ->
-                let operationType = QsTypeKind.Operation((input, output), CallableInformation.NoInformation)
-                context.ConstrainImpl(callable <. ResolvedType.New operationType)
-            | QsTypeKind.Function _ ->
-                context.ConstrainImpl(callable <. ResolvedType.New(QsTypeKind.Function(input, output)))
-            | _ ->
+            let requiredCallable =
+                match callable.Resolution with
+                | QsTypeKind.Operation _ ->
+                    QsTypeKind.Operation((input, output), CallableInformation.NoInformation) |> ResolvedType.New |> Some
+                | QsTypeKind.Function _ -> QsTypeKind.Function(input, output) |> ResolvedType.New |> Some
+                | _ -> None
+
+            // The callable constraint needs special handling for diagnostics:
+            //
+            // - If the constraint was applied immediately, it's assumed to be a call expression. The callable is the
+            //   "expected" type. A type mismatch is the argument's fault.
+            // - If the constraint was deferred, the callable is being provided as a value to a higher-order function.
+            //   The callable is the "actual" value. A type mismatch is the callable's fault.
+            //
+            // The constraints are equivalent - only the diagnostic messages are different.
+            match requiredCallable, mode with
+            | Some requiredCallable, Immediate -> context.ConstrainImpl(callable <. requiredCallable)
+            | Some requiredCallable, Deferred -> context.ConstrainImpl(requiredCallable .> callable)
+            | None, _ ->
                 [
                     error ErrorCode.ExpectingCallableExpr [ SyntaxTreeToQsharp.Default.ToCode callable ] callable.Range
                 ]
@@ -534,7 +556,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | Some classes ->
             if classConstraints.Remove param |> not then failwith "Couldn't remove class constraints."
             let isReady = Inference.classDependencies >> List.choose unsolvedVariable >> List.isEmpty
-            Seq.filter isReady classes |> Seq.collect context.ApplyClassConstraint |> Seq.toList
+
+            Seq.filter isReady classes
+            |> Seq.collect (fun cls -> context.ApplyClassConstraint(cls, Deferred))
+            |> Seq.toList
         | None -> []
 
 module InferenceContext =
