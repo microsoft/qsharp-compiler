@@ -7,12 +7,17 @@
     open Microsoft.Quantum.Math;
 
     @EntryPoint()
-    operation RunExample() : String {
+    operation RunExample(arr : Int[]) : Bool {
 
         // Add additional code here
         // for experimenting with and debugging QIR generation.
 
-        return "Executed successfully!";
+        mutable sum = 0;
+        for item in arr {
+            set sum += item;
+        }
+
+        return sum % 2 == 0;
     }
 }
 
