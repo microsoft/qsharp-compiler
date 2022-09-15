@@ -1,7 +1,7 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-module Microsoft.Quantum.QsCompiler.Testing.TestUtils
+module internal Microsoft.Quantum.QsCompiler.Testing.TestUtils
 
 open System
 open System.Collections.Immutable
@@ -19,6 +19,9 @@ open Microsoft.Quantum.QsCompiler.TextProcessing
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Xunit
 
+type OutputType =
+    | Library
+    | Exe
 
 // utils for regex testing
 
@@ -340,6 +343,32 @@ let buildContentWithFiles content files =
     Assert.NotNull compilationDataStructures.BuiltCompilation
 
     compilationDataStructures
+
+let buildFiles folder names references capability output =
+    let files =
+        names
+        |> Seq.map (fun name ->
+            let path = Path.Combine(folder, name) |> Path.GetFullPath
+            Uri path, File.ReadAllText path)
+        |> dict
+
+    let capabilityName = Option.bind TargetCapability.name capability
+
+    let props =
+        [
+            MSBuildProperties.ResolvedTargetCapability, Option.toObj capabilityName
+            if output = Exe then MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe
+        ]
+        |> dict
+        |> ProjectProperties
+
+    let exceptions = ResizeArray()
+    use manager = new CompilationUnitManager(props, Action<_> exceptions.Add)
+    manager.AddOrUpdateSourceFilesAsync(CompilationUnitManager.InitializeFileManagers files) |> ignore
+    let references = ProjectManager.LoadReferencedAssemblies references |> References
+    manager.UpdateReferencesAsync references |> ignore
+    let compilation = manager.Build()
+    if exceptions.Count > 0 then AggregateException exceptions |> raise else compilation
 
 // utils for getting components from test materials
 

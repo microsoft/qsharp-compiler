@@ -12,7 +12,7 @@
     <copyright></copyright>
     <tags></tags>
     <dependencies>
-      <dependency id="Microsoft.Quantum.Compiler" version="0.25.222597" />
+      <dependency id="Microsoft.Quantum.Compiler" version="0.25.228311" />
     </dependencies>
     <summary></summary>
   </metadata>

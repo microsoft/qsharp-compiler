@@ -1042,7 +1042,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Contains a dictionary that maps the name of each namespace defined in the compilation to a look-up
             /// containing the names and corresponding short form (if any) of all opened namespaces for that (part of the) namespace in a particular source file.
             /// </summary>
-            private readonly ImmutableDictionary<string, ILookup<string, (string, string?)>> openDirectivesForEachFile;
+            private readonly ImmutableDictionary<string, ILookup<string, (string, string)>> openDirectivesForEachFile;
 
             /// <summary>
             /// Contains a dictionary that given the ID of a file included in the compilation
@@ -1146,10 +1146,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Returns an empty sequence if <paramref name="sourceFile"/> and/or <paramref name="nsName"/>
             /// do not exist in the compilation.
             /// </remarks>
-            public IEnumerable<(string, string?)> OpenDirectives(string sourceFile, string nsName) =>
+            public IEnumerable<(string, string)> OpenDirectives(string sourceFile, string nsName) =>
                 this.openDirectivesForEachFile.TryGetValue(nsName, out var lookUp)
                     ? lookUp[sourceFile]
-                    : Enumerable.Empty<(string, string?)>();
+                    : Enumerable.Empty<(string, string)>();
 
             /// <summary>
             /// Returns all the names of all callable and types defined in namespace <paramref name="nsName"/>.
