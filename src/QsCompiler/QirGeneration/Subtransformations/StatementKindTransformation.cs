@@ -268,7 +268,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var testValue = this.SharedState.EvaluateSubexpression(clauses[n].Item1).Value;
                 this.SharedState.ScopeMgr.CloseScope(false);
 
-                if (!(QirValues.AsConstantUInt32(testValue) == 0))
+                if (QirValues.AsConstantUInt32(testValue) == 1)
+                {
+                    // Because this condition is known to be true, add the corresponding clauses to the current block without
+                    // condition and skip the rest of the conditional clauses evaluation.
+                    contBlockUsed = this.ProcessBlock(this.SharedState.CurrentBlock, clauses[n].Item2.Body, contBlock) || contBlockUsed;
+                    skipRest = true;
+                }
+                else if (QirValues.AsConstantUInt32(testValue) == null)
                 {
                     // If this is an intermediate clause, then the next block if the test fails
                     // is the next clause's test block.
@@ -277,10 +284,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var conditionalBlock =
                         this.SharedState.CurrentFunction.InsertBasicBlock(
                             this.SharedState.BlockName($"then{n}"), contBlock);
-                    skipRest = (QirValues.AsConstantUInt32(testValue) & 1) == 1;
-                    var nextConditional = n < clauses.Length - 1 && !skipRest
+                    var nextConditional = n < clauses.Length - 1
                         ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
-                        : (stm.Default.IsNull || skipRest
+                        : (stm.Default.IsNull
                             ? contBlock
                             : this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"else"), contBlock));
                     contBlockUsed = contBlockUsed || nextConditional == contBlock;

@@ -149,6 +149,12 @@ namespace Microsoft.Quantum.Testing.QIR {
         TestIfClauses2();
         TestIfClauses3();
         TestIfClauses4(m2);
+        TestIfClauses5(m2, 0);
+        TestIfClauses5(m2, 1);
+        TestIfClauses6(0, 0);
+        TestIfClauses6(0, 1);
+        TestIfClauses6(1, 0);
+        TestIfClauses6(1, 1);
 
         mutable rand = 0;
         for item in qs {
@@ -269,6 +275,49 @@ namespace Microsoft.Quantum.Testing.QIR {
             DumpMachine((13, M(q)));
         }
     }
+
+    operation TestIfClauses5(m : Result, val : Int) : Unit {
+        if m == Zero {
+            use q = Qubit();
+            DumpMachine((14, M(q)));
+        }
+        elif val > 0 {
+            use q = Qubit();
+            DumpMachine((15, M(q)));
+        }
+
+        if m == Zero and val > 0 {
+            use q = Qubit();
+            DumpMachine((16, M(q)));
+        }
+
+        if m == Zero or val > 0 {
+            use q = Qubit();
+            DumpMachine((17, M(q)));
+        }
+    }
+
+    operation TestIfClauses6(val1 : Int, val2 : Int) : Unit {
+        if val1 == 0 {
+            use q = Qubit();
+            DumpMachine((18, M(q)));
+        }
+        elif val2 > 0 {
+            use q = Qubit();
+            DumpMachine((19, M(q)));
+        }
+
+        if val1 == 0 and val2 > 0 {
+            use q = Qubit();
+            DumpMachine((20, M(q)));
+        }
+
+        if val1 == 0 or val2 > 0 {
+            use q = Qubit();
+            DumpMachine((21, M(q)));
+        }
+    }
+
 }
 
 namespace Microsoft.Quantum.Diagnostics {
