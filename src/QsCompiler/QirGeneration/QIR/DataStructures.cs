@@ -1071,7 +1071,7 @@ namespace Microsoft.Quantum.QIR.Emission
         // if the callable value is fully trackable during QIR generation; before emiting a call instruction,
         // we check if the name of the callable is known, and if it is we merely select the correct specialization
         // and never even access the Value property.
-        internal CallableState? CurrentState { get; private set; } // FIXME: GET RID OF SETTER HERE
+        internal CallableState? CurrentState { get; private set; }
 
         public Value Value
         {
