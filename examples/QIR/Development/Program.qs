@@ -6,18 +6,30 @@
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
 
+    function UpdateArr(arr : Int[]) : Int[] {
+        return arr w/ 0 <- 5;
+    }
+
     @EntryPoint()
-    operation RunExample(arr : Int[]) : Bool {
+    operation RunExample() : Bool {
 
         // Add additional code here
         // for experimenting with and debugging QIR generation.
+        //let local_arr = [1,2,3];
+        //mutable sum1 = 0;
+        //for idx in local_arr {
+        //    set sum1 += local_arr[idx];
+        //}
 
-        mutable sum = 0;
+        let arr = [1,2,3];
+
+        mutable sum2 = 0;
+        //let new_arr2 = UpdateArr(arr);
         for item in arr {
-            set sum += item;
+            set sum2 += item;
         }
 
-        return sum % 2 == 0;
+        return sum2 % 2 == 0;
     }
 }
 
