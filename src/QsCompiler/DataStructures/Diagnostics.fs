@@ -167,10 +167,6 @@ type ErrorCode =
     | ExpectingIterableExpr = 5020
     | ExpectingCallableExpr = 5021
     | UnknownIdentifier = 5022
-    | UnsupportedResultComparison = 5023
-    | ResultComparisonNotInOperationIf = 5024
-    | ReturnInResultConditionedBlock = 5025
-    | SetInResultConditionedBlock = 5026
 
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
@@ -641,18 +637,6 @@ type DiagnosticItem =
             | ErrorCode.ExpectingCallableExpr ->
                 "The type of the expression must be a function or operation type. The given expression is of type {0}."
             | ErrorCode.UnknownIdentifier -> "No identifier with the name \"{0}\" exists."
-            // TODO: When the names of the runtime capabilities are finalized, they can be included in the result
-            //       comparison error messages.
-            | ErrorCode.UnsupportedResultComparison -> "The target {0} does not support comparing measurement results."
-            | ErrorCode.ResultComparisonNotInOperationIf ->
-                "Measurement results cannot be compared here. "
-                + "The target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
-            | ErrorCode.ReturnInResultConditionedBlock ->
-                "A return statement cannot be used here. "
-                + "The target {0} does not support return statements in conditional blocks that depend on a measurement result."
-            | ErrorCode.SetInResultConditionedBlock ->
-                "The variable \"{0}\" cannot be reassigned here. "
-                + "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
             | ErrorCode.CallableRedefinition ->
                 "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor ->
@@ -890,22 +874,18 @@ type DiagnosticItem =
                 "This expression may be short-circuited, and operation calls may not be executed."
             | WarningCode.DeprecationWithRedirect -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect -> "{0} has been deprecated."
-            | WarningCode.UnsupportedResultComparison ->
-                "{0}: "
-                + DiagnosticItem.Message(ErrorCode.UnsupportedResultComparison, args |> Seq.skip 4)
-                + " [{1}: ln {2}, cn {3}]"
+
+            | WarningCode.UnsupportedResultComparison -> "The target {0} does not support comparing measurement results."
             | WarningCode.ResultComparisonNotInOperationIf ->
-                "{0}: "
-                + DiagnosticItem.Message(ErrorCode.ResultComparisonNotInOperationIf, args |> Seq.skip 4)
-                + " [{1}: ln {2}, cn {3}]"
+                "Measurement results cannot be compared here. "
+                + "The target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
             | WarningCode.ReturnInResultConditionedBlock ->
-                "{0}: "
-                + DiagnosticItem.Message(ErrorCode.ReturnInResultConditionedBlock, args |> Seq.skip 4)
-                + " [{1}: ln {2}, cn {3}]"
+                "A return statement cannot be used here. "
+                + "The target {0} does not support return statements in conditional blocks that depend on a measurement result."
             | WarningCode.SetInResultConditionedBlock ->
-                "{0}: "
-                + DiagnosticItem.Message(ErrorCode.SetInResultConditionedBlock, args |> Seq.skip 4)
-                + " [{1}: ln {2}, cn {3}]"
+                "The variable \"{0}\" cannot be reassigned here. "
+                + "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
+
             | WarningCode.UnsupportedCallableCapability ->
                 "The callable {0} requires runtime capabilities which are not supported by the target {1}."
                 + Environment.NewLine

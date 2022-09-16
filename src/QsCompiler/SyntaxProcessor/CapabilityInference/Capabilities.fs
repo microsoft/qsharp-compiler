@@ -22,22 +22,14 @@ let syntaxAnalyzer callableKind =
 let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
     let warningCode =
         match diagnostic.Diagnostic with
-        | Error ErrorCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
-        | Error ErrorCode.ResultComparisonNotInOperationIf -> Some WarningCode.ResultComparisonNotInOperationIf
-        | Error ErrorCode.ReturnInResultConditionedBlock -> Some WarningCode.ReturnInResultConditionedBlock
-        | Error ErrorCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
+        | Warning WarningCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
+        | Warning WarningCode.ResultComparisonNotInOperationIf -> Some WarningCode.ResultComparisonNotInOperationIf
+        | Warning WarningCode.ReturnInResultConditionedBlock -> Some WarningCode.ReturnInResultConditionedBlock
+        | Warning WarningCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
+        | Warning WarningCode.UnsupportedCallableCapability -> Some WarningCode.UnsupportedCallableCapability
         | _ -> None
 
-    let args =
-        seq {
-            name
-            codeFile
-            string (diagnostic.Range.Start.Line + 1)
-            string (diagnostic.Range.Start.Column + 1)
-            yield! diagnostic.Arguments
-        }
-
-    Option.map (fun code -> QsCompilerDiagnostic.Warning (code, args) (range.ValueOr Range.Zero)) warningCode
+    Option.map (fun code -> QsCompilerDiagnostic.Warning (code, diagnostic.Arguments) (range.ValueOr Range.Zero)) warningCode
 
 // TODO: Remove this function as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
 let explainCall (nsManager: NamespaceManager) graph target (call: Call) =
