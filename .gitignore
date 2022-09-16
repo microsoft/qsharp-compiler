@@ -307,7 +307,7 @@ __pycache__/
 *.pyc
 
 # Python Virtual environments
-*__venv/
+*__venv/ 
 
 # Cake - Uncomment if you are using it
 # tools/**
@@ -371,7 +371,6 @@ src/QsCompiler/QirGeneration/QirGeneration.nuspec
 src/Telemetry/Tests/coverage.json
 src/Telemetry/.vscode/settings.json
 build/267DevDivSNKey2048.snk
-src/QsCompiler/Tests.LanguageServer/LanguageServer/
 
 # MSBuild logs
 MSBuild_Logs/
