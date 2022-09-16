@@ -1918,7 +1918,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             foreach (var name in delta)
             {
                 var callable = compilation.GetCallables()[name];
-                foreach (var diagnostic in Capabilities.Diagnose(target, compilation.GlobalSymbols, graph, callable))
+                var d = Capabilities.Diagnose(target, compilation.GlobalSymbols, graph, callable);
+                foreach (var diagnostic in d)
                 {
                     yield return Diagnostics.Generate(callable.Source.AssemblyOrCodeFile, diagnostic);
                 }
