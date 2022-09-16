@@ -1537,7 +1537,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// For each valid source file, generates the corrsponding <see cref="TextDocumentIdentifier"/> and reads the file content from disk.
+        /// For each valid source file, generates the corresponding <see cref="TextDocumentIdentifier"/> and reads the file content from disk.
         /// </summary>
         /// <param name="sourceFiles">The source files to load.</param>
         /// <param name="onDiagnostic">Called on all generated diagnostics.</param>
