@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <Compile Include="TestUtils\TestUtils.fs" />
-    <Compile Include="TestUtils\SetupVerificationTests.fs" />
+    <Compile Include="TestUtils\Diagnostics.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
     <Compile Include="TestUtils\Transformations.fs" />
     <Content Include="TestCases\QirTests\QirCore.qs">
@@ -504,6 +504,18 @@
     <None Include="TestCases\StringParsingTests\StringInterpolation.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\WholeFileTests\ConflictingAliases.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\WholeFileTests\OpenWithAlias.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\WholeFileTests\DuplicateOpens.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\WholeFileTests\DuplicateAndConflictingAliases.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\Capabilities.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -590,12 +602,13 @@
     <Compile Include="CompilationTrackerTests.fs" />
     <Compile Include="QirTests.fs" />
     <Compile Include="ExecutionTests.fs" />
+    <Compile Include="OpenDirectiveTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.25.222597" ExcludeAssets="compile" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.QSharp.Core" Version="0.25.222597" ExcludeAssets="compile" />
-    <PackageReference Include="Microsoft.Quantum.Type3.Core" Version="0.25.222597" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.25.228311" ExcludeAssets="compile" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.QSharp.Core" Version="0.25.228311" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Type3.Core" Version="0.25.228311" ExcludeAssets="compile" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
