@@ -636,7 +636,6 @@
     <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt" Lines="$(ExecutionTarget); $(QirExecutionTarget); $(LibraryTarget)" Overwrite="true" />
     <Copy Condition="$([MSBuild]::IsOsPlatform('OSX'))" SourceFiles="$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/libMicrosoft.Quantum.Simulator.Runtime.dylib" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
     <Copy Condition="$([MSBuild]::IsOsPlatform('OSX'))" SourceFiles="$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/libomp.dylib" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
-    
   </Target>
 
 </Project>
