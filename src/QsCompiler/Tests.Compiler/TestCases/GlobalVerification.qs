@@ -25,6 +25,9 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     open Microsoft.Quantum.Testing.General;
     open Microsoft.Quantum.Testing.GlobalVerification.N3;
     open Microsoft.Quantum.Testing.GlobalVerification.N4 as N4;
+    open Microsoft.Quantum.Testing.GlobalVerification.N4 as N5;
+    open Microsoft.Quantum.Testing.GlobalVerification.N4 as N6;
+    open Microsoft.Quantum.Testing.GlobalVerification.N4 as N7;
 
 
     // types used to test cycle checking for user defined types across files
@@ -139,6 +142,9 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
         let _ = arg1! + arg2!;
     }
 
+    function LocalNamespaceShortNames25 () : (Unit -> N7.IntPair) {
+        return N5.Default<N6.IntPair>;
+    }
 
     // naming conflicts with namespace name
 

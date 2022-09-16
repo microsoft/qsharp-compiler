@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.Testing
@@ -6,30 +6,26 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open System.Collections.Generic
 open System.IO
 open Xunit
 
 type LocalVerificationTests() =
-    inherit CompilerTests(LocalVerificationTests.Compile())
+    let files =
+        [
+            "General.qs"
+            "LocalVerification.qs"
+            "Types.qs"
+            Path.Combine("LinkingTests", "Core.qs")
+            Path.Combine("StringParsingTests", "StringParsing.qs")
+            Path.Combine("StringParsingTests", "StringInterpolation.qs")
+        ]
 
-    static member private Compile() =
-        CompilerTests.Compile(
-            "TestCases",
-            [
-                "General.qs"
-                "LocalVerification.qs"
-                "Types.qs"
-                Path.Combine("LinkingTests", "Core.qs")
-                Path.Combine("StringParsingTests", "StringParsing.qs")
-                Path.Combine("StringParsingTests", "StringInterpolation.qs")
-            ]
-        )
+    let diagnostics =
+        TestUtils.buildFiles "TestCases" files [] None TestUtils.Library |> Diagnostics.byDeclaration
 
-    member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
-        let ns = "Microsoft.Quantum.Testing.LocalVerification"
-        this.VerifyDiagnostics(QsQualifiedName.New(ns, name), diag)
-
+    member private this.Expect name expected =
+        let actual = diagnostics[QsQualifiedName.New("Microsoft.Quantum.Testing.LocalVerification", name)]
+        Diagnostics.assertMatches (Seq.map (fun e -> e, None) expected) actual
 
     [<Fact>]
     member this.``Type argument inference``() =

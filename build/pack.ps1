@@ -16,16 +16,10 @@ function Publish-One {
     );
 
     Write-Host "##[info]Publishing $project ..."
-    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
-        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
-    }  else {
-        $args = @();
-    }
     dotnet publish (Join-Path $PSScriptRoot $project) `
         -c $Env:BUILD_CONFIGURATION `
         -v $Env:BUILD_VERBOSITY `
         --no-build `
-        @args `
         /property:Version=$Env:ASSEMBLY_VERSION
 
     if  ($LastExitCode -ne 0) {
@@ -56,17 +50,11 @@ function Pack-One() {
 
 function Pack-Dotnet() {
     Param($project, $option1 = "", $option2 = "", $option3 = "")
-    if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
-        $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
-    }  else {
-        $args = @();
-    }
     dotnet pack (Join-Path $PSScriptRoot $project) `
         -o $Env:NUGET_OUTDIR `
         -c $Env:BUILD_CONFIGURATION `
         -v detailed `
         --no-build `
-        @args `
         /property:Version=$Env:ASSEMBLY_VERSION `
         /property:PackageVersion=$Env:NUGET_VERSION `
         $option1 `

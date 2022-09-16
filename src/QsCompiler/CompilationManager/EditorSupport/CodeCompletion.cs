@@ -447,14 +447,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return compilation
                 .GetOpenDirectives(ns)[file.FileName]
-                .SelectNotNull(open => open.Item2?.Apply(alias => (open.Item1, alias)))
-                .Where(open => open.alias.StartsWith(prefix))
-                .GroupBy(open => NextNamespacePart(open.alias, prefix.Length))
+                .Where(open => open.Item2.StartsWith(prefix))
+                .GroupBy(open => NextNamespacePart(open.Item2, prefix.Length))
                 .Select(open => new CompletionItem
                 {
                     Label = open.Key,
                     Kind = CompletionItemKind.Module,
-                    Detail = open.Count() == 1 && prefix + open.Key == open.Single().alias
+                    Detail = open.Count() == 1 && prefix + open.Key == open.Single().Item2
                         ? open.Single().Item1
                         : prefix + open.Key,
                 });
@@ -521,7 +520,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             return compilation
                 .GetOpenDirectives(@namespace)[file.FileName]
-                .Where(open => open.Item2 == null) // Only include open directives without an alias.
+                .Where(open => string.IsNullOrEmpty(open.Item2)) // Only include open directives without an alias.
                 .Select(open => open.Item1)
                 .Concat(new[] { @namespace });
         }

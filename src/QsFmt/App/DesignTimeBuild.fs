@@ -44,7 +44,7 @@ let getSourceFiles (projectFile: string) =
             ProjectCollection.GlobalProjectCollection.UnloadAllProjects() // needed due to the caching behavior of MS build
 
         let properties = globalProperties // TODO: we may need to revise that
-        project <- new Project(projectFile, properties, ToolLocationHelper.CurrentToolsVersion)
+        project <- Project(projectFile, properties, ToolLocationHelper.CurrentToolsVersion)
         let instance = project.CreateProjectInstance()
 
         // get all the source files in the project
