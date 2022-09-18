@@ -17,10 +17,9 @@
 
   <ItemGroup>
     <Compile Include="TestUtils\TestUtils.fs" />
-    <Compile Include="TestUtils\SetupVerificationTests.fs" />
+    <Compile Include="TestUtils\Diagnostics.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
     <Compile Include="TestUtils\Transformations.fs" />
-    <Compile Include="TestUtils\SetupWholeFileTests.fs" />
     <Content Include="TestCases\QirTests\QirCore.qs">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -607,9 +606,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.25.222597" ExcludeAssets="compile" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.QSharp.Core" Version="0.25.222597" ExcludeAssets="compile" />
-    <PackageReference Include="Microsoft.Quantum.Type3.Core" Version="0.25.222597" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.25.228311" ExcludeAssets="compile" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.QSharp.Core" Version="0.25.228311" ExcludeAssets="compile" />
+    <PackageReference Include="Microsoft.Quantum.Type3.Core" Version="0.25.228311" ExcludeAssets="compile" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">

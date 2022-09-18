@@ -1,25 +1,32 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.Testing
+module Microsoft.Quantum.QsCompiler.Testing.OpenDirectiveTests
 
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Xunit
+open System.IO
 
-type OpenDirectiveTests() =
+let private folder = Path.Join("TestCases", "WholeFileTests")
 
-    [<Fact>]
-    member this.``Conflicting aliases``() =
-        WholeFileTests.Expect "ConflictingAliases.qs" [ Error ErrorCode.InvalidNamespaceAliasName ]
+[<Fact>]
+let ``Conflicting aliases`` () =
+    let compilation = TestUtils.buildFiles folder [ "ConflictingAliases.qs" ] [] None TestUtils.Library
+    Diagnostics.assertMatches [ Error ErrorCode.InvalidNamespaceAliasName, None ] (compilation.Diagnostics())
 
-    [<Fact>]
-    member this.``Duplicate open directives with conflicting aliases``() =
-        WholeFileTests.Expect "DuplicateAndConflictingAliases.qs" [ Error ErrorCode.InvalidNamespaceAliasName ]
+[<Fact>]
+let ``Duplicate open directives with conflicting aliases`` () =
+    let compilation =
+        TestUtils.buildFiles folder [ "DuplicateAndConflictingAliases.qs" ] [] None TestUtils.Library
 
-    [<Fact>]
-    member this.``Open with and without alias``() =
-        WholeFileTests.Expect "OpenWithAlias.qs" []
+    Diagnostics.assertMatches [ Error ErrorCode.InvalidNamespaceAliasName, None ] (compilation.Diagnostics())
 
-    [<Fact>]
-    member this.``Duplicated open directives``() =
-        WholeFileTests.Expect "DuplicateOpens.qs" []
+[<Fact>]
+let ``Open with and without alias`` () =
+    let compilation = TestUtils.buildFiles folder [ "OpenWithAlias.qs" ] [] None TestUtils.Library
+    Assert.Empty(compilation.Diagnostics())
+
+[<Fact>]
+let ``Duplicated open directives`` () =
+    let compilation = TestUtils.buildFiles folder [ "DuplicateOpens.qs" ] [] None TestUtils.Library
+    Assert.Empty(compilation.Diagnostics())

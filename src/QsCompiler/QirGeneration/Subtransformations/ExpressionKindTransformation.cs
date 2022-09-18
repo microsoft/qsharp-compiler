@@ -650,7 +650,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var outputStr = sharedState.IterateThroughArray(array, openParens, (item, str) =>
                     {
                         var cond = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, str!, openParens);
-                        var updatedStr = sharedState.ConditionalEvaluation(
+                        var updatedStr = sharedState.ConditionalEvaluationTrue(
                             cond,
                             onCondTrue: () => CreateStringValue(DoAppend(str!, comma, unreferenceNext: false)),
                             defaultValueForCondFalse: CreateStringValue(str!),
@@ -1791,7 +1791,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else
             {
                 var evaluatedLhs = this.SharedState.EvaluateSubexpression(lhsEx);
-                evaluated = this.SharedState.ConditionalEvaluation(
+                evaluated = this.SharedState.ConditionalEvaluationTrue(
                     evaluatedLhs.Value,
                     onCondTrue: () => this.SharedState.EvaluateSubexpression(rhsEx),
                     defaultValueForCondFalse: evaluatedLhs);
@@ -1829,10 +1829,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else
             {
                 var evaluatedLhs = this.SharedState.EvaluateSubexpression(lhsEx);
-                evaluated = this.SharedState.ConditionalEvaluation(
-                    this.SharedState.CurrentBuilder.Not(evaluatedLhs.Value),
-                    onCondTrue: () => this.SharedState.EvaluateSubexpression(rhsEx),
-                    defaultValueForCondFalse: evaluatedLhs);
+                evaluated = this.SharedState.ConditionalEvaluationFalse(
+                    evaluatedLhs.Value,
+                    onCondFalse: () => this.SharedState.EvaluateSubexpression(rhsEx),
+                    defaultValueForCondTrue: evaluatedLhs);
             }
 
             var value = this.SharedState.Values.FromSimpleValue(evaluated, exType);
