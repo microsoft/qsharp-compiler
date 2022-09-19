@@ -54,7 +54,7 @@
     <Message Importance="high" Text="Publishing QsLanguageServer"/>
     <PropertyGroup>
       <QsLanguageServerPublishPath>$(OutputPath)\LanguageServer\</QsLanguageServerPublishPath>
-      <QsLanguageServerPublishCommand>dotnet publish "$(EnlistmentRoot)src/QsCompiler/LanguageServer/LanguageServer.csproj" -o "$(QsLanguageServerPublishPath)"</QsLanguageServerPublishCommand>
+      <QsLanguageServerPublishCommand>dotnet publish /property:DefineConstants="$Env:ASSEMBLY_CONSTANTS" "$(EnlistmentRoot)src/QsCompiler/LanguageServer/LanguageServer.csproj" -o "$(QsLanguageServerPublishPath)"</QsLanguageServerPublishCommand>
     </PropertyGroup>
     <MakeDir Directories="$(QsLanguageServerPublishPath)" />
     <Exec Command="$(QsLanguageServerPublishCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
