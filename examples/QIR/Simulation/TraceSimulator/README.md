@@ -1,5 +1,7 @@
 # The Trace Simulator
 
+**NOTE:** The text below is out-of-date and is to be rewritten. See mere up-to-date information in the PR ["Replace C++ QIR Runtime with Rust QIR stdlib"](https://github.com/microsoft/qsharp-runtime/pull/1087).
+
 A trace simulator is a quick way to provide a backend to the QIR Runtime system.
 It's function is to print out all quantum instructions it receives.
 While this can useful for debugging, it is also a simple way to connect QIR to hardware backends that do not support control flow.
@@ -12,7 +14,7 @@ This sample provides a "from scratch" implementation of a trace simulator, inclu
 The QIR Runtime provides three interfaces to connect backends to the Runtime:
 
 - `IRuntimeDriver` : Provides basic runtime functions such as qubit and measurement result management.
-- `IQuantumGateSet` : The Q# instruction set. Implementation of this interface is not strictly required, as long as *some* instruction set is implemented, and the QIR code only calls instructions from that set (may necessitate the use of a bridge, see the [QIR Bridge](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime#qir-bridge-and-runtime) and the [top-level guide](../#understanding-the-qir-runtime-system)).
+- `IQuantumGateSet` : The Q# instruction set. Implementation of this interface is not strictly required, as long as *some* instruction set is implemented, and the QIR code only calls instructions from that set (may necessitate the use of a bridge, see the "QIR Bridge" and the [top-level guide](../#understanding-the-qir-runtime-system)).
 - `IDiagnostics` : Optional interface to provide insight into the state of a simulator or hardware backend (useful for debugging).
 
 For a more detailed look at these interfaces, refer to the [top-level guide](../#structure-of-a-simulator) of the simulation example.
@@ -67,7 +69,7 @@ std::string GetQubitName(Qubit qubit)
 ```
 
 The qubit ID is a simple perpetually increasing counter, so no IDs are ever reused (careful with overflow!).
-The `Qubit` object itself is just a pointer (as defined in [CoreTypes.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/CoreTypes.hpp)) with the qubit ID as its value:
+The `Qubit` object itself is just a pointer (as defined in "CoreTypes.hpp") with the qubit ID as its value:
 
 ```cpp
 class QubitManager
@@ -101,7 +103,7 @@ The qubit manager provided by the Runtime for example provides configurable qubi
 
 Implementation of the `IRuntimeDriver` interface is straightforward.
 Qubit management is delegated to the respective `QubitManager` functions, while result management compares or hands out either of two `Result` values.
-The `Result` type is defined as a pointer to an undefined type in [CoreTypes.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/CoreTypes.hpp), allowing for backends to define custom result types.
+The `Result` type is defined as a pointer to an undefined type in "CoreTypes.hpp", allowing for backends to define custom result types.
 Here, we use the raw pointer type with different numeric values for each result:
 
 ```cpp
@@ -120,7 +122,7 @@ bool TraceSimulator::AreEqualResults(Result r1, Result r2)
 ```
 
 Such a straight-line code restriction is not a requirement for trace simulators, but it works well with the type of hardware currently available (when using the trace simulator in that context).
-For a much more complete trace simulator that is also used for resource estimation, see the [QIR Runtime trace simulator](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/Tracer).
+For a much more complete trace simulator that is also used for resource estimation, see the "QIR Runtime trace simulator".
 
 ---
 
@@ -180,7 +182,7 @@ Measuring qubits:
 The simulator samples require a working [Clang](https://clang.llvm.org/) installation to compile.
 Refer to the [Optimization example](../../Optimization#installing-clang) for instructions on setting up Clang and LLVM.
 
-Although the [QIR Runtime header files](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/public) are sufficient to compile the simulator, actually running it will require the Runtime binaries.
+Although the "QIR Runtime header files" are sufficient to compile the simulator, actually running it will require the Runtime binaries.
 Use the NuGet CLI with the commands below to download the [QIR Runtime package](https://www.nuget.org/packages/Microsoft.Quantum.Qir.Runtime) and extract the appropriate headers and libraries (adjusting the package version as required):
 
 - **Windows**:
