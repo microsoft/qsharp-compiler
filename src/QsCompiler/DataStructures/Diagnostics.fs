@@ -331,7 +331,7 @@ type WarningCode =
     | SetInResultConditionedBlock = 5026
     | UnsupportedCallableCapability = 5027
     | UnsupportedClassicalCapability = 5028
-    
+
     // TODO: Remove NamespaceAleadyOpen since we no longer emit it
     | [<Obsolete "This diagnostic is no longer in use.">] NamespaceAleadyOpen = 6003
     // TODO: Remove NamespaceAliasIsAlreadyDefined since we no longer emit it
