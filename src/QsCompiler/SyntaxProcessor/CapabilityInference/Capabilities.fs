@@ -18,48 +18,11 @@ let syntaxAnalyzer callableKind =
                       ResultAnalyzer.analyzer callableKind
                       TypeAnalyzer.analyzer ]
 
-// TODO: Remove this function as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
-let referenceReasons (name: string) (range: _ QsNullable) (codeFile: string) diagnostic =
-    let warningCode =
-        match diagnostic.Diagnostic with
-        | Warning WarningCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
-        | Warning WarningCode.ResultComparisonNotInOperationIf -> Some WarningCode.ResultComparisonNotInOperationIf
-        | Warning WarningCode.ReturnInResultConditionedBlock -> Some WarningCode.ReturnInResultConditionedBlock
-        | Warning WarningCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
-        | Warning WarningCode.UnsupportedCallableCapability -> Some WarningCode.UnsupportedCallableCapability
-        | _ -> None
-
-    Option.map (fun code -> QsCompilerDiagnostic.Warning (code, diagnostic.Arguments) (range.ValueOr Range.Zero)) warningCode
-
-// TODO: Remove this function as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
-let explainCall (nsManager: NamespaceManager) graph target (call: Call) =
-    let node = CallGraphNode call.Name
-
-    let analyzer callableKind action =
-        Seq.append
-            (syntaxAnalyzer callableKind action)
-            (CallAnalyzer.shallow nsManager graph node |> Seq.map Pattern.discard)
-
-    match nsManager.TryGetCallable call.Name ("", "") with
-    | Found callable when QsNullable.isValue callable.Source.AssemblyFile ->
-        nsManager.ImportedSpecializations call.Name
-        |> Seq.collect (fun (_, impl) ->
-            analyzer (Some callable.Kind) (fun t -> t.Namespaces.OnSpecializationImplementation impl |> ignore)
-            |> Seq.choose (fun p -> p.Diagnose target)
-            |> Seq.choose (referenceReasons call.Name.Name call.Range callable.Source.CodeFile))
-    | _ -> Seq.empty
-
-// TODO: Remove this function as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
-let diagnoseCall target nsManager graph pattern =
-    match pattern.Diagnose target with
-    | Some d -> Seq.append (Seq.singleton d) (explainCall nsManager graph target pattern.Properties)
-    | None -> Seq.empty
-
 [<CompiledName "Diagnose">]
 let diagnose target nsManager graph (callable: QsCallable) =
     let patterns = syntaxAnalyzer None (fun t -> t.Namespaces.OnCallableDeclaration callable |> ignore)
     let callPatterns = CallGraphNode callable.FullName |> CallAnalyzer.shallow nsManager graph
-    let callDiagnostics = Seq.collect (diagnoseCall target nsManager graph) callPatterns
+    let callDiagnostics = callPatterns |> Seq.choose (fun p -> p.Diagnose target)
     Seq.append (Seq.choose (fun p -> p.Diagnose target) patterns) callDiagnostics
 
 let capabilityAttribute (capability: TargetCapability) =

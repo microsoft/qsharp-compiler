@@ -331,7 +331,7 @@ type WarningCode =
     | SetInResultConditionedBlock = 5026
     | UnsupportedCallableCapability = 5027
     | UnsupportedClassicalCapability = 5028
-
+    
     // TODO: Remove NamespaceAleadyOpen since we no longer emit it
     | [<Obsolete "This diagnostic is no longer in use.">] NamespaceAleadyOpen = 6003
     // TODO: Remove NamespaceAliasIsAlreadyDefined since we no longer emit it
@@ -874,7 +874,6 @@ type DiagnosticItem =
                 "This expression may be short-circuited, and operation calls may not be executed."
             | WarningCode.DeprecationWithRedirect -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect -> "{0} has been deprecated."
-
             | WarningCode.UnsupportedResultComparison -> "The target {0} does not support comparing measurement results."
             | WarningCode.ResultComparisonNotInOperationIf ->
                 "Measurement results cannot be compared here. "
@@ -885,7 +884,6 @@ type DiagnosticItem =
             | WarningCode.SetInResultConditionedBlock ->
                 "The variable \"{0}\" cannot be reassigned here. "
                 + "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
-
             | WarningCode.UnsupportedCallableCapability ->
                 "The callable {0} requires runtime capabilities which are not supported by the target {1}."
                 + Environment.NewLine
