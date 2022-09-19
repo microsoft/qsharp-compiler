@@ -1,6 +1,6 @@
 # The Trace Simulator
 
-**NOTE:** The text below is out-of-date and is to be rewritten. See mere up-to-date information in the PR ["Replace C++ QIR Runtime with Rust QIR stdlib"](https://github.com/microsoft/qsharp-runtime/pull/1087).
+**NOTE:** The text below is out-of-date and is to be rewritten. See more up-to-date information in the PR ["Replace C++ QIR Runtime with Rust QIR stdlib"](https://github.com/microsoft/qsharp-runtime/pull/1087).
 
 A trace simulator is a quick way to provide a backend to the QIR Runtime system.
 It's function is to print out all quantum instructions it receives.

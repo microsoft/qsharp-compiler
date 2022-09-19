@@ -1,6 +1,6 @@
 # Building a Simulator for QIR
 
-**NOTE:** The text below is out-of-date and is to be rewritten. See mere up-to-date information in the PR ["Replace C++ QIR Runtime with Rust QIR stdlib"](https://github.com/microsoft/qsharp-runtime/pull/1087).
+**NOTE:** The text below is out-of-date and is to be rewritten. See more up-to-date information in the PR ["Replace C++ QIR Runtime with Rust QIR stdlib"](https://github.com/microsoft/qsharp-runtime/pull/1087).
 
 This example discusses the structure of the QIR Runtime system and how to attach a simulator to it using two sample simulators implemented "from scratch":
 

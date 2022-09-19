@@ -1,6 +1,6 @@
 # The State Simulator
 
-**NOTE:** The text below is out-of-date and is to be rewritten. See mere up-to-date information in the PR ["Replace C++ QIR Runtime with Rust QIR stdlib"](https://github.com/microsoft/qsharp-runtime/pull/1087).
+**NOTE:** The text below is out-of-date and is to be rewritten. See more up-to-date information in the PR ["Replace C++ QIR Runtime with Rust QIR stdlib"](https://github.com/microsoft/qsharp-runtime/pull/1087).
 
 A full state simulator mimics an ideal quantum computer with infinite compute register, although classical hardware limitations generally impose a simulation limit of at most a few dozen active qubits.
 This sample provides a "from scratch" implementation of such a simulator, using the C++ linear algebra library [Eigen](http://eigen.tuxfamily.org/).
