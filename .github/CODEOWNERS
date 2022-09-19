@@ -16,14 +16,14 @@
 /src/QsCompiler/TestProjects @samarsha @swernli
 /src/QsCompiler/Tests.LanguageServer @samarsha @swernli
 
-/examples/QIR @swernli
-/src/QsCompiler/CSharpGeneration @swernli
-/src/QsCompiler/LlvmBindings @swernli
-/src/QsCompiler/QirGeneration @swernli
-/src/QsCompiler/RoslynWrapper @swernli
-/src/QsCompiler/Tests.CSharpGeneration @swernli
-/src/QsCompiler/Tests.RoslynWrapper @swernli
-/src/QuantumSdk @swernli
+/examples/QIR @swernli @bettinaheim
+/src/QsCompiler/CSharpGeneration @swernli @bettinaheim
+/src/QsCompiler/LlvmBindings @swernli @bettinaheim
+/src/QsCompiler/QirGeneration @swernli @bettinaheim
+/src/QsCompiler/RoslynWrapper @swernli @bettinaheim
+/src/QsCompiler/Tests.CSharpGeneration @swernli @bettinaheim
+/src/QsCompiler/Tests.RoslynWrapper @swernli @bettinaheim
+/src/QuantumSdk @swernli @bettinaheim
 
 /src/QsCompiler/Transformations @samarsha @ScottCarda-MS
 /src/QsFmt @ScottCarda-MS @samarsha
