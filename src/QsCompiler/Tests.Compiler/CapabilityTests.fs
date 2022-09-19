@@ -327,11 +327,7 @@ let private cases =
                 Diagnostics =
                     function
                     | BasicExecution
-                    | BasicQuantumFunctionality ->
-                        [
-                            Warning WarningCode.UnsupportedCallableCapability
-                            Warning WarningCode.UnsupportedResultComparison
-                        ]
+                    | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedCallableCapability ]
                     | _ -> []
             }
 
@@ -342,16 +338,8 @@ let private cases =
                 Diagnostics =
                     function
                     | BasicExecution
-                    | BasicQuantumFunctionality ->
-                        Warning WarningCode.UnsupportedCallableCapability
-                        :: List.replicate 2 (Warning WarningCode.UnsupportedResultComparison)
-                    | BasicMeasurementFeedback ->
-                        [
-                            Warning WarningCode.UnsupportedCallableCapability
-                            Warning WarningCode.ResultComparisonNotInOperationIf
-                            Warning WarningCode.ReturnInResultConditionedBlock
-                            Warning WarningCode.SetInResultConditionedBlock
-                        ]
+                    | BasicQuantumFunctionality
+                    | BasicMeasurementFeedback -> [ Warning WarningCode.UnsupportedCallableCapability ]
                     | _ -> []
             }
 
@@ -549,11 +537,7 @@ let private cases =
             Capability = runtimeCapability ResultOpacity.opaque ClassicalCompute.full
             Diagnostics =
                 function
-                | BasicExecution ->
-                    [
-                        Warning WarningCode.UnsupportedCallableCapability
-                        Warning WarningCode.UnsupportedResultComparison
-                    ]
+                | BasicExecution
                 | AdaptiveExecution -> [ Warning WarningCode.UnsupportedCallableCapability ]
                 | _ -> []
         }
@@ -591,12 +575,7 @@ let private cases =
             Diagnostics =
                 function
                 | BasicExecution
-                | BasicQuantumFunctionality ->
-                    [
-                        Warning WarningCode.UnsupportedCallableCapability
-                        Warning WarningCode.UnsupportedCallableCapability
-                        Warning WarningCode.UnsupportedResultComparison
-                    ]
+                | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedCallableCapability ]
                 | _ -> []
         }
         {
@@ -605,18 +584,8 @@ let private cases =
             Diagnostics =
                 function
                 | BasicExecution
-                | BasicQuantumFunctionality ->
-                    [
-                        Warning WarningCode.UnsupportedCallableCapability
-                        Warning WarningCode.UnsupportedCallableCapability
-                        Warning WarningCode.UnsupportedResultComparison
-                    ]
-                | BasicMeasurementFeedback ->
-                    [
-                        Warning WarningCode.UnsupportedCallableCapability
-                        Warning WarningCode.ResultComparisonNotInOperationIf
-                        Warning WarningCode.UnsupportedCallableCapability
-                    ]
+                | BasicQuantumFunctionality
+                | BasicMeasurementFeedback -> [ Warning WarningCode.UnsupportedCallableCapability ]
                 | _ -> []
         }
         {
