@@ -874,7 +874,8 @@ type DiagnosticItem =
                 "This expression may be short-circuited, and operation calls may not be executed."
             | WarningCode.DeprecationWithRedirect -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect -> "{0} has been deprecated."
-            | WarningCode.UnsupportedResultComparison -> "The target {0} does not support comparing measurement results."
+            | WarningCode.UnsupportedResultComparison ->
+                "The target {0} does not support comparing measurement results."
             | WarningCode.ResultComparisonNotInOperationIf ->
                 "Measurement results cannot be compared here. "
                 + "The target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
