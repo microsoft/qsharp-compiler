@@ -167,6 +167,7 @@ type CodegenContext =
             || target = AssemblyConstants.QCIProcessor
             || target = AssemblyConstants.QuantinuumProcessor
             || target = AssemblyConstants.RigettiProcessor
+            || target = AssemblyConstants.MicrosoftQuantum
             || target = AssemblyConstants.MicrosoftSimulator
         else
             true

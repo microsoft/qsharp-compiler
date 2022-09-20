@@ -267,6 +267,7 @@ module AssemblyConstants =
     let QCIProcessor = "QCIProcessor"
     let QuantinuumProcessor = "QuantinuumProcessor"
     let RigettiProcessor = "RigettiProcessor"
+    let MicrosoftQuantum = "MicrosoftQuantum"
     let MicrosoftSimulator = "MicrosoftSimulator"
     let ExecutionTarget = "ExecutionTarget"
     let TargetCapability = "TargetCapability"
