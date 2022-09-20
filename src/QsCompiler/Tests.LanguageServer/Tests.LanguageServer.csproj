@@ -53,14 +53,17 @@
 
     <Message Importance="high" Text="Publishing QsLanguageServer"/>
     <PropertyGroup>
-      <QsLanguageServerPublishPath>$(OutputPath)\LanguageServer\</QsLanguageServerPublishPath>
-      <QsLanguageServerPublishCommand>dotnet publish /property:DefineConstants="$Env:ASSEMBLY_CONSTANTS" "$(EnlistmentRoot)src/QsCompiler/LanguageServer/LanguageServer.csproj" -o "$(QsLanguageServerPublishPath)"</QsLanguageServerPublishCommand>
+      <QsLanguageServerPublishPath>$([System.IO.Path]::GetTempPath())\LanguageServer\</QsLanguageServerPublishPath>
+      <QsLanguageServerPublishCommand>dotnet publish "$(EnlistmentRoot)src/QsCompiler/LanguageServer/LanguageServer.csproj" -o "$(QsLanguageServerPublishPath)"</QsLanguageServerPublishCommand>
     </PropertyGroup>
     <MakeDir Directories="$(QsLanguageServerPublishPath)" />
     <Exec Command="$(QsLanguageServerPublishCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="QsLanguageServerPublishExitCode" />
     </Exec>
     <Error Condition="'$(QsLanguageServerPublishExitCode)' != '0'" Text="Publishing QsLanguageServer failed." />
+    <Message
+      Text="language server path used for testing: $(QsLanguageServerPublishPath)"
+      Importance="High" />
   </Target>
 
 </Project>
