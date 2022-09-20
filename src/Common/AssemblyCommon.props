@@ -18,7 +18,7 @@
     <StyleCopJsonPath Condition="Exists('$(MSBuildProjectDirectory)\stylecop.json')" >$(MSBuildProjectDirectory)\stylecop.json</StyleCopJsonPath>
   </PropertyGroup>
 
-  <Import Condition="!$(AssemblyName.Contains('Tests'))" Project="$(MSBuildThisFileDirectory)\DelaySign.props" />
+  <Import Project="$(MSBuildThisFileDirectory)\DelaySign.props" />
 
   <PropertyGroup Condition="$(IsCsProject)">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
