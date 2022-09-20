@@ -109,8 +109,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var writerPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 
                 var languageServerPath = Path.Combine(
-                    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
-                    "LanguageServer",
+                    File.ReadAllLines("Paths.txt")[0],
                     "Microsoft.Quantum.QsLanguageServer.dll");
 
                 ProcessStartInfo info = new()
