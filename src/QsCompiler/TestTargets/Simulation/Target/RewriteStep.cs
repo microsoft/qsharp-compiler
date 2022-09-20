@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
             if (!props.TryGetValue(AssemblyConstants.ProcessorArchitecture, out var arch) ||
                 arch?.Trim().ToLower() == "unspecified")
             {
-                props[AssemblyConstants.ProcessorArchitecture] = AssemblyConstants.MicrosoftSimulator;
+                props[AssemblyConstants.ProcessorArchitecture] = AssemblyConstants.MicrosoftQuantum;
             }
 
             return true;
