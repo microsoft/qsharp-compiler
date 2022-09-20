@@ -53,7 +53,7 @@
 
     <Message Importance="high" Text="Publishing QsLanguageServer"/>
     <PropertyGroup>
-      <QsLanguageServerPublishPath>$([System.IO.Path]::GetTempPath())\LanguageServer\</QsLanguageServerPublishPath>
+      <QsLanguageServerPublishPath>$(OutputPath)\LanguageServer\</QsLanguageServerPublishPath>
       <QsLanguageServerPublishCommand>dotnet publish "$(EnlistmentRoot)src/QsCompiler/LanguageServer/LanguageServer.csproj" -o "$(QsLanguageServerPublishPath)"</QsLanguageServerPublishCommand>
     </PropertyGroup>
     <MakeDir Directories="$(QsLanguageServerPublishPath)" />
