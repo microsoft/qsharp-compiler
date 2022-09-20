@@ -60,7 +60,7 @@
     <Exec Command="$(QsLanguageServerPublishCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="QsLanguageServerPublishExitCode" />
     </Exec>
-    <WriteLinesToFile File="$(OutputPath)Paths.txt" Lines="" Overwrite="true" />
+    <WriteLinesToFile File="$(OutputPath)Paths.txt" Lines="$(QsLanguageServerPublishPath)" Overwrite="true" />
     <Error Condition="'$(QsLanguageServerPublishExitCode)' != '0'" Text="Publishing QsLanguageServer failed." />
     <Message
       Text="language server path used for testing: $(QsLanguageServerPublishPath)"
