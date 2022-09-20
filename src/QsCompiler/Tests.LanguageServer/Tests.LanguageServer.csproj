@@ -39,7 +39,7 @@
     </Content>
   </ItemGroup>
 
-  <Target Name="PublishTools" BeforeTargets="BeforeCompile">
+  <Target Name="PublishTools" BeforeTargets="BeforeBuild">
     <Message Importance="high" Text="Publishing QsFmt"/>
     <PropertyGroup>
       <QsFmtPublishPath>$(OutputPath)\qsfmt\</QsFmtPublishPath>
@@ -60,6 +60,10 @@
     <Exec Command="$(QsLanguageServerPublishCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="QsLanguageServerPublishExitCode" />
     </Exec>
+    <ItemGroup>
+        <_FilesToDelete Include="$(OutputPath)**\*"/>
+    </ItemGroup>
+    <Delete Files="@(_FilesToDelete)" />
     <WriteLinesToFile File="$(OutputPath)Paths.txt" Lines="$(QsLanguageServerPublishPath)" Overwrite="true" />
     <Error Condition="'$(QsLanguageServerPublishExitCode)' != '0'" Text="Publishing QsLanguageServer failed." />
     <Message
