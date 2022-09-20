@@ -36,7 +36,7 @@
     <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('quantinuum'))">QuantinuumProcessor</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('honeywell'))">QuantinuumProcessor</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('rigetti'))">RigettiProcessor</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('microsoft-qc'))">MicrosoftQuantum</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('microsoft')) And !$(ExecutionTarget.ToLowerInvariant().Contains('microsoft.simulator'))">MicrosoftQuantum</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.ToLowerInvariant().Contains('microsoft.simulator'))">MicrosoftSimulator</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="$(ExecutionTarget.Equals('Any', StringComparison.InvariantCultureIgnoreCase))">Unspecified</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="'$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor' And '$(ResolvedProcessorArchitecture)' != 'QuantinuumProcessor' And '$(ResolvedProcessorArchitecture)' != 'RigettiProcessor' And '$(ResolvedProcessorArchitecture)' != 'MicrosoftQuantum' And '$(ResolvedProcessorArchitecture)' != 'MicrosoftSimulator' And '$(ResolvedProcessorArchitecture)' != 'Unspecified'"></ResolvedProcessorArchitecture>
