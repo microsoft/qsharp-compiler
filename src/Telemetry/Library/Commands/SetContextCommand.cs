@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
 
         public override bool Equals(object? obj) =>
             (obj is SetContextCommand setContextCommand)
-            && Equals(this.Args, setContextCommand.Args);
+            && object.Equals(this.Args, setContextCommand.Args);
 
         public override int GetHashCode() =>
             this.CommandType.GetHashCode() ^ this.Args.GetHashCode();
@@ -52,10 +52,10 @@ namespace Microsoft.Quantum.Telemetry.Commands
         {
             if (obj is SetContextArgs setContextArgs)
             {
-                return Equals(setContextArgs.IsPii, this.IsPii)
-                       && Equals(setContextArgs.Name, this.Name)
-                       && Equals(setContextArgs.PropertyType, this.PropertyType)
-                       && Equals(setContextArgs.Value, this.Value);
+                return object.Equals(setContextArgs.IsPii, this.IsPii)
+                       && object.Equals(setContextArgs.Name, this.Name)
+                       && object.Equals(setContextArgs.PropertyType, this.PropertyType)
+                       && object.Equals(setContextArgs.Value, this.Value);
             }
 
             return false;

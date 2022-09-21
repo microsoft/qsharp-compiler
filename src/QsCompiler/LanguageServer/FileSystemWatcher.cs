@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Security.Permissions;
 using System.Threading.Tasks;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
@@ -27,7 +28,7 @@ namespace Microsoft.Quantum.QsLanguageServer
     /// </summary>
     internal class FileWatcher
     {
-        private readonly ConcurrentBag<FileSystemWatcher> watchers;
+        private readonly ConcurrentBag<System.IO.FileSystemWatcher> watchers;
         private readonly Action<Exception> onException;
 
         private void OnBufferOverflow(object sender, ErrorEventArgs e)
@@ -60,7 +61,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         public FileWatcher(Action<Exception> onException)
         {
             this.onException = onException;
-            this.watchers = new ConcurrentBag<FileSystemWatcher>();
+            this.watchers = new ConcurrentBag<System.IO.FileSystemWatcher>();
             this.watchedDirectories = new Dictionary<Uri, ImmutableHashSet<string>>();
             this.processing = new ProcessingQueue(this.onException, "error in file system watcher");
             this.globPatterns = new ConcurrentDictionary<Uri, IEnumerable<string>>();
@@ -70,9 +71,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns a file system watcher for the given folder and pattern, with the proper event handlers added.
         /// IMPORTANT: The returned watcher is disabled and needs to be enabled by setting EnableRaisingEvents to true.
         /// </summary>
-        private FileSystemWatcher GetWatcher(string folder, string pattern, NotifyFilters notifyOn)
+        private System.IO.FileSystemWatcher GetWatcher(string folder, string pattern, NotifyFilters notifyOn)
         {
-            var watcher = new FileSystemWatcher
+            var watcher = new System.IO.FileSystemWatcher
             {
                 NotifyFilter = notifyOn,
                 Filter = pattern,
@@ -205,7 +206,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         public void OnCreated(object source, FileSystemEventArgs e)
         {
             var directories = new Dictionary<Uri, ImmutableHashSet<string>>();
-            if (source is FileSystemWatcher watcher &&
+            if (source is System.IO.FileSystemWatcher watcher &&
                 this.globPatterns.TryGetValue(new Uri(watcher.Path), out var globPatterns))
             {
                 var maxNrTries = 10; // copied directories need some time until they are on disk -> todo: better solution?

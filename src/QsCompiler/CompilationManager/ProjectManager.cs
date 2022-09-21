@@ -110,7 +110,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? path ?? string.Empty
                 : string.Empty;
 
-        internal ImmutableDictionary<string, string?> BuildProperties { get; }
+        private ImmutableDictionary<string, string?> BuildProperties { get; }
 
         public static ProjectProperties Empty =>
             new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
@@ -123,7 +123,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         public delegate bool Loader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? projectInfo);
 
-        public ProjectProperties Properties { get; }
+        internal ProjectProperties Properties { get; }
 
         public ImmutableArray<string> SourceFiles { get; }
 
@@ -308,16 +308,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .SelectNotNull(f => Uri.TryCreate(f, UriKind.Absolute, out uri) ? uri : null)
                     .ToImmutableHashSet();
             }
-
-            /// <summary>
-            /// Retrieves the currently set project information that is used to load the project.
-            /// </summary>
-            internal ProjectInformation GetProjectInformation() =>
-                new ProjectInformation(
-                    sourceFiles: this.specifiedSourceFiles.Select(uri => uri.AbsolutePath),
-                    projectReferences: this.specifiedProjectReferences.Select(uri => uri.AbsolutePath),
-                    references: this.specifiedReferences.Select(uri => uri.AbsolutePath),
-                    buildProperties: this.Properties.BuildProperties);
 
             /// <summary>
             /// If the project is not yet loaded, loads all specified source file, dll references and project references
@@ -1414,7 +1404,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <para/>
         /// If <paramref name="file"/> is null, returns the diagnostics for all source files in the default manager.
         /// <para/>
-        /// This method waits for all currently running or queued tasks to finish before accumulating the diagnostics.
+        /// This method waits for all currently running or queued tasks to finish
+        /// before accumulating the diagnostics.
         /// </remarks>
         public PublishDiagnosticParams[]? GetDiagnostics(Uri? file)
         {
@@ -1447,10 +1438,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// Returns null if the given file is null.
         /// <para/>
-        /// This method waits for all currently running or queued tasks to finish before getting the file content.
+        /// This method waits for all currently running or queued tasks to finish
+        /// before getting the file content.
         /// </remarks>
-        public string[]? FileContentInMemory(TextDocumentIdentifier textDocument) =>
-            textDocument?.Uri != null && this.load.QueueForExecution(
+        public string[]? FileContentInMemory(TextDocumentIdentifier textDocument)
+        {
+            if (textDocument?.Uri == null)
+            {
+                return null;
+            }
+
+            this.load.QueueForExecution(
                 () =>
                 {
                     // NOTE: the call below prevents any consolidating of the processing queues
@@ -1458,25 +1456,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var manager = this.Manager(textDocument.Uri);
                     return manager?.FileContentInMemory(textDocument);
                 },
-                out var content)
-                ? content : null;
-
-        /// <summary>
-        /// Returns the project information stored for the project defined by the given <paramref name="projectFile"/>,
-        /// if it is listed as a project with this manager.
-        /// </summary>
-        /// <remarks>
-        /// Returns null if the given project file is null or the project is not registered with this manager.
-        /// <para/>
-        /// This method waits for all currently running or queued tasks to finish before getting the file content.
-        /// </remarks>
-        public ProjectInformation? GetProjectInformation(TextDocumentIdentifier projectFile) =>
-            projectFile?.Uri != null && this.load.QueueForExecution(
-                () => this.projects.TryGetValue(projectFile.Uri, out Project project)
-                    ? project.GetProjectInformation()
-                    : null,
-                out var info)
-                ? info : null;
+                out var content);
+            return content;
+        }
 
         /* static routines related to loading the content needed for compilation */
 

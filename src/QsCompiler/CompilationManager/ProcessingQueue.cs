@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         public bool QueueForExecution<T>(Func<T> execute, [MaybeNull] out T result)
         {
-            T res = default;
+            T res = default(T);
             var succeeded = true;
             this.QueueForExecutionAsync(() =>
             {
