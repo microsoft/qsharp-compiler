@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// helper function that selects a markup format from the given array of supported formats
         /// </summary>
-        private static MarkupKind ChooseFormat(MarkupKind[]? supportedFormats) =>
+        private MarkupKind ChooseFormat(MarkupKind[]? supportedFormats) =>
             supportedFormats?.Any() ?? false
                 ? supportedFormats.Contains(MarkupKind.Markdown) ? MarkupKind.Markdown : supportedFormats.First()
                 : MarkupKind.PlainText;
@@ -246,7 +246,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 this.projectsInWorkspace.Add(uri);
                 return uri;
             })
-            .Where(uri => uri != null).ToImmutableArray();
+            .Where(fileEvent => fileEvent != null).ToImmutableArray();
             return this.editorState.LoadProjectsAsync(initialProjects);
         }
 
@@ -566,7 +566,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             var supportedFormats = this.clientCapabilities?.TextDocument?.Hover?.ContentFormat;
-            var format = ChooseFormat(supportedFormats);
+            var format = this.ChooseFormat(supportedFormats);
             try
             {
                 return QsCompilerError.RaiseOnFailure(
@@ -594,7 +594,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
-            var format = ChooseFormat(supportedFormats);
+            var format = this.ChooseFormat(supportedFormats);
             var task = new Task<object?>(() =>
             {
                 // We need to give the file manager some time to actually process the change first,
@@ -690,7 +690,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
-            var format = ChooseFormat(supportedFormats);
+            var format = this.ChooseFormat(supportedFormats);
             try
             {
                 var data = Utils.TryJTokenAs<CompletionItemData>(JToken.FromObject(param.Data));
@@ -761,7 +761,6 @@ namespace Microsoft.Quantum.QsLanguageServer
                         this.rpc.InvokeWithParameterObjectAsync<ApplyWorkspaceEditResponse>(Methods.WorkspaceApplyEditName, edit)) :
                     param.Command == CommandIds.FileContentInMemory ? CastAndExecute<TextDocumentIdentifier>(this.editorState.FileContentInMemory) :
                     param.Command == CommandIds.FileDiagnostics ? CastAndExecute<TextDocumentIdentifier>(this.editorState.FileDiagnostics) :
-                    param.Command == CommandIds.ProjectInformation ? CastAndExecute<TextDocumentIdentifier>(this.editorState.ProjectInformation) :
                     null;
             }
             catch

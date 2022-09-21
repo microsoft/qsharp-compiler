@@ -3,13 +3,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Build.Locator;
 using Microsoft.VisualStudio.LanguageServer.Client;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -24,9 +22,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
         private Connection? connection;
         private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
-        private readonly RandomInput inputGenerator = new();
-        private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new();
-        private readonly ManualResetEvent projectLoaded = new(false);
+        private readonly RandomInput inputGenerator = new RandomInput();
+        private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
+        private readonly ManualResetEvent projectLoaded = new ManualResetEvent(false);
 
         public Task<string[]> GetFileContentInMemoryAsync(string filename) =>
             this.rpc.InvokeWithParameterObjectAsync<string[]>(
@@ -37,11 +35,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             this.rpc.InvokeWithParameterObjectAsync<Diagnostic[]>(
                 Methods.WorkspaceExecuteCommand.Name,
                 TestUtils.ServerCommand(CommandIds.FileDiagnostics, filename == null ? new TextDocumentIdentifier { Uri = new Uri("file://unknown") } : TestUtils.GetTextDocumentIdentifier(filename)));
-
-        public Task<string> GetProjectInformationAsync(Uri projectFile) =>
-            this.rpc.InvokeWithParameterObjectAsync<string>(
-                Methods.WorkspaceExecuteCommand.Name,
-                TestUtils.ServerCommand(CommandIds.ProjectInformation, new TextDocumentIdentifier() { Uri = projectFile }));
 
         public Task SetupAsync()
         {
@@ -62,10 +55,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestInitialize]
         public async Task SetupServerConnectionAsync()
         {
-            // Need to run MSBuildLocator for some tests.
-            _ = MsBuildDefaults.LazyRegistration.Value;
+            // Need to run MSBuildLocator for some tests like UpdateProjectFileAsync
+            _ = VisualStudioInstanceWrapper.LazyVisualStudioInstance.Value;
 
-            var logFile = Path.GetTempFileName();
             Directory.CreateDirectory(RandomInput.TestInputDirectory);
             var outputDir = new DirectoryInfo(RandomInput.TestInputDirectory);
             foreach (var file in outputDir.GetFiles())
@@ -81,61 +73,18 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
                 var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
-                var languageServerPath = Path.Combine(
-                    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
-                    "LanguageServer",
-                    "Microsoft.Quantum.QsLanguageServer.exe");
-
-                ProcessStartInfo info = new()
-                {
-                    FileName = languageServerPath,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    Arguments = $"--writer={serverWriterPipe} --reader={serverReaderPipe} --log={logFile}",
-                };
-
-                Process process = new() { StartInfo = info };
-                if (!process.Start() || process.HasExited)
-                {
-                    throw new Exception("failed to launch language server");
-                }
-
+                var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
                 await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 this.connection = new Connection(readerPipe, writerPipe);
             }
             else
             {
-                var readerPipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
-                var writerPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
+                var readerPipe = new System.IO.Pipelines.Pipe();
+                var writerPipe = new System.IO.Pipelines.Pipe();
 
-                var languageServerPath = Path.Combine(
-                    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
-                    "LanguageServer",
-                    "Microsoft.Quantum.QsLanguageServer.dll");
-
-                ProcessStartInfo info = new()
-                {
-                    FileName = "dotnet",
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    Arguments = $"{languageServerPath} --unnamed --writer={readerPipe.GetClientHandleAsString()} --reader={writerPipe.GetClientHandleAsString()} --log={logFile}",
-                };
-
-                Process process = new() { StartInfo = info };
-                if (!process.Start() || process.HasExited)
-                {
-                    throw new Exception("failed to launch language server");
-                }
-
-                readerPipe.DisposeLocalCopyOfClientHandle();
-                writerPipe.DisposeLocalCopyOfClientHandle();
-                if (!writerPipe.IsConnected || !readerPipe.IsConnected)
-                {
-                    throw new Exception("not connected");
-                }
-
-                this.connection = new Connection(readerPipe, writerPipe);
+                var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
+                this.connection = new Connection(writerPipe.Reader.AsStream(), readerPipe.Writer.AsStream());
             }
 
             this.rpc = new JsonRpc(this.connection.Writer, this.connection.Reader, this)
