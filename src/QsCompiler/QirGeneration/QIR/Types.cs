@@ -172,6 +172,12 @@ namespace Microsoft.Quantum.QIR
         internal IPointerType BytePointer =>
             this.context.Int8Type.CreatePointerType();
 
+        /// <summary>
+        /// Creates a named tuple used to represent entry point arguments of array type.
+        /// </summary>
+        internal IStructType NamedTuple(string name, params ITypeRef[] items) =>
+            this.context.CreateStructType(name, false, items);
+
         // public members
 
         /// <summary>

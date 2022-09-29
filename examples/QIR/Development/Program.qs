@@ -11,7 +11,7 @@
     }
 
     @EntryPoint()
-    operation RunExample() : Bool {
+    operation RunExample(arr : Int[]) : Int {
 
         // Add additional code here
         // for experimenting with and debugging QIR generation.
@@ -21,15 +21,15 @@
         //    set sum1 += local_arr[idx];
         //}
 
-        let arr = [1,2,3];
+        //let arr = [1,2,3];
 
         mutable sum2 = 0;
-        //let new_arr2 = UpdateArr(arr);
-        for item in arr {
+        let new_arr2 = UpdateArr(arr);
+        for item in new_arr2 {
             set sum2 += item;
         }
 
-        return sum2 % 2 == 0;
+        return sum2;
     }
 }
 

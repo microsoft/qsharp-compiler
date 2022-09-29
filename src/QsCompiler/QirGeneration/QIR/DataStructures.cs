@@ -717,6 +717,7 @@ namespace Microsoft.Quantum.QIR.Emission
             return nativeValue;
         }
 
+        // TODO: LOOK INTO THE LLVM FUNCTIONS GetArrayLength and BuildArrayMalloc, and LLVMBuildArrayAlloca
         private static Value CreateNativeValue(Value constArray, uint count, GenerationContext context) =>
             CreateNativeValue(constArray, context.Context.CreateConstant((long)count), context);
 

@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.Telemetry
         {
             if (value != null)
             {
-                var convertedValue = TypeConversionHelper.ConvertValue(value, serializeJson);
+                var convertedValue = ConvertValue(value, serializeJson);
                 if (convertedValue != null)
                 {
                     eventProperties.SetProperty(name, convertedValue.Item2, convertedValue.Item1, isPii.ToPiiKind());

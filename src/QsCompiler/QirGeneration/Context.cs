@@ -275,6 +275,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 ? this.Context.VoidType
                 : this.LlvmTypeFromQsharpType(signature.ReturnType);
             var argTypeRefs =
+
                 // FIXME: NEED TO MODIFY THIS FOR QIR... -> MIGHT BE CLEANER TO ALSO MODIFY RETURN TYPE?
                 signature.ArgumentType.Resolution.IsUnitType ? new ITypeRef[0] :
                 signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
@@ -717,7 +718,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else
                 {
                     // This case should actually never occur; the only reason we build the tuple in the first place
-                    // is because there is a Q# variable (the argument) that the value is assigne to.
+                    // is because there is a Q# variable (the argument) that the value is assigned to.
                     // However, there is also no reason to fail here, since the behavior implemented this way is correct.
                     innerTupleValues.Enqueue(innerTuple);
                 }

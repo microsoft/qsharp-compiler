@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private class QirGlobalType : TypeTransformation
         {
-            private readonly bool useLlvmArrays;
+            private int? namedLlvmArrays;
 
             private protected ITypeRef? BuiltType { get; set; }
 
@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             public QirGlobalType(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useLlvmArrays)
             : base(TransformationOptions.NoRebuild)
             {
-                this.useLlvmArrays = useLlvmArrays;
+                this.namedLlvmArrays = useLlvmArrays ? 0 : null;
                 this.QirTypes = types;
                 this.TypeDeclaration = getTypeDecl;
             }
@@ -69,10 +69,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             public override QsResolvedTypeKind OnArrayType(ResolvedType b)
             {
-                var elementType = this.LlvmTypeFromQsharpType(b);
-                this.BuiltType = this.useLlvmArrays
-                    ? ArrayValue.NativeType(elementType, 0u, this.QirTypes)
-                    : this.QirTypes.Array;
+                this.BuiltType = this.QirTypes.Array;
+
+                // FIXME: THIS CHECK IS NOT GREAT - MEANS WE ARE AUTOMATICALLY USING AN LLVM ARRAY IF THE PARAMETER NAME IS SET
+                if (this.namedLlvmArrays is not null)
+                {
+                    var arrTypeId = this.namedLlvmArrays++;
+                    var elementType = this.LlvmTypeFromQsharpType(b);
+                    var nativeType = ArrayValue.NativeType(elementType, 0u, this.QirTypes);
+                    var arrType = this.QirTypes.NamedTuple($"ConstArray{arrTypeId}", nativeType.Members[1]);
+                    this.BuiltType = this.QirTypes.NamedTuple($"ConstArrayStruct{arrTypeId}", nativeType.Members[0], arrType);
+                }
+
                 return QsResolvedTypeKind.InvalidType;
             }
 
