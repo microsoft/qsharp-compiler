@@ -702,27 +702,52 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         /* private helpers */
+        /* TODO: LOOK INTO THE LLVM FUNCTIONS GetArrayLength and BuildArrayMalloc, and LLVMBuildArrayAlloca */
 
         internal static IStructType NativeType(ITypeRef elementType, uint nrElements, Types types) =>
-            types.TypedTuple(types.Int, elementType.CreateArrayType(nrElements)); // to store the actual count
+            types.TypedTuple(types.Int, types.TypedTuple(elementType.CreateArrayType(nrElements))); // to store the actual count
 
+        private bool IsNativeValue(Value? value = null) =>
+            (value ?? this.Value).NativeType is IStructType st
+                && st.Members.Count == 2
+                && st.Members[0] == this.sharedState.Types.Int
+                && st.Members[1] is IStructType arrStruct
+                && arrStruct.Members.Count == 1
+                && arrStruct.Members[0] is IArrayType;
+
+        private bool AsNativeValue([MaybeNullWhen(false)] out Value constArr, [MaybeNullWhen(false)] out Value length, Value? value = null)
+        {
+            value ??= this.Value;
+            if (this.IsNativeValue(value))
+            {
+                length = this.sharedState.CurrentBuilder.ExtractValue(value, 0u);
+                var constArrStruct = this.sharedState.CurrentBuilder.ExtractValue(value, 1u);
+                constArr = this.sharedState.CurrentBuilder.ExtractValue(constArrStruct, 0u);
+                return true;
+            }
+
+            (constArr, length) = (null, null);
+            return false;
+        }
+
+        /// needs to be the inverse of AsNativeValue
         private static Value CreateNativeValue(Value constArray, Value length, GenerationContext context)
         {
             var constArrType = (IArrayType)constArray.NativeType;
             var nativeType = NativeType(constArrType.ElementType, constArrType.Length, context.Types);
 
+            var constArrayStruct = context.CurrentBuilder.InsertValue(nativeType.Members[1].GetNullValue(), constArray, 0u); // FIXME: constArray should just be constArrStruct?
             Value nativeValue = nativeType.GetNullValue();
             nativeValue = context.CurrentBuilder.InsertValue(nativeValue, length, 0u);
-            nativeValue = context.CurrentBuilder.InsertValue(nativeValue, constArray, 1u);
+            nativeValue = context.CurrentBuilder.InsertValue(nativeValue, constArrayStruct, 1u);
             return nativeValue;
         }
 
-        // TODO: LOOK INTO THE LLVM FUNCTIONS GetArrayLength and BuildArrayMalloc, and LLVMBuildArrayAlloca
-        private static Value CreateNativeValue(Value constArray, uint count, GenerationContext context) =>
-            CreateNativeValue(constArray, context.Context.CreateConstant((long)count), context);
-
         private static Value CreateNativeValue(ITypeRef elementType, uint nrElements, uint count, GenerationContext context) =>
-            CreateNativeValue(elementType.CreateArrayType(nrElements).GetNullValue(), count, context);
+            CreateNativeValue(
+                elementType.CreateArrayType(nrElements).GetNullValue(),
+                context.Context.CreateConstant((long)count),
+                context);
 
         private Value UpdateNativeValue(Func<Value, Value>? transformConstArr = null) =>
             this.AsNativeValue(out var constArr, out var length)
@@ -731,26 +756,6 @@ namespace Microsoft.Quantum.QIR.Emission
                     this.Count != null ? this.sharedState.Context.CreateConstant((long)this.Count) : length,
                     this.sharedState)
                 : throw new InvalidOperationException("no native llvm representation available");
-
-        private bool IsNativeValue(Value? value = null) =>
-            (value ?? this.Value).NativeType is IStructType st
-                && st.Members.Count == 2
-                && st.Members[0] == this.sharedState.Types.Int
-                && st.Members[1] is IArrayType;
-
-        private bool AsNativeValue([MaybeNullWhen(false)] out Value constArr, [MaybeNullWhen(false)] out Value length, Value? value = null)
-        {
-            value ??= this.Value;
-            if (this.IsNativeValue(value))
-            {
-                length = this.sharedState.CurrentBuilder.ExtractValue(value, 0u);
-                constArr = this.sharedState.CurrentBuilder.ExtractValue(value, 1u);
-                return true;
-            }
-
-            (constArr, length) = (null, null);
-            return false;
-        }
 
         private IValue.Cached<Value> CreateLengthCache(Value? length = null) =>
             new(length, this.sharedState, () =>
@@ -896,7 +901,11 @@ namespace Microsoft.Quantum.QIR.Emission
                     });
                 }
 
-                IValue Reload() =>
+                IValue Load() =>
+                    // FIXME: CHECK IF THIS IS A NAMED STRUCT, AND IF SO, LOAD VIA GET ELEMENT POINTER RATHER THAN EXTRACT VALUE
+                    // FIXME: SEARCH FOR EXTRACTVALUE AND INSERTVALUE IN GENERAL... -> NEEDS TO BE REPLACED WITH ELEMENT POINTER ACCESS EVERYWHERE IN THE CASE OF NAMED ARRAYS
+
+                    //this.AsNativeValue(out var constArr, out var _) && (this.Count is null || constIndex < this.Count)
                     this.AsNativeValue(out var constArr, out var _) && constIndex < ((IArrayType)constArr.NativeType).Length
                     ? this.sharedState.Values.From(
                         this.sharedState.CurrentBuilder.ExtractValue(constArr, constIndex),
@@ -904,11 +913,16 @@ namespace Microsoft.Quantum.QIR.Emission
                     : this.sharedState.Values.From(Constant.PoisonValueFor(this.LlvmElementType), this.QSharpElementType);
 
                 return element is null
-                    ? new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store)
-                    : new PointerValue(element, this.sharedState, Reload, Store);
+                    ? new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Load, Store)
+                    : new PointerValue(element, this.sharedState, Load, Store);
             }
             else
             {
+                // FIXME: DOUBLE CHECK THIS ENTIRE CLAUSE - I think this should collapse/unify with how element access for native values in general works
+
+                // FIXME: GET AND CACHE A POINTER OBTAINED VIA A SUITABLE ALLOCA THE FIRST TIME THAT SOMETHING EXTRACTS OR INSERTS!
+                // -> (THE POINTER IS REALLY ONLY NEEDED IN THIS SPECIAL CASE HERE, AND IF THE NATIVE VALUE IS A NAMED STRUCT (I.E. A COMMAND LINE ARGUMENT))
+
                 (Value ConstArrPtr, Value ElementPtr) GetElementPointer(Value constArr, Value index)
                 {
                     var constArrPtr = this.sharedState.Allocate(constArr.NativeType);
@@ -927,7 +941,7 @@ namespace Microsoft.Quantum.QIR.Emission
                         return this.sharedState.CurrentBuilder.Load(constArr.NativeType, constArrPtr);
                     });
 
-                IValue Reload()
+                IValue Load()
                 {
                     // Since the native value may be replaced as part of "updating" other items,
                     // it is important that we reload the constant array every time!
@@ -938,8 +952,8 @@ namespace Microsoft.Quantum.QIR.Emission
                 }
 
                 return element is null
-                    ? new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store)
-                    : new PointerValue(element, this.sharedState, Reload, Store);
+                    ? new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Load, Store)
+                    : new PointerValue(element, this.sharedState, Load, Store);
             }
         }
 
