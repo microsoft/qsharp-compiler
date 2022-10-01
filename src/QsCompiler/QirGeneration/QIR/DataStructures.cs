@@ -872,7 +872,7 @@ namespace Microsoft.Quantum.QIR.Emission
             }
         }
 
-        private void NormalizeAndUpdateNativeValue(IValue newElement, Func<Value, Value>? transformConstArr = null)
+        private void NormalizeAndUpdateNativeValue(IValue newElement, Func<Value, IValue, Value>? transformConstArr = null)
         {
             this.AsNativeValue(out var arrayStorage, out var length);
             // FIXME: just add a constructor taking the arrayStorageType instead...
@@ -902,7 +902,7 @@ namespace Microsoft.Quantum.QIR.Emission
             }
 
             this.Value = CreateNativeValue(
-                transformConstArr?.Invoke(arrayStorage!) ?? arrayStorage!,
+                transformConstArr?.Invoke(arrayStorage!, newElement) ?? arrayStorage!,
                 this.Count != null ? this.sharedState.Context.CreateConstant((long)this.Count) : length!,
                 this.sharedState);
         }
@@ -965,20 +965,20 @@ namespace Microsoft.Quantum.QIR.Emission
                 }
             }
 
-            void Store(IValue v) =>
-                this.NormalizeAndUpdateNativeValue(v, arrayStorage =>
+            void Store(IValue element) =>
+                this.NormalizeAndUpdateNativeValue(element, (arrayStorage, normalizedElement) =>
                 {
                     if (QirValues.AsConstantUInt32(index) is uint constIndex
                         && string.IsNullOrWhiteSpace(((IStructType)arrayStorage.NativeType).Name))
                     {
                         var constArr = this.sharedState.CurrentBuilder.ExtractValue(arrayStorage, 0u);
-                        constArr = this.sharedState.CurrentBuilder.InsertValue(constArr, v.Value, constIndex);
-                        return this.sharedState.CurrentBuilder.InsertValue(arrayStorage.NativeType.GetNullValue(), constArr, 0u);
+                        constArr = this.sharedState.CurrentBuilder.InsertValue(constArr, normalizedElement.Value, constIndex);
+                        return this.sharedState.CurrentBuilder.InsertValue(arrayStorage, constArr, 0u);
                     }
                     else
                     {
                         var elementPtr = GetElementPointer(index);
-                        this.sharedState.CurrentBuilder.Store(v.Value, elementPtr);
+                        this.sharedState.CurrentBuilder.Store(normalizedElement.Value, elementPtr);
                         return this.sharedState.CurrentBuilder.Load(arrayStorage.NativeType, this.tempArrayStorage!);
                     }
                 });
