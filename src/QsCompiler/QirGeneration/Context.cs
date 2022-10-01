@@ -1272,6 +1272,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 this.SetCurrentBlock(contBlock);
+
+                // Handle special cases with constant values where the phi node is not necessary.
+                if (QirValues.AsConstantUInt32(evaluatedOnTrue) == 0 && evaluatedOnFalse == condition)
+                {
+                    // This case is the equivalent of: `val = cond ? false : cond;`
+                    // which is the same as: `val = false;` so we can just return the `false` value
+                    // from the evaluated true block.
+                    return evaluatedOnTrue!;
+                }
+                else if (QirValues.AsConstantUInt32(evaluatedOnFalse) == 1 && evaluatedOnTrue == condition)
+                {
+                    // This case is the equivalent of: `val = cond ? cond : true;`
+                    // which is the same as: `val = true;` so we can just return the `true` value
+                    // from the evaluated false block.
+                    return evaluatedOnFalse!;
+                }
+                else if ((QirValues.AsConstantUInt32(evaluatedOnTrue) == 1 && evaluatedOnFalse == condition) ||
+                    (QirValues.AsConstantUInt32(evaluatedOnFalse) == 0 && evaluatedOnTrue == condition))
+                {
+                    // This case is the equivalent of: `val = cond ? cond : false;` or `val = cond ? true : cond;`
+                    // which is the same as: `val = cond;` so we can just return the condition value itself.
+                    return condition;
+                }
+
                 var phi = this.CurrentBuilder.PhiNode(defaultValue?.LlvmType ?? evaluatedOnTrue!.NativeType);
                 phi.AddIncoming(evaluatedOnTrue!, afterTrue);
                 phi.AddIncoming(evaluatedOnFalse!, afterFalse);
@@ -1296,8 +1320,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Increases the reference count of the evaluated value by 1,
         /// unless <paramref name="increaseReferenceCount"/> is set to false.
         /// </returns>
-        internal Value ConditionalEvaluation(Value condition, Func<IValue> onCondTrue, IValue defaultValueForCondFalse, bool increaseReferenceCount = true) =>
+        internal Value ConditionalEvaluationTrue(Value condition, Func<IValue> onCondTrue, IValue defaultValueForCondFalse, bool increaseReferenceCount = true) =>
             this.ConditionalEvaluation(condition, onCondTrue: onCondTrue, onCondFalse: null, defaultValueForCondFalse, increaseReferenceCount);
+
+        /// <returns>
+        /// Returns a value that when executed either evaluates to the value defined by <paramref name="onCondFalse"/>,
+        /// if the condition is false, or to the given <paramref name="defaultValueForCondTrue"/> if it is not.
+        /// Increases the reference count of the evaluated value by 1,
+        /// unless <paramref name="increaseReferenceCount"/> is set to false.
+        /// </returns>
+        internal Value ConditionalEvaluationFalse(Value condition, Func<IValue> onCondFalse, IValue defaultValueForCondTrue, bool increaseReferenceCount = true) =>
+            this.ConditionalEvaluation(condition, onCondTrue: null, onCondFalse: onCondFalse, defaultValueForCondTrue, increaseReferenceCount);
 
         /// <returns>A range with the given start, step and end.</returns>
         internal IValue CreateRange(Value start, Value? step, Value end)

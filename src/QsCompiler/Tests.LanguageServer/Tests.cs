@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             var init = await this.rpc.InvokeWithParameterObjectAsync<JToken>(Methods.Initialize.Name, initParams);
             var initializeError = Utils.TryJTokenAs<InitializeError>(init);
-            Assert.IsTrue(initializeError != null ? initializeError.Retry : false);
+            Assert.IsTrue(initializeError != null ? !initializeError.Retry : false);
         }
 
         [TestMethod]

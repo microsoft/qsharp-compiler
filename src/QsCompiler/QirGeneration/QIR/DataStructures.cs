@@ -331,7 +331,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/> is set to false.
         /// </summary>
         internal TupleValue(QsQualifiedName? type, IReadOnlyList<IValue> tupleElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(type, self => self.AllocateTuple(allocOnStack: allocOnStack), null, tupleElements, context)
+            : this(type, self => allocOnStack ? self.StructType.GetNullValue() : self.AllocateTuple(), null, tupleElements, context)
         {
             if (registerWithScopeManager)
             {
@@ -346,7 +346,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <inheritdoc cref="TupleValue(QsQualifiedName?, IReadOnlyList{IValue}, GenerationContext, bool, bool)"/>
         internal TupleValue(QsQualifiedName? type, ImmutableArray<TypedExpression> tupleElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(type, self => self.AllocateTuple(allocOnStack: allocOnStack), null, tupleElements.Select(context.BuildSubitem).ToArray(), context)
+            : this(type, self => allocOnStack ? self.StructType.GetNullValue() : self.AllocateTuple(), null, tupleElements.Select(context.BuildSubitem).ToArray(), context)
         {
             if (registerWithScopeManager)
             {
@@ -356,7 +356,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <inheritdoc cref="TupleValue(QsQualifiedName?, IReadOnlyList{IValue}, GenerationContext, bool, bool)"/>
         internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager)
-            : this(null, self => self.AllocateTuple(allocOnStack: false), elementTypes, null, context)
+            : this(null, self => self.AllocateTuple(), elementTypes, null, context)
         {
             if (registerWithScopeManager)
             {
@@ -452,12 +452,10 @@ namespace Microsoft.Quantum.QIR.Emission
         private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches() =>
             Enumerable.ToArray(Enumerable.Range(0, this.ElementTypes.Length).Select(index => this.CreateTupleElementPointerCache(index)));
 
-        private Value AllocateTuple(bool allocOnStack) =>
-            allocOnStack
-            ? this.StructType.GetNullValue()
+        private Value AllocateTuple() =>
 
             // The runtime function TupleCreate creates a new value with reference count 1 and alias count 0.
-            : this.sharedState.CurrentBuilder.Call(
+            this.sharedState.CurrentBuilder.Call(
                 this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate),
                 this.sharedState.ComputeSizeForType(this.StructType));
 
@@ -1155,7 +1153,7 @@ namespace Microsoft.Quantum.QIR.Emission
         // if the callable value is fully trackable during QIR generation; before emiting a call instruction,
         // we check if the name of the callable is known, and if it is we merely select the correct specialization
         // and never even access the Value property.
-        internal CallableState? CurrentState { get; private set; } // FIXME: GET RID OF SETTER HERE
+        internal CallableState? CurrentState { get; private set; }
 
         public Value Value
         {
