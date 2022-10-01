@@ -88,7 +88,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             private static IEnumerable<(IValue, bool)> Expand(Func<ITypeRef, string?> getFunctionName, IValue value, bool recurIntoInnerItems, List<(IValue, bool)>? omitExpansion = null)
             {
                 var func = getFunctionName(value.LlvmType);
-                if (func != null)
+                if (func != null || IsStackAlloctedContainer(value.LlvmType))
                 {
                     omitExpansion ??= new List<(IValue, bool)>();
                     var omitted = omitExpansion.FirstOrDefault(omitted => ValueEquals((value, recurIntoInnerItems), omitted));
@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         for (var i = 0; i < tuple.LlvmElementTypes.Count && recurIntoInnerItems; ++i)
                         {
                             var itemFuncName = getFunctionName(tuple.LlvmElementTypes[i]);
-                            if (itemFuncName != null)
+                            if (itemFuncName != null || IsStackAlloctedContainer(tuple.LlvmElementTypes[i]))
                             {
                                 var item = tuple.GetTupleElement(i);
                                 foreach (var inner in Expand(getFunctionName, item, true, omitExpansion))
@@ -321,10 +321,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             internal void ExecutePendingCalls(params Scope[] parentScopes)
             {
                 // Not the most efficient way to go about this, but it will do for now.
+                var clearedReferences = this.ClearPendingReferences(); // need to modify self ("this") before constructing allScopes
                 var allScopes = parentScopes.Prepend(this);
                 var pendingAliasCounts = allScopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
 
-                var pendingReferences = this.ClearPendingReferences()
+                var pendingReferences = clearedReferences
                     .Concat(parentScopes.SelectMany(scope => scope.pendingReferences))
                     .ToList();
 
