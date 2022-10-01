@@ -173,10 +173,34 @@ namespace Microsoft.Quantum.QIR
             this.context.Int8Type.CreatePointerType();
 
         /// <summary>
-        /// Creates a named tuple used to represent entry point arguments of array type.
+        /// Creates the LLVM data type used for stack allocated arrays.
         /// </summary>
-        internal IStructType NamedTuple(string name, params ITypeRef[] items) =>
-            this.context.CreateStructType(name, false, items);
+        /// <remarks>
+        /// We use a struct containing an i64 and a struct to store the actual length of the array as well as the array itself.
+        /// For the array itself, we choose a struct with a single entry that is a constant array.
+        /// This permits us to both name the type (which can only be done for structs and not for constant arrays),
+        /// such that we can easily edit the size of the type once it is known (relevant for command line arguments),
+        /// while simultaneously access and update items via getElementPrt if needed
+        /// (needed when the accurate length is not know for the initial IR emission).
+        /// </remarks>
+        internal IStructType NativeArray(ITypeRef elementType, uint nrElements, int? id = null)
+        {
+            IStructType NamedTuple(string name, params ITypeRef[] items) =>
+                this.context.CreateStructType(name, false, items);
+
+            var constArrType = elementType.CreateArrayType(nrElements);
+            var storageType = id is null ? this.TypedTuple(constArrType) : NamedTuple($"ArrayStorage{id}", constArrType);
+            return this.TypedTuple(this.Int, storageType);
+        }
+
+        // FIXME: get rid of this and instead simply have another "constructor"?
+        internal void ArrayStorageTypeInfo(IStructType arrayStorageType, out ITypeRef elementType, out uint nrElements, out int? id)
+        {
+            var constArrType = (IArrayType)arrayStorageType.Members[0];
+            elementType = constArrType.ElementType;
+            nrElements = constArrType.Length;
+            id = !string.IsNullOrEmpty(arrayStorageType.Name) && int.TryParse(arrayStorageType.Name["ArrayStorage".Length..], out var parsed) ? parsed : null;
+        }
 
         // public members
 

@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Linq;
 using LlvmBindings.Types;
 using Microsoft.Quantum.QIR;
-using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -69,18 +68,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             public override QsResolvedTypeKind OnArrayType(ResolvedType b)
             {
-                this.BuiltType = this.QirTypes.Array;
-
-                // FIXME: THIS CHECK IS NOT GREAT - MEANS WE ARE AUTOMATICALLY USING AN LLVM ARRAY IF THE PARAMETER NAME IS SET
-                if (this.namedLlvmArrays is not null)
-                {
-                    var arrTypeId = this.namedLlvmArrays++;
-                    var elementType = this.LlvmTypeFromQsharpType(b);
-                    var nativeType = ArrayValue.NativeType(elementType, 0u, this.QirTypes);
-                    var arrType = this.QirTypes.NamedTuple($"ConstArray{arrTypeId}", nativeType.Members[1]);
-                    this.BuiltType = this.QirTypes.NamedTuple($"ConstArrayStruct{arrTypeId}", nativeType.Members[0], arrType);
-                }
-
+                this.BuiltType = this.namedLlvmArrays is null
+                    ? this.QirTypes.Array
+                    : this.QirTypes.NativeArray(this.LlvmTypeFromQsharpType(b), 0u, ++this.namedLlvmArrays);
                 return QsResolvedTypeKind.InvalidType;
             }
 
