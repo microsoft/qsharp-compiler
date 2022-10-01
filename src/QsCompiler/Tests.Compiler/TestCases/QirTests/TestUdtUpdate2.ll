@@ -1,5 +1,6 @@
 define internal { %String*, { double, double }*, { double, double }* }* @Microsoft__Quantum__Testing__QIR__TestUdtUpdate2__body(i1 %cond, { %String*, { double, double }*, { double, double }* }* %arg) {
 entry:
+  %namedValue = alloca { %String*, { double, double }*, { double, double }* }*, align 8
   %0 = getelementptr inbounds { %String*, { double, double }*, { double, double }* }, { %String*, { double, double }*, { double, double }* }* %arg, i32 0, i32 1
   %1 = load { double, double }*, { double, double }** %0, align 8
   %2 = bitcast { double, double }* %1 to %Tuple*
@@ -10,7 +11,6 @@ entry:
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i32 1)
   %6 = bitcast { %String*, { double, double }*, { double, double }* }* %arg to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %6, i32 1)
-  %namedValue = alloca { %String*, { double, double }*, { double, double }* }*, align 8
   store { %String*, { double, double }*, { double, double }* }* %arg, { %String*, { double, double }*, { double, double }* }** %namedValue, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i32 1)

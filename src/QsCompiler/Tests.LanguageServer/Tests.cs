@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             var init = await this.rpc.InvokeWithParameterObjectAsync<JToken>(Methods.Initialize.Name, initParams);
             var initializeError = Utils.TryJTokenAs<InitializeError>(init);
-            Assert.IsTrue(initializeError != null ? initializeError.Retry : false);
+            Assert.IsTrue(initializeError != null ? !initializeError.Retry : false);
         }
 
         [TestMethod]
@@ -284,6 +284,28 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Assert.AreEqual(expectedContent.Count(), trackedContent.Count(), $"expected: \n{expected} \ngot: \n{got}");
                 Assert.AreEqual(expected, got);
             }
+        }
+
+        [TestMethod]
+        public async Task TargetPackageIntrinsicsAsync()
+        {
+            var projectFile = ProjectLoaderTests.ProjectUri("test17");
+            var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
+            var programFile = Path.Combine(projDir, "MeasureBell.qs");
+
+            var initParams = TestUtils.GetInitializeParams();
+            initParams.RootUri = new Uri(projDir);
+            await this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
+
+            var openParams = TestUtils.GetOpenFileParams(programFile);
+            await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, openParams);
+            var diagnostics = await this.GetFileDiagnosticsAsync(programFile);
+
+            // Check that we are not getting any diagnostics,
+            // and in particular that we are not ending up with errors for duplicate intrinsics
+            // due to the use of target packages.
+            Assert.IsNotNull(diagnostics);
+            Assert.AreEqual(0, diagnostics!.Length);
         }
 
         [TestMethod]

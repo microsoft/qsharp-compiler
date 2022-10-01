@@ -192,7 +192,7 @@ jobs:
     displayName: 'Use .NET Core sdk'
     inputs:
       packageType: sdk
-      version: 6.0.101
+      useGlobalJson: true
       installationPath: $(Agent.ToolsDirectory)/dotnet
 
   - pwsh: ./llvm-build/libllvm.ps1

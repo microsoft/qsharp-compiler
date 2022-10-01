@@ -25,20 +25,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     /// </summary>
     internal static class LiftContent
     {
-        private static IEnumerable<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>> FlattenParamTuple(ParameterTuple parameters)
-        {
-            if (parameters is ParameterTuple.QsTupleItem item)
-            {
-                return new[] { item.Item };
-            }
-            else if (parameters is ParameterTuple.QsTuple tuple)
-            {
-                return tuple.Item.SelectMany(FlattenParamTuple);
-            }
-
-            return ImmutableArray<LocalVariableDeclaration<QsLocalSymbol, ResolvedType>>.Empty;
-        }
-
         private static ResolvedType ExtractParamType(ParameterTuple parameters)
         {
             if (parameters is ParameterTuple.QsTupleItem item)
@@ -180,7 +166,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             // Update the scope to have Known Symbols equal to its parameter list
             var newContents = new QsScope(
                 contents.Statements,
-                new LocalDeclarations(FlattenParamTuple(parameters)
+                new LocalDeclarations(SyntaxGenerator.ExtractItems(parameters)
                     .Select(decl => new LocalVariableDeclaration<string, ResolvedType>(
                         ((QsLocalSymbol.ValidName)decl.VariableName).Item,
                         decl.Type,
@@ -467,7 +453,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
                 public TransformationState(ParameterTuple parameters, QsQualifiedName oldName, QsQualifiedName newName)
                 {
-                    this.ParameterNames = FlattenParamTuple(parameters)
+                    this.ParameterNames = SyntaxGenerator.ExtractItems(parameters)
                         .Where(x => x.VariableName.IsValidName)
                         .Select(x => ((QsLocalSymbol.ValidName)x.VariableName).Item)
                         .ToImmutableHashSet();

@@ -44,8 +44,8 @@ type RangeConverter() =
         let start, end' = serializer.Deserialize<RangePosition * RangePosition> reader
         // For backwards compatibility, convert the serialized one-based positions to zero-based positions.
         Range.Create
-            (Position.Create(start.Line - 1) (start.Column - 1))
-            (Position.Create(end'.Line - 1) (end'.Column - 1))
+            (Position.Create (start.Line - 1) (start.Column - 1))
+            (Position.Create (end'.Line - 1) (end'.Column - 1))
 
     override this.WriteJson(writer: JsonWriter, range: Range, serializer: JsonSerializer) =
         // For backwards compatibility, convert the zero-based positions to one-based serialized positions.
@@ -438,9 +438,9 @@ module Json =
     /// Creates a serializer using the given converters.
     /// Be aware that this is expensive and repeated creation of a serializer should be avoided.
     let CreateSerializer converters =
-        let settings = new JsonSerializerSettings()
+        let settings = JsonSerializerSettings()
         settings.Converters <- converters
-        settings.ContractResolver <- new DictionaryAsArrayResolver()
+        settings.ContractResolver <- DictionaryAsArrayResolver()
         settings.NullValueHandling <- NullValueHandling.Include
         settings.MissingMemberHandling <- MissingMemberHandling.Ignore
         settings.CheckAdditionalContent <- false

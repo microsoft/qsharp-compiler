@@ -60,23 +60,34 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns true if the given framework is officially supported for Q# projects.
         /// </summary>
         public bool IsSupportedQsFramework(string framework) =>
-            framework != null
-            ? this.supportedQsFrameworks.Any(framework.ToLowerInvariant().StartsWith)
-            : false;
-
-        /// <summary>
-        /// contains a list of Properties from the project that we want to track e.g. for telemetry.
-        /// </summary>
-        private static readonly IEnumerable<string> PropertiesToTrack =
-            new string[] { "QSharpLangVersion" };
-
-        /// <summary>
-        /// Returns true if the package with the given name should be tracked.
-        /// </summary>
-        private static bool GeneratePackageInfo(string packageName) =>
-            packageName.StartsWith("microsoft.quantum.", StringComparison.InvariantCultureIgnoreCase);
+            framework != null && this.supportedQsFrameworks.Any(framework.ToLowerInvariant().StartsWith);
 
         // general purpose routines
+
+        /// <summary>
+        /// Returns a 1-way hash of the project file name so it can be sent with telemetry.
+        /// Returns an empty string if any exception is thrown in the process.
+        /// </summary>
+        internal static string GetProjectNameHash(string projectFile)
+        {
+            try
+            {
+                using SHA256 hashAlgorithm = SHA256.Create();
+                string fileName = Path.GetFileName(projectFile);
+                byte[] data = hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(fileName));
+                var sBuilder = new StringBuilder();
+                for (int i = 0; i < data.Length; i++)
+                {
+                    sBuilder.Append(data[i].ToString("x2"));
+                }
+
+                return sBuilder.ToString();
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
 
         /// <summary>
         /// Returns all targeted frameworks of the given project.
@@ -97,12 +108,10 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Chooses a target framework for the build properties according to the given comparison.
         /// Chooses the first target framework is no comparison is given.
         /// Logs a suitable error is no target framework can be determined.
-        /// Returns a dictionary with additional project information (e.g. for telemetry) as out parameter.
         /// </summary>
         /// <exception cref="ArgumentException"><paramref name="projectFile"/> is null or does not exist.</exception>
         internal IDictionary<string, string> DesignTimeBuildProperties(
             string projectFile,
-            out Dictionary<string, string?> metadata,
             Comparison<string>? preferredFramework = null)
         {
             if (!File.Exists(projectFile))
@@ -110,70 +119,19 @@ namespace Microsoft.Quantum.QsLanguageServer
                 throw new ArgumentException("given project file is null or does not exist", nameof(projectFile));
             }
 
-            (string?, Dictionary<string, string?>) FrameworkAndMetadata(Project project)
+            string? FrameworkAndMetadata(Project project)
             {
-                string? GetVersion(ProjectItem item) => item.DirectMetadata
-                    .FirstOrDefault(data => data.Name.Equals("Version", StringComparison.OrdinalIgnoreCase))?.EvaluatedValue;
-                var packageRefs = project.Items.Where(item =>
-                    item.ItemType == "PackageReference" && GeneratePackageInfo(item.EvaluatedInclude))
-                    .Select(item => (item.EvaluatedInclude, GetVersion(item)));
-                var trackedProperties = project.Properties.Where(p =>
-                    p?.Name != null && PropertiesToTrack.Contains(p.Name, StringComparer.OrdinalIgnoreCase))
-                    .Select(p => (p.Name.ToLowerInvariant(), p.EvaluatedValue));
-
-                var projInfo = new Dictionary<string, string?>();
-                foreach (var (package, version) in packageRefs)
-                {
-                    projInfo[$"pkgref.{package}"] = version;
-                }
-
-                foreach (var (name, value) in trackedProperties)
-                {
-                    projInfo[name] = value;
-                }
-
-                projInfo["projectNameHash"] = this.GetProjectNameHash(projectFile);
-
                 var frameworks = TargetedFrameworks(project).ToList();
                 if (preferredFramework != null)
                 {
                     frameworks.Sort(preferredFramework);
                 }
 
-                return (frameworks.FirstOrDefault(), projInfo);
+                return frameworks.FirstOrDefault();
             }
 
-            var info = LoadAndApply(projectFile, GlobalProperties(), FrameworkAndMetadata);
-            metadata = info.Item2;
-            return GlobalProperties(info.Item1).ToImmutableDictionary();
-        }
-
-        /// <summary>
-        /// Returns a 1-way hash of the project file name so it can be sent with telemetry.
-        /// if any exception is thrown, it just logs the error message and returns an empty string.
-        /// </summary>
-        internal string GetProjectNameHash(string projectFile)
-        {
-            try
-            {
-                using (SHA256 hashAlgorithm = SHA256.Create())
-                {
-                    string fileName = Path.GetFileName(projectFile);
-                    byte[] data = hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(fileName));
-                    var sBuilder = new StringBuilder();
-                    for (int i = 0; i < data.Length; i++)
-                    {
-                        sBuilder.Append(data[i].ToString("x2"));
-                    }
-
-                    return sBuilder.ToString();
-                }
-            }
-            catch (Exception e)
-            {
-                this.Log($"Error creating hash for project name '{projectFile}': {e.Message}", MessageType.Warning);
-                return string.Empty;
-            }
+            var framework = LoadAndApply(projectFile, GlobalProperties(), FrameworkAndMetadata);
+            return GlobalProperties(framework).ToImmutableDictionary();
         }
 
         /// <summary>
@@ -215,11 +173,9 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// and builds the target ResolveAssemblyReferencesDesignTime, logging suitable errors in the process.
         /// If the built project instance is recognized as a valid Q# project by the server, returns the built project instance.
         /// Returns null if this is not the case, or if the given project file is null or does not exist.
-        /// Returns a dictionary with additional project information (e.g. for telemetry) as out parameter.
         /// </summary>
-        private ProjectInstance? QsProjectInstance(string projectFile, out Dictionary<string, string?> metadata)
+        private ProjectInstance? QsProjectInstance(string projectFile)
         {
-            metadata = new Dictionary<string, string?>();
             if (!File.Exists(projectFile))
             {
                 return null;
@@ -227,7 +183,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             var loggers = new ILogger[] { new Utils.MSBuildLogger(this.Log) };
             int PreferSupportedFrameworks(string x, string y) => (this.IsSupportedQsFramework(y) ? 1 : 0) - (this.IsSupportedQsFramework(x) ? 1 : 0);
-            var properties = this.DesignTimeBuildProperties(projectFile, out metadata, PreferSupportedFrameworks);
+            var properties = this.DesignTimeBuildProperties(projectFile, PreferSupportedFrameworks);
 
             // restore project (requires reloading the project after for the restore to take effect)
             var succeed = LoadAndApply(projectFile, properties, project =>
@@ -241,7 +197,10 @@ namespace Microsoft.Quantum.QsLanguageServer
             return LoadAndApply(projectFile, properties, project =>
             {
                 var instance = project.CreateProjectInstance();
-                succeed = instance.Build("ResolveAssemblyReferencesDesignTime", loggers);
+                var target = instance.Targets.ContainsKey("ResolveTargetPackage")
+                    ? "ResolveTargetPackage"
+                    : "ResolveAssemblyReferencesDesignTime";
+                succeed = instance.Build(target, loggers);
                 if (!succeed)
                 {
                     this.Log($"Failed to resolve assembly references for project '{projectFile}'.", MessageType.Error);
@@ -255,13 +214,11 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Returns the project instance for the given project file with all assembly references resolved,
         /// if the given project is recognized as a valid Q# project by the server, and null otherwise.
         /// Returns null without logging anything if the given project file does not end in .csproj.
-        /// Returns a dictionary with additional project information (e.g. for telemetry) as out parameter.
         /// Logs suitable messages using the given log function if the project file cannot be found, or if the design time build fails.
         /// Logs whether or not the project is recognized as Q# project.
         /// </summary>
-        public ProjectInstance? TryGetQsProjectInstance(string projectFile, out Dictionary<string, string?> metadata)
+        public ProjectInstance? TryGetQsProjectInstance(string projectFile)
         {
-            metadata = new Dictionary<string, string?>();
             if (!projectFile.ToLowerInvariant().EndsWith(".csproj"))
             {
                 return null;
@@ -270,7 +227,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             ProjectInstance? instance = null;
             try
             {
-                instance = this.QsProjectInstance(projectFile, out metadata);
+                instance = this.QsProjectInstance(projectFile);
             }
             catch (Exception ex)
             {

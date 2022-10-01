@@ -41,15 +41,31 @@ namespace Microsoft.Quantum.QsCompiler
                     continue;
                 }
 
+                var updateConstants = config.SkipTargetSpecificCompilation
+                    ? ImmutableDictionary.CreateRange(new[]
+                    {
+                        KeyValuePair.Create(AssemblyConstants.ExecutionTarget, "Any"),
+                        KeyValuePair.Create(AssemblyConstants.ProcessorArchitecture, "Unspecified"),
+                        KeyValuePair.Create(AssemblyConstants.TargetCapability, TargetCapabilityModule.Top.Name),
+                    })
+                    : ImmutableDictionary<string, string>.Empty;
                 foreach (var kvPair in config.AssemblyConstants ?? Enumerable.Empty<KeyValuePair<string, string>>())
                 {
-                    assemblyConstants[kvPair.Key] = kvPair.Value;
+                    assemblyConstants[kvPair.Key] = updateConstants.TryGetValue(kvPair.Key, out var value) ? value : kvPair.Value;
                 }
 
                 // We don't overwrite assembly properties specified by configuration.
                 var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null;
                 assemblyConstants[AssemblyConstants.OutputPath] = loaded.OutputFolder ?? defaultOutput ?? config.BuildOutputFolder;
                 assemblyConstants.TryAdd(AssemblyConstants.AssemblyName, config.ProjectNameWithoutPathOrExtension);
+
+                if (config.TargetPackageAssemblies != null)
+                {
+                    string DefinedTargetPackageAssemblies(string? predefined = null) =>
+                        string.Join(";", config.TargetPackageAssemblies.Append(predefined).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s?.Trim()));
+                    assemblyConstants[AssemblyConstants.TargetPackageAssemblies] = DefinedTargetPackageAssemblies(
+                        assemblyConstants.TryGetValue(AssemblyConstants.TargetPackageAssemblies, out var predefined) ? predefined : null);
+                }
             }
 
             return loadedSteps;

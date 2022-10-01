@@ -33,7 +33,9 @@ type SyntaxTreeTransformation<'T>(state, options) as this =
     member val Namespaces = NamespaceTransformation<'T>(this, options) with get, set
 
     /// Invokes the transformation for all namespaces in the given compilation.
-    member this.OnCompilation compilation =
+    abstract OnCompilation: compilation: QsCompilation -> QsCompilation
+    default this.OnCompilation compilation =
+
         if options.Rebuild then
             let namespaces =
                 compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange
@@ -259,7 +261,8 @@ type SyntaxTreeTransformation(options) as this =
     member val Namespaces = NamespaceTransformation(this, options) with get, set
 
     /// Invokes the transformation for all namespaces in the given compilation.
-    member this.OnCompilation compilation =
+    abstract OnCompilation: compilation: QsCompilation -> QsCompilation
+    default this.OnCompilation compilation =
         if options.Rebuild then
             let namespaces =
                 compilation.Namespaces |> Seq.map this.Namespaces.OnNamespace |> ImmutableArray.CreateRange

@@ -52,11 +52,12 @@ module internal Trivia =
 /// A terminal symbol has no child nodes and represents a token in the source code.
 type internal Terminal =
     {
-      /// The trivia preceding the terminal.
-      Prefix: Trivia list
+        /// The trivia preceding the terminal.
+        Prefix: Trivia list
 
-      /// The text content of the terminal.
-      Text: string }
+        /// The text content of the terminal.
+        Text: string
+    }
 
 module internal Terminal =
     /// <summary>
@@ -65,76 +66,82 @@ module internal Terminal =
     val mapPrefix: mapper: (Trivia list -> Trivia list) -> terminal: Terminal -> Terminal
 
 /// An item in a comma-separated sequence.
-type internal 'a SequenceItem =
+type internal 'T SequenceItem =
     {
-      /// The item.
-      Item: 'a option
+        /// The item.
+        Item: 'T option
 
-      /// The comma following the item.
-      Comma: Terminal option }
+        /// The comma following the item.
+        Comma: Terminal option
+    }
 
 /// A tuple.
-type internal 'a Tuple =
+type internal 'T Tuple =
     {
-      /// The opening parenthesis.
-      OpenParen: Terminal
+        /// The opening parenthesis.
+        OpenParen: Terminal
 
-      /// The items in the tuple.
-      Items: 'a SequenceItem list
+        /// The items in the tuple.
+        Items: 'T SequenceItem list
 
-      /// The closing parenthesis.
-      CloseParen: Terminal }
+        /// The closing parenthesis.
+        CloseParen: Terminal
+    }
 
 module internal Tuple =
     /// <summary>
     /// Maps <paramref name="tuple"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
-    val mapPrefix: mapper: (Trivia list -> Trivia list) -> tuple: 'a Tuple -> 'a Tuple
+    val mapPrefix: mapper: (Trivia list -> Trivia list) -> tuple: 'T Tuple -> 'T Tuple
 
 /// A prefix operator. The operator is in the front of the operand.
-type internal 'a PrefixOperator =
+type internal 'T PrefixOperator =
     {
-      /// The operator.
-      PrefixOperator: Terminal
+        /// The operator.
+        PrefixOperator: Terminal
 
-      /// The operand.
-      Operand: 'a }
+        /// The operand.
+        Operand: 'T
+    }
 
 /// A prefix operator. The operator is after the operand.
-type internal 'a PostfixOperator =
+type internal 'T PostfixOperator =
     {
-      /// The operand.
-      Operand: 'a
+        /// The operand.
+        Operand: 'T
 
-      /// The operator.
-      PostfixOperator: Terminal }
+        /// The operator.
+        PostfixOperator: Terminal
+    }
 
 /// An infix operator.
-type internal 'a InfixOperator =
+type internal 'T InfixOperator =
     {
-      /// The left-hand side.
-      Left: 'a
+        /// The left-hand side.
+        Left: 'T
 
-      /// The operator.
-      InfixOperator: Terminal
+        /// The operator.
+        InfixOperator: Terminal
 
-      /// The right-hand side.
-      Right: 'a }
+        /// The right-hand side.
+        Right: 'T
+    }
 
 /// A block.
-type internal 'a Block =
+type internal 'T Block =
     {
-      /// The opening brace.
-      OpenBrace: Terminal
+        /// The opening brace.
+        OpenBrace: Terminal
 
-      /// The items in the block.
-      Items: 'a list
+        /// The items in the block.
+        Items: 'T list
 
-      /// The closing brace.
-      CloseBrace: Terminal }
+        /// The closing brace.
+        CloseBrace: Terminal
+    }
 
 module internal Block =
     /// <summary>
     /// Maps <paramref name="block"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
-    val mapPrefix: mapper: (Trivia list -> Trivia list) -> block: 'a Block -> 'a Block
+    val mapPrefix: mapper: (Trivia list -> Trivia list) -> block: 'T Block -> 'T Block
