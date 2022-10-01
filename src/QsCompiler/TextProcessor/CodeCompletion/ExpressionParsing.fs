@@ -25,11 +25,11 @@ let private array expression =
     brackets (lArray, rArray) (sized expression <|>@ items)
 
 /// The missing expression keyword.
-let private missingExpr = { parse = keyword "_"; id = "_" }
+let private missingExpr = { Parse = keyword "_"; Id = "_" }
 
 /// Parses a prefix operator.
 let private prefixOp =
-    expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
+    expectedKeyword notOperator <|> operator qsNEGop.Op "" <|> operator qsBNOTop.Op ""
 
 /// Parses an infix operator.
 let private infixOp =
@@ -61,18 +61,18 @@ let rec expression =
     parse {
         let postfixOp =
             let copyAndUpdate =
-                operator qsCopyAndUpdateOp.op "" >>. (expression <|>@ expectedId NamedItem (term symbol))
-                ?>> expected (operator qsCopyAndUpdateOp.cont "")
+                operator qsCopyAndUpdateOp.Op "" >>. (expression <|>@ expectedId NamedItem (term symbol))
+                ?>> expected (operator qsCopyAndUpdateOp.Cont "")
                 ?>> expression
 
             let typeParamListOrLessThan =
                 // This is a parsing hack for the < operator, which can be either less-than or the start of a type
                 // parameter list.
-                operator qsLTop.op "=-" ?>> ((sepByLast qsType comma ?>> expected (bracket rAngle)) <|>@ expression)
+                operator qsLTop.Op "=-" ?>> ((sepByLast qsType comma ?>> expected (bracket rAngle)) <|>@ expression)
 
-            choice [ operator qsUnwrapModifier.op ""
-                     pstring qsOpenRangeOp.op .>> emptySpace >>. optional eot >>% []
-                     operator qsNamedItemCombinator.op "" ?>> expectedId NamedItem (term symbol)
+            choice [ operator qsUnwrapModifier.Op ""
+                     pstring qsOpenRangeOp.Op .>> emptySpace >>. optional eot >>% []
+                     operator qsNamedItemCombinator.Op "" ?>> expectedId NamedItem (term symbol)
                      copyAndUpdate
                      tuple expression
                      array expression
@@ -108,7 +108,7 @@ let rec expression =
 
         let expTerm =
             [
-                operator qsOpenRangeOp.op "" >>. opt expression |>> Option.defaultValue []
+                operator qsOpenRangeOp.Op "" >>. opt expression |>> Option.defaultValue []
                 newArray
                 tuple1 expression
                 array expression

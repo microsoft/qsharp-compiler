@@ -16,52 +16,52 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 
 /// A Q# keyword consists of a parser that consumes that keyword and returns its start and end position as a tuple,
 /// as well as a string containing the keyword itself.
-type QsKeyword = { parse: Parser<Range, QsCompilerDiagnostic list>; id: string }
+type QsKeyword = { Parse: Parser<Range, QsCompilerDiagnostic list>; Id: string }
 
 /// contains all Q# keywords that cannot be used as a symbol name
-let private _ReservedKeywords = new HashSet<string>()
+let private reservedKeywordsBuilder = new HashSet<string>()
 /// contains all Q# keywords that are Q# literals
-let private _KeywordLiterals = new HashSet<string>()
+let private keywordLiteralsBuilder = new HashSet<string>()
 /// contains all Q# keywords that cannot be used within an expression (strict subset of QsReservedKeywords, since it does not contain e.g. Q# literals)
-let private _LanguageKeywords = new HashSet<string>()
+let private languageKeywordsBuilder = new HashSet<string>()
 /// contains all Q# keywords that denote the Q# fragment headers used as re-entry points upon parsing failures (strict subset of QsLanguageKeywords)
-let private _FragmentHeaders = new HashSet<string>()
+let private fragmentHeadersBuilder = new HashSet<string>()
 
-let private qsKeyword word = { parse = keyword word; id = word }
+let private qsKeyword word = { Parse = keyword word; Id = word }
 
 /// adds the given word to the list of QsReservedKeywords, and returns the corresponding keyword
 let private addKeyword word =
-    _ReservedKeywords.Add word |> ignore
+    reservedKeywordsBuilder.Add word |> ignore
     qsKeyword word
 
 /// adds the given word to the list of QsReservedKeywords as a Q# literal, and returns the corresponding keyword
 let private addKeywordLiteral word =
-    _ReservedKeywords.Add word |> ignore
-    _KeywordLiterals.Add word |> ignore
+    reservedKeywordsBuilder.Add word |> ignore
+    keywordLiteralsBuilder.Add word |> ignore
     qsKeyword word
 
 /// adds the given word to the list of QsReservedKeywords and QsLanguageKeywords, and returns the corresponding keyword
 let private addLanguageKeyword word =
-    _ReservedKeywords.Add word |> ignore
-    _LanguageKeywords.Add word |> ignore
+    reservedKeywordsBuilder.Add word |> ignore
+    languageKeywordsBuilder.Add word |> ignore
     qsKeyword word
 
 /// adds the given word to the list of QsReservedKeywords, QsLanguageKeywords and QsFragmentHeaders, and returns the corresponding keyword
 let private addFragmentHeader word =
-    _ReservedKeywords.Add word |> ignore
-    _LanguageKeywords.Add word |> ignore
-    _FragmentHeaders.Add word |> ignore
+    reservedKeywordsBuilder.Add word |> ignore
+    languageKeywordsBuilder.Add word |> ignore
+    fragmentHeadersBuilder.Add word |> ignore
     qsKeyword word
 
 /// Given the keyword for two functors, constructs and returns the keyword for the combined functor
 /// under the assumption tha the order of the functors does not matter.
 /// Adds the keyword for the combined functor to the list of QsReservedKeywords, QsLanguageKeywords and QsFragmentHeaders.
 let private addFunctorCombination (word1: QsKeyword, word2: QsKeyword) =
-    let id = sprintf "%s %s" word1.id word2.id
-    _ReservedKeywords.Add id |> ignore
-    _LanguageKeywords.Add id |> ignore
-    _FragmentHeaders.Add id |> ignore
-    { id = id; parse = (word1.parse .>> word2.parse) <|> (word2.parse .>> word1.parse) }
+    let id = sprintf "%s %s" word1.Id word2.Id
+    reservedKeywordsBuilder.Add id |> ignore
+    languageKeywordsBuilder.Add id |> ignore
+    fragmentHeadersBuilder.Add id |> ignore
+    { Id = id; Parse = (word1.Parse .>> word2.Parse) <|> (word2.Parse .>> word1.Parse) }
 
 
 // Qs types
@@ -239,48 +239,48 @@ let size = qsKeyword "size"
 // external access to Q# keywords
 
 /// contains all Q# keywords that cannot be used as a symbol name
-let public ReservedKeywords = _ReservedKeywords.ToImmutableHashSet()
-let public KeywordLiterals = _KeywordLiterals.ToImmutableHashSet()
+let public ReservedKeywords = reservedKeywordsBuilder.ToImmutableHashSet()
+let public KeywordLiterals = keywordLiteralsBuilder.ToImmutableHashSet()
 /// contains all Q# keywords that cannot be used within an expression (strict subset of QsReservedKeywords, since it does not contain e.g. Q# literals)
-let internal LanguageKeywords = _LanguageKeywords.ToImmutableHashSet()
+let internal languageKeywords = languageKeywordsBuilder.ToImmutableHashSet()
 /// contains all Q# keywords that denote the Q# fragment headers used as re-entry points upon parsing failures (strict subset of QsLanguageKeywords)
-let internal FragmentHeaders = _FragmentHeaders.ToImmutableHashSet()
+let internal fragmentHeaders = fragmentHeadersBuilder.ToImmutableHashSet()
 
 
 // Q# operators
 
 type QsOperator =
     {
-        op: string
-        cont: string
-        prec: int
-        isLeftAssociative: bool
+        Op: string
+        Cont: string
+        Prec: int
+        IsLeftAssociative: bool
     }
     member internal this.Associativity =
-        if this.isLeftAssociative then Associativity.Left else Associativity.Right
+        if this.IsLeftAssociative then Associativity.Left else Associativity.Right
 
     static member New(str, p, assoc) =
         {
-            op = str
-            cont = null
-            prec = p
-            isLeftAssociative = assoc
+            Op = str
+            Cont = null
+            Prec = p
+            IsLeftAssociative = assoc
         }
 
     static member New(str, rstr, p, assoc) =
         {
-            op = str
-            cont = rstr
-            prec = p
-            isLeftAssociative = assoc
+            Op = str
+            Cont = rstr
+            Prec = p
+            IsLeftAssociative = assoc
         }
 
 let qsCopyAndUpdateOp = QsOperator.New("w/", "<-", 1, true) // *needs* to have lowest precedence!
 let qsOpenRangeOp = QsOperator.New("...", 2, true) // only valid as part of certain contextual expressions!
 let qsRangeOp = QsOperator.New("..", 2, true) // second lowest precedence due to the contextual open range operator
 let qsConditionalOp = QsOperator.New("?", "|", 5, false)
-let qsORop = QsOperator.New(orOperator.id, 10, true)
-let qsANDop = QsOperator.New(andOperator.id, 11, true)
+let qsORop = QsOperator.New(orOperator.Id, 10, true)
+let qsANDop = QsOperator.New(andOperator.Id, 11, true)
 let qsBORop = QsOperator.New("|||", 12, true)
 let qsBXORop = QsOperator.New("^^^", 13, true)
 let qsBANDop = QsOperator.New("&&&", 14, true)
@@ -299,7 +299,7 @@ let qsMODop = QsOperator.New("%", 35, true)
 let qsDIVop = QsOperator.New("/", 35, true)
 let qsPOWop = QsOperator.New("^", 40, false)
 let qsBNOTop = QsOperator.New("~~~", 45, false)
-let qsNOTop = QsOperator.New(notOperator.id, 45, false)
+let qsNOTop = QsOperator.New(notOperator.Id, 45, false)
 let qsNEGop = QsOperator.New("-", 45, false)
 
 let qsSetUnion = QsOperator.New("+", 10, true)
@@ -318,8 +318,8 @@ let qsSetIntersection = QsOperator.New("*", 20, true)
 // The array item combinator binds stronger than all modifiers.
 let qsCallCombinator = QsOperator.New("(", ")", 900, true) // Op()() is fine
 
-let qsAdjointModifier = QsOperator.New(qsAdjointFunctor.id, 950, false)
-let qsControlledModifier = QsOperator.New(qsControlledFunctor.id, 951, false)
+let qsAdjointModifier = QsOperator.New(qsAdjointFunctor.Id, 950, false)
+let qsControlledModifier = QsOperator.New(qsControlledFunctor.Id, 951, false)
 let qsUnwrapModifier = QsOperator.New("!", 1000, true)
 let qsArrayAccessCombinator = QsOperator.New("[", "]", 1100, true) // arr[i][j] is fine
 let qsNamedItemCombinator = QsOperator.New("::", 1100, true) // any combination of named and array item acces is fine

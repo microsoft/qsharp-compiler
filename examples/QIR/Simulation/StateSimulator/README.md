@@ -1,5 +1,7 @@
 # The State Simulator
 
+**NOTE:** The text below is out-of-date and is to be rewritten. See more up-to-date information in the PR ["Replace C++ QIR Runtime with Rust QIR stdlib"](https://github.com/microsoft/qsharp-runtime/pull/1087).
+
 A full state simulator mimics an ideal quantum computer with infinite compute register, although classical hardware limitations generally impose a simulation limit of at most a few dozen active qubits.
 This sample provides a "from scratch" implementation of such a simulator, using the C++ linear algebra library [Eigen](http://eigen.tuxfamily.org/).
 The simulator is designed to closely correspond to the mathematical operations which are typically used to describe quantum circuits.
@@ -10,7 +12,7 @@ Instead of using a custom qubit manager, the sample demonstrates how to hook up 
 The QIR Runtime provides three interfaces to connect backends to the Runtime, which will be implemented by the simulator:
 
 - `IRuntimeDriver` : Provides basic runtime functions such as qubit and measurement result management.
-- `IQuantumGateSet` : The Q# instruction set. Implementation of this interface is not strictly required, as long as *some* instruction set is implemented, and the QIR code only calls instructions from that set (may necessitate the use of a bridge, see the [QIR Bridge](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime#qir-bridge-and-runtime) and the [top-level guide](../#understanding-the-qir-runtime-system)).
+- `IQuantumGateSet` : The Q# instruction set. Implementation of this interface is not strictly required, as long as *some* instruction set is implemented, and the QIR code only calls instructions from that set (may necessitate the use of a bridge, see the "QIR Bridge").
 - `IDiagnostics` : Optional interface to provide insight into the state of a simulator or hardware backend (useful for debugging).
 
 For a more detailed look at them, refer to the [top-level guide](../#structure-of-a-simulator) of the simulation example.
@@ -92,7 +94,7 @@ A new qubit manager instance can simply be attached to the simulator in the cons
     }
 ```
 
-The following functions will be used from the QIR qubit manager, but additional functionality is present to manage how qubits are reused (full interface at [public/QubitManager.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/QubitManager.hpp)):
+The following functions will be used from the QIR qubit manager, but additional functionality is present to manage how qubits are reused (full interface at "public/QubitManager.hpp"):
 
 ```cpp
 Qubit CQubitManager::Allocate()
@@ -126,7 +128,7 @@ void StateSimulator::ReleaseQubit(Qubit q)
 }
 ```
 
-Result management hands out either of two `Result` values, where the `Result` type is defined as a pointer to an undefined type in [CoreTypes.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/CoreTypes.hpp), allowing for backends to define custom result types.
+Result management hands out either of two `Result` values, where the `Result` type is defined as a pointer to an undefined type in "CoreTypes.hpp", allowing for backends to define custom result types.
 Here, we use the raw pointer type with different numeric values for each result:
 
 ```cpp
@@ -326,7 +328,7 @@ Refer to the [Optimization example](../../Optimization#installing-clang) for ins
 
 Download the latest stable release of the [Eigen library](http://eigen.tuxfamily.org/) and copy over the relevant headers as described in [include/Eigen](include/Eigen/README.md).
 
-Although the [QIR Runtime header files](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/public) are sufficient to compile the simulator, actually running it will require the Runtime binaries.
+Although the "QIR Runtime header files" are sufficient to compile the simulator, actually running it will require the Runtime binaries.
 Use the NuGet CLI with the commands below to download the [QIR Runtime package](https://www.nuget.org/packages/Microsoft.Quantum.Qir.Runtime) and extract the appropriate headers and libraries (adjusting the package version as required):
 
 - **Windows**:

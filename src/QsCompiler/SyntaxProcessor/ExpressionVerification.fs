@@ -423,8 +423,7 @@ type QsExpression with
 
             let validSlicing step =
                 match array.ResolvedType.Resolution with
-                | ArrayType _ ->
-                    step |> Option.forall (fun expr -> Int = (inference.Resolve expr.ResolvedType).Resolution)
+                | ArrayType _ -> step |> Option.forall (fun expr -> Int = expr.ResolvedType.Resolution)
                 | _ -> false
 
             let conditionalIntExpr (cond: TypedExpression) ifTrue ifFalse =
@@ -443,19 +442,18 @@ type QsExpression with
                     conditionalIntExpr (IsNegative step) (SyntaxGenerator.IntLiteral 0L) (LengthMinusOne array)
                 | ex -> if validSlicing ex then LengthMinusOne array else invalidRangeDelimiter
 
-            let resolveSlicingRange start step end_ =
-                let integerExpr ex =
+            let resolveSlicingRange start step finish =
+                let toResolvedExpr ex =
                     let ex = resolve context ex
-                    inference.Constrain(ResolvedType.New Int .> ex.ResolvedType) |> List.iter diagnose
-                    ex
+                    { ex with ResolvedType = inference.Resolve ex.ResolvedType }
 
-                let resolvedStep = step |> Option.map integerExpr
+                let resolvedStep = step |> Option.map toResolvedExpr
 
                 let resolveWith build (ex: QsExpression) =
-                    if ex.isMissing then build resolvedStep else integerExpr ex
+                    if ex.IsMissing then build resolvedStep else toResolvedExpr ex
 
                 let resolvedStart, resolvedEnd =
-                    start |> resolveWith openStartInSlicing, end_ |> resolveWith openEndInSlicing
+                    start |> resolveWith openStartInSlicing, finish |> resolveWith openEndInSlicing
 
                 match resolvedStep with
                 | Some resolvedStep ->
@@ -463,14 +461,14 @@ type QsExpression with
                 | None -> SyntaxGenerator.RangeLiteral(resolvedStart, resolvedEnd)
 
             match index.Expression with
-            | RangeLiteral (lhs, end_) ->
+            | RangeLiteral (lhs, finish) ->
                 match lhs.Expression with
                 | RangeLiteral (start, step) ->
-                    // Cases: xs[...step..end], xs[start..step...], xs[start..step..end], xs[...step...].
-                    resolveSlicingRange start (Some step) end_
+                    // Cases: xs[...step..finish], xs[start..step...], xs[start..step..finish], xs[...step...].
+                    resolveSlicingRange start (Some step) finish
                 | _ ->
-                    // Cases: xs[...end], xs[start...], xs[start..end], xs[...].
-                    resolveSlicingRange lhs None end_
+                    // Cases: xs[...finish], xs[start...], xs[start..finish], xs[...].
+                    resolveSlicingRange lhs None finish
             | _ ->
                 // Case: xs[i].
                 resolve context index
@@ -755,8 +753,8 @@ type QsExpression with
                 |> inference.Constrain
                 |> List.iter diagnose
             else
-                let diagnostics =
-                    inference.Constrain(callable.ResolvedType <. ResolvedType.New(QsTypeKind.Function(argType, output)))
+                let functionType = ResolvedType.withKind (QsTypeKind.Function(argType, output)) callable.ResolvedType
+                let diagnostics = inference.Constrain(callable.ResolvedType <. functionType)
 
                 if inference.Resolve callable.ResolvedType |> isOperation then
                     QsCompilerDiagnostic.Error (ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault

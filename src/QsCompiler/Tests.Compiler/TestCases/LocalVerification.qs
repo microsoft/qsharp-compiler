@@ -1152,6 +1152,22 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         return arr[...-1...];
     }
 
+    function ValidArraySlice10 (arr : Int[]) : Int[] {
+        return arr[...arr[0]...];
+    }
+
+    function ValidArraySlice11 (arr : Int[]) : Int[] {
+        return arr[arr[1]..arr[0]...];
+    }
+
+    function ValidArraySlice12 (arr : Int[]) : Int[] {
+        return arr[...arr[0]..arr[2]];
+    }
+
+    function ValidArraySlice13 (arr : Int[]) : Int[] {
+        return arr[arr[1]..arr[0]..arr[2]];
+    }
+
 
     function InvalidArraySlice1 (arr : BigEndian) : Int[] {
         return arr[3...];

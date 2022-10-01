@@ -11,24 +11,24 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type Target =
     {
-        name: string
-        capability: TargetCapability
+        _Name: string
+        _Capability: TargetCapability
     }
 
-    member target.Name = target.name
+    member target.Name = target._Name
 
-    member target.Capability = target.capability
+    member target.Capability = target._Capability
 
 module Target =
     [<CompiledName "Create">]
     let create name capability =
-        { name = name; capability = capability }
+        { _Name = name; _Capability = capability }
 
-type 'props Pattern =
+type 'Props Pattern =
     {
         Capability: TargetCapability
         Diagnose: Target -> QsCompilerDiagnostic option
-        Properties: 'props
+        Properties: 'Props
     }
 
 module Pattern =
@@ -45,7 +45,7 @@ module Pattern =
             TargetCapability.bottom
             patterns
 
-type Analyzer<'subject, 'props> = 'subject -> 'props Pattern seq
+type Analyzer<'Subject, 'Props> = 'Subject -> 'Props Pattern seq
 
 module Analyzer =
     let concat (analyzers: Analyzer<_, _> seq) subject = Seq.collect ((|>) subject) analyzers

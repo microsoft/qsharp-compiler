@@ -169,14 +169,14 @@ let ``Non-keyword tests`` () =
 [<Fact>]
 let ``Reserved keyword parser tests`` () =
     reservedWords
-    |> List.iter (fun k -> Assert.True(parse_string qsReservedKeyword k, "Failed to identify keyword " + k))
+    |> List.iter (fun k -> Assert.True(parseString qsReservedKeyword k, "Failed to identify keyword " + k))
 
 [<Fact>]
 let ``Language keyword parser tests`` () =
     languageKeywords
-    |> List.iter (fun k -> Assert.True(parse_string qsLanguageKeyword k, "Failed to identify keyword " + k))
+    |> List.iter (fun k -> Assert.True(parseString qsLanguageKeyword k, "Failed to identify keyword " + k))
 
 [<Fact>]
 let ``Fragment keyword parser tests`` () =
     fragmentKeywords
-    |> List.iter (fun k -> Assert.True(parse_string qsFragmentHeader k, "Failed to identify keyword " + k))
+    |> List.iter (fun k -> Assert.True(parseString qsFragmentHeader k, "Failed to identify keyword " + k))
