@@ -17,20 +17,19 @@ The following software will be used in this walk-through:
 The *Quantum Development Kit (QDK)* documentation provides detailed guides on [installing the QDK](https://docs.microsoft.com/azure/quantum/install-overview-qdk#install-the-qdk-for-quantum-computing-locally) for various setups.
 This document will assume a **command line** setup for **Q# standalone** applications.
 
-Steps for QDK v0.18.2106 (June 2021):
+Steps for QDK v0.22.187631 (February 2022):
 
     NOTE: check the install guide linked above for the most up-to-date instructions
 
-* Install the [.NET Core SDK 3.1](https://dotnet.microsoft.com/download) (NOTE: use `dotnet-sdk-3.1` instead of `dotnet-sdk-5.0` in the Linux guides)
+* Install the [.NET Core SDK 3.1](https://dotnet.microsoft.com/download) (NOTE: use `dotnet-sdk-3.1` instead of `dotnet-sdk-5.0` in the Linux guides). QDK packages for .NET 6 are shipped as beta packages at the time of writing this documentation.
 * Install the QDK with `dotnet new -i Microsoft.Quantum.ProjectTemplates`
-* (**Linux**) Ensure the [GNU OpenMP support library](https://gcc.gnu.org/onlinedocs/libgomp/) is installed on your system, e.g. via `sudo apt install libgomp1`
 
 ### Installing Clang
 
 Depending on your platform, some LLVM tools may only be available by compiling from source.
 *Clang* however should be readily available from package managers or as pre-compiled binaries on most systems.
 LLVM's [official release page](https://releases.llvm.org/download.html) provides sources and binaries of LLVM and Clang.
-It's recommended to use LLVM version 11.1.0, as this is the version used by the Q# compiler.
+It's recommended to use LLVM version 13.0.1, as this is the version used by the Q# compiler.
 
 Here are some suggestions on how to obtain Clang for different platforms.
 On Windows, the conda method is recommended since it's also able to install the LLVM optimizer (see next section).
@@ -38,16 +37,16 @@ On Windows, the conda method is recommended since it's also able to install the 
 Package managers:
 
 * **Ubuntu** : `sudo apt install clang-13`
-* **Windows** : `choco install llvm --version=13.0.0` using [chocolatey](https://chocolatey.org/)
+* **Windows** : `choco install llvm --version=13.0.1` using [chocolatey](https://chocolatey.org/)
 * **macOS** : `brew install llvm@11` using [homebrew](https://brew.sh/)
 
-* **all** : `conda install -c conda-forge clang=13.0.0 clangxx=13.0.0 llvm=13.0.0` using [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)
+* **all** : `conda install -c conda-forge clang=13.0.1 clangxx=13.0.1 llvm=13.0.1` using [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)
 
 Pre-built binaries/installers:
 
-* **Ubuntu** : get `clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.10.tar.xz` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.0)
-* **Windows** : get `LLVM-13.0.0-win64.exe` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.0)
-* **macOS** : get `clang+llvm-13.0.0-x86_64-apple-darwin.tar.xz` from the [13.0.0 release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.0)
+* **Ubuntu** : get `clang+llvm-13.0.1-x86_64-linux-gnu-ubuntu-20.10.tar.xz` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.1)
+* **Windows** : get `LLVM-13.0.1-win64.exe` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.1)
+* **macOS** : get `clang+llvm-13.0.1-x86_64-apple-darwin.tar.xz` from the [13.0.1 release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.1)
 
 
 (**Linux**) If installing via `apt`, the clang/llvm commands will have `-13` attached to their name.
@@ -65,12 +64,12 @@ Restart the terminal for the aliases to take effect.
 ### Installing the LLVM optimizer
 
 If you followed the instructions above specific to Linux or macOS, your LLVM installation will have included the *LLVM optimizer*.
-You can test this by typing `opt` or `opt-11` in your terminal.
+You can test this by typing `opt` or `opt-13` in your terminal.
 
 If not, you can use [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) as shown below to get it:
 
 ```shell
-conda install -c conda-forge llvm-tools=11.1.0
+conda install -c conda-forge llvm-tools=13.0.1
 ```
 
 Although a rather involved process, [compiling LLVM from source](https://llvm.org/docs/GettingStarted.html) is also available and provides access to all tools under the LLVM project.
@@ -120,7 +119,7 @@ Q# uses .NET project files to control the compilation process, located in the pr
 The standard one provided for a standalone Q# application looks as follows:
 
 ```xml
-<Project Sdk="Microsoft.Quantum.Sdk/0.18.2106148911">
+<Project Sdk="Microsoft.Quantum.Sdk/0.22.187631">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -133,7 +132,7 @@ The standard one provided for a standalone Q# application looks as follows:
 Enabling QIR generation is a simple matter of adding the `<QirGeneration>` property to the project file:
 
 ```xml
-<Project Sdk="Microsoft.Quantum.Sdk/0.18.2106148911">
+<Project Sdk="Microsoft.Quantum.Sdk/0.22.187631">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -329,8 +328,8 @@ One for the runtime and one for the simulator, using the `PackageReference` comm
 
 ```xml
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2106148911-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2106148911" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.22.187631-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.22.187631" GeneratePathProperty="true" />
   </ItemGroup>
 ```
 
@@ -376,7 +375,7 @@ Only `.hpp` files from the QIR header directory will be copied, and no `.exe` fi
 Put together, the new `Hello.csproj` project file should look as follows:
 
 ```xml
-<Project Sdk="Microsoft.Quantum.Sdk/0.18.2106148911">
+<Project Sdk="Microsoft.Quantum.Sdk/0.22.187631">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -386,8 +385,8 @@ Put together, the new `Hello.csproj` project file should look as follows:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2106148911-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2106148911" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.22.187631-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.22.187631" GeneratePathProperty="true" />
   </ItemGroup>
 
   <Target Name="GetDependencies" AfterTargets="Build">

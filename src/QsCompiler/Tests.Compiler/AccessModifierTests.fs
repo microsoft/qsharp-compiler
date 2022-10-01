@@ -1,53 +1,58 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.Testing
+module Microsoft.Quantum.QsCompiler.Testing.AccessModifierTests
 
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open System.Collections.Generic
 open System.IO
 open Xunit
 
-type AccessModifierTests() =
-    inherit CompilerTests(AccessModifierTests.Compile())
+let private diagnostics =
+    TestUtils.buildFiles
+        "TestCases"
+        [ "AccessModifiers.qs" ]
+        [ File.ReadAllLines("ReferenceTargets.txt")[2] ]
+        None
+        TestUtils.Library
+    |> Diagnostics.byDeclaration
 
-    static member private Compile() =
-        CompilerTests.Compile("TestCases", [ "AccessModifiers.qs" ], [ File.ReadAllLines("ReferenceTargets.txt").[2] ])
+let private assertDiagnostics name expected =
+    diagnostics[QsQualifiedName.New("Microsoft.Quantum.Testing.AccessModifiers", name)]
+    |> Diagnostics.assertMatches expected
 
-    member private this.Expect name (diagnostics: IEnumerable<DiagnosticItem>) =
-        let ns = "Microsoft.Quantum.Testing.AccessModifiers"
-        this.VerifyDiagnostics(QsQualifiedName.New(ns, name), diagnostics)
+[<Fact>]
+let callables () =
+    assertDiagnostics "CallableUseOK" []
+    assertDiagnostics "CallableReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleCallable, None ]
 
-    [<Fact>]
-    member this.Callables() =
-        this.Expect "CallableUseOK" []
-        this.Expect "CallableReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleCallable ]
+[<Fact>]
+let types () =
+    assertDiagnostics "TypeUseOK" (Seq.replicate 3 (Warning WarningCode.DeprecatedNewArray, None))
 
-    [<Fact>]
-    member this.Types() =
-        this.Expect "TypeUseOK" (Warning WarningCode.DeprecatedNewArray |> List.replicate 3)
+    assertDiagnostics
+        "TypeReferenceInternalInaccessible"
+        [
+            Error ErrorCode.InaccessibleType, None
+            Warning WarningCode.DeprecatedNewArray, None
+        ]
 
-        this.Expect
-            "TypeReferenceInternalInaccessible"
-            [ Error ErrorCode.InaccessibleType; Warning WarningCode.DeprecatedNewArray ]
+    assertDiagnostics "TypeConstructorReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleCallable, None ]
 
-        this.Expect "TypeConstructorReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleCallable ]
+[<Fact>]
+let callableSignatures () =
+    assertDiagnostics "CallableLeaksInternalTypeIn1" [ Error ErrorCode.TypeLessAccessibleThanParentCallable, None ]
+    assertDiagnostics "CallableLeaksInternalTypeIn2" [ Error ErrorCode.TypeLessAccessibleThanParentCallable, None ]
+    assertDiagnostics "CallableLeaksInternalTypeIn3" [ Error ErrorCode.TypeLessAccessibleThanParentCallable, None ]
+    assertDiagnostics "CallableLeaksInternalTypeOut1" [ Error ErrorCode.TypeLessAccessibleThanParentCallable, None ]
+    assertDiagnostics "CallableLeaksInternalTypeOut2" [ Error ErrorCode.TypeLessAccessibleThanParentCallable, None ]
+    assertDiagnostics "CallableLeaksInternalTypeOut3" [ Error ErrorCode.TypeLessAccessibleThanParentCallable, None ]
+    assertDiagnostics "InternalCallableInternalTypeOK" []
 
-    [<Fact>]
-    member this.``Callable signatures``() =
-        this.Expect "CallableLeaksInternalTypeIn1" [ Error ErrorCode.TypeLessAccessibleThanParentCallable ]
-        this.Expect "CallableLeaksInternalTypeIn2" [ Error ErrorCode.TypeLessAccessibleThanParentCallable ]
-        this.Expect "CallableLeaksInternalTypeIn3" [ Error ErrorCode.TypeLessAccessibleThanParentCallable ]
-        this.Expect "CallableLeaksInternalTypeOut1" [ Error ErrorCode.TypeLessAccessibleThanParentCallable ]
-        this.Expect "CallableLeaksInternalTypeOut2" [ Error ErrorCode.TypeLessAccessibleThanParentCallable ]
-        this.Expect "CallableLeaksInternalTypeOut3" [ Error ErrorCode.TypeLessAccessibleThanParentCallable ]
-        this.Expect "InternalCallableInternalTypeOK" []
-
-    [<Fact>]
-    member this.``Underlying types``() =
-        this.Expect "PublicTypeLeaksInternalType1" [ Error ErrorCode.TypeLessAccessibleThanParentType ]
-        this.Expect "PublicTypeLeaksInternalType2" [ Error ErrorCode.TypeLessAccessibleThanParentType ]
-        this.Expect "PublicTypeLeaksInternalType3" [ Error ErrorCode.TypeLessAccessibleThanParentType ]
-        this.Expect "InternalTypeInternalTypeOK" []
+[<Fact>]
+let underlyingTypes =
+    assertDiagnostics "PublicTypeLeaksInternalType1" [ Error ErrorCode.TypeLessAccessibleThanParentType, None ]
+    assertDiagnostics "PublicTypeLeaksInternalType2" [ Error ErrorCode.TypeLessAccessibleThanParentType, None ]
+    assertDiagnostics "PublicTypeLeaksInternalType3" [ Error ErrorCode.TypeLessAccessibleThanParentType, None ]
+    assertDiagnostics "InternalTypeInternalTypeOK" []
