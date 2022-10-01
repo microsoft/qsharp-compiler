@@ -60,5 +60,5 @@ to be executed from the command line.
 
 ## QIR Specification
 
-The QIR specification is on the [Q# language repository](https://github.com/qir-alliance/qir-spec).
+The QIR specification is [available here](https://github.com/qir-alliance/qir-spec).
 
