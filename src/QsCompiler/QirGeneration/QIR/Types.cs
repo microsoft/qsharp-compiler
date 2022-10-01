@@ -107,6 +107,8 @@ namespace Microsoft.Quantum.QIR
 
         private readonly Context context;
 
+        private readonly Dictionary<string, IStructType> namedStructs;
+
         internal IArrayType CallableTable { get; }
 
         internal IFunctionType CaptureCountFunction { get; }
@@ -118,6 +120,7 @@ namespace Microsoft.Quantum.QIR
         internal Types(Context context, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useLlvmArrays)
         {
             this.context = context;
+            this.namedStructs = new Dictionary<string, IStructType>();
             this.Transform = new QirTypeTransformation(this, getTypeDecl, useLlvmArrays);
 
             this.Int = context.Int64Type;
@@ -172,6 +175,17 @@ namespace Microsoft.Quantum.QIR
         internal IPointerType BytePointer =>
             this.context.Int8Type.CreatePointerType();
 
+        private IStructType NamedTuple(string name, params ITypeRef[] items)
+        {
+            if (!this.namedStructs.TryGetValue(name, out var type))
+            {
+                type = this.context.CreateStructType(name, false, items);
+                this.namedStructs.Add(name, type);
+            }
+
+            return type;
+        }
+
         /// <summary>
         /// Creates the LLVM data type used for stack allocated arrays.
         /// </summary>
@@ -185,11 +199,8 @@ namespace Microsoft.Quantum.QIR
         /// </remarks>
         internal IStructType NativeArray(ITypeRef elementType, uint nrElements, int? id = null)
         {
-            IStructType NamedTuple(string name, params ITypeRef[] items) =>
-                this.context.CreateStructType(name, false, items);
-
             var constArrType = elementType.CreateArrayType(nrElements);
-            var storageType = id is null ? this.TypedTuple(constArrType) : NamedTuple($"ArrayStorage{id}", constArrType);
+            var storageType = id is null ? this.TypedTuple(constArrType) : this.NamedTuple($"ArrayStorage{id}", constArrType);
             return this.TypedTuple(this.Int, storageType);
         }
 

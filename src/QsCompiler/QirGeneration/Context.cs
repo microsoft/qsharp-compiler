@@ -275,8 +275,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 ? this.Context.VoidType
                 : this.LlvmTypeFromQsharpType(signature.ReturnType);
             var argTypeRefs =
-
-                // FIXME: NEED TO MODIFY THIS FOR QIR... -> MIGHT BE CLEANER TO ALSO MODIFY RETURN TYPE?
                 signature.ArgumentType.Resolution.IsUnitType ? new ITypeRef[0] :
                 signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(signature.ArgumentType) };
