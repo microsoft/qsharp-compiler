@@ -12,10 +12,10 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
     public static class JitCompilation
     {
         [DllImport("Microsoft.Quantum.Qir.QSharp.Core", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr CreateFullstateSimulatorC(long seed);
+        private static extern IntPtr CreateFullstateSimulatorC(long seed);
 
         [DllImport("Microsoft.Quantum.Qir.Runtime", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void InitializeQirContext(IntPtr driver, bool trackAllocatedObjects);
+        private static extern void InitializeQirContext(IntPtr driver, bool trackAllocatedObjects);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void SimpleFunction();
@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
             if (LLVM.CreateMemoryBufferWithContentsOfFile(path.AsMarshaledString(), (LLVMOpaqueMemoryBuffer**)&handle, &msg) != 0)
             {
                 var span = new ReadOnlySpan<byte>(msg, int.MaxValue);
-                var errTxt = span.Slice(0, span.IndexOf((byte)'\0')).AsString();
+                var errTxt = span[..span.IndexOf((byte)'\0')].AsString();
                 LLVM.DisposeMessage(msg);
                 throw new InternalCodeGeneratorException(errTxt);
             }
@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
                 else
                 {
                     var span = new ReadOnlySpan<byte>(pMessage, int.MaxValue);
-                    outMessage = span.Slice(0, span.IndexOf((byte)'\0')).AsString();
+                    outMessage = span[..span.IndexOf((byte)'\0')].AsString();
                 }
 
                 return result == 0;

@@ -886,11 +886,13 @@ namespace Microsoft.Quantum.QIR.Emission
                 this.LlvmType = this.sharedState.Types.NativeArray(this.LlvmElementType, nrElements, id: id);
 
                 // FIXME: TYPE ENCAPSULATION MISSING...
-                var newStorage = newElements.Skip(1).Select((element, idx) => (element, idx)).Aggregate(
+                var constArr = newElements.Skip(1).Select((element, idx) => (element, idx)).Aggregate(
                     (Value)this.LlvmElementType.CreateArrayType(nrElements).GetNullValue(),
                     (current, next) => this.sharedState.CurrentBuilder.InsertValue(current, next.element.Value, (uint)next.idx));
 
-                 // FIXME not sure this compares properly
+                // FIXME: TYPE ENCAPSULATION MISSING...
+                var newStorage = this.sharedState.CurrentBuilder.InsertValue(
+                    ((IStructType)this.LlvmType).Members[1].GetNullValue(), constArr, 0u);
                 if (arrayStorage.NativeType != newStorage.NativeType)
                 {
                     this.tempArrayStorage = null;
