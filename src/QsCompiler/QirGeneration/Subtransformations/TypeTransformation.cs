@@ -20,15 +20,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     {
         private readonly QirGlobalType globalType;
 
-        public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useNamedConstantArrays) =>
-            this.globalType = new QirGlobalType(types, getTypeDecl, useNamedConstantArrays);
+        public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useNamedLlvmArrays) =>
+            this.globalType = new QirGlobalType(types, getTypeDecl, useNamedLlvmArrays);
 
         internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
             this.globalType.LlvmTypeFromQsharpType(resolvedType);
 
         private class QirGlobalType : TypeTransformation
         {
-            private int? namedConstantArrays;
+            private int? namedLlvmArrays;
 
             private protected ITypeRef? BuiltType { get; set; }
 
@@ -36,10 +36,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             private protected Func<QsQualifiedName, QsCustomType?> TypeDeclaration { get; }
 
-            public QirGlobalType(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useNamedConstantArrays)
+            public QirGlobalType(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useNamedLlvmArrays)
             : base(TransformationOptions.NoRebuild)
             {
-                this.namedConstantArrays = useNamedConstantArrays ? 0 : null;
+                this.namedLlvmArrays = useNamedLlvmArrays ? 0 : null;
                 this.QirTypes = types;
                 this.TypeDeclaration = getTypeDecl;
             }
@@ -68,9 +68,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             public override QsResolvedTypeKind OnArrayType(ResolvedType b)
             {
-                this.BuiltType = this.namedConstantArrays is null
+                this.BuiltType = this.namedLlvmArrays is null
                     ? this.QirTypes.Array
-                    : this.QirTypes.NativeArray(this.LlvmTypeFromQsharpType(b), 0u, ++this.namedConstantArrays);
+                    : this.QirTypes.NativeArray(this.LlvmTypeFromQsharpType(b), 0u, ++this.namedLlvmArrays);
                 return QsResolvedTypeKind.InvalidType;
             }
 
