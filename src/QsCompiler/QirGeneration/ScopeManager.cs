@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using LlvmBindings.Types;
@@ -25,8 +26,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     {
         private class Scope
         {
-            private readonly Action<Func<ITypeRef, string?>, (IValue, bool)[]> increaseCounts;
-            private readonly Action<Func<ITypeRef, string?>, (IValue, bool)[]> decreaseCounts;
+            private readonly Action<Func<ITypeRef, string?>, IEnumerable<(IValue, bool)>> increaseCounts;
+            private readonly Action<Func<ITypeRef, string?>, IEnumerable<(IValue, bool)>> decreaseCounts;
 
             /// <summary>
             /// Maps variable names to the corresponding value.
@@ -52,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// </summary>
             private readonly List<Action> requiredReleases = new();
 
-            public Scope(Action<Func<ITypeRef, string?>, (IValue, bool)[]> increaseCounts, Action<Func<ITypeRef, string?>, (IValue, bool)[]> decreaseCounts)
+            public Scope(Action<Func<ITypeRef, string?>, IEnumerable<(IValue, bool)>> increaseCounts, Action<Func<ITypeRef, string?>, IEnumerable<(IValue, bool)>> decreaseCounts)
             {
                 this.increaseCounts = increaseCounts;
                 this.decreaseCounts = decreaseCounts;
@@ -285,9 +286,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <summary>
             /// Clears and returns all pending references from the scope.
             /// </summary>
-            private List<(IValue, bool)> ClearPendingReferences()
+            private ImmutableArray<(IValue, bool)> ClearPendingReferences()
             {
-                var refs = this.pendingReferences.ToList();
+                var refs = this.pendingReferences.ToImmutableArray();
                 this.pendingReferences.Clear();
                 return refs;
             }
@@ -322,8 +323,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // Not the most efficient way to go about this, but it will do for now.
                 var clearedReferences = this.ClearPendingReferences(); // need to modify self ("this") before constructing allScopes
-                var allScopes = parentScopes.Prepend(this);
-                var pendingAliasCounts = allScopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
+                var allScopes = parentScopes.Prepend(this).ToImmutableArray();
+                var pendingAliasCounts = allScopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToImmutableArray();
 
                 var pendingReferences = clearedReferences
                     .Concat(parentScopes.SelectMany(scope => scope.pendingReferences))
@@ -341,7 +342,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 var lookup1 = pendingReferences.ToLookup(x => (x.Item1.Value, x.Item2));
                 var lookup2 = pendingUnreferences.ToLookup(x => (x.Item1.Value, x.Item2));
-                var unnecessaryRefModifications = lookup1.SelectMany(l1s => lookup2[l1s.Key].Zip(l1s, (l2, l1) => l1));
+                var unnecessaryRefModifications = lookup1.SelectMany(l1s => lookup2[l1s.Key].Zip(l1s, (l2, l1) => l1)).ToImmutableArray();
                 foreach (var item in unnecessaryRefModifications)
                 {
                     var removedFromRefs = TryRemoveValue(pendingReferences, v => ValueEquals(v, item));
@@ -349,11 +350,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     Debug.Assert(removedFromRefs && removedFromUnrefs);
                 }
 
-                this.increaseCounts(ReferenceCountUpdateFunctionForType, pendingReferences.ToArray());
+                this.increaseCounts(ReferenceCountUpdateFunctionForType, pendingReferences.ToImmutableArray());
                 this.decreaseCounts(AliasCountUpdateFunctionForType, pendingAliasCounts);
-                this.decreaseCounts(ReferenceCountUpdateFunctionForType, pendingUnreferences.ToArray());
+                this.decreaseCounts(ReferenceCountUpdateFunctionForType, pendingUnreferences.ToImmutableArray());
 
-                foreach (var release in allScopes.SelectMany(s => s.requiredReleases))
+                var pendingReleases = allScopes.SelectMany(s => s.requiredReleases).ToImmutableArray();
+                foreach (var release in pendingReleases)
                 {
                     release();
                 }
@@ -463,7 +465,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// applies the runtime function with that name to the value, casting the value if necessary.
         /// Recurs into contained items if the bool passed with the value is true.
         /// </summary>
-        private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, Value change, params (IValue, bool)[] values)
+        private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, Value change, IEnumerable<(IValue, bool)> values)
         {
             foreach (var (value, recur) in values)
             {
