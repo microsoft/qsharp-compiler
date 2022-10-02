@@ -85,6 +85,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return value;
             }
 
+            // Todo: it may be nice to unify this method with ScopeManager.ModifyCounts
             private static IEnumerable<(IValue, bool)> Expand(Func<ITypeRef, string?> getFunctionName, IValue value, bool recurIntoInnerItems, List<(IValue, bool)>? omitExpansion = null)
             {
                 var func = getFunctionName(value.LlvmType);
@@ -337,9 +338,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var allScopes = parentScopes.Prepend(this);
                 var pendingAliasCounts = allScopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
 
-                var pendingReferences = this.ClearPendingReferences()
-                    .Concat(parentScopes.SelectMany(scope => scope.pendingReferences))
-                    .ToList();
+                var pendingReferences = new List<(IValue, bool)>();
+                foreach (var entry in this.ClearPendingReferences().Concat(parentScopes.SelectMany(scope => scope.pendingReferences)))
+                {
+                    // Expanding pending reference and expanding pending unreferences could in principle both add values to unreference when
+                    // values are built lazily; e.g. exiting a scope and returning a callable value from it (e.g. the case for a conditional
+                    // expression that produces a callable) will trigger the construction of that callable.
+                    // We hence need to make sure that the unreferences that are added during this logic are properly processed. Maybe there is
+                    // a smarter way to do this, but the list of pendingReferences will be quite short, and the caching mechanism largely means
+                    // that things that were computed as part of this logic will just be retrieved from the cache the second time round -
+                    // so performance impact of this should be minimal and likely less than doing it a different way.
+                    var constructed = entry.Item1.Value;
+                    pendingReferences.Add(entry); // make sure to add the unexpanded entry - we will expand it only if there is no matching unreference
+                }
 
                 var pendingUnreferences = new List<(IValue, bool)>();
                 foreach (var scope in allScopes.Reverse())
@@ -568,13 +579,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private void ExecutePendingCalls(bool keepCurrentScope = false)
         {
-            var current = keepCurrentScope ? this.scopes.Peek() : this.scopes.Pop();
+            var current = this.scopes.Peek();
             if (current.HasPendingReferences && keepCurrentScope)
             {
                 throw new InvalidOperationException("scope contains pending calls to increase reference counts");
             }
 
             current.ExecutePendingCalls();
+            if (!keepCurrentScope)
+            {
+                // We need to make sure to only pop the scope after executing pending calls,
+                // since pending calls may require the construction of value that will be registered
+                // upon construction. This registration belongs to the current scope and
+                // will always be automatically added to the scope at the top of the stack.
+                this.scopes.Pop();
+            }
         }
 
         // public and internal methods

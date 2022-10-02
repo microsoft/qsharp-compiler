@@ -141,7 +141,7 @@ let ``QIR UDT argument`` () = qirTest false "TestUdtArgument"
 
 [<Fact>]
 let ``QIR callable values`` () =
-    qirMultiTest false "TestLocalCallables" [ "TestLocalCallables1"; "TestLocalCallables2" ]
+    qirMultiTest false "TestLocalCallables" [ "TestLocalCallables1"; "TestLocalCallables2"; "TestLocalCallables3" ]
 
 [<Fact>]
 let ``QIR operation argument`` () = qirTest true "TestOpArgument"
