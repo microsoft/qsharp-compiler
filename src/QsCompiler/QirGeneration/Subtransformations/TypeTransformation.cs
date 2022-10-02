@@ -20,8 +20,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     {
         private readonly QirGlobalType globalType;
 
-        public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useNamedArrays) =>
-            this.globalType = new QirGlobalType(types, getTypeDecl, useNamedArrays);
+        public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useNamedConstantArrays) =>
+            this.globalType = new QirGlobalType(types, getTypeDecl, useNamedConstantArrays);
 
         internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
             this.globalType.LlvmTypeFromQsharpType(resolvedType);
