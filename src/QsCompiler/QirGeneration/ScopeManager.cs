@@ -114,6 +114,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                         yield return (value, false);
                     }
+                    else if (value is ArrayValue array && IsStackAlloctedContainer(array.LlvmType) && array.Count.HasValue)
+                    {
+                        var itemsNeedProcessing = getFunctionName(array.LlvmElementType) != null || IsStackAlloctedContainer(array.LlvmElementType);
+                        if (recurIntoInnerItems && itemsNeedProcessing)
+                        {
+                            foreach (var inner in array.GetArrayElements().SelectMany(item => Expand(getFunctionName, item, true, omitExpansion)))
+                            {
+                                yield return inner;
+                            }
+                        }
+
+                        yield return (value, false);
+                    }
                     else
                     {
                         yield return (value, recurIntoInnerItems);
@@ -321,19 +334,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             internal void ExecutePendingCalls(params Scope[] parentScopes)
             {
                 // Not the most efficient way to go about this, but it will do for now.
-                var clearedReferences = this.ClearPendingReferences(); // need to modify self ("this") before constructing allScopes
                 var allScopes = parentScopes.Prepend(this);
                 var pendingAliasCounts = allScopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
 
-                var pendingReferences = clearedReferences
+                var pendingReferences = this.ClearPendingReferences()
                     .Concat(parentScopes.SelectMany(scope => scope.pendingReferences))
                     .ToList();
 
-                var pendingUnreferences = allScopes
-                    .SelectMany(s => s.requiredUnreferences)
-                    .Concat(pendingAliasCounts.Where(v => v.Value is PointerValue))
-                    .SelectMany(v => Expand(ReferenceCountUpdateFunctionForType, v.Item1, v.Item2, pendingReferences))
-                    .ToList();
+                var pendingUnreferences = new List<(IValue, bool)>();
+                foreach (var scope in allScopes.Reverse())
+                {
+                    // If values are created lazily, it is possible that they will be created only as part of expanding tuple items;
+                    // the corresponding entry in requiredUnreferences in the current scope will be added at the same time.
+                    // We hence make sure that modifying the requiredUnreferences of the current scope will not cause issues;
+                    // i.e. the current scope needs to be processed last, and we use a for loop to permit adding items during the iteration.
+                    for (var refNr = 0; refNr < scope.requiredUnreferences.Count; ++refNr)
+                    {
+                        var value = scope.requiredUnreferences[refNr];
+                        pendingUnreferences.AddRange(Expand(ReferenceCountUpdateFunctionForType, value.Item1, value.Item2, pendingReferences));
+                    }
+                }
+
+                pendingUnreferences.AddRange(
+                    pendingAliasCounts.Where(v => v.Value is PointerValue)
+                    .SelectMany(v => Expand(ReferenceCountUpdateFunctionForType, v.Value, v.Item2, pendingReferences)));
 
                 pendingReferences = pendingReferences
                     .SelectMany(v => Expand(ReferenceCountUpdateFunctionForType, v.Item1, v.Item2))
