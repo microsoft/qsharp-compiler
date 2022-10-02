@@ -27,8 +27,7 @@ let createPattern range =
             // instead of here, but this is easier after https://github.com/microsoft/qsharp-compiler/issues/1025.
             let description = "conditional expression or mutable variable in a constant context"
             let args = [ target.Name; description ]
-            //QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
-            None
+            QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
     {
         Capability = capability
@@ -97,7 +96,7 @@ let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
                 let itemType = snd forS.LoopItem |> transformation.Types.OnType
 
                 let values =
-                    use _ = local { context.Value with ConstOnly = false } context // FIXME: DEFINITIVELY NOT SOMETHING TO KEEP
+                    use _ = local { context.Value with ConstOnly = true } context
                     transformation.Expressions.OnTypedExpression forS.IterationValues
 
                 let body = transformation.Statements.OnScope forS.Body

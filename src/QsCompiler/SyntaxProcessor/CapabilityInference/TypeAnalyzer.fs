@@ -58,7 +58,10 @@ let scenarioCapability scenario =
             | _ -> ClassicalCompute.full
         | EntryPointParam ty ->
             match ty.Resolution with
-            | _ -> ClassicalCompute.empty
+            | TupleType _ -> ClassicalCompute.empty
+            | Bool
+            | Int -> ClassicalCompute.integral
+            | _ -> ClassicalCompute.full
         | EntryPointReturn ty ->
             // We shouldn't recurse on the type since a separate scenario is recursively created for each type used.
             match ty.Resolution with
