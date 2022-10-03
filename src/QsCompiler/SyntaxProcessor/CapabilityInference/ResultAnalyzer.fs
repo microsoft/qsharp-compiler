@@ -50,22 +50,22 @@ let createPattern kind range =
         | UnrestrictedEquality ->
             let code =
                 if target.Capability.ResultOpacity = ResultOpacity.opaque then
-                    ErrorCode.UnsupportedResultComparison
+                    WarningCode.UnsupportedResultComparison
                 else
-                    ErrorCode.ResultComparisonNotInOperationIf
+                    WarningCode.ResultComparisonNotInOperationIf
 
             Some(code, [ target.Name ])
         | ReturnInDependentBranch ->
             if target.Capability.ResultOpacity = ResultOpacity.opaque then
                 None
             else
-                Some(ErrorCode.ReturnInResultConditionedBlock, [ target.Name ])
+                Some(WarningCode.ReturnInResultConditionedBlock, [ target.Name ])
         | SetInDependentBranch name ->
             if target.Capability.ResultOpacity = ResultOpacity.opaque then
                 None
             else
-                Some(ErrorCode.SetInResultConditionedBlock, [ name; target.Name ])
-        |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Error (code, args) range)
+                Some(WarningCode.SetInResultConditionedBlock, [ name; target.Name ])
+        |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Warning (code, args) range)
 
     {
         Capability = capability
