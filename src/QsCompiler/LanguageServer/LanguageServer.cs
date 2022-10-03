@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// helper function that selects a markup format from the given array of supported formats
         /// </summary>
-        private MarkupKind ChooseFormat(MarkupKind[]? supportedFormats) =>
+        private static MarkupKind ChooseFormat(MarkupKind[]? supportedFormats) =>
             supportedFormats?.Any() ?? false
                 ? supportedFormats.Contains(MarkupKind.Markdown) ? MarkupKind.Markdown : supportedFormats.First()
                 : MarkupKind.PlainText;
@@ -566,7 +566,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             var supportedFormats = this.clientCapabilities?.TextDocument?.Hover?.ContentFormat;
-            var format = this.ChooseFormat(supportedFormats);
+            var format = ChooseFormat(supportedFormats);
             try
             {
                 return QsCompilerError.RaiseOnFailure(
@@ -594,7 +594,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
-            var format = this.ChooseFormat(supportedFormats);
+            var format = ChooseFormat(supportedFormats);
             var task = new Task<object?>(() =>
             {
                 // We need to give the file manager some time to actually process the change first,
@@ -690,7 +690,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
-            var format = this.ChooseFormat(supportedFormats);
+            var format = ChooseFormat(supportedFormats);
             try
             {
                 var data = Utils.TryJTokenAs<CompletionItemData>(JToken.FromObject(param.Data));

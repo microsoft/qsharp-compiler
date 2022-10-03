@@ -249,6 +249,8 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         private readonly GenerationContext sharedState;
 
+        private bool IsRuntimeManaged => this.LlvmNativeValue is null;
+
         // IMPORTANT:
         // The constructors need to ensure that either the typed pointer
         // or the opaque pointer or the llvm native value is set to a value!
@@ -267,11 +269,13 @@ namespace Microsoft.Quantum.QIR.Emission
         public IStructType StructType { get; }
 
         public ITypeRef LlvmType =>
-            this.LlvmNativeValue is null
+            this.IsRuntimeManaged
             ? this.StructType.CreatePointerType()
             : this.StructType;
 
         internal ImmutableArray<ResolvedType> ElementTypes { get; }
+
+        public IReadOnlyList<ITypeRef> LlvmElementTypes => this.StructType.Members;
 
         public ResolvedType QSharpType => this.TypeName != null
             ? ResolvedType.New(QsResolvedTypeKind.NewUserDefinedType(
@@ -306,7 +310,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.LlvmNativeValue = value.NativeType is IStructType ? value : null;
             this.opaquePointer = this.CreateOpaquePointerCache(Types.IsTupleOrUnit(value.NativeType) && !value.IsNull ? value : null);
             this.typedPointer = this.CreateTypedPointerCache(Types.IsTypedTuple(value.NativeType) ? value : null);
-            this.tupleElementPointers = this.CreateTupleElementPointersCaches(elementTypes);
+            this.tupleElementPointers = this.CreateTupleElementPointersCaches();
 
             if (tupleElements != null)
             {
@@ -327,8 +331,13 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/> is set to false.
         /// </summary>
         internal TupleValue(QsQualifiedName? type, IReadOnlyList<IValue> tupleElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(type, self => allocOnStack ? self.StructType.GetNullValue() : self.AllocateTuple(registerWithScopeManager), null, tupleElements, context)
+            : this(type, self => allocOnStack ? self.StructType.GetNullValue() : self.AllocateTuple(), null, tupleElements, context)
         {
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
+
             foreach (var element in tupleElements)
             {
                 this.sharedState.ScopeMgr.IncreaseReferenceCount(element);
@@ -337,20 +346,22 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <inheritdoc cref="TupleValue(QsQualifiedName?, IReadOnlyList{IValue}, GenerationContext, bool, bool)"/>
         internal TupleValue(QsQualifiedName? type, ImmutableArray<TypedExpression> tupleElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(type, self => allocOnStack ? self.StructType.GetNullValue() : self.AllocateTuple(registerWithScopeManager), null, tupleElements.Select(context.BuildSubitem).ToArray(), context)
+            : this(type, self => allocOnStack ? self.StructType.GetNullValue() : self.AllocateTuple(), null, tupleElements.Select(context.BuildSubitem).ToArray(), context)
         {
-        }
-
-        /// <inheritdoc cref="TupleValue(QsQualifiedName?, IReadOnlyList{IValue}, GenerationContext, bool, bool)"/>
-        internal TupleValue(IReadOnlyList<IValue> tupleElements, GenerationContext context, bool registerWithScopeManager)
-            : this(null, tupleElements, context, allocOnStack: false, registerWithScopeManager: registerWithScopeManager)
-        {
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
         }
 
         /// <inheritdoc cref="TupleValue(QsQualifiedName?, IReadOnlyList{IValue}, GenerationContext, bool, bool)"/>
         internal TupleValue(ImmutableArray<ResolvedType> elementTypes, GenerationContext context, bool registerWithScopeManager)
-            : this(null, self => self.AllocateTuple(registerWithScopeManager), elementTypes, null, context)
+            : this(null, self => self.AllocateTuple(), elementTypes, null, context)
         {
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
         }
 
         /// <summary>
@@ -369,6 +380,33 @@ namespace Microsoft.Quantum.QIR.Emission
         {
         }
 
+        /// <summary>
+        /// Creates an new tuple value that is a copy of the given value.
+        /// The new tuple will be allocated on the stack if the value to copy is.
+        /// Does *not* increase the reference count of the tuple elements, nor does it register the new value with the scope manager.
+        /// </summary>
+        internal TupleValue(TupleValue tuple, bool alwaysCopy = false)
+        {
+            this.sharedState = tuple.sharedState;
+            this.TypeName = tuple.TypeName;
+            this.ElementTypes = tuple.ElementTypes;
+            this.StructType = tuple.StructType;
+
+            var value = tuple.IsRuntimeManaged
+                ? tuple.sharedState.CurrentBuilder.Call(
+                    tuple.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy),
+                    tuple.OpaquePointer,
+                    tuple.sharedState.Context.CreateConstant(alwaysCopy))
+                : tuple.Value;
+
+            this.LlvmNativeValue = tuple.IsRuntimeManaged ? null : value;
+            this.opaquePointer = this.CreateOpaquePointerCache(Types.IsTupleOrUnit(value.NativeType) && !value.IsNull ? value : null);
+            this.typedPointer = this.CreateTypedPointerCache(Types.IsTypedTuple(value.NativeType) ? value : null);
+
+            this.tupleElementPointers = tuple.tupleElementPointers
+                .Select((cache, idx) => this.CreateTupleElementPointerCache(idx, cache.IsCached ? cache.Load() : null)).ToArray();
+        }
+
         /* private helpers */
 
         private IValue.Cached<Value> CreateOpaquePointerCache(Value? pointer = null) =>
@@ -383,39 +421,43 @@ namespace Microsoft.Quantum.QIR.Emission
                 ? this.sharedState.CurrentBuilder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType())
                 : throw new InvalidOperationException("tuple pointer is undefined"));
 
-        private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches(IReadOnlyList<(ResolvedType, ITypeRef)>? elementTypes = null) =>
-            Enumerable.ToArray(elementTypes.Select((type, index) => new IValue.Cached<PointerValue>(this.sharedState, () =>
-            {
-                if (this.LlvmNativeValue is null)
-                {
-                    var elementPtr = this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, (uint)index);
-                    return new PointerValue(elementPtr, type.Item1, type.Item2, this.sharedState);
-                }
-                else
-                {
-                    void Store(IValue v) =>
-                        this.LlvmNativeValue = this.sharedState.CurrentBuilder.InsertValue(this.Value, v.Value, (uint)index);
-
-                    IValue Reload() =>
-                        this.sharedState.Values.From(this.sharedState.CurrentBuilder.ExtractValue(this.Value, (uint)index), type.Item1);
-
-                    return new PointerValue(type.Item1, type.Item2, this.sharedState, Reload, Store);
-                }
-            })));
-
-        private Value AllocateTuple(bool registerWithScopeManager)
+        private PointerValue CreateTupleElementPointer(int index, IValue? element = null)
         {
-            // The runtime function TupleCreate creates a new value with reference count 1 and alias count 0.
-            var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
-            var size = this.sharedState.ComputeSizeForType(this.StructType);
-            var tuple = this.sharedState.CurrentBuilder.Call(constructor, size);
-            if (registerWithScopeManager)
+            if (this.IsRuntimeManaged)
             {
-                this.sharedState.ScopeMgr.RegisterValue(this);
+                var elementPtr = this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, (uint)index);
+                return new PointerValue(elementPtr, this.ElementTypes[index], this.LlvmElementTypes[index], this.sharedState);
             }
+            else
+            {
+                void Store(IValue v) =>
+                    this.LlvmNativeValue = this.sharedState.CurrentBuilder.InsertValue(this.Value, v.Value, (uint)index);
 
-            return tuple;
+                IValue Reload() =>
+                    this.sharedState.Values.From(this.sharedState.CurrentBuilder.ExtractValue(this.Value, (uint)index), this.ElementTypes[index]);
+
+                return element is null
+                    ? new PointerValue(this.ElementTypes[index], this.LlvmElementTypes[index], this.sharedState, Reload, Store)
+                    : new PointerValue(element, this.sharedState, Reload, Store);
+            }
         }
+
+        private IValue.Cached<PointerValue> CreateTupleElementPointerCache(int index, PointerValue? pointer = null) =>
+            new(pointer is null || this.IsRuntimeManaged
+                    ? null
+                    : this.CreateTupleElementPointer(index, pointer.CurrentCache()),
+                this.sharedState,
+                () => this.CreateTupleElementPointer(index));
+
+        private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches() =>
+            Enumerable.ToArray(Enumerable.Range(0, this.ElementTypes.Length).Select(index => this.CreateTupleElementPointerCache(index)));
+
+        private Value AllocateTuple() =>
+
+            // The runtime function TupleCreate creates a new value with reference count 1 and alias count 0.
+            this.sharedState.CurrentBuilder.Call(
+                this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate),
+                this.sharedState.ComputeSizeForType(this.StructType));
 
         // methods for item access
 
@@ -452,6 +494,9 @@ namespace Microsoft.Quantum.QIR.Emission
     internal class ArrayValue : IValue
     {
         private readonly GenerationContext sharedState;
+
+        private bool IsRuntimeManaged => Types.IsArray(this.LlvmType);
+
         private readonly IValue.Cached<Value> length;
         private readonly IValue.Cached<PointerValue>[]? arrayElementPointers;
 
@@ -469,7 +514,7 @@ namespace Microsoft.Quantum.QIR.Emission
         public Value Value { get; private set; }
 
         public Value OpaquePointer =>
-            Types.IsArray(this.LlvmType)
+            this.IsRuntimeManaged
             ? this.Value
             : throw new InvalidOperationException("cannot get opaque pointer for a constant array allocated on the stack");
 
@@ -479,14 +524,13 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Creates an array value that represents a Q# value of array type and contains additional infos used
         /// for optimization during QIR generation as well as the LLVM representation of the value.
         /// Accessing the opaque pointer will throw an <see cref="InvalidOperationException"/> if the value is stack allocated.
-        /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/> is set to false.
         /// </summary>
         /// <remarks>
         /// IMPORTANT:
         /// Does *not* increase the reference count of the given <paramref name="arrayElements"/>.
         /// This constructor should remain private.
         /// </remarks>
-        private ArrayValue(ResolvedType elementType, uint count, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
+        private ArrayValue(ResolvedType elementType, uint count, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack)
         {
             this.sharedState = context;
             this.Count = count < arrayElements.Count ? count : (uint)arrayElements.Count;
@@ -507,10 +551,10 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
                 this.LlvmType = this.sharedState.Types.Array;
-                this.Value = this.AllocateArray(registerWithScopeManager);
+                this.Value = this.AllocateArray();
             }
 
-            this.arrayElementPointers = this.CreateArrayElementPointersCaches();
+            this.arrayElementPointers = this.CreateArrayElementPointerCaches();
             var itemPointers = this.GetArrayElementPointers();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
@@ -525,14 +569,23 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless <paramref name="registerWithScopeManager"/> is set to false.
         /// </summary>
         internal ArrayValue(ResolvedType elementType, ImmutableArray<TypedExpression> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(elementType, (uint)arrayElements.Length, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
+            : this(elementType, (uint)arrayElements.Length, arrayElements.Select(context.BuildSubitem).ToArray(), context, allocOnStack: allocOnStack)
         {
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
         }
 
         /// <inheritdoc cref="ArrayValue(ResolvedType, ImmutableArray{TypedExpression}, GenerationContext, bool, bool)"/>
         internal ArrayValue(ResolvedType elementType, IReadOnlyList<IValue> arrayElements, GenerationContext context, bool allocOnStack, bool registerWithScopeManager)
-            : this(elementType, (uint)arrayElements.Count, arrayElements, context, allocOnStack: allocOnStack, registerWithScopeManager: registerWithScopeManager)
+            : this(elementType, (uint)arrayElements.Count, arrayElements, context, allocOnStack: allocOnStack)
         {
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
+
             foreach (var element in arrayElements)
             {
                 // We need to make sure the reference count increase is applied here;
@@ -549,26 +602,27 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /// <summary>
         /// Creates an new array value that is a copy of the given value.
+        /// The new array will be allocated on the stack if the value to copy is.
+        /// Does *not* increase the reference count of the array elements, nor does it register the new value with the scope manager.
         /// </summary>
-        internal ArrayValue(ArrayValue value, bool alwaysCopy = false)
+        internal ArrayValue(ArrayValue array, bool alwaysCopy = false)
         {
-            this.sharedState = value.sharedState;
-            this.Count = value.Count;
-            this.length = this.CreateLengthCache(value.length.IsCached ? value.length.Load() : null);
-            this.QSharpElementType = value.QSharpElementType;
-            this.LlvmType = value.LlvmType;
-            this.LlvmElementType = value.LlvmElementType;
-            this.Value = value.Value;
+            this.sharedState = array.sharedState;
+            this.Count = array.Count;
+            this.length = this.CreateLengthCache(array.length.IsCached ? array.length.Load() : null);
+            this.QSharpElementType = array.QSharpElementType;
+            this.LlvmType = array.LlvmType;
+            this.LlvmElementType = array.LlvmElementType;
 
-            if (Types.IsArray(value.LlvmType))
-            {
-                var createShallowCopy = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
-                var forceCopy = this.sharedState.Context.CreateConstant(alwaysCopy);
-                this.Value = this.sharedState.CurrentBuilder.Call(createShallowCopy, value.OpaquePointer, forceCopy);
-            }
+            this.Value = array.IsRuntimeManaged
+                ? this.sharedState.CurrentBuilder.Call(
+                    this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy),
+                    array.OpaquePointer,
+                    this.sharedState.Context.CreateConstant(alwaysCopy))
+                : array.Value;
 
-            this.arrayElementPointers = value.arrayElementPointers?.Select((cache, idx) =>
-                this.CreateArrayElementPointersCache(idx, cache.IsCached ? cache.Load() : null)).ToArray();
+            this.arrayElementPointers = array.arrayElementPointers?.Select((cache, idx) =>
+                this.CreateArrayElementPointerCache(idx, cache.IsCached ? cache.Load() : null)).ToArray();
         }
 
         /// <summary>
@@ -584,7 +638,7 @@ namespace Microsoft.Quantum.QIR.Emission
             this.LlvmType = value.NativeType;
             this.Count = count;
 
-            if (this.IsNativeValue(out var constArr, out var length, value: value))
+            if (this.AsNativeValue(out var constArr, out var length, value: value))
             {
                 this.Count ??= QirValues.AsConstantUInt32(length);
                 this.LlvmElementType = ((IArrayType)constArr.NativeType).ElementType;
@@ -596,7 +650,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 this.Value = Types.IsArray(value.NativeType) ? value : throw new ArgumentException("expecting an opaque array");
             }
 
-            this.arrayElementPointers = this.Count is null ? null : this.CreateArrayElementPointersCaches();
+            this.arrayElementPointers = this.Count is null ? null : this.CreateArrayElementPointerCaches();
         }
 
         /// <summary>
@@ -613,8 +667,13 @@ namespace Microsoft.Quantum.QIR.Emission
             this.QSharpElementType = elementType;
             this.LlvmElementType = context.LlvmTypeFromQsharpType(elementType);
             this.LlvmType = this.sharedState.Types.Array;
-            this.Value = this.AllocateArray(registerWithScopeManager);
-            this.arrayElementPointers = this.Count is null ? null : this.CreateArrayElementPointersCaches();
+            this.Value = this.AllocateArray();
+            this.arrayElementPointers = this.Count is null ? null : this.CreateArrayElementPointerCaches();
+
+            if (registerWithScopeManager)
+            {
+                this.sharedState.ScopeMgr.RegisterValue(this);
+            }
         }
 
         /// <inheritdoc cref="ArrayValue(ResolvedType, Value, GenerationContext, bool)"/>
@@ -666,20 +725,23 @@ namespace Microsoft.Quantum.QIR.Emission
             CreateNativeValue(elementType.CreateArrayType(nrElements).GetNullValue(), count, context);
 
         private Value UpdateNativeValue(Func<Value, Value>? transformConstArr = null) =>
-            this.IsNativeValue(out var constArr, out var length)
+            this.AsNativeValue(out var constArr, out var length)
                 ? CreateNativeValue(
                     transformConstArr?.Invoke(constArr) ?? constArr,
                     this.Count != null ? this.sharedState.Context.CreateConstant((long)this.Count) : length,
                     this.sharedState)
                 : throw new InvalidOperationException("no native llvm represenation available");
 
-        private bool IsNativeValue([MaybeNullWhen(false)] out Value constArr, [MaybeNullWhen(false)] out Value length, Value? value = null)
-        {
-            value ??= this.Value;
-            if (value.NativeType is IStructType st
+        private bool IsNativeValue(Value? value = null) =>
+            (value ?? this.Value).NativeType is IStructType st
                 && st.Members.Count == 2
                 && st.Members[0] is IArrayType
-                && st.Members[1] == this.sharedState.Types.Int)
+                && st.Members[1] == this.sharedState.Types.Int;
+
+        private bool AsNativeValue([MaybeNullWhen(false)] out Value constArr, [MaybeNullWhen(false)] out Value length, Value? value = null)
+        {
+            value ??= this.Value;
+            if (this.IsNativeValue(value))
             {
                 constArr = this.sharedState.CurrentBuilder.ExtractValue(value, 0u);
                 length = this.sharedState.CurrentBuilder.ExtractValue(value, 1u);
@@ -693,34 +755,28 @@ namespace Microsoft.Quantum.QIR.Emission
         private IValue.Cached<Value> CreateLengthCache(Value? length = null) =>
             new(length, this.sharedState, () =>
                 this.Count is uint count ? this.sharedState.Context.CreateConstant((long)count)
-                : this.IsNativeValue(out var _, out var length) ? length
+                : this.AsNativeValue(out var _, out var length) ? length
                 : this.sharedState.CurrentBuilder.Call(
                     this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
                     this.OpaquePointer));
 
-        private IValue.Cached<PointerValue> CreateArrayElementPointersCache(int index, PointerValue? pointer = null) =>
+        private IValue.Cached<PointerValue> CreateArrayElementPointerCache(int index, PointerValue? pointer = null) =>
             new(pointer is null || Types.IsArray(this.LlvmType)
                     ? null
                     : this.CreateArrayElementPointer(index, pointer.CurrentCache()),
                 this.sharedState,
                 () => this.CreateArrayElementPointer(index));
 
-        private IValue.Cached<PointerValue>[] CreateArrayElementPointersCaches() =>
-            Enumerable.ToArray(Enumerable.Range(0, (int)this.Count!).Select(idx => this.CreateArrayElementPointersCache(idx)));
+        private IValue.Cached<PointerValue>[] CreateArrayElementPointerCaches() =>
+            Enumerable.ToArray(Enumerable.Range(0, (int)this.Count!).Select(idx => this.CreateArrayElementPointerCache(idx)));
 
-        private Value AllocateArray(bool registerWithScopeManager)
-        {
+        private Value AllocateArray() =>
+
             // The runtime function ArrayCreate1d creates a new value with reference count 1 and alias count 0.
-            var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
-            var elementSize = this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type);
-            var pointer = this.sharedState.CurrentBuilder.Call(constructor, elementSize, this.Length);
-            if (registerWithScopeManager)
-            {
-                this.sharedState.ScopeMgr.RegisterValue(this);
-            }
-
-            return pointer;
-        }
+            this.sharedState.CurrentBuilder.Call(
+                this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d),
+                this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type),
+                this.Length);
 
         private IReadOnlyList<IValue> NormalizeArrayElements(ResolvedType eltype, IReadOnlyList<IValue> elements)
         {
@@ -750,9 +806,7 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 var arrs = elements.Select(e => (ArrayValue)e).ToArray();
                 var sizes = arrs.Select(a =>
-                    a.IsNativeValue(out var constArr, out var _) && constArr.NativeType is IArrayType iat
-                    ? iat.Length
-                    : throw new InvalidOperationException("expecting a constant array as inner element"));
+                    a.AsNativeValue(out var constArr, out var _) && constArr.NativeType is IArrayType iat ? iat.Length : 0u);
                 var innerArrSize = Enumerable.Prepend(sizes, 0u).Max();
 
                 IValue GetInnerElements(int idx, ArrayValue array) =>
@@ -761,11 +815,11 @@ namespace Microsoft.Quantum.QIR.Emission
                     : this.sharedState.Values.From(array.LlvmElementType.GetNullValue(), array.QSharpElementType);
 
                 return NormalizeItems(innerArrSize, arrs, GetInnerElements, _ => it.Item, (idx, newElements) =>
-                    arrs[idx].Count is uint count
+                    arrs[idx].Count is uint count && !arrs[idx].IsRuntimeManaged
 
                     // elements are processed as part of the scope management of the containing array -
                     // no need to register them separately
-                    ? new ArrayValue(it.Item, count, newElements, this.sharedState, allocOnStack: true, registerWithScopeManager: false)
+                    ? new ArrayValue(it.Item, count, newElements, this.sharedState, allocOnStack: true)
                     : throw new InvalidOperationException("cannot resize array of unknown length to match the size of a new item"));
             }
             else if (eltype.Resolution is QsResolvedTypeKind.TupleType ts)
@@ -824,7 +878,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="index">The element's index into the array.</param>
         private PointerValue CreateArrayElementPointer(Value index, IValue? element = null)
         {
-            if (Types.IsArray(this.LlvmType))
+            if (this.IsRuntimeManaged)
             {
                 var getElementPointer = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
                 var opaqueElementPointer = this.sharedState.CurrentBuilder.Call(getElementPointer, this.OpaquePointer, index);
@@ -843,7 +897,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 }
 
                 IValue Reload() =>
-                    this.IsNativeValue(out var constArr, out var _) && constIndex < ((IArrayType)constArr.NativeType).Length
+                    this.AsNativeValue(out var constArr, out var _) && constIndex < ((IArrayType)constArr.NativeType).Length
                     ? this.sharedState.Values.From(
                         this.sharedState.CurrentBuilder.ExtractValue(constArr, constIndex),
                         this.QSharpElementType)
@@ -877,7 +931,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 {
                     // Since the native value may be replaced as part of "updating" other items,
                     // it is important that we reload the constant array every time!
-                    this.IsNativeValue(out var constArr, out var _);
+                    this.AsNativeValue(out var constArr, out var _);
                     var (constArrPtr, elementPtr) = GetElementPointer(constArr!, index);
                     var element = this.sharedState.CurrentBuilder.Load(this.LlvmElementType, elementPtr);
                     return this.sharedState.Values.From(element, this.QSharpElementType);
@@ -948,7 +1002,102 @@ namespace Microsoft.Quantum.QIR.Emission
     /// </summary>
     internal class CallableValue : IValue
     {
-        public Value Value { get; }
+        private class CreationItems
+        {
+            internal GlobalVariable FunctionTable { get; }
+
+            internal Constant MemoryManagementTable { get; }
+
+            internal Value Capture { get; }
+
+            internal bool RequireClosure { get; }
+
+            internal CreationItems(GlobalVariable functionTable, GenerationContext context, TupleValue? capture = null)
+            {
+                this.FunctionTable = functionTable;
+                this.MemoryManagementTable = context.GetOrCreateCallableMemoryManagementTable(capture);
+                this.Capture = capture?.OpaquePointer ?? context.Values.Unit.Value;
+                this.RequireClosure = capture is not null;
+            }
+        }
+
+        internal class CallableState
+        {
+            public QsQualifiedName GlobalName { get; }
+
+            public QsSpecializationKind RelevantSpecialization { get; }
+
+            private CallableState(QsQualifiedName name, QsSpecializationKind? relevantSpec = null)
+            {
+                this.GlobalName = name;
+                this.RelevantSpecialization = relevantSpec ?? QsSpecializationKind.QsBody;
+            }
+
+            internal static CallableState Create(QsQualifiedName name) => new(name);
+
+            private CallableState WithRelevantSpec(QsSpecializationKind relevantSpec) => new(this.GlobalName, relevantSpec);
+
+            private static QsSpecializationKind ApplyAdjoint(QsSpecializationKind spec) =>
+                spec.IsQsBody ? QsSpecializationKind.QsAdjoint :
+                spec.IsQsAdjoint ? QsSpecializationKind.QsBody :
+                spec.IsQsControlled ? QsSpecializationKind.QsControlledAdjoint :
+                spec.IsQsControlledAdjoint ? QsSpecializationKind.QsControlled :
+                throw new NotImplementedException("Unknown specialization");
+
+            private static QsSpecializationKind ApplyControlled(QsSpecializationKind spec) =>
+                spec.IsQsBody || spec.IsQsControlled ? QsSpecializationKind.QsControlled :
+                spec.IsQsAdjoint || spec.IsQsControlledAdjoint ? QsSpecializationKind.QsControlledAdjoint :
+                throw new NotImplementedException("Unknown specialization");
+
+            internal CallableState ApplyFunctor(QsFunctor functor) =>
+                this.WithRelevantSpec(
+                    functor.IsAdjoint ? ApplyAdjoint(this.RelevantSpecialization) :
+                    functor.IsControlled ? ApplyControlled(this.RelevantSpecialization) :
+                    throw new NotImplementedException("unkown functor"));
+        }
+
+        private readonly GenerationContext sharedState;
+
+        // We use a cache to enable lazy creation of callable values when the capture is null.
+        private readonly IValue.Cached<Value> createdCallable;
+        private readonly CreationItems? creationItems;
+
+        // If the callable is globally defined then we can apply the functors during QIR generation, i.e. we
+        // track applied functors by updating the CurrentState property, and apply the appropriate functors
+        // only when needed; when accessing the Value property, functors are automatically applied by invoking
+        // the corresponding runtime function(s). This permits to omit calls to runtime functions entirely,
+        // if the callable value is fully trackable during QIR generation; before emiting a call instruction,
+        // we check if the name of the callable is known, and if it is we merely select the correct specialization
+        // and never even access the Value property.
+        internal CallableState? CurrentState { get; private set; }
+
+        public Value Value
+        {
+            get
+            {
+                var callable = this.createdCallable.Load();
+                var specKind = this.CurrentState?.RelevantSpecialization ?? QsSpecializationKind.QsBody;
+
+                if (specKind.IsQsAdjoint || specKind.IsQsControlledAdjoint)
+                {
+                    // does *not* create a new value but instead modifies the given callable in place.
+                    var applyAdjoint = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeAdjoint);
+                    this.sharedState.CurrentBuilder.Call(applyAdjoint, callable);
+                }
+
+                if (specKind.IsQsControlled || specKind.IsQsControlledAdjoint)
+                {
+                    // does *not* create a new value but instead modifies the given callable in place.
+                    var applyControlled = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMakeControlled);
+                    this.sharedState.CurrentBuilder.Call(applyControlled, callable);
+                }
+
+                // If we updated (i.e. did an in-place modification of) the value of the orginally created callable,
+                // the stored callable name and relevant specialization no longer apply.
+                this.CurrentState = specKind.IsQsBody ? this.CurrentState : null;
+                return callable;
+            }
+        }
 
         /// <inheritdoc cref="IValue.LlvmType" />
         public ITypeRef LlvmType { get; }
@@ -956,38 +1105,155 @@ namespace Microsoft.Quantum.QIR.Emission
         public ResolvedType QSharpType { get; }
 
         /// <summary>
+        /// Instantiates a new callable value of the given type.
+        /// </summary>
+        /// <param name="value">The pointer to a QIR callable value, if the value has already been created.</param>
+        /// <param name="callableType">Q# type of the callable.</param>
+        /// <param name="creationItems">The items required for creating the callable value; if the callable captures values, the capture needs to be in scope.</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed.</param>
+        private CallableValue(Value? value, ResolvedType callableType, CreationItems? creationItems, GenerationContext context)
+        {
+            this.sharedState = context;
+            this.QSharpType = callableType;
+            this.LlvmType = context.Types.Callable;
+            this.creationItems = creationItems;
+            this.createdCallable = this.CreateCallableCache(value);
+        }
+
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// </summary>
+        /// <param name="globalName">The Q# name of the callable, if the callable is globally defined.</param>
+        /// <param name="callableType">The Q# type of the callable value.</param>
+        /// <param name="functionTable">The global variable that contains the array of function pointers defining the callable.</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed.</param>
+        /// <param name="captured">All captured values.</param>
+        private CallableValue(QsQualifiedName? globalName, ResolvedType callableType, GlobalVariable functionTable, GenerationContext context, ImmutableArray<TypedExpression>? captured)
+        : this(
+            null,
+            callableType,
+            new CreationItems(functionTable, context, captured is not null && captured.Value.Length > 0
+                ? context.Values.CreateTuple(captured.Value, allocOnStack: false, registerWithScopeManager: false)
+                : null),
+            context)
+        {
+            this.CurrentState = globalName is null ? null : CallableState.Create(globalName);
+        }
+
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// </summary>
+        /// <param name="globalName">The Q# name of the callable, if the callable is globally defined.</param>
+        /// <param name="callableType">The Q# type of the callable value.</param>
+        /// <param name="functionTable">The global variable that contains the array of function pointers defining the callable.</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed.</param>
+        internal CallableValue(QsQualifiedName globalName, ResolvedType callableType, GlobalVariable functionTable, GenerationContext context)
+        : this(globalName, callableType, functionTable, context, null)
+        {
+        }
+
+        /// <summary>
         /// Creates a callable value of the given type and registers it with the scope manager.
         /// The necessary functions to invoke the callable are defined by the callable table;
         /// i.e. the globally defined array of function pointers accessible via the given global variable.
         /// </summary>
         /// <param name="callableType">The Q# type of the callable value.</param>
-        /// <param name="table">The global variable that contains the array of function pointers defining the callable.</param>
+        /// <param name="functionTable">The global variable that contains the array of function pointers defining the callable.</param>
         /// <param name="context">Generation context where constants are defined and generated if needed.</param>
         /// <param name="captured">All captured values.</param>
-        internal CallableValue(ResolvedType callableType, GlobalVariable table, GenerationContext context, ImmutableArray<TypedExpression>? captured = null)
+        internal CallableValue(ResolvedType callableType, GlobalVariable functionTable, GenerationContext context, ImmutableArray<TypedExpression> captured)
+        : this(null, callableType, functionTable, context, captured)
         {
-            this.QSharpType = callableType;
-            this.LlvmType = context.Types.Callable;
-
-            // The runtime function CallableCreate creates a new value with reference count 1.
-            var createCallable = context.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var capture = captured == null || captured.Value.Length == 0 ? null : context.Values.CreateTuple(captured.Value, allocOnStack: false, registerWithScopeManager: false);
-            var memoryManagementTable = context.GetOrCreateCallableMemoryManagementTable(capture);
-            this.Value = context.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? context.Values.Unit.Value);
-            context.ScopeMgr.RegisterValue(this);
         }
 
         /// <summary>
         /// Creates a new callable value of the given type.
         /// </summary>
         /// <param name="value">The pointer to a QIR callable value.</param>
-        /// <param name="type">Q# type of the callable.</param>
+        /// <param name="callableType">Q# type of the callable.</param>
         /// <param name="context">Generation context where constants are defined and generated if needed.</param>
-        internal CallableValue(Value value, ResolvedType type, GenerationContext context)
+        internal CallableValue(Value value, ResolvedType callableType, GenerationContext context)
+        : this(value, callableType, null, context)
         {
-            this.QSharpType = type;
-            this.LlvmType = context.Types.Callable;
-            this.Value = value;
+        }
+
+        /* private helpers */
+
+        private IValue.Cached<Value> CreateCallableCache(Value? value = null)
+        {
+            Value CreateCallable(CreationItems items)
+            {
+                // The runtime function CallableCreate creates a new value with reference count 1.
+                var createCallable = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
+                var callable = this.sharedState.CurrentBuilder.Call(createCallable, items.FunctionTable, items.MemoryManagementTable, items.Capture);
+                this.sharedState.ScopeMgr.RegisterValue(this);
+                return callable;
+            }
+
+            // If the callable requires creating a closure, and we invoke the runtime method CallableCreate to build that closure.
+            // If there are no values to capture (i.e. there is no need to build a closure), we can create the callable lazily instead.
+            value ??= this.creationItems is not null && this.creationItems.RequireClosure ? CreateCallable(this.creationItems) : null;
+            return value is not null || this.creationItems is not null
+                ? new IValue.Cached<Value>(value, this.sharedState, () => value is not null ? value : CreateCallable(this.creationItems!))
+                : throw new InvalidOperationException("a cache value needs to be defined when no creation items have been defined");
+        }
+
+        // public helpers
+
+        /// <summary>
+        /// Invokes the runtime function with the given name to apply a functor to a callable value.
+        /// Unless modifyInPlace is set to true, a copy of the callable is made prior to applying the functor.
+        /// Reference counts for the callable and the capture are updated as needed, and if a new value is created,
+        /// it is registered with the scope manager.
+        /// </summary>
+        /// <param name="functor">The functor to apply.</param>
+        /// <param name="modifyInPlace">If set to true, modifies and returns the given callable</param>
+        /// <returns>The callable value to which the functor has been applied</returns>
+        public CallableValue ApplyFunctor(QsFunctor functor, bool modifyInPlace)
+        {
+            // This method is used when applying functors when building a functor application expression
+            // as well as when creating the specializations for a partial application.
+            var callable = this;
+            if (!modifyInPlace)
+            {
+                // Even though functors are applied lazily when possible, accessing the callable value will trigger
+                // functor application by applying the corresponding runtime function. Since the runtime function
+                // will modify the callable in place, we need to make a copy unless an in-place modification has
+                // been requested. Since we track alias counts for callables there is no need to force the copy.
+                var makeCopy = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
+                var forceCopy = this.sharedState.Context.CreateConstant(false);
+                var value = this.sharedState.CurrentBuilder.Call(makeCopy, this.Value, forceCopy);
+                callable = new CallableValue(value, this.QSharpType, this.creationItems, this.sharedState);
+
+                // While making a copy ensures that either a new callable is created with reference count 1,
+                // or the reference count of the existing callable is increased by 1,
+                // we also need to increase the reference counts for all contained items, i.e. for the capture tuple,
+                // and register the new value with the scope manager.
+                this.sharedState.ScopeMgr.ReferenceCaptureTuple(callable);
+                this.sharedState.ScopeMgr.RegisterValue(callable);
+            }
+
+            // We apply functors lazily; they only need to be applied when we are actually accessing the callable value.
+            // Rather than invoking the runtime functions when a functor is applied, we hence merely keep track of
+            // what functors applications are "pending". Accessing the Value triggers applications of the functors.
+            callable.CurrentState = this.CurrentState?.ApplyFunctor(functor);
+            if (callable.CurrentState is null)
+            {
+                // Given that we are not tracking the state of the callable, e.g. because the callable
+                // requires a closure, we invoke the corresponding runtime function to apply the functor.
+                var runtimeFunctionName =
+                    functor.IsAdjoint ? RuntimeLibrary.CallableMakeAdjoint :
+                    functor.IsControlled ? RuntimeLibrary.CallableMakeControlled :
+                    throw new ArgumentException("unknown functor");
+                var applyFunctor = this.sharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
+                this.sharedState.CurrentBuilder.Call(applyFunctor, callable.Value);
+            }
+
+            return callable;
         }
     }
 }

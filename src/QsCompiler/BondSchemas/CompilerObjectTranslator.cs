@@ -1179,10 +1179,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.LocalVariableDeclaration<TCompiler, SyntaxTree.ResolvedType> ToCompilerObjectGeneric<TCompiler, TBond>(
+        private static LocalVariableDeclaration<TCompiler, SyntaxTree.ResolvedType> ToCompilerObjectGeneric<TCompiler, TBond>(
             this LocalVariableDeclaration<TBond> bondLocalVariableDeclaration,
             Func<TBond, TCompiler> typeTranslator) =>
-            new SyntaxTree.LocalVariableDeclaration<TCompiler, SyntaxTree.ResolvedType>(
+            new LocalVariableDeclaration<TCompiler, SyntaxTree.ResolvedType>(
                 variableName: typeTranslator(bondLocalVariableDeclaration.VariableName),
                 type: bondLocalVariableDeclaration.Type.ToCompilerObject(),
                 inferredInformation: bondLocalVariableDeclaration.InferredInformation.ToCompilerObject(),

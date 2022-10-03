@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.Testing.QIR
         let ctl_ctl_qop = Controlled ctl_qop;
 
         mutable error_code = 0;
-        using ((q1, q2, q3, q4) = (Qubit(), Qubit(), Qubit(), Qubit()))
+        use (q1, q2, q3, q4) = (Qubit(), Qubit(), Qubit(), Qubit())
         {
             qop(q1);
             if (M(q1) != One) { set error_code = 1; }
