@@ -20,23 +20,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     {
         private readonly QirGlobalType globalType;
 
-        public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl) =>
-            this.globalType = new QirGlobalType(types, getTypeDecl);
+        public QirTypeTransformation(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useNamedLlvmArrays) =>
+            this.globalType = new QirGlobalType(types, getTypeDecl, useNamedLlvmArrays);
 
         internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
             this.globalType.LlvmTypeFromQsharpType(resolvedType);
 
         private class QirGlobalType : TypeTransformation
         {
+            private int? namedLlvmArrays;
+
             private protected ITypeRef? BuiltType { get; set; }
 
             private protected Types QirTypes { get; }
 
             private protected Func<QsQualifiedName, QsCustomType?> TypeDeclaration { get; }
 
-            public QirGlobalType(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
+            public QirGlobalType(Types types, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useNamedLlvmArrays)
             : base(TransformationOptions.NoRebuild)
             {
+                this.namedLlvmArrays = useNamedLlvmArrays ? 0 : null;
                 this.QirTypes = types;
                 this.TypeDeclaration = getTypeDecl;
             }
@@ -65,7 +68,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             public override QsResolvedTypeKind OnArrayType(ResolvedType b)
             {
-                this.BuiltType = this.QirTypes.Array;
+                this.BuiltType = this.namedLlvmArrays is null
+                    ? this.QirTypes.Array
+                    : this.QirTypes.NativeArray(this.LlvmTypeFromQsharpType(b), 0u, ++this.namedLlvmArrays);
                 return QsResolvedTypeKind.InvalidType;
             }
 

@@ -190,7 +190,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Context = new Context();
             this.Module = this.Context.CreateBitcodeModule();
 
-            this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
+            this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null, this.TargetQirProfile);
             this.Values = new QirValues(this);
             this.Functions = new Functions(this);
             this.transformation = null; // needs to be set by the instantiating transformation
@@ -264,6 +264,35 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             QsSpecializationKind.QsControlledAdjoint);
 
         #region Initialization and emission
+
+        /// <summary>
+        /// Helper function to compute parameter and return types for function declarations and definitions.
+        /// </summary>
+        private IrFunction? RegisterFunction(string name, ResolvedSignature signature, Func<string, IFunctionType, IrFunction?> register)
+        {
+            // Special handling for Unit since by default it turns into an empty tuple
+            var returnTypeRef = signature.ReturnType.Resolution.IsUnitType
+                ? this.Context.VoidType
+                : this.LlvmTypeFromQsharpType(signature.ReturnType);
+            var argTypeRefs =
+                signature.ArgumentType.Resolution.IsUnitType ? new ITypeRef[0] :
+                signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
+                new ITypeRef[] { this.LlvmTypeFromQsharpType(signature.ArgumentType) };
+            return register(name, this.Context.GetFunctionType(returnTypeRef, argTypeRefs));
+        }
+
+        /// <summary>
+        /// Adds the declaration for a QIR function to the current module.
+        /// Usually <see cref="GenerateFunctionHeader"/> is used, which generates the start of the actual definition.
+        /// This method is primarily useful for Q# specializations with external or intrinsic implementations, which get
+        /// generated as declarations with no definition.
+        /// </summary>
+        /// <param name="spec">The Q# specialization for which to register a function</param>
+        internal IrFunction RegisterFunction(QsSpecialization spec) =>
+            this.RegisterFunction(
+                NameGeneration.FunctionName(spec.Parent, spec.Kind),
+                spec.Signature,
+                (name, signature) => this.Module.CreateFunction(name, signature))!;
 
         /// <summary>
         /// Initializes the QIR runtime library.
@@ -372,16 +401,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 if (NameGeneration.TryGetTargetInstructionName(c, out var name))
                 {
-                    // Special handling for Unit since by default it turns into an empty tuple
-                    var returnType = c.Signature.ReturnType.Resolution.IsUnitType
-                        ? this.Context.VoidType
-                        : this.LlvmTypeFromQsharpType(c.Signature.ReturnType);
-                    var argTypeKind = c.Signature.ArgumentType.Resolution;
-                    var argTypeArray =
-                        argTypeKind is ResolvedTypeKind.TupleType tuple ? tuple.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
-                        argTypeKind.IsUnitType ? new ITypeRef[0] :
-                        new ITypeRef[] { this.LlvmTypeFromQsharpType(c.Signature.ArgumentType) };
-                    this.quantumInstructionSet.AddFunction(name, returnType, argTypeArray);
+                    this.RegisterFunction(name, c.Signature, (name, signature) =>
+                    {
+                        this.quantumInstructionSet.AddFunction(name, signature);
+                        return null;
+                    });
                 }
             }
         }
@@ -622,28 +646,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Adds the declaration for a QIR function to the current module.
-        /// Usually <see cref="GenerateFunctionHeader"/> is used, which generates the start of the actual definition.
-        /// This method is primarily useful for Q# specializations with external or intrinsic implementations, which get
-        /// generated as declarations with no definition.
-        /// </summary>
-        /// <param name="spec">The Q# specialization for which to register a function</param>
-        internal IrFunction RegisterFunction(QsSpecialization spec)
-        {
-            var name = NameGeneration.FunctionName(spec.Parent, spec.Kind);
-            var returnTypeRef = spec.Signature.ReturnType.Resolution.IsUnitType
-                ? this.Context.VoidType
-                : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
-            var argTypeRefs =
-                spec.Signature.ArgumentType.Resolution.IsUnitType ? new ITypeRef[0] :
-                spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item.Select(this.LlvmTypeFromQsharpType).ToArray() :
-                new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
-
-            var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
-            return this.Module.CreateFunction(name, signature);
-        }
-
-        /// <summary>
         /// Generates the start of the definition for a QIR function in the current module.
         /// Specifically, an entry block for the function is created, and the function's arguments are given names.
         /// </summary>
@@ -714,7 +716,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else
                 {
                     // This case should actually never occur; the only reason we build the tuple in the first place
-                    // is because there is a Q# variable (the argument) that the value is assigne to.
+                    // is because there is a Q# variable (the argument) that the value is assigned to.
                     // However, there is also no reason to fail here, since the behavior implemented this way is correct.
                     innerTupleValues.Enqueue(innerTuple);
                 }

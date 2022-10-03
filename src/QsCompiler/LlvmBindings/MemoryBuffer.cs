@@ -25,7 +25,7 @@ namespace LlvmBindings
             if (LLVM.CreateMemoryBufferWithContentsOfFile(path.AsMarshaledString(), (LLVMOpaqueMemoryBuffer**)&handle, &msg) != 0)
             {
                 var span = new ReadOnlySpan<byte>(msg, int.MaxValue);
-                var errTxt = span.Slice(0, span.IndexOf((byte)'\0')).AsString();
+                var errTxt = span[..span.IndexOf((byte)'\0')].AsString();
                 LLVM.DisposeMessage(msg);
                 throw new InternalCodeGeneratorException(errTxt);
             }

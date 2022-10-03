@@ -13,7 +13,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion;
-using Microsoft.Quantum.QsCompiler.Transformations;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using static Microsoft.Quantum.QsCompiler.SyntaxGenerator;
 using static Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing;

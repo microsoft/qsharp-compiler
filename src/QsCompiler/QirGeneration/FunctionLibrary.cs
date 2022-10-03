@@ -42,10 +42,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="name">The simple, unmangled name of the function.</param>
         /// <param name="returnType">The return type of the function.</param>
         /// <param name="argTypes">The types of the function's arguments, as an array.</param>
-        public void AddFunction(string name, ITypeRef returnType, params ITypeRef[] argTypes)
-        {
+        public void AddFunction(string name, ITypeRef returnType, params ITypeRef[] argTypes) =>
             this.runtimeFunctions.Add(name, this.module.Context.GetFunctionType(returnType, argTypes));
-        }
+
+        /// <inheritdoc cref="AddFunction(string, ITypeRef, ITypeRef[])"/>
+        public void AddFunction(string name, IFunctionType functionType) =>
+            this.runtimeFunctions.Add(name, functionType);
 
         /// <summary>
         /// Adds a function with a variable argument list to the library.
