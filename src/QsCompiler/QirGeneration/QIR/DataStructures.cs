@@ -875,6 +875,7 @@ namespace Microsoft.Quantum.QIR.Emission
         private void NormalizeAndUpdateNativeValue(IValue newElement, Func<Value, IValue, Value>? transformConstArr = null)
         {
             this.AsNativeValue(out var arrayStorage, out var length);
+
             // FIXME: just add a constructor taking the arrayStorageType instead...
             this.sharedState.Types.ArrayStorageTypeInfo((IStructType)arrayStorage!.NativeType, out var elementType, out uint nrElements, out int? id);
 
