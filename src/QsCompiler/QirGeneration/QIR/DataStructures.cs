@@ -715,6 +715,32 @@ namespace Microsoft.Quantum.QIR.Emission
         /* private helpers */
         /* TODO: LOOK INTO THE LLVM FUNCTIONS GetArrayLength and BuildArrayMalloc, and LLVMBuildArrayAlloca */
 
+        private IValue.Cached<Value> CreateLengthCache(Value? length = null) =>
+            new(length, this.sharedState, () =>
+                this.Count is uint count ? this.sharedState.Context.CreateConstant((long)count)
+                : this.AsNativeValue(out var _, out var length) ? length
+                : this.sharedState.CurrentBuilder.Call(
+                    this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
+                    this.OpaquePointer));
+
+        private IValue.Cached<PointerValue> CreateArrayElementPointerCache(int index, PointerValue? pointer = null) =>
+            new(pointer is null || Types.IsArray(this.LlvmType)
+                    ? null
+                    : this.CreateArrayElementPointer(index, pointer.CurrentCache()),
+                this.sharedState,
+                () => this.CreateArrayElementPointer(index));
+
+        private IValue.Cached<PointerValue>[] CreateArrayElementPointerCaches() =>
+            Enumerable.ToArray(Enumerable.Range(0, (int)this.Count!).Select(idx => this.CreateArrayElementPointerCache(idx)));
+
+        private Value AllocateArray() =>
+
+            // The runtime function ArrayCreate1d creates a new value with reference count 1 and alias count 0.
+            this.sharedState.CurrentBuilder.Call(
+                this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d),
+                this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type),
+                this.Length);
+
         // FIXME: WHY IS THIS HERE WHEN WE USE context.Types.NativeArray??
         private bool IsNativeValue(Value? value = null) =>
             (value ?? this.Value).NativeType is IStructType st
@@ -756,37 +782,13 @@ namespace Microsoft.Quantum.QIR.Emission
             return nativeValue;
         }
 
-        private static Value CreateNativeValue(ITypeRef elementType, uint nrElements, uint count, GenerationContext context) =>
-            CreateNativeValue(
+        private static Value CreateNativeValue(ITypeRef elementType, uint nrElements, uint count, GenerationContext context)
+        {
+            return CreateNativeValue(
                 context.Types.TypedTuple(elementType.CreateArrayType(nrElements)).GetNullValue(),
                 context.Context.CreateConstant((long)count),
                 context);
-
-        private IValue.Cached<Value> CreateLengthCache(Value? length = null) =>
-            new(length, this.sharedState, () =>
-                this.Count is uint count ? this.sharedState.Context.CreateConstant((long)count)
-                : this.AsNativeValue(out var _, out var length) ? length
-                : this.sharedState.CurrentBuilder.Call(
-                    this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
-                    this.OpaquePointer));
-
-        private IValue.Cached<PointerValue> CreateArrayElementPointerCache(int index, PointerValue? pointer = null) =>
-            new(pointer is null || Types.IsArray(this.LlvmType)
-                    ? null
-                    : this.CreateArrayElementPointer(index, pointer.CurrentCache()),
-                this.sharedState,
-                () => this.CreateArrayElementPointer(index));
-
-        private IValue.Cached<PointerValue>[] CreateArrayElementPointerCaches() =>
-            Enumerable.ToArray(Enumerable.Range(0, (int)this.Count!).Select(idx => this.CreateArrayElementPointerCache(idx)));
-
-        private Value AllocateArray() =>
-
-            // The runtime function ArrayCreate1d creates a new value with reference count 1 and alias count 0.
-            this.sharedState.CurrentBuilder.Call(
-                this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d),
-                this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type),
-                this.Length);
+        }
 
         private IReadOnlyList<IValue> NormalizeArrayElements(ResolvedType eltype, IReadOnlyList<IValue> elements)
         {
@@ -917,21 +919,14 @@ namespace Microsoft.Quantum.QIR.Emission
         {
             Value GetElementPointer(Value index)
             {
-                // If we need to update an array element when
+                // If we need to access or update an array element when
                 // - either the index of the element to update is unknown at generation time, or
                 // - the array storage datatype does not correctly reflect the size of the storage,
                 // then we store the current array value in the temporary storage location
                 // perform the update via pointer access, and then and reload the updated value.
                 this.AsNativeValue(out var arrayStorage, out var _);
                 this.tempArrayStorage ??= this.sharedState.Allocate(arrayStorage!.NativeType);
-                try
-                {
-                    this.sharedState.CurrentBuilder.Store(arrayStorage!, this.tempArrayStorage);
-                }
-                catch
-                {
-                    Console.WriteLine($"failed to store value\nstorage type: {arrayStorage!.NativeType},\ntemp storage type:{this.tempArrayStorage.NativeType})");
-                }
+                this.sharedState.CurrentBuilder.Store(arrayStorage!, this.tempArrayStorage);
 
                 return this.sharedState.CurrentBuilder.GetElementPtr(
                     arrayStorage!.NativeType, this.tempArrayStorage, new[]
@@ -1008,6 +1003,10 @@ namespace Microsoft.Quantum.QIR.Emission
         private PointerValue CreateArrayElementPointer(int index, IValue? element = null) =>
             this.CreateArrayElementPointer(this.sharedState.Context.CreateConstant((long)index), element);
 
+        /// <summary>
+        /// Returns the pointers to the array element at the given index.
+        /// The pointer will return a poison value upon load if the given index is known to be outside the range of the array.
+        /// </summary>
         internal PointerValue GetArrayElementPointer(Value index) =>
             this.arrayElementPointers != null && QirValues.AsConstantUInt32(index) is uint idx
             ? (idx < this.arrayElementPointers.Length ? this.arrayElementPointers[idx].Load() : this.CreatePointerForPoison())
