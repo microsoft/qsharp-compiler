@@ -32,7 +32,6 @@ let createPattern range =
     {
         Capability = capability
         Diagnose = diagnose
-        Properties = ()
     }
 
 let rec flattenTuple =

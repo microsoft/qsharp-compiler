@@ -21,12 +21,11 @@ module Recursion =
     let callableSet (cycles: #(CallGraphNode seq) seq) =
         Seq.collect id cycles |> Seq.map (fun n -> n.CallableName) |> Set.ofSeq
 
-type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: CallGraph, syntaxAnalyzer: Analyzer<_, _>) =
+type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: CallGraph, syntaxAnalyzer: Analyzer<_>) =
     static let createPattern capability =
         {
             Capability = capability
             Diagnose = fun _ -> None
-            Properties = ()
         }
 
     let findCallable (node: CallGraphNode) =
@@ -127,7 +126,6 @@ module CallAnalyzer =
         {
             Capability = capability
             Diagnose = diagnose
-            Properties = { Name = name; Range = range }
         }
 
     let globalCallableIds action =
@@ -181,6 +179,6 @@ module CallAnalyzer =
                 if Set.contains name recursiveCallables then createPattern Recursive node.CallableName range
         }
 
-    let deep callables graph syntaxAnalyzer : Analyzer<_, _> =
+    let deep callables graph syntaxAnalyzer : Analyzer<_> =
         let analyzer = DeepCallAnalyzer(callables, graph, syntaxAnalyzer)
         fun callable -> upcast analyzer.Analyze callable

@@ -70,7 +70,6 @@ let createPattern kind range =
     {
         Capability = capability
         Diagnose = diagnose
-        Properties = ()
     }
 
 /// Returns true if the expression is an equality or inequality comparison between two expressions of type Result.

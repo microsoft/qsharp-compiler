@@ -118,7 +118,6 @@ let createPattern context construct range (ty: ResolvedType) =
             {
                 Capability = capability
                 Diagnose = diagnose
-                Properties = ()
             }
 
 let paramPatterns context callable =

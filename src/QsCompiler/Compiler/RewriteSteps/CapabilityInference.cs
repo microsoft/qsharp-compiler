@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => Enumerable.Empty<IRewriteStep.Diagnostic>();
 
-        public bool ImplementsPreconditionVerification => true;
+        public bool ImplementsPreconditionVerification => true; 
 
         public bool ImplementsTransformation => true;
 

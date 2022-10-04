@@ -43,7 +43,6 @@ let createPattern range feature =
     {
         Capability = capability
         Diagnose = diagnose
-        Properties = ()
     }
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
