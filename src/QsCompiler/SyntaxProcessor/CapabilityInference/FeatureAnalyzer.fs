@@ -40,10 +40,7 @@ let createPattern range feature =
             let args = [ target.Name; description ]
             QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
 
-    {
-        Capability = capability
-        Diagnose = diagnose
-    }
+    { Capability = capability; Diagnose = diagnose }
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild

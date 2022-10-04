@@ -24,18 +24,11 @@ module Target =
     let create name capability =
         { _Name = name; _Capability = capability }
 
-type Pattern =
-    {
-        Capability: TargetCapability
-        Diagnose: Target -> QsCompilerDiagnostic option
-    }
+type Pattern = { Capability: TargetCapability; Diagnose: Target -> QsCompilerDiagnostic option }
 
 module Pattern =
     let discard pattern =
-        {
-            Capability = pattern.Capability
-            Diagnose = pattern.Diagnose
-        }
+        { Capability = pattern.Capability; Diagnose = pattern.Diagnose }
 
     let concat patterns =
         Seq.fold

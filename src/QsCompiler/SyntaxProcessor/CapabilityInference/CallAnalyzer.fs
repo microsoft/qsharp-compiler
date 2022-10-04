@@ -23,10 +23,7 @@ module Recursion =
 
 type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: CallGraph, syntaxAnalyzer: Analyzer<_>) =
     static let createPattern capability =
-        {
-            Capability = capability
-            Diagnose = fun _ -> None
-        }
+        { Capability = capability; Diagnose = fun _ -> None }
 
     let findCallable (node: CallGraphNode) =
         callables.TryGetValue node.CallableName |> tryOption
@@ -123,10 +120,7 @@ module CallAnalyzer =
                 let args = [ target.Name; "recursion" ]
                 QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
 
-        {
-            Capability = capability
-            Diagnose = diagnose
-        }
+        { Capability = capability; Diagnose = diagnose }
 
     let globalCallableIds action =
         let transformation = LocatingTransformation TransformationOptions.NoRebuild

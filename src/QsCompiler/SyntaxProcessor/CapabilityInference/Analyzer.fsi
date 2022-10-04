@@ -20,11 +20,7 @@ module Target =
     [<CompiledName "Create">]
     val create: name: string -> capability: TargetCapability -> Target
 
-type internal Pattern =
-    {
-        Capability: TargetCapability
-        Diagnose: Target -> QsCompilerDiagnostic option
-    }
+type internal Pattern = { Capability: TargetCapability; Diagnose: Target -> QsCompilerDiagnostic option }
 
 module internal Pattern =
     val discard: Pattern -> Pattern
