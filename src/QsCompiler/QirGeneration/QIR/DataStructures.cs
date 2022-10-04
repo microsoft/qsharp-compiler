@@ -807,7 +807,7 @@ namespace Microsoft.Quantum.QIR.Emission
             var storageType = (IStructType)arrayStorage.NativeType;
             return string.IsNullOrEmpty(storageType.Name)
                 ? ((IArrayType)storageType.Members[0]).Length
-                : throw new InvalidOperationException("cannot normalize array elements for arrays of unknown lengths");
+                : throw new InvalidOperationException("cannot determine storage size for array of unknown length");
         }
 
         /// <returns>
