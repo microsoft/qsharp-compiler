@@ -741,28 +741,6 @@ namespace Microsoft.Quantum.QIR.Emission
                 this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type),
                 this.Length);
 
-        private Value GetElementPointerToNativeStorage(Value index)
-        {
-            // If we need to access or update an array element when
-            // - either the index of the element to update is unknown at generation time, or
-            // - the array storage datatype does not correctly reflect the size of the storage,
-            // then we store the current array value in the temporary storage location
-            // perform the update via pointer access, and then and reload the updated value.
-            var arrayStorage = this.NativeArrayStorage();
-            this.tempArrayStorage ??= this.sharedState.Allocate(arrayStorage.NativeType);
-
-            // Since the native value may be replaced as part of "updating" other items,
-            // it is important that we reload the constant array every time!
-            this.sharedState.CurrentBuilder.Store(arrayStorage, this.tempArrayStorage);
-            return this.sharedState.CurrentBuilder.GetElementPtr(
-                arrayStorage.NativeType, this.tempArrayStorage, new[]
-                {
-                    this.sharedState.Context.CreateConstant(0),
-                    this.sharedState.Context.CreateConstant(0),
-                    index,
-                });
-        }
-
         /* methods used to define and manipulate stack allocated arrays (i.e. arrays not managed by the runtime) */
 
         /// <summary>
@@ -993,6 +971,28 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 return elements;
             }
+        }
+
+        private Value GetElementPointerToNativeStorage(Value index)
+        {
+            // If we need to access or update an array element when
+            // - either the index of the element to update is unknown at generation time, or
+            // - the array storage datatype does not correctly reflect the size of the storage,
+            // then we store the current array value in the temporary storage location
+            // perform the update via pointer access, and then and reload the updated value.
+            var arrayStorage = this.NativeArrayStorage();
+            this.tempArrayStorage ??= this.sharedState.Allocate(arrayStorage.NativeType);
+
+            // Since the native value may be replaced as part of "updating" other items,
+            // it is important that we reload the constant array every time!
+            this.sharedState.CurrentBuilder.Store(arrayStorage, this.tempArrayStorage);
+            return this.sharedState.CurrentBuilder.GetElementPtr(
+                arrayStorage.NativeType, this.tempArrayStorage, new[]
+                {
+                    this.sharedState.Context.CreateConstant(0),
+                    this.sharedState.Context.CreateConstant(0),
+                    index,
+                });
         }
 
         // methods for item access
