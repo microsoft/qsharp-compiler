@@ -70,7 +70,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.BuiltType = this.namedLlvmArrays is null
                     ? this.QirTypes.Array
-                    : this.QirTypes.NativeArray(this.LlvmTypeFromQsharpType(b), 0u, ++this.namedLlvmArrays);
+                    : this.QirTypes.NamedLlvmArray($"ArrayStorage{++this.namedLlvmArrays}", this.LlvmTypeFromQsharpType(b));
                 return QsResolvedTypeKind.InvalidType;
             }
 
