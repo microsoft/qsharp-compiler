@@ -38,13 +38,9 @@ let createPattern range feature =
                 | DefaultArray -> "default-initialized array constructor"
 
             let args = [ target.Name; description ]
-            QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
+            QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
 
-    {
-        Capability = capability
-        Diagnose = diagnose
-        Properties = ()
-    }
+    { Capability = capability; Diagnose = diagnose }
 
 let analyzer (action: SyntaxTreeTransformation -> _) : _ seq =
     let transformation = LocatingTransformation TransformationOptions.NoRebuild
