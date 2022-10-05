@@ -23,8 +23,6 @@ module Target =
 type internal Pattern = { Capability: TargetCapability; Diagnose: Target -> QsCompilerDiagnostic option }
 
 module internal Pattern =
-    val discard: Pattern -> Pattern
-
     val concat: Pattern seq -> TargetCapability
 
 type internal Analyzer<'Subject> = 'Subject -> Pattern seq

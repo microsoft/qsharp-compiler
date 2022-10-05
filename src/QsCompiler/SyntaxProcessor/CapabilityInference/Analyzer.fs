@@ -27,9 +27,6 @@ module Target =
 type Pattern = { Capability: TargetCapability; Diagnose: Target -> QsCompilerDiagnostic option }
 
 module Pattern =
-    let discard pattern =
-        { Capability = pattern.Capability; Diagnose = pattern.Diagnose }
-
     let concat patterns =
         Seq.fold
             (fun capability pattern -> TargetCapability.merge pattern.Capability capability)
