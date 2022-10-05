@@ -21,13 +21,9 @@ module Recursion =
     let callableSet (cycles: #(CallGraphNode seq) seq) =
         Seq.collect id cycles |> Seq.map (fun n -> n.CallableName) |> Set.ofSeq
 
-type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: CallGraph, syntaxAnalyzer: Analyzer<_, _>) =
+type DeepCallAnalyzer(callables: ImmutableDictionary<_, QsCallable>, graph: CallGraph, syntaxAnalyzer: Analyzer<_>) =
     static let createPattern capability =
-        {
-            Capability = capability
-            Diagnose = fun _ -> None
-            Properties = ()
-        }
+        { Capability = capability; Diagnose = fun _ -> None }
 
     let findCallable (node: CallGraphNode) =
         callables.TryGetValue node.CallableName |> tryOption
@@ -124,11 +120,7 @@ module CallAnalyzer =
                 let args = [ target.Name; "recursion" ]
                 QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
 
-        {
-            Capability = capability
-            Diagnose = diagnose
-            Properties = { Name = name; Range = range }
-        }
+        { Capability = capability; Diagnose = diagnose }
 
     let globalCallableIds action =
         let transformation = LocatingTransformation TransformationOptions.NoRebuild
@@ -181,6 +173,6 @@ module CallAnalyzer =
                 if Set.contains name recursiveCallables then createPattern Recursive node.CallableName range
         }
 
-    let deep callables graph syntaxAnalyzer : Analyzer<_, _> =
+    let deep callables graph syntaxAnalyzer : Analyzer<_> =
         let analyzer = DeepCallAnalyzer(callables, graph, syntaxAnalyzer)
         fun callable -> upcast analyzer.Analyze callable

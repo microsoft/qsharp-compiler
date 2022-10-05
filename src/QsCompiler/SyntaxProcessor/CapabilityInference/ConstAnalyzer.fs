@@ -29,11 +29,7 @@ let createPattern range =
             let args = [ target.Name; description ]
             QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
 
-    {
-        Capability = capability
-        Diagnose = diagnose
-        Properties = ()
-    }
+    { Capability = capability; Diagnose = diagnose }
 
 let rec flattenTuple =
     function
