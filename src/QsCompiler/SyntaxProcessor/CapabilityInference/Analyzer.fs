@@ -24,31 +24,19 @@ module Target =
     let create name capability =
         { _Name = name; _Capability = capability }
 
-type 'Props Pattern =
-    {
-        Capability: TargetCapability
-        Diagnose: Target -> QsCompilerDiagnostic option
-        Properties: 'Props
-    }
+type Pattern = { Capability: TargetCapability; Diagnose: Target -> QsCompilerDiagnostic option }
 
 module Pattern =
-    let discard pattern =
-        {
-            Capability = pattern.Capability
-            Diagnose = pattern.Diagnose
-            Properties = ()
-        }
-
     let concat patterns =
         Seq.fold
             (fun capability pattern -> TargetCapability.merge pattern.Capability capability)
             TargetCapability.bottom
             patterns
 
-type Analyzer<'Subject, 'Props> = 'Subject -> 'Props Pattern seq
+type Analyzer<'Subject> = 'Subject -> Pattern seq
 
 module Analyzer =
-    let concat (analyzers: Analyzer<_, _> seq) subject = Seq.collect ((|>) subject) analyzers
+    let concat (analyzers: Analyzer<_> seq) subject = Seq.collect ((|>) subject) analyzers
 
 type LocatingTransformation(options) =
     inherit SyntaxTreeTransformation(options)

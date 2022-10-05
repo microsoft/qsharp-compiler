@@ -1,5 +1,7 @@
 # Building a Simulator for QIR
 
+**NOTE:** The text below is out-of-date and is to be rewritten. See more up-to-date information in the PR ["Replace C++ QIR Runtime with Rust QIR stdlib"](https://github.com/microsoft/qsharp-runtime/pull/1087).
+
 This example discusses the structure of the QIR Runtime system and how to attach a simulator to it using two sample simulators implemented "from scratch":
 
 - a state-less [trace simulator](TraceSimulator): prints each quantum instructions it receives, useful for debugging or simple hardware backend hookup
@@ -39,16 +41,16 @@ In order to communicate with the QIR Runtime, hardware backends or simulators ca
 - the gate set `IQuantumGateSet` : only used by those backends that want to provide the Q# instruction set
 - the diagnostics `IDiagnostics` : optional but helpful component to provide debug information of the backend state
 
-The first component of the Runtime stack is the QIR Bridge at [public/QirRuntime.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/QirRuntime.hpp) which declares the functions for the runtime as `extern "C"`.
-Different parts of the QIR spec are then implemented in C++ in the [lib/QIR](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QIR) folder.
-For example, the `__quantum__rt__string_create` function resides in [lib/QIR/strings.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/strings.cpp).
-For functions defined in [lib/QIR/delegated.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/delegated.cpp) such as `__quantum__rt__qubit_allocate`, the Runtime eventually calls the implementation `IRuntimeDriver::Allocate` provided by the backend.
+The first component of the Runtime stack is the QIR Bridge at "public/QirRuntime.hpp" which declares the functions for the runtime as `extern "C"`.
+Different parts of the QIR spec are then implemented in C++ in the "lib/QIR" folder.
+For example, the `__quantum__rt__string_create` function resides in "lib/QIR/strings.cpp".
+For functions defined in "lib/QIR/delegated.cpp" such as `__quantum__rt__qubit_allocate`, the Runtime eventually calls the implementation `IRuntimeDriver::Allocate` provided by the backend.
 
-Other components are provided for Q# programs compiled to QIR in [lib/QSharpCore](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QSharpCore) and [lib/QSharpFoundation](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QSharpFoundation).
+Other components are provided for Q# programs compiled to QIR in "lib/QSharpCore" and "lib/QSharpFoundation".
 In particular, the `QSharpCore` component provides the Q# instruction set.
-As above, a bridge [lib/QSharpCore/qsharp__core__qis.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/qsharp__core__qis.hpp) first declares a function such as `__quantum__qis__h__body` as `extern "C"`, which is then implemented in [lib/QSharpCore/intrinsics.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/intrinsics.cpp), which then calls the specific implementation `IQuantumGateSet::H` provided by the backend.
+As above, a bridge "lib/QSharpCore/qsharp__core__qis.hpp" first declares a function such as `__quantum__qis__h__body` as `extern "C"`, which is then implemented in "lib/QSharpCore/intrinsics.cpp", which then calls the specific implementation `IQuantumGateSet::H` provided by the backend.
 
-A qubit manager (see next section) is also provided in [lib/QIR/QubitManager.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/QubitManager.cpp).
+A qubit manager (see next section) is also provided in "lib/QIR/QubitManager.cpp".
 
 ## Qubit Management
 
@@ -70,14 +72,14 @@ Similarly, it's possible to present a virtual qubit space to a program that is l
 Further, the number of available logical qubits may change throughout the operation of a quantum computer (e.g. due to certain physical qubits becoming unusable), which needs to be handled.
 Deciding which logical qubit to assign to which virtual qubit, and when and how to reuse logical qubits, is the task of the *qubit manager*.
 
-Note: Instead of implementing your own qubit manager you should use the one provided by the Runtime at [public/QubitManager.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/QubitManager.hpp).
+Note: Instead of implementing your own qubit manager you should use the one provided by the Runtime at "public/QubitManager.hpp".
 
 ## Structure of a Simulator
 
 As mentioned further up, the QIR Runtime provides three interfaces to connect backends to the Runtime:
 
 - `IRuntimeDriver` : Basic runtime functions such as qubit and measurement result management.
-- `IQuantumGateSet` : The Q# instruction set. Implementation of this interface is not strictly required, as long as some instruction set is implemented, and the QIR code only calls instructions from that set (may necessitate the use of a bridge, see the [QIR Bridge](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime#qir-bridge-and-runtime) and [previous section](#understanding-the-qir-runtime-system)).
+- `IQuantumGateSet` : The Q# instruction set. Implementation of this interface is not strictly required, as long as some instruction set is implemented, and the QIR code only calls instructions from that set (may necessitate the use of a bridge, see the "QIR Bridge" and [previous section](#understanding-the-qir-runtime-system)).
 - `IDiagnostics` : Optional interface to provide insight into the state of a simulator or hardware backend (useful for debugging).
 
 Let's have a look at the functionality each interface provides.

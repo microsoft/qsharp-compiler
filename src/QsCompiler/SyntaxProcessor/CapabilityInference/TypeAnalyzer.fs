@@ -114,12 +114,7 @@ let createPattern context construct range (ty: ResolvedType) =
                 let range = QsNullable.defaultValue Range.Zero range
                 QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
 
-        Some
-            {
-                Capability = capability
-                Diagnose = diagnose
-                Properties = ()
-            }
+        Some { Capability = capability; Diagnose = diagnose }
 
 let paramPatterns context callable =
     callable.ArgumentTuple.Items

@@ -67,11 +67,7 @@ let createPattern kind range =
                 Some(WarningCode.SetInResultConditionedBlock, [ name; target.Name ])
         |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Warning (code, args) range)
 
-    {
-        Capability = capability
-        Diagnose = diagnose
-        Properties = ()
-    }
+    { Capability = capability; Diagnose = diagnose }
 
 /// Returns true if the expression is an equality or inequality comparison between two expressions of type Result.
 let isResultEquality expression =
