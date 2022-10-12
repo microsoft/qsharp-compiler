@@ -179,7 +179,7 @@ namespace Microsoft.Quantum.QIR
         /// as part of a compilation step and only after the initial QIR generation.
         /// </summary>
         internal IStructType NamedLlvmArray(string storageName, ITypeRef elementType) =>
-            Emission.ArrayValue.StackAllocatedArrayType(this, elementType, 0u, storageName);
+            Emission.ArrayValue.StackAllocatedArrayType(this, elementType, nrElements: 0u, storageName);
 
         /// <summary>
         /// Given the type of a pointer to a struct, returns the type of the struct.
