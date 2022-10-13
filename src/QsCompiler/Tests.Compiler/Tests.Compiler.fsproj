@@ -173,6 +173,12 @@
     <Content Include="TestCases\QirTests\TestEntryPoint.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestArguments.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestArguments.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestExpressions.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
