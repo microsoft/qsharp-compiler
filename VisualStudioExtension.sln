@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpTestTemplate", "src\V
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpLibTemplate", "src\VisualStudioExtension\QSharpLibTemplate\QSharpLibTemplate.csproj", "{9EF3C982-D6B4-47BE-A0FE-660F91738881}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpHoneywellAppTemplate", "src\VisualStudioExtension\QsharpHoneywellAppTemplate\QSharpHoneywellAppTemplate.csproj", "{126C7559-6990-4885-B3E4-C84EAB9153DF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpQuantinuumAppTemplate", "src\VisualStudioExtension\QsharpQuantinuumAppTemplate\QSharpQuantinuumAppTemplate.csproj", "{126C7559-6990-4885-B3E4-C84EAB9153DF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpIonQAppTemplate", "src\VisualStudioExtension\QsharpIonQAppTemplate\QSharpIonQAppTemplate.csproj", "{ED8F03EE-5CB2-4A1F-8CBA-1E0E12B83077}"
 EndProject
