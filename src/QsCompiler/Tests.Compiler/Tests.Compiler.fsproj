@@ -494,7 +494,7 @@
     <None Include="TestCases\OptimizerTests\TypedParameters_input.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Content Include="TestCases\ExecutionTests\QirTests.qs">
+    <Content Include="TestCases\ExecutionTests\QirMemoryManagementTests.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\ExecutionTests\QirDataTypeTests.qs">

@@ -90,7 +90,7 @@ type ExecutionTests(output: ITestOutputHelper) =
     let compiledQirExecutionTest =
         let inputPaths =
             [
-                ("TestCases", "ExecutionTests", "QirTests.qs") |> Path.Combine |> Path.GetFullPath
+                ("TestCases", "ExecutionTests", "QirMemoryManagementTests.qs") |> Path.Combine |> Path.GetFullPath
             ]
 
         let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath
