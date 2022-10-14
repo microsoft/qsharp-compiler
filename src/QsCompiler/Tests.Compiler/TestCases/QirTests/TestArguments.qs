@@ -10,9 +10,9 @@ namespace Microsoft.Quantum.Testing.QIR {
 
     @EntryPoint()
     operation BasicParameterTest(
-        arr : Pauli[], res : Result, range : Range, (cnt : Int, b : Bool, (d: Double)))
-    : (Pauli[], Result, Range, (Int, Bool, (Double))) {
+        arr : Int[], res : Result, range : Range, (p : Pauli, b : Bool, (d: Double)))
+    : (Int[], Result, Range, (Pauli, Bool, (Double))) {
 
-        return (arr, res, range, (cnt, b, d));
+        return (arr, res, range, (p, b, d));
     }
 }
