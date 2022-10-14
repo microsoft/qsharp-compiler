@@ -261,7 +261,7 @@ let ``QIR arguments`` () =
         |> Seq.append (compilerArgs false "TestArguments")
         |> Seq.toArray
 
-    customTest "TestArguments" compilerArgs [ "TestArguments" ]
+    customTest "TestArguments" compilerArgs [ "TestArguments1"; "TestArguments2" ]
 
 [<Fact>]
 let ``QIR targeting`` () =

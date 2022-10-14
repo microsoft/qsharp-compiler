@@ -1,24 +1,19 @@
-
-%ArrayStorage1 = type { [0 x i64] }
-%Result = type opaque
-%Range = type { i64, i64, i64 }
-
-define void @Microsoft__Quantum__Testing__QIR__BasicParameterTest({ i64, %ArrayStorage1 } %arr, %Result* %res, %Range %range, i2 %p, i1 %b, double %d) #0 {
+define void @Microsoft__Quantum__Testing__QIR__BasicParameterTest({ i64, %ArrayStorage2 } %arr, %Result* %res, %Range %range, i2 %p, i1 %b, double %d) #0 {
 entry:
-  %0 = alloca %ArrayStorage1, align 8
-  %1 = extractvalue { i64, %ArrayStorage1 } %arr, 0
-  %2 = extractvalue { i64, %ArrayStorage1 } %arr, 1
+  %0 = alloca %ArrayStorage2, align 8
+  %1 = extractvalue { i64, %ArrayStorage2 } %arr, 0
+  %2 = extractvalue { i64, %ArrayStorage2 } %arr, 1
   call void @__quantum__rt__result_update_reference_count(%Result* %res, i32 1)
   %3 = insertvalue { i2, i1, double } zeroinitializer, i2 %p, 0
   %4 = insertvalue { i2, i1, double } %3, i1 %b, 1
   %5 = insertvalue { i2, i1, double } %4, double %d, 2
-  %6 = insertvalue { { i64, %ArrayStorage1 }, %Result*, %Range, { i2, i1, double } } zeroinitializer, { i64, %ArrayStorage1 } %arr, 0
-  %7 = insertvalue { { i64, %ArrayStorage1 }, %Result*, %Range, { i2, i1, double } } %6, %Result* %res, 1
-  %8 = insertvalue { { i64, %ArrayStorage1 }, %Result*, %Range, { i2, i1, double } } %7, %Range %range, 2
-  %9 = insertvalue { { i64, %ArrayStorage1 }, %Result*, %Range, { i2, i1, double } } %8, { i2, i1, double } %5, 3
+  %6 = insertvalue { { i64, %ArrayStorage2 }, %Result*, %Range, { i2, i1, double } } zeroinitializer, { i64, %ArrayStorage2 } %arr, 0
+  %7 = insertvalue { { i64, %ArrayStorage2 }, %Result*, %Range, { i2, i1, double } } %6, %Result* %res, 1
+  %8 = insertvalue { { i64, %ArrayStorage2 }, %Result*, %Range, { i2, i1, double } } %7, %Range %range, 2
+  %9 = insertvalue { { i64, %ArrayStorage2 }, %Result*, %Range, { i2, i1, double } } %8, { i2, i1, double } %5, 3
   call void @__quantum__rt__tuple_start_record_output()
   call void @__quantum__rt__array_start_record_output()
-  %10 = extractvalue { i64, %ArrayStorage1 } %arr, 0
+  %10 = extractvalue { i64, %ArrayStorage2 } %arr, 0
   %11 = sub i64 %10, 1
   br label %header__1
 
@@ -28,9 +23,9 @@ header__1:                                        ; preds = %exiting__1, %entry
   br i1 %13, label %body__1, label %exit__1
 
 body__1:                                          ; preds = %header__1
-  %14 = extractvalue { i64, %ArrayStorage1 } %arr, 1
-  store %ArrayStorage1 %14, %ArrayStorage1* %0, align 4
-  %15 = getelementptr %ArrayStorage1, %ArrayStorage1* %0, i32 0, i32 0, i64 %12
+  %14 = extractvalue { i64, %ArrayStorage2 } %arr, 1
+  store %ArrayStorage2 %14, %ArrayStorage2* %0, align 4
+  %15 = getelementptr %ArrayStorage2, %ArrayStorage2* %0, i32 0, i32 0, i64 %12
   %__rtrnVal12__ = load i64, i64* %15, align 4
   call void @__quantum__rt__int_record_output(i64 %__rtrnVal12__)
   br label %exiting__1
@@ -101,23 +96,3 @@ condContinue__1:                                  ; preds = %condContinue__2, %c
   call void @__quantum__rt__tuple_end_record_output()
   ret void
 }
-
-declare void @__quantum__rt__result_update_reference_count(%Result*, i32)
-
-declare void @__quantum__rt__tuple_start_record_output()
-
-declare void @__quantum__rt__array_start_record_output()
-
-declare void @__quantum__rt__int_record_output(i64)
-
-declare void @__quantum__rt__array_end_record_output()
-
-declare void @__quantum__rt__result_record_output(%Result*)
-
-declare void @__quantum__rt__bool_record_output(i1)
-
-declare void @__quantum__rt__double_record_output(double)
-
-declare void @__quantum__rt__tuple_end_record_output()
-
-attributes #0 = { "EntryPoint" }
