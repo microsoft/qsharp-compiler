@@ -498,14 +498,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
                 private QsCallable CreateEntryPointWrapper(QsCallable c)
                 {
-                    QsScope CreateWrapperBody()
+                    QsScope CreateWrapperBody(ParameterTuple wrapperArgTuple)
                     {
                         var (argType, returnType) = (c.Signature.ArgumentType, c.Signature.ReturnType);
                         var callableType = c.Kind.IsOperation
                             ? ResolvedTypeKind.NewOperation(Tuple.Create(argType, returnType), c.Signature.Information)
                             : ResolvedTypeKind.NewFunction(argType, returnType);
                         var callee = SyntaxGenerator.GlobalCallable(c.FullName, callableType, QsNullable<ImmutableArray<ResolvedType>>.Null);
-                        var callArgs = SyntaxGenerator.ArgumentTupleAsExpression(c.ArgumentTuple);
+
+                        var wrapperParameters = SyntaxGenerator.ExtractItems(wrapperArgTuple);
+                        var itemIndex = 0;
+                        ParameterTuple BuildCalleeArgTuple(ParameterTuple expected) =>
+                            expected is ParameterTuple.QsTuple tuple
+                                ? ParameterTuple.NewQsTuple(tuple.Item.Select(BuildCalleeArgTuple).ToImmutableArray())
+                                : ParameterTuple.NewQsTupleItem(wrapperParameters[itemIndex++]);
+
+                        var calleeArgTuple = BuildCalleeArgTuple(c.ArgumentTuple);
+                        var callArgs = SyntaxGenerator.ArgumentTupleAsExpression(calleeArgTuple);
 
                         var (outputTuple, variableDeclarations) = CreateDeconstruction(c.Signature.ReturnType);
                         var outputDeconstruction = new QsStatement(
@@ -517,7 +526,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                             QsNullable<QsLocation>.Null,
                             QsComments.Empty);
 
-                        var paramDecl = SyntaxGenerator.ExtractItems(c.ArgumentTuple).ValidDeclarations();
+                        var paramDecl = wrapperParameters.ValidDeclarations();
                         var localDeclarations = variableDeclarations.Values.Concat(paramDecl)
                             .ToImmutableDictionary(decl => decl.VariableName);
                         return new QsScope(
@@ -526,9 +535,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     }
 
                     var wrapperName = new QsQualifiedName(c.FullName.Namespace, $"{c.FullName.Name}{this.mainSuffix}");
+                    var wrapperArgTuple = ParameterTuple.NewQsTuple(
+                        SyntaxGenerator.ExtractItems(c.ArgumentTuple).Select(ParameterTuple.NewQsTupleItem).ToImmutableArray());
+
                     var wrapperSignature = new ResolvedSignature(
                         ImmutableArray<QsLocalSymbol>.Empty,
-                        c.Signature.ArgumentType,
+                        wrapperArgTuple.GetResolvedType(),
                         ResolvedType.New(ResolvedTypeKind.UnitType),
                         CallableInformation.NoInformation);
 
@@ -540,7 +552,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         c.Location,
                         QsNullable<ImmutableArray<ResolvedType>>.Null,
                         wrapperSignature,
-                        SpecializationImplementation.NewProvided(c.ArgumentTuple, CreateWrapperBody()),
+                        SpecializationImplementation.NewProvided(wrapperArgTuple, CreateWrapperBody(wrapperArgTuple)),
                         ImmutableArray<string>.Empty,
                         QsComments.Empty);
 
@@ -552,7 +564,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         c.Source,
                         c.Location,
                         wrapperSignature,
-                        c.ArgumentTuple,
+                        wrapperArgTuple,
                         ImmutableArray.Create(bodySpec),
                         ImmutableArray<string>.Empty,
                         QsComments.Empty);
