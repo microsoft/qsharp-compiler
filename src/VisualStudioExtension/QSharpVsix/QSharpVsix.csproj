@@ -95,9 +95,9 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
     </ProjectReference>
-    <ProjectReference Include="..\QsharpHoneywellAppTemplate\QSharpHoneywellAppTemplate.csproj">
+    <ProjectReference Include="..\QsharpQuantinuumAppTemplate\QSharpQuantinuumAppTemplate.csproj">
       <Project>{126c7559-6990-4885-b3e4-c84eab9153df}</Project>
-      <Name>QSharpHoneywellAppTemplate</Name>
+      <Name>QSharpQuantinuumAppTemplate</Name>
       <VSIXSubPath>ProjectTemplates</VSIXSubPath>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>

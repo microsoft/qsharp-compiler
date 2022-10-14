@@ -27,7 +27,7 @@
     <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.25.228311" />
     <!-- Provider packages included for specific execution targets. -->
     <PackageReference Condition="$(EnableQirSubmission) And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Core" Version="0.25.228311" />
-    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.25.228311" />
+    <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Quantinuum" Version="0.25.228311" />
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.25.228311" />
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.25.228311" />
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Rigetti" Version="0.25.228311" />
