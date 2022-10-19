@@ -42,17 +42,17 @@
   <ItemGroup>
     <PackageReference Condition="$(QSharpDocsGeneration)"
                       Include="Microsoft.Quantum.DocumentationGenerator" Version="0.25.228311"
-                      IsImplicitlyDefined="true" 
+                      IsImplicitlyDefined="true"
                       IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
     <PackageReference Condition="$(QirGeneration) Or $(EnableQirSubmission)"
                       Include="Microsoft.Quantum.QirGeneration" Version="0.25.228311"
-                      IsImplicitlyDefined="true" 
+                      IsImplicitlyDefined="true"
                       IsQscReference="true" ExecutionTarget="Any" Priority="-2" PrivateAssets="All" />
   </ItemGroup>
 
   <!-- Packages for execution on the simulation framework. -->
   <ItemGroup>
-    <PackageReference Condition="$(CSharpGeneration) And $(IncludeCSharpRuntime)" 
+    <PackageReference Condition="$(CSharpGeneration) And $(IncludeCSharpRuntime)"
                       Include="Microsoft.Quantum.Runtime.Core" Version="0.25.228311" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CSharpGeneration) And $(IncludeCSharpRuntime) And '$(ResolvedQSharpOutputType)' == 'QSharpExe'"
                       Include="Microsoft.Quantum.EntryPointDriver" Version="0.25.228311" IsImplicitlyDefined="true" />
