@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 /// this module is *not* supposed to hardcode any qs keywords (i.e. there should not be any need for strings in here) - use the keywords module for that!
@@ -220,9 +220,38 @@ qsExpression.AddOperator(
     )
 )
 
+let fixupFunctor (f: 'a -> QsExpression -> QsExpression) x e =
+    match e.Expression with
+    | CallLikeExpression (callee, args) ->
+        let callee' = f x callee
+        let range = (callee'.Range, e.Range) ||> QsNullable.Map2(fun r1 r2 -> Range.Create r1.Start r2.End)
+        QsExpression.New(CallLikeExpression(callee', args), range)
+    | _ -> f x e
+
+qsExpression.AddOperator(
+    PrefixOperator(
+        qsAdjointFunctor.Id,
+        notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
+        qsAdjointModifier.Prec,
+        true,
+        (),
+        fixupFunctor (applyUnary AdjointApplication)
+    )
+)
+
+qsExpression.AddOperator(
+    PrefixOperator(
+        qsControlledFunctor.Id,
+        notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
+        qsControlledModifier.Prec,
+        true,
+        (),
+        fixupFunctor (applyUnary ControlledApplication)
+    )
+)
+
 for op in qsExpression.Operators do
     qsArgument.AddOperator op
-
 
 // processing modifiers (functor application and unwrap directives)
 // -> modifiers basically act as unary operators with infinite precedence that can only be applied to certain expressions
@@ -231,30 +260,13 @@ for op in qsExpression.Operators do
 /// i.e. fails without consuming input if there is no postfix modifier to parse.
 let private postFixModifier = term (pstring qsUnwrapModifier.Op .>> notFollowedBy (pchar '=')) |>> snd
 
-/// Given an expression which (potentially) supports the application of modifiers,
-/// processes the expression and all its leading and trailing modifiers, applies all modifiers, and builds the corresponding Q# expression.
-/// Expression modifiers are functor application and/or unwrap directives.
-/// All trailing modifiers (unwrap directives) take precedence over all leading ones (functor applications).
-/// Trailing modifiers are left-associative, and leading modifier are right-associative.
-let private withModifiers modifiableExpr =
+let private unwrap =
     let rec applyUnwraps unwraps (core: QsExpression) =
         match unwraps with
         | [] -> core
         | range :: tail -> buildCombinedExpr (UnwrapApplication core) (core.Range, Value range) |> applyUnwraps tail
 
-    let rec applyFunctors functors (core: QsExpression) =
-        match functors with
-        | [] -> core
-        | (range, kind) :: tail -> buildCombinedExpr (kind core) (Value range, core.Range) |> applyFunctors tail
-
-    let functorApplication =
-        let adjointApplication = qsAdjointFunctor.Parse .>>. preturn AdjointApplication
-        let controlledApplication = qsControlledFunctor.Parse .>>. preturn ControlledApplication
-        adjointApplication <|> controlledApplication
-
-    attempt (many functorApplication .>>. modifiableExpr) .>>. many postFixModifier // NOTE: do *not* replace by an expected expression even if there are preceding functors!
-    |>> fun ((functors, ex), unwraps) -> applyUnwraps unwraps ex |> applyFunctors (List.rev functors)
-
+    many1 postFixModifier |>> applyUnwraps
 
 // utils for building expressions
 
@@ -451,8 +463,6 @@ let private identifier =
                  |> Identifier,
                  sym.Range)
                 |> QsExpression.New
-    |> withModifiers
-
 
 // composite expressions
 
@@ -489,7 +499,6 @@ let private tupledItem item =
 
     tupleBrackets content
     |>> (fun (item, range) -> (ImmutableArray.Create item |> ValueTuple, range) |> QsExpression.New)
-    |> withModifiers
 
 /// Given an array of QsExpressions and a tuple with start and end position, builds a Q# ValueTuple as QsExpression.
 let internal buildTupleExpr (items, range: Range) =
@@ -511,13 +520,19 @@ let private valueTuple item = // allows something like (a,(),b)
 /// Parses a Q# value array as QsExpression.
 /// Uses commaSep1 to generate suitable errors for invalid or missing expressions within the array.
 let private valueArray =
-    let sized = expr .>>. (comma >>. size.Parse >>. equal >>. expectedExpr rArray) |>> SizedArray
+    let sizeSpec = size.Parse >>. equal >>. expectedExpr rArray
 
-    let items =
-        commaSep expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof |>> ValueArray
+    let body =
+        (expr
+         >>= fun e ->
+                 (comma
+                  >>. ((sizeSpec |>> (fun n -> SizedArray(e, n)))
+                       <|> (commaSep expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof
+                            |>> fun es -> ImmutableArray.Create(e).AddRange(es) |> ValueArray)))
+                 <|> preturn (ImmutableArray.Create e |> ValueArray))
+        <|> preturn (ValueArray ImmutableArray.Empty)
 
-    arrayBrackets (attempt sized <|> items) |>> QsExpression.New
-    <|> bracketDefinedCommaSepExpr (lArray, rArray)
+    arrayBrackets body |>> QsExpression.New <|> bracketDefinedCommaSepExpr (lArray, rArray)
 
 /// Parses a Q# array declaration as QsExpression.
 /// Adds an InvalidConstructorExpression if the array declaration keyword is not followed by a valid array constructor,
@@ -555,11 +570,11 @@ type private ItemAccessor =
 /// i.e. they can be preceded by functor application directives, and followed by unwrap application directives.
 /// Note that this parser has a dependency on the identifier, tupleItem expr, and valueArray parsers -
 /// meaning they process the left-most part of the array item expression and thus need to be evaluated *after* the arrayItemExpr parser.
-let private itemAccessExpr =
+let private itemAccessExpr: Parser<QsExpression -> QsExpression, _> =
     let rec applyPostfixModifiers ex =
         function
         | [] -> ex
-        | (range: Range) :: tail ->
+        | range: Range :: tail ->
             let ex = (UnwrapApplication(ex), range) |> QsExpression.New
             applyPostfixModifiers ex tail
 
@@ -627,12 +642,7 @@ let private itemAccessExpr =
 
         (arrayItemAccess <|> namedItemAccess) .>>. many postFixModifier
 
-    let arrItem =
-        // ideally, this would also "depend" on callLikeExpression and arrayItemExpr (i.e. try them as an lhs expression)
-        // but that requires handling the cyclic dependency ...
-        (identifier <|> tupledItem expr <|> valueArray) .>>. many1 accessor // allowing new Int[1][2] (i.e. array items on the lhs) would just be confusing
-
-    attempt arrItem |>> applyAccessors |> withModifiers
+    many1 accessor |>> (fun x y -> applyAccessors (y, x))
 
 /// Parses a Q# argument tuple - i.e. an expression tuple that may contain Missing expressions.
 /// If the parsed argument tuple is not a unit value,
@@ -648,11 +658,8 @@ let private argumentTuple =
 /// Expects tuple brackets around the argument even if the argument consists of a single tuple item.
 /// Note that this parser has a dependency on the arrayItemExpr, identifier, and tupleItem expr parsers -
 /// meaning they process the left-most part of the call-like expression and thus need to be evaluated *after* the callLikeExpr parser.
-let internal callLikeExpr =
-    // identifier needs to come *after* arrayItemExpr
-    itemAccessExpr <|> identifier <|> tupledItem expr .>>. many1 argumentTuple
-    |>> List.Cons
-    |>> List.reduce (applyBinary CallLikeExpression ())
+let private callLikeExpr =
+    many1 argumentTuple |>> (fun x y -> y :: x |> List.reduce (applyBinary CallLikeExpression ()))
 
 /// Parses a (unqualified) symbol-like expression used as local identifier, raising a suitable error for an invalid
 /// symbol name.
@@ -699,25 +706,26 @@ type private MissingMode =
     | NoMissing
     | AllowMissing
 
+let private chainPostfix (p: Parser<'T, _>) (op: Parser<'T -> 'T, _>) =
+    let rec rest x = (op >>= fun f -> rest (f x)) <|>% x
+    p >>= rest
+
+let private baseTerm missingMode (tupleExpr: Parser<_, _>) =
+    choice [ newArray
+             lambda
+             if missingMode = AllowMissing then missingExpr
+             unitValue
+             valueArray
+             tupleExpr
+             pauliLiteral
+             resultLiteral
+             numericLiteral
+             boolLiteral
+             stringLiteral
+             identifier ]
+
 let private termParser missingMode tupleExpr =
-    // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly.
-    [
-        attempt newArray
-        attempt lambda // needs to be before unitValue
-        if missingMode = AllowMissing then missingExpr // needs to be after lambda but before identifier
-        attempt unitValue
-        attempt callLikeExpr // needs to be after unitValue
-        attempt itemAccessExpr // needs to be after callLikeExpr
-        attempt valueArray // needs to be after arryItemExpr
-        attempt tupleExpr // needs to be after unitValue, arrayItemExpr, and callLikeExpr
-        attempt pauliLiteral
-        attempt resultLiteral
-        attempt numericLiteral
-        attempt boolLiteral
-        attempt stringLiteral
-        attempt identifier // needs to be at the very end
-    ]
-    |> choice
+    chainPostfix (baseTerm missingMode tupleExpr) (unwrap <|> callLikeExpr <|> itemAccessExpr)
 
 qsExpression.TermParser <- valueTuple expr |> termParser NoMissing
 qsArgument.TermParser <- valueTuple argument |> termParser AllowMissing
