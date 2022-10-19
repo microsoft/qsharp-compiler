@@ -667,7 +667,8 @@ let private expressionStatement =
 
     let rec isCall e =
         match e.Expression with
-        | CallLikeExpression _ -> true
+        | CallLikeExpression _
+        | InvalidExpr -> true
         | AdjointApplication e'
         | ControlledApplication e' -> isCall e'
         | _ -> false
