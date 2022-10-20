@@ -329,7 +329,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var diagnostics1 = await this.GetFileDiagnosticsAsync(programFile);
 
             this.projectLoaded.Reset();
-            executionTarget.SetValue("honeywell.qpu");
+            executionTarget.SetValue("quantinuum.qpu");
             File.WriteAllText(projectFile.AbsolutePath, projectFileContent.ToString());
             this.projectLoaded.WaitOne();
             var diagnostics2 = await this.GetFileDiagnosticsAsync(programFile);
