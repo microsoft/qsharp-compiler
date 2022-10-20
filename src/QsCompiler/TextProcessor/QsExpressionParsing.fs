@@ -512,17 +512,7 @@ let private newArray =
     >>= fun headRange -> term body |>> toExpr headRange <|> (term invalid |>> fst)
     >>= withWarning
 
-/// used to temporarily store item accessors for both array item and named item access expressions
-type private ItemAccessor =
-    | ArrayItemAccessor of QsExpression * Range
-    | NamedItemAccessor of QsSymbol
-
-/// Parses a Q# ArrayItem as QsExpression.
-/// Q# array item expressions support modifications -
-/// i.e. they can be preceded by functor application directives, and followed by unwrap application directives.
-/// Note that this parser has a dependency on the identifier, tupleItem expr, and valueArray parsers -
-/// meaning they process the left-most part of the array item expression and thus need to be evaluated *after* the arrayItemExpr parser.
-let private itemAccessExpr =
+let private arrayItem =
     let missingEx pos =
         (MissingExpr, Range.Create pos pos) |> QsExpression.New
 
@@ -564,17 +554,12 @@ let private itemAccessExpr =
                     | _ -> missingEx range.End |> combineWith core |> applyPost
                 | None -> core |> applyPost
 
-    let arrayItemAccess = arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
+    arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange)
+    |>> fun (idx, range) expr -> buildCombinedExpr (ArrayItem(expr, idx)) (expr.Range, Value range)
 
-    let namedItemAccess =
-        term (pstring qsNamedItemCombinator.Op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol
-        |>> NamedItemAccessor
-
-    arrayItemAccess <|> namedItemAccess
-    |>> fun accessor expr ->
-            match accessor with
-            | ArrayItemAccessor (idx, range) -> buildCombinedExpr (ArrayItem(expr, idx)) (expr.Range, Value range)
-            | NamedItemAccessor sym -> buildCombinedExpr (NamedItem(expr, sym)) (expr.Range, sym.Range)
+let private namedItem =
+    term (pstring qsNamedItemCombinator.Op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol
+    |>> fun sym expr -> buildCombinedExpr (NamedItem(expr, sym)) (expr.Range, sym.Range)
 
 /// Parses a Q# argument tuple - i.e. an expression tuple that may contain Missing expressions.
 /// If the parsed argument tuple is not a unit value,
@@ -590,8 +575,7 @@ let private argumentTuple =
 /// Expects tuple brackets around the argument even if the argument consists of a single tuple item.
 /// Note that this parser has a dependency on the arrayItemExpr, identifier, and tupleItem expr parsers -
 /// meaning they process the left-most part of the call-like expression and thus need to be evaluated *after* the callLikeExpr parser.
-let private callLikeExpr =
-    argumentTuple |>> fun args callee -> applyBinary CallLikeExpression callee args
+let private callLike = argumentTuple |>> fun args callee -> applyBinary CallLikeExpression callee args
 
 /// Parses a (unqualified) symbol-like expression used as local identifier, raising a suitable error for an invalid
 /// symbol name.
@@ -653,7 +637,7 @@ let private termParser isArg =
                  stringLiteral
                  identifier ]
 
-    let postfix = unwrap <|> callLikeExpr <|> itemAccessExpr
+    let postfix = unwrap <|> callLike <|> arrayItem <|> namedItem
     chainPostfix root postfix
 
 qsExpression.TermParser <- termParser false
