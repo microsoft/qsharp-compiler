@@ -617,9 +617,18 @@ let private lambda =
 
 // processing terms of operator precedence parsers
 
+/// <summary>
+/// Parses <paramref name="p"/> followed by zero or more occurrences of <paramref name="op"/>, repeatedly applying the
+/// function returned by <paramref name="op"/> to the previous result.
+/// </summary>
+/// <remarks>
+/// You can think of this parser as accepting any string matching <c>p (op0 op1 ... opn)</c> where <c>n >= 0</c>. If the
+/// result of <c>p</c> is <c>x</c> and the result of <c>opi</c> is a function <c>fi</c>, then the return value is
+/// <c>fn (... (f1 (f0 x)))</c>.
+/// </remarks>
 let private chainPostfix p op =
-    let rec rest x = (op >>= fun f -> f x |> rest) <|>% x
-    p >>= rest
+    let rec ops acc = op >>= (fun f -> f acc |> ops) <|>% acc
+    p >>= ops
 
 let private termParser isArg =
     let root =
