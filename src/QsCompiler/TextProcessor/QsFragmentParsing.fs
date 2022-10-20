@@ -456,7 +456,7 @@ let private setStatement =
             |>> fun (accEx, rhs) -> id, applyTerinary CopyAndUpdate id accEx rhs
 
         let applyAndReassignExpr buildEx id =
-            expectedExpr eof |>> fun ex -> id, applyBinary buildEx () id ex
+            expectedExpr eof |>> fun ex -> id, applyBinary buildEx id ex
 
         // parser that returns function that takes QsExpr and returns a parser
         choice [ pstring qsCopyAndUpdateOp.Op >>. equal >>% updateAndReassign

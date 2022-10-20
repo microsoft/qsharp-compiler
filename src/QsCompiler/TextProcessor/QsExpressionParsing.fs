@@ -39,15 +39,15 @@ let private qsExpression = new OperatorPrecedenceParser<QsExpression, _, _>()
 /// processing all expressions handled by the Q# expression parser as well as omitted arguments
 let private qsArgument = new OperatorPrecedenceParser<QsExpression, _, _>()
 
-let private applyUnary operator _ (ex: QsExpression) =
+let private applyUnary operator (ex: QsExpression) =
     (operator ex, ex.Range) |> QsExpression.New // todo: not entirely correct range info, but for now will do
 
-let internal applyBinary operator _ (left: QsExpression) (right: QsExpression) =
+let internal applyBinary operator (left: QsExpression) (right: QsExpression) =
     buildCombinedExpr (operator (left, right)) (left.Range, right.Range)
 
 let internal applyTerinary operator (first: QsExpression) (second: QsExpression) (third: QsExpression) =
     let buildOp (left, right) = operator (left, second, right)
-    applyBinary buildOp () first third
+    applyBinary buildOp first third
 
 let private deprecatedOp warning (parsedOp: string) =
     let precedingRange (pos: Position) =
@@ -59,6 +59,17 @@ let private deprecatedOp warning (parsedOp: string) =
         Range.Create precedingPos pos
 
     buildWarning (getPosition |>> precedingRange) warning
+
+/// Applies a functor application operator and repairs the expression tree so that it always binds tighter than a call
+/// expression. This is a workaround for complex postfix operators being parsed separately from the operator precedence
+/// parser.
+let private fixFunctorPrecedence (f: _ -> QsExpression) e =
+    match e.Expression with
+    | CallLikeExpression (callee, args) ->
+        let callee' = f callee
+        let range = (callee'.Range, e.Range) ||> QsNullable.Map2(fun r1 r2 -> Range.Create r1.Start r2.End)
+        QsExpression.New(CallLikeExpression(callee', args), range)
+    | _ -> f e
 
 qsExpression.AddOperator(
     TernaryOperator(
@@ -85,40 +96,25 @@ qsExpression.AddOperator(
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsRangeOp.Op, emptySpace, qsRangeOp.Prec, qsRangeOp.Associativity, (), applyBinary RangeLiteral)
+    InfixOperator(qsRangeOp.Op, emptySpace, qsRangeOp.Prec, qsRangeOp.Associativity, applyBinary RangeLiteral)
 )
 
-qsExpression.AddOperator(InfixOperator(qsORop.Op, emptySpace, qsORop.Prec, qsORop.Associativity, (), applyBinary OR))
+qsExpression.AddOperator(InfixOperator(qsORop.Op, emptySpace, qsORop.Prec, qsORop.Associativity, applyBinary OR))
+qsExpression.AddOperator(InfixOperator(qsANDop.Op, emptySpace, qsANDop.Prec, qsANDop.Associativity, applyBinary AND))
+qsExpression.AddOperator(InfixOperator(qsBORop.Op, emptySpace, qsBORop.Prec, qsBORop.Associativity, applyBinary BOR))
 
 qsExpression.AddOperator(
-    InfixOperator(qsANDop.Op, emptySpace, qsANDop.Prec, qsANDop.Associativity, (), applyBinary AND)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsBORop.Op, emptySpace, qsBORop.Prec, qsBORop.Associativity, (), applyBinary BOR)
+    InfixOperator(qsBXORop.Op, emptySpace, qsBXORop.Prec, qsBXORop.Associativity, applyBinary BXOR)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsBXORop.Op, emptySpace, qsBXORop.Prec, qsBXORop.Associativity, (), applyBinary BXOR)
+    InfixOperator(qsBANDop.Op, emptySpace, qsBANDop.Prec, qsBANDop.Associativity, applyBinary BAND)
 )
 
-qsExpression.AddOperator(
-    InfixOperator(qsBANDop.Op, emptySpace, qsBANDop.Prec, qsBANDop.Associativity, (), applyBinary BAND)
-)
-
-qsExpression.AddOperator(InfixOperator(qsEQop.Op, emptySpace, qsEQop.Prec, qsEQop.Associativity, (), applyBinary EQ))
-
-qsExpression.AddOperator(
-    InfixOperator(qsNEQop.Op, emptySpace, qsNEQop.Prec, qsNEQop.Associativity, (), applyBinary NEQ)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsLTEop.Op, emptySpace, qsLTEop.Prec, qsLTEop.Associativity, (), applyBinary LTE)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsGTEop.Op, emptySpace, qsGTEop.Prec, qsGTEop.Associativity, (), applyBinary GTE)
-)
+qsExpression.AddOperator(InfixOperator(qsEQop.Op, emptySpace, qsEQop.Prec, qsEQop.Associativity, applyBinary EQ))
+qsExpression.AddOperator(InfixOperator(qsNEQop.Op, emptySpace, qsNEQop.Prec, qsNEQop.Associativity, applyBinary NEQ))
+qsExpression.AddOperator(InfixOperator(qsLTEop.Op, emptySpace, qsLTEop.Prec, qsLTEop.Associativity, applyBinary LTE))
+qsExpression.AddOperator(InfixOperator(qsGTEop.Op, emptySpace, qsGTEop.Prec, qsGTEop.Associativity, applyBinary GTE))
 
 qsExpression.AddOperator(
     InfixOperator(
@@ -126,36 +122,24 @@ qsExpression.AddOperator(
         notFollowedBy (pchar '-') >>. emptySpace,
         qsLTop.Prec,
         qsLTop.Associativity,
-        (),
         applyBinary LT
     )
 )
 
-qsExpression.AddOperator(InfixOperator(qsGTop.Op, emptySpace, qsGTop.Prec, qsGTop.Associativity, (), applyBinary GT))
+qsExpression.AddOperator(InfixOperator(qsGTop.Op, emptySpace, qsGTop.Prec, qsGTop.Associativity, applyBinary GT))
 
 qsExpression.AddOperator(
-    InfixOperator(qsRSHIFTop.Op, emptySpace, qsRSHIFTop.Prec, qsRSHIFTop.Associativity, (), applyBinary RSHIFT)
+    InfixOperator(qsRSHIFTop.Op, emptySpace, qsRSHIFTop.Prec, qsRSHIFTop.Associativity, applyBinary RSHIFT)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsLSHIFTop.Op, emptySpace, qsLSHIFTop.Prec, qsLSHIFTop.Associativity, (), applyBinary LSHIFT)
+    InfixOperator(qsLSHIFTop.Op, emptySpace, qsLSHIFTop.Prec, qsLSHIFTop.Associativity, applyBinary LSHIFT)
 )
 
-qsExpression.AddOperator(
-    InfixOperator(qsADDop.Op, emptySpace, qsADDop.Prec, qsADDop.Associativity, (), applyBinary ADD)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsSUBop.Op, emptySpace, qsSUBop.Prec, qsSUBop.Associativity, (), applyBinary SUB)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsMULop.Op, emptySpace, qsMULop.Prec, qsMULop.Associativity, (), applyBinary MUL)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsMODop.Op, emptySpace, qsMODop.Prec, qsMODop.Associativity, (), applyBinary MOD)
-)
+qsExpression.AddOperator(InfixOperator(qsADDop.Op, emptySpace, qsADDop.Prec, qsADDop.Associativity, applyBinary ADD))
+qsExpression.AddOperator(InfixOperator(qsSUBop.Op, emptySpace, qsSUBop.Prec, qsSUBop.Associativity, applyBinary SUB))
+qsExpression.AddOperator(InfixOperator(qsMULop.Op, emptySpace, qsMULop.Prec, qsMULop.Associativity, applyBinary MUL))
+qsExpression.AddOperator(InfixOperator(qsMODop.Op, emptySpace, qsMODop.Prec, qsMODop.Associativity, applyBinary MOD))
 
 qsExpression.AddOperator(
     InfixOperator(
@@ -163,16 +147,12 @@ qsExpression.AddOperator(
         notFollowedBy (pchar '/') >>. emptySpace,
         qsDIVop.Prec,
         qsDIVop.Associativity,
-        (),
         applyBinary DIV
     )
 )
 
-qsExpression.AddOperator(
-    InfixOperator(qsPOWop.Op, emptySpace, qsPOWop.Prec, qsPOWop.Associativity, (), applyBinary POW)
-)
-
-qsExpression.AddOperator(PrefixOperator(qsBNOTop.Op, emptySpace, qsBNOTop.Prec, true, (), applyUnary BNOT))
+qsExpression.AddOperator(InfixOperator(qsPOWop.Op, emptySpace, qsPOWop.Prec, qsPOWop.Associativity, applyBinary POW))
+qsExpression.AddOperator(PrefixOperator(qsBNOTop.Op, emptySpace, qsBNOTop.Prec, true, applyUnary BNOT))
 
 qsExpression.AddOperator(
     PrefixOperator(
@@ -180,12 +160,11 @@ qsExpression.AddOperator(
         notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
         qsNOTop.Prec,
         true,
-        (),
         applyUnary NOT
     )
 )
 
-qsExpression.AddOperator(PrefixOperator(qsNEGop.Op, emptySpace, qsNEGop.Prec, true, (), applyUnary NEG))
+qsExpression.AddOperator(PrefixOperator(qsNEGop.Op, emptySpace, qsNEGop.Prec, true, applyUnary NEG))
 
 qsExpression.AddOperator(
     PrefixOperator(
@@ -193,7 +172,6 @@ qsExpression.AddOperator(
         "!" |> deprecatedOp WarningCode.DeprecatedNOToperator >>. emptySpace,
         qsNOTop.Prec,
         true,
-        (),
         applyUnary NOT
     )
 )
@@ -204,7 +182,6 @@ qsExpression.AddOperator(
         "||" |> deprecatedOp WarningCode.DeprecatedORoperator >>. emptySpace,
         qsORop.Prec,
         qsORop.Associativity,
-        (),
         applyBinary OR
     )
 )
@@ -215,18 +192,9 @@ qsExpression.AddOperator(
         "&&" |> deprecatedOp WarningCode.DeprecatedANDoperator >>. emptySpace,
         qsANDop.Prec,
         qsANDop.Associativity,
-        (),
         applyBinary AND
     )
 )
-
-let fixupFunctor (f: 'a -> QsExpression -> QsExpression) x e =
-    match e.Expression with
-    | CallLikeExpression (callee, args) ->
-        let callee' = f x callee
-        let range = (callee'.Range, e.Range) ||> QsNullable.Map2(fun r1 r2 -> Range.Create r1.Start r2.End)
-        QsExpression.New(CallLikeExpression(callee', args), range)
-    | _ -> f x e
 
 qsExpression.AddOperator(
     PrefixOperator(
@@ -234,8 +202,7 @@ qsExpression.AddOperator(
         notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
         qsAdjointModifier.Prec,
         true,
-        (),
-        fixupFunctor (applyUnary AdjointApplication)
+        fixFunctorPrecedence (applyUnary AdjointApplication)
     )
 )
 
@@ -245,13 +212,11 @@ qsExpression.AddOperator(
         notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
         qsControlledModifier.Prec,
         true,
-        (),
-        fixupFunctor (applyUnary ControlledApplication)
+        fixFunctorPrecedence (applyUnary ControlledApplication)
     )
 )
 
-for op in qsExpression.Operators do
-    qsArgument.AddOperator op
+Seq.iter qsArgument.AddOperator qsExpression.Operators
 
 // processing modifiers (functor application and unwrap directives)
 // -> modifiers basically act as unary operators with infinite precedence that can only be applied to certain expressions
@@ -659,7 +624,7 @@ let private argumentTuple =
 /// Note that this parser has a dependency on the arrayItemExpr, identifier, and tupleItem expr parsers -
 /// meaning they process the left-most part of the call-like expression and thus need to be evaluated *after* the callLikeExpr parser.
 let private callLikeExpr =
-    many1 argumentTuple |>> (fun x y -> y :: x |> List.reduce (applyBinary CallLikeExpression ()))
+    many1 argumentTuple |>> (fun x y -> y :: x |> List.reduce (applyBinary CallLikeExpression))
 
 /// Parses a (unqualified) symbol-like expression used as local identifier, raising a suitable error for an invalid
 /// symbol name.
@@ -702,30 +667,27 @@ let private lambda =
 
 // processing terms of operator precedence parsers
 
-type private MissingMode =
-    | NoMissing
-    | AllowMissing
-
-let private chainPostfix (p: Parser<'T, _>) (op: Parser<'T -> 'T, _>) =
-    let rec rest x = (op >>= fun f -> rest (f x)) <|>% x
+let private chainPostfix p op =
+    let rec rest x = (op >>= fun f -> f x |> rest) <|>% x
     p >>= rest
 
-let private baseTerm missingMode (tupleExpr: Parser<_, _>) =
-    choice [ newArray
-             lambda
-             if missingMode = AllowMissing then missingExpr
-             unitValue
-             valueArray
-             tupleExpr
-             pauliLiteral
-             resultLiteral
-             numericLiteral
-             boolLiteral
-             stringLiteral
-             identifier ]
+let private termParser isArg =
+    let root =
+        choice [ newArray
+                 lambda
+                 if isArg then missingExpr
+                 unitValue
+                 valueArray
+                 valueTuple (if isArg then argument else expr)
+                 pauliLiteral
+                 resultLiteral
+                 numericLiteral
+                 boolLiteral
+                 stringLiteral
+                 identifier ]
 
-let private termParser missingMode tupleExpr =
-    chainPostfix (baseTerm missingMode tupleExpr) (unwrap <|> callLikeExpr <|> itemAccessExpr)
+    let postfix = unwrap <|> callLikeExpr <|> itemAccessExpr
+    chainPostfix root postfix
 
-qsExpression.TermParser <- valueTuple expr |> termParser NoMissing
-qsArgument.TermParser <- valueTuple argument |> termParser AllowMissing
+qsExpression.TermParser <- termParser false
+qsArgument.TermParser <- termParser true
