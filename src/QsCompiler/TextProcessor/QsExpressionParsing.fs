@@ -17,7 +17,6 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
 
-
 // operator precedence parsers for expressions and call arguments
 
 /// returns a QsExpression representing an invalid expression (i.e. syntax error on parsing)
@@ -218,20 +217,9 @@ qsExpression.AddOperator(
 
 Seq.iter qsArgument.AddOperator qsExpression.Operators
 
-// processing modifiers (functor application and unwrap directives)
-// -> modifiers basically act as unary operators with infinite precedence that can only be applied to certain expressions
-
-/// Parses a postfix modifer (unwrap operator) as term and returns its range,
-/// i.e. fails without consuming input if there is no postfix modifier to parse.
-let private postFixModifier = term (pstring qsUnwrapModifier.Op .>> notFollowedBy (pchar '=')) |>> snd
-
 let private unwrap =
-    let rec applyUnwraps unwraps (core: QsExpression) =
-        match unwraps with
-        | [] -> core
-        | range :: tail -> buildCombinedExpr (UnwrapApplication core) (core.Range, Value range) |> applyUnwraps tail
-
-    many1 postFixModifier |>> applyUnwraps
+    pstring qsUnwrapModifier.Op .>> notFollowedBy (pchar '=') |> term
+    |>> fun (_, r) e -> buildCombinedExpr (UnwrapApplication e) (e.Range, Value r)
 
 // utils for building expressions
 
@@ -260,7 +248,6 @@ let internal expectedExpr continuation =
 let private asExpression core = term core |>> QsExpression.New
 
 let private buildExpression ex (range: Range) = (ex, range) |> QsExpression.New
-
 
 // Qs literals
 
@@ -535,79 +522,59 @@ type private ItemAccessor =
 /// i.e. they can be preceded by functor application directives, and followed by unwrap application directives.
 /// Note that this parser has a dependency on the identifier, tupleItem expr, and valueArray parsers -
 /// meaning they process the left-most part of the array item expression and thus need to be evaluated *after* the arrayItemExpr parser.
-let private itemAccessExpr: Parser<QsExpression -> QsExpression, _> =
-    let rec applyPostfixModifiers ex =
-        function
-        | [] -> ex
-        | range: Range :: tail ->
-            let ex = (UnwrapApplication(ex), range) |> QsExpression.New
-            applyPostfixModifiers ex tail
+let private itemAccessExpr =
+    let missingEx pos =
+        (MissingExpr, Range.Create pos pos) |> QsExpression.New
 
-    let rec applyAccessors (ex: QsExpression, item) =
-        let recur (accessEx, mods) tail =
-            let accessExWithMods = applyPostfixModifiers accessEx mods
-            applyAccessors (accessExWithMods, tail)
+    let openRange = pstring qsOpenRangeOp.Op |> term
 
-        match item with
-        | [] -> ex
-        | (ArrayItemAccessor (idx, range), postfixMod) :: tail ->
-            let arrItemEx = buildCombinedExpr (ArrayItem(ex, idx)) (ex.Range, Value range)
-            recur (arrItemEx, postfixMod) tail
-        | (NamedItemAccessor sym, postfixMod) :: tail ->
-            let namedItemEx = buildCombinedExpr (NamedItem(ex, sym)) (ex.Range, sym.Range)
-            recur (namedItemEx, postfixMod) tail
+    let fullyOpenRange =
+        openRange |>> snd .>>? followedBy eof
+        |>> fun range ->
+                let lhs, rhs = missingEx range.Start, missingEx range.End
+                buildCombinedExpr (RangeLiteral(lhs, rhs)) (lhs.Range, rhs.Range)
 
-    let accessor =
-        let missingEx pos =
-            (MissingExpr, Range.Create pos pos) |> QsExpression.New
+    let closedOrHalfOpenRange =
+        let skipToTailingRangeOrEnd = followedBy (opt openRange >>? eof) |> manyCharsTill anyChar
 
-        let openRange = pstring qsOpenRangeOp.Op |> term
+        let slicingExpr state =
+            (opt openRange .>>. expectedExpr eof |> runOnSubstream state) .>>. opt openRange
 
-        let fullyOpenRange =
-            openRange |>> snd .>>? followedBy eof
-            |>> fun range ->
-                    let lhs, rhs = missingEx range.Start, missingEx range.End
-                    buildCombinedExpr (RangeLiteral(lhs, rhs)) (lhs.Range, rhs.Range)
-
-        let closedOrHalfOpenRange =
-            let skipToTailingRangeOrEnd = followedBy (opt openRange >>? eof) |> manyCharsTill anyChar
-
-            let slicingExpr state =
-                (opt openRange .>>. expectedExpr eof |> runOnSubstream state) .>>. opt openRange
-
-            getCharStreamState >>= fun state -> skipToTailingRangeOrEnd >>. slicingExpr state
-            |>> fun ((pre, core: QsExpression), post) ->
-                    let applyPost ex =
-                        match post with
-                        | None -> ex
-                        | Some (_, range) ->
-                            buildCombinedExpr (RangeLiteral(ex, missingEx range.End)) (ex.Range, Value range)
-
-                    match pre with
-                    // we potentially need to re-construct the expression following the open range operator
-                    // to get the correct behavior (in terms of associativity and precedence)
+        getCharStreamState >>= fun state -> skipToTailingRangeOrEnd >>. slicingExpr state
+        |>> fun ((pre, core: QsExpression), post) ->
+                let applyPost ex =
+                    match post with
+                    | None -> ex
                     | Some (_, range) ->
-                        let combineWith right left =
-                            buildCombinedExpr (RangeLiteral(left, right)) (left.Range, right.Range)
+                        buildCombinedExpr (RangeLiteral(ex, missingEx range.End)) (ex.Range, Value range)
 
-                        match core.Expression with
-                        // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence,
-                        // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it.
-                        | RangeLiteral (lex, rex) ->
-                            buildCombinedExpr (RangeLiteral(missingEx range.End, lex)) (Value range, lex.Range)
-                            |> combineWith rex
-                        | _ -> missingEx range.End |> combineWith core |> applyPost
-                    | None -> core |> applyPost
+                match pre with
+                // we potentially need to re-construct the expression following the open range operator
+                // to get the correct behavior (in terms of associativity and precedence)
+                | Some (_, range) ->
+                    let combineWith right left =
+                        buildCombinedExpr (RangeLiteral(left, right)) (left.Range, right.Range)
 
-        let arrayItemAccess = arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
+                    match core.Expression with
+                    // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence,
+                    // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it.
+                    | RangeLiteral (lex, rex) ->
+                        buildCombinedExpr (RangeLiteral(missingEx range.End, lex)) (Value range, lex.Range)
+                        |> combineWith rex
+                    | _ -> missingEx range.End |> combineWith core |> applyPost
+                | None -> core |> applyPost
 
-        let namedItemAccess =
-            term (pstring qsNamedItemCombinator.Op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol
-            |>> NamedItemAccessor
+    let arrayItemAccess = arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
 
-        (arrayItemAccess <|> namedItemAccess) .>>. many postFixModifier
+    let namedItemAccess =
+        term (pstring qsNamedItemCombinator.Op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol
+        |>> NamedItemAccessor
 
-    many1 accessor |>> (fun x y -> applyAccessors (y, x))
+    arrayItemAccess <|> namedItemAccess
+    |>> fun accessor expr ->
+            match accessor with
+            | ArrayItemAccessor (idx, range) -> buildCombinedExpr (ArrayItem(expr, idx)) (expr.Range, Value range)
+            | NamedItemAccessor sym -> buildCombinedExpr (NamedItem(expr, sym)) (expr.Range, sym.Range)
 
 /// Parses a Q# argument tuple - i.e. an expression tuple that may contain Missing expressions.
 /// If the parsed argument tuple is not a unit value,
@@ -624,7 +591,7 @@ let private argumentTuple =
 /// Note that this parser has a dependency on the arrayItemExpr, identifier, and tupleItem expr parsers -
 /// meaning they process the left-most part of the call-like expression and thus need to be evaluated *after* the callLikeExpr parser.
 let private callLikeExpr =
-    many1 argumentTuple |>> (fun x y -> y :: x |> List.reduce (applyBinary CallLikeExpression))
+    argumentTuple |>> fun args callee -> applyBinary CallLikeExpression callee args
 
 /// Parses a (unqualified) symbol-like expression used as local identifier, raising a suitable error for an invalid
 /// symbol name.
