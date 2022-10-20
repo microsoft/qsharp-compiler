@@ -429,6 +429,22 @@ let ``Complex literal tests`` () =
         |> toExpr,
         []
 
+        "[[[[1]]]]", true, toArray [ toArray [ toArray [ toArray [ toInt 1 ] ] ] ], []
+
+        "[[[[[[[[[[[[[0]]]]]]]]]]]]]",
+        true,
+        toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toInt
+                                                                                                                                              0 ] ] ] ] ] ] ] ] ] ] ] ] ],
+        []
+
+        "[[[[[[[[[[[[ [x, x] ]]]]]]]]]]]]",
+        true,
+        toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toIdentifier
+                                                                                                                                              "x"
+                                                                                                                                          toIdentifier
+                                                                                                                                              "x" ] ] ] ] ] ] ] ] ] ] ] ] ],
+        []
+
         "(1,2,3)", true, toTuple [ toInt 1; toInt 2; toInt 3 ], []
 
         "(x,2,3)",
