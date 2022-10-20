@@ -173,6 +173,15 @@
     <Content Include="TestCases\QirTests\TestEntryPoint.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestArguments1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestArguments2.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestArguments.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestExpressions.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -488,7 +497,7 @@
     <None Include="TestCases\OptimizerTests\TypedParameters_input.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Content Include="TestCases\ExecutionTests\QirTests.qs">
+    <Content Include="TestCases\ExecutionTests\QirMemoryManagementTests.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\ExecutionTests\QirDataTypeTests.qs">

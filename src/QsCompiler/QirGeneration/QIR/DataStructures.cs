@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using LlvmBindings.Types;
 using LlvmBindings.Values;
@@ -499,6 +498,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private readonly IValue.Cached<Value> length;
         private readonly IValue.Cached<PointerValue>[]? arrayElementPointers;
+        private LlvmBindings.Instructions.Alloca? tempArrayStorage;
 
         internal ResolvedType QSharpElementType { get; }
 
@@ -544,7 +544,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 arrayElements = this.NormalizeArrayElements(elementType, arrayElements);
                 var elementTypes = arrayElements.Select(e => e.LlvmType).Distinct();
                 this.LlvmElementType = elementTypes.SingleOrDefault() ?? context.Values.DefaultValue(elementType).LlvmType;
-                this.Value = CreateNativeValue(this.LlvmElementType, (uint)arrayElements.Count(), this.Count.Value, context);
+                this.Value = CreateNativeValue(this.LlvmElementType, (uint)arrayElements.Count(), this.Length, context);
                 this.LlvmType = this.Value.NativeType;
             }
             else
@@ -621,6 +621,9 @@ namespace Microsoft.Quantum.QIR.Emission
                     this.sharedState.Context.CreateConstant(alwaysCopy))
                 : array.Value;
 
+            // An alloca instruction stored with the array should be accessible for the new array value as well.
+            // We can hence share constArrayTempStorage here.
+            this.tempArrayStorage = array.tempArrayStorage;
             this.arrayElementPointers = array.arrayElementPointers?.Select((cache, idx) =>
                 this.CreateArrayElementPointerCache(idx, cache.IsCached ? cache.Load() : null)).ToArray();
         }
@@ -638,11 +641,22 @@ namespace Microsoft.Quantum.QIR.Emission
             this.LlvmType = value.NativeType;
             this.Count = count;
 
-            if (this.AsNativeValue(out var constArr, out var length, value: value))
+            if (this.IsNativeValue(value))
             {
-                this.Count ??= QirValues.AsConstantUInt32(length);
-                this.LlvmElementType = ((IArrayType)constArr.NativeType).ElementType;
+                this.Count ??= QirValues.AsConstantUInt32(this.NativeArrayLength(value));
+                var storageType = this.NativeArrayStorage(value).NativeType;
+                this.LlvmElementType = NativeStorageElementType(storageType);
                 this.Value = value;
+
+                if (this.IsNamedArray())
+                {
+                    // The storage type is named primarily with the intent to replace its definition
+                    // as part of a separate compilation step after the initial QIR generation.
+                    // Correspondingly, all item access and manipulation is doing via pointer access
+                    // instead of direct extraction/insertion. We hence allocate temporary storage to and from
+                    // which the current/updated array content is loaded for that purpose.
+                    this.tempArrayStorage = this.sharedState.Allocate(storageType);
+                }
             }
             else
             {
@@ -701,61 +715,10 @@ namespace Microsoft.Quantum.QIR.Emission
 
         /* private helpers */
 
-        private static IStructType NativeType(ITypeRef elementType, uint nrElements, GenerationContext context) =>
-            context.Context.CreateStructType(
-                packed: false,
-                elementType.CreateArrayType(nrElements),
-                context.Types.Int); // to store the actual count
-
-        private static Value CreateNativeValue(Value constArray, Value length, GenerationContext context)
-        {
-            var constArrType = (IArrayType)constArray.NativeType;
-            var nativeType = NativeType(constArrType.ElementType, constArrType.Length, context);
-
-            Value nativeValue = nativeType.GetNullValue();
-            nativeValue = context.CurrentBuilder.InsertValue(nativeValue, constArray, 0u);
-            nativeValue = context.CurrentBuilder.InsertValue(nativeValue, length, 1u);
-            return nativeValue;
-        }
-
-        private static Value CreateNativeValue(Value constArray, uint count, GenerationContext context) =>
-            CreateNativeValue(constArray, context.Context.CreateConstant((long)count), context);
-
-        private static Value CreateNativeValue(ITypeRef elementType, uint nrElements, uint count, GenerationContext context) =>
-            CreateNativeValue(elementType.CreateArrayType(nrElements).GetNullValue(), count, context);
-
-        private Value UpdateNativeValue(Func<Value, Value>? transformConstArr = null) =>
-            this.AsNativeValue(out var constArr, out var length)
-                ? CreateNativeValue(
-                    transformConstArr?.Invoke(constArr) ?? constArr,
-                    this.Count != null ? this.sharedState.Context.CreateConstant((long)this.Count) : length,
-                    this.sharedState)
-                : throw new InvalidOperationException("no native llvm represenation available");
-
-        private bool IsNativeValue(Value? value = null) =>
-            (value ?? this.Value).NativeType is IStructType st
-                && st.Members.Count == 2
-                && st.Members[0] is IArrayType
-                && st.Members[1] == this.sharedState.Types.Int;
-
-        private bool AsNativeValue([MaybeNullWhen(false)] out Value constArr, [MaybeNullWhen(false)] out Value length, Value? value = null)
-        {
-            value ??= this.Value;
-            if (this.IsNativeValue(value))
-            {
-                constArr = this.sharedState.CurrentBuilder.ExtractValue(value, 0u);
-                length = this.sharedState.CurrentBuilder.ExtractValue(value, 1u);
-                return true;
-            }
-
-            (constArr, length) = (null, null);
-            return false;
-        }
-
         private IValue.Cached<Value> CreateLengthCache(Value? length = null) =>
             new(length, this.sharedState, () =>
                 this.Count is uint count ? this.sharedState.Context.CreateConstant((long)count)
-                : this.AsNativeValue(out var _, out var length) ? length
+                : this.IsNativeValue() ? this.NativeArrayLength()
                 : this.sharedState.CurrentBuilder.Call(
                     this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
                     this.OpaquePointer));
@@ -778,8 +741,169 @@ namespace Microsoft.Quantum.QIR.Emission
                 this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type),
                 this.Length);
 
+        /* methods used to define and manipulate stack allocated arrays (i.e. arrays not managed by the runtime) */
+
+        /// <summary>
+        /// Creates the LLVM data type used for stack allocated arrays.
+        /// </summary>
+        /// <remarks>
+        /// We use a struct containing an i64 and a struct to store the actual length of the array as well as the array itself.
+        /// For the array itself, we choose a struct with a single entry that is a constant array.
+        /// This permits us to both name the type (which can only be done for structs and not for constant arrays),
+        /// such that we can easily edit the size of the type once it is known (relevant for command line arguments),
+        /// while simultaneously access and update items via getElementPrt if needed
+        /// (needed when the accurate length is not know for the initial IR emission).
+        /// </remarks>
+        internal static IStructType StackAllocatedArrayType(Types types, ITypeRef elementType, uint nrElements, string? storageName = null) =>
+            types.TypedTuple(types.Int, NativeStorageType(types, elementType, nrElements, storageName));
+
+        // Todo: look into the llvm function GetArrayLength, BuildArrayMalloc, and LLVMBuildArrayAlloca
+        private bool IsNativeValue(Value? value = null) =>
+            (value ?? this.Value).NativeType is IStructType st
+                && st.Members.Count == 2
+                && st.Members[0] == this.sharedState.Types.Int
+                && st.Members[1] is IStructType arrStruct
+                && arrStruct.Members.Count == 1
+                && arrStruct.Members[0] is IArrayType;
+
+        private bool IsNamedArray(Value? value = null) =>
+            this.IsNativeValue(value) &&
+            !string.IsNullOrWhiteSpace(((IStructType)((IStructType)(value ?? this.Value).NativeType).Members[1]).Name);
+
+        private static Value CreateNativeValue(ITypeRef elementType, uint storageSize, Value length, GenerationContext context)
+        {
+            var arrayStorage = NativeStorageType(context.Types, elementType, storageSize, storageName: null).GetNullValue();
+            Value nativeValue = context.Types.TypedTuple(context.Types.Int, arrayStorage.NativeType).GetNullValue();
+            nativeValue = context.CurrentBuilder.InsertValue(nativeValue, length, 0u);
+            nativeValue = context.CurrentBuilder.InsertValue(nativeValue, arrayStorage, 1u);
+            return nativeValue;
+        }
+
+        private Value NativeArrayLength(Value? value = null) =>
+            this.sharedState.CurrentBuilder.ExtractValue(value ?? this.Value, 0u);
+
+        private Value NativeArrayStorage(Value? value = null) =>
+            this.sharedState.CurrentBuilder.ExtractValue(value ?? this.Value, 1u);
+
+        private static ITypeRef NativeStorageType(Types types, ITypeRef elementType, uint nrElements, string? storageName = null) =>
+            storageName is null
+                ? types.TypedTuple(elementType.CreateArrayType(nrElements))
+                : types.NamedStruct(storageName, elementType.CreateArrayType(nrElements));
+
+        /// <returns>
+        /// The number of elements which can be stored in the given array storage container.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// The array storage container size is unknown.
+        /// </exception>
+        /// <remarks>
+        /// This method is primarily used for normalizing array elements when an array is updated.
+        /// This normalization must fail when trying to normalize an array for which we have erased the information about
+        /// the number of elements it stores ("zero-sized" arrays). Such arrays are recognized by a type name on the
+        /// storage type, since that type will be replaced with an appropriate type once the number of elements is known.
+        /// </remarks>
+        private static uint NativeStorageSize(Value arrayStorage)
+        {
+            var storageType = (IStructType)arrayStorage.NativeType;
+            return string.IsNullOrEmpty(storageType.Name)
+                ? ((IArrayType)storageType.Members[0]).Length
+                : throw new InvalidOperationException("cannot determine storage size for array of unknown length");
+        }
+
+        /// <returns>
+        /// The type of the elements stored in the given array storage container.
+        /// </returns>
+        private static ITypeRef NativeStorageElementType(ITypeRef storageType) =>
+            ((IArrayType)((IStructType)storageType).Members[0]).ElementType;
+
+        /// <summary>
+        /// Retrieves the element at the given index when the array is represented as native value.
+        /// </summary>
+        /// <returns>
+        /// The element at the given index.
+        /// </returns>
+        private IValue LoadElementFromNativeStorage(Value index)
+        {
+            Value GetElementFromStorage(uint constIndex)
+            {
+                var constArr = this.sharedState.CurrentBuilder.ExtractValue(this.NativeArrayStorage(), 0u);
+                return constIndex < (this.Count ?? ((IArrayType)constArr.NativeType).Length)
+                    ? this.sharedState.CurrentBuilder.ExtractValue(constArr, constIndex)
+                    : Constant.PoisonValueFor(this.LlvmElementType);
+            }
+
+            return this.sharedState.Values.From(
+                QirValues.AsConstantUInt32(index) is uint constIndex && !this.IsNamedArray()
+                    ? GetElementFromStorage(constIndex)
+                    : this.sharedState.CurrentBuilder.Load(this.LlvmElementType, this.GetElementPointerToNativeStorage(index)),
+                this.QSharpElementType);
+        }
+
+        /// <summary>
+        /// Sets the element at the given index to teh given value when the array is represented as native value.
+        /// Normalizes the element and the native value if necessary.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// Either the array itself or an inner array contained in one of its elements is a named array whose storage size is unknown.
+        /// </exception>
+        private void SetElementUsingNativeStorage(Value index, IValue newElement)
+        {
+            var arrayStorage = this.NativeArrayStorage();
+            if (newElement.LlvmType != this.LlvmElementType)
+            {
+                // The normalization logic here will (only) fail if either the array itself or an inner array
+                // contained in one of its elements is a named array whose storage size is unknown.
+                // See also the comment in NormalizeArrayElements.
+                var storageSize = NativeStorageSize(arrayStorage);
+                var newElements = this.NormalizeArrayElements(
+                    this.QSharpElementType,
+                    this.GetArrayElements().Prepend(newElement).ToArray());
+                newElement = newElements[0];
+                this.LlvmElementType = newElements.Select(e => e.LlvmType).Distinct().Single();
+
+                var storageType = NativeStorageType(this.sharedState.Types, this.LlvmElementType, storageSize, storageName: null);
+                this.LlvmType = this.sharedState.Types.TypedTuple(this.sharedState.Types.Int, storageType);
+                if (storageType != arrayStorage.NativeType)
+                {
+                    // If the storage type changed, the current handle to the temp storage can no longer be used
+                    // and we will allocate new storage space when needed.
+                    this.tempArrayStorage = null;
+                }
+
+                var constArr = newElements.Skip(1).Select((element, idx) => (element, idx)).Aggregate(
+                    (Value)this.LlvmElementType.CreateArrayType(storageSize).GetNullValue(),
+                    (current, next) => this.sharedState.CurrentBuilder.InsertValue(current, next.element.Value, (uint)next.idx));
+                arrayStorage = this.sharedState.CurrentBuilder.InsertValue(storageType.GetNullValue(), constArr, 0u);
+            }
+
+            if (QirValues.AsConstantUInt32(index) is uint constIndex && !this.IsNamedArray())
+            {
+                var constArr = this.sharedState.CurrentBuilder.ExtractValue(arrayStorage, 0u);
+                constArr = this.sharedState.CurrentBuilder.InsertValue(constArr, newElement.Value, constIndex);
+                arrayStorage = this.sharedState.CurrentBuilder.InsertValue(arrayStorage, constArr, 0u);
+            }
+            else
+            {
+                this.sharedState.CurrentBuilder.Store(newElement.Value, this.GetElementPointerToNativeStorage(index));
+                arrayStorage = this.sharedState.CurrentBuilder.Load(arrayStorage.NativeType, this.tempArrayStorage!);
+            }
+
+            this.Value = this.sharedState.CurrentBuilder.InsertValue(
+                this.sharedState.CurrentBuilder.InsertValue(this.LlvmType.GetNullValue(), this.NativeArrayLength(), 0u),
+                arrayStorage,
+                1u);
+        }
+
+        /// <exception cref="InvalidOperationException">
+        /// One of the array elements contains an inner array for which the storage container size is unknown.
+        /// </exception>
         private IReadOnlyList<IValue> NormalizeArrayElements(ResolvedType eltype, IReadOnlyList<IValue> elements)
         {
+            // Normalization will (only) fail for arrays that contain inner arrays when one or more of the arrays is a named array
+            // and its storage size is unknown. It might be conceivable - albeit certainly not easy and possibly not reasonable -
+            // to support normalizing zero-sized arrays by "making a note" (in IR) of the known element sizes here and then push the
+            // normalization into a separate function to autogenerate when the array that contains an inner array is known.
+            // If we were to do that, then we need to make sure to preserve the correct type name for the array storage when doing so.
             IReadOnlyList<T> NormalizeItems<T>(
                 uint normalizedCount, IReadOnlyList<T> elements, Func<int, T, IValue> getInnerElements, Func<int, ResolvedType> elementType, Func<int, IReadOnlyList<IValue>, T> buildElement)
             where T : IValue
@@ -806,7 +930,7 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 var arrs = elements.Select(e => (ArrayValue)e).ToArray();
                 var sizes = arrs.Select(a =>
-                    a.AsNativeValue(out var constArr, out var _) && constArr.NativeType is IArrayType iat ? iat.Length : 0u);
+                    a.IsNativeValue() ? NativeStorageSize(a.NativeArrayStorage()) : 0u);
                 var innerArrSize = Enumerable.Prepend(sizes, 0u).Max();
 
                 IValue GetInnerElements(int idx, ArrayValue array) =>
@@ -849,25 +973,26 @@ namespace Microsoft.Quantum.QIR.Emission
             }
         }
 
-        private (Value, IValue) NormalizeIfNecessary(Value constArr, IValue newElement)
+        private Value GetElementPointerToNativeStorage(Value index)
         {
-            if (newElement.LlvmType == this.LlvmElementType)
-            {
-                return (constArr, newElement);
-            }
-            else
-            {
-                var currentElements = this.GetArrayElements().Prepend(newElement).ToArray();
-                var newElements = this.NormalizeArrayElements(this.QSharpElementType, currentElements);
-                this.LlvmElementType = newElements.Select(e => e.LlvmType).Distinct().Single();
-                this.LlvmType = this.LlvmElementType.CreateArrayType(((IArrayType)constArr.NativeType).Length);
+            // If we need to access or update an array element when
+            // - either the index of the element to update is unknown at generation time, or
+            // - the array storage datatype does not correctly reflect the size of the storage,
+            // then we store the current array value in the temporary storage location
+            // perform the update via pointer access, and then and reload the updated value.
+            var arrayStorage = this.NativeArrayStorage();
+            this.tempArrayStorage ??= this.sharedState.Allocate(arrayStorage.NativeType);
 
-                var rebuiltArr = newElements.Skip(1).Select((element, idx) => (element, idx)).Aggregate(
-                    (Value)this.LlvmType.GetNullValue(),
-                    (current, next) => this.sharedState.CurrentBuilder.InsertValue(current, next.element.Value, (uint)next.idx));
-
-                return (rebuiltArr, newElements[0]);
-            }
+            // Since the native value may be replaced as part of "updating" other items,
+            // it is important that we reload the constant array every time!
+            this.sharedState.CurrentBuilder.Store(arrayStorage, this.tempArrayStorage);
+            return this.sharedState.CurrentBuilder.GetElementPtr(
+                arrayStorage.NativeType, this.tempArrayStorage, new[]
+                {
+                    this.sharedState.Context.CreateConstant(0),
+                    this.sharedState.Context.CreateConstant(0),
+                    index,
+                });
         }
 
         // methods for item access
@@ -885,61 +1010,14 @@ namespace Microsoft.Quantum.QIR.Emission
                 var typedElementPointer = this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.LlvmElementType.CreatePointerType());
                 return new PointerValue(typedElementPointer, this.QSharpElementType, this.LlvmElementType, this.sharedState);
             }
-            else if (QirValues.AsConstantUInt32(index) is uint constIndex)
-            {
-                void Store(IValue v)
-                {
-                    this.Value = this.UpdateNativeValue(constArr =>
-                    {
-                        (constArr, v) = this.NormalizeIfNecessary(constArr, v);
-                        return this.sharedState.CurrentBuilder.InsertValue(constArr, v.Value, constIndex);
-                    });
-                }
-
-                IValue Reload() =>
-                    this.AsNativeValue(out var constArr, out var _) && constIndex < ((IArrayType)constArr.NativeType).Length
-                    ? this.sharedState.Values.From(
-                        this.sharedState.CurrentBuilder.ExtractValue(constArr, constIndex),
-                        this.QSharpElementType)
-                    : this.sharedState.Values.From(Constant.PoisonValueFor(this.LlvmElementType), this.QSharpElementType);
-
-                return element is null
-                    ? new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store)
-                    : new PointerValue(element, this.sharedState, Reload, Store);
-            }
             else
             {
-                (Value ConstArrPtr, Value ElementPtr) GetElementPointer(Value constArr, Value index)
-                {
-                    var constArrPtr = this.sharedState.Allocate(constArr.NativeType);
-                    this.sharedState.CurrentBuilder.Store(constArr, constArrPtr);
-                    var elementPtr = this.sharedState.CurrentBuilder.GetElementPtr(
-                        constArr.NativeType, constArrPtr, new[] { this.sharedState.Context.CreateConstant(0), index });
-                    return (constArrPtr, elementPtr);
-                }
-
-                void Store(IValue v) =>
-                    this.Value = this.UpdateNativeValue(constArr =>
-                    {
-                        (constArr, v) = this.NormalizeIfNecessary(constArr, v);
-                        var (constArrPtr, elementPtr) = GetElementPointer(constArr, index);
-                        this.sharedState.CurrentBuilder.Store(v.Value, elementPtr);
-                        return this.sharedState.CurrentBuilder.Load(constArr.NativeType, constArrPtr);
-                    });
-
-                IValue Reload()
-                {
-                    // Since the native value may be replaced as part of "updating" other items,
-                    // it is important that we reload the constant array every time!
-                    this.AsNativeValue(out var constArr, out var _);
-                    var (constArrPtr, elementPtr) = GetElementPointer(constArr!, index);
-                    var element = this.sharedState.CurrentBuilder.Load(this.LlvmElementType, elementPtr);
-                    return this.sharedState.Values.From(element, this.QSharpElementType);
-                }
+                IValue Load() => this.LoadElementFromNativeStorage(index);
+                void Store(IValue element) => this.SetElementUsingNativeStorage(index, element);
 
                 return element is null
-                    ? new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Reload, Store)
-                    : new PointerValue(element, this.sharedState, Reload, Store);
+                    ? new PointerValue(this.QSharpElementType, this.LlvmElementType, this.sharedState, Load, Store)
+                    : new PointerValue(element, this.sharedState, Load, Store);
             }
         }
 
@@ -953,6 +1031,10 @@ namespace Microsoft.Quantum.QIR.Emission
         private PointerValue CreateArrayElementPointer(int index, IValue? element = null) =>
             this.CreateArrayElementPointer(this.sharedState.Context.CreateConstant((long)index), element);
 
+        /// <summary>
+        /// Returns the pointers to the array element at the given index.
+        /// The pointer will return a poison value upon load if the given index is known to be outside the range of the array.
+        /// </summary>
         internal PointerValue GetArrayElementPointer(Value index) =>
             this.arrayElementPointers != null && QirValues.AsConstantUInt32(index) is uint idx
             ? (idx < this.arrayElementPointers.Length ? this.arrayElementPointers[idx].Load() : this.CreatePointerForPoison())

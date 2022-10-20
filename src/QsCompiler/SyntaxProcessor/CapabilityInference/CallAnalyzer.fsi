@@ -12,10 +12,10 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 type internal Call = { Name: QsQualifiedName; Range: Range QsNullable }
 
 module internal CallAnalyzer =
-    val shallow: nsManager: NamespaceManager -> graph: CallGraph -> Analyzer<CallGraphNode, Call>
+    val shallow: nsManager: NamespaceManager -> graph: CallGraph -> Analyzer<CallGraphNode>
 
     val deep:
         callables: ImmutableDictionary<QsQualifiedName, QsCallable> ->
         graph: CallGraph ->
-        syntaxAnalyzer: Analyzer<QsCallable, unit> ->
-            Analyzer<QsCallable, unit>
+        syntaxAnalyzer: Analyzer<QsCallable> ->
+            Analyzer<QsCallable>

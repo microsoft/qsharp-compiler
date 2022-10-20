@@ -103,9 +103,18 @@ namespace Microsoft.Quantum.QIR
         /// </summary>
         public IStructType Range { get; }
 
-        /* private and internal fields */
+        /// <summary>
+        /// Type by which data allocated as global constant array is passed to the runtime.
+        /// String and big integers for example are instantiated with a data array.
+        /// </summary>
+        internal IPointerType DataArrayPointer { get; }
 
-        private readonly Context context;
+        /// <summary>
+        /// Generic pointer used to pass values of unknown type that need to be cast before use.
+        /// </summary>
+        internal IPointerType BytePointer { get; }
+
+        /* private and internal fields */
 
         internal IArrayType CallableTable { get; }
 
@@ -115,10 +124,15 @@ namespace Microsoft.Quantum.QIR
 
         internal QirTypeTransformation Transform { get; }
 
-        internal Types(Context context, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
+        private readonly Context context;
+
+        private readonly Dictionary<string, IStructType> namedStructs;
+
+        internal Types(Context context, Func<QsQualifiedName, QsCustomType?> getTypeDecl, bool useNamedLlvmArrays)
         {
             this.context = context;
-            this.Transform = new QirTypeTransformation(this, getTypeDecl);
+            this.namedStructs = new Dictionary<string, IStructType>();
+            this.Transform = new QirTypeTransformation(this, getTypeDecl, useNamedLlvmArrays);
 
             this.Int = context.Int64Type;
             this.Double = context.DoubleType;
@@ -134,6 +148,9 @@ namespace Microsoft.Quantum.QIR
             this.Array = context.CreateStructType(TypeNames.Array).CreatePointerType();
             this.Callable = context.CreateStructType(TypeNames.Callable).CreatePointerType();
 
+            this.DataArrayPointer = context.Int8Type.CreatePointerType();
+            this.BytePointer = context.Int8Type.CreatePointerType();
+
             this.FunctionSignature = context.GetFunctionType(context.VoidType, this.Tuple, this.Tuple, this.Tuple);
             this.CallableTable = this.FunctionSignature.CreatePointerType().CreateArrayType(4);
             this.CaptureCountFunction = context.GetFunctionType(context.VoidType, this.Tuple, context.Int32Type);
@@ -141,6 +158,28 @@ namespace Microsoft.Quantum.QIR
         }
 
         // internal helpers to simplify common code
+
+        /// <summary>
+        /// Creates a struct type with the given name and element types if it does not already exist.
+        /// If a struct with the given name already exists, the existing type is returned without validating the element types.
+        /// </summary>
+        internal IStructType NamedStruct(string name, params ITypeRef[] elementTypes)
+        {
+            if (!this.namedStructs.TryGetValue(name, out var type))
+            {
+                type = this.context.CreateStructType(name, false, elementTypes);
+                this.namedStructs.Add(name, type);
+            }
+
+            return type;
+        }
+
+        /// <summary>
+        /// Creates the LLVM data type used for stack allocated arrays whose size will be resolved
+        /// as part of a compilation step and only after the initial QIR generation.
+        /// </summary>
+        internal IStructType NamedLlvmArray(string storageName, ITypeRef elementType) =>
+            Emission.ArrayValue.StackAllocatedArrayType(this, elementType, nrElements: 0u, storageName);
 
         /// <summary>
         /// Given the type of a pointer to a struct, returns the type of the struct.
@@ -158,19 +197,6 @@ namespace Microsoft.Quantum.QIR
         /// </summary>
         internal static ITypeRef PointerElementType(Value pointer) =>
             ((IPointerType)pointer.NativeType).ElementType;
-
-        /// <summary>
-        /// Type by which data allocated as global constant array is passed to the runtime.
-        /// String and big integers for example are instantiated with a data array.
-        /// </summary>
-        internal IPointerType DataArrayPointer =>
-            this.context.Int8Type.CreatePointerType();
-
-        /// <summary>
-        /// Generic pointer used to pass values of unknown type that need to be cast before use.
-        /// </summary>
-        internal IPointerType BytePointer =>
-            this.context.Int8Type.CreatePointerType();
 
         // public members
 

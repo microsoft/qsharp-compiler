@@ -57,31 +57,31 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             }
 
             internal static readonly OutputRecorderDefinition Message =
-                new OutputRecorderDefinition(BuiltIn.Message.FullName.Name, RuntimeLibrary.Message, ResolvedTypeKind.String);
+                new(BuiltIn.Message.FullName.Name, RuntimeLibrary.Message, ResolvedTypeKind.String);
 
             internal static readonly OutputRecorderDefinition Boolean =
-                new OutputRecorderDefinition("BooleanRecordOutput", "__quantum__rt__bool_record_output", ResolvedTypeKind.Bool);
+                new("BooleanRecordOutput", "__quantum__rt__bool_record_output", ResolvedTypeKind.Bool);
 
             internal static readonly OutputRecorderDefinition Integer =
-                new OutputRecorderDefinition("IntegerRecordOutput", "__quantum__rt__int_record_output", ResolvedTypeKind.Int);
+                new("IntegerRecordOutput", "__quantum__rt__int_record_output", ResolvedTypeKind.Int);
 
             internal static readonly OutputRecorderDefinition Double =
-                new OutputRecorderDefinition("DoubleRecordOutput", "__quantum__rt__double_record_output", ResolvedTypeKind.Double);
+                new("DoubleRecordOutput", "__quantum__rt__double_record_output", ResolvedTypeKind.Double);
 
             internal static readonly OutputRecorderDefinition Result =
-                new OutputRecorderDefinition("ResultRecordOutput", "__quantum__rt__result_record_output", ResolvedTypeKind.Result);
+                new("ResultRecordOutput", "__quantum__rt__result_record_output", ResolvedTypeKind.Result);
 
             internal static readonly OutputRecorderDefinition TupleStart =
-                new OutputRecorderDefinition("TupleStartRecordOutput", "__quantum__rt__tuple_start_record_output", ResolvedTypeKind.UnitType);
+                new("TupleStartRecordOutput", "__quantum__rt__tuple_start_record_output", ResolvedTypeKind.UnitType);
 
             internal static readonly OutputRecorderDefinition TupleEnd =
-                new OutputRecorderDefinition("TupleEndRecordOutput", "__quantum__rt__tuple_end_record_output", ResolvedTypeKind.UnitType);
+                new("TupleEndRecordOutput", "__quantum__rt__tuple_end_record_output", ResolvedTypeKind.UnitType);
 
             internal static readonly OutputRecorderDefinition ArrayStart =
-                new OutputRecorderDefinition("ArrayStartRecordOutput", "__quantum__rt__array_start_record_output", ResolvedTypeKind.UnitType);
+                new("ArrayStartRecordOutput", "__quantum__rt__array_start_record_output", ResolvedTypeKind.UnitType);
 
             internal static readonly OutputRecorderDefinition ArrayEnd =
-                new OutputRecorderDefinition("ArrayEndRecordOutput", "__quantum__rt__array_end_record_output", ResolvedTypeKind.UnitType);
+                new("ArrayEndRecordOutput", "__quantum__rt__array_end_record_output", ResolvedTypeKind.UnitType);
         }
 
         internal string MainSuffix { get; }
@@ -102,6 +102,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
             public QsStatement RecordInt(string name);
 
+            public QsStatement RecordPauli(string name);
+
             public QsStatement RecordDouble(string name);
 
             public QsStatement RecordResult(string name);
@@ -115,6 +117,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         {
             this.Recorder = useRuntimeAPI ? new RuntimeAPI() : new MessageAPI();
             this.MainSuffix = mainSuffix ?? "__Main";
+        }
+
+        /// <param name="identifier">The name of a variable of type Pauli.</param>
+        internal static TypedExpression PauliAsInt(string identifier)
+        {
+            var value = SyntaxGenerator.LocalVariable(identifier, ResolvedTypeKind.Pauli, true); // assume quantum dependency
+            TypedExpression Conditional(QsPauli pauli, int pauliAsInt, TypedExpression onFalse)
+            {
+                var condition = SyntaxGenerator.EqualityComparison(value, SyntaxGenerator.PauliLiteral(pauli));
+                return SyntaxGenerator.ConditionalExpression(ResolvedTypeKind.Int, condition, SyntaxGenerator.IntLiteral(pauliAsInt), onFalse);
+            }
+
+            return Conditional(QsPauli.PauliX, 1, Conditional(QsPauli.PauliY, 3, Conditional(QsPauli.PauliZ, 2, SyntaxGenerator.IntLiteral(0))));
         }
 
         public static QsCompilation Apply(QsCompilation compilation, bool useRuntimeAPI = false, string? mainSuffix = null, bool alwaysCreateWrapper = false)
@@ -145,21 +160,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
             /* private helpers */
 
-            private static QsStatement MakeAPICall(OutputRecorderDefinition recorder, string? parameterName = null)
-            {
-                var parameter = recorder.QSharpSignature.ArgumentType.Resolution.IsUnitType
+            private static QsStatement MakeAPICall(OutputRecorderDefinition recorder, string? parameterName = null) =>
+                MakeAPICall(recorder, recorder.QSharpSignature.ArgumentType.Resolution.IsUnitType
                     ? SyntaxGenerator.UnitValue
-                    : SyntaxGenerator.LocalVariable(parameterName, recorder.QSharpSignature.ArgumentType.Resolution, true); // assume local quantum dependency
+                    : SyntaxGenerator.LocalVariable(parameterName, recorder.QSharpSignature.ArgumentType.Resolution, true)); // assume local quantum dependency
 
-                return new QsStatement(
-                    QsStatementKind.NewQsExpressionStatement(
+            private static QsStatement MakeAPICall(OutputRecorderDefinition recorder, TypedExpression argument) =>
+                new(QsStatementKind.NewQsExpressionStatement(
                         SyntaxGenerator.CallNonGeneric(
                             SyntaxGenerator.GlobalCallable(recorder.QSharpName, recorder.QSharpType.Resolution, QsNullable<ImmutableArray<ResolvedType>>.Null),
-                            parameter)),
+                            argument)),
                     LocalDeclarations.Empty,
                     QsNullable<QsLocation>.Null,
                     QsComments.Empty);
-            }
 
             /* interface methods */
 
@@ -186,6 +199,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
             public QsStatement RecordResult(string name) =>
                 MakeAPICall(OutputRecorderDefinition.Result, name);
+
+            public QsStatement RecordPauli(string name) =>
+                MakeAPICall(OutputRecorderDefinition.Integer, PauliAsInt(name));
         }
 
         private class MessageAPI : IOutputRecorder
@@ -245,6 +261,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
             {
                 var id = SyntaxGenerator.LocalVariable(name, ResolvedTypeKind.Result, true); // assume local quantum dependency
                 return MakeMessageCall("Result: {0}", ImmutableArray.Create(id));
+            }
+
+            public QsStatement RecordPauli(string name)
+            {
+                var id = SyntaxGenerator.LocalVariable(name, ResolvedTypeKind.Result, true); // assume local quantum dependency
+                return MakeMessageCall("Pauli: {0}", ImmutableArray.Create(id));
             }
         }
 
@@ -381,6 +403,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 {
                     statements.Add(this.Recorder.RecordInt(name.Item));
                 }
+                else if (variableDecl.Type.Resolution.IsPauli)
+                {
+                    statements.Add(this.Recorder.RecordPauli(name.Item));
+                }
                 else if (variableDecl.Type.Resolution.IsDouble)
                 {
                     statements.Add(this.Recorder.RecordDouble(name.Item));
@@ -389,17 +415,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 {
                     statements.Add(this.Recorder.RecordResult(name.Item));
                 }
-                else if (variableDecl.Type.Resolution is ResolvedTypeKind.ArrayType arr)
+                else if (variableDecl.Type.Resolution.IsRange
+                    || variableDecl.Type.Resolution.IsArrayType)
                 {
                     statements.Add(this.Recorder.RecordStartArray());
 
-                    var (iterVars, iterVarTypes) = CreateDeconstruction(arr.Item, variableDeclarations.Count());
+                    var itemType = variableDecl.Type.Resolution is ResolvedTypeKind.ArrayType arr
+                        ? arr.Item
+                        : ResolvedType.New(ResolvedTypeKind.Int);
+                    var (iterVars, iterVarTypes) = CreateDeconstruction(itemType, variableDeclarations.Count());
                     var definedInsideFor = variableDeclarations.Concat(iterVarTypes)
                         .ToImmutableDictionary(pair => pair.Key, pair => pair.Value);
 
                     var forStatement = new QsStatement(
                         QsStatementKind.NewQsForStatement(new QsForStatement(
-                            Tuple.Create(iterVars, arr.Item),
+                            Tuple.Create(iterVars, itemType),
                             SyntaxGenerator.LocalVariable(
                                 name.Item,
                                 variableDecl.Type.Resolution,
@@ -468,14 +498,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
 
                 private QsCallable CreateEntryPointWrapper(QsCallable c)
                 {
-                    QsScope CreateWrapperBody()
+                    QsScope CreateWrapperBody(ParameterTuple wrapperArgTuple)
                     {
                         var (argType, returnType) = (c.Signature.ArgumentType, c.Signature.ReturnType);
                         var callableType = c.Kind.IsOperation
                             ? ResolvedTypeKind.NewOperation(Tuple.Create(argType, returnType), c.Signature.Information)
                             : ResolvedTypeKind.NewFunction(argType, returnType);
                         var callee = SyntaxGenerator.GlobalCallable(c.FullName, callableType, QsNullable<ImmutableArray<ResolvedType>>.Null);
-                        var callArgs = SyntaxGenerator.ArgumentTupleAsExpression(c.ArgumentTuple);
+
+                        var wrapperParameters = SyntaxGenerator.ExtractItems(wrapperArgTuple);
+                        var itemIndex = 0;
+                        ParameterTuple BuildCalleeArgTuple(ParameterTuple expected) =>
+                            expected is ParameterTuple.QsTuple tuple
+                                ? ParameterTuple.NewQsTuple(tuple.Item.Select(BuildCalleeArgTuple).ToImmutableArray())
+                                : ParameterTuple.NewQsTupleItem(wrapperParameters[itemIndex++]);
+
+                        var calleeArgTuple = BuildCalleeArgTuple(c.ArgumentTuple);
+                        var callArgs = SyntaxGenerator.ArgumentTupleAsExpression(calleeArgTuple);
 
                         var (outputTuple, variableDeclarations) = CreateDeconstruction(c.Signature.ReturnType);
                         var outputDeconstruction = new QsStatement(
@@ -487,7 +526,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                             QsNullable<QsLocation>.Null,
                             QsComments.Empty);
 
-                        var paramDecl = SyntaxGenerator.ExtractItems(c.ArgumentTuple).ValidDeclarations();
+                        var paramDecl = wrapperParameters.ValidDeclarations();
                         var localDeclarations = variableDeclarations.Values.Concat(paramDecl)
                             .ToImmutableDictionary(decl => decl.VariableName);
                         return new QsScope(
@@ -496,9 +535,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                     }
 
                     var wrapperName = new QsQualifiedName(c.FullName.Namespace, $"{c.FullName.Name}{this.mainSuffix}");
+                    var wrapperArgTuple = ParameterTuple.NewQsTuple(
+                        SyntaxGenerator.ExtractItems(c.ArgumentTuple).Select(ParameterTuple.NewQsTupleItem).ToImmutableArray());
+
                     var wrapperSignature = new ResolvedSignature(
                         ImmutableArray<QsLocalSymbol>.Empty,
-                        c.Signature.ArgumentType,
+                        wrapperArgTuple.GetResolvedType(),
                         ResolvedType.New(ResolvedTypeKind.UnitType),
                         CallableInformation.NoInformation);
 
@@ -510,7 +552,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         c.Location,
                         QsNullable<ImmutableArray<ResolvedType>>.Null,
                         wrapperSignature,
-                        SpecializationImplementation.NewProvided(c.ArgumentTuple, CreateWrapperBody()),
+                        SpecializationImplementation.NewProvided(wrapperArgTuple, CreateWrapperBody(wrapperArgTuple)),
                         ImmutableArray<string>.Empty,
                         QsComments.Empty);
 
@@ -522,7 +564,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                         c.Source,
                         c.Location,
                         wrapperSignature,
-                        c.ArgumentTuple,
+                        wrapperArgTuple,
                         ImmutableArray.Create(bodySpec),
                         ImmutableArray<string>.Empty,
                         QsComments.Empty);

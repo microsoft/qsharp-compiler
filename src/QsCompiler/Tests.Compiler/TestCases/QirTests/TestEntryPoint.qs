@@ -5,8 +5,8 @@ namespace Microsoft.Quantum.Testing.QIR {
 
     @EntryPoint()
     operation TestEntryPoint(
-        arr : Pauli[], str : String, res : Result, range : Range, (cnt : Int, b : Bool))
-    : (Pauli[], String, Result, Range, (Int, Bool)) {
+        arr : Pauli[], str : String, res : Result, range : Range, (cnt : Int, b : Bool, (d: Double, l : BigInt)))
+    : (Pauli[], String, Result, Range, (Int, Bool, (Double))) {
 
         mutable sum = 0.0;
         mutable flag = b;
@@ -17,6 +17,6 @@ namespace Microsoft.Quantum.Testing.QIR {
             set flag = not flag;
         }
 
-        return (arr, str, res, range, (cnt, b));
+        return (arr, str, res, range, (cnt, b, d));
     }
 }

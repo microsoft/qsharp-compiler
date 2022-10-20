@@ -1,4 +1,4 @@
-define { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* @Microsoft__Quantum__Testing__QIR__TestEntryPoint__Interop({ i64, i8* }* %arr, i8* %str, i8 %res, { i64, i64, i64 }* %range, i64 %cnt, i8 %b) #0 {
+define { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }* @Microsoft__Quantum__Testing__QIR__TestEntryPoint__Interop({ i64, i8* }* %arr, i8* %str, i8 %res, { i64, i64, i64 }* %range, i64 %cnt, i8 %b, double %d, { i64, i8* }* %l) #0 {
 entry:
   %0 = getelementptr { i64, i8* }, { i64, i8* }* %arr, i64 0, i32 0
   %1 = getelementptr { i64, i8* }, { i64, i8* }* %arr, i64 0, i32 1
@@ -45,108 +45,127 @@ exit__1:                                          ; preds = %header__1
   %29 = insertvalue %Range %28, i64 %25, 1
   %30 = insertvalue %Range %29, i64 %27, 2
   %31 = trunc i8 %b to i1
-  %32 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i1 }* getelementptr ({ i64, i1 }, { i64, i1 }* null, i32 1) to i64))
-  %33 = bitcast %Tuple* %32 to { i64, i1 }*
-  %34 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %33, i32 0, i32 0
-  %35 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %33, i32 0, i32 1
-  store i64 %cnt, i64* %34, align 4
-  store i1 %31, i1* %35, align 1
-  %36 = call { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* @Microsoft__Quantum__Testing__QIR__TestEntryPoint__body(%Array* %4, %String* %17, %Result* %21, %Range %30, { i64, i1 }* %33)
-  %37 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36, i32 0, i32 0
-  %38 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36, i32 0, i32 1
-  %39 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36, i32 0, i32 2
-  %40 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36, i32 0, i32 3
-  %41 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1 }* }, { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36, i32 0, i32 4
-  %42 = load %Array*, %Array** %37, align 8
-  %43 = load %String*, %String** %38, align 8
-  %44 = load %Result*, %Result** %39, align 8
-  %45 = load %Range, %Range* %40, align 4
-  %46 = load { i64, i1 }*, { i64, i1 }** %41, align 8
-  %47 = call i64 @__quantum__rt__array_get_size_1d(%Array* %42)
-  %48 = mul i64 %47, 1
-  %49 = call i8* @__quantum__rt__memory_allocate(i64 %48)
-  %50 = ptrtoint i8* %49 to i64
-  %51 = sub i64 %47, 1
+  %32 = getelementptr { i64, i8* }, { i64, i8* }* %l, i64 0, i32 0
+  %33 = getelementptr { i64, i8* }, { i64, i8* }* %l, i64 0, i32 1
+  %34 = load i64, i64* %32, align 4
+  %35 = load i8*, i8** %33, align 8
+  %36 = call %BigInt* @__quantum__rt__bigint_create_array(i64 %34, i8* %35)
+  %37 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, %BigInt* }* getelementptr ({ double, %BigInt* }, { double, %BigInt* }* null, i32 1) to i64))
+  %38 = bitcast %Tuple* %37 to { double, %BigInt* }*
+  %39 = getelementptr inbounds { double, %BigInt* }, { double, %BigInt* }* %38, i32 0, i32 0
+  %40 = getelementptr inbounds { double, %BigInt* }, { double, %BigInt* }* %38, i32 0, i32 1
+  store double %d, double* %39, align 8
+  store %BigInt* %36, %BigInt** %40, align 8
+  %41 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i1, { double, %BigInt* }* }* getelementptr ({ i64, i1, { double, %BigInt* }* }, { i64, i1, { double, %BigInt* }* }* null, i32 1) to i64))
+  %42 = bitcast %Tuple* %41 to { i64, i1, { double, %BigInt* }* }*
+  %43 = getelementptr inbounds { i64, i1, { double, %BigInt* }* }, { i64, i1, { double, %BigInt* }* }* %42, i32 0, i32 0
+  %44 = getelementptr inbounds { i64, i1, { double, %BigInt* }* }, { i64, i1, { double, %BigInt* }* }* %42, i32 0, i32 1
+  %45 = getelementptr inbounds { i64, i1, { double, %BigInt* }* }, { i64, i1, { double, %BigInt* }* }* %42, i32 0, i32 2
+  store i64 %cnt, i64* %43, align 4
+  store i1 %31, i1* %44, align 1
+  store { double, %BigInt* }* %38, { double, %BigInt* }** %45, align 8
+  %46 = call { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }* @Microsoft__Quantum__Testing__QIR__TestEntryPoint__body(%Array* %4, %String* %17, %Result* %21, %Range %30, { i64, i1, { double, %BigInt* }* }* %42)
+  %47 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }, { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }* %46, i32 0, i32 0
+  %48 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }, { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }* %46, i32 0, i32 1
+  %49 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }, { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }* %46, i32 0, i32 2
+  %50 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }, { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }* %46, i32 0, i32 3
+  %51 = getelementptr inbounds { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }, { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }* %46, i32 0, i32 4
+  %52 = load %Array*, %Array** %47, align 8
+  %53 = load %String*, %String** %48, align 8
+  %54 = load %Result*, %Result** %49, align 8
+  %55 = load %Range, %Range* %50, align 4
+  %56 = load { i64, i1, double }*, { i64, i1, double }** %51, align 8
+  %57 = call i64 @__quantum__rt__array_get_size_1d(%Array* %52)
+  %58 = mul i64 %57, 1
+  %59 = call i8* @__quantum__rt__memory_allocate(i64 %58)
+  %60 = ptrtoint i8* %59 to i64
+  %61 = sub i64 %57, 1
   br label %header__2
 
 header__2:                                        ; preds = %exiting__2, %exit__1
-  %52 = phi i64 [ 0, %exit__1 ], [ %61, %exiting__2 ]
-  %53 = icmp sle i64 %52, %51
-  br i1 %53, label %body__2, label %exit__2
+  %62 = phi i64 [ 0, %exit__1 ], [ %71, %exiting__2 ]
+  %63 = icmp sle i64 %62, %61
+  br i1 %63, label %body__2, label %exit__2
 
 body__2:                                          ; preds = %header__2
-  %54 = mul i64 %52, 1
-  %55 = add i64 %50, %54
-  %56 = inttoptr i64 %55 to i8*
-  %57 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %42, i64 %52)
-  %58 = bitcast i8* %57 to i2*
-  %59 = load i2, i2* %58, align 1
-  %60 = sext i2 %59 to i8
-  store i8 %60, i8* %56, align 1
+  %64 = mul i64 %62, 1
+  %65 = add i64 %60, %64
+  %66 = inttoptr i64 %65 to i8*
+  %67 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %52, i64 %62)
+  %68 = bitcast i8* %67 to i2*
+  %69 = load i2, i2* %68, align 1
+  %70 = sext i2 %69 to i8
+  store i8 %70, i8* %66, align 1
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
-  %61 = add i64 %52, 1
+  %71 = add i64 %62, 1
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  %62 = call i8* @__quantum__rt__memory_allocate(i64 ptrtoint ({ i64, i8* }* getelementptr ({ i64, i8* }, { i64, i8* }* null, i32 1) to i64))
-  %63 = bitcast i8* %62 to { i64, i8* }*
-  %64 = getelementptr { i64, i8* }, { i64, i8* }* %63, i64 0, i32 0
-  store i64 %47, i64* %64, align 4
-  %65 = getelementptr { i64, i8* }, { i64, i8* }* %63, i64 0, i32 1
-  store i8* %49, i8** %65, align 8
-  %66 = call i32 @__quantum__rt__string_get_length(%String* %43)
-  %67 = sext i32 %66 to i64
-  %68 = call i8* @__quantum__rt__string_get_data(%String* %43)
-  %69 = call i8* @__quantum__rt__memory_allocate(i64 %67)
-  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %69, i8* %68, i64 %67, i1 false)
-  %70 = call %Result* @__quantum__rt__result_get_zero()
-  %71 = call i1 @__quantum__rt__result_equal(%Result* %44, %Result* %70)
-  %72 = select i1 %71, i8 0, i8 -1
-  %73 = extractvalue %Range %45, 0
-  %74 = extractvalue %Range %45, 1
-  %75 = extractvalue %Range %45, 2
-  %76 = call i8* @__quantum__rt__memory_allocate(i64 ptrtoint ({ i64, i64, i64 }* getelementptr ({ i64, i64, i64 }, { i64, i64, i64 }* null, i32 1) to i64))
-  %77 = bitcast i8* %76 to { i64, i64, i64 }*
-  %78 = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %77, i64 0, i32 0
-  store i64 %73, i64* %78, align 4
-  %79 = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %77, i64 0, i32 1
-  store i64 %74, i64* %79, align 4
-  %80 = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %77, i64 0, i32 2
-  store i64 %75, i64* %80, align 4
-  %81 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %46, i32 0, i32 0
-  %82 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %46, i32 0, i32 1
-  %83 = load i64, i64* %81, align 4
-  %84 = load i1, i1* %82, align 1
-  %85 = sext i1 %84 to i8
-  %86 = call i8* @__quantum__rt__memory_allocate(i64 ptrtoint ({ i64, i8 }* getelementptr ({ i64, i8 }, { i64, i8 }* null, i32 1) to i64))
-  %87 = bitcast i8* %86 to { i64, i8 }*
-  %88 = getelementptr { i64, i8 }, { i64, i8 }* %87, i64 0, i32 0
+  %72 = call i8* @__quantum__rt__memory_allocate(i64 ptrtoint ({ i64, i8* }* getelementptr ({ i64, i8* }, { i64, i8* }* null, i32 1) to i64))
+  %73 = bitcast i8* %72 to { i64, i8* }*
+  %74 = getelementptr { i64, i8* }, { i64, i8* }* %73, i64 0, i32 0
+  store i64 %57, i64* %74, align 4
+  %75 = getelementptr { i64, i8* }, { i64, i8* }* %73, i64 0, i32 1
+  store i8* %59, i8** %75, align 8
+  %76 = call i32 @__quantum__rt__string_get_length(%String* %53)
+  %77 = sext i32 %76 to i64
+  %78 = call i8* @__quantum__rt__string_get_data(%String* %53)
+  %79 = call i8* @__quantum__rt__memory_allocate(i64 %77)
+  call void @llvm.memcpy.p0i8.p0i8.i64(i8* %79, i8* %78, i64 %77, i1 false)
+  %80 = call %Result* @__quantum__rt__result_get_zero()
+  %81 = call i1 @__quantum__rt__result_equal(%Result* %54, %Result* %80)
+  %82 = select i1 %81, i8 0, i8 -1
+  %83 = extractvalue %Range %55, 0
+  %84 = extractvalue %Range %55, 1
+  %85 = extractvalue %Range %55, 2
+  %86 = call i8* @__quantum__rt__memory_allocate(i64 ptrtoint ({ i64, i64, i64 }* getelementptr ({ i64, i64, i64 }, { i64, i64, i64 }* null, i32 1) to i64))
+  %87 = bitcast i8* %86 to { i64, i64, i64 }*
+  %88 = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %87, i64 0, i32 0
   store i64 %83, i64* %88, align 4
-  %89 = getelementptr { i64, i8 }, { i64, i8 }* %87, i64 0, i32 1
-  store i8 %85, i8* %89, align 1
-  %90 = call i8* @__quantum__rt__memory_allocate(i64 ptrtoint ({ { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* getelementptr ({ { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* null, i32 1) to i64))
-  %91 = bitcast i8* %90 to { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }*
-  %92 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* %91, i64 0, i32 0
-  store { i64, i8* }* %63, { i64, i8* }** %92, align 8
-  %93 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* %91, i64 0, i32 1
-  store i8* %69, i8** %93, align 8
-  %94 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* %91, i64 0, i32 2
-  store i8 %72, i8* %94, align 1
-  %95 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* %91, i64 0, i32 3
-  store { i64, i64, i64 }* %77, { i64, i64, i64 }** %95, align 8
-  %96 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* %91, i64 0, i32 4
-  store { i64, i8 }* %87, { i64, i8 }** %96, align 8
+  %89 = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %87, i64 0, i32 1
+  store i64 %84, i64* %89, align 4
+  %90 = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %87, i64 0, i32 2
+  store i64 %85, i64* %90, align 4
+  %91 = getelementptr inbounds { i64, i1, double }, { i64, i1, double }* %56, i32 0, i32 0
+  %92 = getelementptr inbounds { i64, i1, double }, { i64, i1, double }* %56, i32 0, i32 1
+  %93 = getelementptr inbounds { i64, i1, double }, { i64, i1, double }* %56, i32 0, i32 2
+  %94 = load i64, i64* %91, align 4
+  %95 = load i1, i1* %92, align 1
+  %96 = load double, double* %93, align 8
+  %97 = sext i1 %95 to i8
+  %98 = call i8* @__quantum__rt__memory_allocate(i64 ptrtoint ({ i64, i8, double }* getelementptr ({ i64, i8, double }, { i64, i8, double }* null, i32 1) to i64))
+  %99 = bitcast i8* %98 to { i64, i8, double }*
+  %100 = getelementptr { i64, i8, double }, { i64, i8, double }* %99, i64 0, i32 0
+  store i64 %94, i64* %100, align 4
+  %101 = getelementptr { i64, i8, double }, { i64, i8, double }* %99, i64 0, i32 1
+  store i8 %97, i8* %101, align 1
+  %102 = getelementptr { i64, i8, double }, { i64, i8, double }* %99, i64 0, i32 2
+  store double %96, double* %102, align 8
+  %103 = call i8* @__quantum__rt__memory_allocate(i64 ptrtoint ({ { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }* getelementptr ({ { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }* null, i32 1) to i64))
+  %104 = bitcast i8* %103 to { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }*
+  %105 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }* %104, i64 0, i32 0
+  store { i64, i8* }* %73, { i64, i8* }** %105, align 8
+  %106 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }* %104, i64 0, i32 1
+  store i8* %79, i8** %106, align 8
+  %107 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }* %104, i64 0, i32 2
+  store i8 %82, i8* %107, align 1
+  %108 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }* %104, i64 0, i32 3
+  store { i64, i64, i64 }* %87, { i64, i64, i64 }** %108, align 8
+  %109 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }* %104, i64 0, i32 4
+  store { i64, i8, double }* %99, { i64, i8, double }** %109, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %4, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %17, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %32, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %42, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %43, i32 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %44, i32 -1)
-  %97 = bitcast { i64, i1 }* %46 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %97, i32 -1)
-  %98 = bitcast { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %36 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %98, i32 -1)
-  ret { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* %91
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %36, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %37, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %41, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %52, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %53, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %54, i32 -1)
+  %110 = bitcast { i64, i1, double }* %56 to %Tuple*
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %110, i32 -1)
+  %111 = bitcast { %Array*, %String*, %Result*, %Range, { i64, i1, double }* }* %46 to %Tuple*
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %111, i32 -1)
+  ret { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8, double }* }* %104
 }

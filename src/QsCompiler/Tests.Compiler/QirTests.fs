@@ -250,6 +250,20 @@ let ``QIR conditionals`` () =
 let ``QIR expressions`` () = qirTest false "TestExpressions"
 
 [<Fact>]
+let ``QIR arguments`` () =
+    let compilerArgs =
+        [
+            "TargetCapability:AdaptiveExecution"
+            "--runtime"
+            "AdaptiveExecution"
+            "--force-rewrite-step-execution" // to make sure any target specific transformations actually run
+        ]
+        |> Seq.append (compilerArgs false "TestArguments")
+        |> Seq.toArray
+
+    customTest "TestArguments" compilerArgs [ "TestArguments1"; "TestArguments2" ]
+
+[<Fact>]
 let ``QIR targeting`` () =
     let compilerArgs =
         [

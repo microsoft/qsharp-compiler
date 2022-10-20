@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (fullName.Name.EndsWith(MainSuffix))
             {
-                var trimmedName = fullName.Name.Substring(0, fullName.Name.Length - MainSuffix.Length);
+                var trimmedName = fullName.Name[..^MainSuffix.Length];
                 return kind == QsSpecializationKind.QsBody
                     ? EntryPointName(new QsQualifiedName(fullName.Namespace, trimmedName))
                     : throw new ArgumentException("non-body specialization name requested for callable tagged as main");
