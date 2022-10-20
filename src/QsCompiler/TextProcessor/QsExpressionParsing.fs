@@ -472,17 +472,16 @@ let private valueTuple item = // allows something like (a,(),b)
 /// Parses a Q# value array as QsExpression.
 /// Uses commaSep1 to generate suitable errors for invalid or missing expressions within the array.
 let private valueArray =
-    let sizeSpec = size.Parse >>. equal >>. expectedExpr rArray
+    let rest head =
+        commaSep expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof
+        |>> (Seq.append [ head ] >> ImmutableArray.CreateRange >> ValueArray)
+
+    let sizeOrRest head =
+        size.Parse >>. equal >>. expectedExpr rArray |>> (fun size -> SizedArray(head, size)) <|> rest head
 
     let body =
-        (expr
-         >>= fun e ->
-                 (comma
-                  >>. ((sizeSpec |>> (fun n -> SizedArray(e, n)))
-                       <|> (commaSep expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof
-                            |>> fun es -> ImmutableArray.Create(e).AddRange(es) |> ValueArray)))
-                 <|> preturn (ImmutableArray.Create e |> ValueArray))
-        <|> preturn (ValueArray ImmutableArray.Empty)
+        expr >>= fun head -> comma >>. sizeOrRest head <|>% ValueArray(ImmutableArray.Create head)
+        <|>% ValueArray ImmutableArray.Empty
 
     arrayBrackets body |>> QsExpression.New <|> bracketDefinedCommaSepExpr (lArray, rArray)
 
