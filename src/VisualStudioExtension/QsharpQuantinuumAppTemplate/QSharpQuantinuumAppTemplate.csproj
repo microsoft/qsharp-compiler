@@ -59,12 +59,12 @@
   <ItemGroup>
     <None Include="AssemblyInfo.cs" />
     <None Include="Program.qs" />
-    <Content Include="HoneywellAppProjectTemplate.xml">
+    <Content Include="QuantinuumAppProjectTemplate.xml">
       <SubType>Designer</SubType>
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <VSTemplate Include="QSharpHoneywellAppTemplate.vstemplate">
+    <VSTemplate Include="QSharpQuantinuumAppTemplate.vstemplate">
       <SubType>Designer</SubType>
     </VSTemplate>
   </ItemGroup>

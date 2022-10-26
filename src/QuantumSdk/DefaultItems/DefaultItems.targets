@@ -146,8 +146,8 @@
   <!-- Populates the ResolvedQSharpReferences item group. -->
   <Target Name="ResolveQSharpReferences" DependsOnTargets="ResolveTargetPackage;ResolveAssemblyReferences;_CopyFilesMarkedCopyLocal" BeforeTargets="BeforeQSharpCompile">
     <ItemGroup>
-      <ResolvedQSharpReferences 
-        Include="@(ReferencePath)" 
+      <ResolvedQSharpReferences
+        Include="@(ReferencePath)"
         Exclude="@(ResolvedTargetSpecificDecompositions)"
         Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig|serilog')) == false" />
     </ItemGroup>
