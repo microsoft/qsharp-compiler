@@ -485,8 +485,7 @@ let GetResolvedType (argTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>)
         items |> TupleType |> ResolvedType.New
 
     match argTuple with
-    | QsTuple elements when elements.Length = 0 ->
-        ArgumentException "cannot construct symbol tuple for empty argument tuple" |> raise
+    | QsTuple elements when elements.Length = 0 -> ResolvedType.New UnitType
     | QsTuple elements when elements.Length = 1 -> resolveArgTupleItem elements.[0]
     | QsTuple elements -> buildTuple elements
     | _ -> ArgumentException "the argument tuple needs to be a QsTuple" |> raise
