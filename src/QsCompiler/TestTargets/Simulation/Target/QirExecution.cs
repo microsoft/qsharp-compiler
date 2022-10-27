@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
         [DllImport("Microsoft.Quantum.Qir.QSharp.Core", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr CreateFullstateSimulatorC(long seed);
 
-        [DllImport("Microsoft.Quantum.Qir.Runtime", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("Microsoft.Quantum.Qir.Runtime", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)] // TODO(#1569): Requires refactoring for Rust QIR RT.
         public static extern void InitializeQirContext(IntPtr driver, bool trackAllocatedObjects);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
