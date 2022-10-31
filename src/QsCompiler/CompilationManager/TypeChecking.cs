@@ -603,7 +603,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Builds the <see cref="QsScope"/> containing <paramref name="nodes"/>,
-        /// calling <see cref="BuildStatement"/> for each of them, and using <paramref name="context"/> to verify and track all symbols.
+        /// calling <see cref="BuildStatement{T}"/> for each of them, and using <paramref name="context"/> to verify and track all symbols.
         /// </summary>
         /// <param name="nodes">A list of tree nodes.</param>
         /// <param name="requiredFunctors">A set of required functors.</param>

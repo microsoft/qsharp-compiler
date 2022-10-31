@@ -923,7 +923,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </returns>
         /// <remarks>
         /// This method waits for all currently running or queued tasks to finish
-        /// before accumulating the diagnostics by calling <see cref="FlushAndExecute"/>.
+        /// before accumulating the diagnostics by calling <see cref="FlushAndExecute{T}"/>.
         /// </remarks>
         public PublishDiagnosticParams[]? GetDiagnostics(TextDocumentIdentifier? textDocument = null) =>
             this.FlushAndExecute(() =>
@@ -936,7 +936,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
-        /// before constructing the requested information by calling <see cref="FlushAndExecute"/>.
+        /// before constructing the requested information by calling <see cref="FlushAndExecute{T}"/>.
         /// </remarks>
         public IEnumerable<Uri>? GetSourceFiles() =>
             this.FlushAndExecute(() => this.fileContentManagers.Keys.Select(id => new Uri(id)).ToImmutableArray().AsEnumerable());
@@ -949,7 +949,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </returns>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
-        /// before getting the file content by calling <see cref="FlushAndExecute"/>.
+        /// before getting the file content by calling <see cref="FlushAndExecute{T}"/>.
         /// </remarks>
         public string[]? FileContentInMemory(TextDocumentIdentifier textDocument) =>
             this.FlushAndExecute(() =>
@@ -965,7 +965,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </returns>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
-        /// before getting the file content by calling <see cref="FlushAndExecute"/>.
+        /// before getting the file content by calling <see cref="FlushAndExecute{T}"/>.
         /// </remarks>
         public QsFragmentKind?[][]? GetTokenization(TextDocumentIdentifier textDocument) =>
             this.FlushAndExecute(() =>
@@ -976,7 +976,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
-        /// before constructing the syntax tree by calling <see cref="FlushAndExecute"/>.
+        /// before constructing the syntax tree by calling <see cref="FlushAndExecute{T}"/>.
         /// </remarks>
         public IEnumerable<QsNamespace>? GetSyntaxTree() =>
             this.FlushAndExecute(() => this.compilationUnit.Build().Namespaces.AsEnumerable());
@@ -986,7 +986,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
-        /// before constructing the <see cref="Compilation"/> by calling <see cref="FlushAndExecute"/>.
+        /// before constructing the <see cref="Compilation"/> by calling <see cref="FlushAndExecute{T}"/>.
         /// </remarks>
         public Compilation? Build() => this.FlushAndExecute(() =>
         {
