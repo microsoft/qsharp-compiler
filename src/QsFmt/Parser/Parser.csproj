@@ -7,40 +7,18 @@
     <NoWarn>$(NoWarn);CS1584;CS1658</NoWarn>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <AntlrVersion>4.9.1</AntlrVersion>
-    <AntlrJar>antlr-$(AntlrVersion)-complete.jar</AntlrJar>
-    <AntlrJarUrl>https://www.antlr.org/download/$(AntlrJar)</AntlrJarUrl>
-    <AntlrPath>$(BaseIntermediateOutputPath)Antlr/</AntlrPath>
-  </PropertyGroup>
-
   <ItemGroup>
-    <AntlrInput Include="$(ProjectDir)/../../../qsharp-language/Specifications/Language/5_Grammar/*.g4" />
-
-    <AntlrOutput Include="$(AntlrPath)QSharpLexer.cs" />
-    <AntlrOutput Include="$(AntlrPath)QSharpParser.cs" />
-    <AntlrOutput Include="$(AntlrPath)QSharpParserBaseVisitor.cs" />
-    <AntlrOutput Include="$(AntlrPath)QSharpParserVisitor.cs" />
+    <Antlr4 Include="$(ProjectDir)/../../../qsharp-language/Specifications/Language/5_Grammar/*.g4">
+      <Listener>false</Listener>
+      <Visitor>true</Visitor>
+      <Package>$(RootNamespace)</Package>
+      <Error>true</Error>
+    </Antlr4>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Antlr4.Runtime.Standard" Version="$(AntlrVersion)" />
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.11.1" />
+    <PackageReference Include="Antlr4BuildTasks" Version="11.5.0" PrivateAssets="all" />
   </ItemGroup>
 
-  <Target Name="Antlr" BeforeTargets="CoreCompile" Inputs="@(AntlrInput)" Outputs="@(AntlrOutput)">
-    <DownloadFile DestinationFolder="$(AntlrPath)" SourceUrl="$(AntlrJarUrl)" />
-    <Exec Command="java -jar &quot;$(AntlrPath)$(AntlrJar)&quot; -o &quot;$(AntlrPath)&quot; -no-listener -visitor -package &quot;$(RootNamespace)&quot; &quot;@(AntlrInput, '&quot; &quot;')&quot;" />
-    <ItemGroup>
-      <Compile Include="@(AntlrOutput)" />
-    </ItemGroup>
-  </Target>
-
-  <!-- Providing this target is necessary since otherwise generated C# files are not properly cleaned. -->
-  <Target Name="CleanAntlr" BeforeTargets="Clean">
-    <ItemGroup>
-      <_FilesToClean Include="$(AntlrPath)**" />
-      <Compile Remove="$(_FilesToClean)**/*.cs" />
-    </ItemGroup>
-    <Delete Files="@(_FilesToClean)" />
-  </Target>
 </Project>
