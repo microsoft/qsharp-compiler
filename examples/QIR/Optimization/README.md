@@ -94,7 +94,7 @@ Parameters:
 * `-lang Q#` : load the templates for Q# projects
 * `-o Hello` : the project name, all files will be generated inside a folder of this name
 
-Other configurations are also possible, such as [Q# libraries with a C# host program](https://docs.microsoft.com/azure/quantum/install-csharp-qdk?tabs=tabid-cmdline%2Ctabid-csharp#creating-a-q-library-and-a-net-host).
+Other configurations are also possible, such as [Q# libraries with a C# host program](https://learn.microsoft.com/azure/quantum/user-guide/host-programs?tabs=tabid-csharp#q-with-host-programs).
 
 The standard Q# template produces a hello world program in the file `Program.qs`:
 
@@ -307,7 +307,7 @@ However, in order to handle QIR-specific types and functions, proper linkage of 
 ### Obtaining the QIR runtime & simulator
 
 The [QIR runtime](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime) is distributed in the form of a NuGet package, from which we will pull the necessary library files.
-The same goes for the [full state quantum simulator](https://docs.microsoft.com/azure/quantum/user-guide/machines/full-state-simulator), which the QIR runtime can hook into to simulate the quantum program.
+The same goes for the [full state quantum simulator](https://learn.microsoft.com/azure/quantum/machines/full-state-simulator), which the QIR runtime can hook into to simulate the quantum program.
 In this section, the project file `Hello.csproj` is modified to generate these library files automatically.
 
 For convenience, a variable `BuildOutputPath` is defined with the following line added to the top-level `PropertyGroup` section:
