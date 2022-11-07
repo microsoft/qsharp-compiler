@@ -14,7 +14,7 @@ The following software will be used in this walk-through:
 
 ### Installing the QDK
 
-The *Quantum Development Kit (QDK)* documentation provides detailed guides on [installing the QDK](https://docs.microsoft.com/azure/quantum/install-overview-qdk#install-the-qdk-for-quantum-computing-locally) for various setups.
+The *Quantum Development Kit (QDK)* documentation provides detailed guides on [installing the QDK](https://learn.microsoft.com/azure/quantum/how-to-csharp-qdk-local) for various setups.
 This document will assume a **command line** setup for **Q# standalone** applications.
 
 Steps for QDK v0.22.187631 (February 2022):
