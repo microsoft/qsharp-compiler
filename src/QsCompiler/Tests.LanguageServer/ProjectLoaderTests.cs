@@ -26,12 +26,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         internal async Task<(Uri, ProjectInformation?)> GetProjectInformationAsync(string project)
         {
             var uri = ProjectUri(project);
-            return (uri, CompilationContext.Load(uri));
-        }
-
-        internal async Task<(Uri, ProjectInformation?)> NewGetProjectInformationAsync(string project)
-        {
-            var uri = ProjectUri(project);
             var projDir = Path.GetDirectoryName(uri.AbsolutePath) ?? "";
 
             var initParams = TestUtils.GetInitializeParams();
@@ -191,11 +185,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsFalse(context.UsesXunitHelper());
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
-            var actual = context.SourceFiles.Select(p => new Uri(p).AbsolutePath).ToArray();
-            CollectionAssert.AreEquivalent(expected, actual);
+            CollectionAssert.AreEquivalent(expected, context.SourceFiles.ToArray());
         }
 
-        // TODO: project not loading Microsoft.Quantum references
         [TestMethod]
         public async Task LoadUnsupportedQSharpCoreLibrariesAsync()
         {
@@ -218,11 +210,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsFalse(context.UsesXunitHelper());
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
-            var actual = context.SourceFiles.Select(p => new Uri(p).AbsolutePath).ToArray();
-            CollectionAssert.AreEquivalent(expected, actual);
+            CollectionAssert.AreEquivalent(expected, context.SourceFiles.ToArray());
         }
 
-        // TODO: project not loading references
         [TestMethod]
         public async Task LoadQSharpCoreLibrariesAsync()
         {
@@ -247,8 +237,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsFalse(context.UsesXunitHelper());
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
-            var actual = context.SourceFiles.Select(p => new Uri(p).AbsolutePath).ToArray();
-            CollectionAssert.AreEquivalent(expected, actual);
+            CollectionAssert.AreEquivalent(expected, context.SourceFiles.ToArray());
         }
 
         [TestMethod]
@@ -270,8 +259,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsFalse(context.UsesXunitHelper());
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
-            var actual = context.SourceFiles.Select(p => new Uri(p).AbsolutePath).ToArray();
-            CollectionAssert.AreEquivalent(expected, actual);
+            CollectionAssert.AreEquivalent(expected, context.SourceFiles.ToArray());
         }
 
         [TestMethod]
@@ -294,8 +282,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(context.UsesProject("test3.csproj"));
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
-            var actual = context.SourceFiles.Select(p => new Uri(p).AbsolutePath).ToArray();
-            CollectionAssert.AreEquivalent(expected, actual);
+            CollectionAssert.AreEquivalent(expected, context.SourceFiles.ToArray());
         }
 
         [TestMethod]
@@ -316,11 +303,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(context.UsesCanon());
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
-            var actual = context.SourceFiles.Select(p => new Uri(p).AbsolutePath).ToArray();
-            CollectionAssert.AreEquivalent(expected, actual);
+            CollectionAssert.AreEquivalent(expected, context.SourceFiles.ToArray());
         }
 
-        // TODO: project not loading references
         [TestMethod]
         public async Task LoadQSharpConsoleAppAsync()
         {
@@ -339,11 +324,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(context.UsesCanon());
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
-            var actual = context.SourceFiles.Select(p => new Uri(p).AbsolutePath).ToArray();
-            CollectionAssert.AreEquivalent(expected, actual);
+            CollectionAssert.AreEquivalent(expected, context.SourceFiles.ToArray());
         }
 
-        // TODO: project not loading references
         [TestMethod]
         public async Task LoadTargetedQSharpExecutableAsync()
         {
@@ -368,8 +351,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsFalse(context.UsesXunitHelper());
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
-            var actual = context.SourceFiles.Select(p => new Uri(p).AbsolutePath).ToArray();
-            CollectionAssert.AreEquivalent(expected, actual);
+            CollectionAssert.AreEquivalent(expected, context.SourceFiles.ToArray());
         }
 
         [TestMethod]
@@ -395,8 +377,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(context.UsesProject("test4.csproj"));
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
-            var actual = context.SourceFiles.Select(p => new Uri(p).AbsolutePath).ToArray();
-            CollectionAssert.AreEquivalent(expected, actual);
+            CollectionAssert.AreEquivalent(expected, context.SourceFiles.ToArray());
         }
 
         [TestMethod]
@@ -421,8 +402,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsTrue(context.UsesProject("test3.csproj"));
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
-            var actual = context.SourceFiles.Select(p => new Uri(p).AbsolutePath).ToArray();
-            CollectionAssert.AreEquivalent(expected, actual);
+            CollectionAssert.AreEquivalent(expected, context.SourceFiles.ToArray());
         }
     }
 
@@ -433,9 +413,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
         internal static EditorState Editor =>
             new(new ProjectLoader(LogOutput), null, null, null, null);
-
-        internal static ProjectInformation? Load(Uri projectFile) =>
-            Editor.QsProjectLoader(projectFile, out var loaded) ? loaded : null;
 
         internal static bool UsesDll(this ProjectInformation info, string dll) => info.References.Any(r => r.EndsWith(dll));
 
