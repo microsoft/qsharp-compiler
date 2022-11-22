@@ -87,7 +87,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
                 var languageServerPath = Path.Combine(
                     Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
-                    "..\\..\\..\\..",
+                    "..",
+                    "..",
+                    "..",
+                    "..",
                     "LanguageServer",
                     "LanguageServer.csproj");
 
@@ -121,7 +124,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
                 var languageServerPath = Path.Combine(
                     Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
-                    "..\\..\\..\\..",
+                    "..",
+                    "..",
+                    "..",
+                    "..",
                     "LanguageServer",
                     "LanguageServer.csproj");
 
