@@ -80,11 +80,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
                 var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
-                //var languageServerPath = Path.Combine(
-                //    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
-                //    "LanguageServer",
-                //    "Microsoft.Quantum.QsLanguageServer.dll");
-
                 var languageServerPath = Path.Combine(
                     Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
                     "..",
@@ -116,11 +111,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             {
                 var readerPipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
                 var writerPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
-
-                //var languageServerPath = Path.Combine(
-                //    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
-                //    "LanguageServer",
-                //    "Microsoft.Quantum.QsLanguageServer.dll");
 
                 var languageServerPath = Path.Combine(
                     Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
