@@ -80,17 +80,23 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
                 var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
+                //var languageServerPath = Path.Combine(
+                //    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
+                //    "LanguageServer",
+                //    "Microsoft.Quantum.QsLanguageServer.dll");
+
                 var languageServerPath = Path.Combine(
                     Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
+                    "..\\..\\..\\..",
                     "LanguageServer",
-                    "Microsoft.Quantum.QsLanguageServer.exe");
+                    "LanguageServer.csproj");
 
                 ProcessStartInfo info = new()
                 {
-                    FileName = languageServerPath,
+                    FileName = "dotnet",
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    Arguments = $"--writer={serverWriterPipe} --reader={serverReaderPipe} --log={logFile}",
+                    Arguments = $"run --project {languageServerPath} --no-build -- --writer={serverWriterPipe} --reader={serverReaderPipe} --log={logFile}",
                 };
 
                 Process process = new() { StartInfo = info };
@@ -108,17 +114,23 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
                 var writerPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 
+                //var languageServerPath = Path.Combine(
+                //    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
+                //    "LanguageServer",
+                //    "Microsoft.Quantum.QsLanguageServer.dll");
+
                 var languageServerPath = Path.Combine(
                     Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
+                    "..\\..\\..\\..",
                     "LanguageServer",
-                    "Microsoft.Quantum.QsLanguageServer.dll");
+                    "LanguageServer.csproj");
 
                 ProcessStartInfo info = new()
                 {
                     FileName = "dotnet",
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    Arguments = $"{languageServerPath} --unnamed --writer={readerPipe.GetClientHandleAsString()} --reader={writerPipe.GetClientHandleAsString()} --log={logFile}",
+                    Arguments = $"run --project {languageServerPath} --no-build -- --unnamed --writer={readerPipe.GetClientHandleAsString()} --reader={writerPipe.GetClientHandleAsString()} --log={logFile}",
                 };
 
                 Process process = new() { StartInfo = info };

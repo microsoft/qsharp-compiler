@@ -51,18 +51,6 @@
       <Output TaskParameter="ExitCode" PropertyName="QsFmtPublishExitCode" />
     </Exec>
     <Error Condition="'$(QsFmtPublishExitCode)' != '0'" Text="Publishing QsFmt failed." />
-
-    <Message Importance="high" Text="Publishing QsLanguageServer"/>
-    <PropertyGroup>
-      <QsLanguageServerPublishPath>$(OutputPath)\LanguageServer\</QsLanguageServerPublishPath>
-      <QsLanguageServerPublishCommand>dotnet publish "$(EnlistmentRoot)src/QsCompiler/LanguageServer/LanguageServer.csproj" -o "$(QsLanguageServerPublishPath)"</QsLanguageServerPublishCommand>
-    </PropertyGroup>
-    <MakeDir Directories="$(QsLanguageServerPublishPath)" />
-    <Exec Command="$(QsLanguageServerPublishCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
-      <Output TaskParameter="ExitCode" PropertyName="QsLanguageServerPublishExitCode" />
-    </Exec>
-    <Error Condition="'$(QsLanguageServerPublishExitCode)' != '0'" Text="Publishing QsLanguageServer failed." />
-    <Message Importance="high" Text="language server path used for testing: $(QsLanguageServerPublishPath)"/>
   </Target>
 
 </Project>
