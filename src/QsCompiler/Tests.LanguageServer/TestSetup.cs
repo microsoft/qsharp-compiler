@@ -89,6 +89,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                     "LanguageServer",
                     "LanguageServer.csproj");
 
+                Console.WriteLine($"[Special Info]: invoking dotnet run --project {languageServerPath} --no-build -- --writer={serverWriterPipe} --reader={serverReaderPipe} --log={logFile}");
+
                 ProcessStartInfo info = new()
                 {
                     FileName = "dotnet",
