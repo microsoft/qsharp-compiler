@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 ProcessStartInfo info = new()
                 {
                     FileName = "dotnet",
-                    UseShellExecute = false,
+                    UseShellExecute = true,
                     CreateNoWindow = true,
                     Arguments = $"run --project {languageServerPath} --no-build -- --writer={serverWriterPipe} --reader={serverReaderPipe} --log={logFile}",
                 };
@@ -128,7 +128,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 ProcessStartInfo info = new()
                 {
                     FileName = "dotnet",
-                    UseShellExecute = false,
+                    UseShellExecute = true,
                     CreateNoWindow = true,
                     Arguments = $"run --project {languageServerPath} --no-build -- --unnamed --writer={readerPipe.GetClientHandleAsString()} --reader={writerPipe.GetClientHandleAsString()} --log={logFile}",
                 };
