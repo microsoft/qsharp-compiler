@@ -80,30 +80,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
                 var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
-                var languageServerPath = Path.Combine(
-                    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
-                    "..",
-                    "..",
-                    "..",
-                    "..",
-                    "LanguageServer",
-                    "LanguageServer.csproj");
-
-                Console.WriteLine($"[Special Info]: invoking dotnet run --project {languageServerPath} --no-build -- --writer={serverWriterPipe} --reader={serverReaderPipe} --log={logFile}");
-
-                ProcessStartInfo info = new()
-                {
-                    FileName = "dotnet",
-                    UseShellExecute = true,
-                    CreateNoWindow = true,
-                    Arguments = $"run --project {languageServerPath} --no-build -- --writer={serverWriterPipe} --reader={serverReaderPipe} --log={logFile}",
-                };
-
-                Process process = new() { StartInfo = info };
-                if (!process.Start() || process.HasExited)
-                {
-                    throw new Exception("failed to launch language server");
-                }
+                Server.ConnectViaNamedPipes(serverWriterPipe, serverReaderPipe);
 
                 await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
@@ -114,37 +91,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
                 var writerPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 
-                var languageServerPath = Path.Combine(
-                    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
-                    "..",
-                    "..",
-                    "..",
-                    "..",
-                    "LanguageServer",
-                    "LanguageServer.csproj");
-
-                Console.WriteLine($"[Special Info]: invoking dotnet run --project {languageServerPath} --no-build -- --unnamed --writer={readerPipe.GetClientHandleAsString()} --reader={writerPipe.GetClientHandleAsString()} --log={logFile}");
-
-                ProcessStartInfo info = new()
-                {
-                    FileName = "dotnet",
-                    UseShellExecute = true,
-                    CreateNoWindow = true,
-                    Arguments = $"run --project {languageServerPath} --no-build -- --unnamed --writer={readerPipe.GetClientHandleAsString()} --reader={writerPipe.GetClientHandleAsString()} --log={logFile}",
-                };
-
-                Process process = new() { StartInfo = info };
-                if (!process.Start() || process.HasExited)
-                {
-                    throw new Exception("failed to launch language server");
-                }
-
-                readerPipe.DisposeLocalCopyOfClientHandle();
-                writerPipe.DisposeLocalCopyOfClientHandle();
-                if (!writerPipe.IsConnected || !readerPipe.IsConnected)
-                {
-                    throw new Exception("not connected");
-                }
+                Server.ConnectViaAnonymousPipes(readerPipe.GetClientHandleAsString(), writerPipe.GetClientHandleAsString());
 
                 this.connection = new Connection(readerPipe, writerPipe);
             }
@@ -157,14 +104,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestCleanup]
         public async Task TerminateServerConnectionAsync()
         {
-            try
-            {
-                await this.GetFileDiagnosticsAsync(); // forces a flush in the default compilation manager
-            }
-            catch (ConnectionLostException)
-            {
-            }
-
+            await this.GetFileDiagnosticsAsync(); // forces a flush in the default compilation manager
             this.receivedDiagnostics.Clear();
             this.Dispose();
         }
