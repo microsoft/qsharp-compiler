@@ -157,7 +157,14 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestCleanup]
         public async Task TerminateServerConnectionAsync()
         {
-            await this.GetFileDiagnosticsAsync(); // forces a flush in the default compilation manager
+            try
+            {
+                await this.GetFileDiagnosticsAsync(); // forces a flush in the default compilation manager
+            }
+            catch (ConnectionLostException)
+            {
+            }
+
             this.receivedDiagnostics.Clear();
             this.Dispose();
         }
