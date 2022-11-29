@@ -42,14 +42,14 @@ namespace Microsoft.Quantum.QsLanguageServer
                 Required = false,
                 SetName = ConnectionViaPipe,
                 HelpText = "Connect via anonymous pipes.")]
-            public bool UseAnonymousPipes { get; set; }
+            internal bool UseAnonymousPipes { get; set; }
 
             [Option(
                 'w',
                 "writer",
                 Required = true,
                 SetName = ConnectionViaPipe,
-                HelpText = "Named or handle of the pipe to write to.")]
+                HelpText = "Name of handle of the pipe to write to.")]
             public string? WriterPipeName { get; set; }
 
             [Option(
@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 "reader",
                 Required = true,
                 SetName = ConnectionViaPipe,
-                HelpText = "Named or handle of the pipe to read from.")]
+                HelpText = "Name of handle of the pipe to read from.")]
             public string? ReaderPipeName { get; set; }
 
             [Option(
