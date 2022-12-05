@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.25.228311-alpha" GeneratePathProperty="true" />  <!-- TODO(#1569): Requires refactoring for Rust QIR RT. -->
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.25.228311" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.27.244706-beta" GeneratePathProperty="true" />
   </ItemGroup>
 
   <Target Name="GetDependencies" AfterTargets="Build">
