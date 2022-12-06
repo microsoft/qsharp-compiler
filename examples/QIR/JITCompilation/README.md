@@ -38,7 +38,7 @@ The function below is all that is needed to JIT compile a QIR program, and consi
 - load QIR/simulator libraries
 - parse the QIR program
 - load the JIT compiler
-- initialize the QIR Runtime and attach a simulator (see [next section](#building-the-project) for more info)
+- initialize and attach a simulator (see [next section](#building-the-project) for more info)
 - run a QIR function
 
 ```py
@@ -48,9 +48,8 @@ def main(qir_file, entry_point):
     llvm.initialize_native_target()
     llvm.initialize_native_asmprinter()
 
-    # Load the QIR Runtime libraries
-    for lib in runtime_libs:
-        llvm.load_library_permanently(lib)
+    # Load the simulator library
+    llvm.load_library_permanently(simulator_lib)
 
     # Parse the provided QIR module
     file = open(qir_file, 'r')
@@ -60,16 +59,12 @@ def main(qir_file, entry_point):
     target = llvm.Target.from_default_triple().create_target_machine()
     jit_engine = llvm.create_mcjit_compiler(module, target)
 
-    # Initialize the QIR Runtime and simulator via exposed C wrapper
-    fun_ptr = llvm.address_of_symbol("InitQIRSim")
-    CFUNCTYPE(None)(fun_ptr)()
-
     # Run the entry point of the QIR module
     fun_ptr = jit_engine.get_function_address(entry_point)
     CFUNCTYPE(None)(fun_ptr)()
 ```
 
-Here, `runtime_libs` is a hardcoded list of the system-specific QIR libraries.
+Here, `simulator_lib` is the platform specific path to the simulator library.
 The name of the QIR source file `qir_file` is provided as a command-line argument, as well the name of the entry point function `entry_point`.
 
 The way external functions with C-style linkage are invoked from Python is by using the ctypes module.
@@ -78,44 +73,21 @@ The returned value is a raw pointer that can be converted to a function pointer 
 This is done via the function `CFUNCTYPE(<return type>, <argument types>..)(<ptr_name>)`, which also specifies the usage of the standard C calling convention.
 Refer to the [ctypes documentation](https://docs.python.org/3/library/ctypes.html) for more information on calling external functions from Python.
 
-The full Python script can be found in `jit-qir.py`.
+The full Python script can be found in `qir-jit.py`.
 
 ## Building the project
 
-Currently, it's not easily possible to set up a JIT for QIR entirely from Python, since the QIR Runtime and simulator are compiled from C++.
-To get around this, a small library for which we can specify C-linkage can handle the QIR-specific initialization, which can then be invoked from Python directly using ctypes.
-A small function declared with `extern "C"` linkage is sufficient to initialize the Runtime + simulator, as defined in `QIRinit.cpp`:
+Before being able run QIR via LLVM's JIT compiler, we need to download the necessary simulator library from the [Quantum Simulators](https://www.nuget.org/packages/Microsoft.Quantum.Simulators/) NuGet packages:
 
-```cpp
-#include "QirContext.hpp"
-#include "SimFactory.hpp"
-
-#include <memory>
-
-using namespace Microsoft::Quantum;
-
-extern "C" void InitQIRSim()
-{
-    // initialize Quantum Simulator and QIR Runtime
-    std::unique_ptr<IRuntimeDriver> sim = CreateFullstateSimulator();
-    InitializeQirContext(sim.release(), true);
-}
-```
-
-Before being able run QIR via LLVM's JIT compiler, we need to download the necessary header and library files from the [QIR Runtime](https://www.nuget.org/packages/Microsoft.Quantum.Qir.Runtime) and [Quantum Simulators](https://www.nuget.org/packages/Microsoft.Quantum.Simulators/) NuGet packages:
-
-- **Linux** (installs mono for the NuGet CLI):
+- **Linux** (install mono for the NuGet CLI):
 
     ```shell
     mkdir build
     sudo apt update && sudo apt install -y mono-complete
     curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget
     mono build/nuget sources add -name nuget.org -source https://api.nuget.org/v3/index.json
-    mono build/nuget install Microsoft.Quantum.Qir.Runtime -Version 0.18.2106148911-alpha -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
-    cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/any/native/include/* build
-    cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/linux-x64/native/* build
-    mono build/nuget install Microsoft.Quantum.Simulators -Version 0.18.2106148911 -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
-    cp tmp/Microsoft.Quantum.Simulators.0.18.2106148911/runtimes/linux-x64/native/Microsoft.Quantum.Simulator.Runtime.dll build
+    mono build/nuget install Microsoft.Quantum.Simulators -Version 0.27.238334 -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
+    cp tmp/Microsoft.Quantum.Simulators.0.27.238334/runtimes/linux-x64/native/libMicrosoft.Quantum.Simulator.Runtime.so build
     rm -r tmp
     ```
 
@@ -124,26 +96,9 @@ Before being able run QIR via LLVM's JIT compiler, we need to download the neces
     ```shell
     mkdir build
     curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget.exe
-    build/nuget install Microsoft.Quantum.Qir.Runtime -Version 0.18.2106148911-alpha -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
-    cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/any/native/include/* build
-    cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/win-x64/native/* build
-    build/nuget install Microsoft.Quantum.Simulators -Version 0.18.2106148911 -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
-    cp tmp/Microsoft.Quantum.Simulators.0.18.2106148911/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll build
+    build/nuget install Microsoft.Quantum.Simulators -Version 0.27.238334 -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
+    cp tmp/Microsoft.Quantum.Simulators.0.27.238334/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll build
     rm -r tmp
-    ```
-
-Then compile the initialization library with the following command:
-
-- **Linux**:
-
-    ```shell
-    clang++ -shared -fPIC QIRinit.cpp -Ibuild -o build/libQIRinit.so
-    ```
-
-- **Windows**:
-
-    ```shell
-    clang++ -shared QIRinit.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -Wl',/EXPORT:InitQIRSim' -o build/QIRinit.dll
     ```
 
 ## Running a QIR program with JIT
