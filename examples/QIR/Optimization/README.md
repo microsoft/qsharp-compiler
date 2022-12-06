@@ -392,7 +392,7 @@ You should see the simulator library appear in a folder named `build`, among oth
 ```
 build
 ├── Microsoft.Quantum.Simulator.Runtime.dll
-├── Microsoft.Quantum.Simulator.Runtime.lib
+└── Microsoft.Quantum.Simulator.Runtime.lib
 ```
 
 ### Adding a driver
