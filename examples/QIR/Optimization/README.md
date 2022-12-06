@@ -374,13 +374,14 @@ Put together, the new `Hello.csproj` project file should look as follows:
 
   <Target Name="GetDependencies" AfterTargets="Build">
     <PropertyGroup>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/libMicrosoft.Quantum.Simulator.Runtime.dylib</SimulatorRuntime>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
-      <SimulatorLib Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.lib</SimulatorLib>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native/libMicrosoft.Quantum.Simulator.Runtime.so</SimulatorRuntime>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native</SimulatorFolder>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native</SimulatorFolder>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native</SimulatorFolder>
     </PropertyGroup>
-    <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
-    <Copy Condition="$([MSBuild]::IsOsPlatform('Windows'))" SourceFiles="$(SimulatorLib)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <_SimulatorLibraries Include="$(SimulatorFolder)/*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_SimulatorLibraries)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>

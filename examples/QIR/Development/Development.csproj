@@ -104,15 +104,16 @@
 
   <Target Name="BuildExecutable" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="CreateCppDriver;Restore" AfterTargets="QSharpCompile;CoreBuild">
     <PropertyGroup>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/libMicrosoft.Quantum.Simulator.Runtime.dylib</SimulatorRuntime>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
-      <SimulatorLib Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.lib</SimulatorLib>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native/libMicrosoft.Quantum.Simulator.Runtime.so</SimulatorRuntime>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native</SimulatorFolder>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native</SimulatorFolder>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native</SimulatorFolder>
       <ClangOptions Condition="$([MSBuild]::IsOsPlatform('Linux')) Or $([MSBuild]::IsOsPlatform('OSX'))">-fseh-exceptions -lstdc++</ClangOptions>
       <ClangCommand>clang -std=c++17 -Wno-override-module $(ClangOptions) -o $(ExecutablePath) $(QirOutputPath)$(PathCompatibleAssemblyName).ll $(BuildOutputPath)/Main.cpp -I$(BuildOutputPath) -L$(BuildOutputPath) -lMicrosoft.Quantum.Simulator.Runtime</ClangCommand>
     </PropertyGroup>
-    <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
-    <Copy Condition="$([MSBuild]::IsOsPlatform('Windows'))" SourceFiles="$(SimulatorLib)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <_SimulatorLibraries Include="$(SimulatorFolder)/*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_SimulatorLibraries)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
     <Exec Command="clang --version" IgnoreExitCode="true" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="ClangVersionCheckExitCode"/>
     </Exec>
