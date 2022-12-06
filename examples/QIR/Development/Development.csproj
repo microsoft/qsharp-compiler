@@ -108,7 +108,8 @@
       <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native</SimulatorFolder>
       <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native</SimulatorFolder>
       <ClangOptions Condition="$([MSBuild]::IsOsPlatform('Linux')) Or $([MSBuild]::IsOsPlatform('OSX'))">-fseh-exceptions -lstdc++</ClangOptions>
-      <ClangCommand>clang -std=c++17 -Wno-override-module $(ClangOptions) -o $(ExecutablePath) $(QirOutputPath)$(PathCompatibleAssemblyName).ll $(BuildOutputPath)/Main.cpp -I$(BuildOutputPath) -L$(BuildOutputPath) -lMicrosoft.Quantum.Simulator.Runtime</ClangCommand>
+      <OmpOptions Condition="$([MSBuild]::IsOsPlatform('Linux'))">-lomp</OmpOptions>
+      <ClangCommand>clang -std=c++17 -Wno-override-module $(ClangOptions) -o $(ExecutablePath) $(QirOutputPath)$(PathCompatibleAssemblyName).ll $(BuildOutputPath)/Main.cpp -I$(BuildOutputPath) -L$(BuildOutputPath) -lMicrosoft.Quantum.Simulator.Runtime $(OmpOptions)</ClangCommand>
     </PropertyGroup>
     <ItemGroup>
       <_SimulatorLibraries Include="$(SimulatorFolder)/*.*" />
