@@ -86,9 +86,9 @@ Before being able run QIR via LLVM's JIT compiler, we need to download the neces
     sudo apt update && sudo apt install -y mono-complete
     curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget
     mono build/nuget sources add -name nuget.org -source https://api.nuget.org/v3/index.json
-    mono build/nuget install Microsoft.Quantum.Simulators -Version 0.27.238334 -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
-    cp tmp/Microsoft.Quantum.Simulators.0.27.238334/runtimes/linux-x64/native/libMicrosoft.Quantum.Simulator.Runtime.so build
-    cp tmp/Microsoft.Quantum.Simulators.0.27.238334/runtimes/linux-x64/native/libomp.so build
+    mono build/nuget install Microsoft.Quantum.Simulators -Version 0.27.244707 -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
+    cp tmp/Microsoft.Quantum.Simulators.0.27.244707/runtimes/linux-x64/native/libMicrosoft.Quantum.Simulator.Runtime.so build
+    cp tmp/Microsoft.Quantum.Simulators.0.27.244707/runtimes/linux-x64/native/libomp.so build
     rm -r tmp
     ```
 
@@ -97,10 +97,10 @@ Before being able run QIR via LLVM's JIT compiler, we need to download the neces
     ```shell
     mkdir build
     curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget.exe
-    build/nuget install Microsoft.Quantum.Simulators -Version 0.27.238334 -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
-    cp tmp/Microsoft.Quantum.Simulators.0.27.238334/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll build
-    cp tmp/Microsoft.Quantum.Simulators.0.27.238334/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.lib build
-    cp tmp/Microsoft.Quantum.Simulators.0.27.238334/runtimes/win-x64/native/libomp140.x86_64.dll build
+    build/nuget install Microsoft.Quantum.Simulators -Version 0.27.244707 -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
+    cp tmp/Microsoft.Quantum.Simulators.0.27.244707/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll build
+    cp tmp/Microsoft.Quantum.Simulators.0.27.244707/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.lib build
+    cp tmp/Microsoft.Quantum.Simulators.0.27.244707/runtimes/win-x64/native/libomp140.x86_64.dll build
     rm -r tmp
     ```
 
