@@ -32,25 +32,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// Maps variable names to the corresponding value.
             /// Mutable variables are represented as PointerValues.
             /// </summary>
-            private readonly Dictionary<string, IValue> variables = new Dictionary<string, IValue>();
+            private readonly Dictionary<string, IValue> variables = new();
 
             /// <summary>
             /// Contains all values whose reference count has been increased.
             /// The first items contains the value, and the second item indicates whether to recursively reference inner items.
             /// </summary>
-            private readonly List<(IValue, bool)> pendingReferences = new List<(IValue, bool)>();
+            private readonly List<(IValue, bool)> pendingReferences = new();
 
             /// <summary>
             /// Contains all values that require unreferencing upon closing the scope.
             /// The first items contains the value, and the second item indicates whether to recursively unreference inner items.
             /// </summary>
-            private readonly List<(IValue, bool)> requiredUnreferences = new List<(IValue, bool)>();
+            private readonly List<(IValue, bool)> requiredUnreferences = new();
 
             /// <summary>
             /// Contains the values that require invoking a release function upon closing the scope,
             /// as well as the name of the release function to invoke.
             /// </summary>
-            private readonly List<Action> requiredReleases = new List<Action>();
+            private readonly List<Action> requiredReleases = new();
 
             public Scope(Action<Func<ITypeRef, string?>, (IValue, bool)[]> increaseCounts, Action<Func<ITypeRef, string?>, (IValue, bool)[]> decreaseCounts)
             {
@@ -85,10 +85,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return value;
             }
 
+            // Todo: it may be nice to unify this method with ScopeManager.ModifyCounts
             private static IEnumerable<(IValue, bool)> Expand(Func<ITypeRef, string?> getFunctionName, IValue value, bool recurIntoInnerItems, List<(IValue, bool)>? omitExpansion = null)
             {
                 var func = getFunctionName(value.LlvmType);
-                if (func != null)
+                if (func != null || IsStackAlloctedContainer(value.LlvmType))
                 {
                     omitExpansion ??= new List<(IValue, bool)>();
                     var omitted = omitExpansion.FirstOrDefault(omitted => ValueEquals((value, recurIntoInnerItems), omitted));
@@ -99,16 +100,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     if (value is TupleValue tuple)
                     {
-                        for (var i = 0; i < tuple.StructType.Members.Count && recurIntoInnerItems; ++i)
+                        for (var i = 0; i < tuple.LlvmElementTypes.Count && recurIntoInnerItems; ++i)
                         {
-                            var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
-                            if (itemFuncName != null)
+                            var itemFuncName = getFunctionName(tuple.LlvmElementTypes[i]);
+                            if (itemFuncName != null || IsStackAlloctedContainer(tuple.LlvmElementTypes[i]))
                             {
                                 var item = tuple.GetTupleElement(i);
                                 foreach (var inner in Expand(getFunctionName, item, true, omitExpansion))
                                 {
                                     yield return inner;
                                 }
+                            }
+                        }
+
+                        yield return (value, false);
+                    }
+                    else if (value is ArrayValue array && IsStackAlloctedContainer(array.LlvmType) && array.Count.HasValue)
+                    {
+                        var itemsNeedProcessing = getFunctionName(array.LlvmElementType) != null || IsStackAlloctedContainer(array.LlvmElementType);
+                        if (recurIntoInnerItems && itemsNeedProcessing)
+                        {
+                            foreach (var inner in array.GetArrayElements().SelectMany(item => Expand(getFunctionName, item, true, omitExpansion)))
+                            {
+                                yield return inner;
                             }
                         }
 
@@ -324,15 +338,37 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var allScopes = parentScopes.Prepend(this);
                 var pendingAliasCounts = allScopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
 
-                var pendingReferences = this.ClearPendingReferences()
-                    .Concat(parentScopes.SelectMany(scope => scope.pendingReferences))
-                    .ToList();
+                var pendingReferences = new List<(IValue, bool)>();
+                foreach (var entry in this.ClearPendingReferences().Concat(parentScopes.SelectMany(scope => scope.pendingReferences)))
+                {
+                    // Expanding pending reference and expanding pending unreferences could in principle both add values to unreference when
+                    // values are built lazily; e.g. exiting a scope and returning a callable value from it (e.g. the case for a conditional
+                    // expression that produces a callable) will trigger the construction of that callable.
+                    // We hence need to make sure that the unreferences that are added during this logic are properly processed. Maybe there is
+                    // a smarter way to do this, but the list of pendingReferences will be quite short, and the caching mechanism largely means
+                    // that things that were computed as part of this logic will just be retrieved from the cache the second time round -
+                    // so performance impact of this should be minimal and likely less than doing it a different way.
+                    var constructed = entry.Item1.Value;
+                    pendingReferences.Add(entry); // make sure to add the unexpanded entry - we will expand it only if there is no matching unreference
+                }
 
-                var pendingUnreferences = allScopes
-                    .SelectMany(s => s.requiredUnreferences)
-                    .Concat(pendingAliasCounts.Where(v => v.Value is PointerValue))
-                    .SelectMany(v => Expand(ReferenceCountUpdateFunctionForType, v.Item1, v.Item2, pendingReferences))
-                    .ToList();
+                var pendingUnreferences = new List<(IValue, bool)>();
+                foreach (var scope in allScopes.Reverse())
+                {
+                    // If values are created lazily, it is possible that they will be created only as part of expanding tuple items;
+                    // the corresponding entry in requiredUnreferences in the current scope will be added at the same time.
+                    // We hence make sure that modifying the requiredUnreferences of the current scope will not cause issues;
+                    // i.e. the current scope needs to be processed last, and we use a for loop to permit adding items during the iteration.
+                    for (var refNr = 0; refNr < scope.requiredUnreferences.Count; ++refNr)
+                    {
+                        var value = scope.requiredUnreferences[refNr];
+                        pendingUnreferences.AddRange(Expand(ReferenceCountUpdateFunctionForType, value.Item1, value.Item2, pendingReferences));
+                    }
+                }
+
+                pendingUnreferences.AddRange(
+                    pendingAliasCounts.Where(v => v.Value is PointerValue)
+                    .SelectMany(v => Expand(ReferenceCountUpdateFunctionForType, v.Value, v.Item2, pendingReferences)));
 
                 pendingReferences = pendingReferences
                     .SelectMany(v => Expand(ReferenceCountUpdateFunctionForType, v.Item1, v.Item2))
@@ -367,7 +403,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// New variables and values are always added to the scope on top of the stack.
         /// When looking for a name, the stack is searched top-down.
         /// </summary>
-        private readonly Stack<Scope> scopes = new Stack<Scope>();
+        private readonly Stack<Scope> scopes = new();
 
         /// <summary>
         /// Is true when there are currently no stack frames tracked.
@@ -407,6 +443,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (Types.IsCallable(t))
                 {
+                    // We need to alias count callables to ensure that
+                    // the alias counts for captured value are accurate.
                     return RuntimeLibrary.CallableUpdateAliasCount;
                 }
             }
@@ -452,6 +490,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return null;
         }
 
+        private static bool IsStackAlloctedContainer(ITypeRef t) =>
+            t.Kind == TypeKind.Array || t.Kind == TypeKind.Struct || t.Kind == TypeKind.Vector;
+
         /// <summary>
         /// For each value for which the given function returns a function name,
         /// applies the runtime function with that name to the value, casting the value if necessary.
@@ -472,7 +513,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, Value change, IValue value, bool recurIntoInnerItems)
         {
-            void ProcessValue(string funcName, IValue value)
+            void ProcessValue(string? funcName, IValue value)
             {
                 if (value is PointerValue pointer)
                 {
@@ -480,32 +521,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    Value arg;
+                    Func<Value> getArg;
                     if (value is TupleValue tuple)
                     {
-                        for (var i = 0; i < tuple.StructType.Members.Count && recurIntoInnerItems; ++i)
+                        for (var i = 0; recurIntoInnerItems && i < tuple.LlvmElementTypes.Count; ++i)
                         {
-                            var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
-                            if (itemFuncName != null)
+                            var itemFuncName = getFunctionName(tuple.LlvmElementTypes[i]);
+                            if (itemFuncName != null || IsStackAlloctedContainer(tuple.LlvmElementTypes[i]))
                             {
                                 var item = tuple.GetTupleElement(i);
                                 ProcessValue(itemFuncName, item);
                             }
                         }
 
-                        arg = tuple.OpaquePointer;
+                        getArg = () => tuple.OpaquePointer;
                     }
                     else if (value is ArrayValue array)
                     {
                         var itemFuncName = getFunctionName(array.LlvmElementType);
-                        if (itemFuncName != null && recurIntoInnerItems)
+                        if (recurIntoInnerItems && (itemFuncName != null || IsStackAlloctedContainer(array.LlvmElementType)))
                         {
                             this.sharedState.IterateThroughArray(array, arrItem => ProcessValue(itemFuncName, arrItem));
                         }
 
-                        arg = array.OpaquePointer;
+                        getArg = () => array.OpaquePointer;
                     }
-                    else if (value is CallableValue callable && recurIntoInnerItems)
+                    else if (recurIntoInnerItems && value is CallableValue callable)
                     {
                         var captureCountChange =
                             funcName == RuntimeLibrary.CallableUpdateReferenceCount ? RuntimeLibrary.CaptureUpdateReferenceCount :
@@ -514,20 +555,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                         var invokeMemoryManagment = this.sharedState.GetOrCreateRuntimeFunction(captureCountChange);
                         this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, callable.Value, change);
-                        arg = callable.Value;
+                        getArg = () => callable.Value;
                     }
                     else
                     {
-                        arg = value.Value;
+                        getArg = () => value.Value;
                     }
 
-                    var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    this.sharedState.CurrentBuilder.Call(func, arg, change);
+                    if (funcName is not null)
+                    {
+                        var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
+                        this.sharedState.CurrentBuilder.Call(func, getArg(), change);
+                    }
                 }
             }
 
             var func = getFunctionName(value.LlvmType);
-            if (func != null)
+            if (func != null || IsStackAlloctedContainer(value.LlvmType))
             {
                 ProcessValue(func, value);
             }
@@ -535,13 +579,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private void ExecutePendingCalls(bool keepCurrentScope = false)
         {
-            var current = keepCurrentScope ? this.scopes.Peek() : this.scopes.Pop();
+            var current = this.scopes.Peek();
             if (current.HasPendingReferences && keepCurrentScope)
             {
                 throw new InvalidOperationException("scope contains pending calls to increase reference counts");
             }
 
             current.ExecutePendingCalls();
+            if (!keepCurrentScope)
+            {
+                // We need to make sure to only pop the scope after executing pending calls,
+                // since pending calls may require the construction of value that will be registered
+                // upon construction. This registration belongs to the current scope and
+                // will always be automatically added to the scope at the top of the stack.
+                this.scopes.Pop();
+            }
         }
 
         // public and internal methods
@@ -754,7 +806,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             IValue? value = null;
             this.scopes.FirstOrDefault(scope => scope.TryGetVariable(name, out value));
-            return value != null ? value : throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
+            return value ?? throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
         }
 
         /// <summary>

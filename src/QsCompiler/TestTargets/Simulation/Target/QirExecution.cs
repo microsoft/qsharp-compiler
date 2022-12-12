@@ -11,12 +11,6 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
 {
     public static class JitCompilation
     {
-        [DllImport("Microsoft.Quantum.Qir.QSharp.Core", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr CreateFullstateSimulatorC(long seed);
-
-        [DllImport("Microsoft.Quantum.Qir.Runtime", ExactSpelling = true, CallingConvention = CallingConvention.Cdecl)]
-        public static extern void InitializeQirContext(IntPtr driver, bool trackAllocatedObjects);
-
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate void SimpleFunction();
 
@@ -79,13 +73,8 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
                 NativeLibrary.Load("omp", typeof(JitCompilation).Assembly, null);
             }
 
-            // Explicitly load dependent libraries so that they are already present in memory when pinvoke
-            // triggers for the Microsoft.Quantum.Qir.QSharp.Core call below.
+            // Explicitly load dependent libraries so that they are already present in memory.
             NativeLibrary.Load("Microsoft.Quantum.Simulator.Runtime", typeof(JitCompilation).Assembly, null);
-            NativeLibrary.Load("Microsoft.Quantum.Qir.Runtime", typeof(JitCompilation).Assembly, null);
-            NativeLibrary.Load("Microsoft.Quantum.Qir.QSharp.Foundation", typeof(JitCompilation).Assembly, null);
-
-            InitializeQirContext(CreateFullstateSimulatorC(0), true);
 
             if (!File.Exists(pathToBitcode))
             {
@@ -111,9 +100,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
                 // Linux requires an additional explicit load of the libraries into MCJIT.
                 // Full paths are not needed since .NET already loaded these into program memory above,
                 // but without this explict load the JIT logic won't find them.
-                ExplicitLibraryLoad("libMicrosoft.Quantum.Qir.Runtime.so");
-                ExplicitLibraryLoad("libMicrosoft.Quantum.Qir.QSharp.Foundation.so");
-                ExplicitLibraryLoad("libMicrosoft.Quantum.Qir.QSharp.Core.so");
+                ExplicitLibraryLoad("libMicrosoft.Quantum.Simulator.Runtime.so");
             }
 
             var engine = modRef.CreateMCJITCompiler();

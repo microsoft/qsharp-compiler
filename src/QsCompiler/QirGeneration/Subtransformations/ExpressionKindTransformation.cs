@@ -371,27 +371,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateUdt(TupleValue originalTuple)
             {
-                TupleValue GetTupleCopy(TupleValue original)
-                {
-                    if (sharedState.TargetQirProfile)
-                    {
-                        return original.TypeName == null
-                            ? sharedState.Values.FromTuple(original.Value, original.ElementTypes)
-                            : sharedState.Values.FromCustomType(original.Value, original.TypeName);
-                    }
-                    else
-                    {
-                        // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
-                        // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
-                        // alias count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
-                        var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
-                        var forceCopy = sharedState.Context.CreateConstant(false);
-                        var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
-                        return original.TypeName == null
-                            ? sharedState.Values.FromTuple(copy, original.ElementTypes)
-                            : sharedState.Values.FromCustomType(copy, original.TypeName);
-                    }
-                }
+                // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
+                // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
+                // alias count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
+                TupleValue GetTupleCopy(TupleValue original) =>
+                    sharedState.Values.FromTuple(original, false);
 
                 var udtName = originalTuple.TypeName;
                 if (udtName == null || !sharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
@@ -518,8 +502,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         return (-1, s.Length, -1);
                     }
 
-                    // if the number of backslashes before the '{' is even, then the '{' is not escapted
-                    else if (((i - start) - s.Substring(start, i - start).TrimEnd('\\').Length) % 2 == 0)
+                    // if the number of backslashes before the '{' is even, then the '{' is not escaped
+                    else if (((i - start) - s[start..i].TrimEnd('\\').Length) % 2 == 0)
                     {
                         var j = s.IndexOf('}', i + 1);
                         if (j == -1)
@@ -880,7 +864,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 throw new InvalidOperationException("Q# declaration for global callable not found");
             }
-            else if (kind == QsSpecializationKind.QsBody // adjointable and controllable operations are not evaluated by the runtime
+            else if (kind.IsQsBody // adjointable and controllable operations are not evaluated by the runtime
                 && this.SharedState.Functions.TryEvaluate(callableName, arg, out var evaluated))
             {
                 // deal with recognized callables provided by the runtime
@@ -911,10 +895,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Handles calls to callables that are (only) locally defined, i.e. calls to callable values.
         /// </summary>
-        private IValue InvokeLocalCallable(TypedExpression method, TypedExpression arg)
+        private IValue InvokeLocalCallable(TypedExpression method, TypedExpression arg, bool canBeStackAllocated)
         {
             var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
-            var calledValue = this.SharedState.EvaluateSubexpression(method);
+            var calledValue = (CallableValue)this.SharedState.EvaluateSubexpression(method);
+            if (calledValue.CurrentState is not null)
+            {
+                // If the callable to invoke is globally defined, we can directly invoke a suitable specialization without relying on the runtime.
+                return this.InvokeGlobalCallable(calledValue.CurrentState.GlobalName, calledValue.CurrentState.RelevantSpecialization, arg, canBeStackAllocated);
+            }
+
             var argValue = this.SharedState.EvaluateSubexpression(arg);
             if (!arg.ResolvedType.Resolution.IsTupleType &&
                 !arg.ResolvedType.Resolution.IsUserDefinedType &&
@@ -958,7 +948,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Does not validate the given arguments.
         /// </summary>
         /// <returns>An invalid expression</returns>
-        private ResolvedExpressionKind ApplyFunctor(string runtimeFunctionName, TypedExpression ex)
+        private ResolvedExpressionKind ApplyFunctor(QsFunctor functor, TypedExpression ex)
         {
             var callable = (CallableValue)this.SharedState.EvaluateSubexpression(ex);
 
@@ -976,43 +966,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var isPartialApplication = TypedExpression.IsPartialApplication(ex.Expression);
             var isFunctorApplication = ex.Expression.IsAdjointApplication || ex.Expression.IsControlledApplication;
             var safeToModify = isGlobalCallable || isPartialApplication || isFunctorApplication;
-            var value = this.ApplyFunctor(runtimeFunctionName, callable, safeToModify);
+            var value = callable.ApplyFunctor(functor, safeToModify);
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
-        }
-
-        /// <summary>
-        /// Invokes the runtime function with the given name to apply a functor to a callable value.
-        /// Unless modifyInPlace is set to true, a copy of the callable is made prior to applying the functor.
-        /// </summary>
-        /// <param name="runtimeFunctionName">The runtime method to invoke in order to apply the funtor</param>
-        /// <param name="callable">The callable to copy (unless modifyInPlace is true) before applying the functor to it</param>
-        /// <param name="modifyInPlace">If set to true, modifies and returns the given callable</param>
-        /// <returns>The callable value to which the functor has been applied</returns>
-        private CallableValue ApplyFunctor(string runtimeFunctionName, CallableValue callable, bool modifyInPlace = false)
-        {
-            // This method is used when applying functors when building a functor application expression
-            // as well as when creating the specializations for a partial application.
-            if (!modifyInPlace)
-            {
-                // Since we track alias counts for callables there is no need to force the copy.
-                // While making a copy ensures that either a new callable is created with reference count 1,
-                // or the reference count of the existing callable is increased by 1,
-                // we also need to increase the reference counts for all contained items; i.e. for the capture tuple in this case.
-                var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
-                var forceCopy = this.SharedState.Context.CreateConstant(false);
-                var modified = this.SharedState.CurrentBuilder.Call(makeCopy, callable.Value, forceCopy);
-                callable = this.SharedState.Values.FromCallable(modified, callable.QSharpType);
-                this.SharedState.ScopeMgr.ReferenceCaptureTuple(callable);
-                this.SharedState.ScopeMgr.RegisterValue(callable);
-            }
-
-            // CallableMakeAdjoint and CallableMakeControlled do *not* create a new value
-            // but instead modify the given callable in place.
-            var applyFunctor = this.SharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
-            this.SharedState.CurrentBuilder.Call(applyFunctor, callable.Value);
-            return callable;
         }
 
         /// <summary>
@@ -1105,7 +1062,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         public override ResolvedExpressionKind OnAdjointApplication(TypedExpression ex) =>
-            this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, ex);
+            this.ApplyFunctor(QsFunctor.Adjoint, ex);
 
         public override ResolvedExpressionKind OnArrayItemAccess(TypedExpression arr, TypedExpression idx)
         {
@@ -1356,7 +1313,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         public override ResolvedExpressionKind OnControlledApplication(TypedExpression ex) =>
-            this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, ex);
+            this.ApplyFunctor(QsFunctor.Controlled, ex);
 
         public override ResolvedExpressionKind OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
         {
@@ -1513,16 +1470,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override ResolvedExpressionKind OnFunctionCall(TypedExpression method, TypedExpression arg)
         {
             IValue value;
-            var callableName = method.TryAsGlobalCallable().ValueOr(null);
-            if (callableName == null)
+            var canBeStackAllocated = !this.SharedState.CurrentExpressionMayEscapeItsScope();
+            if (method.TryAsGlobalCallable().ValueOr(null) is QsQualifiedName callableName)
             {
-                // deal with local values; i.e. callables e.g. from partial applications or stored in local variables
-                value = this.InvokeLocalCallable(method, arg);
+                // deal with global callables
+                value = this.InvokeGlobalCallable(callableName, QsSpecializationKind.QsBody, arg, canBeStackAllocated: canBeStackAllocated);
             }
             else
             {
-                // deal with global callables
-                value = this.InvokeGlobalCallable(callableName, QsSpecializationKind.QsBody, arg, canBeStackAllocated: !this.SharedState.CurrentExpressionMayEscapeItsScope());
+                // deal with local values; i.e. callables e.g. from partial applications or stored in local variables
+                value = this.InvokeLocalCallable(method, arg, canBeStackAllocated: canBeStackAllocated);
             }
 
             this.SharedState.ValueStack.Push(value);
@@ -1605,14 +1562,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     ? pointer.LoadValue()
                     : variable;
             }
-            else if (!(sym is Identifier.GlobalCallable globalCallable))
+            else if (sym is not Identifier.GlobalCallable globalCallable)
             {
                 throw new NotSupportedException("unknown identifier");
             }
             else if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
             {
                 var table = this.SharedState.GetOrCreateCallableTable(callable);
-                value = this.SharedState.Values.CreateCallable(exType, table);
+                value = this.SharedState.Values.CreateCallable(callable.FullName, exType, table);
             }
             else
             {
@@ -2023,18 +1980,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var (innerCallable, isAdjoint, controlledCount) = StripModifiers(method, false, 0);
 
             IValue value;
-            var callableName = innerCallable.TryAsGlobalCallable().ValueOr(null);
-            if (callableName == null)
-            {
-                // deal with local values; i.e. callables e.g. from partial applications or stored in local variables
-                value = this.InvokeLocalCallable(method, arg);
-            }
-            else
+            var canBeStackAllocated = !this.SharedState.CurrentExpressionMayEscapeItsScope();
+            if (innerCallable.TryAsGlobalCallable().ValueOr(null) is QsQualifiedName callableName)
             {
                 // deal with global callables
                 var innerArg = BuildInnerArg(arg, controlledCount);
                 var kind = GetSpecializationKind(isAdjoint, controlledCount > 0);
-                value = this.InvokeGlobalCallable(callableName, kind, innerArg, canBeStackAllocated: !this.SharedState.CurrentExpressionMayEscapeItsScope());
+                value = this.InvokeGlobalCallable(callableName, kind, innerArg, canBeStackAllocated: canBeStackAllocated);
+            }
+            else
+            {
+                // deal with local values; i.e. callables e.g. from partial applications or stored in local variables
+                value = this.InvokeLocalCallable(method, arg, canBeStackAllocated: canBeStackAllocated);
             }
 
             this.SharedState.ValueStack.Push(value);
@@ -2075,16 +2032,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else if (kind == QsSpecializationKind.QsAdjoint)
                     {
-                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, innerCallable, modifyInPlace: false);
+                        return innerCallable.ApplyFunctor(QsFunctor.Adjoint, modifyInPlace: false);
                     }
                     else if (kind == QsSpecializationKind.QsControlled)
                     {
-                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, innerCallable, modifyInPlace: false);
+                        return innerCallable.ApplyFunctor(QsFunctor.Controlled, modifyInPlace: false);
                     }
                     else if (kind == QsSpecializationKind.QsControlledAdjoint)
                     {
-                        innerCallable = this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, innerCallable, modifyInPlace: false);
-                        return this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, innerCallable, modifyInPlace: true);
+                        innerCallable = innerCallable.ApplyFunctor(QsFunctor.Adjoint, modifyInPlace: false);
+                        return innerCallable.ApplyFunctor(QsFunctor.Controlled, modifyInPlace: true);
                     }
                     else
                     {
@@ -2189,8 +2146,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             bool SupportsNecessaryFunctors(QsSpecializationKind kind) =>
                 kind == QsSpecializationKind.QsAdjoint ? SupportsFunctors(QsFunctor.Adjoint) :
                 kind == QsSpecializationKind.QsControlled ? SupportsFunctors(QsFunctor.Controlled) :
-                kind == QsSpecializationKind.QsControlledAdjoint ? SupportsFunctors(QsFunctor.Adjoint, QsFunctor.Controlled) :
-                true;
+                kind != QsSpecializationKind.QsControlledAdjoint || SupportsFunctors(QsFunctor.Adjoint, QsFunctor.Controlled);
 
             IrFunction? BuildSpec(QsSpecializationKind kind) =>
                 SupportsNecessaryFunctors(kind)

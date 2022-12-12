@@ -2,22 +2,14 @@ import sys, platform
 import llvmlite.binding as llvm
 from ctypes import CFUNCTYPE
 
-linux_runtime_libs = ["build/libMicrosoft.Quantum.Qir.Runtime.so",
-                      "build/libMicrosoft.Quantum.Qir.QSharp.Core.so",
-                      "build/libMicrosoft.Quantum.Qir.QSharp.Foundation.so",
-                      "build/Microsoft.Quantum.Simulator.Runtime.dll",
-                      "build/libQIRinit.so"]
+linux_simulator_lib = "build/libMicrosoft.Quantum.Simulator.Runtime.so"
 
-windows_runtime_libs = ["build/Microsoft.Quantum.Qir.Runtime.dll",
-                        "build/Microsoft.Quantum.Qir.QSharp.Core.dll",
-                        "build/Microsoft.Quantum.Qir.QSharp.Foundation.dll",
-                        "build/Microsoft.Quantum.Simulator.Runtime.dll",
-                        "build/QIRinit.dll"]
+windows_simulator_lib = "build/Microsoft.Quantum.Simulator.Runtime.dll"
 
 if platform.system() == "Linux":
-    runtime_libs = linux_runtime_libs
+    simulator_lib = linux_simulator_lib
 elif platform.system() == "Windows":
-    runtime_libs = windows_runtime_libs
+    simulator_lib = windows_simulator_lib
 else:
     raise Exception("unsupported platform")
 
@@ -27,9 +19,8 @@ def main(qir_file, entry_point):
     llvm.initialize_native_target()
     llvm.initialize_native_asmprinter()
 
-    # Load the QIR Runtime libraries
-    for lib in runtime_libs:
-        llvm.load_library_permanently(lib)
+    # Load the simulator library
+    llvm.load_library_permanently(simulator_lib)
 
     # Parse the provided QIR module
     file = open(qir_file, 'r')
@@ -38,10 +29,6 @@ def main(qir_file, entry_point):
     # Create a jit execution engine
     target = llvm.Target.from_default_triple().create_target_machine()
     jit_engine = llvm.create_mcjit_compiler(module, target)
-
-    # Initialize the QIR Runtime and simulator via exposed C wrapper
-    fun_ptr = llvm.address_of_symbol("InitQIRSim")
-    CFUNCTYPE(None)(fun_ptr)()
 
     # Run the entry point of the QIR module
     fun_ptr = jit_engine.get_function_address(entry_point)
