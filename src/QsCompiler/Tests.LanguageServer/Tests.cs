@@ -343,9 +343,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsNotNull(diagnostics1);
             Assert.AreEqual(2, diagnostics1!.Length);
             Assert.AreEqual("QS5023", diagnostics1[0].Code);
-            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics1[0].Severity);
+            Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics1[0].Severity);
             Assert.AreEqual("QS5023", diagnostics1[1].Code);
-            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics1[1].Severity);
+            Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics1[1].Severity);
 
             Assert.IsNotNull(diagnostics2);
             Assert.AreEqual(0, diagnostics2!.Length);
@@ -353,9 +353,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsNotNull(diagnostics3);
             Assert.AreEqual(2, diagnostics3!.Length);
             Assert.AreEqual("QS5023", diagnostics3[0].Code);
-            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics3[0].Severity);
+            Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics3[0].Severity);
             Assert.AreEqual("QS5023", diagnostics3[1].Code);
-            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics3[1].Severity);
+            Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics3[1].Severity);
         }
 
         [TestMethod]
