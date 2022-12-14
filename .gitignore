@@ -368,6 +368,7 @@ src/ProjectTemplates/Quantum.Test1/.template.config/template.json
 src/QsCompiler/QirGeneration/QirGeneration.nuspec
 /examples/QIR/Development/qir/*
 /examples/QIR/Development/build
+/examples/QIR/Optimization/Hello/build
 src/Telemetry/Tests/coverage.json
 src/Telemetry/.vscode/settings.json
 build/267DevDivSNKey2048.snk

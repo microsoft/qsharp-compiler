@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             void DestructTuple(ImmutableArray<SymbolTuple> symbols, IValue value)
             {
-                if (!(value is TupleValue tuple) || symbols.Length != tuple.ElementTypes.Length)
+                if (value is not TupleValue tuple || symbols.Length != tuple.ElementTypes.Length)
                 {
                     throw new InvalidOperationException("shape mismatch in symbol binding");
                 }

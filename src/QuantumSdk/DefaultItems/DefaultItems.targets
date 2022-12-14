@@ -68,7 +68,7 @@
     <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'Unspecified'">FullComputation</ResolvedTargetCapability>
     <!-- Set the ResolvedTargetCapability to the specified TargetCapability, if that capability is supported by the ResolvedProcessorArchitecture. -->
     <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor' And ($(_EnableBasicExecution) Or $(_EnableAdaptiveExecution) Or $(_EnableBasicQuantumFunctionality) Or $(_EnableBasicMeasurementFeedback))">$(TargetCapability)</ResolvedTargetCapability>
-    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(_EnableBasicQuantumFunctionality)">$(TargetCapability)</ResolvedTargetCapability>
+    <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And ($(_EnableBasicExecution) Or $(_EnableBasicQuantumFunctionality))">$(TargetCapability)</ResolvedTargetCapability>
     <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And ($(_EnableBasicExecution) Or $(_EnableAdaptiveExecution))">$(TargetCapability)</ResolvedTargetCapability>
     <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor' And $(_EnableBasicExecution)">$(TargetCapability)</ResolvedTargetCapability>
     <ResolvedTargetCapability Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftQuantum' And $(_EnableFullComputation)">$(TargetCapability)</ResolvedTargetCapability>
@@ -77,7 +77,7 @@
     <!-- Define a suitable error message for failing the build when the TargetCapability is not compatible with the ExecutionTarget. -->
     <ValidTargetCapabilities>The execution target supports the following target capabilities</ValidTargetCapabilities>
     <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">$(ValidTargetCapabilities): AdaptiveExecution, BasicExecution, BasicMeasurementFeedback, BasicQuantumFunctionality.</ValidTargetCapabilities>
-    <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">$(ValidTargetCapabilities): BasicQuantumFunctionality.</ValidTargetCapabilities>
+    <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">$(ValidTargetCapabilities): BasicExecution, BasicQuantumFunctionality.</ValidTargetCapabilities>
     <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">$(ValidTargetCapabilities): AdaptiveExecution, BasicExecution.</ValidTargetCapabilities>
     <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">$(ValidTargetCapabilities): BasicExecution.</ValidTargetCapabilities>
     <ValidTargetCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftQuantum'">$(ValidTargetCapabilities): FullComputation.</ValidTargetCapabilities>
@@ -146,8 +146,8 @@
   <!-- Populates the ResolvedQSharpReferences item group. -->
   <Target Name="ResolveQSharpReferences" DependsOnTargets="ResolveTargetPackage;ResolveAssemblyReferences;_CopyFilesMarkedCopyLocal" BeforeTargets="BeforeQSharpCompile">
     <ItemGroup>
-      <ResolvedQSharpReferences 
-        Include="@(ReferencePath)" 
+      <ResolvedQSharpReferences
+        Include="@(ReferencePath)"
         Exclude="@(ResolvedTargetSpecificDecompositions)"
         Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig|serilog')) == false" />
     </ItemGroup>
