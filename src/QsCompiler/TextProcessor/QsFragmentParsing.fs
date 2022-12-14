@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 /// This module mustn't do any whitespace management - that is entirely up to the QsParsingPrimitives module!
@@ -456,7 +456,7 @@ let private setStatement =
             |>> fun (accEx, rhs) -> id, applyTerinary CopyAndUpdate id accEx rhs
 
         let applyAndReassignExpr buildEx id =
-            expectedExpr eof |>> fun ex -> id, applyBinary buildEx () id ex
+            expectedExpr eof |>> fun ex -> id, applyBinary buildEx id ex
 
         // parser that returns function that takes QsExpr and returns a parser
         choice [ pstring qsCopyAndUpdateOp.Op >>. equal >>% updateAndReassign
@@ -665,22 +665,25 @@ do
 let private expressionStatement =
     let invalid = ExpressionStatement unknownExpr
 
+    let rec isCall e =
+        match e.Expression with
+        | CallLikeExpression _
+        | InvalidExpr -> true
+        | AdjointApplication e'
+        | ControlledApplication e' -> isCall e'
+        | _ -> false
+
     let valid =
-        let errOnNonCallLike (pos, ex: QsExpression) =
-            let errRange =
-                match ex.Range with
-                | Value range -> range
-                | Null -> Range.Create pos pos
+        getPosition .>>. expr
+        >>= fun (pos, ex) ->
+                if isCall ex then
+                    ExpressionStatement ex |> preturn
+                else
+                    let range = QsNullable.defaultValue (Range.Create pos pos) ex.Range
+                    let error = QsCompilerDiagnostic.Error (ErrorCode.NonCallExprAsStatement, []) range
+                    preturn error >>= pushDiagnostic >>% InvalidFragment
 
-            errRange
-            |> QsCompilerDiagnostic.Error(ErrorCode.NonCallExprAsStatement, [])
-            |> preturn
-            >>= pushDiagnostic
-
-        let anyExpr = getPosition .>>. expr >>= errOnNonCallLike >>% InvalidFragment // keeping this as unknown fragment so no further type checking is done
-        attempt callLikeExpr |>> ExpressionStatement <|> anyExpr
-
-    buildFragment (lookAhead valid) valid invalid (fun _ -> id) eof // let's limit this to call like expressions
+    buildFragment (lookAhead valid) valid invalid (fun _ -> id) eof
 
 // externally called routines
 

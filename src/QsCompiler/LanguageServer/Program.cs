@@ -38,11 +38,18 @@ namespace Microsoft.Quantum.QsLanguageServer
             public int Port { get; set; }
 
             [Option(
+                "unnamed",
+                Required = false,
+                SetName = ConnectionViaPipe,
+                HelpText = "Connect via anonymous pipes.")]
+            internal bool UseAnonymousPipes { get; set; }
+
+            [Option(
                 'w',
                 "writer",
                 Required = true,
                 SetName = ConnectionViaPipe,
-                HelpText = "Named pipe to write to.")]
+                HelpText = "Name of handle of the pipe to write to.")]
             public string? WriterPipeName { get; set; }
 
             [Option(
@@ -50,7 +57,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 "reader",
                 Required = true,
                 SetName = ConnectionViaPipe,
-                HelpText = "Named pipe to read from.")]
+                HelpText = "Name of handle of the pipe to read from.")]
             public string? ReaderPipeName { get; set; }
 
             [Option(
@@ -133,7 +140,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 server = options.UseStdInOut
                          ? ConnectViaStdInOut(options.LogFile)
                          : options.ReaderPipeName != null && options.WriterPipeName != null
-                         ? ConnectViaNamedPipe(options.WriterPipeName, options.ReaderPipeName, options.LogFile)
+                         ? ConnectViaPipes(options.WriterPipeName, options.ReaderPipeName, options.UseAnonymousPipes, options.LogFile)
                          : ConnectViaSocket(port: options.Port, logFile: options.LogFile);
             }
             catch (Exception ex)
@@ -181,7 +188,12 @@ namespace Microsoft.Quantum.QsLanguageServer
             return new QsLanguageServer(Console.OpenStandardOutput(), Console.OpenStandardInput());
         }
 
-        internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string? logFile = null)
+        internal static QsLanguageServer ConnectViaPipes(string writer, string reader, bool useAnonymousPipes, string? logFile = null) =>
+            useAnonymousPipes
+            ? ConnectViaAnonymousPipes(writer, reader, logFile)
+            : ConnectViaNamedPipes(writer, reader, logFile);
+
+        internal static QsLanguageServer ConnectViaNamedPipes(string writerName, string readerName, string? logFile = null)
         {
             Log($"Connecting via named pipe. {Environment.NewLine}ReaderPipe: \"{readerName}\" {Environment.NewLine}WriterPipe: \"{writerName}\"", logFile, stdout: true);
             var writerPipe = new NamedPipeClientStream(writerName);
@@ -197,6 +209,20 @@ namespace Microsoft.Quantum.QsLanguageServer
             if (!writerPipe.IsConnected)
             {
                 Log($"[ERROR] Connection attempted timed out.", logFile);
+            }
+
+            return new QsLanguageServer(writerPipe, readerPipe);
+        }
+
+        internal static QsLanguageServer ConnectViaAnonymousPipes(string writerHandle, string readerHandle, string? logFile = null)
+        {
+            Log($"Connecting via anonymous pipe.", logFile, stdout: true);
+
+            var writerPipe = new AnonymousPipeClientStream(PipeDirection.Out, writerHandle);
+            var readerPipe = new AnonymousPipeClientStream(PipeDirection.In, readerHandle);
+            if (!writerPipe.IsConnected || !readerPipe.IsConnected)
+            {
+                Log($"[ERROR] Connection failed.", logFile);
             }
 
             return new QsLanguageServer(writerPipe, readerPipe);

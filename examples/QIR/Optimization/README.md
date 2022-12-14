@@ -14,7 +14,7 @@ The following software will be used in this walk-through:
 
 ### Installing the QDK
 
-The *Quantum Development Kit (QDK)* documentation provides detailed guides on [installing the QDK](https://docs.microsoft.com/azure/quantum/install-overview-qdk#install-the-qdk-for-quantum-computing-locally) for various setups.
+The *Quantum Development Kit (QDK)* documentation provides detailed guides on [installing the QDK](https://learn.microsoft.com/azure/quantum/how-to-csharp-qdk-local) for various setups.
 This document will assume a **command line** setup for **Q# standalone** applications.
 
 Steps for QDK v0.22.187631 (February 2022):
@@ -94,7 +94,7 @@ Parameters:
 * `-lang Q#` : load the templates for Q# projects
 * `-o Hello` : the project name, all files will be generated inside a folder of this name
 
-Other configurations are also possible, such as [Q# libraries with a C# host program](https://docs.microsoft.com/azure/quantum/install-csharp-qdk?tabs=tabid-cmdline%2Ctabid-csharp#creating-a-q-library-and-a-net-host).
+Other configurations are also possible, such as [Q# libraries with a C# host program](https://learn.microsoft.com/azure/quantum/user-guide/host-programs?tabs=tabid-csharp#q-with-host-programs).
 
 The standard Q# template produces a hello world program in the file `Program.qs`:
 
@@ -304,10 +304,11 @@ Check out the full list of [LLVM passes](https://llvm.org/docs/Passes.html) for 
 Since QIR code *is* LLVM IR, the usual code generation tools provided by LLVM can be used to produce an executable.
 However, in order to handle QIR-specific types and functions, proper linkage of the QIR runtime and simulator libraries is required.
 
-### Obtaining the QIR runtime & simulator
+### Obtaining the QIR standard library & simulator
 
-The [QIR runtime](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime) is distributed in the form of a NuGet package, from which we will pull the necessary library files.
-The same goes for the [full state quantum simulator](https://docs.microsoft.com/azure/quantum/user-guide/machines/full-state-simulator), which the QIR runtime can hook into to simulate the quantum program.
+The [QIR standard library](https://github.com/qir-alliance/qir-runner/tree/main/stdlib) is a native library that exposes the functionality described in the
+[QIR specification](https://github.com/qir-alliance/qir-spec), from which the required static libraries are compiled into the the
+[full state quantum simulator](https://learn.microsoft.com/azure/quantum/machines/full-state-simulator), which acts as the QIR backend to simulate the quantum program.
 In this section, the project file `Hello.csproj` is modified to generate these library files automatically.
 
 For convenience, a variable `BuildOutputPath` is defined with the following line added to the top-level `PropertyGroup` section:
@@ -321,19 +322,17 @@ For convenience, a variable `BuildOutputPath` is defined with the following line
   </PropertyGroup>
 ```
 
-All QIR runtime and simulator dependencies will be copied there.
+All QIR dependencies will be copied there.
 
-Next, the aforementioned NuGet package dependencies must be declared.
-One for the runtime and one for the simulator, using the `PackageReference` command:
+Next, the simulator NuGet package dependencies must be declared, using the `PackageReference` command:
 
 ```xml
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.22.187631-alpha" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.22.187631" GeneratePathProperty="true" />
   </ItemGroup>
 ```
 
-The package versions should match the version of the QDK specified at the top of the file, however, the runtime is only available as an alpha version at the moment.
+The package version should match the version of the QDK specified at the top of the file.
 The `GeneratePathProperty` will allow us to directly reference specific files in the packages later on.
 
 Lastly, a new build target is added called `GetDependencies`:
@@ -344,33 +343,18 @@ Lastly, a new build target is added called `GetDependencies`:
 
 The property `AfterTargets` indicates the target is to be run after the regular build stage.
 
-Inside, we simply copy library and C++ header files from the packages into the build folder with the `Copy` command:
+Inside, we simply copy the simulator library from the packages into the build folder with the `Copy` command:
 
 ```xml
     <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(_QirRuntimeHeaderFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
 ```
 
 The variables used to specify source files must be defined appropriately for each operating system.
 For example, only these definitions would be active on Windows:
 
 ```xml
-      <QirRuntimeHeaders>$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/any/native/include</QirRuntimeHeaders>
-      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/win-x64/native</QirRuntimeLibs>
       <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
 ```
-
-Note the variable `$(PkgMicrosoft_Quantum_Qir_Runtime)` for example is only available because of the `GeneratePathProperty` in the `Microsoft.Quantum.Qir.Runtime` package declaration.
-
-Since `QirRuntimeHeaders` and `QirRuntimeLibs` only specify directories (whereas `SimulatorRuntime` specifies a single file), we further filter the files to be copied:
-
-```xml
-      <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
-      <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.hpp" />
-```
-
-Only `.hpp` files from the QIR header directory will be copied, and no `.exe` files from QIR library directory.
 
 Put together, the new `Hello.csproj` project file should look as follows:
 
@@ -385,53 +369,31 @@ Put together, the new `Hello.csproj` project file should look as follows:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.22.187631-alpha" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.22.187631" GeneratePathProperty="true" />
   </ItemGroup>
 
   <Target Name="GetDependencies" AfterTargets="Build">
     <PropertyGroup>
-      <QirRuntimeHeaders>$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/any/native/include</QirRuntimeHeaders>
-      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/osx-x64/native</QirRuntimeLibs>
-      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/win-x64/native</QirRuntimeLibs>
-      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/linux-x64/native</QirRuntimeLibs>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native</SimulatorFolder>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native</SimulatorFolder>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native</SimulatorFolder>
     </PropertyGroup>
     <ItemGroup>
-      <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
-      <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.hpp" />
+      <_SimulatorLibraries Include="$(SimulatorFolder)/*.*" />
     </ItemGroup>
-    <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(_QirRuntimeHeaderFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_SimulatorLibraries)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>
 ```
 
 Build the project again with `dotnet build` from the project root directory.
-You should see the following important files appear in a folder named `build`, among others:
+You should see the simulator library appear in a folder named `build`, among others:
 
 ```
 build
-├── Microsoft.Quantum.Qir.QSharp.Core.dll
-├── Microsoft.Quantum.Qir.QSharp.Foundation.dll
-├── Microsoft.Quantum.Qir.Runtime.dll
 ├── Microsoft.Quantum.Simulator.Runtime.dll
-├── QirContext.hpp
-├── QirRuntime.hpp
-└── SimFactory.hpp
-```
-
-(**Linux**) The `Microsoft.Quantum.Qir.*` dynamic libraries will already have the right naming scheme for Clang to use, but the `Microsoft.Quantum.Simulator.Runtime` library needs to be renamed.
-The proper name format is `lib<library-name>.so`.
-
-Execute the following command from the project root directory:
-
-```bash
-mv build/Microsoft.Quantum.Simulator.Runtime.dll build/libMicrosoft.Quantum.Simulator.Runtime.so
+└── Microsoft.Quantum.Simulator.Runtime.lib
 ```
 
 ### Adding a driver
@@ -440,35 +402,15 @@ Trying to compile the QIR code in `Hello.ll` as is would present some problems, 
 A small C++ driver program (`Main.cpp`) will handle the setup and invoke Q# operations or functions directly from the QIR code.
 
 ```cpp
-#include "QirContext.hpp"
-#include "QirRuntime.hpp"
-#include "SimFactory.hpp"
-
-using namespace Microsoft::Quantum;
-using namespace std;
-
 extern "C" void Hello__HelloQ();
 
 int main(int argc, char* argv[]){
-    unique_ptr<IRuntimeDriver> sim = CreateFullstateSimulator();
-    QirContextScope qirctx(sim.get(), true /*trackAllocatedObjects*/);
     Hello__HelloQ();
     return 0;
 }
 ```
 
 The driver consists of the following elements:
-
-* header files (to interface with the libraries):
-
-  - `QirContext` : used to register the simulator with the QIR runtime
-  - `QirRuntime` : implements the types and functions defined in the [QIR specification](https://github.com/qir-alliance/qir-spec)
-  - `SimFactory` : provides the Q# simulator
-
-* namespaces :
-
-  - `Microsoft::Quantum` : the QIR context and simulator live here
-  - `std` : needed for `unique_ptr`
 
 * external function declarations :
 
@@ -478,11 +420,6 @@ The driver consists of the following elements:
     Normally, C++ function names would be transformed during compilation to include namespace and call argument information in the function name, known as [mangling](https://en.wikipedia.org/wiki/Name_mangling).
     We can check that the QIR function `Hello_HelloQ` indeed appears in the `Hello.ll` file with that name.
 
-* simulator invocation:
-
-    Here we create a Q# [full state simulator](https://docs.microsoft.com/azure/quantum/user-guide/machines/full-state-simulator) instance that will run our quantum program and register it with the current context.
-    Following this, everything is set up to call into Q# functions.
-
 ### Compiling the program
 
 Multiple tools are available for this step, such as the LLVM static compiler + assembler + linker or the JIT compiler.
@@ -491,13 +428,13 @@ Here, Clang is used again, this time to compile and link the `Hello.ll` Q# progr
 Invoke the following command on Windows:
 
 ```powershell
-clang++ qir/Hello.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -o build/Hello.exe
+clang++ qir/Hello.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe
 ```
 
 On Linux:
 
 ```bash
-clang++ qir/Hello.ll Main.cpp -Wl,-rpath=build -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe
+clang++ qir/Hello.ll Main.cpp -Wl,-rpath=build -Ibuild -Lbuild -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe
 ```
 
 Parameters:
@@ -521,13 +458,13 @@ The same can be done with the optimized QIR code.
 On Windows:
 
 ```powershell
-clang++ qir/Hello-dce-inline.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -o build/Hello.exe && ./build/Hello.exe
+clang++ qir/Hello-dce-inline.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe && ./build/Hello.exe
 ```
 
 On Linux:
 
 ```bash
-clang++ qir/Hello-dce-inline.ll Main.cpp -Wl,-rpath=build -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe && ./build/Hello.exe
+clang++ qir/Hello-dce-inline.ll Main.cpp -Wl,-rpath=build -Ibuild -Lbuild -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe && ./build/Hello.exe
 ```
 
 As a last example, let's modify the Q# program `Program.qs` with a random bit generator and run through the whole process:
@@ -556,10 +493,10 @@ Steps:
 * optimize the code `clang -S qir/Hello.ll -O3 -emit-llvm -o qir/Hello-o3.ll`
 * compile the code on Windows
     ```powershell
-    clang++ qir/Hello-o3.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -o build/Hello.exe
+    clang++ qir/Hello-o3.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe
     ```
     or Linux
     ```bash
-    clang++ qir/Hello.ll Main.cpp -Wl,-rpath=build -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe
+    clang++ qir/Hello.ll Main.cpp -Wl,-rpath=build -Ibuild -Lbuild -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe
     ```
 * simulate the program `./build/Hello.exe`
