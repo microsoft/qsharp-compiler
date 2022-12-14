@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
@@ -22,9 +23,9 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
         private Connection? connection;
         private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
-        private readonly RandomInput inputGenerator = new RandomInput();
-        private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new Stack<PublishDiagnosticParams>();
-        private readonly ManualResetEvent projectLoaded = new ManualResetEvent(false);
+        private readonly RandomInput inputGenerator = new();
+        private readonly Stack<PublishDiagnosticParams> receivedDiagnostics = new();
+        private readonly ManualResetEvent projectLoaded = new(false);
 
         public Task<string[]> GetFileContentInMemoryAsync(string filename) =>
             this.rpc.InvokeWithParameterObjectAsync<string[]>(
@@ -35,6 +36,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             this.rpc.InvokeWithParameterObjectAsync<Diagnostic[]>(
                 Methods.WorkspaceExecuteCommand.Name,
                 TestUtils.ServerCommand(CommandIds.FileDiagnostics, filename == null ? new TextDocumentIdentifier { Uri = new Uri("file://unknown") } : TestUtils.GetTextDocumentIdentifier(filename)));
+
+        public Task<string> GetProjectInformationAsync(Uri projectFile) =>
+            this.rpc.InvokeWithParameterObjectAsync<string>(
+                Methods.WorkspaceExecuteCommand.Name,
+                TestUtils.ServerCommand(CommandIds.ProjectInformation, new TextDocumentIdentifier() { Uri = projectFile }));
 
         public Task SetupAsync()
         {
@@ -55,9 +61,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestInitialize]
         public async Task SetupServerConnectionAsync()
         {
-            // Need to run MSBuildLocator for some tests like UpdateProjectFileAsync
-            _ = VisualStudioInstanceWrapper.LazyVisualStudioInstance.Value;
+            // Need to run MSBuildLocator for some tests.
+            _ = MsBuildDefaults.LazyRegistration.Value;
 
+            var logFile = Path.GetTempFileName();
             Directory.CreateDirectory(RandomInput.TestInputDirectory);
             var outputDir = new DirectoryInfo(RandomInput.TestInputDirectory);
             foreach (var file in outputDir.GetFiles())
@@ -73,18 +80,20 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var readerPipe = new NamedPipeServerStream(serverWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
                 var writerPipe = new NamedPipeServerStream(serverReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, 256, 256);
 
-                var server = Server.ConnectViaNamedPipe(serverWriterPipe, serverReaderPipe);
+                Server.ConnectViaNamedPipes(serverWriterPipe, serverReaderPipe);
+
                 await readerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 await writerPipe.WaitForConnectionAsync().ConfigureAwait(true);
                 this.connection = new Connection(readerPipe, writerPipe);
             }
             else
             {
-                var readerPipe = new System.IO.Pipelines.Pipe();
-                var writerPipe = new System.IO.Pipelines.Pipe();
+                var readerPipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
+                var writerPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
 
-                var server = new QsLanguageServer(sender: writerPipe.Writer.AsStream(), reader: readerPipe.Reader.AsStream());
-                this.connection = new Connection(writerPipe.Reader.AsStream(), readerPipe.Writer.AsStream());
+                Server.ConnectViaAnonymousPipes(readerPipe.GetClientHandleAsString(), writerPipe.GetClientHandleAsString());
+
+                this.connection = new Connection(readerPipe, writerPipe);
             }
 
             this.rpc = new JsonRpc(this.connection.Writer, this.connection.Reader, this)

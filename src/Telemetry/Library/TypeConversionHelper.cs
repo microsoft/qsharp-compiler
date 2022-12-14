@@ -20,8 +20,7 @@ namespace Microsoft.Quantum.Telemetry
         internal static PiiKind ToPiiKind(this bool isPii) =>
             isPii ? PiiKind.GenericData : PiiKind.None;
 
-        private static Dictionary<TelemetryPropertyType, Action<ILogger, string, object, PiiKind>> setContextActions =
-        new Dictionary<TelemetryPropertyType, Action<ILogger, string, object, PiiKind>>()
+        private static readonly Dictionary<TelemetryPropertyType, Action<ILogger, string, object, PiiKind>> SetContextActions = new()
         {
             { TelemetryPropertyType.Boolean, (logger, name, value, piiKind) => logger.SetContext(name, (bool)value, piiKind) },
             { TelemetryPropertyType.DateTime, (logger, name, value, piiKind) => logger.SetContext(name, (DateTime)value, piiKind) },
@@ -32,7 +31,7 @@ namespace Microsoft.Quantum.Telemetry
         };
 
         internal static void SetContext(this ILogger logger, string name, object value, TelemetryPropertyType propertyType, bool isPii) =>
-            setContextActions[propertyType](logger, name, value, isPii.ToPiiKind());
+            SetContextActions[propertyType](logger, name, value, isPii.ToPiiKind());
 
         private static Dictionary<TelemetryPropertyType, Action<EventProperties, string, object, PiiKind>> setPropertyMethods =
         new Dictionary<TelemetryPropertyType, Action<EventProperties, string, object, PiiKind>>()

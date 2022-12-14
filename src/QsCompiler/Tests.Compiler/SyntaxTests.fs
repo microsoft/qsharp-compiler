@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 module Microsoft.Quantum.QsCompiler.Testing.SyntaxTests
@@ -429,6 +429,22 @@ let ``Complex literal tests`` () =
         |> toExpr,
         []
 
+        "[[[[1]]]]", true, toArray [ toArray [ toArray [ toArray [ toInt 1 ] ] ] ], []
+
+        "[[[[[[[[[[[[[0]]]]]]]]]]]]]",
+        true,
+        toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toInt
+                                                                                                                                              0 ] ] ] ] ] ] ] ] ] ] ] ] ],
+        []
+
+        "[[[[[[[[[[[[ [x, x] ]]]]]]]]]]]]",
+        true,
+        toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toArray [ toIdentifier
+                                                                                                                                              "x"
+                                                                                                                                          toIdentifier
+                                                                                                                                              "x" ] ] ] ] ] ] ] ] ] ] ] ] ],
+        []
+
         "(1,2,3)", true, toTuple [ toInt 1; toInt 2; toInt 3 ], []
 
         "(x,2,3)",
@@ -455,20 +471,24 @@ let ``Call tests`` () =
     [
         "x()", true, CallLikeExpression(toIdentifier "x", toExpr UnitValue) |> toExpr, []
         "x(1,2)", true, CallLikeExpression(toIdentifier "x", toTuple [ toInt 1; toInt 2 ]) |> toExpr, []
+
         "Adjoint x()",
         true,
         CallLikeExpression(toIdentifier "x" |> AdjointApplication |> toExpr, toExpr UnitValue) |> toExpr,
         []
+
         "Controlled x()",
         true,
         CallLikeExpression(toIdentifier "x" |> ControlledApplication |> toExpr, toExpr UnitValue) |> toExpr,
         []
+
         "f(1)(2)",
         true,
         (CallLikeExpression(toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
         |> CallLikeExpression
         |> toExpr,
         []
+
         "f(1)(2)(3)",
         true,
         ((CallLikeExpression(toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
@@ -478,12 +498,17 @@ let ``Call tests`` () =
         |> CallLikeExpression
         |> toExpr,
         []
+
         "f(1)(2)[3]",
         true,
-        (CallLikeExpression(toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
-        |> CallLikeExpression
+        ArrayItem(
+            CallLikeExpression(CallLikeExpression(toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+            |> toExpr,
+            toInt 3
+        )
         |> toExpr,
         []
+
         "(f(1)(2))[3]",
         true,
         ([
@@ -496,6 +521,7 @@ let ``Call tests`` () =
         |> ArrayItem
         |> toExpr,
         []
+
         "(f(1)(2))[3](4)",
         true,
         ([
@@ -509,12 +535,19 @@ let ``Call tests`` () =
         |> toExpr
         |> (fun left -> CallLikeExpression(left, toTuple [ toInt 4 ]) |> toExpr),
         []
+
         "f(1)(2)::X",
         true,
-        (CallLikeExpression(toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
-        |> CallLikeExpression
+        NamedItem(
+            CallLikeExpression(
+                (CallLikeExpression(toIdentifier "f", toTuple [ toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
+            )
+            |> toExpr,
+            toSymbol "X"
+        )
         |> toExpr,
         []
+
         "(f(1)(2))::X",
         true,
         ([
@@ -527,6 +560,7 @@ let ``Call tests`` () =
         |> NamedItem
         |> toExpr,
         []
+
         "(f(1)(2))::X(4)",
         true,
         ([
@@ -540,6 +574,7 @@ let ``Call tests`` () =
         |> toExpr
         |> (fun left -> CallLikeExpression(left, toTuple [ toInt 4 ]) |> toExpr),
         []
+
         "(x(_,1))(2)",
         true,
         (toTuple [ CallLikeExpression(toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr ],
@@ -547,12 +582,14 @@ let ``Call tests`` () =
         |> CallLikeExpression
         |> toExpr,
         []
+
         "x(_,1)(2)",
         true,
         (CallLikeExpression(toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr, toTuple [ toInt 2 ])
         |> CallLikeExpression
         |> toExpr,
         []
+
         "(x(_,1))(1,2)",
         true,
         (toTuple [ CallLikeExpression(toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr ],
@@ -560,6 +597,7 @@ let ``Call tests`` () =
         |> CallLikeExpression
         |> toExpr,
         []
+
         "x(_,1)(1,2)",
         true,
         (CallLikeExpression(toIdentifier "x", toTuple [ toExpr MissingExpr; toInt 1 ]) |> toExpr,
@@ -567,6 +605,7 @@ let ``Call tests`` () =
         |> CallLikeExpression
         |> toExpr,
         []
+
         "(x(1,(2, _)))(2)",
         true,
         ([
@@ -582,6 +621,7 @@ let ``Call tests`` () =
         |> CallLikeExpression
         |> toExpr,
         []
+
         "x(1,(2, _))(2)",
         true,
         (CallLikeExpression(
@@ -594,6 +634,7 @@ let ``Call tests`` () =
         |> CallLikeExpression
         |> toExpr,
         []
+
         "(x(_,(2, _)))(1,2)",
         true,
         ([
@@ -608,6 +649,7 @@ let ``Call tests`` () =
         |> CallLikeExpression
         |> toExpr,
         []
+
         "x(_,(2, _))(1,2)",
         true,
         ((toIdentifier "x",
