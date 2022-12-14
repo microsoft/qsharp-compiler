@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 /// this module is *not* supposed to hardcode any qs keywords (i.e. there should not be any need for strings in here) - use the keywords module for that!
@@ -16,7 +16,6 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
-
 
 // operator precedence parsers for expressions and call arguments
 
@@ -39,15 +38,15 @@ let private qsExpression = new OperatorPrecedenceParser<QsExpression, _, _>()
 /// processing all expressions handled by the Q# expression parser as well as omitted arguments
 let private qsArgument = new OperatorPrecedenceParser<QsExpression, _, _>()
 
-let private applyUnary operator _ (ex: QsExpression) =
+let private applyUnary operator (ex: QsExpression) =
     (operator ex, ex.Range) |> QsExpression.New // todo: not entirely correct range info, but for now will do
 
-let internal applyBinary operator _ (left: QsExpression) (right: QsExpression) =
+let internal applyBinary operator (left: QsExpression) (right: QsExpression) =
     buildCombinedExpr (operator (left, right)) (left.Range, right.Range)
 
 let internal applyTerinary operator (first: QsExpression) (second: QsExpression) (third: QsExpression) =
     let buildOp (left, right) = operator (left, second, right)
-    applyBinary buildOp () first third
+    applyBinary buildOp first third
 
 let private deprecatedOp warning (parsedOp: string) =
     let precedingRange (pos: Position) =
@@ -59,6 +58,17 @@ let private deprecatedOp warning (parsedOp: string) =
         Range.Create precedingPos pos
 
     buildWarning (getPosition |>> precedingRange) warning
+
+/// Applies a functor application operator and repairs the expression tree so that it always binds tighter than a call
+/// expression. This is a workaround for complex postfix operators being parsed separately from the operator precedence
+/// parser.
+let private fixFunctorPrecedence (f: _ -> QsExpression) e =
+    match e.Expression with
+    | CallLikeExpression (callee, args) ->
+        let callee' = f callee
+        let range = (callee'.Range, e.Range) ||> QsNullable.Map2(fun r1 r2 -> Range.Create r1.Start r2.End)
+        QsExpression.New(CallLikeExpression(callee', args), range)
+    | _ -> f e
 
 qsExpression.AddOperator(
     TernaryOperator(
@@ -85,40 +95,25 @@ qsExpression.AddOperator(
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsRangeOp.Op, emptySpace, qsRangeOp.Prec, qsRangeOp.Associativity, (), applyBinary RangeLiteral)
+    InfixOperator(qsRangeOp.Op, emptySpace, qsRangeOp.Prec, qsRangeOp.Associativity, applyBinary RangeLiteral)
 )
 
-qsExpression.AddOperator(InfixOperator(qsORop.Op, emptySpace, qsORop.Prec, qsORop.Associativity, (), applyBinary OR))
+qsExpression.AddOperator(InfixOperator(qsORop.Op, emptySpace, qsORop.Prec, qsORop.Associativity, applyBinary OR))
+qsExpression.AddOperator(InfixOperator(qsANDop.Op, emptySpace, qsANDop.Prec, qsANDop.Associativity, applyBinary AND))
+qsExpression.AddOperator(InfixOperator(qsBORop.Op, emptySpace, qsBORop.Prec, qsBORop.Associativity, applyBinary BOR))
 
 qsExpression.AddOperator(
-    InfixOperator(qsANDop.Op, emptySpace, qsANDop.Prec, qsANDop.Associativity, (), applyBinary AND)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsBORop.Op, emptySpace, qsBORop.Prec, qsBORop.Associativity, (), applyBinary BOR)
+    InfixOperator(qsBXORop.Op, emptySpace, qsBXORop.Prec, qsBXORop.Associativity, applyBinary BXOR)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsBXORop.Op, emptySpace, qsBXORop.Prec, qsBXORop.Associativity, (), applyBinary BXOR)
+    InfixOperator(qsBANDop.Op, emptySpace, qsBANDop.Prec, qsBANDop.Associativity, applyBinary BAND)
 )
 
-qsExpression.AddOperator(
-    InfixOperator(qsBANDop.Op, emptySpace, qsBANDop.Prec, qsBANDop.Associativity, (), applyBinary BAND)
-)
-
-qsExpression.AddOperator(InfixOperator(qsEQop.Op, emptySpace, qsEQop.Prec, qsEQop.Associativity, (), applyBinary EQ))
-
-qsExpression.AddOperator(
-    InfixOperator(qsNEQop.Op, emptySpace, qsNEQop.Prec, qsNEQop.Associativity, (), applyBinary NEQ)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsLTEop.Op, emptySpace, qsLTEop.Prec, qsLTEop.Associativity, (), applyBinary LTE)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsGTEop.Op, emptySpace, qsGTEop.Prec, qsGTEop.Associativity, (), applyBinary GTE)
-)
+qsExpression.AddOperator(InfixOperator(qsEQop.Op, emptySpace, qsEQop.Prec, qsEQop.Associativity, applyBinary EQ))
+qsExpression.AddOperator(InfixOperator(qsNEQop.Op, emptySpace, qsNEQop.Prec, qsNEQop.Associativity, applyBinary NEQ))
+qsExpression.AddOperator(InfixOperator(qsLTEop.Op, emptySpace, qsLTEop.Prec, qsLTEop.Associativity, applyBinary LTE))
+qsExpression.AddOperator(InfixOperator(qsGTEop.Op, emptySpace, qsGTEop.Prec, qsGTEop.Associativity, applyBinary GTE))
 
 qsExpression.AddOperator(
     InfixOperator(
@@ -126,36 +121,24 @@ qsExpression.AddOperator(
         notFollowedBy (pchar '-') >>. emptySpace,
         qsLTop.Prec,
         qsLTop.Associativity,
-        (),
         applyBinary LT
     )
 )
 
-qsExpression.AddOperator(InfixOperator(qsGTop.Op, emptySpace, qsGTop.Prec, qsGTop.Associativity, (), applyBinary GT))
+qsExpression.AddOperator(InfixOperator(qsGTop.Op, emptySpace, qsGTop.Prec, qsGTop.Associativity, applyBinary GT))
 
 qsExpression.AddOperator(
-    InfixOperator(qsRSHIFTop.Op, emptySpace, qsRSHIFTop.Prec, qsRSHIFTop.Associativity, (), applyBinary RSHIFT)
+    InfixOperator(qsRSHIFTop.Op, emptySpace, qsRSHIFTop.Prec, qsRSHIFTop.Associativity, applyBinary RSHIFT)
 )
 
 qsExpression.AddOperator(
-    InfixOperator(qsLSHIFTop.Op, emptySpace, qsLSHIFTop.Prec, qsLSHIFTop.Associativity, (), applyBinary LSHIFT)
+    InfixOperator(qsLSHIFTop.Op, emptySpace, qsLSHIFTop.Prec, qsLSHIFTop.Associativity, applyBinary LSHIFT)
 )
 
-qsExpression.AddOperator(
-    InfixOperator(qsADDop.Op, emptySpace, qsADDop.Prec, qsADDop.Associativity, (), applyBinary ADD)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsSUBop.Op, emptySpace, qsSUBop.Prec, qsSUBop.Associativity, (), applyBinary SUB)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsMULop.Op, emptySpace, qsMULop.Prec, qsMULop.Associativity, (), applyBinary MUL)
-)
-
-qsExpression.AddOperator(
-    InfixOperator(qsMODop.Op, emptySpace, qsMODop.Prec, qsMODop.Associativity, (), applyBinary MOD)
-)
+qsExpression.AddOperator(InfixOperator(qsADDop.Op, emptySpace, qsADDop.Prec, qsADDop.Associativity, applyBinary ADD))
+qsExpression.AddOperator(InfixOperator(qsSUBop.Op, emptySpace, qsSUBop.Prec, qsSUBop.Associativity, applyBinary SUB))
+qsExpression.AddOperator(InfixOperator(qsMULop.Op, emptySpace, qsMULop.Prec, qsMULop.Associativity, applyBinary MUL))
+qsExpression.AddOperator(InfixOperator(qsMODop.Op, emptySpace, qsMODop.Prec, qsMODop.Associativity, applyBinary MOD))
 
 qsExpression.AddOperator(
     InfixOperator(
@@ -163,16 +146,12 @@ qsExpression.AddOperator(
         notFollowedBy (pchar '/') >>. emptySpace,
         qsDIVop.Prec,
         qsDIVop.Associativity,
-        (),
         applyBinary DIV
     )
 )
 
-qsExpression.AddOperator(
-    InfixOperator(qsPOWop.Op, emptySpace, qsPOWop.Prec, qsPOWop.Associativity, (), applyBinary POW)
-)
-
-qsExpression.AddOperator(PrefixOperator(qsBNOTop.Op, emptySpace, qsBNOTop.Prec, true, (), applyUnary BNOT))
+qsExpression.AddOperator(InfixOperator(qsPOWop.Op, emptySpace, qsPOWop.Prec, qsPOWop.Associativity, applyBinary POW))
+qsExpression.AddOperator(PrefixOperator(qsBNOTop.Op, emptySpace, qsBNOTop.Prec, true, applyUnary BNOT))
 
 qsExpression.AddOperator(
     PrefixOperator(
@@ -180,12 +159,11 @@ qsExpression.AddOperator(
         notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
         qsNOTop.Prec,
         true,
-        (),
         applyUnary NOT
     )
 )
 
-qsExpression.AddOperator(PrefixOperator(qsNEGop.Op, emptySpace, qsNEGop.Prec, true, (), applyUnary NEG))
+qsExpression.AddOperator(PrefixOperator(qsNEGop.Op, emptySpace, qsNEGop.Prec, true, applyUnary NEG))
 
 qsExpression.AddOperator(
     PrefixOperator(
@@ -193,7 +171,6 @@ qsExpression.AddOperator(
         "!" |> deprecatedOp WarningCode.DeprecatedNOToperator >>. emptySpace,
         qsNOTop.Prec,
         true,
-        (),
         applyUnary NOT
     )
 )
@@ -204,7 +181,6 @@ qsExpression.AddOperator(
         "||" |> deprecatedOp WarningCode.DeprecatedORoperator >>. emptySpace,
         qsORop.Prec,
         qsORop.Associativity,
-        (),
         applyBinary OR
     )
 )
@@ -215,46 +191,35 @@ qsExpression.AddOperator(
         "&&" |> deprecatedOp WarningCode.DeprecatedANDoperator >>. emptySpace,
         qsANDop.Prec,
         qsANDop.Associativity,
-        (),
         applyBinary AND
     )
 )
 
-for op in qsExpression.Operators do
-    qsArgument.AddOperator op
+qsExpression.AddOperator(
+    PrefixOperator(
+        qsAdjointFunctor.Id,
+        notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
+        qsAdjointModifier.Prec,
+        true,
+        fixFunctorPrecedence (applyUnary AdjointApplication)
+    )
+)
 
+qsExpression.AddOperator(
+    PrefixOperator(
+        qsControlledFunctor.Id,
+        notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
+        qsControlledModifier.Prec,
+        true,
+        fixFunctorPrecedence (applyUnary ControlledApplication)
+    )
+)
 
-// processing modifiers (functor application and unwrap directives)
-// -> modifiers basically act as unary operators with infinite precedence that can only be applied to certain expressions
+Seq.iter qsArgument.AddOperator qsExpression.Operators
 
-/// Parses a postfix modifer (unwrap operator) as term and returns its range,
-/// i.e. fails without consuming input if there is no postfix modifier to parse.
-let private postFixModifier = term (pstring qsUnwrapModifier.Op .>> notFollowedBy (pchar '=')) |>> snd
-
-/// Given an expression which (potentially) supports the application of modifiers,
-/// processes the expression and all its leading and trailing modifiers, applies all modifiers, and builds the corresponding Q# expression.
-/// Expression modifiers are functor application and/or unwrap directives.
-/// All trailing modifiers (unwrap directives) take precedence over all leading ones (functor applications).
-/// Trailing modifiers are left-associative, and leading modifier are right-associative.
-let private withModifiers modifiableExpr =
-    let rec applyUnwraps unwraps (core: QsExpression) =
-        match unwraps with
-        | [] -> core
-        | range :: tail -> buildCombinedExpr (UnwrapApplication core) (core.Range, Value range) |> applyUnwraps tail
-
-    let rec applyFunctors functors (core: QsExpression) =
-        match functors with
-        | [] -> core
-        | (range, kind) :: tail -> buildCombinedExpr (kind core) (Value range, core.Range) |> applyFunctors tail
-
-    let functorApplication =
-        let adjointApplication = qsAdjointFunctor.Parse .>>. preturn AdjointApplication
-        let controlledApplication = qsControlledFunctor.Parse .>>. preturn ControlledApplication
-        adjointApplication <|> controlledApplication
-
-    attempt (many functorApplication .>>. modifiableExpr) .>>. many postFixModifier // NOTE: do *not* replace by an expected expression even if there are preceding functors!
-    |>> fun ((functors, ex), unwraps) -> applyUnwraps unwraps ex |> applyFunctors (List.rev functors)
-
+let private unwrap =
+    pstring qsUnwrapModifier.Op .>> notFollowedBy (pchar '=') |> term
+    |>> fun (_, r) e -> buildCombinedExpr (UnwrapApplication e) (e.Range, Value r)
 
 // utils for building expressions
 
@@ -283,7 +248,6 @@ let internal expectedExpr continuation =
 let private asExpression core = term core |>> QsExpression.New
 
 let private buildExpression ex (range: Range) = (ex, range) |> QsExpression.New
-
 
 // Qs literals
 
@@ -451,8 +415,6 @@ let private identifier =
                  |> Identifier,
                  sym.Range)
                 |> QsExpression.New
-    |> withModifiers
-
 
 // composite expressions
 
@@ -489,7 +451,6 @@ let private tupledItem item =
 
     tupleBrackets content
     |>> (fun (item, range) -> (ImmutableArray.Create item |> ValueTuple, range) |> QsExpression.New)
-    |> withModifiers
 
 /// Given an array of QsExpressions and a tuple with start and end position, builds a Q# ValueTuple as QsExpression.
 let internal buildTupleExpr (items, range: Range) =
@@ -511,13 +472,18 @@ let private valueTuple item = // allows something like (a,(),b)
 /// Parses a Q# value array as QsExpression.
 /// Uses commaSep1 to generate suitable errors for invalid or missing expressions within the array.
 let private valueArray =
-    let sized = expr .>>. (comma >>. size.Parse >>. equal >>. expectedExpr rArray) |>> SizedArray
+    let rest head =
+        commaSep expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof
+        |>> (Seq.append [ head ] >> ImmutableArray.CreateRange >> ValueArray)
 
-    let items =
-        commaSep expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof |>> ValueArray
+    let sizeOrRest head =
+        size.Parse >>. equal >>. expectedExpr rArray |>> (fun size -> SizedArray(head, size)) <|> rest head
 
-    arrayBrackets (attempt sized <|> items) |>> QsExpression.New
-    <|> bracketDefinedCommaSepExpr (lArray, rArray)
+    let body =
+        expr >>= fun head -> comma >>. sizeOrRest head <|>% ValueArray(ImmutableArray.Create head)
+        <|>% ValueArray ImmutableArray.Empty
+
+    arrayBrackets body |>> QsExpression.New <|> bracketDefinedCommaSepExpr (lArray, rArray)
 
 /// Parses a Q# array declaration as QsExpression.
 /// Adds an InvalidConstructorExpression if the array declaration keyword is not followed by a valid array constructor,
@@ -545,94 +511,54 @@ let private newArray =
     >>= fun headRange -> term body |>> toExpr headRange <|> (term invalid |>> fst)
     >>= withWarning
 
-/// used to temporarily store item accessors for both array item and named item access expressions
-type private ItemAccessor =
-    | ArrayItemAccessor of QsExpression * Range
-    | NamedItemAccessor of QsSymbol
+let private arrayItem =
+    let missingEx pos =
+        (MissingExpr, Range.Create pos pos) |> QsExpression.New
 
-/// Parses a Q# ArrayItem as QsExpression.
-/// Q# array item expressions support modifications -
-/// i.e. they can be preceded by functor application directives, and followed by unwrap application directives.
-/// Note that this parser has a dependency on the identifier, tupleItem expr, and valueArray parsers -
-/// meaning they process the left-most part of the array item expression and thus need to be evaluated *after* the arrayItemExpr parser.
-let private itemAccessExpr =
-    let rec applyPostfixModifiers ex =
-        function
-        | [] -> ex
-        | (range: Range) :: tail ->
-            let ex = (UnwrapApplication(ex), range) |> QsExpression.New
-            applyPostfixModifiers ex tail
+    let openRange = pstring qsOpenRangeOp.Op |> term
 
-    let rec applyAccessors (ex: QsExpression, item) =
-        let recur (accessEx, mods) tail =
-            let accessExWithMods = applyPostfixModifiers accessEx mods
-            applyAccessors (accessExWithMods, tail)
+    let fullyOpenRange =
+        openRange |>> snd .>>? followedBy eof
+        |>> fun range ->
+                let lhs, rhs = missingEx range.Start, missingEx range.End
+                buildCombinedExpr (RangeLiteral(lhs, rhs)) (lhs.Range, rhs.Range)
 
-        match item with
-        | [] -> ex
-        | (ArrayItemAccessor (idx, range), postfixMod) :: tail ->
-            let arrItemEx = buildCombinedExpr (ArrayItem(ex, idx)) (ex.Range, Value range)
-            recur (arrItemEx, postfixMod) tail
-        | (NamedItemAccessor sym, postfixMod) :: tail ->
-            let namedItemEx = buildCombinedExpr (NamedItem(ex, sym)) (ex.Range, sym.Range)
-            recur (namedItemEx, postfixMod) tail
+    let closedOrHalfOpenRange =
+        let skipToTailingRangeOrEnd = followedBy (opt openRange >>? eof) |> manyCharsTill anyChar
 
-    let accessor =
-        let missingEx pos =
-            (MissingExpr, Range.Create pos pos) |> QsExpression.New
+        let slicingExpr state =
+            (opt openRange .>>. expectedExpr eof |> runOnSubstream state) .>>. opt openRange
 
-        let openRange = pstring qsOpenRangeOp.Op |> term
-
-        let fullyOpenRange =
-            openRange |>> snd .>>? followedBy eof
-            |>> fun range ->
-                    let lhs, rhs = missingEx range.Start, missingEx range.End
-                    buildCombinedExpr (RangeLiteral(lhs, rhs)) (lhs.Range, rhs.Range)
-
-        let closedOrHalfOpenRange =
-            let skipToTailingRangeOrEnd = followedBy (opt openRange >>? eof) |> manyCharsTill anyChar
-
-            let slicingExpr state =
-                (opt openRange .>>. expectedExpr eof |> runOnSubstream state) .>>. opt openRange
-
-            getCharStreamState >>= fun state -> skipToTailingRangeOrEnd >>. slicingExpr state
-            |>> fun ((pre, core: QsExpression), post) ->
-                    let applyPost ex =
-                        match post with
-                        | None -> ex
-                        | Some (_, range) ->
-                            buildCombinedExpr (RangeLiteral(ex, missingEx range.End)) (ex.Range, Value range)
-
-                    match pre with
-                    // we potentially need to re-construct the expression following the open range operator
-                    // to get the correct behavior (in terms of associativity and precedence)
+        getCharStreamState >>= fun state -> skipToTailingRangeOrEnd >>. slicingExpr state
+        |>> fun ((pre, core: QsExpression), post) ->
+                let applyPost ex =
+                    match post with
+                    | None -> ex
                     | Some (_, range) ->
-                        let combineWith right left =
-                            buildCombinedExpr (RangeLiteral(left, right)) (left.Range, right.Range)
+                        buildCombinedExpr (RangeLiteral(ex, missingEx range.End)) (ex.Range, Value range)
 
-                        match core.Expression with
-                        // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence,
-                        // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it.
-                        | RangeLiteral (lex, rex) ->
-                            buildCombinedExpr (RangeLiteral(missingEx range.End, lex)) (Value range, lex.Range)
-                            |> combineWith rex
-                        | _ -> missingEx range.End |> combineWith core |> applyPost
-                    | None -> core |> applyPost
+                match pre with
+                // we potentially need to re-construct the expression following the open range operator
+                // to get the correct behavior (in terms of associativity and precedence)
+                | Some (_, range) ->
+                    let combineWith right left =
+                        buildCombinedExpr (RangeLiteral(left, right)) (left.Range, right.Range)
 
-        let arrayItemAccess = arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
+                    match core.Expression with
+                    // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence,
+                    // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it.
+                    | RangeLiteral (lex, rex) ->
+                        buildCombinedExpr (RangeLiteral(missingEx range.End, lex)) (Value range, lex.Range)
+                        |> combineWith rex
+                    | _ -> missingEx range.End |> combineWith core |> applyPost
+                | None -> core |> applyPost
 
-        let namedItemAccess =
-            term (pstring qsNamedItemCombinator.Op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol
-            |>> NamedItemAccessor
+    arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange)
+    |>> fun (idx, range) expr -> buildCombinedExpr (ArrayItem(expr, idx)) (expr.Range, Value range)
 
-        (arrayItemAccess <|> namedItemAccess) .>>. many postFixModifier
-
-    let arrItem =
-        // ideally, this would also "depend" on callLikeExpression and arrayItemExpr (i.e. try them as an lhs expression)
-        // but that requires handling the cyclic dependency ...
-        (identifier <|> tupledItem expr <|> valueArray) .>>. many1 accessor // allowing new Int[1][2] (i.e. array items on the lhs) would just be confusing
-
-    attempt arrItem |>> applyAccessors |> withModifiers
+let private namedItem =
+    term (pstring qsNamedItemCombinator.Op) >>. symbolLike ErrorCode.ExpectingUnqualifiedSymbol
+    |>> fun sym expr -> buildCombinedExpr (NamedItem(expr, sym)) (expr.Range, sym.Range)
 
 /// Parses a Q# argument tuple - i.e. an expression tuple that may contain Missing expressions.
 /// If the parsed argument tuple is not a unit value,
@@ -648,11 +574,7 @@ let private argumentTuple =
 /// Expects tuple brackets around the argument even if the argument consists of a single tuple item.
 /// Note that this parser has a dependency on the arrayItemExpr, identifier, and tupleItem expr parsers -
 /// meaning they process the left-most part of the call-like expression and thus need to be evaluated *after* the callLikeExpr parser.
-let internal callLikeExpr =
-    // identifier needs to come *after* arrayItemExpr
-    itemAccessExpr <|> identifier <|> tupledItem expr .>>. many1 argumentTuple
-    |>> List.Cons
-    |>> List.reduce (applyBinary CallLikeExpression ())
+let private callLike = argumentTuple |>> fun args callee -> applyBinary CallLikeExpression callee args
 
 /// Parses a (unqualified) symbol-like expression used as local identifier, raising a suitable error for an invalid
 /// symbol name.
@@ -695,29 +617,36 @@ let private lambda =
 
 // processing terms of operator precedence parsers
 
-type private MissingMode =
-    | NoMissing
-    | AllowMissing
+/// <summary>
+/// Parses <paramref name="p"/> followed by zero or more occurrences of <paramref name="op"/>, repeatedly applying the
+/// function returned by <paramref name="op"/> to the previous result.
+/// </summary>
+/// <remarks>
+/// You can think of this parser as accepting any string matching <c>p (op0 op1 ... opn)</c> where <c>n >= 0</c>. If the
+/// result of <c>p</c> is <c>x</c> and the result of <c>opi</c> is a function <c>fi</c>, then the return value is
+/// <c>fn (... (f1 (f0 x)))</c>.
+/// </remarks>
+let private chainPostfix p op =
+    let rec ops acc = op >>= (fun f -> f acc |> ops) <|>% acc
+    p >>= ops
 
-let private termParser missingMode tupleExpr =
-    // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly.
-    [
-        attempt newArray
-        attempt lambda // needs to be before unitValue
-        if missingMode = AllowMissing then missingExpr // needs to be after lambda but before identifier
-        attempt unitValue
-        attempt callLikeExpr // needs to be after unitValue
-        attempt itemAccessExpr // needs to be after callLikeExpr
-        attempt valueArray // needs to be after arryItemExpr
-        attempt tupleExpr // needs to be after unitValue, arrayItemExpr, and callLikeExpr
-        attempt pauliLiteral
-        attempt resultLiteral
-        attempt numericLiteral
-        attempt boolLiteral
-        attempt stringLiteral
-        attempt identifier // needs to be at the very end
-    ]
-    |> choice
+let private termParser isArg =
+    let root =
+        choice [ newArray
+                 lambda
+                 if isArg then missingExpr
+                 unitValue
+                 valueArray
+                 valueTuple (if isArg then argument else expr)
+                 pauliLiteral
+                 resultLiteral
+                 numericLiteral
+                 boolLiteral
+                 stringLiteral
+                 identifier ]
 
-qsExpression.TermParser <- valueTuple expr |> termParser NoMissing
-qsArgument.TermParser <- valueTuple argument |> termParser AllowMissing
+    let postfix = unwrap <|> callLike <|> arrayItem <|> namedItem
+    chainPostfix root postfix
+
+qsExpression.TermParser <- termParser false
+qsArgument.TermParser <- termParser true

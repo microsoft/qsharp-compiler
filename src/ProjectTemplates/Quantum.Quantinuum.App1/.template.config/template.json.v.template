@@ -1,0 +1,15 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "classifications": ["Common", "Console"],  
+    "name": "Quantum Application Quantinuum",
+    "description": "A project creating a Q# application that can be executed on a Quantinuum backend via Azure Quantum.",
+    "groupIdentity": "Microsoft.Common.Console.Quantinuum",
+    "identity": "Microsoft.Common.Console.QSharp.Quantinuum.#MAJOR_VERSION#.#MINOR_VERSION#",
+    "shortName": "azq-quantinuum",
+    "tags": {
+      "language": "Q#",
+      "type": "project"
+    },
+    "sourceName": "Quantum.Quantinuum.App1",
+    "preferNameDirectory": true
+}
