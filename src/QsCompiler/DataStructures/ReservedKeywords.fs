@@ -262,8 +262,6 @@ module AssemblyConstants =
     let QsharpExe = "QSharpExe"
     let QsharpLibrary = "QSharpLibrary"
     let ProcessorArchitecture = "ProcessorArchitecture"
-    [<Obsolete("Replaced by QuantinuumProcessor for Microsoft.Quantum.Sdk version 0.25 and newer.")>]
-    let HoneywellProcessor = "HoneywellProcessor"
     let IonQProcessor = "IonQProcessor"
     let QCIProcessor = "QCIProcessor"
     let QuantinuumProcessor = "QuantinuumProcessor"

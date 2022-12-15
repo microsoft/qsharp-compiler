@@ -17,10 +17,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
     internal static class TestUtils
     {
-        internal static Uri GetUri(string filename)
-        {
-            return new Uri(Path.GetFullPath(filename));
-        }
+        internal static Uri GetUri(string filename) =>
+            new(Path.GetFullPath(filename));
 
         internal static List<string> GetContent(string filename)
         {
@@ -38,14 +36,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return content;
         }
 
-        internal static TextDocumentIdentifier GetTextDocumentIdentifier(string filename)
-        {
-            return new TextDocumentIdentifier { Uri = GetUri(filename) };
-        }
+        internal static TextDocumentIdentifier GetTextDocumentIdentifier(string filename) =>
+            new() { Uri = GetUri(filename) };
 
-        internal static InitializeParams GetInitializeParams()
-        {
-            return new InitializeParams
+        internal static InitializeParams GetInitializeParams() =>
+            new()
             {
                 ProcessId = -1,
                 InitializationOptions = null,
@@ -56,7 +51,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                     Experimental = new object(),
                 },
             };
-        }
 
         internal static DidOpenTextDocumentParams GetOpenFileParams(string filename)
         {
@@ -90,7 +84,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         }
 
         internal static ExecuteCommandParams ServerCommand(string command, params object[] args) =>
-            new ExecuteCommandParams { Command = command, Arguments = args };
+            new() { Command = command, Arguments = args };
 
         // does not modify range
         internal static int GetRangeLength(Range range, IReadOnlyList<string> content)
@@ -118,14 +112,14 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
 
             Assert.IsTrue(IsValidRange(change.Range) && change.Text != null);
-            Assert.IsTrue(change.Range.End.Line < content.Count());
+            Assert.IsTrue(change.Range.End.Line < content.Count);
             Assert.IsTrue(change.Range.Start.Character <= content[change.Range.Start.Line].Length);
             Assert.IsTrue(change.Range.End.Character <= content[change.Range.End.Line].Length);
 
             var (startLine, startChar) = (change.Range.Start.Line, change.Range.Start.Character);
             var (endLine, endChar) = (change.Range.End.Line, change.Range.End.Character);
 
-            var newText = string.Concat(content[startLine].Substring(0, startChar), change.Text, content[endLine].Substring(endChar));
+            var newText = string.Concat(content[startLine][..startChar], change.Text, content[endLine][endChar..]);
             if (startLine > 0)
             {
                 newText = content[--startLine] + newText;
@@ -133,11 +127,11 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             if (endLine + 1 < content.Count)
             {
-                newText = newText + content[++endLine];
+                newText += content[++endLine];
             }
 
             var lineChanges = Builder.SplitLines(newText);
-            if (lineChanges.Length == 0 || (endLine + 1 == content.Count() && Builder.EndOfLine.Match(lineChanges.Last()).Success))
+            if (lineChanges.Length == 0 || (endLine + 1 == content.Count && Builder.EndOfLine.Match(lineChanges.Last()).Success))
             {
                 lineChanges = lineChanges.Concat(new string[] { string.Empty }).ToArray();
             }
@@ -153,8 +147,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             static bool IsBeforeOrEqual(Position a, Position b) =>
                 a.Line < b.Line || (a.Line == b.Line && a.Character <= b.Character);
 
-            return !(range?.Start is null) &&
-                   !(range.End is null) &&
+            return range?.Start is not null &&
+                   range.End is not null &&
                    IsValidPosition(range.Start) &&
                    IsValidPosition(range.End) &&
                    IsBeforeOrEqual(range.Start, range.End);
@@ -207,7 +201,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         /// <returns>The project manager for the fully loaded project.</returns>
         internal static async Task<ProjectManager> LoadProjectAsync(this Uri projectFile, SendTelemetryHandler? telemetryHandler = null)
         {
-            ManualResetEvent eventSignal = new ManualResetEvent(false);
+            ManualResetEvent eventSignal = new(false);
             void CheckForLoadingCompleted(string msg, MessageType messageType)
             {
                 Console.WriteLine($"[{messageType}]: {msg}");
