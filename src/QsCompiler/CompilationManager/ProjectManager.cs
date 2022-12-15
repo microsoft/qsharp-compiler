@@ -75,6 +75,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : null)
             ?? TargetCapabilityModule.Top;
 
+        public bool TreatCapabilityErrorsAsWarnings
+        {
+            get
+            {
+                if (!this.BuildProperties.TryGetValue(MSBuildProperties.TreatCapabilityErrorsAsWarnings, out string? errorsAsWarnings)
+                    || errorsAsWarnings is null)
+                {
+                    return false;
+                }
+
+                if (!bool.TryParse(errorsAsWarnings, out bool result))
+                {
+                    return false;
+                }
+
+                return result;
+            }
+        }
+
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
         /// or an user friendly string indicating and unspecified processor architecture if no value is specified.

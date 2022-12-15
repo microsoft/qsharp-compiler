@@ -168,6 +168,14 @@ type ErrorCode =
     | ExpectingCallableExpr = 5021
     | UnknownIdentifier = 5022
 
+    // Hardware capability errors that may be treated conditionally as warnings
+    | UnsupportedResultComparison = 5023
+    | ResultComparisonNotInOperationIf = 5024
+    | ReturnInResultConditionedBlock = 5025
+    | SetInResultConditionedBlock = 5026
+    | UnsupportedCallableCapability = 5027
+    | UnsupportedClassicalCapability = 5028
+
     | CallableRedefinition = 6001
     | CallableOverlapWithTypeConstructor = 6002
     | TypeRedefinition = 6003
@@ -325,6 +333,8 @@ type WarningCode =
     | ConditionalEvaluationOfOperationCall = 5002
     | DeprecationWithRedirect = 5003
     | DeprecationWithoutRedirect = 5004
+
+    // Hardware capability errors that may be treated conditionally as warnings
     | UnsupportedResultComparison = 5023
     | ResultComparisonNotInOperationIf = 5024
     | ReturnInResultConditionedBlock = 5025

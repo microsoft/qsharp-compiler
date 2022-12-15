@@ -15,10 +15,12 @@ type Target =
 
     member internal Capability: TargetCapability
 
+    member internal UseWarnings: bool
+
 module Target =
     /// Creates a target architecture.
     [<CompiledName "Create">]
-    val create: name: string -> capability: TargetCapability -> Target
+    val create: name: string -> capability: TargetCapability -> useWarnings: bool -> Target
 
 type internal Pattern = { Capability: TargetCapability; Diagnose: Target -> QsCompilerDiagnostic option }
 

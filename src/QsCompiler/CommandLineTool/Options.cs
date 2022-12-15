@@ -93,6 +93,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "The capability of the compilation target. This determines which QIR profile to compile to.")]
         public string? TargetCapabilityName { get; set; }
 
+        [Option(
+            "treat-capability-errors-as-warnings",
+            Required = false,
+            Default = false,
+            HelpText = "Specifies whether hardware capabilities should be treated as warnings.")]
+        public bool TreatCapabilityErrorsAsWarnings { get; set; }
+
         /// <summary>
         /// The parsed <see cref="TargetCapabilityName"/>.
         /// </summary>

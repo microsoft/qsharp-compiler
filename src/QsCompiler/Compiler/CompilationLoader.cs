@@ -96,6 +96,11 @@ namespace Microsoft.Quantum.QsCompiler
             public TargetCapability? TargetCapability { get; set; }
 
             /// <summary>
+            /// If set to true, the compiler will treat hardware capability errors as warnings.
+            /// </summary>
+            public bool TreatCapabilityErrorsAsWarnings { get; set; }
+
+            /// <summary>
             /// Specifies whether the project to build is a Q# command line application.
             /// If set to true, a warning will be raised if no entry point is defined.
             /// If set to false, then defined entry points will be ignored and a warning will be raised.
@@ -537,6 +542,16 @@ namespace Microsoft.Quantum.QsCompiler
                     ignoreDllResources: this.config.LoadReferencesBasedOnGeneratedCsharp));
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceLoading);
 
+            // TODO: Remove this before merging!
+            if (this.config.TreatCapabilityErrorsAsWarnings)
+            {
+                Console.WriteLine("\n\n#########  CapabilityErrorsAsWarnings enabled. #############");
+            }
+            else
+            {
+                Console.WriteLine("\n\n#########  CapabilityErrorsAsWarnings DISABLED. #############");
+            }
+
             // building the compilation
             PerformanceTracking.TaskStart(PerformanceTracking.Task.Build);
             this.compilationStatus.Validation = Status.Succeeded;
@@ -547,9 +562,10 @@ namespace Microsoft.Quantum.QsCompiler
             buildProperties.Add(MSBuildProperties.ResolvedTargetCapability, this.config.TargetCapability?.Name);
             buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, this.config.IsExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
             buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
+            buildProperties.Add(MSBuildProperties.TreatCapabilityErrorsAsWarnings, this.config.TreatCapabilityErrorsAsWarnings.ToString());
 
             var compilationManager = new CompilationUnitManager(
-                new ProjectProperties(buildProperties),
+                new ProjectProperties(buildProperties), // buildProperties is probably a good place to add the thing!
                 this.OnCompilerException);
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);

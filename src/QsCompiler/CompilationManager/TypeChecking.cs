@@ -1913,7 +1913,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             CompilationUnit compilation, CallGraph graph, IEnumerable<QsQualifiedName> delta)
         {
             var properties = compilation.BuildProperties;
-            var target = TargetModule.Create(properties.ProcessorArchitecture, properties.TargetCapability);
+            var target = TargetModule.Create(
+                properties.ProcessorArchitecture,
+                properties.TargetCapability,
+                properties.TreatCapabilityErrorsAsWarnings);
 
             foreach (var name in delta)
             {
