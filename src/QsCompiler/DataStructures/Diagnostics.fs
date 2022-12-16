@@ -647,6 +647,29 @@ type DiagnosticItem =
             | ErrorCode.ExpectingCallableExpr ->
                 "The type of the expression must be a function or operation type. The given expression is of type {0}."
             | ErrorCode.UnknownIdentifier -> "No identifier with the name \"{0}\" exists."
+
+            // TODO: When the names of the runtime capabilities are finalized, they can be included in the result
+            //       comparison error messages.
+            | ErrorCode.UnsupportedResultComparison ->
+                "The target {0} does not support comparing measurement results."
+            | ErrorCode.ResultComparisonNotInOperationIf ->
+                "Measurement results cannot be compared here. "
+                + "The target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
+            | ErrorCode.ReturnInResultConditionedBlock ->
+                "A return statement cannot be used here. "
+                + "The target {0} does not support return statements in conditional blocks that depend on a measurement result."
+            | ErrorCode.SetInResultConditionedBlock ->
+                "The variable \"{0}\" cannot be reassigned here. "
+                + "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
+            | ErrorCode.UnsupportedCallableCapability ->
+                "The callable {0} requires runtime capabilities which are not supported by the target {1}."
+                + Environment.NewLine
+                + "Result Opacity: {2}"
+                + Environment.NewLine
+                + "Classical Capability: {3}"
+            | ErrorCode.UnsupportedClassicalCapability ->
+                "This construct requires a classical runtime capability that is not supported by the target {0}: {1}."
+
             | ErrorCode.CallableRedefinition ->
                 "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
             | ErrorCode.CallableOverlapWithTypeConstructor ->
@@ -884,6 +907,7 @@ type DiagnosticItem =
                 "This expression may be short-circuited, and operation calls may not be executed."
             | WarningCode.DeprecationWithRedirect -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect -> "{0} has been deprecated."
+
             | WarningCode.UnsupportedResultComparison ->
                 "The target {0} does not support comparing measurement results."
             | WarningCode.ResultComparisonNotInOperationIf ->
@@ -903,6 +927,7 @@ type DiagnosticItem =
                 + "Classical Capability: {3}"
             | WarningCode.UnsupportedClassicalCapability ->
                 "This construct requires a classical runtime capability that is not supported by the target {0}: {1}."
+
             | WarningCode.NamespaceAleadyOpen -> "The namespace is already open."
             | WarningCode.NamespaceAliasIsAlreadyDefined -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration ->

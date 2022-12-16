@@ -542,16 +542,6 @@ namespace Microsoft.Quantum.QsCompiler
                     ignoreDllResources: this.config.LoadReferencesBasedOnGeneratedCsharp));
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceLoading);
 
-            // TODO: Remove this before merging!
-            if (this.config.TreatCapabilityErrorsAsWarnings)
-            {
-                Console.WriteLine("\n\n#########  CapabilityErrorsAsWarnings enabled. #############");
-            }
-            else
-            {
-                Console.WriteLine("\n\n#########  CapabilityErrorsAsWarnings DISABLED. #############");
-            }
-
             // building the compilation
             PerformanceTracking.TaskStart(PerformanceTracking.Task.Build);
             this.compilationStatus.Validation = Status.Succeeded;
@@ -565,7 +555,7 @@ namespace Microsoft.Quantum.QsCompiler
             buildProperties.Add(MSBuildProperties.TreatCapabilityErrorsAsWarnings, this.config.TreatCapabilityErrorsAsWarnings.ToString());
 
             var compilationManager = new CompilationUnitManager(
-                new ProjectProperties(buildProperties), // buildProperties is probably a good place to add the thing!
+                new ProjectProperties(buildProperties),
                 this.OnCompilerException);
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);
