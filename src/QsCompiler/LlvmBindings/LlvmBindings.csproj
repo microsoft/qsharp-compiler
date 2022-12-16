@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="13.0.0-CI-20220129-005156" PrivateAssets="All" GeneratePathProperty="true"/>
+    <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="13.0.0-CI-20221216-194411" PrivateAssets="All" GeneratePathProperty="true"/>
     <Compile Include="$(PkgMicrosoft_Quantum_LlvmBindings_Native)\generated\**\*" />
     <None Include="$(PkgMicrosoft_Quantum_LlvmBindings_Native)\runtimes\**\*" PackagePath="runtimes">
       <Link>runtimes\%(RecursiveDir)%(FileName)%(Extension)</Link>
