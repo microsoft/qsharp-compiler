@@ -38,7 +38,10 @@ let createPattern range feature =
                 | DefaultArray -> "default-initialized array constructor"
 
             let args = [ target.Name; description ]
-            QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
+            if target.UseWarnings then
+                QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
+            else
+                QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
     { Capability = capability; Diagnose = diagnose }
 

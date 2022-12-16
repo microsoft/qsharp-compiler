@@ -112,7 +112,10 @@ let createPattern context construct range (ty: ResolvedType) =
                 let description = Seq.map describeScenario unsupported |> String.concat ", "
                 let args = [ target.Name; description ]
                 let range = QsNullable.defaultValue Range.Zero range
-                QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
+                if target.UseWarnings then
+                    QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
+                else
+                    QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
         Some { Capability = capability; Diagnose = diagnose }
 

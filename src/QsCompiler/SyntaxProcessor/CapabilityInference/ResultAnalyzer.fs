@@ -42,30 +42,55 @@ let createPattern kind range =
     let capability = TargetCapability.withResultOpacity opacity TargetCapability.bottom
 
     let diagnose (target: Target) =
-        let range = QsNullable.defaultValue Range.Zero range
+        if target.UseWarnings then
+            let range = QsNullable.defaultValue Range.Zero range
 
-        match kind with
-        | _ when TargetCapability.subsumes target.Capability capability -> None
-        | ConditionalEqualityInOperation
-        | UnrestrictedEquality ->
-            let code =
+            match kind with
+            | _ when TargetCapability.subsumes target.Capability capability -> None
+            | ConditionalEqualityInOperation
+            | UnrestrictedEquality ->
+                let code =
+                    if target.Capability.ResultOpacity = ResultOpacity.opaque then
+                        WarningCode.UnsupportedResultComparison
+                    else
+                        WarningCode.ResultComparisonNotInOperationIf
+                Some(code, [ target.Name ])
+            | ReturnInDependentBranch ->
                 if target.Capability.ResultOpacity = ResultOpacity.opaque then
-                    WarningCode.UnsupportedResultComparison
+                    None
                 else
-                    WarningCode.ResultComparisonNotInOperationIf
+                    Some(WarningCode.ReturnInResultConditionedBlock, [ target.Name ])
+            | SetInDependentBranch name ->
+                if target.Capability.ResultOpacity = ResultOpacity.opaque then
+                    None
+                else
+                    Some(WarningCode.SetInResultConditionedBlock, [ name; target.Name ])
+            |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Warning (code, args) range)
 
-            Some(code, [ target.Name ])
-        | ReturnInDependentBranch ->
-            if target.Capability.ResultOpacity = ResultOpacity.opaque then
-                None
-            else
-                Some(WarningCode.ReturnInResultConditionedBlock, [ target.Name ])
-        | SetInDependentBranch name ->
-            if target.Capability.ResultOpacity = ResultOpacity.opaque then
-                None
-            else
-                Some(WarningCode.SetInResultConditionedBlock, [ name; target.Name ])
-        |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Warning (code, args) range)
+        else
+            let range = QsNullable.defaultValue Range.Zero range
+
+            match kind with
+            | _ when TargetCapability.subsumes target.Capability capability -> None
+            | ConditionalEqualityInOperation
+            | UnrestrictedEquality ->
+                let code =
+                    if target.Capability.ResultOpacity = ResultOpacity.opaque then
+                        ErrorCode.UnsupportedResultComparison
+                    else
+                        ErrorCode.ResultComparisonNotInOperationIf
+                Some(code, [ target.Name ])
+            | ReturnInDependentBranch ->
+                if target.Capability.ResultOpacity = ResultOpacity.opaque then
+                    None
+                else
+                    Some(ErrorCode.ReturnInResultConditionedBlock, [ target.Name ])
+            | SetInDependentBranch name ->
+                if target.Capability.ResultOpacity = ResultOpacity.opaque then
+                    None
+                else
+                    Some(ErrorCode.SetInResultConditionedBlock, [ name; target.Name ])
+            |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Error (code, args) range)
 
     { Capability = capability; Diagnose = diagnose }
 
