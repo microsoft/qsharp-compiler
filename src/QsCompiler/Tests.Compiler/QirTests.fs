@@ -158,6 +158,9 @@ let ``QIR repeat loop`` () =
     qirMultiTest true "TestRepeat" [ "TestRepeat1"; "TestRepeat2" ]
 
 [<Fact>]
+let ``QIR repeat loop with array variable`` () = qirTest false "RepeatArray"
+
+[<Fact>]
 let ``QIR integers`` () = qirTest false "TestIntegers"
 
 [<Fact>]

@@ -450,8 +450,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
                 // We need to make sure to properly invoke all calls to unreference, release, and remove alias counts
                 // for variables and values in the repeat-block after the statement ends.
+                this.SharedState.StartBranch();
                 this.SharedState.SetCurrentBlock(contBlock);
                 this.SharedState.ScopeMgr.ExitScope();
+                this.SharedState.EndBranch();
                 contBlock = this.SharedState.CurrentBlock;
 
                 this.SharedState.SetCurrentBlock(fixupBlock);
