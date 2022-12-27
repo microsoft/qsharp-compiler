@@ -908,25 +908,19 @@ type DiagnosticItem =
             | WarningCode.DeprecationWithRedirect -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect -> "{0} has been deprecated."
 
+            // Reuse error messages and hope that the expanded message doesn't contain {}.
             | WarningCode.UnsupportedResultComparison ->
-                "The target {0} does not support comparing measurement results."
+                DiagnosticItem.Message(ErrorCode.UnsupportedResultComparison, args)
             | WarningCode.ResultComparisonNotInOperationIf ->
-                "Measurement results cannot be compared here. "
-                + "The target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
+                DiagnosticItem.Message(ErrorCode.ResultComparisonNotInOperationIf, args)
             | WarningCode.ReturnInResultConditionedBlock ->
-                "A return statement cannot be used here. "
-                + "The target {0} does not support return statements in conditional blocks that depend on a measurement result."
+                DiagnosticItem.Message(ErrorCode.ReturnInResultConditionedBlock, args)
             | WarningCode.SetInResultConditionedBlock ->
-                "The variable \"{0}\" cannot be reassigned here. "
-                + "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
+                DiagnosticItem.Message(ErrorCode.SetInResultConditionedBlock, args)
             | WarningCode.UnsupportedCallableCapability ->
-                "The callable {0} requires runtime capabilities which are not supported by the target {1}."
-                + Environment.NewLine
-                + "Result Opacity: {2}"
-                + Environment.NewLine
-                + "Classical Capability: {3}"
+                DiagnosticItem.Message(ErrorCode.UnsupportedCallableCapability, args)
             | WarningCode.UnsupportedClassicalCapability ->
-                "This construct requires a classical runtime capability that is not supported by the target {0}: {1}."
+                DiagnosticItem.Message(ErrorCode.UnsupportedClassicalCapability, args)
 
             | WarningCode.NamespaceAleadyOpen -> "The namespace is already open."
             | WarningCode.NamespaceAliasIsAlreadyDefined -> "A short name for this namespace is already defined."
