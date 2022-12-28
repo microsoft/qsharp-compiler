@@ -406,7 +406,7 @@ type DiagnosticItem =
     | Information of InformationCode
 
     static member private ApplyArguments (args: IEnumerable<string>) str =
-        let args: obj[] =
+        let args: obj [] =
             if isNull args then
                 [||]
             else
@@ -417,8 +417,8 @@ type DiagnosticItem =
 
         try
             String.Format(str, args)
-        with _ ->
-            str // let's fail silently for now
+        with
+        | _ -> str // let's fail silently for now
 
     static member Message(code, args) =
         let typeMismatch summary expected actual =
