@@ -25,7 +25,11 @@ type Target =
 module Target =
     [<CompiledName "Create">]
     let create name capability useWarnings =
-        { _Name = name; _Capability = capability; _UseWarnings = useWarnings }
+        {
+            _Name = name
+            _Capability = capability
+            _UseWarnings = useWarnings
+        }
 
 type Pattern = { Capability: TargetCapability; Diagnose: Target -> QsCompilerDiagnostic option }
 

@@ -406,7 +406,7 @@ type DiagnosticItem =
     | Information of InformationCode
 
     static member private ApplyArguments (args: IEnumerable<string>) str =
-        let args: obj [] =
+        let args: obj[] =
             if isNull args then
                 [||]
             else
@@ -417,8 +417,8 @@ type DiagnosticItem =
 
         try
             String.Format(str, args)
-        with
-        | _ -> str // let's fail silently for now
+        with _ ->
+            str // let's fail silently for now
 
     static member Message(code, args) =
         let typeMismatch summary expected actual =
@@ -650,8 +650,7 @@ type DiagnosticItem =
 
             // TODO: When the names of the runtime capabilities are finalized, they can be included in the result
             //       comparison error messages.
-            | ErrorCode.UnsupportedResultComparison ->
-                "The target {0} does not support comparing measurement results."
+            | ErrorCode.UnsupportedResultComparison -> "The target {0} does not support comparing measurement results."
             | ErrorCode.ResultComparisonNotInOperationIf ->
                 "Measurement results cannot be compared here. "
                 + "The target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
