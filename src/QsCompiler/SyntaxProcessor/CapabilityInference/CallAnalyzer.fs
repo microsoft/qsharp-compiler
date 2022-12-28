@@ -124,7 +124,7 @@ module CallAnalyzer =
                 if target.UseWarnings then
                     QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
                 else
-                    QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
+                    QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some
 
         { Capability = capability; Diagnose = diagnose }
 
