@@ -1912,9 +1912,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<Diagnostic> CapabilityDiagnostics(
             CompilationUnit compilation, CallGraph graph, IEnumerable<QsQualifiedName> delta)
         {
-            // TODO: Remove this before merging!
-            Console.WriteLine($"\n######### TreatCapabilityErrorsAsWarnings={compilation.BuildProperties.TreatCapabilityErrorsAsWarnings}. #############");
-
             var properties = compilation.BuildProperties;
             var target = TargetModule.Create(
                 properties.ProcessorArchitecture,
