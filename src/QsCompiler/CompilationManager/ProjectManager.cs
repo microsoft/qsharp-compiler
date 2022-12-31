@@ -75,24 +75,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : null)
             ?? TargetCapabilityModule.Top;
 
-        public bool TreatCapabilityErrorsAsWarnings
-        {
-            get
-            {
-                if (!this.BuildProperties.TryGetValue(MSBuildProperties.TreatCapabilityErrorsAsWarnings, out string? errorsAsWarnings)
-                    || errorsAsWarnings is null)
-                {
-                    return false;
-                }
-
-                if (!bool.TryParse(errorsAsWarnings, out bool result))
-                {
-                    return false;
-                }
-
-                return result;
-            }
-        }
+        public bool TreatCapabilityErrorsAsWarnings =>
+			this.BuildProperties.TryGetValue(MSBuildProperties.TreatCapabilityErrorsAsWarnings, out var errorsAsWarnings)
+			&& bool.TryParse(errorsAsWarnings, out var result)
+			&& result;
 
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
