@@ -11,7 +11,9 @@ let private folder = Path.Join("TestCases", "WholeFileTests")
 
 [<Fact>]
 let ``Conflicting aliases`` () =
-    let compilation = TestUtils.buildFiles folder [ "ConflictingAliases.qs" ] [] None false TestUtils.Library
+    let compilation =
+        TestUtils.buildFiles folder [ "ConflictingAliases.qs" ] [] None false TestUtils.Library
+
     Diagnostics.assertMatches [ Error ErrorCode.InvalidNamespaceAliasName, None ] (compilation.Diagnostics())
 
 [<Fact>]

@@ -622,7 +622,8 @@ let private cases =
                     @ List.replicate 2 (Warning WarningCode.UnsupportedResultComparison)
                 | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
                 | BasicQuantumFunctionality -> Error ErrorCode.UnsupportedResultComparison |> List.replicate 2
-                | BasicQuantumFunctionalityWithWarnings -> Warning WarningCode.UnsupportedResultComparison |> List.replicate 2
+                | BasicQuantumFunctionalityWithWarnings ->
+                    Warning WarningCode.UnsupportedResultComparison |> List.replicate 2
                 | BasicMeasurementFeedback -> [ Error ErrorCode.ResultComparisonNotInOperationIf ]
                 | FullComputation -> []
         }
@@ -730,7 +731,8 @@ let private levels =
         BasicMeasurementFeedback, TargetCapability.basicMeasurementFeedback, false
         FullComputation, TargetCapability.fullComputation, false
     }
-    |> Seq.map (fun (level, capability, useWarnings) -> level, compile capability TestUtils.Exe useWarnings |> Diagnostics.byDeclaration)
+    |> Seq.map (fun (level, capability, useWarnings) ->
+        level, compile capability TestUtils.Exe useWarnings |> Diagnostics.byDeclaration)
     |> ImmutableArray.CreateRange
 
 [<Theory>]
