@@ -112,7 +112,7 @@ module CallAnalyzer =
                         string capability.ResultOpacity
                         string capability.ClassicalCompute
                     ]
-                if target.UseWarnings then
+                if target.UseCapabilityWarnings then
                     QsCompilerDiagnostic.Warning (WarningCode.UnsupportedCallableCapability, args) range |> Some
                 else
                     QsCompilerDiagnostic.Error (ErrorCode.UnsupportedCallableCapability, args) range |> Some
@@ -121,7 +121,7 @@ module CallAnalyzer =
                 // TODO: The capability description string should be defined with the rest of the diagnostic message
                 // instead of here, but this is easier after https://github.com/microsoft/qsharp-compiler/issues/1025.
                 let args = [ target.Name; "recursion" ]
-                if target.UseWarnings then
+                if target.UseCapabilityWarnings then
                     QsCompilerDiagnostic.Warning (WarningCode.UnsupportedClassicalCapability, args) range |> Some
                 else
                     QsCompilerDiagnostic.Error (ErrorCode.UnsupportedClassicalCapability, args) range |> Some

@@ -13,22 +13,22 @@ type Target =
     {
         _Name: string
         _Capability: TargetCapability
-        _UseWarnings: bool
+        _UseCapabilityWarnings: bool
     }
 
     member target.Name = target._Name
 
     member target.Capability = target._Capability
 
-    member target.UseWarnings = target._UseWarnings
+    member target.UseCapabilityWarnings = target._UseCapabilityWarnings
 
 module Target =
     [<CompiledName "Create">]
-    let create name capability useWarnings =
+    let create name capability useCapabilityWarnings =
         {
             _Name = name
             _Capability = capability
-            _UseWarnings = useWarnings
+            _UseCapabilityWarnings = useCapabilityWarnings
         }
 
 type Pattern = { Capability: TargetCapability; Diagnose: Target -> QsCompilerDiagnostic option }

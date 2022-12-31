@@ -42,7 +42,7 @@ let createPattern kind range =
     let capability = TargetCapability.withResultOpacity opacity TargetCapability.bottom
 
     let diagnose (target: Target) =
-        if target.UseWarnings then
+        if target.UseCapabilityWarnings then
             let range = QsNullable.defaultValue Range.Zero range
 
             match kind with
