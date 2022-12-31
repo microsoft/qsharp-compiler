@@ -420,6 +420,30 @@ type DiagnosticItem =
         with
         | _ -> str // let's fail silently for now
 
+    // TODO: When the names of the runtime capabilities are finalized, they can be included in the result
+    //       comparison error messages.
+    static member private CapabilityErrorFormatString(code) =
+        match code with
+        | ErrorCode.UnsupportedResultComparison -> "The target {0} does not support comparing measurement results."
+        | ErrorCode.ResultComparisonNotInOperationIf ->
+            "Measurement results cannot be compared here. "
+            + "The target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
+        | ErrorCode.ReturnInResultConditionedBlock ->
+            "A return statement cannot be used here. "
+            + "The target {0} does not support return statements in conditional blocks that depend on a measurement result."
+        | ErrorCode.SetInResultConditionedBlock ->
+            "The variable \"{0}\" cannot be reassigned here. "
+            + "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
+        | ErrorCode.UnsupportedCallableCapability ->
+            "The callable {0} requires runtime capabilities which are not supported by the target {1}."
+            + Environment.NewLine
+            + "Result Opacity: {2}"
+            + Environment.NewLine
+            + "Classical Capability: {3}"
+        | ErrorCode.UnsupportedClassicalCapability ->
+            "This construct requires a classical runtime capability that is not supported by the target {0}: {1}."
+        | _ -> ""
+
     static member Message(code, args) =
         let typeMismatch summary expected actual =
             String.concat Environment.NewLine [ summary; "Expected: " + expected; "  Actual: " + actual ]
@@ -648,26 +672,19 @@ type DiagnosticItem =
                 "The type of the expression must be a function or operation type. The given expression is of type {0}."
             | ErrorCode.UnknownIdentifier -> "No identifier with the name \"{0}\" exists."
 
-            // TODO: When the names of the runtime capabilities are finalized, they can be included in the result
-            //       comparison error messages.
-            | ErrorCode.UnsupportedResultComparison -> "The target {0} does not support comparing measurement results."
+            // Capability errors
+            | ErrorCode.UnsupportedResultComparison ->
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.UnsupportedResultComparison)
             | ErrorCode.ResultComparisonNotInOperationIf ->
-                "Measurement results cannot be compared here. "
-                + "The target {0} only supports comparing measurement results as part of the condition of an if- or elif-statement in an operation."
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.ResultComparisonNotInOperationIf)
             | ErrorCode.ReturnInResultConditionedBlock ->
-                "A return statement cannot be used here. "
-                + "The target {0} does not support return statements in conditional blocks that depend on a measurement result."
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.ReturnInResultConditionedBlock)
             | ErrorCode.SetInResultConditionedBlock ->
-                "The variable \"{0}\" cannot be reassigned here. "
-                + "In conditional blocks that depend on a measurement result, the target {1} only supports reassigning variables that were declared within the block."
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.SetInResultConditionedBlock)
             | ErrorCode.UnsupportedCallableCapability ->
-                "The callable {0} requires runtime capabilities which are not supported by the target {1}."
-                + Environment.NewLine
-                + "Result Opacity: {2}"
-                + Environment.NewLine
-                + "Classical Capability: {3}"
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.UnsupportedCallableCapability)
             | ErrorCode.UnsupportedClassicalCapability ->
-                "This construct requires a classical runtime capability that is not supported by the target {0}: {1}."
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.UnsupportedClassicalCapability)
 
             | ErrorCode.CallableRedefinition ->
                 "Invalid callable declaration. A function or operation with the name \"{0}\" already exists."
@@ -907,19 +924,19 @@ type DiagnosticItem =
             | WarningCode.DeprecationWithRedirect -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect -> "{0} has been deprecated."
 
-            // Reuse error messages and hope that the expanded message doesn't contain {}.
+            // Capability errors
             | WarningCode.UnsupportedResultComparison ->
-                DiagnosticItem.Message(ErrorCode.UnsupportedResultComparison, args)
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.UnsupportedResultComparison)
             | WarningCode.ResultComparisonNotInOperationIf ->
-                DiagnosticItem.Message(ErrorCode.ResultComparisonNotInOperationIf, args)
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.ResultComparisonNotInOperationIf)
             | WarningCode.ReturnInResultConditionedBlock ->
-                DiagnosticItem.Message(ErrorCode.ReturnInResultConditionedBlock, args)
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.ReturnInResultConditionedBlock)
             | WarningCode.SetInResultConditionedBlock ->
-                DiagnosticItem.Message(ErrorCode.SetInResultConditionedBlock, args)
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.SetInResultConditionedBlock)
             | WarningCode.UnsupportedCallableCapability ->
-                DiagnosticItem.Message(ErrorCode.UnsupportedCallableCapability, args)
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.UnsupportedCallableCapability)
             | WarningCode.UnsupportedClassicalCapability ->
-                DiagnosticItem.Message(ErrorCode.UnsupportedClassicalCapability, args)
+                DiagnosticItem.CapabilityErrorFormatString(ErrorCode.UnsupportedClassicalCapability)
 
             | WarningCode.NamespaceAleadyOpen -> "The namespace is already open."
             | WarningCode.NamespaceAliasIsAlreadyDefined -> "A short name for this namespace is already defined."
