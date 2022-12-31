@@ -19,7 +19,7 @@ type GlobalVerificationTests() =
         ]
 
     let diagnostics =
-        TestUtils.buildFiles "TestCases" files [] None TestUtils.Library |> Diagnostics.byDeclaration
+        TestUtils.buildFiles "TestCases" files [] None false TestUtils.Library |> Diagnostics.byDeclaration
 
     member private this.Expect name expected =
         let actual = diagnostics[QsQualifiedName.New("Microsoft.Quantum.Testing.GlobalVerification", name)]

@@ -27,7 +27,7 @@ type LinkingTests() =
     let files = [ "Core.qs"; "InvalidEntryPoints.qs" ]
 
     let diagnostics =
-        TestUtils.buildFiles (Path.Combine("TestCases", "LinkingTests")) files [] None TestUtils.Library
+        TestUtils.buildFiles (Path.Combine("TestCases", "LinkingTests")) files [] None false TestUtils.Library
         |> Diagnostics.byDeclaration
 
     let compilationManager =

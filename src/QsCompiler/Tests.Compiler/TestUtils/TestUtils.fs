@@ -344,7 +344,7 @@ let buildContentWithFiles content files =
 
     compilationDataStructures
 
-let buildFiles folder names references capability output =
+let buildFiles folder names references capability useCapabilityWarnings output =
     let files =
         names
         |> Seq.map (fun name ->
@@ -357,6 +357,7 @@ let buildFiles folder names references capability output =
     let props =
         [
             MSBuildProperties.ResolvedTargetCapability, Option.toObj capabilityName
+            if useCapabilityWarnings then MSBuildProperties.TreatCapabilityErrorsAsWarnings, "true"
             if output = Exe then MSBuildProperties.ResolvedQsharpOutputType, AssemblyConstants.QsharpExe
         ]
         |> dict

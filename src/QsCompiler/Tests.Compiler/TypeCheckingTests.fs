@@ -23,7 +23,7 @@ module TypeCheckingTests =
             "Types.qs"
         ]
 
-    let private compilation = TestUtils.buildFiles "TestCases" files [] None TestUtils.Library
+    let private compilation = TestUtils.buildFiles "TestCases" files [] None false TestUtils.Library
     let private diagnostics = Diagnostics.byDeclaration compilation
 
     let private qualify name =

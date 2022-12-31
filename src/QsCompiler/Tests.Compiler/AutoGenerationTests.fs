@@ -10,7 +10,7 @@ open Xunit
 
 type FunctorAutoGenTests() =
     let diagnostics =
-        TestUtils.buildFiles "TestCases" [ "General.qs"; "FunctorGeneration.qs" ] [] None TestUtils.Library
+        TestUtils.buildFiles "TestCases" [ "General.qs"; "FunctorGeneration.qs" ] [] None false TestUtils.Library
         |> Diagnostics.byDeclaration
 
     member private this.Expect name expected =

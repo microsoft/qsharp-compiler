@@ -15,6 +15,7 @@ let private diagnostics =
         [ "AccessModifiers.qs" ]
         [ File.ReadAllLines("ReferenceTargets.txt")[2] ]
         None
+        false
         TestUtils.Library
     |> Diagnostics.byDeclaration
 
