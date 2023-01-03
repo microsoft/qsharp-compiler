@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             "treat-capability-errors-as-warnings",
             Required = false,
             Default = false,
-            HelpText = "Specifies whether hardware capabilities should be treated as warnings.")]
+            HelpText = "Specifies whether hardware capability errors should be treated as warnings.")]
         public bool TreatCapabilityErrorsAsWarnings { get; set; }
 
         /// <summary>
