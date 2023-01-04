@@ -42,9 +42,9 @@ let createPattern kind range =
     let capability = TargetCapability.withResultOpacity opacity TargetCapability.bottom
 
     let diagnose (target: Target) =
-        if target.UseCapabilityWarnings then
-            let range = QsNullable.defaultValue Range.Zero range
+        let range = QsNullable.defaultValue Range.Zero range
 
+        if target.UseCapabilityWarnings then
             match kind with
             | _ when TargetCapability.subsumes target.Capability capability -> None
             | ConditionalEqualityInOperation
@@ -68,8 +68,6 @@ let createPattern kind range =
             |> Option.map (fun (code, args) -> QsCompilerDiagnostic.Warning (code, args) range)
 
         else
-            let range = QsNullable.defaultValue Range.Zero range
-
             match kind with
             | _ when TargetCapability.subsumes target.Capability capability -> None
             | ConditionalEqualityInOperation
