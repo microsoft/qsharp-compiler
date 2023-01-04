@@ -924,7 +924,7 @@ type DiagnosticItem =
             | WarningCode.DeprecationWithRedirect -> "{0} has been deprecated. Please use {1} instead."
             | WarningCode.DeprecationWithoutRedirect -> "{0} has been deprecated."
 
-            // Capability errors
+            // Capability warnings
             | WarningCode.UnsupportedResultComparison ->
                 DiagnosticItem.CapabilityErrorFormatString(ErrorCode.UnsupportedResultComparison)
             | WarningCode.ResultComparisonNotInOperationIf ->
