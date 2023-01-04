@@ -75,6 +75,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : null)
             ?? TargetCapabilityModule.Top;
 
+        /// <summary>
+        /// Returns the value specified by <see cref="MSBuildProperties.TreatCapabilityErrorsAsWarnings"/>,
+        /// or false if no value is specified.
+        /// </summary>
         public bool TreatCapabilityErrorsAsWarnings =>
             this.BuildProperties.TryGetValue(MSBuildProperties.TreatCapabilityErrorsAsWarnings, out var errorsAsWarnings)
             && bool.TryParse(errorsAsWarnings, out var result)
