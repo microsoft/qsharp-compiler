@@ -220,7 +220,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     var createBigInt = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateArray);
                     var (length, dataArr) = LoadSizedArray(givenValue);
-                    var argValue = this.sharedState.CurrentBuilder.Call(createBigInt, length, dataArr);
+                    var trunctaed_length = this.sharedState.CurrentBuilder.Trunc(length, this.sharedState.Context.Int32Type);
+                    var argValue = this.sharedState.CurrentBuilder.Call(createBigInt, trunctaed_length, dataArr);
                     var value = this.sharedState.Values.From(argValue, type);
                     if (registerWithScopeManager)
                     {
