@@ -103,5 +103,62 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return false;
             }
         }
+
+        /// <summary>
+        /// Creates a file with the given name that contains the QIR bitcode for the given compilation.
+        /// </summary>
+        /// <param name="compilation">The Q# compilation to compile to bitcode.</param>
+        /// <param name="targetCapability">The set of features that are supported by the targeted backend. This is relevant for certain kinds of optimizations.</param>
+        /// <param name="fileName">The name of the file where the bitcode should be written to.</param>
+        /// <param name="overwrite">Whether or not to overwrite a file if it already exists.</param>
+        /// <param name="diagnostics">A list to store any diagnostics generated in the process.</param>
+        /// <returns>True if the preconditions for compilation to QIR were satisfied and the file has been created successfully, and false otherwise.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if a file with the given name already exists, but <paramref name="overwrite"/> has been set to false.
+        /// </exception>
+        public static bool GenerateBitcode(QsCompilation compilation, TargetCapability? targetCapability, string fileName, bool overwrite = true, List<IRewriteStep.Diagnostic>? diagnostics = null)
+        {
+            bool Emit(Generator generator, Action<string> onError) =>
+                generator.Emit(fileName, emitBitcode: true, overwrite: overwrite, onError: onError);
+            return ValidateAndEmit(compilation, targetCapability, Emit, diagnostics);
+        }
+
+        /// <summary>
+        /// Creates a file with the given name that contains the human readable QIR for the given compilation.
+        /// </summary>
+        /// <param name="compilation">The Q# compilation to compile to bitcode.</param>
+        /// <param name="targetCapability">The set of features that are supported by the targeted backend. This is relevant for certain kinds of optimizations.</param>
+        /// <param name="fileName">The name of the file where the bitcode should be written to.</param>
+        /// <param name="overwrite">Whether or not to overwrite a file if it already exists.</param>
+        /// <param name="diagnostics">A list to store any diagnostics generated in the process.</param>
+        /// <returns>True if the preconditions for compilation to QIR were satisfied and the file has been created successfully, and false otherwise.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if a file with the given name already exists, but <paramref name="overwrite"/> has been set to false.
+        /// </exception>
+        public static bool GenerateLlvmIR(QsCompilation compilation, TargetCapability? targetCapability, string fileName, bool overwrite = true, List<IRewriteStep.Diagnostic>? diagnostics = null)
+        {
+            bool Emit(Generator generator, Action<string> onError) =>
+                generator.Emit(fileName, emitBitcode: false, overwrite: overwrite, onError: onError);
+            return ValidateAndEmit(compilation, targetCapability, Emit, diagnostics);
+        }
+
+        /// <summary>
+        /// Creates a string containing the human readable QIR for the given compilation.
+        /// </summary>
+        /// <param name="compilation">The Q# compilation to compile to bitcode.</param>
+        /// <param name="targetCapability">The set of features that are supported by the targeted backend. This is relevant for certain kinds of optimizations.</param>
+        /// <param name="diagnostics">A list to store any diagnostics generated in the process.</param>
+        /// <returns>True if the QIR passes basic LLVM validation.</returns>
+        public static bool GenerateLlvmIR(QsCompilation compilation, TargetCapability? targetCapability, out string? llvmIR, List<IRewriteStep.Diagnostic>? diagnostics = null)
+        {
+            string? generatedIR = null;
+            bool Emit(Generator generator, Action<string> onError) =>
+                generator.EmitLlvmIR(out generatedIR, onError: onError);
+
+            var succeeded = ValidateAndEmit(compilation, targetCapability, Emit, diagnostics);
+            llvmIR = generatedIR;
+            return succeeded;
+        }
+
     }
 }
