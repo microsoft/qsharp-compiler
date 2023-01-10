@@ -245,8 +245,10 @@ module MSBuildProperties =
     let QuantumSdkVersion = "QuantumSdkVersion"
     let TargetPath = "TargetPath"
     let ResolvedProcessorArchitecture = "ResolvedProcessorArchitecture"
+
     [<Obsolete("Replaced by ResolvedTargetCapability for Microsoft.Quantum.Sdk version 0.25 and newer.")>]
     let ResolvedRuntimeCapabilities = "ResolvedRuntimeCapabilities"
+
     let ResolvedTargetCapability = "ResolvedTargetCapability"
     let ResolvedQsharpOutputType = "ResolvedQSharpOutputType"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"

@@ -163,6 +163,7 @@ type CodegenContext =
     member internal this.GenerateCodeForSource(source: Source) =
         if source.IsReference then
             let target = this.ProcessorArchitecture
+
             target = AssemblyConstants.IonQProcessor
             || target = AssemblyConstants.QCIProcessor
             || target = AssemblyConstants.QuantinuumProcessor

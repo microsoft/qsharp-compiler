@@ -366,7 +366,7 @@ module SyntaxGenerator =
     /// Returns an expression that returns the given onTrue expression if the condition is true, and the onFalse expression otherwise.
     /// The type of the expression is set to the given type and the position information is set to null.
     /// Does not validate type compatibility.
-    let ConditionalExpression exType (condition : TypedExpression, onTrue, onFalse) =
+    let ConditionalExpression exType (condition: TypedExpression, onTrue, onFalse) =
         let kind = QsExpressionKind.CONDITIONAL(condition, onTrue, onFalse)
 
         let quantumDep =
