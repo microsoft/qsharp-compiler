@@ -160,6 +160,7 @@ type ExecutionTests(output: ITestOutputHelper) =
             """
             simple string
             "interpolated string"
+            -9223372036854775808, 9223372036854775807000
             true or false, true, false, true, false
             1, -1, 0
             1.0, 2.0, 100000.0, 0.1, -1.0, 0.0
