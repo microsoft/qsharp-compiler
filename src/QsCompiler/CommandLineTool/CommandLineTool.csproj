@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
-    <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="13.0.0-CI-20221216-194411">
+    <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="14.0.0-CI-20221216-213951">
       <PrivateAssets>all</PrivateAssets>
       <Visible>false</Visible>
       <Pack>false</Pack>
