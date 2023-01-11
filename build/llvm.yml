@@ -206,7 +206,7 @@ jobs:
       packagesToPack: '$(System.DefaultWorkingDirectory)/llvm-build/Microsoft.Quantum.LlvmBindings.Native.nuspec'
       packDestination: '$(Build.ArtifactStagingDirectory)'
       versioningScheme: 'byPrereleaseNumber'
-      majorVersion: '13'
+      majorVersion: '14'
       minorVersion: '0'
       patchVersion: '0'
       basePath: '$(System.DefaultWorkingDirectory)/llvm-build/'
