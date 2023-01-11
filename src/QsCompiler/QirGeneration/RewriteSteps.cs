@@ -48,6 +48,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
+            transformed = compilation;
+
             var targetCapability = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.TargetCapability, out var capability) && !string.IsNullOrWhiteSpace(capability)
                 ? TargetCapability.TryParse(capability) // null if parsing fails
                 : null;
@@ -60,6 +62,7 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskStart(PerformanceTracking.Task.BitcodeGeneration);
             var bcOutputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.OutputPath, out var path) && !string.IsNullOrWhiteSpace(path) ? path : "qir";
             var bcFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(bcOutputFolder), ".bc", "");
+
             generator.Emit(bcFile, emitBitcode: true);
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.BitcodeGeneration);
 
@@ -70,8 +73,19 @@ namespace Microsoft.Quantum.QsCompiler
                 generator.Emit(llvmSourceFile, emitBitcode: false);
             }
 
-            transformed = compilation;
-            return true;
+            var isValid = generator.Verify(out string errorMessage);
+
+            if (!isValid)
+            {
+                this.diagnostics.Add(new IRewriteStep.Diagnostic
+                {
+                    Severity = CodeAnalysis.DiagnosticSeverity.Error,
+                    Message = $"Failed to create QIR output.\n{errorMessage}",
+                    Stage = IRewriteStep.Stage.PostconditionVerification,
+                });
+            }
+
+            return isValid;
         }
 
         /// <inheritdoc/>

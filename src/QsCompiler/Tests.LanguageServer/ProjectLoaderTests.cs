@@ -102,10 +102,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var loader = new ProjectLoader();
             Assert.IsTrue(loader.IsSupportedQsFramework("netstandard2.0"));
             Assert.IsTrue(loader.IsSupportedQsFramework("netstandard2.1"));
-            Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp2.0"));
-            Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp2.1"));
-            Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp2.2"));
-            Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp3.0"));
             Assert.IsTrue(loader.IsSupportedQsFramework("netcoreapp3.1"));
             Assert.IsTrue(loader.IsSupportedQsFramework("net6.0"));
         }
@@ -127,18 +123,18 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             var testProjects = new (string, string?)[]
             {
-                ("test1", "netcoreapp2.1"),
+                ("test1", "netcoreapp3.1"),
                 ("test2", "netstandard2.0"),
                 ("test3", "netstandard2.0"),
                 ("test3", "netstandard2.0"),
-                ("test4", "netcoreapp2.0"),
-                ("test5", "netcoreapp2.0"),
+                ("test4", "netcoreapp3.1"),
+                ("test5", "netcoreapp3.1"),
                 ("test6", "netstandard2.0"),
                 ("test7", "net461"),
                 ("test8", null),
-                ("test9", "netcoreapp2.0"),
-                ("test10", "netcoreapp2.1"),
-                ("test11", "netcoreapp3.0"),
+                ("test9", "netcoreapp3.1"),
+                ("test10", "netcoreapp3.1"),
+                ("test11", "netcoreapp3.1"),
                 ("test12", "netstandard2.1"),
                 ("test13", "net6.0"),
             };
