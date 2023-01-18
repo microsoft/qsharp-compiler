@@ -96,6 +96,12 @@ namespace Microsoft.Quantum.QsCompiler
             public TargetCapability? TargetCapability { get; set; }
 
             /// <summary>
+            /// Specifies the comma-separated list of warning numbers
+            /// that should be treated as errors.
+            /// </summary>
+            public string? WarningAsError{ get; set; }
+
+            /// <summary>
             /// Specifies whether the project to build is a Q# command line application.
             /// If set to true, a warning will be raised if no entry point is defined.
             /// If set to false, then defined entry points will be ignored and a warning will be raised.
@@ -547,6 +553,7 @@ namespace Microsoft.Quantum.QsCompiler
             buildProperties.Add(MSBuildProperties.ResolvedTargetCapability, this.config.TargetCapability?.Name);
             buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, this.config.IsExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
             buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
+            buildProperties.Add(MSBuildProperties.WarningAsError, this.config.WarningAsError);
 
             var compilationManager = new CompilationUnitManager(
                 new ProjectProperties(buildProperties),

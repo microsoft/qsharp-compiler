@@ -76,6 +76,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ?? TargetCapabilityModule.Top;
 
         /// <summary>
+        /// Returns the hash set constructed from <see cref="MSBuildProperties.WarningAsError"/> value.
+        /// An empty set is returned if no value is specified.
+        /// </summary>
+        public HashSet<int> WarningAsError =>
+            // TODO: The result of parsing may need to be cached not to parse every time the property is accessed.
+            this.BuildProperties.TryGetValue(MSBuildProperties.WarningAsError, out var list)
+                ? this.ParseWarningAsErrorList(list)
+                : new HashSet<int>();
+
+        /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
         /// or an user friendly string indicating and unspecified processor architecture if no value is specified.
         /// </summary>
@@ -114,6 +124,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public static ProjectProperties Empty =>
             new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
+
+        private HashSet<int> ParseWarningAsErrorList(string? list)
+        {
+            if (list == null)
+            {
+                return new HashSet<int>();
+            }
+
+            // TODO: Which error should we use when this doesn't parse?
+            HashSet<int> result = new HashSet<int>(
+                list.Split(",").Select(s => int.Parse(s)));
+            return result;
+        }
 
         public ProjectProperties(IDictionary<string, string?> buildProperties) =>
             this.BuildProperties = buildProperties.ToImmutableDictionary();
