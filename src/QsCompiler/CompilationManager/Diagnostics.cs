@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 _ => throw new ArgumentException("Unrecognized fragment ending."),
             };
 
-        private static DiagnosticSeverity Severity(QsCompilerDiagnostic msg, HashSet<int>? warningAsError)
+        private static DiagnosticSeverity Severity(QsCompilerDiagnostic msg, HashSet<int>? warningAsErrorNumbers)
         {
             if (msg.Diagnostic.IsError)
             {
@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             else if (msg.Diagnostic.IsWarning)
             {
-                if (warningAsError != null && warningAsError.Contains(msg.Code))
+                if (warningAsErrorNumbers != null && warningAsErrorNumbers.Contains(msg.Code))
                 {
                     return DiagnosticSeverity.Error;
                 }
@@ -86,10 +86,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             string filename,
             QsCompilerDiagnostic msg,
             Position? positionOffset = null,
-            HashSet<int>? warningAsError = null) =>
+            HashSet<int>? warningAsErrorNumbers = null) =>
             new Diagnostic
             {
-                Severity = Severity(msg, warningAsError),
+                Severity = Severity(msg, warningAsErrorNumbers),
                 Code = Code(msg),
                 Source = filename,
                 Message = msg.Message,

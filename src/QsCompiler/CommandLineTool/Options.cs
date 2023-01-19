@@ -104,7 +104,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             Default = null,
             HelpText = "Comma-separated warning numbers that should be treated as errors.")]
-        public string? WarningAsError { get; set; }
+        public string? WarningAsErrorNumbers { get; set; }
 
         [Option(
             "build-exe",

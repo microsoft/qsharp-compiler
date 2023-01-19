@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Specifies the comma-separated list of warning numbers
             /// that should be treated as errors.
             /// </summary>
-            public string? WarningAsError{ get; set; }
+            public string? WarningAsErrorNumbers{ get; set; }
 
             /// <summary>
             /// Specifies whether the project to build is a Q# command line application.
@@ -553,7 +553,7 @@ namespace Microsoft.Quantum.QsCompiler
             buildProperties.Add(MSBuildProperties.ResolvedTargetCapability, this.config.TargetCapability?.Name);
             buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, this.config.IsExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
             buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
-            buildProperties.Add(MSBuildProperties.WarningAsError, this.config.WarningAsError);
+            buildProperties.Add(MSBuildProperties.WarningAsErrorNumbers, this.config.WarningAsErrorNumbers);
 
             var compilationManager = new CompilationUnitManager(
                 new ProjectProperties(buildProperties),

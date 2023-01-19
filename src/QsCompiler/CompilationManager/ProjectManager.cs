@@ -76,14 +76,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ?? TargetCapabilityModule.Top;
 
         /// <summary>
-        /// Returns the hash set constructed from <see cref="MSBuildProperties.WarningAsError"/> value.
+        /// Returns the hash set constructed from <see cref="MSBuildProperties.WarningAsErrorNumbers"/> value.
         /// An empty set is returned if no value is specified.
         /// </summary>
-        public HashSet<int> WarningAsError =>
-            // TODO: The result of parsing may need to be cached not to parse every time the property is accessed.
-            this.BuildProperties.TryGetValue(MSBuildProperties.WarningAsError, out var list)
-                ? this.ParseWarningAsErrorList(list)
-                : new HashSet<int>();
+        public HashSet<int>? WarningAsErrorNumbers =>
+            this.BuildProperties.TryGetValue(MSBuildProperties.WarningAsErrorNumbers, out var list)
+                ? this.ParseWarningAsErrorNumbers(list)
+                : null;
 
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
@@ -125,16 +124,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static ProjectProperties Empty =>
             new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
 
-        private HashSet<int> ParseWarningAsErrorList(string? list)
+        private HashSet<int>? ParseWarningAsErrorNumbers(string? list)
         {
             if (list == null)
             {
-                return new HashSet<int>();
+                return null;
             }
 
-            // TODO: Which error should we use when this doesn't parse?
-            HashSet<int> result = new HashSet<int>(
-                list.Split(",").Select(s => int.Parse(s)));
+            HashSet<int> result = new HashSet<int>(list.Split(",").Select(s => int.Parse(s)));
             return result;
         }
 

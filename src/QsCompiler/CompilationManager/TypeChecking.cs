@@ -1920,7 +1920,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var callable = compilation.GetCallables()[name];
                 foreach (var diagnostic in Capabilities.Diagnose(target, compilation.GlobalSymbols, graph, callable))
                 {
-                    yield return Diagnostics.Generate(callable.Source.AssemblyOrCodeFile, diagnostic, null, properties.WarningAsError);
+                    yield return Diagnostics.Generate(callable.Source.AssemblyOrCodeFile, diagnostic, null, properties.WarningAsErrorNumbers);
                 }
             }
         }
