@@ -76,13 +76,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ?? TargetCapabilityModule.Top;
 
         /// <summary>
-        /// Returns the hash set constructed from <see cref="MSBuildProperties.WarningAsErrorNumbers"/> value.
-        /// An empty set is returned if no value is specified.
+        /// Returns the hash set of warning numbers that should be treated as errors.
+        /// An empty set means that warnings should remain warnings.
         /// </summary>
-        public HashSet<int>? WarningAsErrorNumbers =>
-            this.BuildProperties.TryGetValue(MSBuildProperties.WarningAsErrorNumbers, out var list)
-                ? this.ParseWarningAsErrorNumbers(list)
-                : null;
+        public HashSet<int>? WarningsAsErrors { get; }
 
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
@@ -122,21 +119,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal ImmutableDictionary<string, string?> BuildProperties { get; }
 
         public static ProjectProperties Empty =>
-            new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
+            new ProjectProperties(ImmutableDictionary<string, string?>.Empty, null);
 
-        private HashSet<int>? ParseWarningAsErrorNumbers(string? list)
+        public ProjectProperties(IDictionary<string, string?> buildProperties, IEnumerable<int>? warningsAsErrors = null)
         {
-            if (list == null)
-            {
-                return null;
-            }
-
-            HashSet<int> result = new HashSet<int>(list.Split(",").Select(s => int.Parse(s)));
-            return result;
-        }
-
-        public ProjectProperties(IDictionary<string, string?> buildProperties) =>
+            this.WarningsAsErrors = warningsAsErrors != null ? new HashSet<int>(warningsAsErrors) : null;
             this.BuildProperties = buildProperties.ToImmutableDictionary();
+
+            if (this.WarningsAsErrors != null) {
+                foreach (int i in this.WarningsAsErrors) {
+                    Console.WriteLine($" *** WaE *** {i}");
+                }
+            }
+        }
     }
 
     public class ProjectInformation

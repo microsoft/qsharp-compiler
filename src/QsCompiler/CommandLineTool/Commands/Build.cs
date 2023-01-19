@@ -227,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 ForceRewriteStepExecution = options.ForceRewriteStepExecution,
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 TargetCapability = options.TargetCapability,
-                WarningAsErrorNumbers = options.WarningAsErrorNumbers,
+                WarningsAsErrors = options.WarningsAsErrors,
                 SkipMonomorphization = options.SkipMonomorphization,
                 LiftLambdaExpressions = true,
                 GenerateFunctorSupport = true,
