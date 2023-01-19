@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// Specifies the comma-separated list of warning numbers
             /// that should be treated as errors.
             /// </summary>
-            public string? WarningAsErrorNumbers{ get; set; }
+            public string? WarningAsErrorNumbers { get; set; }
 
             /// <summary>
             /// Specifies whether the project to build is a Q# command line application.
