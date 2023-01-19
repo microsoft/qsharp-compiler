@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal ImmutableDictionary<string, string?> BuildProperties { get; }
 
         public static ProjectProperties Empty =>
-            new ProjectProperties(ImmutableDictionary<string, string?>.Empty, null);
+            new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
 
         public ProjectProperties(IDictionary<string, string?> buildProperties, IEnumerable<int>? warningsAsErrors = null)
         {
