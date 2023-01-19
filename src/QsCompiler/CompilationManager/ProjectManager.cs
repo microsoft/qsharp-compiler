@@ -125,12 +125,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             this.WarningsAsErrors = warningsAsErrors != null ? new HashSet<int>(warningsAsErrors) : null;
             this.BuildProperties = buildProperties.ToImmutableDictionary();
-
-            if (this.WarningsAsErrors != null) {
-                foreach (int i in this.WarningsAsErrors) {
-                    Console.WriteLine($" *** WaE *** {i}");
-                }
-            }
         }
     }
 
