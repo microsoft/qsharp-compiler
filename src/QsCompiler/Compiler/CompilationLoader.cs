@@ -552,9 +552,13 @@ namespace Microsoft.Quantum.QsCompiler
             buildProperties.Add(MSBuildProperties.ResolvedTargetCapability, this.config.TargetCapability?.Name);
             buildProperties.Add(MSBuildProperties.ResolvedQsharpOutputType, this.config.IsExecutable ? AssemblyConstants.QsharpExe : AssemblyConstants.QsharpLibrary);
             buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
+            if (this.config.WarningsAsErrors != null)
+            {
+                buildProperties.Add(MSBuildProperties.WarningsAsErrors, string.Join(" ", this.config.WarningsAsErrors));
+            }
 
             var compilationManager = new CompilationUnitManager(
-                new ProjectProperties(buildProperties, this.config.WarningsAsErrors),
+                new ProjectProperties(buildProperties),
                 this.OnCompilerException);
             compilationManager.UpdateReferencesAsync(references);
             compilationManager.AddOrUpdateSourceFilesAsync(files);

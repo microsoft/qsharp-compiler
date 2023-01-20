@@ -121,9 +121,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static ProjectProperties Empty =>
             new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
 
-        public ProjectProperties(IDictionary<string, string?> buildProperties, IEnumerable<int>? warningsAsErrors = null)
+        private HashSet<int>? ParseWarningsAsErrors()
         {
-            this.WarningsAsErrors = warningsAsErrors != null ? new HashSet<int>(warningsAsErrors) : null;
+            if (!this.BuildProperties.TryGetValue(MSBuildProperties.WarningsAsErrors, out string? list) || list == null)
+            {
+                return null;
+            }
+
+            HashSet<int> result = new HashSet<int>();
+            foreach (string s in list.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (int.TryParse(s, out int n))
+                {
+                    result.Add(n);
+                }
+            }
+
+            return result;
+        }
+
+        public ProjectProperties(IDictionary<string, string?> buildProperties)
+        {
+
+
             this.BuildProperties = buildProperties.ToImmutableDictionary();
         }
     }
