@@ -97,7 +97,7 @@
       <_QscCommandSkipTargetingFlag Condition="'$(ResolvedQSharpOutputType)' == 'QSharpLibrary' And '$(NoEntryPoint)' != 'true'">$(_NewLine)--skip-targeting</_QscCommandSkipTargetingFlag>
       <_QscCommandSkipMonomorphization Condition="'$(ResolvedTargetCapability)' == 'FullComputation' And $(CSharpGeneration) And !$(EnableQirSubmission)">$(_NewLine)--skip-monomorphization</_QscCommandSkipMonomorphization>
       <_QscCommandPerfDataGenerationFlag Condition="$(PerfDataGeneration)">$(_NewLine)--perf$(_NewLineIndent)$(PerfDataOutputPath)</_QscCommandPerfDataGenerationFlag>
-      <_QscCommandCapabilityWarningsFlag Condition="'$(TreatCapabilityWarningsAsErrors)' == 'true'">$(_NewLine)--error 5023 5024 5025 5026 5027 5028</_QscCommandCapabilityWarningsFlag>
+      <_QscCommandCapabilityWarningsFlag Condition="'$(WarningsAsErrors)' != ''">$(_NewLine)--error $(WarningsAsErrors)</_QscCommandCapabilityWarningsFlag>
       <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">$(_NewLine)--target-specific-decompositions$(_NewLineIndent)"@(ResolvedTargetSpecificDecompositions,'"$(_NewLineIndent)"')"</_QscCommandTargetDecompositionsFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">$(_NewLine)--package-load-fallback-folders$(_NewLineIndent)"@(ResolvedPackageLoadFallbackFolders,'"$(_NewLineIndent)"')"</_QscPackageLoadFallbackFoldersFlag>
       <_QscCommandLlvmLibsPath Condition="'$(LlvmLibsPath)' != ''">$(_NewLine)--llvm-libs$(_NewLineIndent)$(LlvmLibsPath)</_QscCommandLlvmLibsPath>
