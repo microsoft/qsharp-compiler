@@ -79,7 +79,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the hash set of warning numbers that should be treated as errors.
         /// An empty set means that warnings should remain warnings.
         /// </summary>
-        public HashSet<int>? WarningsAsErrors { get; }
+        public HashSet<int>? WarningsAsErrors => this.ParseWarningsAsErrors();
 
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
@@ -142,8 +142,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public ProjectProperties(IDictionary<string, string?> buildProperties)
         {
-
-
             this.BuildProperties = buildProperties.ToImmutableDictionary();
         }
     }
