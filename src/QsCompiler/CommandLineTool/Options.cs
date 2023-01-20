@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             "error",
             Required = false,
             Default = null,
-            HelpText = "Comma-separated warning numbers that should be treated as errors.")]
+            HelpText = "Warning numbers that should be treated as errors.")]
         public IEnumerable<int>? WarningsAsErrors { get; set; }
 
         [Option(
