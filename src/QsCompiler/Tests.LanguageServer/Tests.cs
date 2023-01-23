@@ -340,6 +340,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             this.projectLoaded.WaitOne();
             var diagnostics3 = await this.GetFileDiagnosticsAsync(programFile);
 
+            this.projectLoaded.Reset();
+            projectFileContent.Root!.Element("PropertyGroup")!.Add(new XElement("WarningsAsErrors", "5023;5024;5025;5026;5027;5028"));
+            File.WriteAllText(projectFile.AbsolutePath, projectFileContent.ToString());
+            this.projectLoaded.WaitOne();
+            var diagnostics4 = await this.GetFileDiagnosticsAsync(programFile);
+
             Assert.IsNotNull(diagnostics1);
             Assert.AreEqual(2, diagnostics1!.Length);
             Assert.AreEqual("QS5023", diagnostics1[0].Code);
@@ -356,6 +362,13 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics3[0].Severity);
             Assert.AreEqual("QS5023", diagnostics3[1].Code);
             Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics3[1].Severity);
+
+            Assert.IsNotNull(diagnostics4);
+            Assert.AreEqual(2, diagnostics4!.Length);
+            Assert.AreEqual("QS5023", diagnostics4[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics4[0].Severity);
+            Assert.AreEqual("QS5023", diagnostics4[1].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics4[1].Severity);
         }
 
         [TestMethod]

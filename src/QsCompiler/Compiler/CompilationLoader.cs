@@ -554,7 +554,7 @@ namespace Microsoft.Quantum.QsCompiler
             buildProperties.Add(MSBuildProperties.ResolvedProcessorArchitecture, processorArchitecture);
             if (this.config.WarningsAsErrors != null)
             {
-                buildProperties.Add(MSBuildProperties.WarningsAsErrors, string.Join(" ", this.config.WarningsAsErrors));
+                buildProperties.Add(MSBuildProperties.WarningsAsErrors, string.Join(";", this.config.WarningsAsErrors));
             }
 
             var compilationManager = new CompilationUnitManager(

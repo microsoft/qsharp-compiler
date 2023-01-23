@@ -77,9 +77,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the hash set of warning numbers that should be treated as errors.
-        /// An empty set means that warnings should remain warnings.
+        /// Null or an empty set means that warnings should remain warnings.
         /// </summary>
-        public HashSet<int>? WarningsAsErrors => this.ParseWarningsAsErrors();
+        public HashSet<int>? WarningsAsErrors
+        {
+            get
+            {
+                if (!this.warningsAsErrorsParsed)
+                {
+                    this.warningsAsErrors = this.ParseWarningsAsErrors();
+                    this.warningsAsErrorsParsed = true;
+                }
+
+                return this.warningsAsErrors;
+            }
+        }
 
         /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
@@ -121,6 +133,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static ProjectProperties Empty =>
             new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
 
+        private HashSet<int>? warningsAsErrors = null;
+        private bool warningsAsErrorsParsed = false;
+
         private HashSet<int>? ParseWarningsAsErrors()
         {
             if (!this.BuildProperties.TryGetValue(MSBuildProperties.WarningsAsErrors, out string? list) || list == null)
@@ -129,7 +144,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             HashSet<int> result = new HashSet<int>();
-            foreach (string s in list.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            foreach (string s in list.Split(';', StringSplitOptions.RemoveEmptyEntries))
             {
                 if (int.TryParse(s, out int n))
                 {
