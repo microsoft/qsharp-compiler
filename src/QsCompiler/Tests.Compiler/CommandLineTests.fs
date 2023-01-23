@@ -54,6 +54,16 @@ let ``multiple valid file`` () =
     |]
     |> testInput ReturnCode.Success
 
+[<Fact>]
+let ``warnings-as-errors switch`` () =
+    [|
+        "--input"
+        ("TestCases", "General.qs") |> Path.Combine
+        "--error"
+        "5023"
+        "5024"
+    |]
+    |> testInput ReturnCode.Success
 
 [<Fact>]
 let ``one invalid file`` () =
