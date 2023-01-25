@@ -76,6 +76,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ?? TargetCapabilityModule.Top;
 
         /// <summary>
+        /// Returns the hash set of warning numbers that should be treated as errors.
+        /// Null or an empty set means that warnings should remain warnings.
+        /// </summary>
+        public HashSet<int>? WarningsAsErrors
+        {
+            get
+            {
+                if (!this.warningsAsErrorsParsed)
+                {
+                    this.warningsAsErrors = this.ParseWarningsAsErrors();
+                    this.warningsAsErrorsParsed = true;
+                }
+
+                return this.warningsAsErrors;
+            }
+        }
+
+        /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
         /// or an user friendly string indicating and unspecified processor architecture if no value is specified.
         /// </summary>
@@ -115,8 +133,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static ProjectProperties Empty =>
             new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
 
-        public ProjectProperties(IDictionary<string, string?> buildProperties) =>
+        private HashSet<int>? warningsAsErrors = null;
+        private bool warningsAsErrorsParsed = false;
+
+        private HashSet<int>? ParseWarningsAsErrors()
+        {
+            if (!this.BuildProperties.TryGetValue(MSBuildProperties.WarningsAsErrors, out string? list) || list == null)
+            {
+                return null;
+            }
+
+            HashSet<int> result = new HashSet<int>();
+            foreach (string s in list.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (int.TryParse(s, out int n))
+                {
+                    result.Add(n);
+                }
+            }
+
+            return result;
+        }
+
+        public ProjectProperties(IDictionary<string, string?> buildProperties)
+        {
             this.BuildProperties = buildProperties.ToImmutableDictionary();
+        }
     }
 
     public class ProjectInformation

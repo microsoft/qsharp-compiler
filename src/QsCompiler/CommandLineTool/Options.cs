@@ -100,6 +100,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             TargetCapability.TryParse(this.TargetCapabilityName) ?? TargetCapabilityModule.Top;
 
         [Option(
+            "error",
+            Required = false,
+            Default = null,
+            HelpText = "Warning numbers that should be treated as errors.")]
+        public IEnumerable<int>? WarningsAsErrors { get; set; }
+
+        [Option(
             "build-exe",
             Required = false,
             Default = false,

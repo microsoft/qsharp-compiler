@@ -20,23 +20,15 @@ module Target =
     [<CompiledName "Create">]
     val create: name: string -> capability: TargetCapability -> Target
 
-type internal 'Props Pattern =
-    {
-        Capability: TargetCapability
-        Diagnose: Target -> QsCompilerDiagnostic option
-        // TODO: Remove the additional properties as part of https://github.com/microsoft/qsharp-compiler/issues/1448.
-        Properties: 'Props
-    }
+type internal Pattern = { Capability: TargetCapability; Diagnose: Target -> QsCompilerDiagnostic option }
 
 module internal Pattern =
-    val discard: 'Props Pattern -> unit Pattern
+    val concat: Pattern seq -> TargetCapability
 
-    val concat: 'Props Pattern seq -> TargetCapability
-
-type internal Analyzer<'Subject, 'Props> = 'Subject -> 'Props Pattern seq
+type internal Analyzer<'Subject> = 'Subject -> Pattern seq
 
 module internal Analyzer =
-    val concat: analyzers: Analyzer<'Subject, 'Props> seq -> Analyzer<'Subject, 'Props>
+    val concat: analyzers: Analyzer<'Subject> seq -> Analyzer<'Subject>
 
 type internal LocatingTransformation =
     inherit SyntaxTreeTransformation

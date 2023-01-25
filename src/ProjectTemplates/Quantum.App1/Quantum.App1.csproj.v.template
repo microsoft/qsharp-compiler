@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
+    <WarningsAsErrors>5023;5024;5025;5026;5027;5028</WarningsAsErrors>
   </PropertyGroup>
 
 </Project>
