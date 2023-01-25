@@ -46,6 +46,39 @@ let ``one valid file`` () =
     |> testInput ReturnCode.Success
 
 [<Fact>]
+let ``capability test with warnings`` () =
+    [|
+        "--build-exe"
+        "--input"
+        ("TestCases", "ResultComparison.qs") |> Path.Combine
+        "--references"
+        "Microsoft.Quantum.QSharp.Foundation.dll" |> Path.GetFullPath
+        "--runtime"
+        "BasicQuantumFunctionality"
+        "--verbosity"
+        "Diagnostic"
+    |]
+    |> testInput ReturnCode.Success
+
+[<Fact>]
+let ``capability test with errors`` () =
+    [|
+        "--build-exe"
+        "--error"
+        "5024"
+        "5023"
+        "--input"
+        ("TestCases", "ResultComparison.qs") |> Path.Combine
+        "--references"
+        "Microsoft.Quantum.QSharp.Foundation.dll" |> Path.GetFullPath
+        "--runtime"
+        "BasicQuantumFunctionality"
+        "--verbosity"
+        "Diagnostic"
+    |]
+    |> testInput ReturnCode.CompilationErrors
+
+[<Fact>]
 let ``multiple valid file`` () =
     [|
         "--input"
@@ -54,6 +87,16 @@ let ``multiple valid file`` () =
     |]
     |> testInput ReturnCode.Success
 
+[<Fact>]
+let ``warnings-as-errors switch`` () =
+    [|
+        "--input"
+        ("TestCases", "General.qs") |> Path.Combine
+        "--error"
+        "5023"
+        "5024"
+    |]
+    |> testInput ReturnCode.Success
 
 [<Fact>]
 let ``one invalid file`` () =

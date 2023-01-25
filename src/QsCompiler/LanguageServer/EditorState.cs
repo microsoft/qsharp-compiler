@@ -151,6 +151,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 #pragma warning disable CS0618 // Type or member is obsolete
             AddProperty(buildProperties, MSBuildProperties.ResolvedTargetCapability, MSBuildProperties.ResolvedRuntimeCapabilities);
 #pragma warning restore CS0618 // Type or member is obsolete
+            AddProperty(buildProperties, MSBuildProperties.WarningsAsErrors);
             AddProperty(buildProperties, MSBuildProperties.ResolvedQsharpOutputType);
             AddProperty(buildProperties, MSBuildProperties.ExposeReferencesViaTestNames);
             AddProperty(buildProperties, MSBuildProperties.QsFmtExe);
