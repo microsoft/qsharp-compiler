@@ -45,7 +45,7 @@
   <!-- Resolving the QuantumInstructionSet to either Type1, Type2, Type3, Type4 or Default.-->
   <PropertyGroup>
     <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">Type1</ResolvedQuantumInstructionSet>
-    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Type2</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Type4</ResolvedQuantumInstructionSet>
     <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Type3</ResolvedQuantumInstructionSet>
     <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">Type4</ResolvedQuantumInstructionSet>
     <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftQuantum'">Default</ResolvedQuantumInstructionSet>
