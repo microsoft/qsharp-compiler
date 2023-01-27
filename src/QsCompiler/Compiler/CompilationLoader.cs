@@ -583,7 +583,7 @@ namespace Microsoft.Quantum.QsCompiler
                 }
             }
 
-            if (!Uri.TryCreate(Assembly.GetExecutingAssembly().CodeBase, UriKind.Absolute, out Uri thisDllUri))
+            if (!Uri.TryCreate(Assembly.GetExecutingAssembly().Location, UriKind.Absolute, out Uri thisDllUri))
             {
                 thisDllUri = new Uri(Path.GetFullPath(".", "CompilationLoader.cs"));
             }
