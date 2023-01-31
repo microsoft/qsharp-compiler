@@ -7,6 +7,7 @@
     <NoWarn>$(NoWarn);CS1574</NoWarn> <!-- Wrong types in comments cref, should be removed in the follow-up -->
     <NoWarn>$(NoWarn);SA1636</NoWarn> <!-- Wrong company name in copyright header, but folder contains code from multiple sources. -->
     <NoWarn>$(NoWarn);CS0618</NoWarn> <!-- Allow obsolete calls for LLVM 14 use of non-opaque pointers. -->
+    <Nullable>annotations</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
