@@ -63,9 +63,7 @@ namespace LlvmBindings.Values
                    .GetEnumerator();
         }
 
-#pragma warning disable CS8767 // IReadOnlyDictionary<TKey,TValue> interface does not have nullability attributes in netstandard2.1, this suppression could be removed after move to .NET 5
         public bool TryGetValue(FunctionAttributeIndex key, [MaybeNullWhen(false)] out ICollection<AttributeValue> value)
-#pragma warning restore CS8767
         {
             value = default;
             if (this.ContainsKey(key))
