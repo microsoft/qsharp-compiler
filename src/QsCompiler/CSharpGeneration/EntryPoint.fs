@@ -397,7 +397,6 @@ let private driverSettings context =
         namedArg "quantumSimulatorName" <| literal AssemblyConstants.QuantumSimulator
         namedArg "sparseSimulatorName" <| literal AssemblyConstants.SparseSimulator
         namedArg "toffoliSimulatorName" <| literal AssemblyConstants.ToffoliSimulator
-        namedArg "resourcesEstimatorName" <| literal AssemblyConstants.ResourcesEstimator
         namedArg "defaultSimulatorName" <| literal defaultSimulator
         namedArg "defaultExecutionTarget" <| defaultExecutionTarget
         namedArg "targetCapability" <| targetCapability
