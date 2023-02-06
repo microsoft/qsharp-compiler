@@ -6,7 +6,7 @@
     <RootNamespace>Microsoft.Quantum.QsFmt.App</RootNamespace>
     <!--
     The MsBuild imports cause a bunch of MSB3277 errors that seem benign.
-    I believe the root is the use of the CommandLineParser that seems to target net6.0
+    I believe the root is the use of the CommandLineParser that seems to target netstandard2.0
     See also these issues:
     https://github.com/dotnet/msbuild/issues/4183
     https://github.com/FluentValidation/FluentValidation/issues/638
