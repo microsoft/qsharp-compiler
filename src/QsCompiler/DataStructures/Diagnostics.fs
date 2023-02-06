@@ -736,7 +736,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidTestAttributePlacement ->
                 "Invalid test attribute. Test attributes may only occur on callables that have no arguments and return Unit."
             | ErrorCode.InvalidExecutionTargetForTest ->
-                "Invalid execution target. Currently, valid execution targets for tests are the QuantumSimulator, the SparseSimulator, the ToffoliSimulator, or the ResourcesEstimator."
+                "Invalid execution target. Currently, valid execution targets for tests are the QuantumSimulator, the SparseSimulator, or the ToffoliSimulator."
             | ErrorCode.ExpectingFullNameAsAttributeArgument ->
                 "Invalid attribute argument. Expecting a fully qualified name as argument to the {0} attribute."
             | ErrorCode.AttributeInvalidOnSpecialization ->
