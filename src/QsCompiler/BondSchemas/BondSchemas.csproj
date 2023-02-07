@@ -2,8 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>Microsoft.Quantum.BondSchemas</AssemblyName>
+    <Nullable>annotations</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
