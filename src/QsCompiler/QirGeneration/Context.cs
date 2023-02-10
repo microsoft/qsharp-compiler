@@ -524,10 +524,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <returns>The types of the items in the user defined Q# type with the given name.</returns>
         /// <exception cref="ArgumentException">Thrown if not type with the given name exists in the compilation.</exception>
-        internal ImmutableArray<ResolvedType> GetItemTypes(QsQualifiedName udtName) =>
-            this.TryGetCustomType(udtName, out var udtDecl)
-                ? udtDecl.Type.Resolution is ResolvedTypeKind.TupleType its ? its.Item : ImmutableArray.Create(udtDecl.Type)
-                : throw new ArgumentException("type declaration not found");
+        internal ImmutableArray<ResolvedType> GetItemTypes(QsQualifiedName udtName)
+        {
+            if (this.TryGetCustomType(udtName, out var udtDecl))
+            {
+                return udtDecl.Type.Resolution is ResolvedTypeKind.TupleType its
+                    ? its.Item
+                    : ImmutableArray.Create(udtDecl.Type);
+            }
+            throw new ArgumentException("type declaration not found");
+        }
 
         #endregion
 
@@ -668,10 +674,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             ? (varName.Item, item.Item.Type)
                             : (null, item.Item.Type);
                     }
-                    else
-                    {
-                        throw new NotImplementedException("unknown item in argument tuple");
-                    }
+                    throw new NotImplementedException("unknown item in argument tuple");
                 }
 
                 return arg is ArgumentTuple.QsTuple tuple
@@ -955,14 +958,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return this.Values.FromCustomType(argTuple, udt.Item.GetFullName());
             }
-            else
-            {
-                var itemTypes =
-                    argType.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
-                    argType.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
-                    ImmutableArray.Create(argType);
-                return this.Values.FromTuple(argTuple, itemTypes);
-            }
+            var itemTypes =
+                argType.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
+                argType.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
+                ImmutableArray.Create(argType);
+            return this.Values.FromTuple(argTuple, itemTypes);
         }
 
         /// <summary>
@@ -1671,18 +1671,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // We assume 64-bit address space
                 return this.Context.CreateConstant(intType, 8, false);
             }
-            else
-            {
-                // Everything else we let getelementptr compute for us
-                var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
+            // Everything else we let getelementptr compute for us
+            var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
 
-                // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
-                var firstPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
-                var first = this.CurrentBuilder.PointerToInt(firstPtr, intType);
-                var secondPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
-                var second = this.CurrentBuilder.PointerToInt(secondPtr, intType);
-                return this.CurrentBuilder.Sub(second, first);
-            }
+            // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
+            var firstPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
+            var first = this.CurrentBuilder.PointerToInt(firstPtr, intType);
+            var secondPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
+            var second = this.CurrentBuilder.PointerToInt(secondPtr, intType);
+            return this.CurrentBuilder.Sub(second, first);
         }
 
         #endregion

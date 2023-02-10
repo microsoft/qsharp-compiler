@@ -341,15 +341,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 {
                     return SymbolTuple.NewVariableNameTuple(tup.Item.Select(CreateSymbolTuple).ToImmutableArray());
                 }
-                else
-                {
-                    var newName = MakeVariableName(enumerationStart++);
-                    var inferredInfo = new InferredExpressionInformation(isMutable: false, hasLocalQuantumDependency: true); // assume a quantum dependency
-                    var newDecl = new LocalVariableDeclaration<string, ResolvedType>(
-                        newName, t, inferredInfo, QsNullable<Position>.Null, DataTypes.Range.Zero);
-                    newVars.Add(newName, newDecl);
-                    return SymbolTuple.NewVariableName(newName);
-                }
+                var newName = MakeVariableName(enumerationStart++);
+                var inferredInfo = new InferredExpressionInformation(isMutable: false, hasLocalQuantumDependency: true); // assume a quantum dependency
+                var newDecl = new LocalVariableDeclaration<string, ResolvedType>(
+                    newName, t, inferredInfo, QsNullable<Position>.Null, DataTypes.Range.Zero);
+                newVars.Add(newName, newDecl);
+                return SymbolTuple.NewVariableName(newName);
             }
 
             return (CreateSymbolTuple(returnType), newVars.ToImmutable());
@@ -537,29 +534,23 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                             this.SharedState.EntryPointNames.Add(c.FullName);
                             return c;
                         }
-                        else
-                        {
-                            var wrapper = this.CreateEntryPointWrapper(c);
-                            this.SharedState.EntryPointNames.Add(wrapper.FullName);
-                            this.SharedState.NewEntryPointWrappers.Add(wrapper);
-                            return new QsCallable(
-                                c.Kind,
-                                c.FullName,
-                                c.Attributes.Where(a => !BuiltIn.MarksEntryPoint(a)).ToImmutableArray(), // remove EntryPoint attribute
-                                c.Access,
-                                c.Source,
-                                c.Location,
-                                c.Signature,
-                                c.ArgumentTuple,
-                                c.Specializations,
-                                c.Documentation,
-                                c.Comments);
-                        }
+                        var wrapper = this.CreateEntryPointWrapper(c);
+                        this.SharedState.EntryPointNames.Add(wrapper.FullName);
+                        this.SharedState.NewEntryPointWrappers.Add(wrapper);
+                        return new QsCallable(
+                            c.Kind,
+                            c.FullName,
+                            c.Attributes.Where(a => !BuiltIn.MarksEntryPoint(a)).ToImmutableArray(), // remove EntryPoint attribute
+                            c.Access,
+                            c.Source,
+                            c.Location,
+                            c.Signature,
+                            c.ArgumentTuple,
+                            c.Specializations,
+                            c.Documentation,
+                            c.Comments);
                     }
-                    else
-                    {
-                        return c;
-                    }
+                    return c;
                 }
 
                 public override QsNamespace OnNamespace(QsNamespace ns)
