@@ -341,6 +341,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 {
                     return SymbolTuple.NewVariableNameTuple(tup.Item.Select(CreateSymbolTuple).ToImmutableArray());
                 }
+
                 var newName = MakeVariableName(enumerationStart++);
                 var inferredInfo = new InferredExpressionInformation(isMutable: false, hasLocalQuantumDependency: true); // assume a quantum dependency
                 var newDecl = new LocalVariableDeclaration<string, ResolvedType>(
@@ -534,6 +535,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                             this.SharedState.EntryPointNames.Add(c.FullName);
                             return c;
                         }
+
                         var wrapper = this.CreateEntryPointWrapper(c);
                         this.SharedState.EntryPointNames.Add(wrapper.FullName);
                         this.SharedState.NewEntryPointWrappers.Add(wrapper);
@@ -550,6 +552,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                             c.Documentation,
                             c.Comments);
                     }
+
                     return c;
                 }
 

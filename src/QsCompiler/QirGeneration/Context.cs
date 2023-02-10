@@ -532,6 +532,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     ? its.Item
                     : ImmutableArray.Create(udtDecl.Type);
             }
+
             throw new ArgumentException("type declaration not found");
         }
 
@@ -674,6 +675,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             ? (varName.Item, item.Item.Type)
                             : (null, item.Item.Type);
                     }
+
                     throw new NotImplementedException("unknown item in argument tuple");
                 }
 
@@ -958,6 +960,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return this.Values.FromCustomType(argTuple, udt.Item.GetFullName());
             }
+
             var itemTypes =
                 argType.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
                 argType.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
@@ -1671,6 +1674,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // We assume 64-bit address space
                 return this.Context.CreateConstant(intType, 8, false);
             }
+
             // Everything else we let getelementptr compute for us
             var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
 

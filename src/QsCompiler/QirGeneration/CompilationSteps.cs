@@ -104,6 +104,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 return fileCreated && isValid;
             }
+
             return false;
         }
 
