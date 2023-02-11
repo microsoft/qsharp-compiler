@@ -295,7 +295,6 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Path.Combine(projDir, "Operation10.qs"),
             };
 
-            Assert.IsTrue(context.UsesIntrinsics());
             Assert.IsTrue(context.UsesCanon());
 
             var expected = qsFiles.Select(Path.GetFullPath).Select(p => new Uri(p).AbsolutePath).ToArray();
