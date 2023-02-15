@@ -1,13 +1,15 @@
-{"Registrations":[ 
+{
+  "$schema": "https://json.schemastore.org/component-detection-manifest.json",
+  "Registrations": [
     {
-      "component": { 
-       "type": "git", 
-       "git": { 
-         "repositoryUrl": "https://github.com/johnazariah/roslyn-wrapper.git", 
-         "commitHash": "49f5d9b9e26b0cc9925447e09a50b812df6f0cfb" 
-         }
-       }
+      "component": {
+        "type": "git",
+        "git": {
+          "repositoryUrl": "https://github.com/johnazariah/roslyn-wrapper.git",
+          "commitHash": "49f5d9b9e26b0cc9925447e09a50b812df6f0cfb"
+        }
+      }
     }
- ],
- "Version": 1
+  ],
+  "Version": 1
 }
