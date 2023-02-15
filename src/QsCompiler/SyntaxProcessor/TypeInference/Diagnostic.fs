@@ -36,19 +36,17 @@ type Diagnostic =
     | CompilerDiagnostic of QsCompilerDiagnostic
 
 module Diagnostic =
-    let withParents expected actual diagnostic =
-        let hasSameRange (type1: ResolvedType) : ResolvedType option -> _ =
-            Option.forall (fun type2 -> type1.Range = type2.Range)
-
+    let withParents expected (actual: ResolvedType) diagnostic =
         let checkActualRange context =
-            if hasSameRange actual context.ActualParent then
-                context |> TypeContext.withParents expected actual
-            else
-                context
+            let lastActual = Option.defaultValue context.Actual context.ActualParent
+            if actual.Range = lastActual.Range then TypeContext.withParents expected actual context else context
 
         let checkBothRanges context =
-            if hasSameRange expected context.ExpectedParent && hasSameRange actual context.ActualParent then
-                context |> TypeContext.withParents expected actual
+            let lastExpected = Option.defaultValue context.Expected context.ExpectedParent
+            let lastActual = Option.defaultValue context.Actual context.ActualParent
+
+            if expected.Range = lastExpected.Range && actual.Range = lastActual.Range then
+                TypeContext.withParents expected actual context
             else
                 context
 

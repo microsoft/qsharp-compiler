@@ -524,6 +524,17 @@ namespace LlvmBindings
             return retVal;
         }
 
+        /// <summary>
+        /// Adds a module flag to this module.
+        /// </summary>
+        /// <param name="name">The name of the module flag.</param>
+        /// <param name="behavior">The behavior of the module flag.</param>
+        /// <param name="value">The value of the module flag.</param>
+        public void AddModuleFlag(string name, LLVMModuleFlagBehavior behavior, Value value)
+        {
+            this.moduleHandle.AddModuleFlag(name, behavior, value.ValueHandle);
+        }
+
         /// <summary>Retrieves a <see cref="ITypeRef"/> by name from the module.</summary>
         /// <param name="name">Name of the type.</param>
         /// <returns>The type or default if no type with the specified name exists in the module.</returns>

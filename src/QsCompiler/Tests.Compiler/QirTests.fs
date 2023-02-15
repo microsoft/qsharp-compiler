@@ -141,7 +141,7 @@ let ``QIR UDT argument`` () = qirTest false "TestUdtArgument"
 
 [<Fact>]
 let ``QIR callable values`` () =
-    qirMultiTest false "TestLocalCallables" [ "TestLocalCallables1"; "TestLocalCallables2" ]
+    qirMultiTest false "TestLocalCallables" [ "TestLocalCallables1"; "TestLocalCallables2"; "TestLocalCallables3" ]
 
 [<Fact>]
 let ``QIR operation argument`` () = qirTest true "TestOpArgument"
@@ -156,6 +156,9 @@ let ``QIR while loop`` () = qirTest false "TestWhile"
 [<Fact>]
 let ``QIR repeat loop`` () =
     qirMultiTest true "TestRepeat" [ "TestRepeat1"; "TestRepeat2" ]
+
+[<Fact>]
+let ``QIR repeat loop with array variable`` () = qirTest false "RepeatArray"
 
 [<Fact>]
 let ``QIR integers`` () = qirTest false "TestIntegers"

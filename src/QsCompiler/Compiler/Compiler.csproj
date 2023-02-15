@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <LangVersion>10.0</LangVersion>
     <PackageId>Microsoft.Quantum.Compiler</PackageId>
     <AssemblyName>Microsoft.Quantum.QsCompiler</AssemblyName>
     <RootNamespace>Microsoft.Quantum.QsCompiler</RootNamespace>
     <AssemblyTitle>Microsoft Q# compiler library.</AssemblyTitle>
+    <Nullable>annotations</Nullable>
   </PropertyGroup>
 
   <ItemGroup>

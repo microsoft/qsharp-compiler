@@ -178,6 +178,12 @@ namespace Microsoft.Quantum.QIR.Emission
         internal TupleValue FromTuple(Value value, ImmutableArray<ResolvedType> elementTypes) =>
             new(value, elementTypes, this.sharedState);
 
+        /// <inheritdoc cref="TupleValue(TupleValue, bool)"/>
+        /// <param name="value">The tuple value to copy.</param>
+        /// <param name="alwaysCopy">Whether to force the runtime to make a copy of the contained LLVM value even if the alias count is zero.</param>
+        internal TupleValue FromTuple(TupleValue value, bool alwaysCopy) =>
+            new(value, alwaysCopy);
+
         /// <summary>
         /// Creates an array value that represents a Q# value of array type and contains
         /// the given LLVM value as well as additional infos used for optimization
@@ -189,9 +195,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal ArrayValue FromArray(Value value, ResolvedType elementType, uint? count) =>
             new(value, elementType, count, this.sharedState);
 
-        /// <summary>
-        /// Creates an new array value that is a copy of the given value.
-        /// </summary>
+        /// <inheritdoc cref="ArrayValue(ArrayValue, bool)"/>
         /// <param name="value">The array value to copy.</param>
         /// <param name="alwaysCopy">Whether to force the runtime to make a copy of the contained LLVM value even if the alias count is zero.</param>
         internal ArrayValue FromArray(ArrayValue value, bool alwaysCopy) =>
@@ -375,10 +379,21 @@ namespace Microsoft.Quantum.QIR.Emission
         /// The necessary functions to invoke the callable are defined by the callable table;
         /// i.e. the globally defined array of function pointers accessible via the given global variable.
         /// </summary>
+        /// <param name="globalName">The Q# name of the callable, if the callable is globally defined.</param>
+        /// <param name="callableType">The Q# type of the callable value.</param>
+        /// <param name="table">The global variable that contains the array of function pointers defining the callable.</param>
+        internal CallableValue CreateCallable(QsQualifiedName globalName, ResolvedType callableType, GlobalVariable table) =>
+            new(globalName, callableType, table, this.sharedState);
+
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// </summary>
         /// <param name="callableType">The Q# type of the callable value.</param>
         /// <param name="table">The global variable that contains the array of function pointers defining the callable.</param>
         /// <param name="captured">All captured values.</param>
         internal CallableValue CreateCallable(ResolvedType callableType, GlobalVariable table, ImmutableArray<TypedExpression>? captured = null) =>
-            new(callableType, table, this.sharedState, captured);
+            new(callableType, table, this.sharedState, captured ?? ImmutableArray<TypedExpression>.Empty);
     }
 }

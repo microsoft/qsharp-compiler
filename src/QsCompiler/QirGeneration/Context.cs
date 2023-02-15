@@ -106,15 +106,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// returns unit or has exactly one return statement, this restriction could be lifted in the future.
         /// </summary>
         private readonly Stack<IValue> inlineLevels;
-        private readonly Dictionary<string, int> uniqueLocalNames = new Dictionary<string, int>();
-        private readonly Dictionary<string, int> uniqueGlobalNames = new Dictionary<string, int>();
-        private readonly Dictionary<string, GlobalVariable> definedStrings = new Dictionary<string, GlobalVariable>();
+        private readonly Dictionary<string, int> uniqueLocalNames = new();
+        private readonly Dictionary<string, int> uniqueGlobalNames = new();
+        private readonly Dictionary<string, GlobalVariable> definedStrings = new();
 
-        private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
-        private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new Dictionary<string, (QsCallable, GlobalVariable)>();
-        private readonly List<string> pendingCallableTables = new List<string>();
-        private readonly Dictionary<ResolvedType, GlobalVariable> memoryManagementTables = new Dictionary<ResolvedType, GlobalVariable>();
-        private readonly List<ResolvedType> pendingMemoryManagementTables = new List<ResolvedType>();
+        private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new();
+        private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new();
+        private readonly List<string> pendingCallableTables = new();
+        private readonly Dictionary<ResolvedType, GlobalVariable> memoryManagementTables = new();
+        private readonly List<ResolvedType> pendingMemoryManagementTables = new();
 
         #endregion
 
@@ -124,7 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private int uniqueControlFlowId = 0;
 
         // Contains the ids of all currently open branches.
-        private readonly Stack<int> branchIds = new Stack<int>(new[] { 0 });
+        private readonly Stack<int> branchIds = new(new[] { 0 });
         internal int CurrentBranch => this.branchIds.Peek();
         internal bool IsOpenBranch(int id) => this.branchIds.Contains(id);
 
@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.branchIds.Pop();
 
         // Contains the ids of all currently executing loops.
-        private readonly Stack<int> loopIds = new Stack<int>();
+        private readonly Stack<int> loopIds = new();
         internal bool IsWithinLoop => this.loopIds.Any();
         internal bool IsWithinCurrentLoop(int branchId)
         {
@@ -524,10 +524,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <returns>The types of the items in the user defined Q# type with the given name.</returns>
         /// <exception cref="ArgumentException">Thrown if not type with the given name exists in the compilation.</exception>
-        internal ImmutableArray<ResolvedType> GetItemTypes(QsQualifiedName udtName) =>
-            this.TryGetCustomType(udtName, out var udtDecl)
-                ? udtDecl.Type.Resolution is ResolvedTypeKind.TupleType its ? its.Item : ImmutableArray.Create(udtDecl.Type)
-                : throw new ArgumentException("type declaration not found");
+        internal ImmutableArray<ResolvedType> GetItemTypes(QsQualifiedName udtName)
+        {
+            if (this.TryGetCustomType(udtName, out var udtDecl))
+            {
+                return udtDecl.Type.Resolution is ResolvedTypeKind.TupleType its
+                    ? its.Item
+                    : ImmutableArray.Create(udtDecl.Type);
+            }
+
+            throw new ArgumentException("type declaration not found");
+        }
 
         #endregion
 
@@ -668,10 +675,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             ? (varName.Item, item.Item.Type)
                             : (null, item.Item.Type);
                     }
-                    else
-                    {
-                        throw new NotImplementedException("unknown item in argument tuple");
-                    }
+
+                    throw new NotImplementedException("unknown item in argument tuple");
                 }
 
                 return arg is ArgumentTuple.QsTuple tuple
@@ -955,14 +960,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return this.Values.FromCustomType(argTuple, udt.Item.GetFullName());
             }
-            else
-            {
-                var itemTypes =
-                    argType.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
-                    argType.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
-                    ImmutableArray.Create(argType);
-                return this.Values.FromTuple(argTuple, itemTypes);
-            }
+
+            var itemTypes =
+                argType.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
+                argType.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
+                ImmutableArray.Create(argType);
+            return this.Values.FromTuple(argTuple, itemTypes);
         }
 
         /// <summary>
@@ -1140,7 +1143,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             foreach (var type in this.pendingMemoryManagementTables)
             {
                 var table = this.memoryManagementTables[type];
-                var name = table.Name.Substring(0, table.Name.Length - "__FunctionTable".Length);
+                var name = table.Name[..^"__FunctionTable".Length];
                 var functions = new List<(string, Action<Value, IValue>)>
                 {
                     ($"{name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
@@ -1268,6 +1271,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 this.SetCurrentBlock(contBlock);
+
+                // Handle special cases with constant values where the phi node is not necessary.
+                if (QirValues.AsConstantUInt32(evaluatedOnTrue) == 0 && evaluatedOnFalse == condition)
+                {
+                    // This case is the equivalent of: `val = cond ? false : cond;`
+                    // which is the same as: `val = false;` so we can just return the `false` value
+                    // from the evaluated true block.
+                    return evaluatedOnTrue!;
+                }
+                else if (QirValues.AsConstantUInt32(evaluatedOnFalse) == 1 && evaluatedOnTrue == condition)
+                {
+                    // This case is the equivalent of: `val = cond ? cond : true;`
+                    // which is the same as: `val = true;` so we can just return the `true` value
+                    // from the evaluated false block.
+                    return evaluatedOnFalse!;
+                }
+                else if ((QirValues.AsConstantUInt32(evaluatedOnTrue) == 1 && evaluatedOnFalse == condition) ||
+                    (QirValues.AsConstantUInt32(evaluatedOnFalse) == 0 && evaluatedOnTrue == condition))
+                {
+                    // This case is the equivalent of: `val = cond ? cond : false;` or `val = cond ? true : cond;`
+                    // which is the same as: `val = cond;` so we can just return the condition value itself.
+                    return condition;
+                }
+
                 var phi = this.CurrentBuilder.PhiNode(defaultValue?.LlvmType ?? evaluatedOnTrue!.NativeType);
                 phi.AddIncoming(evaluatedOnTrue!, afterTrue);
                 phi.AddIncoming(evaluatedOnFalse!, afterFalse);
@@ -1292,8 +1319,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Increases the reference count of the evaluated value by 1,
         /// unless <paramref name="increaseReferenceCount"/> is set to false.
         /// </returns>
-        internal Value ConditionalEvaluation(Value condition, Func<IValue> onCondTrue, IValue defaultValueForCondFalse, bool increaseReferenceCount = true) =>
+        internal Value ConditionalEvaluationTrue(Value condition, Func<IValue> onCondTrue, IValue defaultValueForCondFalse, bool increaseReferenceCount = true) =>
             this.ConditionalEvaluation(condition, onCondTrue: onCondTrue, onCondFalse: null, defaultValueForCondFalse, increaseReferenceCount);
+
+        /// <returns>
+        /// Returns a value that when executed either evaluates to the value defined by <paramref name="onCondFalse"/>,
+        /// if the condition is false, or to the given <paramref name="defaultValueForCondTrue"/> if it is not.
+        /// Increases the reference count of the evaluated value by 1,
+        /// unless <paramref name="increaseReferenceCount"/> is set to false.
+        /// </returns>
+        internal Value ConditionalEvaluationFalse(Value condition, Func<IValue> onCondFalse, IValue defaultValueForCondTrue, bool increaseReferenceCount = true) =>
+            this.ConditionalEvaluation(condition, onCondTrue: null, onCondFalse: onCondFalse, defaultValueForCondTrue, increaseReferenceCount);
 
         /// <returns>A range with the given start, step and end.</returns>
         internal IValue CreateRange(Value start, Value? step, Value end)
@@ -1638,18 +1674,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // We assume 64-bit address space
                 return this.Context.CreateConstant(intType, 8, false);
             }
-            else
-            {
-                // Everything else we let getelementptr compute for us
-                var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
 
-                // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
-                var firstPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
-                var first = this.CurrentBuilder.PointerToInt(firstPtr, intType);
-                var secondPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
-                var second = this.CurrentBuilder.PointerToInt(secondPtr, intType);
-                return this.CurrentBuilder.Sub(second, first);
-            }
+            // Everything else we let getelementptr compute for us
+            var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
+
+            // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
+            var firstPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
+            var first = this.CurrentBuilder.PointerToInt(firstPtr, intType);
+            var secondPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
+            var second = this.CurrentBuilder.PointerToInt(secondPtr, intType);
+            return this.CurrentBuilder.Sub(second, first);
         }
 
         #endregion

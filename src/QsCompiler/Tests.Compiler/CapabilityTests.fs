@@ -3,6 +3,7 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.CapabilityTests
 
+open System.Collections.Immutable
 open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -33,13 +34,13 @@ let private runtimeCapability opacity classical =
 let private unsupportedResult =
     function
     | BasicExecution
-    | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+    | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
     | _ -> []
 
 let private unsupportedClassical basic adaptive =
     function
-    | BasicExecution -> Error ErrorCode.UnsupportedClassicalCapability |> List.replicate basic
-    | AdaptiveExecution -> Error ErrorCode.UnsupportedClassicalCapability |> List.replicate adaptive
+    | BasicExecution -> Warning WarningCode.UnsupportedClassicalCapability |> List.replicate basic
+    | AdaptiveExecution -> Warning WarningCode.UnsupportedClassicalCapability |> List.replicate adaptive
     | _ -> []
 
 let private cases =
@@ -105,11 +106,11 @@ let private cases =
                     function
                     | BasicExecution ->
                         Error ErrorCode.InvalidTypeInEqualityComparison
-                        :: List.replicate 2 (Error ErrorCode.UnsupportedClassicalCapability)
+                        :: List.replicate 2 (Warning WarningCode.UnsupportedClassicalCapability)
                     | AdaptiveExecution ->
                         [
                             Error ErrorCode.InvalidTypeInEqualityComparison
-                            Error ErrorCode.UnsupportedClassicalCapability
+                            Warning WarningCode.UnsupportedClassicalCapability
                         ]
                     | _ -> [ Error ErrorCode.InvalidTypeInEqualityComparison ]
             }
@@ -121,8 +122,8 @@ let private cases =
                 Diagnostics =
                     function
                     | BasicExecution
-                    | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                    | BasicMeasurementFeedback -> [ Error ErrorCode.ResultComparisonNotInOperationIf ]
+                    | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
+                    | BasicMeasurementFeedback -> [ Warning WarningCode.ResultComparisonNotInOperationIf ]
                     | _ -> []
             }
 
@@ -141,11 +142,11 @@ let private cases =
                 Diagnostics =
                     function
                     | BasicExecution ->
-                        Error ErrorCode.UnsupportedResultComparison
-                        :: List.replicate 2 (Error ErrorCode.UnsupportedClassicalCapability)
-                    | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
-                    | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                    | BasicMeasurementFeedback -> [ Error ErrorCode.ResultComparisonNotInOperationIf ]
+                        Warning WarningCode.UnsupportedResultComparison
+                        :: List.replicate 2 (Warning WarningCode.UnsupportedClassicalCapability)
+                    | AdaptiveExecution -> [ Warning WarningCode.UnsupportedClassicalCapability ]
+                    | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
+                    | BasicMeasurementFeedback -> [ Warning WarningCode.ResultComparisonNotInOperationIf ]
                     | FullComputation -> []
             }
 
@@ -157,12 +158,12 @@ let private cases =
                     function
                     | BasicExecution ->
                         [
-                            Error ErrorCode.UnsupportedClassicalCapability
-                            Error ErrorCode.UnsupportedResultComparison
+                            Warning WarningCode.UnsupportedClassicalCapability
+                            Warning WarningCode.UnsupportedResultComparison
                         ]
-                    | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
-                    | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                    | BasicMeasurementFeedback -> Error ErrorCode.ReturnInResultConditionedBlock |> List.replicate 2
+                    | AdaptiveExecution -> [ Warning WarningCode.UnsupportedClassicalCapability ]
+                    | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
+                    | BasicMeasurementFeedback -> Warning WarningCode.ReturnInResultConditionedBlock |> List.replicate 2
                     | FullComputation -> []
             }
 
@@ -173,11 +174,11 @@ let private cases =
                 Diagnostics =
                     function
                     | BasicExecution ->
-                        Error ErrorCode.UnsupportedResultComparison
-                        :: List.replicate 2 (Error ErrorCode.UnsupportedClassicalCapability)
-                    | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
-                    | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                    | BasicMeasurementFeedback -> [ Error ErrorCode.SetInResultConditionedBlock ]
+                        Warning WarningCode.UnsupportedResultComparison
+                        :: List.replicate 2 (Warning WarningCode.UnsupportedClassicalCapability)
+                    | AdaptiveExecution -> [ Warning WarningCode.UnsupportedClassicalCapability ]
+                    | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
+                    | BasicMeasurementFeedback -> [ Warning WarningCode.SetInResultConditionedBlock ]
                     | FullComputation -> []
             }
 
@@ -188,11 +189,11 @@ let private cases =
                 Diagnostics =
                     function
                     | BasicExecution ->
-                        Error ErrorCode.UnsupportedResultComparison
-                        :: List.replicate 2 (Error ErrorCode.UnsupportedClassicalCapability)
-                    | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                    | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
-                    | BasicMeasurementFeedback -> [ Error ErrorCode.SetInResultConditionedBlock ]
+                        Warning WarningCode.UnsupportedResultComparison
+                        :: List.replicate 2 (Warning WarningCode.UnsupportedClassicalCapability)
+                    | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
+                    | AdaptiveExecution -> [ Warning WarningCode.UnsupportedClassicalCapability ]
+                    | BasicMeasurementFeedback -> [ Warning WarningCode.SetInResultConditionedBlock ]
                     | FullComputation -> []
             }
 
@@ -246,11 +247,11 @@ let private cases =
                     function
                     | BasicExecution ->
                         [
-                            Error ErrorCode.UnsupportedClassicalCapability
-                            Error ErrorCode.UnsupportedResultComparison
+                            Warning WarningCode.UnsupportedClassicalCapability
+                            Warning WarningCode.UnsupportedResultComparison
                         ]
-                    | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
-                    | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+                    | AdaptiveExecution -> [ Warning WarningCode.UnsupportedClassicalCapability ]
+                    | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
                     | BasicMeasurementFeedback
                     | FullComputation -> []
             }
@@ -313,7 +314,7 @@ let private cases =
                     | BasicExecution
                     | AdaptiveExecution ->
                         [
-                            Error ErrorCode.UnsupportedClassicalCapability
+                            Warning WarningCode.UnsupportedClassicalCapability
                             Warning WarningCode.DeprecatedNewArray
                         ]
                     | _ -> [ Warning WarningCode.DeprecatedNewArray ]
@@ -326,11 +327,7 @@ let private cases =
                 Diagnostics =
                     function
                     | BasicExecution
-                    | BasicQuantumFunctionality ->
-                        [
-                            Error ErrorCode.UnsupportedCallableCapability
-                            Warning WarningCode.UnsupportedResultComparison
-                        ]
+                    | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedCallableCapability ]
                     | _ -> []
             }
 
@@ -341,16 +338,8 @@ let private cases =
                 Diagnostics =
                     function
                     | BasicExecution
-                    | BasicQuantumFunctionality ->
-                        Error ErrorCode.UnsupportedCallableCapability
-                        :: List.replicate 2 (Warning WarningCode.UnsupportedResultComparison)
-                    | BasicMeasurementFeedback ->
-                        [
-                            Error ErrorCode.UnsupportedCallableCapability
-                            Warning WarningCode.ResultComparisonNotInOperationIf
-                            Warning WarningCode.ReturnInResultConditionedBlock
-                            Warning WarningCode.SetInResultConditionedBlock
-                        ]
+                    | BasicQuantumFunctionality
+                    | BasicMeasurementFeedback -> [ Warning WarningCode.UnsupportedCallableCapability ]
                     | _ -> []
             }
 
@@ -366,7 +355,7 @@ let private cases =
                 Capability = TargetCapability.bottom
                 Diagnostics =
                     function
-                    | BasicExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
+                    | BasicExecution -> [ Warning WarningCode.UnsupportedClassicalCapability ]
                     | BasicQuantumFunctionality
                     | BasicMeasurementFeedback -> [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
                     | _ -> []
@@ -384,7 +373,7 @@ let private cases =
                 Diagnostics =
                     function
                     | BasicExecution
-                    | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
+                    | AdaptiveExecution -> [ Warning WarningCode.UnsupportedClassicalCapability ]
                     | BasicQuantumFunctionality
                     | BasicMeasurementFeedback -> [ Warning WarningCode.NonResultTypeReturnedInEntryPoint ]
                     | FullComputation -> []
@@ -404,10 +393,10 @@ let private cases =
                 function
                 | BasicExecution ->
                     [
-                        Error ErrorCode.UnsupportedClassicalCapability
-                        Error ErrorCode.UnsupportedResultComparison
+                        Warning WarningCode.UnsupportedClassicalCapability
+                        Warning WarningCode.UnsupportedResultComparison
                     ]
-                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+                | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
                 | _ -> []
         }
         {
@@ -418,17 +407,17 @@ let private cases =
                 | BasicExecution ->
                     [
                         Error ErrorCode.LocalVariableAlreadyExists
-                        Error ErrorCode.UnsupportedClassicalCapability
-                        Error ErrorCode.UnsupportedResultComparison
+                        Warning WarningCode.UnsupportedClassicalCapability
+                        Warning WarningCode.UnsupportedResultComparison
                     ]
                 | BasicQuantumFunctionality ->
                     [
                         Error ErrorCode.LocalVariableAlreadyExists
-                        Error ErrorCode.UnsupportedResultComparison
+                        Warning WarningCode.UnsupportedResultComparison
                     ]
                 | BasicMeasurementFeedback ->
                     Error ErrorCode.LocalVariableAlreadyExists
-                    :: List.replicate 2 (Error ErrorCode.SetInResultConditionedBlock)
+                    :: List.replicate 2 (Warning WarningCode.SetInResultConditionedBlock)
                 | _ -> [ Error ErrorCode.LocalVariableAlreadyExists ]
         }
         {
@@ -437,11 +426,11 @@ let private cases =
             Diagnostics =
                 function
                 | BasicExecution ->
-                    Error ErrorCode.UnsupportedResultComparison
-                    :: List.replicate 3 (Error ErrorCode.UnsupportedClassicalCapability)
-                | AdaptiveExecution -> Error ErrorCode.UnsupportedClassicalCapability |> List.replicate 3
-                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                | BasicMeasurementFeedback -> Error ErrorCode.ReturnInResultConditionedBlock |> List.replicate 2
+                    Warning WarningCode.UnsupportedResultComparison
+                    :: List.replicate 3 (Warning WarningCode.UnsupportedClassicalCapability)
+                | AdaptiveExecution -> Warning WarningCode.UnsupportedClassicalCapability |> List.replicate 3
+                | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
+                | BasicMeasurementFeedback -> Warning WarningCode.ReturnInResultConditionedBlock |> List.replicate 2
                 | FullComputation -> []
         }
         {
@@ -450,11 +439,11 @@ let private cases =
             Diagnostics =
                 function
                 | BasicExecution ->
-                    Error ErrorCode.UnsupportedResultComparison
-                    :: List.replicate 2 (Error ErrorCode.UnsupportedClassicalCapability)
-                | AdaptiveExecution -> Error ErrorCode.UnsupportedClassicalCapability |> List.replicate 2
-                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                | BasicMeasurementFeedback -> Error ErrorCode.ReturnInResultConditionedBlock |> List.replicate 2
+                    Warning WarningCode.UnsupportedResultComparison
+                    :: List.replicate 2 (Warning WarningCode.UnsupportedClassicalCapability)
+                | AdaptiveExecution -> Warning WarningCode.UnsupportedClassicalCapability |> List.replicate 2
+                | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
+                | BasicMeasurementFeedback -> Warning WarningCode.ReturnInResultConditionedBlock |> List.replicate 2
                 | FullComputation -> []
         }
         {
@@ -463,11 +452,11 @@ let private cases =
             Diagnostics =
                 function
                 | BasicExecution ->
-                    Error ErrorCode.UnsupportedResultComparison
-                    :: List.replicate 3 (Error ErrorCode.UnsupportedClassicalCapability)
-                | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
-                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                | BasicMeasurementFeedback -> [ Error ErrorCode.SetInResultConditionedBlock ]
+                    Warning WarningCode.UnsupportedResultComparison
+                    :: List.replicate 3 (Warning WarningCode.UnsupportedClassicalCapability)
+                | AdaptiveExecution -> [ Warning WarningCode.UnsupportedClassicalCapability ]
+                | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
+                | BasicMeasurementFeedback -> [ Warning WarningCode.SetInResultConditionedBlock ]
                 | FullComputation -> []
         }
         {
@@ -477,10 +466,10 @@ let private cases =
                 function
                 | BasicExecution ->
                     [
-                        Error ErrorCode.UnsupportedResultComparison
-                        Error ErrorCode.UnsupportedClassicalCapability
+                        Warning WarningCode.UnsupportedResultComparison
+                        Warning WarningCode.UnsupportedClassicalCapability
                     ]
-                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
+                | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
                 | _ -> []
         }
         {
@@ -494,11 +483,11 @@ let private cases =
             Diagnostics =
                 function
                 | BasicExecution ->
-                    Error ErrorCode.UnsupportedResultComparison
-                    :: List.replicate 2 (Error ErrorCode.UnsupportedClassicalCapability)
-                | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
-                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedResultComparison ]
-                | BasicMeasurementFeedback -> [ Error ErrorCode.ResultComparisonNotInOperationIf ]
+                    Warning WarningCode.UnsupportedResultComparison
+                    :: List.replicate 2 (Warning WarningCode.UnsupportedClassicalCapability)
+                | AdaptiveExecution -> [ Warning WarningCode.UnsupportedClassicalCapability ]
+                | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedResultComparison ]
+                | BasicMeasurementFeedback -> [ Warning WarningCode.ResultComparisonNotInOperationIf ]
                 | _ -> []
         }
         {
@@ -513,7 +502,7 @@ let private cases =
                 function
                 | BasicExecution
                 | BasicQuantumFunctionality
-                | BasicMeasurementFeedback -> [ Error ErrorCode.UnsupportedCallableCapability ]
+                | BasicMeasurementFeedback -> [ Warning WarningCode.UnsupportedCallableCapability ]
                 | _ -> []
         }
         {
@@ -527,7 +516,7 @@ let private cases =
             Diagnostics =
                 function
                 | BasicExecution
-                | BasicQuantumFunctionality -> [ Error ErrorCode.UnsupportedCallableCapability ]
+                | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedCallableCapability ]
                 | _ -> []
         }
         {
@@ -536,11 +525,11 @@ let private cases =
             Diagnostics =
                 function
                 | BasicExecution ->
-                    List.replicate 2 (Error ErrorCode.UnsupportedClassicalCapability)
-                    @ List.replicate 2 (Error ErrorCode.UnsupportedResultComparison)
-                | AdaptiveExecution -> [ Error ErrorCode.UnsupportedClassicalCapability ]
-                | BasicQuantumFunctionality -> Error ErrorCode.UnsupportedResultComparison |> List.replicate 2
-                | BasicMeasurementFeedback -> [ Error ErrorCode.ResultComparisonNotInOperationIf ]
+                    List.replicate 2 (Warning WarningCode.UnsupportedClassicalCapability)
+                    @ List.replicate 2 (Warning WarningCode.UnsupportedResultComparison)
+                | AdaptiveExecution -> [ Warning WarningCode.UnsupportedClassicalCapability ]
+                | BasicQuantumFunctionality -> Warning WarningCode.UnsupportedResultComparison |> List.replicate 2
+                | BasicMeasurementFeedback -> [ Warning WarningCode.ResultComparisonNotInOperationIf ]
                 | FullComputation -> []
         }
         {
@@ -548,12 +537,8 @@ let private cases =
             Capability = runtimeCapability ResultOpacity.opaque ClassicalCompute.full
             Diagnostics =
                 function
-                | BasicExecution ->
-                    [
-                        Error ErrorCode.UnsupportedCallableCapability
-                        Warning WarningCode.UnsupportedResultComparison
-                    ]
-                | AdaptiveExecution -> [ Error ErrorCode.UnsupportedCallableCapability ]
+                | BasicExecution
+                | AdaptiveExecution -> [ Warning WarningCode.UnsupportedCallableCapability ]
                 | _ -> []
         }
         {
@@ -568,10 +553,10 @@ let private cases =
                 function
                 | BasicExecution ->
                     Warning WarningCode.DeprecatedNewArray
-                    :: List.replicate 3 (Error ErrorCode.UnsupportedClassicalCapability)
+                    :: List.replicate 3 (Warning WarningCode.UnsupportedClassicalCapability)
                 | AdaptiveExecution ->
                     Warning WarningCode.DeprecatedNewArray
-                    :: List.replicate 2 (Error ErrorCode.UnsupportedClassicalCapability)
+                    :: List.replicate 2 (Warning WarningCode.UnsupportedClassicalCapability)
                 | _ -> [ Warning WarningCode.DeprecatedNewArray ]
         }
         {
@@ -590,12 +575,7 @@ let private cases =
             Diagnostics =
                 function
                 | BasicExecution
-                | BasicQuantumFunctionality ->
-                    [
-                        Error ErrorCode.UnsupportedCallableCapability
-                        Warning WarningCode.UnsupportedCallableCapability
-                        Warning WarningCode.UnsupportedResultComparison
-                    ]
+                | BasicQuantumFunctionality -> [ Warning WarningCode.UnsupportedCallableCapability ]
                 | _ -> []
         }
         {
@@ -604,18 +584,8 @@ let private cases =
             Diagnostics =
                 function
                 | BasicExecution
-                | BasicQuantumFunctionality ->
-                    [
-                        Error ErrorCode.UnsupportedCallableCapability
-                        Warning WarningCode.UnsupportedCallableCapability
-                        Warning WarningCode.UnsupportedResultComparison
-                    ]
-                | BasicMeasurementFeedback ->
-                    [
-                        Error ErrorCode.UnsupportedCallableCapability
-                        Warning WarningCode.ResultComparisonNotInOperationIf
-                        Warning WarningCode.UnsupportedCallableCapability
-                    ]
+                | BasicQuantumFunctionality
+                | BasicMeasurementFeedback -> [ Warning WarningCode.UnsupportedCallableCapability ]
                 | _ -> []
         }
         {
@@ -638,23 +608,25 @@ type private TestData() as data =
     inherit TheoryData<Case>()
     do List.iter data.Add cases
 
-let private compile capability isExecutable =
+let private compile capability output =
     let files = [ "Capabilities.qs"; "General.qs"; "LinkingTests/Core.qs" ]
     let references = [ File.ReadAllLines("ReferenceTargets.txt")[2] ]
-    CompilerTests.Compile("TestCases", files, references, capability, isExecutable)
+    TestUtils.buildFiles "TestCases" files references (Some capability) output
 
 let private inferences =
-    let compilation = compile TargetCapability.top false
+    let compilation = compile TargetCapability.top TestUtils.Library
     GlobalCallableResolutions (Capabilities.infer compilation.BuiltCompilation).Namespaces
 
-let levels =
-    [
-        BasicExecution, compile TargetCapability.basicExecution true |> CompilerTests
-        AdaptiveExecution, compile TargetCapability.adaptiveExecution true |> CompilerTests
-        BasicQuantumFunctionality, compile TargetCapability.basicQuantumFunctionality true |> CompilerTests
-        BasicMeasurementFeedback, compile TargetCapability.basicMeasurementFeedback true |> CompilerTests
-        FullComputation, compile TargetCapability.fullComputation true |> CompilerTests
-    ]
+let private levels =
+    seq {
+        BasicExecution, TargetCapability.basicExecution
+        AdaptiveExecution, TargetCapability.adaptiveExecution
+        BasicQuantumFunctionality, TargetCapability.basicQuantumFunctionality
+        BasicMeasurementFeedback, TargetCapability.basicMeasurementFeedback
+        FullComputation, TargetCapability.fullComputation
+    }
+    |> Seq.map (fun (level, capability) -> level, compile capability TestUtils.Exe |> Diagnostics.byDeclaration)
+    |> ImmutableArray.CreateRange
 
 [<Theory>]
 [<ClassData(typeof<TestData>)>]
@@ -667,5 +639,5 @@ let test case =
         $"Unexpected capability for {case.Name}.\nExpected: %A{case.Capability}\nActual: %A{inferredCapability}"
     )
 
-    for level, tester in levels do
-        tester.VerifyDiagnostics(fullName, case.Diagnostics level)
+    for level, diagnostics in levels do
+        Diagnostics.assertMatches (case.Diagnostics level |> Seq.map (fun e -> e, None)) diagnostics[fullName]

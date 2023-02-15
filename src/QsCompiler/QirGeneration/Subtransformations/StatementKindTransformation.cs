@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             void DestructTuple(ImmutableArray<SymbolTuple> symbols, IValue value)
             {
-                if (!(value is TupleValue tuple) || symbols.Length != tuple.ElementTypes.Length)
+                if (value is not TupleValue tuple || symbols.Length != tuple.ElementTypes.Length)
                 {
                     throw new InvalidOperationException("shape mismatch in symbol binding");
                 }
@@ -268,7 +268,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var testValue = this.SharedState.EvaluateSubexpression(clauses[n].Item1).Value;
                 this.SharedState.ScopeMgr.CloseScope(false);
 
-                if (!(QirValues.AsConstantUInt32(testValue) == 0))
+                if (QirValues.AsConstantUInt32(testValue) == 1)
+                {
+                    // Because this condition is known to be true, add the corresponding clauses to the current block without
+                    // condition and skip the rest of the conditional clauses evaluation.
+                    contBlockUsed = this.ProcessBlock(this.SharedState.CurrentBlock, clauses[n].Item2.Body, contBlock) || contBlockUsed;
+                    skipRest = true;
+                }
+                else if (QirValues.AsConstantUInt32(testValue) == null)
                 {
                     // If this is an intermediate clause, then the next block if the test fails
                     // is the next clause's test block.
@@ -277,10 +284,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var conditionalBlock =
                         this.SharedState.CurrentFunction.InsertBasicBlock(
                             this.SharedState.BlockName($"then{n}"), contBlock);
-                    skipRest = (QirValues.AsConstantUInt32(testValue) & 1) == 1;
-                    var nextConditional = n < clauses.Length - 1 && !skipRest
+                    var nextConditional = n < clauses.Length - 1
                         ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
-                        : (stm.Default.IsNull || skipRest
+                        : (stm.Default.IsNull
                             ? contBlock
                             : this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"else"), contBlock));
                     contBlockUsed = contBlockUsed || nextConditional == contBlock;
@@ -444,8 +450,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
                 // We need to make sure to properly invoke all calls to unreference, release, and remove alias counts
                 // for variables and values in the repeat-block after the statement ends.
+                this.SharedState.StartBranch();
                 this.SharedState.SetCurrentBlock(contBlock);
                 this.SharedState.ScopeMgr.ExitScope();
+                this.SharedState.EndBranch();
                 contBlock = this.SharedState.CurrentBlock;
 
                 this.SharedState.SetCurrentBlock(fixupBlock);

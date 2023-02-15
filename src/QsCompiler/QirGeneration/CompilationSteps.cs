@@ -77,31 +77,35 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return transformed;
         }
 
-        private static bool ValidateAndEmit(QsCompilation compilation, TargetCapability? targetCapability, Func<Generator, Action<string>, bool> emit, List<IRewriteStep.Diagnostic>? diagnostics = null)
+        private static bool ValidateAndEmit(QsCompilation compilation, TargetCapability? targetCapability, string fileName, bool emitBitcode, bool overwrite = true, List<IRewriteStep.Diagnostic>? diagnostics = null)
         {
             diagnostics ??= new List<IRewriteStep.Diagnostic>();
             var preconditionSatisfied =
                 VerifyTargetInstructionInferencePrecondition(compilation) &&
                 VerifyGenerationPrecondition(compilation, diagnostics);
 
-            void GenerateError(string msg) =>
-                diagnostics.Add(new IRewriteStep.Diagnostic
-                {
-                    Severity = DiagnosticSeverity.Error,
-                    Message = $"Failed to create QIR output.\n{msg}",
-                    Stage = IRewriteStep.Stage.PostconditionVerification,
-                });
-
             if (preconditionSatisfied)
             {
                 compilation = RunTargetInstructionInference(compilation, diagnostics);
                 using var generator = CreateAndPopulateGenerator(compilation, targetCapability);
-                return emit(generator, GenerateError);
+
+                var fileCreated = generator.Emit(fileName, emitBitcode, overwrite);
+                var isValid = generator.Verify(out string validationErrors);
+
+                if (!isValid)
+                {
+                    diagnostics.Add(new IRewriteStep.Diagnostic
+                    {
+                        Severity = DiagnosticSeverity.Error,
+                        Message = $"Failed to create QIR output.\n{validationErrors}",
+                        Stage = IRewriteStep.Stage.PostconditionVerification,
+                    });
+                }
+
+                return fileCreated && isValid;
             }
-            else
-            {
-                return false;
-            }
+
+            return false;
         }
 
         /// <summary>
@@ -118,9 +122,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </exception>
         public static bool GenerateBitcode(QsCompilation compilation, TargetCapability? targetCapability, string fileName, bool overwrite = true, List<IRewriteStep.Diagnostic>? diagnostics = null)
         {
-            bool Emit(Generator generator, Action<string> onError) =>
-                generator.Emit(fileName, emitBitcode: true, overwrite: overwrite, onError: onError);
-            return ValidateAndEmit(compilation, targetCapability, Emit, diagnostics);
+            return ValidateAndEmit(compilation, targetCapability, fileName, emitBitcode: true, overwrite, diagnostics);
         }
 
         /// <summary>
@@ -137,27 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </exception>
         public static bool GenerateLlvmIR(QsCompilation compilation, TargetCapability? targetCapability, string fileName, bool overwrite = true, List<IRewriteStep.Diagnostic>? diagnostics = null)
         {
-            bool Emit(Generator generator, Action<string> onError) =>
-                generator.Emit(fileName, emitBitcode: false, overwrite: overwrite, onError: onError);
-            return ValidateAndEmit(compilation, targetCapability, Emit, diagnostics);
-        }
-
-        /// <summary>
-        /// Creates a string containing the human readable QIR for the given compilation.
-        /// </summary>
-        /// <param name="compilation">The Q# compilation to compile to bitcode.</param>
-        /// <param name="targetCapability">The set of features that are supported by the targeted backend. This is relevant for certain kinds of optimizations.</param>
-        /// <param name="diagnostics">A list to store any diagnostics generated in the process.</param>
-        /// <returns>True if the QIR passes basic LLVM validation.</returns>
-        public static bool GenerateLlvmIR(QsCompilation compilation, TargetCapability? targetCapability, out string? llvmIR, List<IRewriteStep.Diagnostic>? diagnostics = null)
-        {
-            string? generatedIR = null;
-            bool Emit(Generator generator, Action<string> onError) =>
-                generator.EmitLlvmIR(out generatedIR, onError: onError);
-
-            var succeeded = ValidateAndEmit(compilation, targetCapability, Emit, diagnostics);
-            llvmIR = generatedIR;
-            return succeeded;
+            return ValidateAndEmit(compilation, targetCapability, fileName, emitBitcode: false, overwrite, diagnostics);
         }
     }
 }

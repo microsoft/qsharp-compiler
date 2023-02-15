@@ -1,47 +1,45 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System.Collections.Immutable
-open System.IO
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open System.Collections.Immutable
+open System.IO
 open Xunit
+
+open Microsoft.Quantum.QsCompiler.DataTypes
 
 /// Tests for type checking of Q# programs.
 module TypeCheckingTests =
-    let private compilation =
-        CompilerTests.Compile(
-            "TestCases",
-            [
-                Path.Combine("LinkingTests", "Core.qs")
-                "General.qs"
-                "TypeChecking.qs"
-                "Types.qs"
-            ]
-        )
+    let private files =
+        [
+            Path.Combine("LinkingTests", "Core.qs")
+            "General.qs"
+            "TypeChecking.qs"
+            "Types.qs"
+        ]
 
-    /// The compiled type-checking tests.
-    let private tests = CompilerTests compilation
+    let private compilation = TestUtils.buildFiles "TestCases" files [] None TestUtils.Library
+    let private diagnostics = Diagnostics.byDeclaration compilation
 
-    let private ns = "Microsoft.Quantum.Testing.TypeChecking"
+    let private qualify name =
+        QsQualifiedName.New("Microsoft.Quantum.Testing.TypeChecking", name)
 
-    /// <summary>
-    /// Asserts that the declaration with the given <paramref name="name"/> has the given
-    /// <paramref name="diagnostics"/>.
-    /// </summary>
-    let internal expect name diagnostics =
-        tests.VerifyDiagnostics(QsQualifiedName.New(ns, name), diagnostics)
+    let private diagnose name = diagnostics[qualify name]
+
+    let internal expect name expected =
+        diagnose name |> Diagnostics.assertMatches (Seq.map (fun e -> e, None) expected)
 
     let private allValid name count =
         for i = 1 to count do
             expect (sprintf "%s%i" name i) []
 
     let private findSpecScope name kind =
-        let callable = compilation.Callables.[QsQualifiedName.New(ns, name)]
+        let callable = compilation.Callables[qualify name]
         let spec = callable.Specializations |> Seq.find (fun s -> s.Kind = kind)
 
         match spec.Implementation with
@@ -120,6 +118,69 @@ module TypeCheckingTests =
     [<Fact>]
     let ``Supports lambda expressions`` () =
         allValid "Lambda" 31
+        expect "LambdaRange" []
+        expect "LambdaInvalidRange" [ Error ErrorCode.TypeMismatch ]
+        expect "LambdaRangeStep" []
+        expect "LambdaInvalidRangeStep" [ Error ErrorCode.TypeMismatch ]
+        expect "LambdaCond" []
+        expect "LambdaInvalidCond" [ Error ErrorCode.TypeMismatch ]
+        expect "LambdaOr" []
+        expect "LambdaInvalidOr" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
+        expect "LambdaAnd" []
+        expect "LambdaInvalidAnd" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
+        expect "LambdaBOr" []
+        expect "LambdaInvalidBOr" [ Error ErrorCode.ExpectingIntegralExpr ]
+        expect "LambdaBXor" []
+        expect "LambdaInvalidBXor" [ Error ErrorCode.ExpectingIntegralExpr ]
+        expect "LambdaBAnd" []
+        expect "LambdaInvalidBAnd" [ Error ErrorCode.ExpectingIntegralExpr ]
+        expect "LambdaEq" []
+        expect "LambdaInvalidEq" [ Error ErrorCode.InvalidTypeInEqualityComparison ]
+        expect "LambdaNe" []
+        expect "LambdaInvalidNe" [ Error ErrorCode.InvalidTypeInEqualityComparison ]
+        expect "LambdaLte" []
+        expect "LambdaInvalidLte" [ Error ErrorCode.InvalidTypeInArithmeticExpr ]
+        expect "LambdaLt" []
+        expect "LambdaInvalidLt" [ Error ErrorCode.InvalidTypeInArithmeticExpr ]
+        expect "LambdaGte" []
+        expect "LambdaInvalidGte" [ Error ErrorCode.InvalidTypeInArithmeticExpr ]
+        expect "LambdaGt" []
+        expect "LambdaInvalidGt" [ Error ErrorCode.InvalidTypeInArithmeticExpr ]
+        expect "LambdaShr" []
+        expect "LambdaInvalidShr" [ Error ErrorCode.ExpectingIntegralExpr; Error ErrorCode.TypeMismatch ]
+        expect "LambdaShl" []
+        expect "LambdaInvalidShl" [ Error ErrorCode.ExpectingIntegralExpr; Error ErrorCode.TypeMismatch ]
+        expect "LambdaAdd" []
+        expect "LambdaConcat" []
+        expect "LambdaInvalidPlus" [ Error ErrorCode.InvalidTypeForConcatenation ]
+        expect "LambdaSub" []
+        expect "LambdaInvalidSub" [ Error ErrorCode.InvalidTypeInArithmeticExpr ]
+        expect "LambdaMul" []
+        expect "LambdaInvalidMul" [ Error ErrorCode.InvalidTypeInArithmeticExpr ]
+        expect "LambdaDiv" []
+        expect "LambdaInvalidDiv" [ Error ErrorCode.InvalidTypeInArithmeticExpr ]
+        expect "LambdaMod" []
+        expect "LambdaInvalidMod" [ Error ErrorCode.ExpectingIntegralExpr ]
+        expect "LambdaExp" []
+        expect "LambdaInvalidExp" [ Error ErrorCode.InvalidTypeInArithmeticExpr ]
+        expect "LambdaBNot" []
+        expect "LambdaInvalidBNot" [ Error ErrorCode.ExpectingIntegralExpr ]
+        expect "LambdaNot" []
+        expect "LambdaInvalidNot" [ Error ErrorCode.TypeMismatch ]
+        expect "LambdaNeg" []
+        expect "LambdaInvalidNeg" [ Error ErrorCode.InvalidTypeInArithmeticExpr ]
+        expect "LambdaFnCallFn" []
+        expect "LambdaFnInvalidCall" [ Error ErrorCode.TypeMismatch ]
+        expect "LambdaFnCallOp" [ Error ErrorCode.TypeMismatch ]
+        expect "LambdaOpCallFn" []
+        expect "LambdaOpCallOp" []
+        expect "LambdaOpInvalidCall" [ Error ErrorCode.ExpectingCallableExpr ]
+        expect "LambdaFnAdjoint" []
+        expect "LambdaOpAdjoint" []
+        expect "LambdaFnControlled" []
+        expect "LambdaOpControlled" []
+        expect "LambdaUnwrap" []
+        expect "LambdaInvalidUnwrap" [ Error ErrorCode.ExpectingUserDefinedType ]
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatch ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatch ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
@@ -129,6 +190,14 @@ module TypeCheckingTests =
         expect "LambdaInvalid7" [ Error ErrorCode.LocalVariableAlreadyExists ]
         expect "LambdaInvalid8" [ Error ErrorCode.UnknownItemName ]
         expect "LambdaInvalid9" [ Error ErrorCode.UnknownItemName ]
+
+        diagnose "LambdaInvalid10"
+        |> Diagnostics.assertMatches [ Error ErrorCode.InvalidAdjointApplication,
+                                       Range.Create (Position.Create 1 30) (Position.Create 1 32) |> Some ]
+
+        diagnose "LambdaInvalid11"
+        |> Diagnostics.assertMatches [ Error ErrorCode.TypeMismatch,
+                                       Range.Create (Position.Create 2 10) (Position.Create 2 17) |> Some ]
 
     [<Fact>]
     let ``Operation lambda with non-unit return (1)`` () =

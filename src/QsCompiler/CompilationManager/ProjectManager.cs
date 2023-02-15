@@ -76,6 +76,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ?? TargetCapabilityModule.Top;
 
         /// <summary>
+        /// Returns the hash set of warning numbers that should be treated as errors.
+        /// Null or an empty set means that warnings should remain warnings.
+        /// </summary>
+        public HashSet<int>? WarningsAsErrors
+        {
+            get
+            {
+                if (!this.warningsAsErrorsParsed)
+                {
+                    this.warningsAsErrors = this.ParseWarningsAsErrors();
+                    this.warningsAsErrorsParsed = true;
+                }
+
+                return this.warningsAsErrors;
+            }
+        }
+
+        /// <summary>
         /// Returns the value specified by <see cref="MSBuildProperties.ResolvedProcessorArchitecture"/>,
         /// or an user friendly string indicating and unspecified processor architecture if no value is specified.
         /// </summary>
@@ -110,20 +128,44 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 ? path ?? string.Empty
                 : string.Empty;
 
-        private ImmutableDictionary<string, string?> BuildProperties { get; }
+        internal ImmutableDictionary<string, string?> BuildProperties { get; }
 
         public static ProjectProperties Empty =>
             new ProjectProperties(ImmutableDictionary<string, string?>.Empty);
 
-        public ProjectProperties(IDictionary<string, string?> buildProperties) =>
+        private HashSet<int>? warningsAsErrors = null;
+        private bool warningsAsErrorsParsed = false;
+
+        private HashSet<int>? ParseWarningsAsErrors()
+        {
+            if (!this.BuildProperties.TryGetValue(MSBuildProperties.WarningsAsErrors, out string? list) || list == null)
+            {
+                return null;
+            }
+
+            HashSet<int> result = new HashSet<int>();
+            foreach (string s in list.Split(';', StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (int.TryParse(s, out int n))
+                {
+                    result.Add(n);
+                }
+            }
+
+            return result;
+        }
+
+        public ProjectProperties(IDictionary<string, string?> buildProperties)
+        {
             this.BuildProperties = buildProperties.ToImmutableDictionary();
+        }
     }
 
     public class ProjectInformation
     {
         public delegate bool Loader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? projectInfo);
 
-        internal ProjectProperties Properties { get; }
+        public ProjectProperties Properties { get; }
 
         public ImmutableArray<string> SourceFiles { get; }
 
@@ -308,6 +350,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .SelectNotNull(f => Uri.TryCreate(f, UriKind.Absolute, out uri) ? uri : null)
                     .ToImmutableHashSet();
             }
+
+            /// <summary>
+            /// Retrieves the currently set project information that is used to load the project.
+            /// </summary>
+            internal ProjectInformation GetProjectInformation() =>
+                new ProjectInformation(
+                    sourceFiles: this.specifiedSourceFiles.Select(uri => uri.AbsolutePath),
+                    projectReferences: this.specifiedProjectReferences.Select(uri => uri.AbsolutePath),
+                    references: this.specifiedReferences.Select(uri => uri.AbsolutePath),
+                    buildProperties: this.Properties.BuildProperties);
 
             /// <summary>
             /// If the project is not yet loaded, loads all specified source file, dll references and project references
@@ -1441,14 +1493,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// This method waits for all currently running or queued tasks to finish
         /// before getting the file content.
         /// </remarks>
-        public string[]? FileContentInMemory(TextDocumentIdentifier textDocument)
-        {
-            if (textDocument?.Uri == null)
-            {
-                return null;
-            }
-
-            this.load.QueueForExecution(
+        public string[]? FileContentInMemory(TextDocumentIdentifier textDocument) =>
+            textDocument?.Uri != null && this.load.QueueForExecution(
                 () =>
                 {
                     // NOTE: the call below prevents any consolidating of the processing queues
@@ -1456,9 +1502,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var manager = this.Manager(textDocument.Uri);
                     return manager?.FileContentInMemory(textDocument);
                 },
-                out var content);
-            return content;
-        }
+                out var content)
+            ? content : null;
+
+        /// <summary>
+        /// Returns the project information stored for the project defined by
+        /// the given <paramref name="projectFile"/>, if it is listed as a
+        /// project with this manager.
+        /// </summary>
+        /// <remarks>
+        /// Returns null if the given project file is null or the project is not
+        /// registered with this manager.
+        /// <para/>
+        /// This method waits for all currently running or queued tasks to finish
+        /// before getting the file content.
+        /// </remarks>
+        public ProjectInformation? GetProjectInformation(TextDocumentIdentifier projectFile) =>
+            projectFile?.Uri != null && this.load.QueueForExecution(
+                () => this.projects.TryGetValue(projectFile.Uri, out Project project)
+                    ? project.GetProjectInformation()
+                    : null,
+                out var info)
+                ? info : null;
 
         /* static routines related to loading the content needed for compilation */
 

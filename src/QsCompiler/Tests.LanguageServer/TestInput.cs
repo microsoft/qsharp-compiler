@@ -8,7 +8,6 @@ using System.Linq;
 using Microsoft.Quantum.QsCompiler.TextProcessing;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
 
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
@@ -48,12 +47,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             return current;
         }
 
-        private static string[] allKeywords = Keywords.ReservedKeywords.ToArray();
+        private static readonly string[] AllKeywords = Keywords.ReservedKeywords.ToArray();
 
         internal string[] GetRandomLines(int nrLines, bool withLanguageKeywords = true)
         {
             var lines = new string[nrLines];
-            string GetKeyword() => $" {allKeywords[this.rnd.Next(0, allKeywords.Length)]} ";
+            string GetKeyword() => $" {AllKeywords[this.rnd.Next(0, AllKeywords.Length)]} ";
             for (var nr = 0; nr < nrLines; ++nr)
             {
                 lines[nr] = this.GetRandomLine();
@@ -70,7 +69,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         {
             var filename = Path.Combine(TestInputDirectory, Path.GetRandomFileName()) + (withQsExtension ? ".qs" : "z"); // guarantee .qs extension exists or not
             var content = this.GetRandomLines(nrLines, withLanguageKeywords);
-            using (StreamWriter sw = new StreamWriter(filename))
+            using (StreamWriter sw = new(filename))
             {
                 foreach (var line in content)
                 {

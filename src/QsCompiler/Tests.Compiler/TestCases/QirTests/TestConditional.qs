@@ -37,7 +37,7 @@ namespace Microsoft.Quantum.Testing.QIR{
         }
     }
 
-    function TestConditions(input : String, arr : Int[]) : Int {
+    function TestConditions(input : String, arr : Int[]) : (Int, Int) {
         if input == "true" {
             let _ = true;
         } elif input == "false" {
@@ -45,7 +45,16 @@ namespace Microsoft.Quantum.Testing.QIR{
         } elif Length(arr) > 0 {
             let _ = false;
         }
-        return Length(arr);
+
+        mutable res = 0;
+        if DrawRandom([0.5, 0.5]) == 0 {
+            set res = 1;
+        }
+        elif false {
+            set res = -1;
+        }
+
+        return (Length(arr), res);
     }
 
     function Hello(withPunctuation : Bool) : String[] {

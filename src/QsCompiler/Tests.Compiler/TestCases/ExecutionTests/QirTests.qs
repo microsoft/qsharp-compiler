@@ -1797,8 +1797,7 @@
         
         Message("simple string");
         Message($"{"interpolated string"}");
-        // Todo: bigint is not yet supported in the runtime,
-        // see also https://github.com/microsoft/qsharp-runtime/issues/910
+        Message($"{-9223372036854775808L}, {9223372036854775807000L}");
         Message($"{true} or {false}, {res == Zero ? false | true}, {res == One ? false | true}, {res == One ? true | false}, {res == Zero ? true | false}");
         Message($"{1}, {-1}, {1 - 1}");
         Message($"{1.}, {2.0}, {1e5}, {.1}, {-1.}, {1. - 1.}");

@@ -13,6 +13,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         // commands for diagnostic purposes
         internal const string FileContentInMemory = "qsLanguageServer/fileContentInMemory";
         internal const string FileDiagnostics = "qsLanguageServer/fileDiagnostics";
+        internal const string ProjectInformation = "qsLanguageServer/projectInformation";
     }
 
     public class ProtocolError
