@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.QIR.Emission
         public ResolvedType QSharpType { get; }
 
         /// <summary>
-        /// Registers the given name as the name of the LLVM value using <see cref="ValueExtensions.RegisterName" />.
+        /// Registers the given name as the name of the LLVM value using <see cref="ValueExtensions.RegisterName{T}" />.
         /// Does nothing if a name is already defined for the value.
         /// </summary>
         internal void RegisterName(string name)
