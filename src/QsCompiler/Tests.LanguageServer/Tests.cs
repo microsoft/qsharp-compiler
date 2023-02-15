@@ -32,8 +32,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public async Task ShutdownAsync()
         {
             // the shutdown request should *not* result in the server exiting, and calling multiple times is fine
+            _ = await this.rpc.InvokeAsync<object>(Methods.Shutdown.Name);
             var response = await this.rpc.InvokeAsync<object>(Methods.Shutdown.Name);
-            response = await this.rpc.InvokeAsync<object>(Methods.Shutdown.Name);
             Assert.IsNull(response);
             Assert.IsNotNull(this.rpc);
         }
@@ -132,7 +132,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidClose.Name, TestUtils.GetCloseFileParams(filename));
 
             // verify that a file can be closed immediately after it was opened
-            var openTask = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
+            _ = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidClose.Name, TestUtils.GetCloseFileParams(filename));
         }
 
@@ -145,7 +145,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             await this.SetupAsync();
 
             // verify that safe notification can be sent immediately after sending the open notification (even if the latter has not yet finished processing)
-            var openFileTask = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
+            _ = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
             await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidSave.Name, TestUtils.GetSaveFileParams(filename, content));
 
             // check that the file content is indeed updated on save, according to the passed parameter
@@ -169,13 +169,13 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 // and the file can be closed and no diagnostics are left even if some changes are still queued for processing
                 var edits = this.inputGenerator.MakeRandomEdits(50, ref content, fileSize, false);
                 Task[] processing = new Task[edits.Length];
-                var openFileTask = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
+                _ = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidOpen.Name, TestUtils.GetOpenFileParams(filename));
                 for (var i = 0; i < edits.Length; ++i)
                 {
                     processing[i] = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedFileParams(filename, new[] { edits[i] }));
                 }
 
-                var closeFileTask = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidClose.Name, TestUtils.GetCloseFileParams(filename));
+                _ = this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidClose.Name, TestUtils.GetCloseFileParams(filename));
                 var finalDiagnostics = await this.GetFileDiagnosticsAsync(filename);
 
                 // check that the file is no longer present in the default manager after closing (final diagnostics are null), and
@@ -210,14 +210,14 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var expected = Builder.JoinLines(expectedContent.ToArray());
                 var got = Builder.JoinLines(trackedContent);
                 Assert.IsNotNull(trackedContent);
-                Assert.AreEqual(expectedContent.Count(), trackedContent.Count(), $"expected: \n{expected} \ngot: \n{got}");
+                Assert.AreEqual(expectedContent.Count, trackedContent.Length, $"expected: \n{expected} \ngot: \n{got}");
                 Assert.AreEqual(expected, got);
 
                 // check whether a single array of changes is processed correctly
                 var edits = this.inputGenerator.MakeRandomEdits(50, ref expectedContent, fileSize, false);
                 await this.rpc.InvokeWithParameterObjectAsync<Task>(Methods.TextDocumentDidChange.Name, TestUtils.GetChangedFileParams(filename, edits));
                 trackedContent = await this.GetFileContentInMemoryAsync(filename);
-                Assert.AreEqual(expectedContent.Count(), trackedContent.Count());
+                Assert.AreEqual(expectedContent.Count, trackedContent.Length);
                 Assert.AreEqual(Builder.JoinLines(expectedContent.ToArray()), Builder.JoinLines(trackedContent));
 
                 // check if changes are also processed correctly if many changes (array of length one) are given in rapid succession
@@ -240,7 +240,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
                     expected = Builder.JoinLines(expectedContent.ToArray());
                     got = Builder.JoinLines(trackedContent);
-                    Assert.AreEqual(expectedContent.Count(), trackedContent.Count(), $"expected: \n{expected} \ngot: \n{got}");
+                    Assert.AreEqual(expectedContent.Count, trackedContent.Length, $"expected: \n{expected} \ngot: \n{got}");
                     Assert.AreEqual(expected, got);
                 }
             }
@@ -281,7 +281,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 var expected = Builder.JoinLines(expectedContent.ToArray());
                 var got = Builder.JoinLines(trackedContent);
                 Assert.IsNotNull(trackedContent);
-                Assert.AreEqual(expectedContent.Count(), trackedContent.Count(), $"expected: \n{expected} \ngot: \n{got}");
+                Assert.AreEqual(expectedContent.Count, trackedContent.Length, $"expected: \n{expected} \ngot: \n{got}");
                 Assert.AreEqual(expected, got);
             }
         }
@@ -289,7 +289,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public async Task TargetPackageIntrinsicsAsync()
         {
-            var projectFile = ProjectLoaderTests.ProjectUri("test17");
+            var projectFile = ProjectUri("test17");
             var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
             var programFile = Path.Combine(projDir, "MeasureBell.qs");
 
@@ -311,7 +311,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public async Task UpdateProjectFileAsync()
         {
-            var projectFile = ProjectLoaderTests.ProjectUri("test14");
+            var projectFile = ProjectUri("test14");
             var projDir = Path.GetDirectoryName(projectFile.AbsolutePath) ?? "";
             var programFile = Path.Combine(projDir, "Teleport.qs");
             var projectFileContent = XDocument.Load(projectFile.AbsolutePath);
@@ -340,12 +340,18 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             this.projectLoaded.WaitOne();
             var diagnostics3 = await this.GetFileDiagnosticsAsync(programFile);
 
+            this.projectLoaded.Reset();
+            projectFileContent.Root!.Element("PropertyGroup")!.Add(new XElement("WarningsAsErrors", "5023;5024;5025;5026;5027;5028"));
+            File.WriteAllText(projectFile.AbsolutePath, projectFileContent.ToString());
+            this.projectLoaded.WaitOne();
+            var diagnostics4 = await this.GetFileDiagnosticsAsync(programFile);
+
             Assert.IsNotNull(diagnostics1);
             Assert.AreEqual(2, diagnostics1!.Length);
             Assert.AreEqual("QS5023", diagnostics1[0].Code);
-            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics1[0].Severity);
+            Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics1[0].Severity);
             Assert.AreEqual("QS5023", diagnostics1[1].Code);
-            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics1[1].Severity);
+            Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics1[1].Severity);
 
             Assert.IsNotNull(diagnostics2);
             Assert.AreEqual(0, diagnostics2!.Length);
@@ -353,9 +359,16 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsNotNull(diagnostics3);
             Assert.AreEqual(2, diagnostics3!.Length);
             Assert.AreEqual("QS5023", diagnostics3[0].Code);
-            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics3[0].Severity);
+            Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics3[0].Severity);
             Assert.AreEqual("QS5023", diagnostics3[1].Code);
-            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics3[1].Severity);
+            Assert.AreEqual(DiagnosticSeverity.Warning, diagnostics3[1].Severity);
+
+            Assert.IsNotNull(diagnostics4);
+            Assert.AreEqual(2, diagnostics4!.Length);
+            Assert.AreEqual("QS5023", diagnostics4[0].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics4[0].Severity);
+            Assert.AreEqual("QS5023", diagnostics4[1].Code);
+            Assert.AreEqual(DiagnosticSeverity.Error, diagnostics4[1].Severity);
         }
 
         [TestMethod]
@@ -363,7 +376,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         {
             async Task RunFormattingTestAsync(string projectName)
             {
-                var projectFile = ProjectLoaderTests.ProjectUri(projectName);
+                var projectFile = ProjectUri(projectName);
                 var projDir = Path.GetDirectoryName(projectFile.LocalPath) ?? "";
                 var telemetryEvents = new List<(string, int)>();
                 var projectManager = await projectFile.LoadProjectAsync(
@@ -381,7 +394,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Assert.IsNotNull(edits);
                 Assert.AreEqual(1, edits!.Length);
                 Assert.AreEqual(expectedContent, edits[0].NewText);
-                Assert.AreEqual(1, telemetryEvents.Count());
+                Assert.AreEqual(1, telemetryEvents.Count);
                 Assert.AreEqual("formatting", telemetryEvents[0].Item1);
                 Assert.AreEqual(edits.Length, telemetryEvents[0].Item2);
             }
@@ -393,7 +406,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public async Task TestLambdaHoverInfoAsync()
         {
-            var projectFile = ProjectLoaderTests.ProjectUri("test16");
+            var projectFile = ProjectUri("test16");
             var projectManager = await LoadProjectFileAsync(projectFile);
             var lambdaFile = new Uri(projectFile, "Lambda.qs");
 
@@ -463,7 +476,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         [TestMethod]
         public async Task TestLambdaReferencesAsync()
         {
-            var projectFile = ProjectLoaderTests.ProjectUri("test16");
+            var projectFile = ProjectUri("test16");
             var projectManager = await LoadProjectFileAsync(projectFile);
             var lambdaFile = new Uri(projectFile, "Lambda.qs");
 

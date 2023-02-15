@@ -34,8 +34,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// needed to determine if the reality of a source file that has changed on disk is indeed given by the content on disk,
         /// or whether its current state as it is in the editor needs to be preserved
         /// </summary>
-        private readonly ConcurrentDictionary<Uri, FileContentManager> openFiles =
-            new ConcurrentDictionary<Uri, FileContentManager>();
+        private readonly ConcurrentDictionary<Uri, FileContentManager> openFiles = new();
 
         private FileContentManager? GetOpenFile(Uri key) => this.openFiles.TryGetValue(key, out var file) ? file : null;
 
@@ -152,6 +151,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 #pragma warning disable CS0618 // Type or member is obsolete
             AddProperty(buildProperties, MSBuildProperties.ResolvedTargetCapability, MSBuildProperties.ResolvedRuntimeCapabilities);
 #pragma warning restore CS0618 // Type or member is obsolete
+            AddProperty(buildProperties, MSBuildProperties.WarningsAsErrors);
             AddProperty(buildProperties, MSBuildProperties.ResolvedQsharpOutputType);
             AddProperty(buildProperties, MSBuildProperties.ExposeReferencesViaTestNames);
             AddProperty(buildProperties, MSBuildProperties.QsFmtExe);
@@ -203,7 +203,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// and publishes suitable diagnostics for it.
         /// </summary>
         public Task LoadProjectsAsync(IEnumerable<Uri> projects) =>
-            this.projectLoader is object ?
+            this.projectLoader is not null ?
                 this.projects.LoadProjectsAsync(projects, this.QsProjectLoader, this.GetOpenFile) :
                 Task.CompletedTask;
 
@@ -212,7 +212,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// updates that project in the list of tracked projects or adds it if needed, and publishes suitable diagnostics for it.
         /// </summary>
         public Task ProjectDidChangeOnDiskAsync(Uri project) =>
-            this.projectLoader is object ?
+            this.projectLoader is not null ?
                 this.projects.ProjectChangedOnDiskAsync(project, this.QsProjectLoader, this.GetOpenFile) :
                 Task.CompletedTask;
 
@@ -545,7 +545,48 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal Diagnostic[]? FileDiagnostics(TextDocumentIdentifier textDocument)
         {
             var allDiagnostics = this.projects.GetDiagnostics(textDocument?.Uri);
-            return allDiagnostics?.Count() == 1 ? allDiagnostics.Single().Diagnostics : null; // count is > 1 if the given uri corresponds to a project file
+            return allDiagnostics?.Length == 1 ? allDiagnostics.Single().Diagnostics : null; // count is > 1 if the given uri corresponds to a project file
+        }
+
+        /// <summary>
+        /// Waits for all currently running or queued tasks to finish before getting the project information.
+        /// -> Method to be used for testing/diagnostic purposes only!
+        /// </summary>
+        internal string? ProjectInformation(TextDocumentIdentifier textDocument)
+        {
+            var projectInfo = this.projects.GetProjectInformation(textDocument);
+            if (projectInfo is null)
+            {
+                return null;
+            }
+
+            var stringWriter = new StringWriter();
+            var writer = System.Xml.XmlWriter.Create(stringWriter);
+            void WriteElementGroup(string groupName, IEnumerable<string> paths)
+            {
+                writer.WriteStartElement(groupName);
+                foreach (var path in paths)
+                {
+                    writer.WriteStartElement("File");
+                    writer.WriteAttributeString("Path", path);
+                    writer.WriteEndElement();
+                }
+
+                writer.WriteEndElement();
+            }
+
+            writer.WriteStartDocument();
+            writer.WriteStartElement("ProjectInfo");
+            writer.WriteAttributeString("OutputPath", projectInfo.Properties.DllOutputPath);
+            writer.WriteAttributeString("TargetCapability", projectInfo.Properties.TargetCapability.Name);
+            writer.WriteAttributeString("ProcessorArchitecture", projectInfo.Properties.ProcessorArchitecture);
+            WriteElementGroup("Sources", projectInfo.SourceFiles);
+            WriteElementGroup("ProjectReferences", projectInfo.ProjectReferences);
+            WriteElementGroup("References", projectInfo.References);
+            writer.WriteEndElement();
+            writer.WriteEndDocument();
+            writer.Flush();
+            return stringWriter.ToString();
         }
     }
 }

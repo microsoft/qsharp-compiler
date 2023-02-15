@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.Telemetry.Commands
                 {
                     var isPii = this.Args.PiiProperties.ContainsKey(property.Key);
                     if (!logEventCommand.Args.Properties.TryGetValue(property.Key, out var value)
-                        || !object.Equals(value, property.Value)
+                        || !Equals(value, property.Value)
                         || (isPii && !logEventCommand.Args.PiiProperties.ContainsKey(property.Key)))
                     {
                         return false;

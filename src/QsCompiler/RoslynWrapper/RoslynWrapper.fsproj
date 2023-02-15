@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>Microsoft.Quantum.RoslynWrapper</AssemblyName>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>

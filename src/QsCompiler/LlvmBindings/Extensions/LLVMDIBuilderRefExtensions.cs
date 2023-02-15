@@ -179,14 +179,14 @@ namespace LlvmBindings.Interop
         {
             fixed (long* pAddr = addr.AsSpan())
             {
-                return LLVM.DIBuilderCreateExpression(self, pAddr, (UIntPtr)length);
+                return LLVM.DIBuilderCreateExpression(self, (ulong*)pAddr, (UIntPtr)length);
             }
         }
 
         /// <summary>Convenience wrapper for <see cref="LLVM.DIBuilderCreateConstantValueExpression"/>.</summary>
         public static LLVMMetadataRef CreateConstantValueExpression(this LLVMDIBuilderRef self, long value)
         {
-            return LLVM.DIBuilderCreateConstantValueExpression(self, value);
+            return LLVM.DIBuilderCreateConstantValueExpression(self, (ulong)value);
         }
 
         /// <summary>Convenience wrapper for <see cref="LLVM.DIBuilderCreateReplaceableCompositeType"/>.</summary>

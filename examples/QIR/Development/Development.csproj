@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.Quantum.Sdk/0.25.228311">   <!-- TODO(#1569): Requires refactoring for Rust QIR RT. -->
+<Project Sdk="Microsoft.Quantum.Sdk/0.27.244707">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -8,9 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="13.0.0-CI-20220129-005156" PrivateAssets="All" GeneratePathProperty="true"/>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.25.228311-alpha" GeneratePathProperty="true" />    <!-- TODO(#1569): Requires refactoring for Rust QIR RT. -->
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.25.228311" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.LlvmBindings.Native" Version="14.0.0-CI-20221216-213951" PrivateAssets="All" GeneratePathProperty="true"/>
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.27.244707" GeneratePathProperty="true" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -92,18 +91,9 @@
   <Target Name="CreateCppDriver">
     <PropertyGroup>
       <DriverCode>
-        #include "QirContext.hpp"
-        #include "QirRuntime.hpp"
-        #include "SimFactory.hpp"
-
-        using namespace Microsoft::Quantum%3B
-        using namespace std%3B
-
         extern "C" void Microsoft__Quantum__Qir__Development__RunExample()%3B // NOLINT
 
         int main(int argc, char* argv[]){
-            unique_ptr&lt;IRuntimeDriver&gt; sim = CreateFullstateSimulator()%3B
-            QirContextScope qirctx(sim.get(), true /*trackAllocatedObjects*/)%3B
             Microsoft__Quantum__Qir__Development__RunExample()%3B
             return 0%3B
         }
@@ -114,24 +104,17 @@
 
   <Target Name="BuildExecutable" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="CreateCppDriver;Restore" AfterTargets="QSharpCompile;CoreBuild">
     <PropertyGroup>
-      <QirRuntimeHeaders>$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/any/native/include</QirRuntimeHeaders>
-      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/osx-x64/native</QirRuntimeLibs>
-      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/win-x64/native</QirRuntimeLibs>
-      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/linux-x64/native</QirRuntimeLibs>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/libMicrosoft.Quantum.Simulator.Runtime.dylib</SimulatorRuntime>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
-      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native/libMicrosoft.Quantum.Simulator.Runtime.so</SimulatorRuntime>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native</SimulatorFolder>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native</SimulatorFolder>
+      <SimulatorFolder Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native</SimulatorFolder>
       <ClangOptions Condition="$([MSBuild]::IsOsPlatform('Linux')) Or $([MSBuild]::IsOsPlatform('OSX'))">-fseh-exceptions -lstdc++</ClangOptions>
-      <ClangCommand>clang -std=c++17 -Wno-override-module $(ClangOptions) -o $(ExecutablePath) $(QirOutputPath)$(PathCompatibleAssemblyName).ll $(BuildOutputPath)/Main.cpp -I$(BuildOutputPath) -L$(BuildOutputPath) -lMicrosoft.Quantum.Qir.Runtime -lMicrosoft.Quantum.Qir.QSharp.Core -lMicrosoft.Quantum.Qir.QSharp.Foundation</ClangCommand>
+      <OmpOptions Condition="$([MSBuild]::IsOsPlatform('Linux'))">-lomp</OmpOptions>
+      <ClangCommand>clang -std=c++17 -Wno-override-module $(ClangOptions) -o $(ExecutablePath) $(QirOutputPath)$(PathCompatibleAssemblyName).ll $(BuildOutputPath)/Main.cpp -I$(BuildOutputPath) -L$(BuildOutputPath) -lMicrosoft.Quantum.Simulator.Runtime $(OmpOptions)</ClangCommand>
     </PropertyGroup>
     <ItemGroup>
-      <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
-      <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.hpp" />
-      <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.h" />
+      <_SimulatorLibraries Include="$(SimulatorFolder)/*.*" />
     </ItemGroup>
-    <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(_QirRuntimeHeaderFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_SimulatorLibraries)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
     <Exec Command="clang --version" IgnoreExitCode="true" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="ClangVersionCheckExitCode"/>
     </Exec>

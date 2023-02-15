@@ -6,9 +6,9 @@ using Microsoft.Build.Locator;
 
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
-    internal static class VisualStudioInstanceWrapper
+    internal static class MsBuildDefaults
     {
-        public static Lazy<VisualStudioInstance> LazyVisualStudioInstance { get; }
+        public static Lazy<VisualStudioInstance> LazyRegistration { get; }
             = new Lazy<VisualStudioInstance>(MSBuildLocator.RegisterDefaults);
     }
 }
