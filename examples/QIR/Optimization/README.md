@@ -29,34 +29,34 @@ Steps for QDK v0.22.187631 (February 2022):
 Depending on your platform, some LLVM tools may only be available by compiling from source.
 *Clang* however should be readily available from package managers or as pre-compiled binaries on most systems.
 LLVM's [official release page](https://releases.llvm.org/download.html) provides sources and binaries of LLVM and Clang.
-It's recommended to use LLVM version 13.0.1, as this is the version used by the Q# compiler.
+It's recommended to use LLVM version 15.0.7, as this is the version used by the Q# compiler.
 
 Here are some suggestions on how to obtain Clang for different platforms.
 On Windows, the conda method is recommended since it's also able to install the LLVM optimizer (see next section).
 
 Package managers:
 
-* **Ubuntu** : `sudo apt install clang-13`
-* **Windows** : `choco install llvm --version=13.0.1` using [chocolatey](https://chocolatey.org/)
-* **macOS** : `brew install llvm@11` using [homebrew](https://brew.sh/)
+* **Ubuntu** : `sudo apt install clang-15`
+* **Windows** : `choco install llvm --version=15.0.7` using [chocolatey](https://chocolatey.org/)
+* **macOS** : `brew install llvm@15` using [homebrew](https://brew.sh/)
 
-* **all** : `conda install -c conda-forge clang=13.0.1 clangxx=13.0.1 llvm=13.0.1` using [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)
+* **all** : `conda install -c conda-forge clang=15.0.7 clangxx=15.0.7 llvm=15.0.7` using [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)
 
 Pre-built binaries/installers:
 
-* **Ubuntu** : get `clang+llvm-13.0.1-x86_64-linux-gnu-ubuntu-20.10.tar.xz` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.1)
-* **Windows** : get `LLVM-13.0.1-win64.exe` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.1)
-* **macOS** : get `clang+llvm-13.0.1-x86_64-apple-darwin.tar.xz` from the [13.0.1 release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-13.0.1)
+* **Ubuntu** : get `clang+llvm-15.0.7-x86_64-linux-gnu-ubuntu-20.10.tar.xz` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-15.0.7)
+* **Windows** : get `LLVM-15.0.7-win64.exe` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-15.0.7)
+* **macOS** : get `clang+llvm-15.0.7-x86_64-apple-darwin.tar.xz` from the [15.0.7 release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-15.0.7)
 
 
-(**Linux**) If installing via `apt`, the clang/llvm commands will have `-13` attached to their name.
+(**Linux**) If installing via `apt`, the clang/llvm commands will have `-15` attached to their name.
 It's convenient to define aliases for these commands so as not to have to type out the full name every time.
-If you want to skip this step, substitute `clang`/`clang++`/`opt` with `clang-13`/`clang++-13`/`opt-13` throughout the rest of this document.
+If you want to skip this step, substitute `clang`/`clang++`/`opt` with `clang-15`/`clang++-15`/`opt-15` throughout the rest of this document.
 
 ```bash
-echo 'alias clang=clang-13' >> ~/.bashrc
-echo 'alias clang++=clang++-13' >> ~/.bashrc
-echo 'alias opt=opt-13' >> ~/.bashrc
+echo 'alias clang=clang-15' >> ~/.bashrc
+echo 'alias clang++=clang++-15' >> ~/.bashrc
+echo 'alias opt=opt-15' >> ~/.bashrc
 ```
 
 Restart the terminal for the aliases to take effect.
@@ -64,12 +64,12 @@ Restart the terminal for the aliases to take effect.
 ### Installing the LLVM optimizer
 
 If you followed the instructions above specific to Linux or macOS, your LLVM installation will have included the *LLVM optimizer*.
-You can test this by typing `opt` or `opt-13` in your terminal.
+You can test this by typing `opt` or `opt-15` in your terminal.
 
 If not, you can use [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) as shown below to get it:
 
 ```shell
-conda install -c conda-forge llvm-tools=13.0.1
+conda install -c conda-forge llvm-tools=15.0.7
 ```
 
 Although a rather involved process, [compiling LLVM from source](https://llvm.org/docs/GettingStarted.html) is also available and provides access to all tools under the LLVM project.

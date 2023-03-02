@@ -9,7 +9,7 @@ This is *not* how the QIR generation is meant to be used if you don't intend to 
 Note: If you are using the Development project on Linux, you may run into the following error: `System.DllNotFoundException: Unable to load shared library 'libLLVM' or one of its dependencies.` The solution to this is to set the LD_LIBRARY_PATH environment variable to point towards the libLLVM.so libary. This can be done using the following command in bash:
 
 ```
-export LD_LIBRARY_PATH=/usr/lib/llvm-13/lib
+export LD_LIBRARY_PATH=/usr/lib/llvm-15/lib
 ```
 
 The shared libraries needed for execution are copied to the `build` folder in this directory that will be created when building the project. You may need to so the same for this folder if the `libMicrosoft.Quantum.Qir.Runtime.so` is not found.
