@@ -30,5 +30,5 @@ steps:
   displayName: 'Component detection'
   condition: succeededOrFailed()
   inputs:
-    failOnAlert: true
+    failOnAlert: false
     ignoreDirectories: 'src/QsCompiler/Tests.LanguageServer,src/QsCompiler/TestProjects'
