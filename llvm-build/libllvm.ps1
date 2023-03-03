@@ -90,7 +90,7 @@ Write-AdoLog "Creating Interop Bindings"
 $includeDir = Join-Path  '.' "$($env:LINUX_PKG_NAME)" "include"
 $generatedDir = Join-Path $env:BUILD_ARTIFACTSTAGINGDIRECTORY generated
 New-Item -ItemType Directory -Force $generatedDir | Out-Null
-dotnet tool install --global ClangSharpPInvokeGenerator --version 14.0.0-rc1
+dotnet tool install --global ClangSharpPInvokeGenerator --version 15.0.0-rc1
 ClangSharpPInvokeGenerator `
     "@$(Join-Path $PSScriptRoot GenerateLLVM.rsp)" `
     --output $generatedDir `
