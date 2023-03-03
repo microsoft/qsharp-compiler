@@ -99,6 +99,6 @@ if(APPLE)
   set(CMAKE_CXX_FLAGS "-fno-stack-protector -fno-common -Wno-profile-instr-unprofiled" CACHE STRING "")
 endif()
 
-# See https://github.com/llvm/llvm-project/blob/llvmorg-14.0.6/llvm/utils/gn/build/write_library_dependencies.py for a list
+# See https://github.com/llvm/llvm-project/blob/llvmorg-15.0.7/llvm/utils/gn/build/write_library_dependencies.py for a list
 # of these dependencies and what they bring into the linked binary.
 set(LLVM_DYLIB_COMPONENTS "core;debuginfodwarf;linker;support;target;bitwriter;analysis;executionengine;runtimedyld;mcjit;bitstreamreader;bitreader;native" CACHE STRING "")
