@@ -42,16 +42,6 @@
     <ValidExecutionTargets>Possible values must match 'ionq*', 'qci*', 'quantinuum*', 'rigetti*', 'microsoft*', or 'Any'.</ValidExecutionTargets>
   </PropertyGroup>
 
-  <!-- Resolving the QuantumInstructionSet to either Type1, Type2, Type3, Type4 or Default.-->
-  <PropertyGroup>
-    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">Type1</ResolvedQuantumInstructionSet>
-    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Type2</ResolvedQuantumInstructionSet>
-    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Type3</ResolvedQuantumInstructionSet>
-    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">Type4</ResolvedQuantumInstructionSet>
-    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftQuantum'">Default</ResolvedQuantumInstructionSet>
-    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'Unspecified'">Default</ResolvedQuantumInstructionSet>
-  </PropertyGroup>
-
   <!-- Resolving the TargetCapability to either BasicExecution, AdaptiveExecution, BasicQuantumFunctionality, BasicMeasurementFeedback, or FullComputation.-->
   <PropertyGroup>
     <_EnableBasicExecution>$(TargetCapability.Equals('BasicExecution', StringComparison.InvariantCultureIgnoreCase))</_EnableBasicExecution>
@@ -97,7 +87,15 @@
     <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' != '' And '$(QSharpDocsGeneration)' == 'default'">true</QSharpDocsGeneration>
     <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' == '' And '$(QSharpDocsGeneration)' == 'default'">false</QSharpDocsGeneration>
     <CSharpGeneration Condition="$(QirGeneration)">false</CSharpGeneration>
+    <!-- Resolving the QuantumInstructionSet to either Type1, Type2, Type3, Type4 or Default.-->
     <EnableQirSubmission Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftQuantum' Or '$(ResolvedTargetCapability)' == 'AdaptiveExecution' Or '$(ResolvedTargetCapability)' == 'BasicExecution'">true</EnableQirSubmission>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'QuantinuumProcessor'">Type1</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And !$(EnableQirSubmission)">Type2</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(EnableQirSubmission)">Type4</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Type3</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'RigettiProcessor'">Type4</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftQuantum'">Default</ResolvedQuantumInstructionSet>
+    <ResolvedQuantumInstructionSet Condition="'$(ResolvedProcessorArchitecture)' == 'Unspecified'">Default</ResolvedQuantumInstructionSet>
     <!-- path compatible assembly name -->
     <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
     <!-- output path for files generated during compilation -->
