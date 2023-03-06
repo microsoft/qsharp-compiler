@@ -133,8 +133,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 ("test7", "net461"),
                 ("test8", null),
                 ("test9", "netcoreapp3.1"),
-                ("test10", "netcoreapp3.1"),
-                ("test11", "netcoreapp3.1"),
+                ("test10", "net6.0"),
+                ("test11", "net6.0"),
                 ("test12", "netstandard2.1"),
                 ("test13", "net6.0"),
             };
