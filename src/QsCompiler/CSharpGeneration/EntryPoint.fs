@@ -401,6 +401,7 @@ let private driverSettings context =
         namedArg "defaultExecutionTarget" <| defaultExecutionTarget
         namedArg "targetCapability" <| targetCapability
         namedArg "createDefaultCustomSimulator" <| customSimulatorFactory defaultSimulator
+        namedArg "resourcesEstimatorName" <| literal ""
     ]
     |> SyntaxFactory.SeparatedList
     |> SyntaxFactory.ArgumentList
