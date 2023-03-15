@@ -273,7 +273,6 @@ module AssemblyConstants =
     let QuantumSimulator = "QuantumSimulator"
     let SparseSimulator = "SparseSimulator"
     let ToffoliSimulator = "ToffoliSimulator"
-    let ResourcesEstimator = "ResourcesEstimator"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
     let QirOutputPath = "QirOutputPath"
     let PerfDataOutputPath = "PerfDataOutputPath"
@@ -293,7 +292,6 @@ module CommandLineArguments =
             AssemblyConstants.QuantumSimulator
             AssemblyConstants.SparseSimulator
             AssemblyConstants.ToffoliSimulator
-            AssemblyConstants.ResourcesEstimator
         ]
         |> ImmutableHashSet.CreateRange
 
