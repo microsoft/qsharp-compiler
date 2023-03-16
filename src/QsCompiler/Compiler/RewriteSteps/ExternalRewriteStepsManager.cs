@@ -45,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler
                     ? ImmutableDictionary.CreateRange(new[]
                     {
                         KeyValuePair.Create(AssemblyConstants.ExecutionTarget, "Any"),
-                        KeyValuePair.Create(AssemblyConstants.ProcessorArchitecture, "Unspecified"),
+                        KeyValuePair.Create(AssemblyConstants.ProcessorArchitecture, "++Unspecified++"),
                         KeyValuePair.Create(AssemblyConstants.TargetCapability, TargetCapabilityModule.Top.Name),
                     })
                     : ImmutableDictionary<string, string>.Empty;

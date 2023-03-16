@@ -101,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.BuildProperties.TryGetValue(MSBuildProperties.ResolvedProcessorArchitecture, out var architecture)
             && !string.IsNullOrEmpty(architecture)
                 ? architecture
-                : "Unspecified";
+                : "--Unspecified--";
 
         /// <summary>
         /// Returns true if the <see cref="MSBuildProperties.ResolvedQsharpOutputType"/> indicates that
