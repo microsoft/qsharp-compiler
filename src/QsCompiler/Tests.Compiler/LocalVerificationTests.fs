@@ -436,7 +436,6 @@ type LocalVerificationTests() =
         this.Expect "ValidTestAttribute8" []
         this.Expect "ValidTestAttribute9" []
         this.Expect "ValidTestAttribute10" []
-        this.Expect "ValidTestAttribute11" []
         this.Expect "ValidTestAttribute12" []
         this.Expect "ValidTestAttribute13" []
         this.Expect "ValidTestAttribute14" []

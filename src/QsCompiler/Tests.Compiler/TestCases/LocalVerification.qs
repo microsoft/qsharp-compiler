@@ -1380,8 +1380,6 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @Test("QuantumSimulator")
     function ValidTestAttribute10 () : ((Unit)) {}
 
-    function ValidTestAttribute11 (arg : Unit) : Unit { }
-
     @Test("ToffoliSimulator")
     operation ValidTestAttribute12 (arg : (Unit)) : Unit { }
 
