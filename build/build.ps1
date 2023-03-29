@@ -137,7 +137,7 @@ function Build-VS() {
 $all_ok = $True
 
 Build-One '../QsCompiler.sln'
-Build-One '../examples/QIR/QIR.sln'
+#Build-One '../examples/QIR/QIR.sln'
 Build-One '../src/QuantumSdk/Tools/Tools.sln'
 Build-One '../src/Telemetry/Telemetry.sln'
 Build-One '../QsFmt.sln'
