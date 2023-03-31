@@ -147,6 +147,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static Task<SimpleBinaryDeserializer> QueueSimpleBinaryDeserializerInitialization()
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
+            DeserializerControls.Active.MaxDepth = 1024;
 
             // inlineNested is false in order to decrease the time needed to initialize the deserializer.
             // While this setting may also increase deserialization time, we did not notice any performance drawbacks with our Bond schemas.
