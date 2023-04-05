@@ -1,0 +1,5 @@
+###############################################################################
+# Prevent GitHub from excluding the build/ directory from the file finder.
+# See: https://docs.github.com/en/search-github/searching-on-github/finding-files-on-github
+###############################################################################
+build/** linguist-generated=false
