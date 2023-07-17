@@ -145,8 +145,9 @@ namespace Microsoft.Quantum.Documentation
                 ["title"] = title,
 
                 // docs.ms metadata
-                ["ms.date"] = DateTime.Today.ToString(),
+                ["ms.date"] = DateTime.Today.ToString("MM/dd/yyyy"),
                 ["ms.topic"] = "managed-reference",
+                ["ms.author"] = "quantumdocwriters",
 
                 // Q# metadata
                 ["qsharp.kind"] = "namespace",
