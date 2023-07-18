@@ -23,6 +23,6 @@ jobs:
       - name: 'Trigger QDK sync build'
         uses: Azure/pipelines@releases/v1
         with:
-          azure-devops-project-url: 'https://dev.azure.com/ms-quantum-public/Microsoft Quantum (public)'
-          azure-pipeline-name: 'microsoft.qdk.sync' 
+          azure-devops-project-url: 'https://pkgs.dev.azure.com/ms-quantum-public/9af4e09e-a436-4aca-9559-2094cfe8d80c'
+          azure-pipeline-name: 'microsoft.qdk.sync'
           azure-devops-token: ${{ steps.AzureKeyVault.outputs.qdkBuildPAT }}
