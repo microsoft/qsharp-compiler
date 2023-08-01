@@ -145,8 +145,10 @@ namespace Microsoft.Quantum.Documentation
                 ["title"] = title,
 
                 // docs.ms metadata
-                ["ms.date"] = DateTime.Today.ToString(),
+                ["ms.date"] = DateTime.Today.ToString("MM/dd/yyyy"),
                 ["ms.topic"] = "managed-reference",
+                ["ms.author"] = "quantumdocwriters",
+                ["description"] = docComment.Summary,
 
                 // Q# metadata
                 ["qsharp.kind"] = "namespace",
@@ -194,8 +196,10 @@ namespace Microsoft.Quantum.Documentation
                 ["title"] = title,
 
                 // docs.ms metadata
-                ["ms.date"] = DateTime.Today.ToString(),
+                ["ms.date"] = DateTime.Today.ToString("MM/dd/yyyy"),
                 ["ms.topic"] = "managed-reference",
+                ["ms.author"] = "quantumdocwriters",
+                ["description"] = docComment.Summary,
 
                 // Q# metadata
                 ["qsharp.kind"] = "udt",
@@ -272,8 +276,10 @@ Namespace: [{type.FullName.Namespace}](xref:{type.FullName.Namespace})
                 ["title"] = title,
 
                 // docs.ms metadata
-                ["ms.date"] = DateTime.Today.ToString(),
+                ["ms.date"] = DateTime.Today.ToString("MM/dd/yyyy"),
                 ["ms.topic"] = "managed-reference",
+                ["ms.author"] = "quantumdocwriters",
+                ["description"] = docComment.Summary,
 
                 // Q# metadata
                 ["qsharp.kind"] = kind,
