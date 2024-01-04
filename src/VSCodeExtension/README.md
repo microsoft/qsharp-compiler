@@ -1,9 +1,11 @@
 # Microsoft Quantum Development Kit
 
-## DEPRECATED
+## DEPRECATION NOTICE
 
-**This is extension is deprecated. For the latest Q# development experience, please use the [Azure Quantum Development Kit](https://marketplace.visualstudio.com/items?itemName=quantum.qsharp-lang-vscode).**
+**This is extension is deprecated.** 
 
-You can try out the Azure Quantum Development Kit extension at [vscode.dev/quantum](http://vscode.dev/quantum).
+For the latest Q# and Azure Quantum development experience, please use the Azure Quantum Development Kit (Modern QDK) [VS Code extension](https://marketplace.visualstudio.com/items?itemName=quantum.qsharp-lang-vscode).
 
-For more information on Azure Quantum, visit http://quantum.microsoft.com
+You can also try out the Modern QDK in VS Code for Web at [vscode.dev/quantum](http://vscode.dev/quantum).
+
+For more information about the Modern QDK and Azure Quantum, visit https://aka.ms/AQ/Documentation
