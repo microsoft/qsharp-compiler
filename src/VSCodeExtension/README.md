@@ -2,7 +2,7 @@
 
 ## DEPRECATION NOTICE
 
-**This is extension is deprecated.** 
+**This extension is deprecated.** 
 
 For the latest Q# and Azure Quantum development experience, please use the Azure Quantum Development Kit (Modern QDK) [VS Code extension](https://marketplace.visualstudio.com/items?itemName=quantum.qsharp-lang-vscode).
 
