@@ -4,7 +4,7 @@
 
 For the Modern QDK repository, please visit [Microsoft/qsharp](http://github.com/microsoft/qsharp).
 
-You can also try out the Modern QDK in VS Code for Web at [vscode.dev/quantum](http://vscode.dev/quantum).
+You can also try out the Modern QDK in VS Code for Web at [vscode.dev/quantum](https://vscode.dev/quantum).
 
 For more information about the Modern QDK and Azure Quantum, visit [https://aka.ms/AQ/Documentation](https://aka.ms/AQ/Documentation).
 
