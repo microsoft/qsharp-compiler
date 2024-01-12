@@ -2,7 +2,8 @@
 
 **This repository is deprecated.** 
 
-For the Modern QDK repository, please visit [Microsoft/qsharp](http://github.com/microsoft/qsharp).
+For the Modern QDK repository, please visit [Microsoft/qsharp](https://github.com/microsoft/qsharp).
+
 
 You can also try out the Modern QDK in VS Code for Web at [vscode.dev/quantum](https://vscode.dev/quantum).
 
