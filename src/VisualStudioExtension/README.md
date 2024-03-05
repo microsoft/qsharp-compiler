@@ -1,6 +1,6 @@
-# Microsoft Quantum Development Kit
+# Microsoft Quantum Development Kit (Visual Studio 2022)
 
-Thank you for your interest in Microsoft's Quantum Development Kit for Visual Studio.
+Thank you for your interest in Microsoft's Quantum Development Kit for Visual Studio 2022.
 The Quantum Development Kit contains the tools you'll need to build your own quantum computing programs and experiments.
 Assuming some experience with Visual Studio, beginners can write their first quantum program, and experienced researchers can quickly and efficiently develop new quantum algorithms.
 
